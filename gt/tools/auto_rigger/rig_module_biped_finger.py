@@ -307,7 +307,7 @@ class ModuleBipedFingers(ModuleGeneric):
         for uuid, description in proxy_dict.items():
             metadata = description.get("metadata")
             if metadata:
-                meta_type = metadata.get(RiggerConstants.PROXY_META_PURPOSE)
+                meta_type = metadata.get(RiggerConstants.META_PROXY_PURPOSE)
                 if meta_type and self.tag_thumb in meta_type:
                     _thumb = True
                 elif meta_type and self.tag_index in meta_type:

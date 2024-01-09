@@ -55,18 +55,18 @@ class ModuleBipedLeg(ModuleGeneric):
         self.knee = Proxy(name=knee_name)
         self.knee.set_curve(curve=get_curve('_proxy_joint_arrow_pos_z'))
         self.knee.set_locator_scale(scale=2)
-        self.knee.add_meta_parent(line_parent=self.hip)
+        self.knee.add_line_parent(line_parent=self.hip)
         self.knee.set_parent_uuid(uuid=self.hip.get_uuid())
         self.knee.set_meta_purpose(value="knee")
 
         self.ankle = Proxy(name=ankle_name)
         self.ankle.set_locator_scale(scale=2)
-        self.ankle.add_meta_parent(line_parent=self.knee)
+        self.ankle.add_line_parent(line_parent=self.knee)
         self.ankle.set_meta_purpose(value="ankle")
 
         self.ball = Proxy(name=ball_name)
         self.ball.set_locator_scale(scale=2)
-        self.ball.add_meta_parent(line_parent=self.ankle)
+        self.ball.add_line_parent(line_parent=self.ankle)
         self.ball.set_parent_uuid(uuid=self.ankle.get_uuid())
         self.ball.set_meta_purpose(value="ball")
 
@@ -78,7 +78,7 @@ class ModuleBipedLeg(ModuleGeneric):
 
         self.heel = Proxy(name=heel_name)
         self.heel.set_locator_scale(scale=1)
-        self.heel.add_meta_parent(line_parent=self.ankle)
+        self.heel.add_line_parent(line_parent=self.ankle)
         self.heel.add_color(rgb_color=ColorConstants.RigProxy.PIVOT)
         self.heel.set_meta_purpose(value="heel")
 
@@ -163,7 +163,7 @@ class ModuleBipedLeg(ModuleGeneric):
         When in a project, this runs after the "build_proxy" is done in all modules.
         """
         # Get Maya Elements
-        root = find_objects_with_attr(RiggerConstants.REF_ROOT_PROXY_ATTR)
+        root = find_objects_with_attr(RiggerConstants.REF_ATTR_ROOT_PROXY)
         hip = find_proxy_from_uuid(self.hip.get_uuid())
         knee = find_proxy_from_uuid(self.knee.get_uuid())
         ankle = find_proxy_from_uuid(self.ankle.get_uuid())

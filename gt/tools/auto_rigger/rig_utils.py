@@ -32,7 +32,7 @@ def find_proxy_from_uuid(uuid_string):
         Node or None: If found, the proxy with the matching UUID, otherwise None
     """
     proxy = get_object_from_uuid_attr(uuid_string=uuid_string,
-                                      attr_name=RiggerConstants.PROXY_ATTR_UUID,
+                                      attr_name=RiggerConstants.ATTR_PROXY_UUID,
                                       obj_type="transform")
     if proxy:
         return Node(proxy)
@@ -47,7 +47,7 @@ def find_joint_from_uuid(uuid_string):
         Node or None: If found, the joint with the matching UUID, otherwise None
     """
     joint = get_object_from_uuid_attr(uuid_string=uuid_string,
-                                      attr_name=RiggerConstants.JOINT_ATTR_UUID,
+                                      attr_name=RiggerConstants.ATTR_JOINT_UUID,
                                       obj_type="joint")
     if joint:
         return Node(joint)
@@ -62,7 +62,7 @@ def find_driver_from_uuid(uuid_string):
         Node or None: If found, the joint with the matching UUID, otherwise None
     """
     driver = get_object_from_uuid_attr(uuid_string=uuid_string,
-                                       attr_name=RiggerConstants.DRIVER_ATTR_UUID,
+                                       attr_name=RiggerConstants.ATTR_DRIVER_UUID,
                                        obj_type="transform")
     if driver:
         return Node(driver)
@@ -95,7 +95,7 @@ def find_proxy_root_group():
     Returns:
         Node or None: The existing root group (top proxy parent), otherwise None.
     """
-    return find_objects_with_attr(RiggerConstants.REF_ROOT_PROXY_ATTR, obj_type="transform")
+    return find_objects_with_attr(RiggerConstants.REF_ATTR_ROOT_PROXY, obj_type="transform")
 
 
 def find_rig_root_group():
@@ -105,7 +105,7 @@ def find_rig_root_group():
     Returns:
         Node or None: The existing rig group (top rig parent), otherwise None.
     """
-    return find_objects_with_attr(RiggerConstants.REF_ROOT_RIG_ATTR, obj_type="transform")
+    return find_objects_with_attr(RiggerConstants.REF_ATTR_ROOT_RIG, obj_type="transform")
 
 
 def find_control_root_curve(use_transform=False):
@@ -122,7 +122,7 @@ def find_control_root_curve(use_transform=False):
     obj_type = "nurbsCurve"
     if use_transform:
         obj_type = "transform"
-    return find_objects_with_attr(RiggerConstants.REF_ROOT_CONTROL_ATTR, obj_type=obj_type)
+    return find_objects_with_attr(RiggerConstants.REF_ATTR_ROOT_CONTROL, obj_type=obj_type)
 
 
 def find_direction_curve(use_transform=False):
@@ -139,7 +139,7 @@ def find_direction_curve(use_transform=False):
     obj_type = "nurbsCurve"
     if use_transform:
         obj_type = "transform"
-    return find_objects_with_attr(RiggerConstants.REF_DIR_CURVE_ATTR, obj_type=obj_type)
+    return find_objects_with_attr(RiggerConstants.REF_ATTR_DIR_CURVE, obj_type=obj_type)
 
 
 def find_proxy_root_curve(use_transform=False):
@@ -156,7 +156,7 @@ def find_proxy_root_curve(use_transform=False):
     obj_type = "nurbsCurve"
     if use_transform:
         obj_type = "transform"
-    return find_objects_with_attr(RiggerConstants.REF_ROOT_PROXY_ATTR, obj_type=obj_type)
+    return find_objects_with_attr(RiggerConstants.REF_ATTR_ROOT_PROXY, obj_type=obj_type)
 
 
 def find_skeleton_group():
@@ -165,7 +165,7 @@ def find_skeleton_group():
     Returns:
         Node or None: The existing skeleton group, otherwise None.
     """
-    return find_objects_with_attr(RiggerConstants.REF_SKELETON_ATTR, obj_type="transform")
+    return find_objects_with_attr(RiggerConstants.REF_ATTR_SKELETON, obj_type="transform")
 
 
 def find_setup_group():
@@ -174,7 +174,7 @@ def find_setup_group():
     Returns:
         Node or None: The existing setup group, otherwise None.
     """
-    return find_objects_with_attr(RiggerConstants.REF_SETUP_ATTR, obj_type="transform")
+    return find_objects_with_attr(RiggerConstants.REF_ATTR_SETUP, obj_type="transform")
 
 
 def find_vis_lines_from_uuid(parent_uuid=None, child_uuid=None):
@@ -187,19 +187,19 @@ def find_vis_lines_from_uuid(parent_uuid=None, child_uuid=None):
         tuple: A tuple of detected lines containing the requested parent or child uuids. Empty tuple otherwise.
     """
     # Try the group first to save time.
-    lines_grp = find_objects_with_attr(attr_name=RiggerConstants.REF_LINES_ATTR)
+    lines_grp = find_objects_with_attr(attr_name=RiggerConstants.REF_ATTR_LINES)
     _lines = set()
     if lines_grp:
         _children = cmds.listRelatives(str(lines_grp), children=True, fullPath=True) or []
         for child in _children:
-            if not cmds.objExists(f'{child}.{RiggerConstants.LINE_ATTR_PARENT_UUID}'):
+            if not cmds.objExists(f'{child}.{RiggerConstants.ATTR_LINE_PARENT_UUID}'):
                 continue
             if parent_uuid:
-                existing_uuid = cmds.getAttr(f'{child}.{RiggerConstants.LINE_ATTR_PARENT_UUID}')
+                existing_uuid = cmds.getAttr(f'{child}.{RiggerConstants.ATTR_LINE_PARENT_UUID}')
                 if existing_uuid == parent_uuid:
                     _lines.add(Node(child))
             if child_uuid:
-                existing_uuid = cmds.getAttr(f'{child}.{RiggerConstants.LINE_ATTR_CHILD_UUID}')
+                existing_uuid = cmds.getAttr(f'{child}.{RiggerConstants.ATTR_LINE_CHILD_UUID}')
                 if existing_uuid == child_uuid:
                     _lines.add(Node(child))
     if _lines:
@@ -211,15 +211,15 @@ def find_vis_lines_from_uuid(parent_uuid=None, child_uuid=None):
         _parent = cmds.listRelatives(obj, parent=True, fullPath=True) or []
         if _parent:
             obj = _parent[0]
-        if cmds.objExists(f'{obj}.{RiggerConstants.LINE_ATTR_PARENT_UUID}'):
+        if cmds.objExists(f'{obj}.{RiggerConstants.ATTR_LINE_PARENT_UUID}'):
             valid_items.add(Node(obj))
     for item in valid_items:
         if parent_uuid:
-            existing_uuid = cmds.getAttr(f'{item}.{RiggerConstants.LINE_ATTR_PARENT_UUID}')
+            existing_uuid = cmds.getAttr(f'{item}.{RiggerConstants.ATTR_LINE_PARENT_UUID}')
             if existing_uuid == parent_uuid:
                 _lines.add(Node(child))
         if child_uuid:
-            existing_uuid = cmds.getAttr(f'{item}.{RiggerConstants.LINE_ATTR_CHILD_UUID}')
+            existing_uuid = cmds.getAttr(f'{item}.{RiggerConstants.ATTR_LINE_CHILD_UUID}')
             if existing_uuid == child_uuid:
                 _lines.add(Node(child))
     return tuple(_lines)
@@ -257,9 +257,9 @@ def create_proxy_visualization_lines(proxy_list, lines_parent=None):
         # Check for Meta Parent - OVERWRITES parent!
         metadata = proxy.get_metadata()
         if metadata:
-            meta_parent = metadata.get(RiggerConstants.PROXY_META_PARENT, None)
-            if meta_parent:
-                parent_proxy = find_proxy_from_uuid(meta_parent)
+            line_parent = metadata.get(RiggerConstants.META_PROXY_LINE_PARENT, None)
+            if line_parent:
+                parent_proxy = find_proxy_from_uuid(line_parent)
 
         # Create Line
         if built_proxy and parent_proxy and cmds.objExists(built_proxy) and cmds.objExists(parent_proxy):
@@ -271,14 +271,14 @@ def create_proxy_visualization_lines(proxy_list, lines_parent=None):
                 if line_objects:
                     line_crv = line_objects[0]
                     add_attr(obj_list=line_crv,
-                             attributes=RiggerConstants.LINE_ATTR_CHILD_UUID,
+                             attributes=RiggerConstants.ATTR_LINE_CHILD_UUID,
                              attr_type="string")
-                    set_attr(attribute_path=f'{line_crv}.{RiggerConstants.LINE_ATTR_CHILD_UUID}',
+                    set_attr(attribute_path=f'{line_crv}.{RiggerConstants.ATTR_LINE_CHILD_UUID}',
                              value=proxy.get_uuid())
                     add_attr(obj_list=line_crv,
-                             attributes=RiggerConstants.LINE_ATTR_PARENT_UUID,
+                             attributes=RiggerConstants.ATTR_LINE_PARENT_UUID,
                              attr_type="string")
-                    set_attr(attribute_path=f'{line_crv}.{RiggerConstants.LINE_ATTR_PARENT_UUID}',
+                    set_attr(attribute_path=f'{line_crv}.{RiggerConstants.ATTR_LINE_PARENT_UUID}',
                              value=proxy.get_parent_uuid())
             except Exception as e:
                 logger.debug(f'Failed to create visualization line. Issue: {str(e)}')
@@ -316,11 +316,11 @@ def create_root_group(is_proxy=False):
         is_proxy (bool, optional): If True, it will create the proxy group, instead of the main rig group
     """
     _name = RiggerConstants.GRP_RIG_NAME
-    _attr = RiggerConstants.REF_ROOT_RIG_ATTR
+    _attr = RiggerConstants.REF_ATTR_ROOT_RIG
     _color = ColorConstants.RigOutliner.GRP_ROOT_RIG
     if is_proxy:
         _name = RiggerConstants.GRP_PROXY_NAME
-        _attr = RiggerConstants.REF_ROOT_PROXY_ATTR
+        _attr = RiggerConstants.REF_ATTR_ROOT_PROXY
         _color = ColorConstants.RigOutliner.GRP_ROOT_PROXY
     root_group = cmds.group(name=_name, empty=True, world=True)
     root_group = Node(root_group)
@@ -341,7 +341,7 @@ def create_proxy_root_curve():
     hide_lock_default_attrs(obj_list=root_transform, scale=False)
     add_separator_attr(target_object=root_transform, attr_name=f'proxy{RiggerConstants.SEPARATOR_STD_SUFFIX}')
     add_attr(obj_list=root_transform, attr_type="string", is_keyable=False,
-             attributes=RiggerConstants.REF_ROOT_PROXY_ATTR, verbose=True)
+             attributes=RiggerConstants.REF_ATTR_ROOT_PROXY, verbose=True)
 
     set_curve_width(obj_list=root_transform, line_width=2)
     return Node(root_transform)
@@ -356,7 +356,7 @@ def create_control_root_curve():
     root_transform = create_root_curve(name=f'root_{NamingConstants.Suffix.CTRL}')
     add_separator_attr(target_object=root_transform, attr_name=f'rig{RiggerConstants.SEPARATOR_STD_SUFFIX}')
     add_attr(obj_list=root_transform, attr_type="string", is_keyable=False,
-             attributes=RiggerConstants.REF_ROOT_CONTROL_ATTR, verbose=True)
+             attributes=RiggerConstants.REF_ATTR_ROOT_CONTROL, verbose=True)
     set_curve_width(obj_list=root_transform, line_width=3)
     set_color_viewport(obj_list=root_transform, rgb_color=ColorConstants.RigControl.ROOT)
     return Node(root_transform)
@@ -391,7 +391,7 @@ def create_direction_curve():
     cmds.rebuildCurve(direction_crv, ch=False, rpo=1, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=20, d=3, tol=0.01)
     add_separator_attr(target_object=direction_crv, attr_name=f'rig{RiggerConstants.SEPARATOR_STD_SUFFIX}')
     add_attr(obj_list=direction_crv, attr_type="string", is_keyable=False,
-             attributes=RiggerConstants.REF_DIR_CURVE_ATTR, verbose=True)
+             attributes=RiggerConstants.REF_ATTR_DIR_CURVE, verbose=True)
     set_color_viewport(obj_list=direction_crv, rgb_color=ColorConstants.RigControl.CENTER)
     return Node(direction_crv)
 
@@ -416,23 +416,23 @@ def create_utility_groups(geometry=False, skeleton=False, control=False,
     if geometry:
         _name = RiggerConstants.GRP_GEOMETRY_NAME
         _color = ColorConstants.RigOutliner.GRP_GEOMETRY
-        desired_groups[RiggerConstants.REF_GEOMETRY_ATTR] = (_name, _color)
+        desired_groups[RiggerConstants.REF_ATTR_GEOMETRY] = (_name, _color)
     if skeleton:
         _name = RiggerConstants.GRP_SKELETON_NAME
         _color = ColorConstants.RigOutliner.GRP_SKELETON
-        desired_groups[RiggerConstants.REF_SKELETON_ATTR] = (_name, _color)
+        desired_groups[RiggerConstants.REF_ATTR_SKELETON] = (_name, _color)
     if control:
         _name = RiggerConstants.GRP_CONTROL_NAME
         _color = ColorConstants.RigOutliner.GRP_CONTROL
-        desired_groups[RiggerConstants.REF_CONTROL_ATTR] = (_name, _color)
+        desired_groups[RiggerConstants.REF_ATTR_CONTROL] = (_name, _color)
     if setup:
         _name = RiggerConstants.GRP_SETUP_NAME
         _color = ColorConstants.RigOutliner.GRP_SETUP
-        desired_groups[RiggerConstants.REF_SETUP_ATTR] = (_name, _color)
+        desired_groups[RiggerConstants.REF_ATTR_SETUP] = (_name, _color)
     if line:
         _name = RiggerConstants.GRP_LINE_NAME
         _color = None
-        desired_groups[RiggerConstants.REF_LINES_ATTR] = (_name, _color)
+        desired_groups[RiggerConstants.REF_ATTR_LINES] = (_name, _color)
 
     group_dict = {}
     for attr, (name, color) in desired_groups.items():
@@ -494,7 +494,7 @@ def get_meta_purpose_from_dict(proxy_dict):
         string or None: The meta type string or None when not detected/found.
     """
     if proxy_dict:
-        meta_type = proxy_dict.get(RiggerConstants.PROXY_META_PURPOSE)
+        meta_type = proxy_dict.get(RiggerConstants.META_PROXY_PURPOSE)
         return meta_type
 
 
@@ -590,7 +590,7 @@ def get_driven_joint(uuid_string, suffix=NamingConstants.Suffix.DRIVEN, constrai
 
     """
     driven_jnt = get_object_from_uuid_attr(uuid_string=uuid_string,
-                                           attr_name=RiggerConstants.JOINT_ATTR_DRIVEN_UUID,
+                                           attr_name=RiggerConstants.ATTR_JOINT_DRIVEN_UUID,
                                            obj_type="joint")
     if not driven_jnt:
         source_jnt = find_joint_from_uuid(uuid_string)
@@ -598,8 +598,8 @@ def get_driven_joint(uuid_string, suffix=NamingConstants.Suffix.DRIVEN, constrai
             return
         driven_jnt = duplicate_joint_for_automation(joint=source_jnt, suffix=suffix)
         delete_user_defined_attrs(obj_list=driven_jnt)
-        add_attr(obj_list=driven_jnt, attr_type="string", attributes=RiggerConstants.JOINT_ATTR_DRIVEN_UUID)
-        set_attr(attribute_path=f'{driven_jnt}.{RiggerConstants.JOINT_ATTR_DRIVEN_UUID}', value=uuid_string)
+        add_attr(obj_list=driven_jnt, attr_type="string", attributes=RiggerConstants.ATTR_JOINT_DRIVEN_UUID)
+        set_attr(attribute_path=f'{driven_jnt}.{RiggerConstants.ATTR_JOINT_DRIVEN_UUID}', value=uuid_string)
         if constraint_to_source:
             constraint = cmds.parentConstraint(source_jnt, driven_jnt)
             cmds.setAttr(constraint[0] + '.interpType', 0)  # Set to No Flip
@@ -623,8 +623,13 @@ def rescale_joint_radius(joint_list, multiplier):
         cmds.setAttr(f'{jnt}.radius', scaled_radius)
 
 
+def get_drivers_from_joint(source_joint=None):
+    print(source_joint)
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     # cmds.file(new=True, force=True)
     # cmds.viewFit(all=True)
-    create_direction_curve()
+    # create_direction_curve()
+    get_drivers_from_joint()

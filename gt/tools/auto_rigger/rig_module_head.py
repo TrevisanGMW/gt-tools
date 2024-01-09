@@ -120,7 +120,7 @@ class ModuleHead(ModuleGeneric):
                 new_neck_mid.set_locator_scale(scale=1)
                 new_neck_mid.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
                 new_neck_mid.set_meta_purpose(value=_neck_mid_name)
-                new_neck_mid.add_meta_parent(line_parent=_parent_uuid)
+                new_neck_mid.add_line_parent(line_parent=_parent_uuid)
                 new_neck_mid.set_parent_uuid(uuid=_parent_uuid)
                 _parent_uuid = new_neck_mid.get_uuid()
                 self.neck_mid_list.append(new_neck_mid)
@@ -129,9 +129,9 @@ class ModuleHead(ModuleGeneric):
             self.neck_mid_list = self.neck_mid_list[:neck_mid_num]  # Truncate the list
 
         if self.neck_mid_list:
-            self.head.add_meta_parent(line_parent=self.neck_mid_list[-1].get_uuid())
+            self.head.add_line_parent(line_parent=self.neck_mid_list[-1].get_uuid())
         else:
-            self.head.add_meta_parent(line_parent=self.neck_base.get_uuid())
+            self.head.add_line_parent(line_parent=self.neck_base.get_uuid())
 
         self.refresh_proxies_list()
 
@@ -174,7 +174,7 @@ class ModuleHead(ModuleGeneric):
         for uuid, description in proxy_dict.items():
             metadata = description.get("metadata")
             if metadata:
-                meta_type = metadata.get(RiggerConstants.PROXY_META_PURPOSE)
+                meta_type = metadata.get(RiggerConstants.META_PROXY_PURPOSE)
                 if bool(re.match(neck_mid_pattern, meta_type)):
                     _neck_mid_num += 1
         self.set_mid_neck_num(_neck_mid_num)

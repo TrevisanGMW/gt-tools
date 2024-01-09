@@ -80,7 +80,7 @@ class ModuleSpine(ModuleGeneric):
                 new_spine.set_locator_scale(scale=1)
                 new_spine.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
                 new_spine.set_meta_purpose(value=f'spine{str(num + 1).zfill(2)}')
-                new_spine.add_meta_parent(line_parent=_parent_uuid)
+                new_spine.add_line_parent(line_parent=_parent_uuid)
                 new_spine.set_parent_uuid(uuid=_parent_uuid)
                 _parent_uuid = new_spine.get_uuid()
                 self.spines.append(new_spine)
@@ -89,9 +89,9 @@ class ModuleSpine(ModuleGeneric):
             self.spines = self.spines[:spine_num]  # Truncate the list
 
         if self.spines:
-            self.chest.add_meta_parent(line_parent=self.spines[-1].get_uuid())
+            self.chest.add_line_parent(line_parent=self.spines[-1].get_uuid())
         else:
-            self.chest.add_meta_parent(line_parent=self.hip.get_uuid())
+            self.chest.add_line_parent(line_parent=self.hip.get_uuid())
 
         self.refresh_proxies_list()
 
@@ -129,7 +129,7 @@ class ModuleSpine(ModuleGeneric):
         for uuid, description in proxy_dict.items():
             metadata = description.get("metadata")
             if metadata:
-                meta_type = metadata.get(RiggerConstants.PROXY_META_PURPOSE)
+                meta_type = metadata.get(RiggerConstants.META_PROXY_PURPOSE)
                 if bool(re.match(spine_pattern, meta_type)):
                     _spine_num += 1
         self.set_spine_num(_spine_num)
@@ -259,11 +259,9 @@ class ModuleSpine(ModuleGeneric):
 
         out_find_driver = self.find_driver(driver_type=RiggerDriverTypes.FK, proxy_purpose=self.hip)
         out_find_module_drivers = self.find_module_drivers()
-        out_get_meta_purpose = self.hip.get_meta_purpose()
         out_find_proxy_drivers = self.find_proxy_drivers(proxy=self.hip, as_dict=True)
         print(f"out_find_driver:{out_find_driver}")
         print(f"out_find_module_drivers:{out_find_module_drivers}")
-        print(f"out_get_meta_purpose:{out_get_meta_purpose}")
         print(f"out_find_proxy_drivers:{out_find_proxy_drivers}")
 
 

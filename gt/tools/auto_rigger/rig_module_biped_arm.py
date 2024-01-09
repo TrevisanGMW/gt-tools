@@ -67,14 +67,14 @@ class ModuleBipedArm(ModuleGeneric):
         self.elbow.set_curve(curve=get_curve('_proxy_joint_arrow_neg_z'))
         self.elbow.set_initial_position(xyz=pos_elbow)
         self.elbow.set_locator_scale(scale=2.2)
-        self.elbow.add_meta_parent(line_parent=self.shoulder)
+        self.elbow.add_line_parent(line_parent=self.shoulder)
         self.elbow.set_meta_purpose(value="elbow")
 
         self.wrist = Proxy(name=wrist_name)
         self.wrist.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.wrist.set_initial_position(xyz=pos_wrist)
         self.wrist.set_locator_scale(scale=2)
-        self.wrist.add_meta_parent(line_parent=self.elbow)
+        self.wrist.add_line_parent(line_parent=self.elbow)
         self.wrist.set_meta_purpose(value="wrist")
 
         # Update Proxies
@@ -144,7 +144,7 @@ class ModuleBipedArm(ModuleGeneric):
         When in a project, this runs after the "build_proxy" is done in all modules.
         """
         # Get Maya Elements
-        root = find_objects_with_attr(RiggerConstants.REF_ROOT_PROXY_ATTR)
+        root = find_objects_with_attr(RiggerConstants.REF_ATTR_ROOT_PROXY)
         clavicle = find_proxy_from_uuid(self.clavicle.get_uuid())
         shoulder = find_proxy_from_uuid(self.shoulder.get_uuid())
         elbow = find_proxy_from_uuid(self.elbow.get_uuid())

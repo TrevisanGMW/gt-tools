@@ -372,9 +372,9 @@ class Proxy:
 
         add_separator_attr(target_object=proxy_crv, attr_name=f'proxy{RiggerConstants.SEPARATOR_STD_SUFFIX}')
         uuid_attrs = add_uuid_attr(obj_list=proxy_crv,
-                                   attr_name=RiggerConstants.PROXY_ATTR_UUID,
+                                   attr_name=RiggerConstants.ATTR_PROXY_UUID,
                                    set_initial_uuid_value=False)
-        scale_attr = add_attr(obj_list=proxy_crv, attributes=RiggerConstants.PROXY_ATTR_SCALE, default=1) or []
+        scale_attr = add_attr(obj_list=proxy_crv, attributes=RiggerConstants.ATTR_PROXY_SCALE, default=1) or []
         loc_scale_cluster = None
         if not optimized and scale_attr and len(scale_attr) == 1:
             scale_attr = scale_attr[0]
@@ -653,9 +653,9 @@ class Proxy:
             self.metadata = {}
         self.metadata[key] = value
 
-    def add_meta_parent(self, line_parent):
+    def add_line_parent(self, line_parent):
         """
-        Adds a meta parent UUID to the metadata dictionary. Initializes it in case it was not yet initialized.
+        Adds a line parent UUID to the metadata dictionary. Initializes it in case it was not yet initialized.
         This is used to created visualization lines or other elements without actually parenting the element.
         Args:
             line_parent (str, Proxy): New meta parent, if a UUID string. If Proxy, it will get the UUID (get_uuid).
@@ -663,9 +663,9 @@ class Proxy:
         if not self.metadata:  # Initialize metadata in case it was never used.
             self.metadata = {}
         if isinstance(line_parent, str) and is_uuid_valid(line_parent):
-            self.metadata[RiggerConstants.PROXY_META_PARENT] = line_parent
+            self.metadata[RiggerConstants.META_PROXY_LINE_PARENT] = line_parent
         if isinstance(line_parent, Proxy):
-            self.metadata[RiggerConstants.PROXY_META_PARENT] = line_parent.get_uuid()
+            self.metadata[RiggerConstants.META_PROXY_LINE_PARENT] = line_parent.get_uuid()
 
     def add_driver_type(self, driver_type):
         """
@@ -683,19 +683,19 @@ class Proxy:
             self.metadata = {}
         if isinstance(driver_type, str):
             driver_type = [driver_type]
-        new_tags = self.metadata.get(RiggerConstants.PROXY_META_DRIVERS, [])
+        new_tags = self.metadata.get(RiggerConstants.META_PROXY_DRIVERS, [])
         for tag in driver_type:
             if tag and isinstance(tag, str) and tag not in new_tags:
                 new_tags.append(tag)
         if new_tags:
-            self.metadata[RiggerConstants.PROXY_META_DRIVERS] = new_tags
+            self.metadata[RiggerConstants.META_PROXY_DRIVERS] = new_tags
 
     def clear_driver_types(self):
         """
         Clears any driver tags found in the metadata.
         """
         if self.metadata:
-            self.metadata.pop(RiggerConstants.PROXY_META_DRIVERS, None)
+            self.metadata.pop(RiggerConstants.META_PROXY_DRIVERS, None)
 
     def add_color(self, rgb_color):
         """
@@ -774,7 +774,7 @@ class Proxy:
             value (str, optional): Type "tag" used to determine overwrites.
                                    e.g. "hip", so the module knows it's a "hip" proxy.
         """
-        self.add_to_metadata(key=RiggerConstants.PROXY_META_PURPOSE, value=value)
+        self.add_to_metadata(key=RiggerConstants.META_PROXY_PURPOSE, value=value)
 
     def read_data_from_dict(self, proxy_dict):
         """
@@ -831,9 +831,9 @@ class Proxy:
         Returns:
             Proxy: This object (self)
         """
-        ignore_attr_list = [RiggerConstants.PROXY_ATTR_UUID,
-                            RiggerConstants.PROXY_ATTR_SCALE]
-        proxy = get_object_from_uuid_attr(uuid_string=self.uuid, attr_name=RiggerConstants.PROXY_ATTR_UUID)
+        ignore_attr_list = [RiggerConstants.ATTR_PROXY_UUID,
+                            RiggerConstants.ATTR_PROXY_SCALE]
+        proxy = get_object_from_uuid_attr(uuid_string=self.uuid, attr_name=RiggerConstants.ATTR_PROXY_UUID)
         if proxy:
             try:
                 self._initialize_transform()
@@ -876,7 +876,7 @@ class Proxy:
         Returns:
             str or None: The UUID set as meta parent, otherwise, None.
         """
-        return self.get_metadata_value(RiggerConstants.PROXY_META_PARENT)
+        return self.get_metadata_value(RiggerConstants.META_PROXY_LINE_PARENT)
 
     def get_meta_purpose(self):
         """
@@ -884,7 +884,7 @@ class Proxy:
         Returns:
             str or None: The purpose of this proxy as stored in the metadata, otherwise None.
         """
-        return self.get_metadata_value(RiggerConstants.PROXY_META_PURPOSE)
+        return self.get_metadata_value(RiggerConstants.META_PROXY_PURPOSE)
 
     def get_name(self):
         """
@@ -934,7 +934,7 @@ class Proxy:
             list or None: A list of driver types (strings) otherwise None.
         """
         if self.metadata:
-            return self.metadata.get(RiggerConstants.PROXY_META_DRIVERS, None)
+            return self.metadata.get(RiggerConstants.META_PROXY_DRIVERS, None)
 
     def get_proxy_as_dict(self, include_uuid=False, include_transform_data=True, include_offset_data=True):
         """
@@ -1531,8 +1531,8 @@ class ModuleGeneric:
         matches = []
         module_uuid = self.uuid
         for obj in obj_list:
-            if cmds.objExists(f'{obj}.{RiggerConstants.DRIVER_ATTR_UUID}'):
-                uuid_value = cmds.getAttr(f'{obj}.{RiggerConstants.DRIVER_ATTR_UUID}')
+            if cmds.objExists(f'{obj}.{RiggerConstants.ATTR_DRIVER_UUID}'):
+                uuid_value = cmds.getAttr(f'{obj}.{RiggerConstants.ATTR_DRIVER_UUID}')
                 if uuid_value.startswith(module_uuid):
                     matches.append(obj)
         return matches
@@ -1563,8 +1563,8 @@ class ModuleGeneric:
         module_matches = {}
         module_uuid = self.uuid
         for obj in obj_list:
-            if cmds.objExists(f'{obj}.{RiggerConstants.DRIVER_ATTR_UUID}'):
-                uuid_value = cmds.getAttr(f'{obj}.{RiggerConstants.DRIVER_ATTR_UUID}')
+            if cmds.objExists(f'{obj}.{RiggerConstants.ATTR_DRIVER_UUID}'):
+                uuid_value = cmds.getAttr(f'{obj}.{RiggerConstants.ATTR_DRIVER_UUID}')
                 if uuid_value.startswith(module_uuid):
                     module_matches[uuid_value] = Node(obj)
         matches = []
@@ -1668,7 +1668,7 @@ class ModuleGeneric:
             logger.debug(f'Unable to add UUID attribute. Target object is missing.')
             return
         uuid_attr = add_attr(obj_list=target, attr_type="string", is_keyable=False,
-                             attributes=RiggerConstants.DRIVER_ATTR_UUID, verbose=True)[0]
+                             attributes=RiggerConstants.ATTR_DRIVER_UUID, verbose=True)[0]
         if not uuid:
             uuid = generate_uuid(remove_dashes=True)
         set_attr(attribute_path=uuid_attr, value=str(uuid))
@@ -1733,16 +1733,21 @@ class ModuleGeneric:
             locator_scale = proxy.get_locator_scale()
             cmds.setAttr(f'{joint}.radius', locator_scale)
             match_translate(source=proxy_node, target_list=joint)
-
-            # Add proxy data for reference
+            # Add module reference - Module UUID
             add_attr(obj_list=joint,
-                     attributes=RiggerConstants.JOINT_ATTR_UUID,
+                     attributes=RiggerConstants.ATTR_MODULE_UUID,
                      attr_type="string")
-            set_attr(obj_list=joint, attr_list=RiggerConstants.JOINT_ATTR_UUID, value=proxy.get_uuid())
+            set_attr(obj_list=joint, attr_list=RiggerConstants.ATTR_MODULE_UUID, value=self.get_uuid())
+            # Add proxy reference - Proxy UUID
             add_attr(obj_list=joint,
-                     attributes=RiggerConstants.MODULE_ATTR_UUID,
+                     attributes=RiggerConstants.ATTR_JOINT_UUID,
                      attr_type="string")
-            set_attr(obj_list=joint, attr_list=RiggerConstants.MODULE_ATTR_UUID, value=self.get_uuid())
+            set_attr(obj_list=joint, attr_list=RiggerConstants.ATTR_JOINT_UUID, value=proxy.get_uuid())
+            # Add proxy purposes - Meta Purpose
+            add_attr(obj_list=joint,
+                     attributes=RiggerConstants.ATTR_JOINT_UUID,
+                     attr_type="string")
+            set_attr(obj_list=joint, attr_list=RiggerConstants.ATTR_JOINT_UUID, value=proxy.get_uuid())
             set_color_viewport(obj_list=joint, rgb_color=ColorConstants.RigJoint.GENERAL)
             hierarchy_utils.parent(source_objects=joint, target_parent=str(skeleton_grp))
 
@@ -2075,7 +2080,7 @@ class RigProject:
             root_transform = create_proxy_root_curve()
             hierarchy_utils.parent(source_objects=root_transform, target_parent=root_group)
             category_groups = create_utility_groups(line=True, target_parent=root_group)
-            line_grp = category_groups.get(RiggerConstants.REF_LINES_ATTR)
+            line_grp = category_groups.get(RiggerConstants.REF_ATTR_LINES)
             attr_to_activate = ['overrideEnabled', 'overrideDisplayType', "hiddenInOutliner"]
             set_attr(obj_list=line_grp, attr_list=attr_to_activate, value=1)
             add_attr(obj_list=str(root_transform),
@@ -2131,8 +2136,8 @@ class RigProject:
                                                     control=True,
                                                     setup=True,
                                                     target_parent=root_group)
-            control_grp = category_groups.get(RiggerConstants.REF_CONTROL_ATTR)
-            setup_grp = category_groups.get(RiggerConstants.REF_SETUP_ATTR)
+            control_grp = category_groups.get(RiggerConstants.REF_ATTR_CONTROL)
+            setup_grp = category_groups.get(RiggerConstants.REF_ATTR_SETUP)
             set_attr(obj_list=setup_grp, attr_list=['overrideEnabled', 'overrideDisplayType'], value=1)
             hierarchy_utils.parent(source_objects=list(category_groups.values()), target_parent=root_group)
             hierarchy_utils.parent(source_objects=root_ctrl, target_parent=control_grp)
