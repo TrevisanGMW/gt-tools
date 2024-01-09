@@ -995,6 +995,8 @@ class ModuleGeneric:
         if suffix:
             self.set_suffix(suffix)
 
+        self.module_children_drivers = []  # Cached elements to be parented to the "parentUUID" driver
+
     # ------------------------------------------------- Setters -------------------------------------------------
     def set_name(self, name):
         """
@@ -1581,6 +1583,39 @@ class ModuleGeneric:
         if as_dict:
             matches = matches_dict
         return matches
+
+    def _assemble_ctrl_name(self, name, project_prefix=None, overwrite_prefix=None, overwrite_suffix=None):
+        """
+        Assemble a new control name based on the given parameters and module prefix/suffix.
+        This function also automatically adds the control suffix at the end of the generated name.
+        Result pattern: "<project_prefix>_<module_prefix>_<name>_<module_suffix>_<control_suffix>"
+        Args:
+            name (str): The base name of the control.
+            project_prefix (str, optional): Prefix specific to the project. Defaults to None.
+            overwrite_prefix (str, optional): Prefix to overwrite the module's prefix. Defaults to None (use module)
+                                              When provided (even if empty) it will replace the module stored value.
+            overwrite_suffix (str, optional): Suffix to overwrite the module's suffix. Defaults to None (use module)
+                                              When provided (even if empty) it will replace the module stored value.
+
+        Returns:
+            str: The assembled new node name.
+
+        Example:
+            instance._assemble_new_node_name(name='NodeName', project_prefix='Project', overwrite_suffix='Custom')
+            'Project_NodeName_Custom'
+        """
+        _suffix = ''
+        module_suffix = self.suffix
+        if module_suffix:
+            module_suffix = f'{module_suffix}_{NamingConstants.Suffix.CTRL}'
+        if isinstance(overwrite_suffix, str):
+            module_suffix = overwrite_suffix
+        if module_suffix:
+            _suffix = f'_{module_suffix}'
+        return self._assemble_new_node_name(name=name,
+                                            project_prefix=project_prefix,
+                                            overwrite_prefix=overwrite_prefix,
+                                            overwrite_suffix=overwrite_suffix)
 
     def _assemble_new_node_name(self, name, project_prefix=None, overwrite_prefix=None, overwrite_suffix=None):
         """
