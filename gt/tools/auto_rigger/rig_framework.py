@@ -14,11 +14,11 @@ Rigging Steps:
         5: build_rig
         6: build_rig_post
 """
+from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, get_proxy_offset, RiggerConstants, add_driver_to_joint
 from gt.tools.auto_rigger.rig_utils import parent_proxies, create_proxy_root_curve, create_proxy_visualization_lines
 from gt.tools.auto_rigger.rig_utils import find_skeleton_group, create_direction_curve, get_meta_purpose_from_dict
 from gt.tools.auto_rigger.rig_utils import find_driver_from_uuid, find_proxy_from_uuid, create_control_root_curve
 from gt.tools.auto_rigger.rig_utils import create_utility_groups, create_root_group, find_proxy_root_group
-from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, get_proxy_offset, RiggerConstants
 from gt.utils.attr_utils import add_separator_attr, set_attr, add_attr, list_user_defined_attr, get_attr
 from gt.utils.uuid_utils import add_uuid_attr, is_uuid_valid, is_short_uuid_valid, generate_uuid
 from gt.utils.color_utils import add_side_color_setup, ColorConstants, set_color_viewport
@@ -1733,21 +1733,30 @@ class ModuleGeneric:
             locator_scale = proxy.get_locator_scale()
             cmds.setAttr(f'{joint}.radius', locator_scale)
             match_translate(source=proxy_node, target_list=joint)
+
+            # Add proxy reference - Proxy/Joint UUID
+            add_attr(obj_list=joint,
+                     attributes=RiggerConstants.ATTR_JOINT_UUID,
+                     attr_type="string")
+            set_attr(obj_list=joint, attr_list=RiggerConstants.ATTR_JOINT_UUID, value=proxy.get_uuid())
             # Add module reference - Module UUID
             add_attr(obj_list=joint,
                      attributes=RiggerConstants.ATTR_MODULE_UUID,
                      attr_type="string")
             set_attr(obj_list=joint, attr_list=RiggerConstants.ATTR_MODULE_UUID, value=self.get_uuid())
-            # Add proxy reference - Proxy UUID
-            add_attr(obj_list=joint,
-                     attributes=RiggerConstants.ATTR_JOINT_UUID,
-                     attr_type="string")
-            set_attr(obj_list=joint, attr_list=RiggerConstants.ATTR_JOINT_UUID, value=proxy.get_uuid())
             # Add proxy purposes - Meta Purpose
             add_attr(obj_list=joint,
-                     attributes=RiggerConstants.ATTR_JOINT_UUID,
+                     attributes=RiggerConstants.ATTR_JOINT_PURPOSE,
                      attr_type="string")
-            set_attr(obj_list=joint, attr_list=RiggerConstants.ATTR_JOINT_UUID, value=proxy.get_uuid())
+            set_attr(obj_list=joint, attr_list=RiggerConstants.ATTR_JOINT_PURPOSE, value=proxy.get_meta_purpose())
+            # Add proxy purposes - Joint Drivers
+            add_attr(obj_list=joint,
+                     attributes=RiggerConstants.ATTR_JOINT_DRIVERS,
+                     attr_type="string")
+            drivers = proxy.get_driver_types()
+            if drivers:
+                add_driver_to_joint(target_joint=joint, new_drivers=drivers)
+
             set_color_viewport(obj_list=joint, rgb_color=ColorConstants.RigJoint.GENERAL)
             hierarchy_utils.parent(source_objects=joint, target_parent=str(skeleton_grp))
 
@@ -2226,4 +2235,4 @@ if __name__ == "__main__":
     # pprint(a_project.get_modules())
     a_project.get_project_as_dict()
     a_project.build_proxy()
-    # a_project.build_rig(delete_proxy=True)
+    a_project.build_rig(delete_proxy=True)
