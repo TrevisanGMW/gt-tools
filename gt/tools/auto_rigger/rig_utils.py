@@ -68,6 +68,29 @@ def find_driver_from_uuid(uuid_string):
         return Node(driver)
 
 
+def find_drivers_from_joint(source_joint, as_list=False):
+    """
+    Finds drivers according to the data described in the joint attributes.
+    It's expected that the joint has this data available as string attributes.
+    Args:
+        source_joint (str, Node): The path to a joint. It's expected that this joint contains the drivers attribute.
+        as_list (bool, optional): If True, it will return a list of Node objects.
+                                  If False, a dictionary where the key is the driver name and the value its path (Node)
+    Returns:
+        dict or list: A dictionary where the key is the driver name and the value its path (Node)
+                      If "as_list" is True, then a list of Nodes containing the path to the drivers is returned.
+    """
+    driver_uuids = get_driver_uuids_from_joint(source_joint=source_joint, as_list=False)
+    found_drivers = {}
+    for driver, uuid in driver_uuids.items():
+        _found_driver = find_driver_from_uuid(uuid_string=uuid)
+        if _found_driver:
+            found_drivers[driver] = _found_driver
+    if as_list:
+        return list(found_drivers.values())
+    return found_drivers
+
+
 def find_objects_with_attr(attr_name, obj_type="transform", transform_lookup=True):
     """
     Return object if provided UUID is present in it
@@ -663,9 +686,33 @@ def add_driver_to_joint(target_joint, new_drivers):
     set_attr(obj_list=target_joint, attr_list=RiggerConstants.ATTR_JOINT_DRIVERS, value=data)
 
 
+def get_driver_uuids_from_joint(source_joint, as_list=False):
+    """
+    Gets a dictionary or list of drivers uuids from joint.
+    It's expected that the joint has this data available as string attributes.
+    Args:
+        source_joint (str, Node): The path to a joint. It's expected that this joint contains the drivers attribute.
+        as_list (bool, optional): If True, it will return a list of uuids. if False, the standard dictionary.
+    Returns:
+        dict or list: A dictionary where the key is the driver name and the value its uuid, or a list of uuids.
+    """
+    driver_uuids = {}
+    if source_joint and cmds.objExists(source_joint):
+        drivers = get_drivers_from_joint(source_joint=source_joint)
+        module_uuid = get_attr(obj_name=source_joint, attr_name=RiggerConstants.ATTR_MODULE_UUID)
+        joint_purpose = get_attr(obj_name=source_joint, attr_name=RiggerConstants.ATTR_JOINT_PURPOSE)
+        for driver in drivers:
+            _driver_uuid = f'{module_uuid}-{driver}'
+            if joint_purpose:
+                _driver_uuid = f'{_driver_uuid}-{joint_purpose}'
+            driver_uuids[driver] = _driver_uuid
+    if as_list:
+        return list(driver_uuids.values())
+    return driver_uuids
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     # cmds.file(new=True, force=True)
     # cmds.viewFit(all=True)
-    # create_direction_curve()
-    add_driver_to_joint("pSphere1", "fk")
+    create_direction_curve()
