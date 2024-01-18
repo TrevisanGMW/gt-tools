@@ -1608,14 +1608,18 @@ class ModuleGeneric:
         module_suffix = self.suffix
         if module_suffix:
             module_suffix = f'{module_suffix}_{NamingConstants.Suffix.CTRL}'
+        else:
+            module_suffix = NamingConstants.Suffix.CTRL
         if isinstance(overwrite_suffix, str):
+            module_suffix = overwrite_suffix
+        if overwrite_suffix:
             module_suffix = overwrite_suffix
         if module_suffix:
             _suffix = f'_{module_suffix}'
         return self._assemble_new_node_name(name=name,
                                             project_prefix=project_prefix,
                                             overwrite_prefix=overwrite_prefix,
-                                            overwrite_suffix=overwrite_suffix)
+                                            overwrite_suffix=module_suffix)
 
     def _assemble_new_node_name(self, name, project_prefix=None, overwrite_prefix=None, overwrite_suffix=None):
         """
@@ -2249,6 +2253,7 @@ if __name__ == "__main__":
     a_root_module.add_driver_uuid_attr(test[0], "fk", root)
 
     a_module = ModuleGeneric()
+    print(a_module._assemble_ctrl_name(name="test"))
     a_module.add_to_proxies(a_1st_proxy)
     a_module.add_to_proxies(a_2nd_proxy)
     # a_module.set_prefix("prefix")
