@@ -364,3 +364,14 @@ class TestHierarchyUtils(unittest.TestCase):
                     'nurbsPlane1.cv[3][0]', 'nurbsPlane1.cv[3][1]', 'nurbsPlane1.cv[3][2]',
                     'nurbsPlane1.cv[3][3]']
         self.assertEqual(expected, components)
+
+    def test_get_shape_components_mesh_vtx_full_path(self):
+        cube = Node(self.cube_one)
+        cube_shape = maya_test_tools.cmds.listRelatives(cube, shapes=True)
+        components_vtx_a = hierarchy_utils.get_shape_components(shape=cube_shape[0],
+                                                                mesh_component_type="vertices",
+                                                                full_path=True)
+
+        expected = ['|cube_one.vtx[0]', '|cube_one.vtx[1]', '|cube_one.vtx[2]', '|cube_one.vtx[3]',
+                    '|cube_one.vtx[4]', '|cube_one.vtx[5]', '|cube_one.vtx[6]', '|cube_one.vtx[7]']
+        self.assertEqual(expected, components_vtx_a)
