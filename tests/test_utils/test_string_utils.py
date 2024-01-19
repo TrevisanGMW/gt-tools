@@ -308,4 +308,3 @@ class TestStringUtils(unittest.TestCase):
                 expected = f'{i}{expected_suffix}'
                 result = string_utils.get_int_as_rank(i)
                 self.assertEqual(expected, result)
-                

@@ -1280,5 +1280,3 @@ if __name__ == "__main__":
     # transform.set_position(0, 10, 0)
     # transform.apply_transform('pSphere1')
     rotate_shapes(cmds.ls(selection=True)[0], offset=(0, 0, -90))
-
-    
