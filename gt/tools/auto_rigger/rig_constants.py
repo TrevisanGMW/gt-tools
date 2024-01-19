@@ -56,6 +56,8 @@ class RiggerConstants:
     LOC_RADIUS_MULTIPLIER_DRIVEN = .8
     LOC_RADIUS_MULTIPLIER_FK = .3
     LOC_RADIUS_MULTIPLIER_IK = .6
+    # Misc
+    ENUM_ROTATE_ORDER = 'xyz:yzx:zxy:xzy:yxz:zyx'
 
 
 class RiggerDriverTypes:
