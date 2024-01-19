@@ -4,10 +4,11 @@ github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.attr_utils import add_separator_attr, hide_lock_default_attrs, connect_attr, add_attr, set_attr, get_attr
 from gt.utils.attr_utils import set_attr_state, delete_user_defined_attrs
+from gt.utils.transform_utils import get_component_positions_as_dict, set_component_positions_from_dict
 from gt.utils.color_utils import set_color_viewport, ColorConstants, set_color_outliner
-from gt.utils.uuid_utils import get_object_from_uuid_attr, generate_uuid, is_uuid_valid
 from gt.utils.curve_utils import get_curve, set_curve_width, create_connection_line
 from gt.tools.auto_rigger.rig_constants import RiggerConstants
+from gt.utils.uuid_utils import get_object_from_uuid_attr
 from gt.utils.hierarchy_utils import duplicate_as_node
 from gt.utils.naming_utils import NamingConstants
 from gt.utils import hierarchy_utils
@@ -15,6 +16,7 @@ from gt.utils.node_utils import Node
 import maya.cmds as cmds
 import logging
 import json
+
 
 # Logging Setup
 logging.basicConfig()
@@ -711,8 +713,39 @@ def get_driver_uuids_from_joint(source_joint, as_list=False):
     return driver_uuids
 
 
+def expose_rotation_order(target):
+    """
+    Creates an attribute to control the rotation order of the target object and connects the attribute
+    to the hidden "rotationOrder" attribute.
+    Args:
+        target (str): Path to the target object (usually a control)
+    """
+    cmds.addAttr(target, ln='rotationOrder', at='enum', keyable=True,
+                 en=RiggerConstants.ENUM_ROTATE_ORDER, niceName='Rotate Order')
+    cmds.connectAttr(f'{target}.rotationOrder', f'{target}.rotateOrder', f=True)
+
+
+def offset_control_orientation(ctrl, offset_transform, orient_tuple):
+    """
+    Offsets orientation of the control offset transform, while maintaining the original curve shape point position.
+    Args:
+        ctrl (str, Node): Path to the control transform (with curve shapes)
+        offset_transform (str, Node): Path to the control offset transform.
+        orient_tuple (tuple): A tuple with X, Y and Z values used as offset.
+                              e.g. (90, 0, 0)  # offsets orientation 90 in X
+    """
+    for obj in [ctrl, offset_transform]:
+        if not obj or not cmds.objExists(obj):
+            logger.debug(f'Unable to offset control orientation, not all objects were found in the scene. '
+                         f'Missing: {str(obj)}')
+            return
+    cv_pos_dict = get_component_positions_as_dict(obj_transform=ctrl, full_path=True, world_space=True)
+    cmds.rotate(*orient_tuple, offset_transform, relative=True, objectSpace=True)
+    set_component_positions_from_dict(component_pos_dict=cv_pos_dict)
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     # cmds.file(new=True, force=True)
     # cmds.viewFit(all=True)
-    create_direction_curve()
+    # create_direction_curve()
