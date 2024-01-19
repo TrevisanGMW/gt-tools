@@ -2,9 +2,10 @@
 Auto Rigger Spine Modules
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, duplicate_joint_for_automation, find_drivers_from_joint
 from gt.tools.auto_rigger.rig_utils import find_or_create_joint_automation_group, get_driven_joint, create_ctrl_curve
+from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, expose_rotation_order, find_drivers_from_joint
 from gt.tools.auto_rigger.rig_utils import find_proxy_from_uuid, find_direction_curve, rescale_joint_radius
+from gt.tools.auto_rigger.rig_utils import duplicate_joint_for_automation, offset_control_orientation
 from gt.utils.color_utils import ColorConstants, set_color_viewport, set_color_outliner
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
@@ -13,11 +14,13 @@ from gt.utils.constraint_utils import equidistant_constraints
 from gt.tools.auto_rigger.rig_utils import get_proxy_offset
 from gt.utils.hierarchy_utils import add_offset_transform
 from gt.utils.math_utils import dist_center_to_center
+from gt.utils.node_utils import Node
 from gt.utils import hierarchy_utils
 from gt.ui import resource_library
 import maya.cmds as cmds
 import logging
 import re
+
 
 # Logging Setup
 logging.basicConfig()
@@ -252,20 +255,31 @@ class ModuleSpine(ModuleGeneric):
         cog_ctrl = self._assemble_ctrl_name(name="cog")
         cog_ctrl = create_ctrl_curve(name=cog_ctrl, curve_file_name="_circle_pos_x")
         self.add_driver_uuid_attr(target=cog_ctrl, driver_type=RiggerDriverTypes.COG, proxy_purpose=self.hip)
-        cog_offset = add_offset_transform(target_list=cog_ctrl)[0]
+        cog_offset = Node(add_offset_transform(target_list=cog_ctrl)[0])
         match_transform(source=hip_jnt, target_list=cog_offset)
-        scale_shapes(obj_transform=cog_ctrl, offset=spine_scale / 5)
+        scale_shapes(obj_transform=cog_ctrl, offset=spine_scale / 4)
+        offset_control_orientation(ctrl=cog_ctrl, offset_transform=cog_offset, orient_tuple=(-90, -90, 0))
         hierarchy_utils.parent(source_objects=cog_offset, target_parent=direction_crv)
+        expose_rotation_order(cog_ctrl)
 
         # Hip Control
         hip_ctrl = self._assemble_ctrl_name(name=self.hip.get_name())
         hip_ctrl = create_ctrl_curve(name=hip_ctrl, curve_file_name="_wavy_circle_pos_x")
         self.add_driver_uuid_attr(target=hip_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.hip)
-        hip_offset = add_offset_transform(target_list=hip_ctrl)
+        hip_offset = Node(add_offset_transform(target_list=hip_ctrl)[0])
         match_transform(source=hip_jnt, target_list=hip_offset)
-        scale_shapes(obj_transform=hip_ctrl, offset=spine_scale / 5)
+        scale_shapes(obj_transform=hip_ctrl, offset=spine_scale / 6)
+        offset_control_orientation(ctrl=hip_ctrl, offset_transform=hip_offset, orient_tuple=(-90, -90, 0))
         hierarchy_utils.parent(source_objects=hip_offset, target_parent=direction_crv)
+        hierarchy_utils.parent(source_objects=hip_offset, target_parent=cog_ctrl)
+        expose_rotation_order(hip_ctrl)
 
+        # Constraints
+        cmds.parentConstraint(cog_ctrl, hip_fk, maintainOffset=True)
+        for fk_jnt_zip in zip(fk_joints, module_jnt_list):
+            cmds.parentConstraint(fk_jnt_zip[0], fk_jnt_zip[1])
+
+        # TODO TEMP @@@
         out_find_driver = self.find_driver(driver_type=RiggerDriverTypes.FK, proxy_purpose=self.hip)
         out_find_module_drivers = self.find_module_drivers()
         out_find_proxy_drivers = self.find_proxy_drivers(proxy=self.hip, as_dict=True)
@@ -285,7 +299,7 @@ class ModuleSpine(ModuleGeneric):
         if module_parent_jnt:
             drivers = find_drivers_from_joint(module_parent_jnt, as_list=True)
             if drivers:
-                hierarchy_utils.parent(source_objects=self.cache_children_controls, target_parent=drivers[0])
+                hierarchy_utils.parent(source_objects=self.module_children_drivers, target_parent=drivers[0])
 
 
 if __name__ == "__main__":
