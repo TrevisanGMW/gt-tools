@@ -1460,3 +1460,142 @@ class TestTransformUtils(unittest.TestCase):
         expected = [[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
                     [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]]
         self.assertEqual(expected, cv_positions)
+
+    def test_get_component_positions_as_dict_world_space(self):
+        crv = maya_test_tools.cmds.curve(point=[[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
+                                                [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]],
+                                         degree=3, name='mocked_curve')
+        maya_test_tools.cmds.move(0, 1, 0, crv)
+        result = transform_utils.get_component_positions_as_dict(obj_transform=crv,
+                                                                 full_path=True,
+                                                                 world_space=True)
+
+        expected = {'|mocked_curve.cv[0]': [0.0, 1.0, 1.0],
+                    '|mocked_curve.cv[1]': [0.0, 1.0, 0.667],
+                    '|mocked_curve.cv[2]': [0.0, 1.0, 0.0],
+                    '|mocked_curve.cv[3]': [0.0, 1.0, -1.0],
+                    '|mocked_curve.cv[4]': [0.0, 1.0, -1.667],
+                    '|mocked_curve.cv[5]': [0.0, 1.0, -2.0]}
+        self.assertEqual(expected, result)
+
+        result = transform_utils.get_component_positions_as_dict(obj_transform=crv,
+                                                                 full_path=False,
+                                                                 world_space=True)
+
+        expected = {'mocked_curve.cv[0]': [0.0, 1.0, 1.0],
+                    'mocked_curve.cv[1]': [0.0, 1.0, 0.667],
+                    'mocked_curve.cv[2]': [0.0, 1.0, 0.0],
+                    'mocked_curve.cv[3]': [0.0, 1.0, -1.0],
+                    'mocked_curve.cv[4]': [0.0, 1.0, -1.667],
+                    'mocked_curve.cv[5]': [0.0, 1.0, -2.0]}
+        self.assertEqual(expected, result)
+
+    def test_get_component_positions_as_dict_object_space(self):
+        crv = maya_test_tools.cmds.curve(point=[[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
+                                                [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]],
+                                         degree=3, name='mocked_curve')
+        maya_test_tools.cmds.move(0, 1, 0, crv)
+        result = transform_utils.get_component_positions_as_dict(obj_transform=crv,
+                                                                 full_path=True,
+                                                                 world_space=False) # False = Object Space
+
+        expected = {'|mocked_curve.cv[0]': [0.0, 0.0, 1.0],
+                    '|mocked_curve.cv[1]': [0.0, 0.0, 0.667],
+                    '|mocked_curve.cv[2]': [0.0, 0.0, 0.0],
+                    '|mocked_curve.cv[3]': [0.0, 0.0, -1.0],
+                    '|mocked_curve.cv[4]': [0.0, 0.0, -1.667],
+                    '|mocked_curve.cv[5]': [0.0, 0.0, -2.0]}
+        self.assertEqual(expected, result)
+
+        result = transform_utils.get_component_positions_as_dict(obj_transform=crv,
+                                                                 full_path=False,
+                                                                 world_space=False)  # False = Object Space
+
+        expected = {'mocked_curve.cv[0]': [0.0, 0.0, 1.0],
+                    'mocked_curve.cv[1]': [0.0, 0.0, 0.667],
+                    'mocked_curve.cv[2]': [0.0, 0.0, 0.0],
+                    'mocked_curve.cv[3]': [0.0, 0.0, -1.0],
+                    'mocked_curve.cv[4]': [0.0, 0.0, -1.667],
+                    'mocked_curve.cv[5]': [0.0, 0.0, -2.0]}
+        self.assertEqual(expected, result)
+
+    def test_get_component_positions_as_dict_cube(self):
+        cube = maya_test_tools.create_poly_cube(name="mocked_cube")
+        maya_test_tools.cmds.move(0, 1, 0, cube)
+        result = transform_utils.get_component_positions_as_dict(obj_transform=cube,
+                                                                 full_path=True,
+                                                                 world_space=True)
+
+        expected = {'|mocked_cube.vtx[0]': [-0.5, 0.5, 0.5],
+                    '|mocked_cube.vtx[1]': [0.5, 0.5, 0.5],
+                    '|mocked_cube.vtx[2]': [-0.5, 1.5, 0.5],
+                    '|mocked_cube.vtx[3]': [0.5, 1.5, 0.5],
+                    '|mocked_cube.vtx[4]': [-0.5, 1.5, -0.5],
+                    '|mocked_cube.vtx[5]': [0.5, 1.5, -0.5],
+                    '|mocked_cube.vtx[6]': [-0.5, 0.5, -0.5],
+                    '|mocked_cube.vtx[7]': [0.5, 0.5, -0.5]}
+        self.assertEqual(expected, result)
+
+        result = transform_utils.get_component_positions_as_dict(obj_transform=cube,
+                                                                 full_path=False,
+                                                                 world_space=True)
+
+        expected = {'mocked_cube.vtx[0]': [-0.5, 0.5, 0.5],
+                    'mocked_cube.vtx[1]': [0.5, 0.5, 0.5],
+                    'mocked_cube.vtx[2]': [-0.5, 1.5, 0.5],
+                    'mocked_cube.vtx[3]': [0.5, 1.5, 0.5],
+                    'mocked_cube.vtx[4]': [-0.5, 1.5, -0.5],
+                    'mocked_cube.vtx[5]': [0.5, 1.5, -0.5],
+                    'mocked_cube.vtx[6]': [-0.5, 0.5, -0.5],
+                    'mocked_cube.vtx[7]': [0.5, 0.5, -0.5]}
+        self.assertEqual(expected, result)
+
+    def test_set_component_positions_from_dict_world_space(self):
+        crv = maya_test_tools.cmds.curve(point=[[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
+                                                [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]],
+                                         degree=3, name='mocked_curve')
+        maya_test_tools.cmds.move(0, 1, 0, crv)
+
+        component_dict = {'|mocked_curve.cv[0]': [0.0, 0.0, 2.0]}
+
+        transform_utils.set_component_positions_from_dict(component_pos_dict=component_dict, world_space=True)
+
+        result = maya_test_tools.cmds.xform('|mocked_curve.cv[0]', worldSpace=True, query=True, translation=True)
+
+        expected = [0.0, 0.0, 2.0]
+        self.assertEqual(expected, result)
+
+        component_dict = {'|mocked_curve.cv[0]': [0.0, 0.0, 3.0]}
+
+        transform_utils.set_component_positions_from_dict(component_pos_dict=component_dict, world_space=True)
+
+        result = maya_test_tools.cmds.xform('|mocked_curve.cv[0]', worldSpace=True, query=True, translation=True)
+
+        expected = [0.0, 0.0, 3.0]
+        self.assertEqual(expected, result)
+
+    def test_set_component_positions_from_dict_object_space(self):
+        crv = maya_test_tools.cmds.curve(point=[[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
+                                                [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]],
+                                         degree=3, name='mocked_curve')
+        maya_test_tools.cmds.move(0, 1, 0, crv)
+
+        component_dict = {'|mocked_curve.cv[0]': [0.0, 0.0, 2.0]}
+
+        transform_utils.set_component_positions_from_dict(component_pos_dict=component_dict,
+                                                          world_space=False)  # False = Object Space
+
+        result = maya_test_tools.cmds.xform('|mocked_curve.cv[0]', worldSpace=True, query=True, translation=True)
+
+        expected = [0.0, 1.0, 2.0]
+        self.assertEqual(expected, result)
+
+        component_dict = {'|mocked_curve.cv[0]': [0.0, 0.0, 3.0]}
+
+        transform_utils.set_component_positions_from_dict(component_pos_dict=component_dict,
+                                                          world_space=False)  # False = Object Space
+
+        result = maya_test_tools.cmds.xform('|mocked_curve.cv[0]', worldSpace=True, query=True, translation=True)
+
+        expected = [0.0, 1.0, 3.0]
+        self.assertEqual(expected, result)
