@@ -21,7 +21,6 @@ import maya.cmds as cmds
 import logging
 import re
 
-
 # Logging Setup
 logging.basicConfig()
 logger = logging.getLogger(__name__)
@@ -85,6 +84,7 @@ class ModuleSpine(ModuleGeneric):
                 new_spine.set_meta_purpose(value=f'spine{str(num + 1).zfill(2)}')
                 new_spine.add_line_parent(line_parent=_parent_uuid)
                 new_spine.set_parent_uuid(uuid=_parent_uuid)
+                new_spine.add_driver_type(driver_type=[RiggerDriverTypes.FK])
                 _parent_uuid = new_spine.get_uuid()
                 self.spines.append(new_spine)
         # New number lower than current - Remove unnecessary proxies
@@ -261,6 +261,7 @@ class ModuleSpine(ModuleGeneric):
         offset_control_orientation(ctrl=cog_ctrl, offset_transform=cog_offset, orient_tuple=(-90, -90, 0))
         hierarchy_utils.parent(source_objects=cog_offset, target_parent=direction_crv)
         expose_rotation_order(cog_ctrl)
+        cmds.parentConstraint(cog_ctrl, hip_fk, maintainOffset=True)
 
         # Hip Control
         hip_ctrl = self._assemble_ctrl_name(name=self.hip.get_name())
@@ -270,22 +271,38 @@ class ModuleSpine(ModuleGeneric):
         match_transform(source=hip_jnt, target_list=hip_offset)
         scale_shapes(obj_transform=hip_ctrl, offset=spine_scale / 6)
         offset_control_orientation(ctrl=hip_ctrl, offset_transform=hip_offset, orient_tuple=(-90, -90, 0))
-        hierarchy_utils.parent(source_objects=hip_offset, target_parent=direction_crv)
         hierarchy_utils.parent(source_objects=hip_offset, target_parent=cog_ctrl)
         expose_rotation_order(hip_ctrl)
 
-        # Constraints
-        cmds.parentConstraint(cog_ctrl, hip_fk, maintainOffset=True)
+        # FK Controls
+        spine_ctrls = []
+        last_mid_parent_ctrl = cog_ctrl
+        for spine_proxy, fk_jnt in zip(self.spines, mid_fk_list):
+            spine_ctrl = self._assemble_ctrl_name(name=spine_proxy.get_name())
+            spine_ctrl = create_ctrl_curve(name=spine_ctrl, curve_file_name="_cube")
+            self.add_driver_uuid_attr(target=spine_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=spine_proxy)
+            spine_offset = Node(add_offset_transform(target_list=spine_ctrl)[0])
+            _shape_scale = (spine_scale / 20, spine_scale / 5, spine_scale / 3)
+            scale_shapes(obj_transform=spine_ctrl, offset=_shape_scale)
+            match_transform(source=fk_jnt, target_list=spine_offset)
+            offset_control_orientation(ctrl=spine_ctrl, offset_transform=spine_offset, orient_tuple=(-90, -90, 0))
+            hierarchy_utils.parent(source_objects=spine_offset, target_parent=last_mid_parent_ctrl)
+            expose_rotation_order(spine_ctrl)
+            spine_ctrls.append(spine_ctrl)
+            cmds.parentConstraint(spine_ctrl, fk_jnt, maintainOffset=True)
+            last_mid_parent_ctrl = spine_ctrl
+
+        # Constraints FK -> Base
         for fk_jnt_zip in zip(fk_joints, module_jnt_list):
             cmds.parentConstraint(fk_jnt_zip[0], fk_jnt_zip[1])
 
-        # TODO TEMP @@@
-        out_find_driver = self.find_driver(driver_type=RiggerDriverTypes.FK, proxy_purpose=self.hip)
-        out_find_module_drivers = self.find_module_drivers()
-        out_find_proxy_drivers = self.find_proxy_drivers(proxy=self.hip, as_dict=True)
-        print(f"out_find_driver:{out_find_driver}")
-        print(f"out_find_module_drivers:{out_find_module_drivers}")
-        print(f"out_find_proxy_drivers:{out_find_proxy_drivers}")
+        # # TODO TEMP @@@
+        # out_find_driver = self.find_driver(driver_type=RiggerDriverTypes.FK, proxy_purpose=self.hip)
+        # out_find_module_drivers = self.find_module_drivers()
+        # out_find_proxy_drivers = self.find_proxy_drivers(proxy=self.hip, as_dict=True)
+        # print(f"out_find_driver:{out_find_driver}")
+        # print(f"out_find_module_drivers:{out_find_module_drivers}")
+        # print(f"out_find_proxy_drivers:{out_find_proxy_drivers}")
 
         self.module_children_drivers = [cog_offset]
 
@@ -304,10 +321,13 @@ class ModuleSpine(ModuleGeneric):
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
+
+    # Reload Script - Must have been initialized using run-only
+    from gt.utils.session_utils import remove_modules_startswith
+    remove_modules_startswith("gt.tools.auto_rigger.rig")
     cmds.file(new=True, force=True)
 
     from gt.tools.auto_rigger.rig_framework import RigProject
-
     a_spine = ModuleSpine()
     a_spine.set_spine_num(0)
     a_spine.set_spine_num(6)
