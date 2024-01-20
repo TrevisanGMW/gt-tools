@@ -345,7 +345,6 @@ def remove_package_loader_from_maya_installs():
     e.g. Windows: "Documents/scripts/gt_tools_loader.py"  - If it exists, it will get deleted
     """
     to_remove_list = generate_scripts_dir_list(file_name="gt_tools_loader.py", only_existing=True)
-
     for file in to_remove_list:
         if os.path.exists(file):
             logger.debug(f'Removing loader script: "{file}"')
