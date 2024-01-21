@@ -10,6 +10,7 @@ from gt.utils.transform_utils import Vector3, scale_shapes, match_transform, tra
 from gt.utils.color_utils import ColorConstants, set_color_viewport, set_color_outliner
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
+from gt.utils.attr_utils import add_separator_attr, set_attr_state
 from gt.utils.constraint_utils import equidistant_constraints
 from gt.tools.auto_rigger.rig_utils import get_proxy_offset
 from gt.utils.hierarchy_utils import add_offset_transform
@@ -20,6 +21,7 @@ from gt.ui import resource_library
 import maya.cmds as cmds
 import logging
 import re
+
 
 # Logging Setup
 logging.basicConfig()
@@ -260,6 +262,9 @@ class ModuleSpine(ModuleGeneric):
         scale_shapes(obj_transform=cog_ctrl, offset=spine_scale / 4)
         offset_control_orientation(ctrl=cog_ctrl, offset_transform=cog_offset, orient_tuple=(-90, -90, 0))
         hierarchy_utils.parent(source_objects=cog_offset, target_parent=direction_crv)
+        # Attributes
+        set_attr_state(attribute_path=f"{cog_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
+        add_separator_attr(target_object=cog_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
         expose_rotation_order(cog_ctrl)
         cmds.parentConstraint(cog_ctrl, hip_fk, maintainOffset=True)
 
@@ -272,6 +277,9 @@ class ModuleSpine(ModuleGeneric):
         scale_shapes(obj_transform=hip_ctrl, offset=spine_scale / 6)
         offset_control_orientation(ctrl=hip_ctrl, offset_transform=hip_offset, orient_tuple=(-90, -90, 0))
         hierarchy_utils.parent(source_objects=hip_offset, target_parent=cog_ctrl)
+        # Attributes
+        set_attr_state(attribute_path=f"{hip_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
+        add_separator_attr(target_object=hip_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
         expose_rotation_order(hip_ctrl)
 
         # FK Controls
@@ -296,6 +304,9 @@ class ModuleSpine(ModuleGeneric):
             match_transform(source=fk_jnt, target_list=spine_offset)
             offset_control_orientation(ctrl=spine_ctrl, offset_transform=spine_offset, orient_tuple=(-90, -90, 0))
             hierarchy_utils.parent(source_objects=spine_offset, target_parent=last_mid_parent_ctrl)
+            # Attributes
+            set_attr_state(attribute_path=f"{spine_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
+            add_separator_attr(target_object=spine_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
             expose_rotation_order(spine_ctrl)
             spine_ctrls.append(spine_ctrl)
             cmds.parentConstraint(spine_ctrl, fk_jnt, maintainOffset=True)
@@ -314,6 +325,9 @@ class ModuleSpine(ModuleGeneric):
         chest_ctrl_parent = spine_ctrls[-1] if spine_ctrls else cog_ctrl
         hierarchy_utils.parent(source_objects=chest_offset, target_parent=chest_ctrl_parent)
         cmds.parentConstraint(chest_ctrl, chest_fk, maintainOffset=True)
+        # Attributes
+        set_attr_state(attribute_path=f"{chest_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
+        add_separator_attr(target_object=chest_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
         expose_rotation_order(chest_ctrl)
 
         # Constraints FK -> Base
