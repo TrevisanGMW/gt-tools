@@ -370,7 +370,7 @@ class Proxy:
         proxy_offset = get_long_name(proxy_offset)
         proxy_crv = get_long_name(proxy_crv)
 
-        add_separator_attr(target_object=proxy_crv, attr_name=f'proxy{RiggerConstants.SEPARATOR_STD_SUFFIX}')
+        add_separator_attr(target_object=proxy_crv, attr_name=f'proxy{RiggerConstants.SEPARATOR_OPTIONS.title()}')
         uuid_attrs = add_uuid_attr(obj_list=proxy_crv,
                                    attr_name=RiggerConstants.ATTR_PROXY_UUID,
                                    set_initial_uuid_value=False)

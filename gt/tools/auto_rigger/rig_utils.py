@@ -364,7 +364,7 @@ def create_proxy_root_curve():
     """
     root_transform = create_root_curve(name="root_proxy")
     hide_lock_default_attrs(obj_list=root_transform, scale=False)
-    add_separator_attr(target_object=root_transform, attr_name=f'proxy{RiggerConstants.SEPARATOR_STD_SUFFIX}')
+    add_separator_attr(target_object=root_transform, attr_name=f'proxy{RiggerConstants.SEPARATOR_OPTIONS.title()}')
     add_attr(obj_list=root_transform, attr_type="string", is_keyable=False,
              attributes=RiggerConstants.REF_ATTR_ROOT_PROXY, verbose=True)
 
@@ -379,7 +379,7 @@ def create_control_root_curve():
         Node, str: A Node containing the generated root curve
     """
     root_transform = create_root_curve(name=f'root_{NamingConstants.Suffix.CTRL}')
-    add_separator_attr(target_object=root_transform, attr_name=f'rig{RiggerConstants.SEPARATOR_STD_SUFFIX}')
+    add_separator_attr(target_object=root_transform, attr_name=f'rig{RiggerConstants.SEPARATOR_OPTIONS.title()}')
     add_attr(obj_list=root_transform, attr_type="string", is_keyable=False,
              attributes=RiggerConstants.REF_ATTR_ROOT_CONTROL, verbose=True)
     set_curve_width(obj_list=root_transform, line_width=3)
@@ -414,7 +414,7 @@ def create_direction_curve():
     direction_crv = cmds.circle(name=f'direction_{NamingConstants.Suffix.CTRL}',
                                  nr=(0, 1, 0), ch=False, radius=44.5)[0]
     cmds.rebuildCurve(direction_crv, ch=False, rpo=1, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=20, d=3, tol=0.01)
-    add_separator_attr(target_object=direction_crv, attr_name=f'rig{RiggerConstants.SEPARATOR_STD_SUFFIX}')
+    add_separator_attr(target_object=direction_crv, attr_name=f'rig{RiggerConstants.SEPARATOR_OPTIONS.title()}')
     add_attr(obj_list=direction_crv, attr_type="string", is_keyable=False,
              attributes=RiggerConstants.REF_ATTR_DIR_CURVE, verbose=True)
     set_color_viewport(obj_list=direction_crv, rgb_color=ColorConstants.RigControl.CENTER)
