@@ -178,11 +178,11 @@ class ModuleBipedLeg(ModuleGeneric):
         self.heel.apply_offset_transform()
 
         # Hip -----------------------------------------------------------------------------------
-        hide_lock_default_attrs(hip, translate=False)
+        hide_lock_default_attrs(hip, rotate=True, scale=True)
 
         # Knee  ---------------------------------------------------------------------------------
         knee_tag = knee.get_short_name()
-        hide_lock_default_attrs(knee, translate=False, rotate=False)
+        hide_lock_default_attrs(knee, scale=True)
 
         # Knee Setup - Always Between Hip and Ankle
         knee_offset = get_proxy_offset(knee)

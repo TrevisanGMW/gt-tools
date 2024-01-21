@@ -196,15 +196,15 @@ def set_trs_attr(target_obj, value_tuple, translate=False, rotate=False, scale=F
         log_when_true(logger, message, do_log=verbose, level=log_level)
 
 
-def hide_lock_default_attrs(obj_list, translate=True, rotate=True, scale=True, visibility=False):
+def hide_lock_default_attrs(obj_list, translate=False, rotate=False, scale=False, visibility=False):
     """
     Locks default TRS+V channels
     Args:
         obj_list (str, list): Name of the object(s) to lock TRS+V attributes
-        translate (bool, optional): If active, translate (position) will be included. (locked, hidden)
-        rotate (bool, optional): If active, rotate (rotation) will be included. (locked, hidden)
-        scale (bool, optional): If active, scale will be included. (locked, hidden)
-        visibility (bool, optional): If active, also locks and hides visibility
+        translate (bool, optional): If active, translate (position) will be affected. (locked, hidden)
+        rotate (bool, optional): If active, rotate (rotation) will be affected. (locked, hidden)
+        scale (bool, optional): If active, scale will be affected. (locked, hidden)
+        visibility (bool, optional): If active, function also locks and hides visibility
     """
     channels = []
     if not obj_list:

@@ -473,7 +473,7 @@ class Ribbon:
             cmds.parentConstraint(fk_ctrls[-1], ik_ctrl_offset_grps[-1], mo=True)
 
             set_color_viewport(obj_list=fk_ctrls, rgb_color=ColorConstants.RigControl.TWEAK)
-            hide_lock_default_attrs(fk_offset_groups)
+            hide_lock_default_attrs(fk_offset_groups, translate=True, rotate=True, scale=True)
 
             cmds.select(cl=True)
 
@@ -498,7 +498,7 @@ class Ribbon:
 if __name__ == "__main__":
     from pprint import pprint
     logger.setLevel(logging.DEBUG)
-    cmds.file(new=True, force=True)
+    # cmds.file(new=True, force=True)
     # out = None
     # # an_input_surface = cmds.nurbsPlane(axis=(0, 1, 0), width=1, lengthRatio=24, degree=3,
     # #                                    patchesU=1, patchesV=10, constructionHistory=False)[0]
@@ -515,14 +515,16 @@ if __name__ == "__main__":
     #     pass
     ribbon_factory = Ribbon(equidistant=True,
                             num_controls=5,
-                            num_joints=17,
+                            num_joints=8,
                             add_fk=True)
-    ribbon_factory.set_surface("left_arm_ribbon_sur")
-    ribbon_factory.set_prefix("left_arm")
+    # ribbon_factory.set_surface("right_eyebrow_sur")
+    # ribbon_factory.set_prefix("right_eyebrow_")
+    ribbon_factory.set_surface("left_eyebrow_sur")
+    ribbon_factory.set_prefix("left_eyebrow_")
     # ribbon_factory.set_surface("abc_ribbon_surface")
     # ribbon_factory.set_prefix("abc")
     ribbon_factory.build()
-    ribbon_factory.build()
+
     # cylinder = cmds.polyCylinder(axis=(0, 0, 1), height=24, subdivisionsX=24, subdivisionsY=48, subdivisionsZ=1)
     # jnt_list = []
     # for idx in range(0, 20):

@@ -156,11 +156,11 @@ class ModuleBipedArm(ModuleGeneric):
         self.wrist.apply_offset_transform()
 
         # Shoulder -----------------------------------------------------------------------------------
-        hide_lock_default_attrs(shoulder, translate=False)
+        hide_lock_default_attrs(shoulder, rotate=True, scale=True)
 
         # Elbow  -------------------------------------------------------------------------------------
         elbow_tag = elbow.get_short_name()
-        hide_lock_default_attrs(elbow, translate=False, rotate=False)
+        hide_lock_default_attrs(elbow, scale=True)
 
         # Elbow Setup
         elbow_offset = get_proxy_offset(elbow)

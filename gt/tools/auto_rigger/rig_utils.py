@@ -349,7 +349,7 @@ def create_root_group(is_proxy=False):
         _color = ColorConstants.RigOutliner.GRP_ROOT_PROXY
     root_group = cmds.group(name=_name, empty=True, world=True)
     root_group = Node(root_group)
-    hide_lock_default_attrs(obj_list=root_group)
+    hide_lock_default_attrs(obj_list=root_group, translate=True, rotate=True, scale=True)
     add_attr(obj_list=root_group, attr_type="string", is_keyable=False,
              attributes=_attr, verbose=True)
     set_color_outliner(root_group, rgb_color=_color)
@@ -363,7 +363,7 @@ def create_proxy_root_curve():
         Node, str: A Node containing the generated root curve
     """
     root_transform = create_root_curve(name="root_proxy")
-    hide_lock_default_attrs(obj_list=root_transform, scale=False)
+    hide_lock_default_attrs(obj_list=root_transform, translate=True, rotate=True)
     add_separator_attr(target_object=root_transform, attr_name=f'proxy{RiggerConstants.SEPARATOR_OPTIONS.title()}')
     add_attr(obj_list=root_transform, attr_type="string", is_keyable=False,
              attributes=RiggerConstants.REF_ATTR_ROOT_PROXY, verbose=True)
