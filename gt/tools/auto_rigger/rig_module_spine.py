@@ -6,10 +6,10 @@ from gt.tools.auto_rigger.rig_utils import find_or_create_joint_automation_group
 from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, expose_rotation_order, find_drivers_from_joint
 from gt.tools.auto_rigger.rig_utils import find_proxy_from_uuid, find_direction_curve, rescale_joint_radius
 from gt.tools.auto_rigger.rig_utils import duplicate_joint_for_automation, offset_control_orientation
+from gt.utils.transform_utils import Vector3, scale_shapes, match_transform, translate_shapes
 from gt.utils.color_utils import ColorConstants, set_color_viewport, set_color_outliner
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
-from gt.utils.transform_utils import Vector3, scale_shapes, match_transform
 from gt.utils.constraint_utils import equidistant_constraints
 from gt.tools.auto_rigger.rig_utils import get_proxy_offset
 from gt.utils.hierarchy_utils import add_offset_transform
@@ -220,7 +220,7 @@ class ModuleSpine(ModuleGeneric):
         # Set Colors
         set_color_viewport(obj_list=module_jnt_list, rgb_color=ColorConstants.RigJoint.GENERAL)
 
-        # Get Scale
+        # Get General Scale
         spine_scale = dist_center_to_center(hip_jnt, chest_jnt)
 
         joint_automation_grp = find_or_create_joint_automation_group()
@@ -282,8 +282,17 @@ class ModuleSpine(ModuleGeneric):
             spine_ctrl = create_ctrl_curve(name=spine_ctrl, curve_file_name="_cube")
             self.add_driver_uuid_attr(target=spine_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=spine_proxy)
             spine_offset = Node(add_offset_transform(target_list=spine_ctrl)[0])
-            _shape_scale = (spine_scale / 20, spine_scale / 5, spine_scale / 3)
+            # Move Pivot to Base
+            translate_shapes(obj_transform=spine_ctrl, offset=(1, 0, 0))
+            # Define Shape Scale
+            _shape_scale = (spine_scale / 20, spine_scale / 4, spine_scale / 3)
+            child_joint = cmds.listRelatives(fk_jnt, fullPath=True, children=True, typ="joint")
+            if child_joint:
+                _distance = dist_center_to_center(obj_a=fk_jnt, obj_b=child_joint[0])
+                _shape_height = _distance/4
+                _shape_scale = _shape_height, _shape_scale[1], _shape_scale[2]
             scale_shapes(obj_transform=spine_ctrl, offset=_shape_scale)
+            # Position and Constraint
             match_transform(source=fk_jnt, target_list=spine_offset)
             offset_control_orientation(ctrl=spine_ctrl, offset_transform=spine_offset, orient_tuple=(-90, -90, 0))
             hierarchy_utils.parent(source_objects=spine_offset, target_parent=last_mid_parent_ctrl)
@@ -291,6 +300,21 @@ class ModuleSpine(ModuleGeneric):
             spine_ctrls.append(spine_ctrl)
             cmds.parentConstraint(spine_ctrl, fk_jnt, maintainOffset=True)
             last_mid_parent_ctrl = spine_ctrl
+
+        # Chest Control
+        chest_ctrl = self._assemble_ctrl_name(name=self.chest.get_name())
+        chest_ctrl = create_ctrl_curve(name=chest_ctrl, curve_file_name="_cube")
+        self.add_driver_uuid_attr(target=chest_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.chest)
+        chest_offset = Node(add_offset_transform(target_list=chest_ctrl)[0])
+        match_transform(source=chest_jnt, target_list=chest_offset)
+        translate_shapes(obj_transform=chest_ctrl, offset=(1, 0, 0))  # Move Pivot to Base
+        _shape_scale = (spine_scale / 4, spine_scale / 4, spine_scale / 3)
+        scale_shapes(obj_transform=chest_ctrl, offset=_shape_scale)
+        offset_control_orientation(ctrl=chest_ctrl, offset_transform=chest_offset, orient_tuple=(-90, -90, 0))
+        chest_ctrl_parent = spine_ctrls[-1] if spine_ctrls else cog_ctrl
+        hierarchy_utils.parent(source_objects=chest_offset, target_parent=chest_ctrl_parent)
+        cmds.parentConstraint(chest_ctrl, chest_fk, maintainOffset=True)
+        expose_rotation_order(chest_ctrl)
 
         # Constraints FK -> Base
         for fk_jnt_zip in zip(fk_joints, module_jnt_list):
@@ -322,7 +346,7 @@ class ModuleSpine(ModuleGeneric):
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
 
-    # Reload Script - Must have been initialized using run-only
+    # Auto Reload Script - Must have been initialized using "Run-Only" mode.
     from gt.utils.session_utils import remove_modules_startswith
     remove_modules_startswith("gt.tools.auto_rigger.rig")
     cmds.file(new=True, force=True)
