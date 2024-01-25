@@ -495,44 +495,69 @@ class Ribbon:
         cmds.select(cl=True)
 
 
+def create_surface_from_object_list(obj_list, surface_name=None):
+    """
+    Creates a surface from a list of objects (according to list order)
+    The surface is created using curve offsets.
+        1. A curve is created using the position of the objects from the list.
+        2. Two offset curves are created from the initial curve.
+        3. A loft surface is created out of the two offset curves.
+    Args:
+        obj_list (list): List of objects used to generate the surface (order matters)
+        surface_name (str, optional): Name of the generated surface.
+    Returns:
+        str or None: Generated surface (loft) object, otherwise None.
+    """
+    # Check if there are at least two objects in the list
+    if len(obj_list) < 2:
+        cmds.warning("At least two objects are required to create a surface.")
+        return
+
+    # Get positions of the objects
+    positions = [cmds.xform(obj, query=True, translation=True, worldSpace=True) for obj in obj_list]
+
+    # Create a curve with the given positions as control vertices (CVs)
+    crv_mid = cmds.curve(d=1, p=positions, n=f'{surface_name}_curveFromList')
+    crv_mid = Node(crv_mid)
+
+    # Offset the duplicated curve positively
+    offset_distance = 1
+    crv_pos = cmds.offsetCurve(crv_mid, name=f'{crv_mid}PositiveOffset',
+                               distance=offset_distance, constructionHistory=False)[0]
+    crv_neg = cmds.offsetCurve(crv_mid, name=f'{crv_mid}NegativeOffset',
+                               distance=-offset_distance, constructionHistory=False)[0]
+    crv_pos = Node(crv_pos)
+    crv_neg = Node(crv_neg)
+
+    loft_parameters = {}
+    if surface_name and isinstance(surface_name, str):
+        loft_parameters["name"] = surface_name
+
+    lofted_surface = cmds.loft(crv_pos, crv_neg,
+                               range=True,
+                               autoReverse=True,
+                               degree=3,
+                               uniform=True,
+                               constructionHistory=False,
+                               **loft_parameters)[0]
+    cmds.delete([crv_mid, crv_pos, crv_neg])
+    return lofted_surface
+
+
 if __name__ == "__main__":
     from pprint import pprint
     logger.setLevel(logging.DEBUG)
     # cmds.file(new=True, force=True)
-    # out = None
-    # # an_input_surface = cmds.nurbsPlane(axis=(0, 1, 0), width=1, lengthRatio=24, degree=3,
-    # #                                    patchesU=1, patchesV=10, constructionHistory=False)[0]
-    # # cmds.setAttr(f'{an_input_surface}.tx', 5)
-    # try:
-    #     cmds.parent("abc_ribbon_surface", world=True)
-    #     cmds.delete("abc_ribbon_grp")
-    # except:
-    #     pass
-    # try:
-    #     cmds.parent("left_arm_sur", world=True)
-    #     cmds.delete("left_arm_ribbon_grp")
-    # except:
-    #     pass
+
+    create_surface_from_object_list(["joint1", "joint2", "joint3", "joint4", "joint5"], surface_name="hello")
     ribbon_factory = Ribbon(equidistant=True,
                             num_controls=5,
                             num_joints=8,
                             add_fk=True)
-    # ribbon_factory.set_surface("right_eyebrow_sur")
-    # ribbon_factory.set_prefix("right_eyebrow_")
-    ribbon_factory.set_surface("left_eyebrow_sur")
-    ribbon_factory.set_prefix("left_eyebrow_")
+    ribbon_factory.set_surface("right_eyebrow_sur")
+    ribbon_factory.set_prefix("right_eyebrow")
+    # ribbon_factory.set_surface("hello")
+    # ribbon_factory.set_prefix("test")
     # ribbon_factory.set_surface("abc_ribbon_surface")
     # ribbon_factory.set_prefix("abc")
-    ribbon_factory.build()
-
-    # cylinder = cmds.polyCylinder(axis=(0, 0, 1), height=24, subdivisionsX=24, subdivisionsY=48, subdivisionsZ=1)
-    # jnt_list = []
-    # for idx in range(0, 20):
-    #     jnt_list.append(f'abc_{(idx + 1):02d}_jnt')
-    # for jnt in jnt_list:
-    #     cmds.setAttr(f'{jnt}.displayLocalAxis', 1)
-    #
-    # from gt.utils.skin_utils import bind_skin
-    # bind_skin(joints=jnt_list, objects=cylinder[0])
-    # cmds.select(clear=True)
-    
+    # ribbon_factory.build()
