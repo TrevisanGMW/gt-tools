@@ -477,3 +477,35 @@ class TestIterableUtils(unittest.TestCase):
 
         expected = [f'{cube}', f'{sphere}']
         self.assertEqual(result, expected)
+
+    def test_filter_strings(self):
+        function_name = "filter_list_by_type"
+        input_list = ["hi", 2, 3.5, None, "hello", 42]
+        desired_data_type = str
+        result = iterable_utils.filter_list_by_type(input_list, desired_data_type)
+        expected = ["hi", "hello"]
+        self.assertEqual(result, expected, f"{function_name} - Test case failed")
+
+    def test_filter_integers(self):
+        function_name = "filter_list_by_type"
+        input_list = ["hi", 2, 3.5, None, "hello", 42]
+        desired_data_type = int
+        result = iterable_utils.filter_list_by_type(input_list, desired_data_type)
+        expected = [2, 42]
+        self.assertEqual(result, expected, f"{function_name} - Test case failed")
+
+    def test_filter_floats(self):
+        function_name = "filter_list_by_type"
+        input_list = ["hi", 2, 3.5, None, "hello", 42]
+        desired_data_type = float
+        result = iterable_utils.filter_list_by_type(input_list, desired_data_type)
+        expected = [3.5]
+        self.assertEqual(result, expected, f"{function_name} - Test case failed")
+
+    def test_filter_none(self):
+        function_name = "filter_list_by_type"
+        input_list = ["hi", 2, 3.5, None, "hello", 42]
+        desired_data_type = type(None)
+        result = iterable_utils.filter_list_by_type(input_list, desired_data_type)
+        expected = [None]
+        self.assertEqual(result, expected, f"{function_name} - Test case failed")
