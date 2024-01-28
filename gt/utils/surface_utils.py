@@ -305,12 +305,16 @@ class Ribbon:
         if isinstance(self.surface_data, (list, tuple)):
             # Object List
             _filter_obj_list = filter_list_by_type(self.surface_data, data_type=(str, Node))
-
             if _filter_obj_list:
-                _obj_list = sanitize_maya_list(input_list=self.surface_data, sort_list=False, filter_unique=False)
-                _sur = create_surface_from_object_list(obj_list=_obj_list, surface_name=f"{prefix}ribbon_surface")
-                multiply_surface_spans(input_surface=_sur, v_multiplier=self.surface_spans_multiplier, v_degree=3)
-                return _sur
+                _obj_list = sanitize_maya_list(input_list=self.surface_data, sort_list=False,
+                                               filter_unique=False, reverse_list=True)
+                if not _obj_list or len(_obj_list) < 2:
+                    logger.warning(f'Unable to create surface using object list. '
+                                   f'At least two valid objects are necessary for this operation.')
+                else:
+                    _sur = create_surface_from_object_list(obj_list=_obj_list, surface_name=f"{prefix}ribbon_surface")
+                    multiply_surface_spans(input_surface=_sur, v_multiplier=self.surface_spans_multiplier, v_degree=3)
+                    return _sur
             # Position List
             _filter_pos_list = filter_list_by_type(self.surface_data, data_type=(list, tuple), num_items=3)
             if _filter_pos_list:
@@ -319,6 +323,7 @@ class Ribbon:
                     locator_name = cmds.spaceLocator(name=f'{prefix}_temp_surface_assembly_locator')[0]
                     cmds.move(*pos, locator_name)
                     obj_list_locator.append(locator_name)
+                obj_list_locator.reverse()
                 _sur = create_surface_from_object_list(obj_list=obj_list_locator,
                                                        surface_name=f"{prefix}ribbon_surface")
                 multiply_surface_spans(input_surface=_sur, v_multiplier=self.surface_spans_multiplier, v_degree=3)
@@ -358,6 +363,10 @@ class Ribbon:
             input_surface = Node(input_surface)
         cmds.delete(input_surface, constructionHistory=True)
 
+        if not surface_shape:
+            logger.warning(f'Unable to create ribbon. Failed to get or create surface.')
+            return
+
         # Determine Direction ----------------------------------------------------------------------------
         u_curve = cmds.duplicateCurve(f'{input_surface}.v[.5]', local=True, ch=0)  # (.5 = center)
         v_curve = cmds.duplicateCurve(f'{input_surface}.u[.5]', local=True, ch=0)
@@ -371,7 +380,7 @@ class Ribbon:
         u_curve_for_positions = cmds.duplicateCurve(f'{input_surface}.v[.5]', local=True, ch=0)[0]
 
         # U Positions
-        is_periodic = is_surface_periodic(surface_shape=surface_shape)
+        is_periodic = is_surface_periodic(surface_shape=str(surface_shape))
         u_position_ctrls = get_positions_from_curve(curve=u_curve_for_positions, count=num_controls,
                                                     periodic=is_periodic, space="uv")
         u_position_joints = get_positions_from_curve(curve=u_curve_for_positions, count=num_joints,
@@ -621,24 +630,27 @@ class Ribbon:
 
 
 if __name__ == "__main__":
-    from pprint import pprint
     logger.setLevel(logging.DEBUG)
-    # cmds.file(new=True, force=True)
-
-    # out = create_surface_from_object_list(, surface_name="hello")
-    # print(out)
+    # Clear Scene
+    cmds.file(new=True, force=True)
+    # Create Test Joints
+    test_joints = [cmds.joint(p=(0, 0, 0)),
+                   cmds.joint(p=(-5, 0, 0)),
+                   cmds.joint(p=(-10, 2, 0)),
+                   cmds.joint(p=(-15, 6, 3)),
+                   cmds.joint(p=(-20, 10, 5)),
+                   cmds.joint(p=(-25, 15, 10)),
+                   cmds.joint(p=(-30, 15, 15))]
+    # Create Ribbon
     ribbon_factory = Ribbon(equidistant=True,
                             num_controls=5,
                             num_joints=8,
                             add_fk=True)
-    ribbon_factory.set_surface_data("right_eyebrow_sur")
-    ribbon_factory.set_prefix("right_eyebrow")
-    ribbon_factory.set_surface_data(["joint1", "joint2", "joint3", "joint4", "joint5", "joint6"])
-    # ribbon_factory.set_surface_data([(0, 0, 0), (5, 0, 0), (10, 0, 0)])
-    print(ribbon_factory._get_or_create_surface(prefix="test"))
-    # ribbon_factory.build(obj_list=["joint1", "joint2", "joint3", "joint4", "joint5", "joint6"])
-    # ribbon_factory.set_surface("hello")
-    # ribbon_factory.set_prefix("test")
-    # ribbon_factory.set_surface("abc_ribbon_surface")
-    # ribbon_factory.set_prefix("abc")
-    # ribbon_factory.build()
+    ribbon_factory.set_surface_data("mocked_sur")
+    ribbon_factory.set_prefix("mocked")
+    # ribbon_factory.set_surface_data(test_joints)
+    ribbon_factory.set_surface_data([(0, 0, 0), (5, 0, 0), (10, 0, 0)])
+    # print(ribbon_factory._get_or_create_surface(prefix="test"))
+    ribbon_factory.build()
+    # create_surface_from_object_list(test_joints)
+    cmds.viewFit(all=True)
