@@ -344,7 +344,7 @@ def filter_list_by_type(input_list, data_type, num_items=None):
 
     Args:
         input_list (list): The input list containing elements of various data types.
-        data_type (type): The desired data type to filter the list. E.g., str, int, float, etc.
+        data_type (type, tuple): The desired data type to filter the list. E.g., str, int, float, etc.
         num_items (int, optional): If provided, filters by the specified number of items in iterable elements.
 
     Returns:
