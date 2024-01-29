@@ -138,7 +138,7 @@ def multiply_surface_spans(input_surface, u_multiplier=0, v_multiplier=0, u_degr
 class Ribbon:
     def __init__(self,
                  prefix=None,
-                 surface=None,
+                 surface_data=None,
                  equidistant=True,
                  num_controls=5,
                  num_joints=20,
@@ -150,7 +150,7 @@ class Ribbon:
         Args:
             prefix (str): The system name to be added as a prefix to the created nodes.
                         If not provided, the name of the surface is used.
-            surface (str, optional): The name of the surface to be used as a ribbon. (Can be its transform or shape)
+            surface_data (str, optional): The name of the surface to be used as a ribbon. (Can be its transform or shape)
                                      If not provided one will be created automatically.
             equidistant (int, optional): Determine if the controls should be equally spaced (True) or not (False).
             num_controls (int, optional): The number of controls to create.
@@ -160,7 +160,6 @@ class Ribbon:
             bind_joint_parenting (bool, optional): Define if bind joints will form a hierarchy (True) or not (False)
         """
         self.prefix = None
-        self.surface_data = None
         self.equidistant = True
         self.num_controls = 5
         self.num_joints = 20
@@ -168,12 +167,16 @@ class Ribbon:
         self.add_fk = add_fk
         self.bind_joint_offset = None
         self.bind_joint_parenting = True
+
+        # Surface Data
+        self.surface_data = None
+        self.surface_data_length = None  # When using a list of objects or positions, this is the length of the list.
         self.surface_spans_multiplier = 4
 
         if prefix:
             self.set_prefix(prefix=prefix)
-        if surface:
-            self.set_surface_data(surface_data=surface)
+        if surface_data:
+            self.set_surface_data(surface_data=surface_data)
         if isinstance(equidistant, bool):
             self.set_equidistant(is_activated=equidistant)
         if num_controls:
@@ -210,6 +213,22 @@ class Ribbon:
             logger.debug(f'Unable to set surface path. No data was provided.')
             return
         self.surface_data = surface_data
+
+    def set_surface_span_multiplier(self, span_multiplier):
+        """
+        Sets the span multiplier value of the generated surface. That is, the number of divisions in between spans.
+        For example, if a surface is created from point A to point B and the multiplier is set to zero or one,
+        the surface will not change in any way, and be composed only of the starting and ending spans.
+        Now if the multiplier is set to 2, the number of spans will double, essentially adding a span/edge in between
+        the initial spans.
+        This can be seen as a subdivision value for surfaces.
+        Args:
+            span_multiplier (int): New span multiplier value.
+        """
+        if not isinstance(span_multiplier, int):
+            logger.debug(f'Unable to set span multiplier value. Input must be an integer.')
+            return
+        self.surface_spans_multiplier = span_multiplier
 
     def set_bind_joint_orient_offset(self, offset_tuple):
         """
@@ -299,7 +318,27 @@ class Ribbon:
         self.num_joints = num_joints
 
     def _get_or_create_surface(self, prefix):
-        surface = self.surface_data
+        """
+        Gets or creates the surface used for the ribbon.
+        The operation depends on the data stored in the "surface_data" variables.
+        If empty, it will create a simple 1x24 surface to match the default size of the grid.
+        If a path (string) is provided, it will use it as the surface, essentially using an existing surface.
+        If a list of paths (strings) is provided, it will use the position of the objects to create a surface.
+        If a list positions (3d tuples or lists) is provided, it will use the data to create a surface.
+
+        This function will also update the "surface_data_length" according to the data found.
+        No data = None.
+        Path = None.
+        List of paths = Length of the existing objects.
+        List of positions = Length of the positions list.
+
+        Args:
+            prefix (str): Prefix to be added in front of the generated surface.
+                          If an existing surface is found, this value is ignored.
+        Returns:
+            str: The surface name (path)
+        """
+        self.surface_data_length = None
         if isinstance(self.surface_data, str) and cmds.objExists(self.surface_data):
             return self.surface_data
         if isinstance(self.surface_data, (list, tuple)):
@@ -312,7 +351,8 @@ class Ribbon:
                     logger.warning(f'Unable to create surface using object list. '
                                    f'At least two valid objects are necessary for this operation.')
                 else:
-                    _sur = create_surface_from_object_list(obj_list=_obj_list, surface_name=f"{prefix}ribbon_surface")
+                    self.surface_data_length = len(_obj_list)
+                    _sur = create_surface_from_object_list(obj_list=_obj_list, surface_name=f"{prefix}_ribbon_sur")
                     multiply_surface_spans(input_surface=_sur, v_multiplier=self.surface_spans_multiplier, v_degree=3)
                     return _sur
             # Position List
@@ -324,15 +364,16 @@ class Ribbon:
                     cmds.move(*pos, locator_name)
                     obj_list_locator.append(locator_name)
                 obj_list_locator.reverse()
+                self.surface_data_length = len(obj_list_locator)
                 _sur = create_surface_from_object_list(obj_list=obj_list_locator,
-                                                       surface_name=f"{prefix}ribbon_surface")
+                                                       surface_name=f"{prefix}_ribbon_sur")
                 multiply_surface_spans(input_surface=_sur, v_multiplier=self.surface_spans_multiplier, v_degree=3)
                 cmds.delete(obj_list_locator)
                 return _sur
 
         surface = cmds.nurbsPlane(axis=(0, 1, 0), width=1, lengthRatio=24, degree=3,
                                   patchesU=1, patchesV=10, constructionHistory=False)[0]
-        surface = cmds.rename(surface, f"{prefix}ribbon_surface")
+        surface = cmds.rename(surface, f"{prefix}ribbon_sur")
         return surface
 
     def build(self):
@@ -385,10 +426,19 @@ class Ribbon:
                                                     periodic=is_periodic, space="uv")
         u_position_joints = get_positions_from_curve(curve=u_curve_for_positions, count=num_joints,
                                                      periodic=is_periodic, space="uv")
-
         length = cmds.arclen(u_curve_for_positions)
         cmds.delete(u_curve, v_curve, u_curve_for_positions)
 
+        # self.equidistant = False  # TODO TEMP @@@
+        # # Determine positions when
+        # if self.surface_data_length and self.equidistant is False:
+        #     print(f'num_joints: {num_joints}')
+        #     print(f'u_position_joints length: {len(u_position_joints)}')
+        #     u_pos_value = 1/self.surface_data_length
+        #     print(u_pos_value)
+        #     print(u_position_joints)
+        #
+        # return
         # Organization ----------------------------------------------------------------------------------
         grp_suffix = NamingConstants.Suffix.GRP
         parent_group = cmds.group(name=f"{prefix}ribbon_{grp_suffix}", empty=True)
@@ -407,7 +457,7 @@ class Ribbon:
         ribbon_crv.set_name(f"{prefix}base_{NamingConstants.Suffix.CTRL}")
         ribbon_ctrl = ribbon_crv.build()
         ribbon_ctrl = Node(ribbon_ctrl)
-        rescale_curve(curve_transform=ribbon_ctrl, scale=length/10)
+        rescale_curve(curve_transform=str(ribbon_ctrl), scale=length/10)
         ribbon_offset = cmds.group(name=f"{prefix}ctrl_main_offset", empty=True)
         ribbon_offset = Node(ribbon_offset)
 
@@ -417,7 +467,7 @@ class Ribbon:
                                target_parent=parent_group)
         hierarchy_utils.parent(source_objects=[input_surface, driver_joints_grp, follicles_grp],
                                target_parent=setup_grp)
-        cmds.setAttr(f"{setup_grp}.visibility", 0)
+        # cmds.setAttr(f"{setup_grp}.visibility", 0)  # TODO TEMP @@@
 
         # Follicles -----------------------------------------------------------------------------------
         follicle_nodes = []
@@ -648,8 +698,9 @@ if __name__ == "__main__":
                             add_fk=True)
     ribbon_factory.set_surface_data("mocked_sur")
     ribbon_factory.set_prefix("mocked")
-    # ribbon_factory.set_surface_data(test_joints)
-    ribbon_factory.set_surface_data([(0, 0, 0), (5, 0, 0), (10, 0, 0)])
+    ribbon_factory.set_surface_data(test_joints)
+    ribbon_factory.set_surface_span_multiplier(4)
+    # ribbon_factory.set_surface_data([(0, 0, 0), (5, 0, 0), (10, 0, 0)])
     # print(ribbon_factory._get_or_create_surface(prefix="test"))
     ribbon_factory.build()
     # create_surface_from_object_list(test_joints)
