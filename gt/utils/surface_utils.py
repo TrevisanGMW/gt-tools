@@ -429,16 +429,26 @@ class Ribbon:
         length = cmds.arclen(u_curve_for_positions)
         cmds.delete(u_curve, v_curve, u_curve_for_positions)
 
-        # self.equidistant = False  # TODO TEMP @@@
-        # # Determine positions when
-        # if self.surface_data_length and self.equidistant is False:
-        #     print(f'num_joints: {num_joints}')
-        #     print(f'u_position_joints length: {len(u_position_joints)}')
-        #     u_pos_value = 1/self.surface_data_length
-        #     print(u_pos_value)
-        #     print(u_position_joints)
-        #
-        # return
+        self.equidistant = False  # TODO TEMP @@@
+        # Determine positions when
+        if self.surface_data_length and self.equidistant is False:
+            print(f'num_joints: {num_joints}')
+            print(f'u_position_joints length: {len(u_position_joints)}')
+            # Create new joint
+            _num_joints = self.surface_data_length
+            if self.surface_spans_multiplier:
+                _num_joints = _num_joints*self.surface_spans_multiplier  # Account for new spans
+            _num_joints = _num_joints-1  # -1 to remove end span
+            u_pos_value = 1/_num_joints
+
+            last_value = 0
+            u_position_joints = []
+            for index in range(0, _num_joints):
+                u_position_joints.append(last_value)
+                last_value = last_value+u_pos_value
+            # print(u_position_joints_b)
+            print(u_position_joints)
+
         # Organization ----------------------------------------------------------------------------------
         grp_suffix = NamingConstants.Suffix.GRP
         parent_group = cmds.group(name=f"{prefix}ribbon_{grp_suffix}", empty=True)
@@ -520,7 +530,7 @@ class Ribbon:
             bbox_center = get_bbox_position(input_surface)
             set_trs_attr(target_obj=ribbon_offset, value_tuple=bbox_center, translate=True)
         hierarchy_utils.parent(source_objects=bind_joints, target_parent=bind_grp)
-
+        return
         # Ribbon Controls -----------------------------------------------------------------------------------
         ctrl_ref_follicle_nodes = []
         ctrl_ref_follicle_transforms = []
