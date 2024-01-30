@@ -535,23 +535,14 @@ class Ribbon:
             bind_joint_radius = self.fixed_radius
 
         for index in range(len(u_position_joints)):
-            _follicle = Node(cmds.createNode("follicle"))
-            _follicle_transform = Node(cmds.listRelatives(_follicle, p=True, fullPath=True)[0])
-            _follicle_transform.rename(f"{prefix}follicle_{(index+1):02d}")
+            _fol_tuple = create_follicle(input_surface=str(surface_shape),
+                                         uv_position=(u_position_joints[index], 0.5),
+                                         name=f"{prefix}follicle_{(index+1):02d}")
 
+            _follicle_transform = _fol_tuple[0]
+            _follicle_shape = _fol_tuple[1]
             follicle_transforms.append(_follicle_transform)
-            follicle_nodes.append(_follicle)
-
-            # Connect Follicle to Transforms
-            cmds.connectAttr(f"{_follicle}.outTranslate", f"{_follicle_transform}.translate")
-            cmds.connectAttr(f"{_follicle}.outRotate", f"{_follicle_transform}.rotate")
-
-            # Attach Follicle to Surface
-            cmds.connectAttr(f"{surface_shape}.worldMatrix[0]", f"{_follicle}.inputWorldMatrix")
-            cmds.connectAttr(f"{surface_shape}.local", f"{_follicle}.inputSurface")
-
-            cmds.setAttr(f'{_follicle}.parameterU', u_position_joints[index])
-            cmds.setAttr(f'{_follicle}.parameterV', 0.5)
+            follicle_nodes.append(_follicle_shape)
 
             cmds.parent(_follicle_transform, follicles_grp)
 
@@ -582,15 +573,15 @@ class Ribbon:
         ctrl_ref_follicle_transforms = []
 
         for index in range(num_controls):
-            _follicle = Node(cmds.createNode("follicle"))
-            _follicle_transform = cmds.listRelatives(_follicle, parent=True)[0]
-            ctrl_ref_follicle_nodes.append(_follicle)
+            _follicle_shape = Node(cmds.createNode("follicle"))
+            _follicle_transform = cmds.listRelatives(_follicle_shape, parent=True)[0]
+            ctrl_ref_follicle_nodes.append(_follicle_shape)
             ctrl_ref_follicle_transforms.append(_follicle_transform)
 
-            cmds.connectAttr(f"{_follicle}.outTranslate", f"{_follicle_transform}.translate")
-            cmds.connectAttr(f"{_follicle}.outRotate", f"{_follicle_transform}.rotate")
-            cmds.connectAttr(f"{surface_shape}.worldMatrix[0]", f"{_follicle}.inputWorldMatrix")
-            cmds.connectAttr(f"{surface_shape}.local", f"{_follicle}.inputSurface")
+            cmds.connectAttr(f"{_follicle_shape}.outTranslate", f"{_follicle_transform}.translate")
+            cmds.connectAttr(f"{_follicle_shape}.outRotate", f"{_follicle_transform}.rotate")
+            cmds.connectAttr(f"{surface_shape}.worldMatrix[0]", f"{_follicle_shape}.inputWorldMatrix")
+            cmds.connectAttr(f"{surface_shape}.local", f"{_follicle_shape}.inputSurface")
 
         divider_for_ctrls = num_controls
         if not is_periodic:
@@ -738,31 +729,27 @@ class Ribbon:
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     # Clear Scene
-    # cmds.file(new=True, force=True)
-    # # Create Test Joints
-    # test_joints = [cmds.joint(p=(0, 0, 0)),
-    #                cmds.joint(p=(-5, 0, 0)),
-    #                cmds.joint(p=(-10, 2, 0)),
-    #                cmds.joint(p=(-15, 6, 3)),
-    #                cmds.joint(p=(-20, 10, 5)),
-    #                cmds.joint(p=(-25, 15, 10)),
-    #                cmds.joint(p=(-30, 15, 15))]
-    # # Create Ribbon
-    # ribbon_factory = Ribbon(equidistant=True,
-    #                         num_controls=5,
-    #                         num_joints=8,
-    #                         add_fk=True)
-    # ribbon_factory.set_surface_data("mocked_sur")
-    # ribbon_factory.set_prefix("mocked")
-    # ribbon_factory.set_surface_data(test_joints)
-    # ribbon_factory.set_surface_span_multiplier(4)
-    # # ribbon_factory.set_surface_data([(0, 0, 0), (5, 0, 0), (10, 0, 0)])
-    # # print(ribbon_factory._get_or_create_surface(prefix="test"))
-    # ribbon_factory.build()
-    # # create_surface_from_object_list(test_joints)
-
-    temp_sur = cmds.nurbsPlane()[0]
-
-    create_follicle(input_surface=temp_sur)
+    cmds.file(new=True, force=True)
+    # Create Test Joints
+    test_joints = [cmds.joint(p=(0, 0, 0)),
+                   cmds.joint(p=(-5, 0, 0)),
+                   cmds.joint(p=(-10, 2, 0)),
+                   cmds.joint(p=(-15, 6, 3)),
+                   cmds.joint(p=(-20, 10, 5)),
+                   cmds.joint(p=(-25, 15, 10)),
+                   cmds.joint(p=(-30, 15, 15))]
+    # Create Ribbon
+    ribbon_factory = Ribbon(equidistant=True,
+                            num_controls=5,
+                            num_joints=8,
+                            add_fk=True)
+    ribbon_factory.set_surface_data("mocked_sur")
+    ribbon_factory.set_prefix("mocked")
+    ribbon_factory.set_surface_data(test_joints)
+    ribbon_factory.set_surface_span_multiplier(4)
+    # ribbon_factory.set_surface_data([(0, 0, 0), (5, 0, 0), (10, 0, 0)])
+    # print(ribbon_factory._get_or_create_surface(prefix="test"))
+    ribbon_factory.build()
+    # create_surface_from_object_list(test_joints)
 
     cmds.viewFit(all=True)
