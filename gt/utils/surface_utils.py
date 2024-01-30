@@ -39,7 +39,7 @@ def is_surface_periodic(surface_shape):
     return False
 
 
-def create_surface_from_object_list(obj_list, surface_name=None):
+def create_surface_from_object_list(obj_list, surface_name=None, degree=3):
     """
     Creates a surface from a list of objects (according to list order)
     The surface is created using curve offsets.
@@ -49,6 +49,7 @@ def create_surface_from_object_list(obj_list, surface_name=None):
     Args:
         obj_list (list): List of objects used to generate the surface (order matters)
         surface_name (str, optional): Name of the generated surface.
+        degree (int, optional): The degree of the generated lofted surface. Default is cubic (3)
     Returns:
         str or None: Generated surface (loft) object, otherwise None.
     """
@@ -80,7 +81,7 @@ def create_surface_from_object_list(obj_list, surface_name=None):
     lofted_surface = cmds.loft(crv_pos, crv_neg,
                                range=True,
                                autoReverse=True,
-                               degree=3,
+                               degree=degree,
                                uniform=True,
                                constructionHistory=False,
                                **loft_parameters)[0]
@@ -88,16 +89,17 @@ def create_surface_from_object_list(obj_list, surface_name=None):
     return lofted_surface
 
 
-def multiply_surface_spans(input_surface, u_multiplier=0, v_multiplier=0, u_degree=1, v_degree=1):
+def multiply_surface_spans(input_surface, u_multiplier=0, v_multiplier=0, u_degree=None, v_degree=None):
     """
     Multiplies the number of spans in the U and V directions of a NURBS surface.
+    This operation deletes the history of the object before running.
 
     Args:
         input_surface (str, Node): The name of the NURBS surface to be modified. (can be the shape or its transform)
         u_multiplier (int): Multiplier for the number of spans in the U direction. Default is 0.
         v_multiplier (int): Multiplier for the number of spans in the V direction. Default is 0.
-        u_degree (int): Degree of the surface in the U direction. Default is 1.
-        v_degree (int): Degree of the surface in the V direction. Default is 1.
+        u_degree (int): Degree of the surface in the U direction.
+        v_degree (int): Degree of the surface in the V direction.
 
     Returns:
         str or None: The name of the affected surface, otherwise None.
@@ -133,6 +135,50 @@ def multiply_surface_spans(input_surface, u_multiplier=0, v_multiplier=0, u_degr
     surface = cmds.rebuildSurface(input_surface, spansU=num_spans_u, spansV=num_spans_v, **degree_params)
     if surface:
         return surface[0]
+
+
+def create_follicle(input_surface, uv_position=(0.5, 0.5), name=None):
+    """
+    Creates a follicle and attaches it to a surface.
+    Args:
+        input_surface (str): A path to a surface transform or shape.
+        uv_position (tuple, optional): A UV values to determine where to initially position the follicle.
+                                      Default is (0.5, 0.5), which is the center of the surface.
+        name (str, optional): Follicle name. If not provided it will be named "follicle"
+    Returns:
+        tuple: A tuple where the first object is the follicle transform and the second the follicle shape.
+    """
+    # If it's a transform, get the associated shape node
+    if cmds.objectType(input_surface) == 'transform':
+        shapes = cmds.listRelatives(input_surface, shapes=True, typ=SURFACE_TYPE)
+        if shapes:
+            input_surface = shapes[0]
+        else:
+            logger.debug(f'Unable create follicle. '
+                         f'No "nurbsSurface" found in the provided transform.')
+            return
+    if cmds.objectType(input_surface) != SURFACE_TYPE:
+        logger.debug(f'Unable create follicle. '
+                     f'The provided input surface is not a {SURFACE_TYPE}.')
+        return
+    if not name:
+        name = "follicle"
+    _follicle = Node(cmds.createNode("follicle"))
+    _follicle_transform = Node(cmds.listRelatives(_follicle, p=True, fullPath=True)[0])
+    _follicle_transform.rename(name)
+
+    # Connect Follicle to Transforms
+    cmds.connectAttr(f"{_follicle}.outTranslate", f"{_follicle_transform}.translate")
+    cmds.connectAttr(f"{_follicle}.outRotate", f"{_follicle_transform}.rotate")
+
+    # Attach Follicle to Surface
+    cmds.connectAttr(f"{input_surface}.worldMatrix[0]", f"{_follicle}.inputWorldMatrix")
+    cmds.connectAttr(f"{input_surface}.local", f"{_follicle}.inputSurface")
+
+    cmds.setAttr(f'{_follicle}.parameterU', uv_position[0])
+    cmds.setAttr(f'{_follicle}.parameterV', uv_position[1])
+
+    return _follicle_transform, _follicle
 
 
 class Ribbon:
@@ -430,24 +476,24 @@ class Ribbon:
         cmds.delete(u_curve, v_curve, u_curve_for_positions)
 
         self.equidistant = False  # TODO TEMP @@@
-        # Determine positions when
+        # Determine positions when using list as input
         if self.surface_data_length and self.equidistant is False:
-            print(f'num_joints: {num_joints}')
-            print(f'u_position_joints length: {len(u_position_joints)}')
+            # print(f'num_joints: {num_joints}')
             # Create new joint
-            _num_joints = self.surface_data_length
+            _num_joints = self.surface_data_length-1
             if self.surface_spans_multiplier:
-                _num_joints = _num_joints*self.surface_spans_multiplier  # Account for new spans
-            _num_joints = _num_joints-1  # -1 to remove end span
+                _num_joints_multiplied = _num_joints*self.surface_spans_multiplier  # Account for new spans
+            _num_joints = _num_joints  # -1 to remove end span
             u_pos_value = 1/_num_joints
 
             last_value = 0
             u_position_joints = []
-            for index in range(0, _num_joints):
+            for index in range(_num_joints):
                 u_position_joints.append(last_value)
                 last_value = last_value+u_pos_value
-            # print(u_position_joints_b)
-            print(u_position_joints)
+            u_position_joints.append(1)  # End Position: 0=start, 1=end
+            print(_num_joints_multiplied/_num_joints)
+            # print(u_position_joints)
 
         # Organization ----------------------------------------------------------------------------------
         grp_suffix = NamingConstants.Suffix.GRP
@@ -488,7 +534,7 @@ class Ribbon:
         else:
             bind_joint_radius = self.fixed_radius
 
-        for index in range(num_joints):
+        for index in range(len(u_position_joints)):
             _follicle = Node(cmds.createNode("follicle"))
             _follicle_transform = Node(cmds.listRelatives(_follicle, p=True, fullPath=True)[0])
             _follicle_transform.rename(f"{prefix}follicle_{(index+1):02d}")
@@ -692,26 +738,31 @@ class Ribbon:
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     # Clear Scene
-    cmds.file(new=True, force=True)
-    # Create Test Joints
-    test_joints = [cmds.joint(p=(0, 0, 0)),
-                   cmds.joint(p=(-5, 0, 0)),
-                   cmds.joint(p=(-10, 2, 0)),
-                   cmds.joint(p=(-15, 6, 3)),
-                   cmds.joint(p=(-20, 10, 5)),
-                   cmds.joint(p=(-25, 15, 10)),
-                   cmds.joint(p=(-30, 15, 15))]
-    # Create Ribbon
-    ribbon_factory = Ribbon(equidistant=True,
-                            num_controls=5,
-                            num_joints=8,
-                            add_fk=True)
-    ribbon_factory.set_surface_data("mocked_sur")
-    ribbon_factory.set_prefix("mocked")
-    ribbon_factory.set_surface_data(test_joints)
-    ribbon_factory.set_surface_span_multiplier(4)
-    # ribbon_factory.set_surface_data([(0, 0, 0), (5, 0, 0), (10, 0, 0)])
-    # print(ribbon_factory._get_or_create_surface(prefix="test"))
-    ribbon_factory.build()
-    # create_surface_from_object_list(test_joints)
+    # cmds.file(new=True, force=True)
+    # # Create Test Joints
+    # test_joints = [cmds.joint(p=(0, 0, 0)),
+    #                cmds.joint(p=(-5, 0, 0)),
+    #                cmds.joint(p=(-10, 2, 0)),
+    #                cmds.joint(p=(-15, 6, 3)),
+    #                cmds.joint(p=(-20, 10, 5)),
+    #                cmds.joint(p=(-25, 15, 10)),
+    #                cmds.joint(p=(-30, 15, 15))]
+    # # Create Ribbon
+    # ribbon_factory = Ribbon(equidistant=True,
+    #                         num_controls=5,
+    #                         num_joints=8,
+    #                         add_fk=True)
+    # ribbon_factory.set_surface_data("mocked_sur")
+    # ribbon_factory.set_prefix("mocked")
+    # ribbon_factory.set_surface_data(test_joints)
+    # ribbon_factory.set_surface_span_multiplier(4)
+    # # ribbon_factory.set_surface_data([(0, 0, 0), (5, 0, 0), (10, 0, 0)])
+    # # print(ribbon_factory._get_or_create_surface(prefix="test"))
+    # ribbon_factory.build()
+    # # create_surface_from_object_list(test_joints)
+
+    temp_sur = cmds.nurbsPlane()[0]
+
+    create_follicle(input_surface=temp_sur)
+
     cmds.viewFit(all=True)
