@@ -189,8 +189,6 @@ class Ribbon:
                  num_controls=5,
                  num_joints=20,
                  add_fk=False,
-                 bind_joint_orient_offset=(90, 0, 0),
-                 bind_joint_parenting=True
                  ):
         """
         Args:
@@ -202,22 +200,23 @@ class Ribbon:
             num_controls (int, optional): The number of controls to create.
             num_joints (int, optional): The number of joints to create on the ribbon.
             add_fk (int): Flag to add FK controls.
-            bind_joint_orient_offset (tuple): An offset tuple with the X, Y, and Z rotation values.
-            bind_joint_parenting (bool, optional): Define if bind joints will form a hierarchy (True) or not (False)
         """
         self.prefix = None
         self.equidistant = True
         self.num_controls = 5
         self.num_joints = 20
-        self.fixed_radius = None
         self.add_fk = add_fk
-        self.bind_joint_offset = None
-        self.bind_joint_parenting = True
+
+        # Bind Joint Data
+        self.bind_joints_orient_offset = None
+        self.bind_joints_parenting = True
 
         # Surface Data
-        self.surface_data = None
-        self.surface_data_length = None  # When using a list of objects or positions, this is the length of the list.
-        self.surface_spans_multiplier = 4
+        self.sur_data = None
+        self.sur_data_length = None  # When using a list, this is the length of the list. - Internal Use Only
+        self.sur_spans_multiplier = 0
+        self.sur_data_is_driven = False
+        self.sur_data_maintain_offset = True
 
         if prefix:
             self.set_prefix(prefix=prefix)
@@ -229,10 +228,6 @@ class Ribbon:
             self.set_num_controls(num_controls=num_controls)
         if num_joints:
             self.set_num_joints(num_joints=num_joints)
-        if bind_joint_orient_offset:
-            self.set_bind_joint_orient_offset(offset_tuple=bind_joint_orient_offset)
-        if isinstance(bind_joint_parenting, bool):
-            self.set_bind_joint_hierarchy(state=bind_joint_parenting)
 
     def set_prefix(self, prefix):
         """
@@ -246,7 +241,7 @@ class Ribbon:
             return
         self.prefix = prefix
 
-    def set_surface_data(self, surface_data):
+    def set_surface_data(self, surface_data=None, is_driven=None, maintain_driven_offset=None, span_multiplier=None):
         """
         Set the surface origin to be used as a ribbon of the object.
         Args:
@@ -254,79 +249,75 @@ class Ribbon:
                               If a string is provided, it should be the transform or shape of a nurbs surface.
                               If a list of objects or positions is used, a surface will be created using this data.
                               The function "clear_surface_data" can be used to remove previous provided data.
+            is_driven (bool, optional): If True, it will use the provided surface_data object list as driven.
+                                        This means that the follicles will drive these objects directly.
+                                        Commonly used with existing influence joints.
+                                        e.g. follicle -> parent constraint > surface_data list item
+            maintain_driven_offset (bool, optional): When True, it constrains follicles with maintain offset active.
+                                                     This option is only used when "is_driven" is True.
+            span_multiplier (int): New span multiplier value. Sets the span multiplier value of the generated surface.
+                    That is, the number of divisions in between spans. For example, if a surface is created from
+                    point A to point B and the multiplier is set to zero or one, the surface will not change, and be
+                    composed only of the starting and ending spans.
+                    Now if the multiplier is set to 2, the number of spans will double, essentially adding a span/edge
+                    in between the initial spans. This can be seen as a subdivision value for surfaces.
         """
-        if not surface_data:
-            logger.debug(f'Unable to set surface path. No data was provided.')
+        if surface_data and not isinstance(surface_data, (str, list, tuple)):
+            logger.debug(f'Unable to set surface path. Invalid data was provided.')
             return
-        self.surface_data = surface_data
-
-    def set_surface_span_multiplier(self, span_multiplier):
-        """
-        Sets the span multiplier value of the generated surface. That is, the number of divisions in between spans.
-        For example, if a surface is created from point A to point B and the multiplier is set to zero or one,
-        the surface will not change in any way, and be composed only of the starting and ending spans.
-        Now if the multiplier is set to 2, the number of spans will double, essentially adding a span/edge in between
-        the initial spans.
-        This can be seen as a subdivision value for surfaces.
-        Args:
-            span_multiplier (int): New span multiplier value.
-        """
-        if not isinstance(span_multiplier, int):
-            logger.debug(f'Unable to set span multiplier value. Input must be an integer.')
-            return
-        self.surface_spans_multiplier = span_multiplier
-
-    def set_bind_joint_orient_offset(self, offset_tuple):
-        """
-        Sets an orientation offset (rotation) for the bind joints. Helpful for when matching orientation.
-        Args:
-            offset_tuple (tuple): An offset tuple with the X, Y, and Z rotation values.
-        """
-        if not isinstance(offset_tuple, tuple) or len(offset_tuple) < 3:
-            logger.debug(f'Unable to set bind joint orient offset. '
-                         f'Invalid input. Must be a tuple with X, Y and Z values.')
-            return
-
-        if not all(isinstance(num, (int, float)) for num in offset_tuple):
-            logger.debug(f'Unable to set bind joint orient offset. '
-                         f'Input must contain only numbers.')
-            return
-
-        self.bind_joint_offset = offset_tuple
-
-    def set_bind_joint_hierarchy(self, state):
-        """
-        Sets Bind joint parenting (hierarchy)
-        Args:
-            state (bool, optional): Define if bind joints will form a hierarchy (True) or not (False)
-        """
-        if isinstance(state, bool):
-            self.bind_joint_parenting = state
+        self.sur_data = surface_data
+        if isinstance(is_driven, bool):
+            self.sur_data_is_driven = is_driven
+        if isinstance(maintain_driven_offset, bool):
+            self.sur_data_maintain_offset = maintain_driven_offset
+        if isinstance(maintain_driven_offset, int):
+            self.sur_spans_multiplier = span_multiplier
 
     def clear_surface_data(self):
         """
-        Removes/Clears the currently set surface so a new one is automatically created during the "build" process.
+        Removes/Clears the currently surface data and its attributes.
+        This will cause the ribbon to create a new one during the "build" process.
         """
-        self.surface_data = None
+        self.sur_data = None
+        _default_ribbon = Ribbon()  # Temporary ribbon used to extract default values
+        self.sur_data_is_driven = _default_ribbon.sur_data_is_driven
+        self.sur_data_maintain_offset = _default_ribbon.sur_data_maintain_offset
+        self.sur_spans_multiplier = _default_ribbon.sur_spans_multiplier
 
-    def set_fixed_radius(self, radius):
+    def set_bind_joint_data(self, orient_offset=None, parenting=None):
         """
-        Sets a fixed radius values
+        Sets data related to the bind joints. These are only applied when the ribbon is creating the joints.
+
         Args:
-            radius (int, float): A radius value to be set when creating bind joints.
-                                 If not provided, one is calculated automatically.
+            orient_offset (tuple, optional): An offset tuple with the X, Y, and Z rotation values.
+                                             Sets an orientation offset (rotation) for the bind joints.
+                                             Helpful for when matching orientation.
+                                             e.g. (90, 0, 0) will use "Z" as primary rotation.
+            parenting (bool, optional): Determines if the joints should form a hierarchy by parenting them to one
+                                        another in the order of creation.
         """
-        if not radius or not isinstance(radius, (int, float)):
-            logger.debug(f'Unable to set fixed radius. Input must be an integer or a float.')
-            return
-        self.fixed_radius = radius
+        if isinstance(parenting, bool):
+            self.bind_joints_parenting = parenting
+        if orient_offset:
+            if not isinstance(orient_offset, tuple) or len(orient_offset) < 3:
+                logger.debug(f'Unable to set bind joint orient offset. '
+                             f'Invalid input. Must be a tuple with X, Y and Z values.')
+                return
 
-    def clear_fixed_radius(self):
+            if not all(isinstance(num, (int, float)) for num in orient_offset):
+                logger.debug(f'Unable to set bind joint orient offset. '
+                             f'Input must contain only numbers.')
+                return
+            self.bind_joints_orient_offset = orient_offset
+
+    def clear_bind_joint_data(self):
         """
-        Removes/Clears the currently set fixed radius value.
-        This causes the radius to be automatically calculated when building.
+        Removes/Clears the bind data by reverting them back to the default values.
+        This will cause the ribbon to create a new one during the "build" process.
         """
-        self.fixed_radius = None
+        _default_ribbon = Ribbon()  # Temporary ribbon used to extract default values
+        self.bind_joints_orient_offset = _default_ribbon.bind_joints_orient_offset
+        self.bind_joints_parenting = _default_ribbon.bind_joints_parenting
 
     def set_equidistant(self, is_activated):
         """
@@ -384,36 +375,37 @@ class Ribbon:
         Returns:
             str: The surface name (path)
         """
-        self.surface_data_length = None
-        if isinstance(self.surface_data, str) and cmds.objExists(self.surface_data):
-            return self.surface_data
-        if isinstance(self.surface_data, (list, tuple)):
+        self.sur_data_length = None
+        if isinstance(self.sur_data, str) and cmds.objExists(self.sur_data):
+            return self.sur_data
+        if isinstance(self.sur_data, (list, tuple)):
             # Object List
-            _filter_obj_list = filter_list_by_type(self.surface_data, data_type=(str, Node))
+            _filter_obj_list = filter_list_by_type(self.sur_data, data_type=(str, Node))
             if _filter_obj_list:
-                _obj_list = sanitize_maya_list(input_list=self.surface_data, sort_list=False,
+                _obj_list = sanitize_maya_list(input_list=self.sur_data, sort_list=False,
                                                filter_unique=False, reverse_list=True)
                 if not _obj_list or len(_obj_list) < 2:
                     logger.warning(f'Unable to create surface using object list. '
                                    f'At least two valid objects are necessary for this operation.')
                 else:
-                    self.surface_data_length = len(_obj_list)
+                    self.sur_data_length = len(_obj_list)
                     _sur = create_surface_from_object_list(obj_list=_obj_list, surface_name=f"{prefix}_ribbon_sur")
-                    multiply_surface_spans(input_surface=_sur, v_multiplier=self.surface_spans_multiplier, v_degree=3)
+                    multiply_surface_spans(input_surface=_sur, u_degree=1, v_degree=3,
+                                           v_multiplier=self.sur_spans_multiplier)
                     return _sur
             # Position List
-            _filter_pos_list = filter_list_by_type(self.surface_data, data_type=(list, tuple), num_items=3)
+            _filter_pos_list = filter_list_by_type(self.sur_data, data_type=(list, tuple), num_items=3)
             if _filter_pos_list:
                 obj_list_locator = []
-                for pos in self.surface_data:
+                for pos in self.sur_data:
                     locator_name = cmds.spaceLocator(name=f'{prefix}_temp_surface_assembly_locator')[0]
                     cmds.move(*pos, locator_name)
                     obj_list_locator.append(locator_name)
                 obj_list_locator.reverse()
-                self.surface_data_length = len(obj_list_locator)
+                self.sur_data_length = len(obj_list_locator)
                 _sur = create_surface_from_object_list(obj_list=obj_list_locator,
                                                        surface_name=f"{prefix}_ribbon_sur")
-                multiply_surface_spans(input_surface=_sur, v_multiplier=self.surface_spans_multiplier, v_degree=3)
+                multiply_surface_spans(input_surface=_sur, v_multiplier=self.sur_spans_multiplier, v_degree=3)
                 cmds.delete(obj_list_locator)
                 return _sur
 
@@ -477,12 +469,13 @@ class Ribbon:
 
         self.equidistant = False  # TODO TEMP @@@
         # Determine positions when using list as input
-        if self.surface_data_length and self.equidistant is False:
+        if self.sur_data_length and self.equidistant is False:
             # print(f'num_joints: {num_joints}')
             # Create new joint
-            _num_joints = self.surface_data_length-1
-            if self.surface_spans_multiplier:
-                _num_joints_multiplied = _num_joints*self.surface_spans_multiplier  # Account for new spans
+            _num_joints = self.sur_data_length - 1
+            _num_joints_multiplied = 0
+            if self.sur_spans_multiplier:
+                _num_joints_multiplied = _num_joints*self.sur_spans_multiplier  # Account for new spans
             _num_joints = _num_joints  # -1 to remove end span
             u_pos_value = 1/_num_joints
 
@@ -529,10 +522,8 @@ class Ribbon:
         follicle_nodes = []
         follicle_transforms = []
         bind_joints = []
-        if self.fixed_radius is None:
-            bind_joint_radius = (length/60)/(float(num_joints)/40)
-        else:
-            bind_joint_radius = self.fixed_radius
+        bind_joint_radius = (length/60)/(float(num_joints)/40)
+
 
         for index in range(len(u_position_joints)):
             _fol_tuple = create_follicle(input_surface=str(surface_shape),
@@ -556,8 +547,8 @@ class Ribbon:
             bind_joints.append(joint)
 
             match_transform(source=_follicle_transform, target_list=joint)
-            if self.bind_joint_offset:
-                cmds.rotate(*self.bind_joint_offset, joint, relative=True, os=True)
+            if self.bind_joints_orient_offset:
+                cmds.rotate(*self.bind_joints_orient_offset, joint, relative=True, os=True)
             cmds.parentConstraint(_follicle_transform, joint, maintainOffset=True)
             cmds.setAttr(f"{joint}.radius", bind_joint_radius)
 
@@ -567,7 +558,7 @@ class Ribbon:
             bbox_center = get_bbox_position(input_surface)
             set_trs_attr(target_obj=ribbon_offset, value_tuple=bbox_center, translate=True)
         hierarchy_utils.parent(source_objects=bind_joints, target_parent=bind_grp)
-        return
+
         # Ribbon Controls -----------------------------------------------------------------------------------
         ctrl_ref_follicle_nodes = []
         ctrl_ref_follicle_transforms = []
@@ -709,7 +700,7 @@ class Ribbon:
             cmds.select(cl=True)
 
         # Parenting Binding Joints
-        if self.bind_joint_parenting:
+        if self.bind_joints_parenting:
             for index in range(len(bind_joints) - 1):
                 parent_joint = bind_joints[index]
                 child_joint = bind_joints[index + 1]
@@ -746,10 +737,9 @@ if __name__ == "__main__":
     ribbon_factory.set_surface_data("mocked_sur")
     ribbon_factory.set_prefix("mocked")
     ribbon_factory.set_surface_data(test_joints)
-    ribbon_factory.set_surface_span_multiplier(4)
+    # ribbon_factory.set_surface_span_multiplier(10)
     # ribbon_factory.set_surface_data([(0, 0, 0), (5, 0, 0), (10, 0, 0)])
     # print(ribbon_factory._get_or_create_surface(prefix="test"))
+    ribbon_factory.clear_surface_data()
     ribbon_factory.build()
-    # create_surface_from_object_list(test_joints)
-
     cmds.viewFit(all=True)
