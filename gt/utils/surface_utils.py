@@ -207,16 +207,16 @@ class Ribbon:
         self.num_joints = 20
         self.add_fk = add_fk
 
-        # Bind Joint Data
-        self.bind_joints_orient_offset = None
-        self.bind_joints_parenting = True
-
         # Surface Data
         self.sur_data = None
         self.sur_data_length = None  # When using a list, this is the length of the list. - Internal Use Only
         self.sur_spans_multiplier = 0
         self.sur_data_is_driven = False
         self.sur_data_maintain_offset = True
+
+        # Bind Joint Data
+        self.bind_joints_orient_offset = None
+        self.bind_joints_parenting = True
 
         if prefix:
             self.set_prefix(prefix=prefix)
@@ -240,6 +240,52 @@ class Ribbon:
             logger.debug('Unable to set prefix. Input must be a non-empty string.')
             return
         self.prefix = prefix
+
+    def set_equidistant(self, is_activated):
+        """
+        Set the equidistant attribute of the object.
+
+        Args:
+            is_activated (bool): Determine if the controls should be equally spaced (True) or not (False).
+        """
+        if not isinstance(is_activated, bool):
+            logger.debug('Unable to set equidistant state. Input must be a bool (True or False)')
+            return
+        self.equidistant = is_activated
+
+    def set_num_controls(self, num_controls):
+        """
+        Set the number of controls attribute of the object.
+
+        Args:
+            num_controls (int): The number of controls to create.
+        """
+        if not isinstance(num_controls, int) or num_controls <= 1:
+            logger.debug('Unable to set number of controls. Input must be two or more.')
+            return
+        self.num_controls = num_controls
+
+    def set_num_joints(self, num_joints):
+        """
+        Set the number of joints attribute of the object.
+        Args:
+            num_joints (int): The number of joints to be set.
+        """
+        if not isinstance(num_joints, int) or num_joints <= 0:
+            logger.debug('Unable to set number of joints. Input must be a positive integer.')
+            return
+        self.num_joints = num_joints
+
+    def set_add_fk_state(self, state):
+        """
+        Determines if the system will create FK controls when building or not.
+        Args:
+            state (bool) If True, forward kinematics system will be added to the ribbon, otherwise it will be skipped.
+        """
+        if not isinstance(state, bool):
+            logger.debug(f'Unable to set FK creation state. Input must be a boolean.')
+            return
+        self.add_fk = state
 
     def set_surface_data(self, surface_data=None, is_driven=None, maintain_driven_offset=None, span_multiplier=None):
         """
@@ -318,41 +364,6 @@ class Ribbon:
         _default_ribbon = Ribbon()  # Temporary ribbon used to extract default values
         self.bind_joints_orient_offset = _default_ribbon.bind_joints_orient_offset
         self.bind_joints_parenting = _default_ribbon.bind_joints_parenting
-
-    def set_equidistant(self, is_activated):
-        """
-        Set the equidistant attribute of the object.
-
-        Args:
-            is_activated (bool): Determine if the controls should be equally spaced (True) or not (False).
-        """
-        if not isinstance(is_activated, bool):
-            logger.debug('Unable to set equidistant state. Input must be a bool (True or False)')
-            return
-        self.equidistant = is_activated
-
-    def set_num_controls(self, num_controls):
-        """
-        Set the number of controls attribute of the object.
-
-        Args:
-            num_controls (int): The number of controls to create.
-        """
-        if not isinstance(num_controls, int) or num_controls <= 1:
-            logger.debug('Unable to set number of controls. Input must be two or more.')
-            return
-        self.num_controls = num_controls
-
-    def set_num_joints(self, num_joints):
-        """
-        Set the number of joints attribute of the object.
-        Args:
-            num_joints (int): The number of joints to be set.
-        """
-        if not isinstance(num_joints, int) or num_joints <= 0:
-            logger.debug('Unable to set number of joints. Input must be a positive integer.')
-            return
-        self.num_joints = num_joints
 
     def _get_or_create_surface(self, prefix):
         """
@@ -740,6 +751,5 @@ if __name__ == "__main__":
     # ribbon_factory.set_surface_span_multiplier(10)
     # ribbon_factory.set_surface_data([(0, 0, 0), (5, 0, 0), (10, 0, 0)])
     # print(ribbon_factory._get_or_create_surface(prefix="test"))
-    ribbon_factory.clear_surface_data()
     ribbon_factory.build()
     cmds.viewFit(all=True)
