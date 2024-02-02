@@ -206,6 +206,7 @@ class Ribbon:
         self.num_controls = 5
         self.num_joints = 20
         self.add_fk = add_fk
+        self.dropoff_rate = 2
 
         # Surface Data
         self.sur_data = None
@@ -287,6 +288,21 @@ class Ribbon:
             logger.debug(f'Unable to set FK creation state. Input must be a boolean.')
             return
         self.add_fk = state
+
+    def set_dropoff_rate(self, rate):
+        """
+        Sets the rate at which the influence of a transform drops as the distance from that transform increases.
+        The valid range is between 0.1 and 10.0. - In this context, it determines the dropoff influence of the controls
+        along the ribbon surface.
+        Args:
+            rate (int, float): Dropoff rate for the ribbon controls. Range 0.1 to 10.0
+        """
+        if not isinstance(rate, (int, float)):
+            logger.debug(f'Unable to set dropoff rate. Invalid data type provided.')
+        if 0.1 <= rate <= 10.0:
+            self.dropoff_rate = rate
+        else:
+            logger.debug("Invalid dropoff value. The valid range is between 0.1 and 10.0.")
 
     def set_surface_data(self, surface_data=None, is_driven=None, maintain_driven_offset=None, span_multiplier=None):
         """
@@ -524,9 +540,9 @@ class Ribbon:
                                target_parent=parent_group)
         hierarchy_utils.parent(source_objects=[input_surface, driver_joints_grp, follicles_grp],
                                target_parent=setup_grp)
-        # cmds.setAttr(f"{setup_grp}.visibility", 0)  # TODO TEMP @@@
+        cmds.setAttr(f"{setup_grp}.visibility", 0)
 
-        # Follicles/Joints -------------------------------------------------------------------------------
+        # Follicles and Bind Joints ----------------------------------------------------------------------
         follicle_nodes = []
         follicle_transforms = []
         bind_joints = []
@@ -608,7 +624,7 @@ class Ribbon:
         ctrl_offset_grps = []
         ctrl_joints = []
         ctrl_jnt_offset_grps = []
-        ctrl_jnt_radius = bind_joint_radius * 2
+        ctrl_jnt_radius = bind_joint_radius * 1
 
         for index in range(num_controls):
             crv = get_curve("_cube")
@@ -655,7 +671,7 @@ class Ribbon:
 
         # Bind the surface to driver joints
         nurbs_skin_cluster = cmds.skinCluster(ctrl_joints, input_surface,
-                                              dropoffRate=2,
+                                              dropoffRate=self.dropoff_rate,
                                               maximumInfluences=num_controls-1,
                                               nurbsSamples=num_controls*5,
                                               bindMethod=0,  # Closest Distance
@@ -721,12 +737,17 @@ class Ribbon:
                 if cmds.objExists(parent_joint) and cmds.objExists(child_joint):
                     cmds.parent(child_joint, parent_joint)
 
-        # Colors  ----------------------------------------------------------------------------------------
+        # Colors  ------------------------------------------------------------------------------------------
         set_color_viewport(obj_list=ribbon_ctrl, rgb_color=ColorConstants.RGB.WHITE)
         set_color_viewport(obj_list=fk_ctrls, rgb_color=ColorConstants.RGB.RED_INDIAN)
         set_color_viewport(obj_list=ribbon_ctrls, rgb_color=ColorConstants.RGB.BLUE_SKY)
         set_color_viewport(obj_list=bind_joints, rgb_color=ColorConstants.RGB.YELLOW)
 
+        # Clean-up  ----------------------------------------------------------------------------------------
+        # Delete Empty Bind Group
+        bind_grp_children = cmds.listRelatives(bind_grp, children=True)
+        if not bind_grp_children:
+            cmds.delete(bind_grp)
         # Clear selection
         cmds.select(cl=True)
 
@@ -750,7 +771,8 @@ if __name__ == "__main__":
                             add_fk=True)
     ribbon_factory.set_surface_data("mocked_sur")
     ribbon_factory.set_prefix("mocked")
-    ribbon_factory.set_surface_data(surface_data=test_joints, is_driven=True, maintain_driven_offset=True, span_multiplier=3)
+    ribbon_factory.set_surface_data(surface_data=test_joints, is_driven=True)
+    ribbon_factory.set_dropoff_rate(2)
     # ribbon_factory.set_surface_span_multiplier(10)
     # ribbon_factory.set_surface_data([(0, 0, 0), (5, 0, 0), (10, 0, 0)])
     # print(ribbon_factory._get_or_create_surface(prefix="test"))
