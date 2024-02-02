@@ -188,7 +188,7 @@ class Ribbon:
                  equidistant=True,
                  num_controls=5,
                  num_joints=20,
-                 add_fk=False,
+                 add_fk=True,
                  ):
         """
         Args:
@@ -209,6 +209,7 @@ class Ribbon:
 
         # Surface Data
         self.sur_data = None
+        self.sur_data_sanitized = None  # Cached reference for bound objects - Internal Use Only
         self.sur_data_length = None  # When using a list, this is the length of the list. - Internal Use Only
         self.sur_spans_multiplier = 0
         self.sur_data_is_driven = False
@@ -316,7 +317,7 @@ class Ribbon:
             self.sur_data_is_driven = is_driven
         if isinstance(maintain_driven_offset, bool):
             self.sur_data_maintain_offset = maintain_driven_offset
-        if isinstance(maintain_driven_offset, int):
+        if isinstance(span_multiplier, int):
             self.sur_spans_multiplier = span_multiplier
 
     def clear_surface_data(self):
@@ -400,7 +401,8 @@ class Ribbon:
                                    f'At least two valid objects are necessary for this operation.')
                 else:
                     self.sur_data_length = len(_obj_list)
-                    _sur = create_surface_from_object_list(obj_list=_obj_list, surface_name=f"{prefix}_ribbon_sur")
+                    self.sur_data_sanitized = _obj_list[::-1]  # Reversed
+                    _sur = create_surface_from_object_list(obj_list=_obj_list, surface_name=f"{prefix}ribbon_sur")
                     multiply_surface_spans(input_surface=_sur, u_degree=1, v_degree=3,
                                            v_multiplier=self.sur_spans_multiplier)
                     return _sur
@@ -478,14 +480,11 @@ class Ribbon:
         length = cmds.arclen(u_curve_for_positions)
         cmds.delete(u_curve, v_curve, u_curve_for_positions)
 
-        self.equidistant = False  # TODO TEMP @@@
         # Determine positions when using list as input
-        if self.sur_data_length and self.equidistant is False:
-            # print(f'num_joints: {num_joints}')
-            # Create new joint
+        if self.sur_data_length:
             _num_joints = self.sur_data_length - 1
             _num_joints_multiplied = 0
-            if self.sur_spans_multiplier:
+            if self.sur_spans_multiplier and not self.sur_data_is_driven:
                 _num_joints_multiplied = _num_joints*self.sur_spans_multiplier  # Account for new spans
             _num_joints = _num_joints  # -1 to remove end span
             u_pos_value = 1/_num_joints
@@ -496,10 +495,8 @@ class Ribbon:
                 u_position_joints.append(last_value)
                 last_value = last_value+u_pos_value
             u_position_joints.append(1)  # End Position: 0=start, 1=end
-            print(_num_joints_multiplied/_num_joints)
-            # print(u_position_joints)
 
-        # Organization ----------------------------------------------------------------------------------
+        # Organization/Groups ----------------------------------------------------------------------------
         grp_suffix = NamingConstants.Suffix.GRP
         parent_group = cmds.group(name=f"{prefix}ribbon_{grp_suffix}", empty=True)
         parent_group = Node(parent_group)
@@ -529,12 +526,11 @@ class Ribbon:
                                target_parent=setup_grp)
         # cmds.setAttr(f"{setup_grp}.visibility", 0)  # TODO TEMP @@@
 
-        # Follicles -----------------------------------------------------------------------------------
+        # Follicles/Joints -------------------------------------------------------------------------------
         follicle_nodes = []
         follicle_transforms = []
         bind_joints = []
         bind_joint_radius = (length/60)/(float(num_joints)/40)
-
 
         for index in range(len(u_position_joints)):
             _fol_tuple = create_follicle(input_surface=str(surface_shape),
@@ -548,7 +544,13 @@ class Ribbon:
 
             cmds.parent(_follicle_transform, follicles_grp)
 
-            # Bind Joint
+            # Driven List (Follicles drive surface_data source object list)
+            if self.sur_data_is_driven:
+                cmds.parentConstraint(_follicle_transform, self.sur_data_sanitized[index],
+                                      maintainOffset=self.sur_data_maintain_offset)
+                continue
+
+            # Bind Joint (Creation)
             if prefix:
                 joint_name = f"{prefix}{(index+1):02d}_{NamingConstants.Suffix.JNT}"
             else:
@@ -557,6 +559,7 @@ class Ribbon:
             joint = Node(joint)
             bind_joints.append(joint)
 
+            # Constraint Joint
             match_transform(source=_follicle_transform, target_list=joint)
             if self.bind_joints_orient_offset:
                 cmds.rotate(*self.bind_joints_orient_offset, joint, relative=True, os=True)
@@ -570,7 +573,7 @@ class Ribbon:
             set_trs_attr(target_obj=ribbon_offset, value_tuple=bbox_center, translate=True)
         hierarchy_utils.parent(source_objects=bind_joints, target_parent=bind_grp)
 
-        # Ribbon Controls -----------------------------------------------------------------------------------
+        # Ribbon Controls ---------------------------------------------------------------------------------
         ctrl_ref_follicle_nodes = []
         ctrl_ref_follicle_transforms = []
 
@@ -747,7 +750,7 @@ if __name__ == "__main__":
                             add_fk=True)
     ribbon_factory.set_surface_data("mocked_sur")
     ribbon_factory.set_prefix("mocked")
-    ribbon_factory.set_surface_data(test_joints)
+    ribbon_factory.set_surface_data(surface_data=test_joints, is_driven=True, maintain_driven_offset=True, span_multiplier=3)
     # ribbon_factory.set_surface_span_multiplier(10)
     # ribbon_factory.set_surface_data([(0, 0, 0), (5, 0, 0), (10, 0, 0)])
     # print(ribbon_factory._get_or_create_surface(prefix="test"))
