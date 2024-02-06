@@ -2001,15 +2001,17 @@ class RigProject:
             _module.read_data_from_dict(module_dict=module_description)
             self.modules.append(_module)
 
-    def read_data_from_dict(self, module_dict):
+    def read_data_from_dict(self, module_dict, clear_modules=True):
         """
         Reads the data from a project dictionary and updates the values of this project to match it.
         Args:
             module_dict (dict): A dictionary describing the project data. e.g. {"name": "untitled", "modules": ...}
+            clear_modules (bool, optional): When active, the modules list is cleared before importing new data.
         Returns:
             RigProject: This project (self)
         """
-        self.modules = []
+        if clear_modules:
+            self.modules = []
         self.metadata = None
 
         if module_dict and not isinstance(module_dict, dict):
