@@ -319,7 +319,9 @@ class RiggerController:
                 return
         # Project ---------------------------------------------------------------
         if isinstance(data_obj, rig_framework.RigProject):
-            self.view.set_module_widget(rigger_attr_widget.ProjectAttrWidget(project=data_obj))
+            widget_object = rigger_attr_widget.ProjectAttrWidget(project=data_obj,
+                                                                 refresh_parent_func=self.refresh_widgets)
+            self.view.set_module_widget(widget_object)
             return
         # Unknown ---------------------------------------------------------------
         self.view.clear_module_widget()
