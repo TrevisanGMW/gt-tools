@@ -800,7 +800,7 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 <p>
 <ul>
 	<li><b>Home Remedy - Animated Short Film:</b><br><a href="https://vimeo.com/579130303">vimeo.com/579130303</a></li>
-	<li><b>Art in the time of Corona:</b><br><a href="https://youtu.be/TtYRudIZBGQ?t=2023">youtu.be/TtYRudIZBGQ</a><br><a href="https://vimeo.com/564743576">vimeo.com/564743576</a></li>
+	<li><b>Art in the time of Corona:</b><br><a href="https://youtu.be/TtYRudIZBGQ?t=2023">youtu.be/TtYRudIZBGQ</a><br></li>
 	<li><b>Short Horror Animation:</b><br><a href="https://youtu.be/pH62aGjf9-Y?t=1198">youtu.be/pH62aGjf9-Y</a></li>
 </ul></p>
 
