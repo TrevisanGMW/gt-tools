@@ -27,6 +27,29 @@ class TestSurfaceUtils(unittest.TestCase):
     def setUpClass(cls):
         maya_test_tools.import_maya_standalone(initialize=True)  # Start Maya Headless (mayapy.exe)
 
+    def test_is_surface_true(self):
+        sur = maya_test_tools.cmds.nurbsPlane(name="mocked_sur", constructionHistory=False)[0]
+        sur_shape = maya_test_tools.cmds.listRelatives(sur, shapes=True)[0]
+        result = surface_utils.is_surface(surface=sur, accept_transform_parent=True)
+        expected = True
+        self.assertEqual(expected, result)
+        result = surface_utils.is_surface(surface=sur_shape, accept_transform_parent=True)
+        expected = True
+        self.assertEqual(expected, result)
+        result = surface_utils.is_surface(surface=sur_shape, accept_transform_parent=False)
+        expected = True
+        self.assertEqual(expected, result)
+
+    def test_is_surface_false(self):
+        sur = maya_test_tools.cmds.nurbsPlane(name="mocked_sur", constructionHistory=False)[0]
+        cube = maya_test_tools.create_poly_cube(name="mocked_polygon")
+        result = surface_utils.is_surface(surface=sur, accept_transform_parent=False)
+        expected = False
+        self.assertEqual(expected, result)
+        result = surface_utils.is_surface(surface=cube, accept_transform_parent=True)
+        expected = False
+        self.assertEqual(expected, result)
+
     def test_is_surface_periodic_false(self):
         sur = maya_test_tools.cmds.nurbsPlane(name="mocked_sur", constructionHistory=False)[0]
         sur_shape = maya_test_tools.cmds.listRelatives(sur, shapes=True)[0]
@@ -42,6 +65,12 @@ class TestSurfaceUtils(unittest.TestCase):
         expected = True
 
         self.assertEqual(expected, result)
+
+    def test_get_surface_function_set(self):
+        sur = maya_test_tools.cmds.nurbsPlane(name="mocked_sur", constructionHistory=False)[0]
+        surface_fn = surface_utils.get_surface_function_set(surface=sur)
+        import maya.OpenMaya as OpenMaya
+        self.assertIsInstance(surface_fn, OpenMaya.MFnNurbsSurface)
 
     def test_create_surface_from_object_list(self):
         cube_one = maya_test_tools.create_poly_cube(name="cube_one")
@@ -124,8 +153,8 @@ class TestSurfaceUtils(unittest.TestCase):
 
     def test_create_follicle_custom_uv_position_and_name(self):
         surface = maya_test_tools.cmds.nurbsPlane(ch=False)[0]
-        surface_shape = maya_test_tools.cmds.listRelatives(surface, shapes=True, typ="nurbsSurface")
-        follicle_tuple = surface_utils.create_follicle(input_surface=surface_shape[0],
+        surface_shape = maya_test_tools.cmds.listRelatives(surface, shapes=True, typ="nurbsSurface")[0]
+        follicle_tuple = surface_utils.create_follicle(input_surface=surface_shape,
                                                        uv_position=(0.3, 0.7),
                                                        name="mocked_follicle")
         _transform = follicle_tuple[0]
@@ -140,3 +169,18 @@ class TestSurfaceUtils(unittest.TestCase):
         expected_v_pos = 0.7
         self.assertEqual(expected_u_pos, result_u_pos)
         self.assertEqual(expected_v_pos, result_v_pos)
+
+    def test_get_closest_uv_point(self):
+        surface = maya_test_tools.cmds.nurbsPlane(ch=False, axis=(0, 1, 0))[0]
+        surface_shape = maya_test_tools.cmds.listRelatives(surface, shapes=True, typ="nurbsSurface")[0]
+        uv_coordinates = surface_utils.get_closest_uv_point(surface=surface, xyz_pos=(0, 0, 0))
+        expected = (0.5, 0.5)
+        self.assertEqual(expected, uv_coordinates)
+
+        uv_coordinates = surface_utils.get_closest_uv_point(surface=surface_shape, xyz_pos=(0, 0, 0))
+        expected = (0.5, 0.5)
+        self.assertEqual(expected, uv_coordinates)
+
+        uv_coordinates = surface_utils.get_closest_uv_point(surface=surface_shape, xyz_pos=(0.1, 0, 0))
+        expected = (0.6, 0.5)
+        self.assertEqual(expected, uv_coordinates)

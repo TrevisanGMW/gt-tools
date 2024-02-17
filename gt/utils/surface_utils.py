@@ -11,6 +11,7 @@ from gt.utils.math_utils import get_bbox_position
 from gt.utils.naming_utils import NamingConstants
 from gt.utils.node_utils import Node
 from gt.utils import hierarchy_utils
+import maya.OpenMaya as OpenMaya
 import maya.cmds as cmds
 import logging
 
@@ -22,6 +23,26 @@ logger.setLevel(logging.INFO)
 
 SURFACE_TYPE = "nurbsSurface"
 
+
+def is_surface(surface, accept_transform_parent=True):
+    """
+    Check if the provided object is a NURBS surface or transform parent of a surface.
+
+    Args:
+        surface (str): Object to check.
+        accept_transform_parent (bool, optional): If True, accepts transform parent as surface
+                                                  in case it has a surface shapes as its child.
+    Returns:
+        bool: True if the object is a NURBS surface or transform parent of a surface, False otherwise.
+    """
+    if not cmds.objExists(surface):
+        return False
+
+    # Check shape
+    if cmds.objectType(surface) == 'transform' and accept_transform_parent:
+        surface = cmds.listRelatives(surface, shapes=True, noIntermediate=True, path=True)[0]
+
+    return cmds.objectType(surface) == SURFACE_TYPE
 
 def is_surface_periodic(surface_shape):
     """
@@ -37,6 +58,32 @@ def is_surface_periodic(surface_shape):
     if form_u == 2 or form_v == 2:
         return True
     return False
+
+
+def get_surface_function_set(surface):
+    """
+    Creates MFnNurbsSurface class object from the provided NURBS surface.
+
+    Args:
+        surface (str): Surface to create function class for.
+
+    Returns:
+        OpenMaya.MFnNurbsSurface: The MFnNurbsSurface class object.
+    """
+    if not is_surface(surface):
+        raise ValueError(f'Unable to get MFnNurbsSurface from "{surface}". Provided object is not a surface.')
+
+    if cmds.objectType(surface) == 'transform':
+        surface = cmds.listRelatives(surface, shapes=True, noIntermediate=True, path=True)[0]
+
+    # Retrieve MFnNurbsSurface
+    selection = OpenMaya.MSelectionList()
+    OpenMaya.MGlobal.getSelectionListByName(surface, selection)
+    surface_path = OpenMaya.MDagPath()
+    selection.getDagPath(0, surface_path)
+    surface_fn = OpenMaya.MFnNurbsSurface()
+    surface_fn.setObject(surface_path)
+    return surface_fn
 
 
 def create_surface_from_object_list(obj_list, surface_name=None, degree=3):
@@ -181,6 +228,36 @@ def create_follicle(input_surface, uv_position=(0.5, 0.5), name=None):
     return _follicle_transform, _follicle
 
 
+def get_closest_uv_point(surface, xyz_pos=(0, 0, 0)):
+    """
+    Returns UV coordinates of the closest point on surface according to provided XYZ position.
+
+    Args:
+        surface (str): Surface to get the closest point.
+        xyz_pos (optional, tuple, list): World Position to check against surface. Defaults is origin (0,0,0)
+    Returns:
+        tuple: The (u, v) coordinates of the closest point on the surface.
+    """
+    # Get MPoint world position
+    point = OpenMaya.MPoint(xyz_pos[0], xyz_pos[1], xyz_pos[2], 1.0)
+
+    # Get Surface Fn
+    surf_fn = get_surface_function_set(surface)
+
+    # Get uCoord and vCoord pointer objects
+    u_coord = OpenMaya.MScriptUtil()
+    u_coord.createFromDouble(0.0)
+    u_coord_ptr = u_coord.asDoublePtr()
+    v_coord = OpenMaya.MScriptUtil()
+    v_coord.createFromDouble(0.0)
+    v_coord_ptr = v_coord.asDoublePtr()
+
+    # Get the closest coordinate to edit point position
+    # Parameters: toThisPoint, paramU, paramV, ignoreTrimBoundaries, tolerance, space
+    surf_fn.closestPoint(point, u_coord_ptr, v_coord_ptr, True, 0.0001, OpenMaya.MSpace.kWorld)
+    return OpenMaya.MScriptUtil(u_coord_ptr).asDouble(), OpenMaya.MScriptUtil(v_coord_ptr).asDouble()
+
+
 class Ribbon:
     def __init__(self,
                  prefix=None,
@@ -220,12 +297,15 @@ class Ribbon:
         self.bind_joints_orient_offset = None
         self.bind_joints_parenting = True
 
+        # Existing Controls
+        self.existing_fk_ctrls = []
+
         if prefix:
             self.set_prefix(prefix=prefix)
         if surface_data:
             self.set_surface_data(surface_data=surface_data)
         if isinstance(equidistant, bool):
-            self.set_equidistant(is_activated=equidistant)
+            self.set_equidistant(equidistant=equidistant)
         if num_controls:
             self.set_num_controls(num_controls=num_controls)
         if num_joints:
@@ -243,17 +323,17 @@ class Ribbon:
             return
         self.prefix = prefix
 
-    def set_equidistant(self, is_activated):
+    def set_equidistant(self, equidistant):
         """
         Set the equidistant attribute of the object.
 
         Args:
-            is_activated (bool): Determine if the controls should be equally spaced (True) or not (False).
+            equidistant (bool): Determine if the controls should be equally spaced (True) or not (False).
         """
-        if not isinstance(is_activated, bool):
+        if not isinstance(equidistant, bool):
             logger.debug('Unable to set equidistant state. Input must be a bool (True or False)')
             return
-        self.equidistant = is_activated
+        self.equidistant = equidistant
 
     def set_num_controls(self, num_controls):
         """
@@ -381,6 +461,14 @@ class Ribbon:
         _default_ribbon = Ribbon()  # Temporary ribbon used to extract default values
         self.bind_joints_orient_offset = _default_ribbon.bind_joints_orient_offset
         self.bind_joints_parenting = _default_ribbon.bind_joints_parenting
+
+    def set_existing_fk_controls(self, existing_fk_ctrl_list):
+        """
+        Sets a list of transforms that can be used to replace FK controls. TODO @@@
+        """
+        if isinstance(existing_fk_ctrl_list, list):
+            self.existing_fk_ctrls = existing_fk_ctrl_list
+
 
     def _get_or_create_surface(self, prefix):
         """
@@ -512,6 +600,22 @@ class Ribbon:
                 last_value = last_value+u_pos_value
             u_position_joints.append(1)  # End Position: 0=start, 1=end
 
+        if self.existing_fk_ctrls and not is_periodic:
+            u_position_joints = []
+            for ctrl in self.existing_fk_ctrls:
+                world_position = cmds.xform(ctrl, query=True, translation=True, worldSpace=True)
+                uv_closest_point = get_closest_uv_point(surface=input_surface, xyz_pos=world_position)
+                u_position_joints.append(uv_closest_point[0])
+
+                # ik_offset_grps = [cmds.group(ctrl, name=f"{ctrl.get_short_name()}_offset_grp") for ctrl in ribbon_ctrls]
+                # [cmds.xform(ik_ctrl_offset_grp, piv=(0, 0, 0), os=True) for ik_ctrl_offset_grp in ik_offset_grps]
+                #
+                # for ik, fk in zip(ribbon_ctrls[:-1], fk_offset_groups):
+                #     cmds.delete(cmds.parentConstraint(ik, fk))
+                #
+                # for fk, ik in zip(fk_ctrls, ik_offset_grps[:-1]):
+                #     cmds.parentConstraint(fk, ik)
+
         # Organization/Groups ----------------------------------------------------------------------------
         grp_suffix = NamingConstants.Suffix.GRP
         parent_group = cmds.group(name=f"{prefix}ribbon_{grp_suffix}", empty=True)
@@ -589,6 +693,7 @@ class Ribbon:
             set_trs_attr(target_obj=ribbon_offset, value_tuple=bbox_center, translate=True)
         hierarchy_utils.parent(source_objects=bind_joints, target_parent=bind_grp)
 
+        return
         # Ribbon Controls ---------------------------------------------------------------------------------
         ctrl_ref_follicle_nodes = []
         ctrl_ref_follicle_transforms = []
@@ -690,6 +795,20 @@ class Ribbon:
         fk_ctrls = []
         if self.add_fk and is_periodic:
             logger.warning(f'Unable to add FK controls. Input surface is periodic.')
+
+        # elif self.existing_fk_ctrls and not is_periodic:
+        #     for ctrl in self.existing_fk_ctrls:
+        #         world_position = cmds.xform(ctrl, query=True, translation=True, worldSpace=True)
+        #         uv_closest_point = get_closest_uv_point(surface=input_surface, xyz_pos=world_position)
+        #         ik_offset_grps = [cmds.group(ctrl, name=f"{ctrl.get_short_name()}_offset_grp") for ctrl in ribbon_ctrls]
+        #         [cmds.xform(ik_ctrl_offset_grp, piv=(0, 0, 0), os=True) for ik_ctrl_offset_grp in ik_offset_grps]
+        #
+        #         for ik, fk in zip(ribbon_ctrls[:-1], fk_offset_groups):
+        #             cmds.delete(cmds.parentConstraint(ik, fk))
+        #
+        #         for fk, ik in zip(fk_ctrls, ik_offset_grps[:-1]):
+        #             cmds.parentConstraint(fk, ik)
+
         elif self.add_fk and not is_periodic:
             fk_offset_groups = []
             crv_obj = get_curve("_circle_pos_x")
@@ -711,18 +830,17 @@ class Ribbon:
             for fk_ctrl in fk_ctrls:
                 rescale_curve(curve_transform=fk_ctrl, scale=fk_ctrl_scale)
 
-            ik_ctrl_offset_grps = [cmds.group(ctrl,
-                                              name=f"{ctrl.get_short_name()}_offset_grp") for ctrl in ribbon_ctrls]
-            [cmds.xform(ik_ctrl_offset_grp, piv=(0, 0, 0), os=True) for ik_ctrl_offset_grp in ik_ctrl_offset_grps]
+            ik_offset_grps = [cmds.group(ctrl, name=f"{ctrl.get_short_name()}_offset_grp") for ctrl in ribbon_ctrls]
+            [cmds.xform(ik_ctrl_offset_grp, piv=(0, 0, 0), os=True) for ik_ctrl_offset_grp in ik_offset_grps]
 
             for ik, fk in zip(ribbon_ctrls[:-1], fk_offset_groups):
                 cmds.delete(cmds.parentConstraint(ik, fk))
 
-            for fk, ik in zip(fk_ctrls, ik_ctrl_offset_grps[:-1]):
+            for fk, ik in zip(fk_ctrls, ik_offset_grps[:-1]):
                 cmds.parentConstraint(fk, ik)
 
             # Constrain Last Ctrl
-            cmds.parentConstraint(fk_ctrls[-1], ik_ctrl_offset_grps[-1], mo=True)
+            cmds.parentConstraint(fk_ctrls[-1], ik_offset_grps[-1], mo=True)
 
             set_color_viewport(obj_list=fk_ctrls, rgb_color=ColorConstants.RigControl.TWEAK)
             hide_lock_default_attrs(fk_offset_groups, translate=True, rotate=True, scale=True)
@@ -764,6 +882,9 @@ if __name__ == "__main__":
                    cmds.joint(p=(-20, 10, 5)),
                    cmds.joint(p=(-25, 15, 10)),
                    cmds.joint(p=(-30, 15, 15))]
+
+    from gt.utils.control_utils import create_fk
+    test_fk_ctrls = create_fk(target_list=test_joints, constraint_joint=False)
     # Create Ribbon
     ribbon_factory = Ribbon(equidistant=True,
                             num_controls=5,
@@ -772,7 +893,9 @@ if __name__ == "__main__":
     ribbon_factory.set_surface_data("mocked_sur")
     ribbon_factory.set_prefix("mocked")
     ribbon_factory.set_surface_data(surface_data=test_joints, is_driven=True)
-    ribbon_factory.set_dropoff_rate(2)
+    ribbon_factory.set_existing_fk_controls(test_fk_ctrls)
+    # ribbon_factory.set_dropoff_rate(2)
+    # ribbon_factory.set_num_controls(9)
     # ribbon_factory.set_surface_span_multiplier(10)
     # ribbon_factory.set_surface_data([(0, 0, 0), (5, 0, 0), (10, 0, 0)])
     # print(ribbon_factory._get_or_create_surface(prefix="test"))
