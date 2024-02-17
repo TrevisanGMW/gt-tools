@@ -37,7 +37,7 @@ Hopefully these scripts are helpful to you as they are to me.
 
 Note: Python 2 is no longer supported. If you want to still use an older versions of Maya, make sure to use a GT-Tools version below "3.0.0" for compatibility.
 
-<p><b>Package tested using Autodesk Maya 2022, 2023 and 2024 (Windows 10)</b></p>
+<p><b>Package tested using Autodesk Maya 2022, 2023 and 2024 (Windows 11)</b></p>
 
 <h1>Organization</h1>
 <ul>
