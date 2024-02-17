@@ -351,25 +351,30 @@ class ModuleBipedArmRight(ModuleBipedArm):
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
+    # Auto Reload Script - Must have been initialized using "Run-Only" mode.
+    from gt.utils.session_utils import remove_modules_startswith
+    remove_modules_startswith("gt.tools.auto_rigger.rig")
     cmds.file(new=True, force=True)
 
     from gt.tools.auto_rigger.rig_framework import RigProject
-    a_module = ModuleGeneric()
-    a_proxy = a_module.add_new_proxy()
-    a_proxy.set_initial_position(y=130)
+    from gt.tools.auto_rigger.rig_module_spine import ModuleSpine
+
+    a_spine = ModuleSpine()
     a_arm = ModuleBipedArm()
-    a_arm_rt = ModuleBipedArmRight()
     a_arm_lf = ModuleBipedArmLeft()
-    a_arm_rt.set_parent_uuid(uuid=a_proxy.get_uuid())
-    a_arm_lf.set_parent_uuid(uuid=a_proxy.get_uuid())
+    a_arm_rt = ModuleBipedArmRight()
+
+    spine_chest_uuid = a_spine.chest.get_uuid()
+    a_arm_lf.set_parent_uuid(spine_chest_uuid)
+    a_arm_rt.set_parent_uuid(spine_chest_uuid)
+
     a_project = RigProject()
-    # a_project.add_to_modules(a_arm)  # TODO Change it so it moves down
-    a_project.add_to_modules(a_module)
+    a_project.add_to_modules(a_spine)
     a_project.add_to_modules(a_arm_rt)
     a_project.add_to_modules(a_arm_lf)
     a_project.build_proxy()
     a_project.build_rig()
-    #
+
     # cmds.setAttr(f'{a_arm_rt.get_prefix()}_{a_arm_rt.clavicle.get_name()}.ty', 15)
     # cmds.setAttr(f'{a_arm_rt.get_prefix()}_{a_arm_rt.elbow.get_name()}.tz', -15)
     # cmds.setAttr(f'{a_arm_lf.get_prefix()}_{a_arm_lf.clavicle.get_name()}.ty', 15)

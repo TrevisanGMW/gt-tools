@@ -627,7 +627,7 @@ def get_driven_joint(uuid_string, suffix=NamingConstants.Suffix.DRIVEN, constrai
         set_attr(attribute_path=f'{driven_jnt}.{RiggerConstants.ATTR_JOINT_DRIVEN_UUID}', value=uuid_string)
         if constraint_to_source:
             constraint = cmds.parentConstraint(source_jnt, driven_jnt)
-            cmds.setAttr(constraint[0] + '.interpType', 0)  # Set to No Flip
+            cmds.setAttr(f'{constraint[0]}.interpType', 0)  # Set to No Flip
     return driven_jnt
 
 

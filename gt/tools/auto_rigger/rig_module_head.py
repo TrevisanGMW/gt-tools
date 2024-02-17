@@ -267,14 +267,20 @@ class ModuleHead(ModuleGeneric):
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
+    # Auto Reload Script - Must have been initialized using "Run-Only" mode.
+    from gt.utils.session_utils import remove_modules_startswith
+    remove_modules_startswith("gt.tools.auto_rigger.rig")
     cmds.file(new=True, force=True)
 
     from gt.tools.auto_rigger.rig_framework import RigProject
+    from gt.tools.auto_rigger.rig_module_spine import ModuleSpine
 
+    a_spine = ModuleSpine()
     a_head = ModuleHead()
-    # a_head.set_mid_neck_num(0)
-    # a_head.set_mid_neck_num(6)
+    spine_chest_uuid = a_spine.chest.get_uuid()
+    a_head.set_parent_uuid(spine_chest_uuid)
     a_project = RigProject()
+    a_project.add_to_modules(a_spine)
     a_project.add_to_modules(a_head)
     a_project.build_proxy()
     a_project.build_rig()

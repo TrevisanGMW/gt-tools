@@ -21,7 +21,6 @@ from gt.ui import resource_library
 import maya.cmds as cmds
 import logging
 
-
 # Logging Setup
 logging.basicConfig()
 logger = logging.getLogger(__name__)
@@ -444,43 +443,30 @@ class ModuleBipedLegRight(ModuleBipedLeg):
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
+    # Auto Reload Script - Must have been initialized using "Run-Only" mode.
+    from gt.utils.session_utils import remove_modules_startswith
+    remove_modules_startswith("gt.tools.auto_rigger.rig")
     cmds.file(new=True, force=True)
 
     from gt.tools.auto_rigger.rig_framework import RigProject
-    a_proxy = Proxy()
-    a_proxy.set_initial_position(y=84.5)
-    a_proxy.set_name("pelvis")
+    from gt.tools.auto_rigger.rig_module_spine import ModuleSpine
+
+    a_spine = ModuleSpine()
     a_leg = ModuleBipedLeg()
     a_leg_lf = ModuleBipedLegLeft()
     a_leg_rt = ModuleBipedLegRight()
     a_module = ModuleGeneric()
-    a_module.add_to_proxies(a_proxy)
-    a_leg_lf.set_parent_uuid(a_proxy.get_uuid())
-    a_leg_rt.set_parent_uuid(a_proxy.get_uuid())
+
+    spine_hip_uuid = a_spine.hip.get_uuid()
+    a_leg_lf.set_parent_uuid(spine_hip_uuid)
+    a_leg_rt.set_parent_uuid(spine_hip_uuid)
 
     a_project = RigProject()
-    a_project.add_to_modules(a_module)
+    a_project.add_to_modules(a_spine)
     a_project.add_to_modules(a_leg_lf)
     a_project.add_to_modules(a_leg_rt)
-    # a_project.add_to_modules(a_leg)
     a_project.build_proxy()
     a_project.build_rig()
-
-    # for obj in ["hip", "knee", "ankle", "ball", "toe", "heelPivot"]:
-    #     cmds.setAttr(f'{obj}.displayLocalAxis', 1)
-    #     cmds.setAttr(f'rt_{obj}.displayLocalAxis', 1)
-    #
-    # cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.hip.get_name()}.tx', 10)
-    # cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.ankle.get_name()}.tz', 5)
-    # cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.knee.get_name()}.tz', 3)
-    # cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.ankle.get_name()}.ry', 45)
-    # a_project.read_data_from_scene()
-    # dictionary = a_project.get_project_as_dict()
-    #
-    # cmds.file(new=True, force=True)
-    # a_project2 = RigProject()
-    # a_project2.read_data_from_dict(dictionary)
-    # a_project2.build_proxy()
 
     # Frame all
     cmds.viewFit(all=True)
