@@ -1929,8 +1929,8 @@ def get_positions_from_curve(curve, count, periodic=True, space="uv", normalized
             crv_fn.getPointAtParam(pos, point, space)
             output_list.append([point[0], point[1], point[2]])  # X, Y, Z
     elif normalized is True:
-        max_v = cmds.getAttr(curve + ".minMaxValue.maxValue")
-        min_v = cmds.getAttr(curve + ".minMaxValue.minValue")
+        max_v = cmds.getAttr(f"{curve}.minMaxValue.maxValue")
+        min_v = cmds.getAttr(f"{curve}.minMaxValue.minValue")
         output_list = [remap_value(value=pos, old_range=[min_v, max_v], new_range=[0, 1]) for pos in pos_list]
     else:
         output_list = pos_list
