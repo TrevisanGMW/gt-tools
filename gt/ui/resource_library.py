@@ -279,6 +279,7 @@ class Icon:
     tool_morphing_attributes = get_icon_path(r"tool_morphing_attributes.svg")
     tool_morphing_utils = get_icon_path(r"tool_morphing_utils.svg")
     tool_orient_joints = get_icon_path(r"tool_orient_joints.svg")
+    tool_ribbon = get_icon_path(r"tool_ribbon.svg")
     # Utils
     util_reload_file = get_icon_path(r"util_reload_file.svg")
     util_open_dir = get_icon_path(r"util_open_dir.svg")
