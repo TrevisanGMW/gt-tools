@@ -297,9 +297,6 @@ class Ribbon:
         self.bind_joints_orient_offset = None
         self.bind_joints_parenting = True
 
-        # Existing Controls
-        self.existing_fk_ctrls = []
-
         if prefix:
             self.set_prefix(prefix=prefix)
         if surface_data:
@@ -462,14 +459,6 @@ class Ribbon:
         self.bind_joints_orient_offset = _default_ribbon.bind_joints_orient_offset
         self.bind_joints_parenting = _default_ribbon.bind_joints_parenting
 
-    def set_existing_fk_controls(self, existing_fk_ctrl_list):
-        """
-        Sets a list of transforms that can be used to replace FK controls. TODO @@@
-        """
-        if isinstance(existing_fk_ctrl_list, list):
-            self.existing_fk_ctrls = existing_fk_ctrl_list
-
-
     def _get_or_create_surface(self, prefix):
         """
         Gets or creates the surface used for the ribbon.
@@ -600,22 +589,6 @@ class Ribbon:
                 last_value = last_value+u_pos_value
             u_position_joints.append(1)  # End Position: 0=start, 1=end
 
-        if self.existing_fk_ctrls and not is_periodic:
-            u_position_joints = []
-            for ctrl in self.existing_fk_ctrls:
-                world_position = cmds.xform(ctrl, query=True, translation=True, worldSpace=True)
-                uv_closest_point = get_closest_uv_point(surface=input_surface, xyz_pos=world_position)
-                u_position_joints.append(uv_closest_point[0])
-
-                # ik_offset_grps = [cmds.group(ctrl, name=f"{ctrl.get_short_name()}_offset_grp") for ctrl in ribbon_ctrls]
-                # [cmds.xform(ik_ctrl_offset_grp, piv=(0, 0, 0), os=True) for ik_ctrl_offset_grp in ik_offset_grps]
-                #
-                # for ik, fk in zip(ribbon_ctrls[:-1], fk_offset_groups):
-                #     cmds.delete(cmds.parentConstraint(ik, fk))
-                #
-                # for fk, ik in zip(fk_ctrls, ik_offset_grps[:-1]):
-                #     cmds.parentConstraint(fk, ik)
-
         # Organization/Groups ----------------------------------------------------------------------------
         grp_suffix = NamingConstants.Suffix.GRP
         parent_group = cmds.group(name=f"{prefix}ribbon_{grp_suffix}", empty=True)
@@ -693,7 +666,6 @@ class Ribbon:
             set_trs_attr(target_obj=ribbon_offset, value_tuple=bbox_center, translate=True)
         hierarchy_utils.parent(source_objects=bind_joints, target_parent=bind_grp)
 
-        return
         # Ribbon Controls ---------------------------------------------------------------------------------
         ctrl_ref_follicle_nodes = []
         ctrl_ref_follicle_transforms = []
@@ -795,20 +767,6 @@ class Ribbon:
         fk_ctrls = []
         if self.add_fk and is_periodic:
             logger.warning(f'Unable to add FK controls. Input surface is periodic.')
-
-        # elif self.existing_fk_ctrls and not is_periodic:
-        #     for ctrl in self.existing_fk_ctrls:
-        #         world_position = cmds.xform(ctrl, query=True, translation=True, worldSpace=True)
-        #         uv_closest_point = get_closest_uv_point(surface=input_surface, xyz_pos=world_position)
-        #         ik_offset_grps = [cmds.group(ctrl, name=f"{ctrl.get_short_name()}_offset_grp") for ctrl in ribbon_ctrls]
-        #         [cmds.xform(ik_ctrl_offset_grp, piv=(0, 0, 0), os=True) for ik_ctrl_offset_grp in ik_offset_grps]
-        #
-        #         for ik, fk in zip(ribbon_ctrls[:-1], fk_offset_groups):
-        #             cmds.delete(cmds.parentConstraint(ik, fk))
-        #
-        #         for fk, ik in zip(fk_ctrls, ik_offset_grps[:-1]):
-        #             cmds.parentConstraint(fk, ik)
-
         elif self.add_fk and not is_periodic:
             fk_offset_groups = []
             crv_obj = get_curve("_circle_pos_x")
@@ -893,7 +851,6 @@ if __name__ == "__main__":
     ribbon_factory.set_surface_data("mocked_sur")
     ribbon_factory.set_prefix("mocked")
     ribbon_factory.set_surface_data(surface_data=test_joints, is_driven=True)
-    ribbon_factory.set_existing_fk_controls(test_fk_ctrls)
     # ribbon_factory.set_dropoff_rate(2)
     # ribbon_factory.set_num_controls(9)
     # ribbon_factory.set_surface_span_multiplier(10)
