@@ -2,6 +2,7 @@
 Ribbon Tool View/Window/UI
 """
 from PySide2.QtWidgets import QPushButton, QLabel, QVBoxLayout, QFrame, QSpinBox, QHBoxLayout, QCheckBox, QLineEdit
+from PySide2.QtWidgets import QComboBox, QDoubleSpinBox
 import gt.ui.resource_library as resource_library
 from gt.ui.qt_utils import MayaWindowMeta
 from PySide2 import QtWidgets, QtCore
@@ -33,34 +34,85 @@ class RibbonToolView(metaclass=MayaWindowMeta):
         self.setWindowTitle(_window_title)
 
         # Title
-        self.title_label = None
-        self.help_btn = None
-        # Prefix
-        self.prefix_label = None
-        self.prefix_content = None
-        self.prefix_clear_btn = None
-        # Num Controls and Joints
-        self.num_controls_label = None
-        self.num_joints_label = None
-        self.num_controls_content = None
-        self.num_joints_content = None
-        # Checkboxes
-        self.equidistant_label = None
-        self.add_fk_label = None
-        self.equidistant_checkbox = None
-        self.add_fk_checkbox = None
-        self.surface_data_btn = None
-        # Surface Data
-        self.surface_data_label = None
-        self.surface_data_multiplier_label = None
-        # Buttons
-        self.surface_data_set_btn = None
-        self.surface_data_content_btn = None
-        self.create_ribbon_btn = None
-        self.save_to_shelf_btn = None
+        self.title_label = QtWidgets.QLabel(self.window_title)
+        self.title_label.setStyleSheet('background-color: rgb(93, 93, 93); border: 0px solid rgb(93, 93, 93); \
+                                                color: rgb(255, 255, 255); padding: 10px; margin-bottom: 0; text-align: left;')
+        self.title_label.setFont(qt_utils.get_font(resource_library.Font.roboto))
+        self.help_btn = QPushButton('Help')
+        self.help_btn.setToolTip("Open Help Dialog.")
+        self.help_btn.setStyleSheet('color: rgb(255, 255, 255); padding: 10px; '
+                                    'padding-right: 15px; padding-left: 15px; margin: 0;')
+        self.help_btn.setFont(qt_utils.get_font(resource_library.Font.roboto))
 
-        self.create_widgets()
+        # Prefix
+        self.prefix_label = QLabel("Prefix:")
+        self.prefix_content = QLineEdit()
+        self.prefix_clear_btn = QPushButton("Clear")
+        self.prefix_clear_btn.setStyleSheet("padding: 7; border-radius: 5px;")
+
+        # Num Controls
+        self.num_controls_label = QLabel("Number of Controls:")
+        self.num_controls_label.setMinimumWidth(170)
+        self.num_controls_content = QSpinBox()
+        self.num_controls_content.setMinimum(1)
+        self.num_controls_content.setSingleStep(1)
+        self.num_controls_content.setValue(6)
+
+        # Num Joints
+        self.num_joints_label = QLabel("Number of Joints:")
+        self.num_joints_label.setMinimumWidth(170)
+        self.num_joints_content = QSpinBox()
+        self.num_joints_content.setMinimum(0)
+        self.num_joints_content.setSingleStep(1)
+        self.num_joints_content.setValue(8)
+
+        # Num Joints
+        self.num_joints_label = QLabel("Number of Joints:")
+        self.num_joints_label.setMinimumWidth(170)
+        self.num_joints_content = QSpinBox()
+        self.num_joints_content.setMinimum(0)
+        self.num_joints_content.setSingleStep(1)
+        self.num_joints_content.setValue(8)
+
+        # Drop Off Rate
+        self.dropoff_label = QLabel("Dropoff Rate:")
+        self.dropoff_label.setMinimumWidth(170)
+        self.dropoff_content = QDoubleSpinBox()
+        self.dropoff_content.setMinimum(0)
+        self.dropoff_content.setMaximum(10)
+        self.dropoff_content.setSingleStep(0.1)
+        self.dropoff_content.setValue(2)
+
+        # Checkboxes
+        self.equidistant_label = QLabel("Equidistant:")
+        self.equidistant_checkbox = QCheckBox()
+        self.equidistant_checkbox.setChecked(True)
+        self.add_fk_label = QLabel("Add FK:")
+        self.add_fk_checkbox = QCheckBox()
+        self.add_fk_checkbox.setChecked(True)
+        self.drive_list_label = QLabel("Drive Source List:")
+        self.drive_list_checkbox = QCheckBox()
+        self.drive_list_checkbox.setChecked(True)
+
+        # Surface Data / Mode
+        self.mode_combo_box = QComboBox()
+        self.mode_combo_box.addItems(["Ribbon Simple", "Ribbon from Surface", "Ribbon from Object List"])
+
+        self.surface_data_set_btn = QPushButton('Set Surface Data')
+        self.surface_data_set_btn.setToolTip("Uses selection to determine surface data.")
+        self.surface_data_set_btn.setStyleSheet("padding: 15;")
+        self.surface_data_content_btn = QPushButton("No Data")
+        self.surface_data_content_btn.setToolTip('Current Surface Data (Click to Select It)')
+
+        # Create Button
+        self.create_ribbon_btn = QPushButton("Create Ribbon")
+        self.create_ribbon_btn.setStyleSheet("padding: 10;")
+        self.create_ribbon_btn.setSizePolicy(self.create_ribbon_btn.sizePolicy().Expanding,
+                                             self.create_ribbon_btn.sizePolicy().Expanding)
+
+        # Window Setup ------------------------------------------------------------------------------------
         self.create_layout()
+        self.mode_combo_box.currentIndexChanged.connect(self.update_ui_from_mode)
 
         self.setWindowFlags(self.windowFlags() |
                             QtCore.Qt.WindowMaximizeButtonHint |
@@ -76,60 +128,12 @@ class RibbonToolView(metaclass=MayaWindowMeta):
         self.setStyleSheet(stylesheet)
         self.create_ribbon_btn.setStyleSheet(resource_library.Stylesheet.btn_push_bright)
         self.surface_data_content_btn.setStyleSheet(resource_library.Stylesheet.btn_push_bright)
-        qt_utils.resize_to_screen(self, percentage=5, width_percentage=25)
+        # qt_utils.resize_to_screen(self, percentage=5, width_percentage=25)
         qt_utils.center_window(self)
-
-    def create_widgets(self):
-        """Create the widgets for the window."""
-        self.title_label = QtWidgets.QLabel(self.window_title)
-        self.title_label.setStyleSheet('background-color: rgb(93, 93, 93); border: 0px solid rgb(93, 93, 93); \
-                                        color: rgb(255, 255, 255); padding: 10px; margin-bottom: 0; text-align: left;')
-        self.title_label.setFont(qt_utils.get_font(resource_library.Font.roboto))
-        self.help_btn = QPushButton('Help')
-        self.help_btn.setToolTip("Open Help Dialog.")
-        self.help_btn.setStyleSheet('color: rgb(255, 255, 255); padding: 10px; '
-                                    'padding-right: 15px; padding-left: 15px; margin: 0;')
-        self.help_btn.setFont(qt_utils.get_font(resource_library.Font.roboto))
-
-        self.prefix_label = QLabel("Prefix:")
-        self.prefix_content = QLineEdit()
-        self.prefix_clear_btn = QPushButton("Clear")
-        self.prefix_clear_btn.setStyleSheet("padding: 7; border-radius: 5px;")
-
-        self.num_controls_label = QLabel("Number of Controls:")
-        self.num_controls_label.setMinimumWidth(170)
-        self.num_controls_content = QSpinBox()
-        self.num_controls_content.setMinimum(1)
-        self.num_controls_content.setSingleStep(1)
-        self.num_controls_content.setValue(6)
-
-        self.num_joints_label = QLabel("Number of Joints:")
-        self.num_joints_label.setMinimumWidth(170)
-        self.num_joints_content = QSpinBox()
-        self.num_joints_content.setMinimum(0)
-        self.num_joints_content.setSingleStep(1)
-        self.num_joints_content.setValue(8)
-
-        self.equidistant_label = QLabel("Equidistant:")
-        self.equidistant_checkbox = QCheckBox()
-        self.equidistant_checkbox.setChecked(True)
-        self.add_fk_label = QLabel("Add FK:")
-        self.add_fk_checkbox = QCheckBox()
-        self.add_fk_checkbox.setChecked(True)
-
-        self.surface_data_set_btn = QPushButton('Set Surface Data')
-        self.surface_data_set_btn.setToolTip("Uses selection to determine surface data.")
-        self.surface_data_set_btn.setStyleSheet("padding: 15;")
-        self.surface_data_content_btn = QPushButton("No Data")
-        self.surface_data_content_btn.setToolTip('Current Surface Data (Click to Select It)')
-
-        self.create_ribbon_btn = QPushButton("Create Ribbon")
-        self.create_ribbon_btn.setStyleSheet("padding: 10;")
-        self.create_ribbon_btn.setSizePolicy(self.create_ribbon_btn.sizePolicy().Expanding,
-                                             self.create_ribbon_btn.sizePolicy().Expanding)
 
     def create_layout(self):
         """Create the layout for the window."""
+
         surface_data_layout = QtWidgets.QVBoxLayout()
         two_horizontal_btn_layout = QtWidgets.QHBoxLayout()
         two_horizontal_btn_layout.addWidget(self.surface_data_set_btn)
@@ -137,8 +141,8 @@ class RibbonToolView(metaclass=MayaWindowMeta):
         surface_data_layout.addLayout(two_horizontal_btn_layout)
         surface_data_layout.setContentsMargins(15, 5, 15, 10)  # L-T-R-B
 
+        # Mid Layout -------------------------------------------------------------------------
         mid_layout = QVBoxLayout()
-
         prefix_layout = QHBoxLayout()
         prefix_layout.addWidget(self.prefix_label)
         prefix_layout.addWidget(self.prefix_content)
@@ -156,11 +160,18 @@ class RibbonToolView(metaclass=MayaWindowMeta):
         num_joints_layout.addWidget(self.num_joints_content)
         mid_layout.addLayout(num_joints_layout)
 
+        drop_off_layout = QHBoxLayout()
+        drop_off_layout.addWidget(self.dropoff_label)
+        drop_off_layout.addWidget(self.dropoff_content)
+        mid_layout.addLayout(drop_off_layout)
+
         checkboxes_layout = QHBoxLayout()
         checkboxes_layout.addWidget(self.equidistant_label)
         checkboxes_layout.addWidget(self.equidistant_checkbox)
         checkboxes_layout.addWidget(self.add_fk_label)
         checkboxes_layout.addWidget(self.add_fk_checkbox)
+        # checkboxes_layout.addWidget(self.drive_list_label)
+        # checkboxes_layout.addWidget(self.drive_list_checkbox)
         mid_layout.addLayout(checkboxes_layout)
 
         mid_layout.setContentsMargins(15, 0, 15, 15)  # L-T-R-B
@@ -195,6 +206,21 @@ class RibbonToolView(metaclass=MayaWindowMeta):
         bottom_layout.addLayout(bottom_main_button_layout)
         bottom_layout.setContentsMargins(15, 0, 15, 15)  # L-T-R-B
         main_layout.addLayout(bottom_layout)
+
+    def update_ui_from_mode(self, index):
+        print("Changed!")
+        # if index == 0:  # Ribbon simple
+        #     self.button1.setEnabled(False)
+        #     self.button2.setEnabled(False)
+        #     self.checkbox.setEnabled(False)
+        # elif index == 1:  # Ribbon from existing surface
+        #     self.button1.setEnabled(True)
+        #     self.button2.setEnabled(False)
+        #     self.checkbox.setEnabled(False)
+        # elif index == 2:  # Ribbon from object list
+        #     self.button1.setEnabled(False)
+        #     self.button2.setEnabled(True)
+        #     self.checkbox.setEnabled(True)
 
     def close_window(self):
         """ Closes this window """
