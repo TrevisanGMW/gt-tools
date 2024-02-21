@@ -332,6 +332,7 @@ class ModuleBipedLeg(ModuleGeneric):
         cmds.setAttr(f'{hip_jnt}.preferredAngleZ', 90)
         cmds.setAttr(f'{knee_jnt}.preferredAngleZ', -90)
 
+        # Create Parent Automation Elements
         joint_automation_grp = find_or_create_joint_automation_group()
         module_parent_jnt = get_driven_joint(self.get_parent_uuid())
         hierarchy_utils.parent(source_objects=module_parent_jnt, target_parent=joint_automation_grp)

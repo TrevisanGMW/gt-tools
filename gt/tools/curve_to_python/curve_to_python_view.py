@@ -83,10 +83,10 @@ class CurveToPythonView(metaclass=MayaWindowMeta):
 
         self.output_python_box.setMinimumHeight(150)
         PythonSyntaxHighlighter(self.output_python_box.get_text_edit().document())
-        #
+
         self.output_python_label.setAlignment(QtCore.Qt.AlignCenter)
         self.output_python_label.setFont(qt_utils.get_font(resource_library.Font.roboto))
-        #
+
         self.output_python_box.setSizePolicy(self.output_python_box.sizePolicy().Expanding,
                                              self.output_python_box.sizePolicy().Expanding)
 
