@@ -967,6 +967,18 @@ class StylesheetVariables:
         # Formatting
         "@border_radius;": "5",
     }
+    spin_box_base = {
+        # Colors
+        "@text_color;": Color.RGB.white,
+        "@background_color;": Color.RGB.gray_darker,
+        "@background_color_pressed;": Color.RGB.gray_mid_dark,
+        "@background_color_buttons;": Color.RGB.gray_mid_light,
+        "@border_color;": Color.RGB.gray_mid_much_lighter,
+        "@up_down_hover_color;": Color.RGB.gray_mid_much_lighter,
+        # Images
+        "@image_arrow_up;": f"url({Icon.ui_arrow_up})".replace("\\", "/"),
+        "@image_arrow_down;": f"url({Icon.ui_arrow_down})".replace("\\", "/"),
+    }
     # Metro QToolButton Start ----------------------------------------------------------------
     btn_tool_metro_base = {
         # Colors
@@ -1023,6 +1035,8 @@ class Stylesheet:
                                             stylesheet_variables=StylesheetVariables.group_box_base)
     scroll_area_base = get_stylesheet_content(stylesheet_name="scroll_area_base",
                                             stylesheet_variables=StylesheetVariables.scroll_area_base)
+    spin_box_base = get_stylesheet_content(stylesheet_name="spin_box_base",
+                                           stylesheet_variables=StylesheetVariables.spin_box_base)
 
     # --------------------------------------------- Buttons ---------------------------------------------
     btn_push_base = get_stylesheet_content(stylesheet_name="btn_push_base",
