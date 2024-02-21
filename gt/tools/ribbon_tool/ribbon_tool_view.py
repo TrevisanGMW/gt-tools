@@ -83,20 +83,37 @@ class RibbonToolView(metaclass=MayaWindowMeta):
         self.dropoff_content.setSingleStep(0.1)
         self.dropoff_content.setValue(2)
 
+        # Span Multiplier
+        self.span_multiplier_label = QLabel("Span Multiplier:")
+        self.span_multiplier_label.setMinimumWidth(170)
+        self.span_multiplier_content = QSpinBox()
+        self.span_multiplier_content.setMinimum(0)
+        self.span_multiplier_content.setSingleStep(1)
+        self.span_multiplier_content.setValue(0)
+
         # Checkboxes
         self.equidistant_label = QLabel("Equidistant:")
+        self.equidistant_label.setMinimumWidth(100)
         self.equidistant_checkbox = QCheckBox()
         self.equidistant_checkbox.setChecked(True)
         self.add_fk_label = QLabel("Add FK:")
+        self.add_fk_label.setMinimumWidth(100)
         self.add_fk_checkbox = QCheckBox()
         self.add_fk_checkbox.setChecked(True)
-        self.drive_list_label = QLabel("Drive Source List:")
+        self.drive_list_label = QLabel("Constraint Source:")
+        self.drive_list_label.setMinimumWidth(100)
         self.drive_list_checkbox = QCheckBox()
         self.drive_list_checkbox.setChecked(True)
+        self.parent_jnt_label = QLabel("Parent Skin Joints:")
+        self.parent_jnt_label.setMinimumWidth(100)
+        self.parent_jnt_checkbox = QCheckBox()
+        self.parent_jnt_checkbox.setChecked(True)
 
         # Surface Data / Mode
+        self.mode_label = QLabel("Mode:")
         self.mode_combo_box = QComboBox()
-        self.mode_combo_box.addItems(["Ribbon Simple", "Ribbon from Surface", "Ribbon from Object List"])
+        self.mode_combo_box.addItems(["Ribbon Simple", "Ribbon from Surface", "Ribbon from List"])
+        self.mode_combo_box.setStyleSheet("padding: 5;")
 
         self.surface_data_set_btn = QPushButton('Set Surface Data')
         self.surface_data_set_btn.setToolTip("Uses selection to determine surface data.")
@@ -125,56 +142,79 @@ class RibbonToolView(metaclass=MayaWindowMeta):
         stylesheet += resource_library.Stylesheet.spin_box_base
         stylesheet += resource_library.Stylesheet.checkbox_base
         stylesheet += resource_library.Stylesheet.line_edit_base
+        stylesheet += resource_library.Stylesheet.combobox_rounded
         self.setStyleSheet(stylesheet)
         self.create_ribbon_btn.setStyleSheet(resource_library.Stylesheet.btn_push_bright)
         self.surface_data_content_btn.setStyleSheet(resource_library.Stylesheet.btn_push_bright)
-        # qt_utils.resize_to_screen(self, percentage=5, width_percentage=25)
         qt_utils.center_window(self)
 
     def create_layout(self):
         """Create the layout for the window."""
+        # Top Layout -------------------------------------------------------------------------
+        title_layout = QtWidgets.QHBoxLayout()
+        title_layout.setSpacing(0)
+        title_layout.addWidget(self.title_label, 5)
+        title_layout.addWidget(self.help_btn)
 
-        surface_data_layout = QtWidgets.QVBoxLayout()
-        two_horizontal_btn_layout = QtWidgets.QHBoxLayout()
-        two_horizontal_btn_layout.addWidget(self.surface_data_set_btn)
-        two_horizontal_btn_layout.addWidget(self.surface_data_content_btn)
-        surface_data_layout.addLayout(two_horizontal_btn_layout)
-        surface_data_layout.setContentsMargins(15, 5, 15, 10)  # L-T-R-B
+        # Body Layout -------------------------------------------------------------------------
+        body_layout = QVBoxLayout()
+        body_layout.setContentsMargins(15, 0, 15, 5)  # L-T-R-B
 
-        # Mid Layout -------------------------------------------------------------------------
-        mid_layout = QVBoxLayout()
+        mode_layout = QHBoxLayout()
+        mode_layout.addWidget(self.mode_label)
+        mode_layout.addWidget(self.mode_combo_box)
+        mode_layout.setContentsMargins(0, 0, 0, 5)  # L-T-R-B
+        body_layout.addLayout(mode_layout)
+
         prefix_layout = QHBoxLayout()
         prefix_layout.addWidget(self.prefix_label)
         prefix_layout.addWidget(self.prefix_content)
         prefix_layout.addWidget(self.prefix_clear_btn)
         prefix_layout.setContentsMargins(0, 0, 0, 5)  # L-T-R-B
-        mid_layout.addLayout(prefix_layout)
+        body_layout.addLayout(prefix_layout)
 
         num_controls_layout = QHBoxLayout()
         num_controls_layout.addWidget(self.num_controls_label)
         num_controls_layout.addWidget(self.num_controls_content)
-        mid_layout.addLayout(num_controls_layout)
+        body_layout.addLayout(num_controls_layout)
 
         num_joints_layout = QHBoxLayout()
         num_joints_layout.addWidget(self.num_joints_label)
         num_joints_layout.addWidget(self.num_joints_content)
-        mid_layout.addLayout(num_joints_layout)
+        body_layout.addLayout(num_joints_layout)
 
         drop_off_layout = QHBoxLayout()
         drop_off_layout.addWidget(self.dropoff_label)
         drop_off_layout.addWidget(self.dropoff_content)
-        mid_layout.addLayout(drop_off_layout)
+        body_layout.addLayout(drop_off_layout)
 
-        checkboxes_layout = QHBoxLayout()
-        checkboxes_layout.addWidget(self.equidistant_label)
-        checkboxes_layout.addWidget(self.equidistant_checkbox)
-        checkboxes_layout.addWidget(self.add_fk_label)
-        checkboxes_layout.addWidget(self.add_fk_checkbox)
-        # checkboxes_layout.addWidget(self.drive_list_label)
-        # checkboxes_layout.addWidget(self.drive_list_checkbox)
-        mid_layout.addLayout(checkboxes_layout)
+        span_multiplier_layout = QHBoxLayout()
+        span_multiplier_layout.addWidget(self.span_multiplier_label)
+        span_multiplier_layout.addWidget(self.span_multiplier_content)
+        body_layout.addLayout(span_multiplier_layout)
 
-        mid_layout.setContentsMargins(15, 0, 15, 15)  # L-T-R-B
+        checkboxes_one_layout = QHBoxLayout()
+        checkboxes_one_layout.addWidget(self.equidistant_label)
+        checkboxes_one_layout.addWidget(self.equidistant_checkbox)
+        checkboxes_one_layout.addWidget(self.parent_jnt_label)
+        checkboxes_one_layout.addWidget(self.parent_jnt_checkbox)
+        body_layout.addLayout(checkboxes_one_layout)
+
+        checkboxes_two_layout = QHBoxLayout()
+        checkboxes_two_layout.addWidget(self.add_fk_label)
+        checkboxes_two_layout.addWidget(self.add_fk_checkbox)
+        checkboxes_two_layout.addWidget(self.drive_list_label)
+        checkboxes_two_layout.addWidget(self.drive_list_checkbox)
+
+        body_layout.addLayout(checkboxes_two_layout)
+
+        surface_layout = QtWidgets.QVBoxLayout()
+        surface_data_layout = QtWidgets.QHBoxLayout()
+        surface_data_layout.addWidget(self.surface_data_set_btn)
+        surface_data_layout.addWidget(self.surface_data_content_btn)
+        surface_layout.addLayout(surface_data_layout)
+        surface_layout.setContentsMargins(15, 5, 15, 10)  # L-T-R-B
+        body_layout.addLayout(body_layout)
 
         bottom_main_button_layout = QVBoxLayout()
         bottom_main_button_layout.addWidget(self.create_ribbon_btn)
@@ -183,26 +223,16 @@ class RibbonToolView(metaclass=MayaWindowMeta):
         separator.setFrameShape(QFrame.HLine)
         separator.setFrameShadow(QFrame.Sunken)
 
-        separator_two = QFrame()
-        separator_two.setFrameShape(QFrame.HLine)
-        separator_two.setFrameShadow(QFrame.Sunken)
-
-        title_layout = QtWidgets.QHBoxLayout()
-        title_layout.setSpacing(0)
-        title_layout.addWidget(self.title_label, 5)
-        title_layout.addWidget(self.help_btn)
-
         main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         top_layout = QtWidgets.QVBoxLayout()
         bottom_layout = QtWidgets.QVBoxLayout()
         top_layout.addLayout(title_layout)
-        top_layout.setContentsMargins(15, 15, 15, 15)  # L-T-R-B
+        top_layout.setContentsMargins(15, 15, 15, 10)  # L-T-R-B
         main_layout.addLayout(top_layout)
-        main_layout.addLayout(mid_layout)
+        main_layout.addLayout(body_layout)
+        # main_layout.addLayout(surface_layout)
         main_layout.addWidget(separator)
-        main_layout.addLayout(surface_data_layout)
-        main_layout.addWidget(separator_two)
         bottom_layout.addLayout(bottom_main_button_layout)
         bottom_layout.setContentsMargins(15, 0, 15, 15)  # L-T-R-B
         main_layout.addLayout(bottom_layout)
