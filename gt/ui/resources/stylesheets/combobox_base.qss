@@ -1,6 +1,7 @@
 QComboBox {
     color: white;
     background-color: @background_color;
+	border-radius: @border-radius;
     border: 1px solid @border_color;
     selection-background-color: @selection_background;
     selection-color: white;

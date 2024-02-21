@@ -896,11 +896,15 @@ class StylesheetVariables:
         "@border_color;": Color.RGB.gray_much_darker,
         "@selection_background;": Color.RGB.blue_pastel,
         "@left_border_bg;": Color.RGB.gray_darker_mid,
+        # Style
+        "@border-radius;": "0",
         # Icons
         "@image_arrow_down;": f"url({Icon.ui_arrow_down})".replace("\\", "/"),
         "@image_arrow_down_width;": 12,
         "@image_arrow_down_height;": 12,
     }
+    combobox_rounded = deepcopy(combobox_base)
+    combobox_rounded["@border-radius;"] = "5"
     checkbox_base = {
         # Colors
         "@text_color;": Color.RGB.gray_dark_silver,
@@ -1021,6 +1025,8 @@ class Stylesheet:
                                             stylesheet_variables=StylesheetVariables.text_edit_base)
     combobox_base = get_stylesheet_content(stylesheet_name="combobox_base",
                                            stylesheet_variables=StylesheetVariables.combobox_base)
+    combobox_rounded = get_stylesheet_content(stylesheet_name="combobox_base",
+                                           stylesheet_variables=StylesheetVariables.combobox_rounded)
     checkbox_base = get_stylesheet_content(stylesheet_name="checkbox_base",
                                            stylesheet_variables=StylesheetVariables.checkbox_base)
     tree_widget_base = get_stylesheet_content(stylesheet_name="tree_widget_base",
