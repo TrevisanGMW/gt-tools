@@ -271,6 +271,20 @@ class RibbonToolView(metaclass=MayaWindowMeta):
         bottom_layout.setContentsMargins(15, 0, 15, 15)  # L-T-R-B
         main_layout.addLayout(bottom_layout)
 
+    def get_mode_combobox_index(self):
+        """
+        Gets the current index of the mode combobox.
+        0 = No Source, 1 = Surface Input, 2 = Transform List Input
+        Returns:
+            int: Index of the mode combobox
+        """
+        return self.mode_combo_box.currentIndex()
+
+    def clear_source_data_button(self):
+        self.set_source_data_button_values(text="No Data",
+                                           color_btn=resource_library.Color.RGB.gray_darker,
+                                           color_text=resource_library.Color.RGB.gray_light)
+
     def update_ui_from_mode(self, index):
         """
         Updates UI according to the selected mode.
@@ -283,21 +297,21 @@ class RibbonToolView(metaclass=MayaWindowMeta):
             self.surface_data_content_btn.setEnabled(False)
             self.constraint_source_label.setEnabled(False)
             self.constraint_source_checkbox.setEnabled(False)
-            self.set_source_data_button_values(text="No Data",
-                                               color_button=resource_library.Color.RGB.gray_darker,
-                                               color_text=resource_library.Color.RGB.gray_light)
+            self.clear_source_data_button()
         elif index == 1:  # From Surface
             self.surface_data_set_btn.setEnabled(True)
             self.surface_data_clear_btn.setEnabled(True)
             self.surface_data_content_btn.setEnabled(True)
             self.constraint_source_label.setEnabled(False)
             self.constraint_source_checkbox.setEnabled(False)
+            self.clear_source_data_button()
         elif index == 2:  # From Transform List
             self.surface_data_set_btn.setEnabled(True)
             self.surface_data_clear_btn.setEnabled(True)
             self.surface_data_content_btn.setEnabled(True)
             self.constraint_source_label.setEnabled(True)
             self.constraint_source_checkbox.setEnabled(True)
+            self.clear_source_data_button()
 
     def clear_prefix_content(self):
         """
@@ -305,23 +319,43 @@ class RibbonToolView(metaclass=MayaWindowMeta):
         """
         self.prefix_content.setText("")
 
-    def set_source_data_button_values(self, text=None, color_button=None, color_text=None):
+    def set_source_data_button_values(self, text=None, color_btn=None, color_text=None,
+                                      color_btn_hover=None, color_btn_pressed=None, color_btn_disabled=None):
         """
         Updates the source data button color, text and button color (background color)
         Args:
             text (str, optional): New button text.
-            color_button (str, optional): HEX or RGB string to be used as background color.
+            color_btn (str, optional): HEX or RGB string to be used as background color.
             color_text (str, optional): HEX or RGB string to be used as text color .
+            color_btn_hover (str, optional): HEX or RGB string to be used as text color .
+            color_btn_pressed (str, optional): HEX or RGB string to be used as text color .
+            color_btn_disabled (str, optional): HEX or RGB string to be used as text color .
         """
         if text is not None:
             self.surface_data_content_btn.setText(text)
-        new_stylesheet = ""
+        # Base
+        new_stylesheet = "QPushButton {"
         if color_text:
             new_stylesheet += f"color: {color_text}; "
-        if color_button:
-            new_stylesheet += f"background-color: {color_button}; "
-        if new_stylesheet:
-            self.surface_data_content_btn.setStyleSheet(new_stylesheet)
+        if color_btn:
+            new_stylesheet += f"background-color: {color_btn}; "
+        new_stylesheet += "}"
+        # Hover
+        new_stylesheet += "\nQPushButton:hover {"
+        if color_btn_hover:
+            new_stylesheet += f"background-color: {color_btn_hover}; "
+        new_stylesheet += "}"
+        # Pressed
+        new_stylesheet += "\nQPushButton:pressed {"
+        if color_btn_pressed:
+            new_stylesheet += f"background-color: {color_btn_pressed}; "
+        new_stylesheet += "}"
+        # Disabled
+        new_stylesheet += "\nQPushButton:disabled {"
+        if color_btn_disabled:
+            new_stylesheet += f"background-color: {color_btn_disabled}; "
+        new_stylesheet += "}"
+        self.surface_data_content_btn.setStyleSheet(new_stylesheet)
 
     def close_window(self):
         """ Closes this window """
@@ -331,5 +365,5 @@ class RibbonToolView(metaclass=MayaWindowMeta):
 if __name__ == "__main__":
     with qt_utils.QtApplicationContext():
         window = RibbonToolView(version="1.2.3")  # View
-        # window.set_source_data_button_values(text="Some Data", color_button="#333333", color_text="#FFFFFF")
+        window.set_source_data_button_values(text="Some Data", color_btn="#333333", color_text="#FFFFFF")
         window.show()
