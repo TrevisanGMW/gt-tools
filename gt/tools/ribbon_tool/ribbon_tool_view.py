@@ -271,27 +271,6 @@ class RibbonToolView(metaclass=MayaWindowMeta):
         bottom_layout.setContentsMargins(15, 0, 15, 15)  # L-T-R-B
         main_layout.addLayout(bottom_layout)
 
-    def get_mode_combobox_index(self):
-        """
-        Gets the current index of the mode combobox.
-        0 = No Source, 1 = Surface Input, 2 = Transform List Input
-        Returns:
-            int: Index of the mode combobox
-        """
-        return self.mode_combo_box.currentIndex()
-
-    def clear_source_data_button(self):
-        """
-        Clears the source data content button by changing its colors and text.
-        """
-        self.set_source_data_button_values(text="No Data",
-                                           color_text=resource_library.Color.RGB.gray_light,
-                                           color_text_disabled=resource_library.Color.RGB.gray_mid_light,
-                                           color_btn=resource_library.Color.RGB.gray_darker,
-                                           color_btn_hover=resource_library.Color.RGB.gray_mid_light,
-                                           color_btn_pressed=resource_library.Color.RGB.gray_mid_lighter,
-                                           color_btn_disabled=resource_library.Color.RGB.gray_darker)
-
     def update_ui_from_mode(self, index):
         """
         Updates UI according to the selected mode.
@@ -319,6 +298,21 @@ class RibbonToolView(metaclass=MayaWindowMeta):
             self.constraint_source_label.setEnabled(True)
             self.constraint_source_checkbox.setEnabled(True)
             self.clear_source_data_button()
+
+    def close_window(self):
+        """ Closes this window """
+        self.close()
+
+    # Setters --------------------------------------------------------------------------------------------------
+    def clear_source_data_button(self):
+        """ Clears the source data content button by changing its colors and text. """
+        self.set_source_data_button_values(text="No Data",
+                                           color_text=resource_library.Color.RGB.gray_light,
+                                           color_text_disabled=resource_library.Color.RGB.gray_mid_light,
+                                           color_btn=resource_library.Color.RGB.gray_darker,
+                                           color_btn_hover=resource_library.Color.RGB.gray_mid_light,
+                                           color_btn_pressed=resource_library.Color.RGB.gray_mid_lighter,
+                                           color_btn_disabled=resource_library.Color.RGB.gray_darker)
 
     def clear_prefix_content(self):
         """
@@ -367,9 +361,79 @@ class RibbonToolView(metaclass=MayaWindowMeta):
         new_stylesheet += "}"
         self.surface_data_content_btn.setStyleSheet(new_stylesheet)
 
-    def close_window(self):
-        """ Closes this window """
-        self.close()
+    # Getters --------------------------------------------------------------------------------------------------
+    def get_prefix(self):
+        """
+        Gets the current text of the prefix line edit.
+        Returns:
+            str: Text found in the prefix text box
+        """
+        return self.prefix_content.text()
+
+    def get_mode_combobox_index(self):
+        """
+        Gets the current index of the mode combobox.
+        0 = No Source, 1 = Surface Input, 2 = Transform List Input
+        Returns:
+            int: Index of the mode combobox
+        """
+        return self.mode_combo_box.currentIndex()
+
+    def get_num_controls_value(self):
+        """
+        Gets the current value of the number of controls spin box
+        Returns:
+            int: Number of controls value.
+        """
+        return self.num_controls_content.value()
+
+    def get_num_joints_value(self):
+        """
+        Gets the current value of the number of joints spin box
+        Returns:
+            int: Number of joints value.
+        """
+        return self.num_joints_content.value()
+
+    def get_dropoff_rate_value(self):
+        """
+        Gets the current value of the dropoff rate spin box
+        Returns:
+            double: Dropoff rate value.
+        """
+        return self.dropoff_content.value()
+
+    def is_equidistant_checked(self):
+        """
+        Gets the current value of the equidistant checkbox
+        Returns:
+            bool: True if checked, False otherwise.
+        """
+        return self.equidistant_checkbox.isChecked()
+
+    def is_add_fk_checked(self):
+        """
+        Gets the current value of the add FK checkbox
+        Returns:
+            bool: True if checked, False otherwise.
+        """
+        return self.add_fk_checkbox.isChecked()
+
+    def is_parent_skin_joints_checked(self):
+        """
+        Gets the current value of the parent skin joints checkbox
+        Returns:
+            bool: True if checked, False otherwise.
+        """
+        return self.parent_jnt_checkbox.isChecked()
+
+    def is_constraint_source_checked(self):
+        """
+        Gets the current value of the parent skin joints checkbox
+        Returns:
+            bool: True if checked, False otherwise.
+        """
+        return self.constraint_source_checkbox.isChecked()
 
 
 if __name__ == "__main__":
