@@ -160,6 +160,8 @@ class RibbonToolView(metaclass=MayaWindowMeta):
         self.create_ribbon_btn.setStyleSheet(resource_library.Stylesheet.btn_push_bright)
         qt_utils.center_window(self)
         self.update_ui_from_mode(0) # No Source
+        width = 400  # Initial width
+        self.resize(width, self.height())
 
     def create_layout(self):
         """Create the layout for the window."""
@@ -402,6 +404,14 @@ class RibbonToolView(metaclass=MayaWindowMeta):
             double: Dropoff rate value.
         """
         return self.dropoff_content.value()
+
+    def get_span_multiplier_value(self):
+        """
+        Gets the current value of the span multiplier spin box
+        Returns:
+            int: span multiplier value.
+        """
+        return self.span_multiplier_content.value()
 
     def is_equidistant_checked(self):
         """
