@@ -1298,7 +1298,7 @@ Added attributes don't affect your attribute holder in any way, it's up to you d
 <div>
 <h1>GT Ribbon Tool</h1>
 
-<img src="./media/gt_ribbon_tool.png" align="right"
+<img src="./media/gt_ribbon_tool.jpg" align="right"
      alt="GT Ribbon Tool GUI">
 
 <p>Tool for automating the process of creating ribbons. A ribbon is a commonly used setup in rigging that serves as a flexible surface for attaching joints and controls.
