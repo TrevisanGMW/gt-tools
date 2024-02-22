@@ -1326,7 +1326,7 @@ Ribbon rigging is particularly useful for creating smooth and natural-looking de
           <ul>
                <li><b>No Source:</b> Option is disabled as no source is needed. (Ribbon is a simple surface going from -12 to 12 in the grid)</li>
                <li><b>Surface:</b> Expects the user to set an existing surface (nurbsSurface) to be used as ribbon.</li>
-               <li><b>Transform List:</b> Expects the user to set a list of objects to be used as reference for when creating the ribbon.<br>(The system will create a surface using the position of the selected objects. Order is important as it's used in the creation of the ribbon)</li>
+               <li><b>Transform List:</b> Expects the user to set a list of objects to be used as reference for when creating the ribbon.<br>Surface is created using the position of the selected objects. Order is important and is used to create the flow of the ribbon.</li>
           </ul> 
     </li>
     <li><b>Create Ribbon:</b> Creates a ribbon setup using the preferences above.</li>
