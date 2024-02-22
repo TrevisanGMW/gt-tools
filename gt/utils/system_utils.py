@@ -178,11 +178,11 @@ def open_file_dir(path):
 
 def get_maya_preferences_dir(system):
     """
-    Get maya preferences folder (folder contains scripts, prefs, etc..)
+    Get maya preferences folder (folder contains scripts, prefs, etc...)
     Args:
         system (str): System string
     Returns:
-        str: Path to preferences folder (folder where you find scripts, prefs, etc..)
+        str: Path to preferences folder (folder where you find scripts, prefs, etc...)
     """
     win_maya_preferences_dir = ""
     mac_maya_preferences_dir = ""
@@ -192,10 +192,12 @@ def get_maya_preferences_dir(system):
             import maya.cmds as cmds
             if cmds.about(batch=True):
                 raise
+            else:
+                win_maya_preferences_dir = cmds.internalVar(userAppDir=True)
         except Exception as e:
             win_maya_preferences_dir = os.path.join(win_maya_preferences_dir, "Documents")
             logger.debug(f'Got Maya preferences path from outside Maya. Reason: {str(e)}')
-        win_maya_preferences_dir = os.path.join(win_maya_preferences_dir, "maya")
+            win_maya_preferences_dir = os.path.join(win_maya_preferences_dir, "maya")
     elif system == OS_MAC:
         mac_maya_preferences_dir = os.path.join(os.path.expanduser('~'), "Library", "Preferences", "Autodesk", "maya")
 
@@ -877,11 +879,8 @@ def create_object(class_name, raise_errors=True, class_path=None, *args, **kwarg
 
 
 if __name__ == "__main__":
-    from pprint import pprint
-    out = None
     logger.setLevel(logging.DEBUG)
     # out = os.environ.keys()
     out = get_maya_preferences_dir(get_system())
-    print(logger)
     # out = initialize_from_package()
-    pprint(out)
+    print(out)

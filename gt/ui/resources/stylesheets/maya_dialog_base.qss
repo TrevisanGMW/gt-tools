@@ -31,6 +31,10 @@ QLabel{
     color: @maya_text;
 }
 
+QLabel:disabled{
+    color: @maya_text_disabled;
+}
+
 QLineEdit{
     background-color: @maya_background_dark;
     selection-background-color: @maya_selection;

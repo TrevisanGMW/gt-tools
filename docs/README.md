@@ -53,6 +53,7 @@
   <li><a href="#gt-create-testing-keys">GT Create Testing Keys</a></li>
   <li><a href="#gt-make-ik-stretchy">GT Make IK Stretchy</a></li>
   <li><a href="#gt-add-sine-attributes">GT Add Sine Attributes</a></li>
+  <li><a href="#gt-ribbon-tool">GT Ribbon Tool</a></li>
 </ul>
 <h3><b>Utilities:</b></h3>
 <ul>
@@ -800,7 +801,7 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 <p>
 <ul>
 	<li><b>Home Remedy - Animated Short Film:</b><br><a href="https://vimeo.com/579130303">vimeo.com/579130303</a></li>
-	<li><b>Art in the time of Corona:</b><br><a href="https://youtu.be/TtYRudIZBGQ?t=2023">youtu.be/TtYRudIZBGQ</a><br><a href="https://vimeo.com/564743576">vimeo.com/564743576</a></li>
+	<li><b>Art in the time of Corona:</b><br><a href="https://youtu.be/TtYRudIZBGQ?t=2023">youtu.be/TtYRudIZBGQ</a><br></li>
 	<li><b>Short Horror Animation:</b><br><a href="https://youtu.be/pH62aGjf9-Y?t=1198">youtu.be/pH62aGjf9-Y</a></li>
 </ul></p>
 
@@ -1286,12 +1287,53 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 	<li><b>Output:</b> Result of the sine operation.</li>
 	<li><b>Abs Output:</b> Absolute output. (no negative values).</li>
 </ul>
-
+<p>
 Added attributes don't affect your attribute holder in any way, it's up to you do create necessary connections that will determine how these new values will be used.<br>For example, connecting "sideOutput" to "translateY" will case the object to move up and down according to the side curve.
 
 </p>
 
 <br><br>
+
+<!-- GT Ribbon Tool -->
+<div>
+<h1>GT Ribbon Tool</h1>
+
+<img src="./media/gt_ribbon_tool.jpg" align="right"
+     alt="GT Ribbon Tool GUI">
+
+<p>Tool for automating the process of creating ribbons. A ribbon is a commonly used setup in rigging that serves as a flexible surface for attaching joints and controls.
+
+Ribbon rigging is particularly useful for creating smooth and natural-looking deformations, especially in areas of the character where complex movements are required, such as the spine, limbs, or facial features. By attaching joints and control objects to the ribbon, animators can easily manipulate and pose the character, achieving realistic movement and expressions.</p>
+
+<ul>
+	<li><b>Prefix:</b> Multiplier for the time input (tick)</li>
+	<li><b>Source Mode:</b> What the ribbon should use as input data.<br>
+          <ul>
+               <li><b>No Source:</b> Creates a simple ribbon.</li>
+               <li><b>Surface:</b> Uses provided surface as input.</li>
+               <li><b>Transform List:</b> Creates ribbon using a provided transform list.</li>
+          </ul>  
+    </li>
+	<li><b>Number of Controls:</b> How many ribbon controls should be created.</li>
+	<li><b>Number of Joints:</b> How many skinned joints should be created.</li>
+	<li><b>Dropoff Rate:</b> Dropoff rate used for binding controls to ribbon surface. Similar to dropoff rate when binding joints to surfaces.</li>
+	<li><b>Span Multiplier:</b> If more than zero, it multiplies the number of spans on the target surface.</li>
+	<li><b>Equidistant:</b> Ensures equidistant calculation between the distance of every follicle.</li>
+	<li><b>Add FK:</b> Creates extra forward-kinematics controls to drive ribbon controls.</li>
+	<li><b>Parent Skin Joints:</b> Creates a hierarchy with the generated driven joints.</li>
+	<li><b>Constraint Source:</b> Constraint source transforms to follow the ribbon. (This skips joint creation)</li>
+	<li><b>Source Surface / Transform List:</b> Determines what should be used as source data. (Different data depending on source mode)
+          <ul>
+               <li><b>No Source:</b> Option is disabled as no source is needed. (Ribbon is a simple surface going from -12 to 12 in the grid)</li>
+               <li><b>Surface:</b> Expects the user to set an existing surface (nurbsSurface) to be used as ribbon.</li>
+               <li><b>Transform List:</b> Expects the user to set a list of objects to be used as reference for when creating the ribbon.<br>Surface is created using the position of the selected objects. Order is important and is used to create the flow of the ribbon.</li>
+          </ul> 
+    </li>
+    <li><b>Create Ribbon:</b> Creates a ribbon setup using the preferences above.</li>
+</ul>
+
+<br><br>
+
 
 </div>
 

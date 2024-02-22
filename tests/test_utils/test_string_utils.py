@@ -262,3 +262,49 @@ class TestStringUtils(unittest.TestCase):
                                                     only_first_match=False,
                                                     default=0)
         self.assertEqual(expected, result)
+
+    def test_get_int_as_rank_first(self):
+        expected = '1st'
+        result = string_utils.get_int_as_rank(1)
+        self.assertEqual(expected, result)
+
+    def test_get_int_as_rank_second(self):
+        expected = '2nd'
+        result = string_utils.get_int_as_rank(2)
+        self.assertEqual(expected, result)
+
+    def test_get_int_as_rank_third(self):
+        expected = '3rd'
+        result = string_utils.get_int_as_rank(3)
+        self.assertEqual(expected, result)
+
+    def test_get_int_as_rank_4th_to_10th(self):
+        for i in range(4, 11):
+            with self.subTest(i=i):
+                expected = f'{i}th'
+                result = string_utils.get_int_as_rank(i)
+                self.assertEqual(expected, result)
+
+    def test_get_int_as_rank_11th_to_13th(self):
+        for i in range(11, 14):
+            with self.subTest(i=i):
+                expected = f'{i}th'
+                result = string_utils.get_int_as_rank(i)
+                self.assertEqual(expected, result)
+
+    def test_get_int_as_rank_14th_to_20th(self):
+        for i in range(14, 21):
+            with self.subTest(i=i):
+                expected = f'{i}th'
+                result = string_utils.get_int_as_rank(i)
+                self.assertEqual(expected, result)
+
+    def test_get_int_as_rank_21st_to_100th(self):
+        for i in range(21, 101):
+            with self.subTest(i=i):
+                last_digit = i % 10
+                suffix_dict = {1: "st", 2: "nd", 3: "rd"}
+                expected_suffix = suffix_dict.get(last_digit, "th")
+                expected = f'{i}{expected_suffix}'
+                result = string_utils.get_int_as_rank(i)
+                self.assertEqual(expected, result)

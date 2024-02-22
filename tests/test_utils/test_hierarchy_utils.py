@@ -286,3 +286,92 @@ class TestHierarchyUtils(unittest.TestCase):
         self.assertEqual(expected, str(duplicate))
         self.assertTrue(maya_test_tools.cmds.objExists(f'|pCube2.mockedAttr'),
                         "Unexpected attr found in duplicated object.")
+
+    def test_get_shape_components_mesh_vtx(self):
+        cube = Node(self.cube_one)
+        cube_shape = maya_test_tools.cmds.listRelatives(cube, shapes=True)
+        components_vtx_a = hierarchy_utils.get_shape_components(shape=cube_shape[0], mesh_component_type="vertices")
+        components_vtx_b = hierarchy_utils.get_shape_components(shape=cube_shape[0], mesh_component_type="vtx")
+
+        expected = ['cube_one.vtx[0]', 'cube_one.vtx[1]', 'cube_one.vtx[2]', 'cube_one.vtx[3]',
+                    'cube_one.vtx[4]', 'cube_one.vtx[5]', 'cube_one.vtx[6]', 'cube_one.vtx[7]']
+        self.assertEqual(expected, components_vtx_a)
+        self.assertEqual(expected, components_vtx_b)
+
+    def test_get_shape_components_mesh_edges(self):
+        cube = Node(self.cube_one)
+        cube_shape = maya_test_tools.cmds.listRelatives(cube, shapes=True)
+        components_edges_a = hierarchy_utils.get_shape_components(shape=cube_shape[0], mesh_component_type="edges")
+        components_edges_b = hierarchy_utils.get_shape_components(shape=cube_shape[0], mesh_component_type="e")
+
+        expected = ['cube_one.e[0]', 'cube_one.e[1]', 'cube_one.e[2]', 'cube_one.e[3]',
+                    'cube_one.e[4]', 'cube_one.e[5]', 'cube_one.e[6]', 'cube_one.e[7]',
+                    'cube_one.e[8]', 'cube_one.e[9]', 'cube_one.e[10]', 'cube_one.e[11]']
+        self.assertEqual(expected, components_edges_a)
+        self.assertEqual(expected, components_edges_b)
+
+    def test_get_shape_components_mesh_faces(self):
+        cube = Node(self.cube_one)
+        cube_shape = maya_test_tools.cmds.listRelatives(cube, shapes=True)
+        components_faces_a = hierarchy_utils.get_shape_components(shape=cube_shape[0], mesh_component_type="faces")
+        components_faces_b = hierarchy_utils.get_shape_components(shape=cube_shape[0], mesh_component_type="f")
+
+        expected = ['cube_one.f[0]', 'cube_one.f[1]', 'cube_one.f[2]',
+                    'cube_one.f[3]', 'cube_one.f[4]', 'cube_one.f[5]']
+        self.assertEqual(expected, components_faces_a)
+        self.assertEqual(expected, components_faces_b)
+
+    def test_get_shape_components_mesh_all(self):
+        cube = Node(self.cube_one)
+        cube_shape = maya_test_tools.cmds.listRelatives(cube, shapes=True)
+        components = hierarchy_utils.get_shape_components(shape=cube_shape[0], mesh_component_type="all")
+
+        expected = ['cube_one.vtx[0]', 'cube_one.vtx[1]', 'cube_one.vtx[2]', 'cube_one.vtx[3]',
+                    'cube_one.vtx[4]', 'cube_one.vtx[5]', 'cube_one.vtx[6]', 'cube_one.vtx[7]']
+        expected += ['cube_one.e[0]', 'cube_one.e[1]', 'cube_one.e[2]', 'cube_one.e[3]',
+                     'cube_one.e[4]', 'cube_one.e[5]', 'cube_one.e[6]', 'cube_one.e[7]',
+                     'cube_one.e[8]', 'cube_one.e[9]', 'cube_one.e[10]', 'cube_one.e[11]']
+        expected += ['cube_one.f[0]', 'cube_one.f[1]', 'cube_one.f[2]',
+                     'cube_one.f[3]', 'cube_one.f[4]', 'cube_one.f[5]']
+        self.assertEqual(expected, components)
+
+    def test_get_shape_components_mesh_unrecognized(self):
+        cube = Node(self.cube_one)
+        cube_shape = maya_test_tools.cmds.listRelatives(cube, shapes=True)
+        components = hierarchy_utils.get_shape_components(shape=cube_shape[0], mesh_component_type="nothing")
+
+        expected = []
+        self.assertEqual(expected, components)
+
+    def test_get_shape_components_curve(self):
+        circle = maya_test_tools.cmds.circle(ch=False)
+        circle_shape = maya_test_tools.cmds.listRelatives(circle[0], shapes=True)
+        components = hierarchy_utils.get_shape_components(shape=circle_shape[0])
+
+        expected = ['nurbsCircle1.cv[0]', 'nurbsCircle1.cv[1]', 'nurbsCircle1.cv[2]', 'nurbsCircle1.cv[3]',
+                    'nurbsCircle1.cv[4]', 'nurbsCircle1.cv[5]', 'nurbsCircle1.cv[6]', 'nurbsCircle1.cv[7]']
+        self.assertEqual(expected, components)
+
+    def test_get_shape_components_surface(self):
+        surface = maya_test_tools.cmds.nurbsPlane(ch=False)
+        surface_shape = maya_test_tools.cmds.listRelatives(surface[0], shapes=True)
+        components = hierarchy_utils.get_shape_components(shape=surface_shape[0])
+
+        expected = ['nurbsPlane1.cv[0][0]', 'nurbsPlane1.cv[0][1]', 'nurbsPlane1.cv[0][2]',
+                    'nurbsPlane1.cv[0][3]', 'nurbsPlane1.cv[1][0]', 'nurbsPlane1.cv[1][1]',
+                    'nurbsPlane1.cv[1][2]', 'nurbsPlane1.cv[1][3]', 'nurbsPlane1.cv[2][0]',
+                    'nurbsPlane1.cv[2][1]', 'nurbsPlane1.cv[2][2]', 'nurbsPlane1.cv[2][3]',
+                    'nurbsPlane1.cv[3][0]', 'nurbsPlane1.cv[3][1]', 'nurbsPlane1.cv[3][2]',
+                    'nurbsPlane1.cv[3][3]']
+        self.assertEqual(expected, components)
+
+    def test_get_shape_components_mesh_vtx_full_path(self):
+        cube = Node(self.cube_one)
+        cube_shape = maya_test_tools.cmds.listRelatives(cube, shapes=True)
+        components_vtx_a = hierarchy_utils.get_shape_components(shape=cube_shape[0],
+                                                                mesh_component_type="vertices",
+                                                                full_path=True)
+
+        expected = ['|cube_one.vtx[0]', '|cube_one.vtx[1]', '|cube_one.vtx[2]', '|cube_one.vtx[3]',
+                    '|cube_one.vtx[4]', '|cube_one.vtx[5]', '|cube_one.vtx[6]', '|cube_one.vtx[7]']
+        self.assertEqual(expected, components_vtx_a)

@@ -18,3 +18,15 @@ QCheckBox::indicator:unchecked {
 	width: @image_unchecked_width;
     height: @image_unchecked_height;
 }
+
+QCheckBox::indicator:checked:disabled {
+    image: @image_checked_disabled;
+	width: @image_checked_width;
+    height: @image_checked_height;
+}
+
+QCheckBox::indicator:unchecked:disabled {
+    image: @image_unchecked_disabled;
+	width: @image_unchecked_width;
+    height: @image_unchecked_height;
+}

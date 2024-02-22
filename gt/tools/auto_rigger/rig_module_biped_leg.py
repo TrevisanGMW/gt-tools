@@ -3,23 +3,23 @@ Auto Rigger Leg Modules
 github.com/TrevisanGMW/gt-tools
 """
 from gt.tools.auto_rigger.rig_utils import duplicate_joint_for_automation, get_proxy_offset, rescale_joint_radius
-from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_node_from_uuid, get_driven_joint
-from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid, find_or_create_joint_automation_group
-from gt.tools.auto_rigger.rig_utils import find_direction_curve_node
+from gt.tools.auto_rigger.rig_utils import find_direction_curve, create_ctrl_curve, find_drivers_from_joint
+from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_from_uuid, get_driven_joint
+from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, find_or_create_joint_automation_group
 from gt.utils.attr_utils import add_attr, hide_lock_default_attrs, set_attr_state, set_attr
 from gt.utils.color_utils import ColorConstants, set_color_viewport, set_color_outliner
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
-from gt.tools.auto_rigger.rig_constants import RiggerConstants
-from gt.utils.transform_utils import match_translate, Vector3
+from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
+from gt.utils.transform_utils import match_translate, Vector3, match_transform
+from gt.utils.hierarchy_utils import add_offset_transform
 from gt.utils.math_utils import dist_center_to_center
 from gt.utils.naming_utils import NamingConstants
-from gt.utils.node_utils import create_node
+from gt.utils.node_utils import create_node, Node
 from gt.utils.curve_utils import get_curve
 from gt.utils import hierarchy_utils
 from gt.ui import resource_library
 import maya.cmds as cmds
 import logging
-
 
 # Logging Setup
 logging.basicConfig()
@@ -48,37 +48,38 @@ class ModuleBipedLeg(ModuleGeneric):
         # Default Proxies
         self.hip = Proxy(name=hip_name)
         self.hip.set_locator_scale(scale=2)
-        self.hip.set_meta_type(value="hip")
+        self.hip.set_meta_purpose(value="hip")
+        self.hip.add_driver_type(driver_type=["fk"])
 
         self.knee = Proxy(name=knee_name)
         self.knee.set_curve(curve=get_curve('_proxy_joint_arrow_pos_z'))
         self.knee.set_locator_scale(scale=2)
-        self.knee.add_meta_parent(line_parent=self.hip)
+        self.knee.add_line_parent(line_parent=self.hip)
         self.knee.set_parent_uuid(uuid=self.hip.get_uuid())
-        self.knee.set_meta_type(value="knee")
+        self.knee.set_meta_purpose(value="knee")
 
         self.ankle = Proxy(name=ankle_name)
         self.ankle.set_locator_scale(scale=2)
-        self.ankle.add_meta_parent(line_parent=self.knee)
-        self.ankle.set_meta_type(value="ankle")
+        self.ankle.add_line_parent(line_parent=self.knee)
+        self.ankle.set_meta_purpose(value="ankle")
 
         self.ball = Proxy(name=ball_name)
         self.ball.set_locator_scale(scale=2)
-        self.ball.add_meta_parent(line_parent=self.ankle)
+        self.ball.add_line_parent(line_parent=self.ankle)
         self.ball.set_parent_uuid(uuid=self.ankle.get_uuid())
-        self.ball.set_meta_type(value="ball")
+        self.ball.set_meta_purpose(value="ball")
 
         self.toe = Proxy(name=toe_name)
         self.toe.set_locator_scale(scale=1)
         self.toe.set_parent_uuid(uuid=self.ball.get_uuid())
         self.toe.set_parent_uuid_from_proxy(parent_proxy=self.ball)
-        self.toe.set_meta_type(value="toe")
+        self.toe.set_meta_purpose(value="toe")
 
         self.heel = Proxy(name=heel_name)
         self.heel.set_locator_scale(scale=1)
-        self.heel.add_meta_parent(line_parent=self.ankle)
+        self.heel.add_line_parent(line_parent=self.ankle)
         self.heel.add_color(rgb_color=ColorConstants.RigProxy.PIVOT)
-        self.heel.set_meta_type(value="heel")
+        self.heel.set_meta_purpose(value="heel")
 
         # Initial Pose
         hip_pos = Vector3(y=84.5)
@@ -132,7 +133,7 @@ class ModuleBipedLeg(ModuleGeneric):
         if not proxy_dict or not isinstance(proxy_dict, dict):
             logger.debug(f'Unable to read proxies from dictionary. Input must be a dictionary.')
             return
-        self.read_type_matching_proxy_from_dict(proxy_dict)
+        self.read_purpose_matching_proxy_from_dict(proxy_dict)
 
     # --------------------------------------------------- Misc ---------------------------------------------------
     def is_valid(self):
@@ -161,13 +162,13 @@ class ModuleBipedLeg(ModuleGeneric):
         When in a project, this runs after the "build_proxy" is done in all modules.
         """
         # Get Maya Elements
-        root = find_objects_with_attr(RiggerConstants.REF_ROOT_PROXY_ATTR)
-        hip = find_proxy_node_from_uuid(self.hip.get_uuid())
-        knee = find_proxy_node_from_uuid(self.knee.get_uuid())
-        ankle = find_proxy_node_from_uuid(self.ankle.get_uuid())
-        ball = find_proxy_node_from_uuid(self.ball.get_uuid())
-        heel = find_proxy_node_from_uuid(self.heel.get_uuid())
-        toe = find_proxy_node_from_uuid(self.toe.get_uuid())
+        root = find_objects_with_attr(RiggerConstants.REF_ATTR_ROOT_PROXY)
+        hip = find_proxy_from_uuid(self.hip.get_uuid())
+        knee = find_proxy_from_uuid(self.knee.get_uuid())
+        ankle = find_proxy_from_uuid(self.ankle.get_uuid())
+        ball = find_proxy_from_uuid(self.ball.get_uuid())
+        heel = find_proxy_from_uuid(self.heel.get_uuid())
+        toe = find_proxy_from_uuid(self.toe.get_uuid())
 
         self.hip.apply_offset_transform()
         self.knee.apply_offset_transform()
@@ -176,11 +177,11 @@ class ModuleBipedLeg(ModuleGeneric):
         self.heel.apply_offset_transform()
 
         # Hip -----------------------------------------------------------------------------------
-        hide_lock_default_attrs(hip, translate=False)
+        hide_lock_default_attrs(hip, rotate=True, scale=True)
 
         # Knee  ---------------------------------------------------------------------------------
         knee_tag = knee.get_short_name()
-        hide_lock_default_attrs(knee, translate=False, rotate=False)
+        hide_lock_default_attrs(knee, scale=True)
 
         # Knee Setup - Always Between Hip and Ankle
         knee_offset = get_proxy_offset(knee)
@@ -301,19 +302,19 @@ class ModuleBipedLeg(ModuleGeneric):
         super().build_skeleton_hierarchy()  # Passthrough
         self.ankle.clear_parent_uuid()
 
-        heel_jnt = find_joint_node_from_uuid(self.heel.get_uuid())
+        heel_jnt = find_joint_from_uuid(self.heel.get_uuid())
         if heel_jnt and cmds.objExists(heel_jnt):
             cmds.delete(heel_jnt)
 
     def build_rig(self, **kwargs):
         # Get Elements
-        direction_crv = find_direction_curve_node()
-        module_parent_jnt = find_joint_node_from_uuid(self.get_parent_uuid())  # TODO TEMP @@@
-        hip_jnt = find_joint_node_from_uuid(self.hip.get_uuid())
-        knee_jnt = find_joint_node_from_uuid(self.knee.get_uuid())
-        ankle_jnt = find_joint_node_from_uuid(self.ankle.get_uuid())
-        ball_jnt = find_joint_node_from_uuid(self.ball.get_uuid())
-        toe_jnt = find_joint_node_from_uuid(self.toe.get_uuid())
+        direction_crv = find_direction_curve()
+        # module_parent_jnt = find_joint_node_from_uuid(self.get_parent_uuid())  # TODO TEMP @@@
+        hip_jnt = find_joint_from_uuid(self.hip.get_uuid())
+        knee_jnt = find_joint_from_uuid(self.knee.get_uuid())
+        ankle_jnt = find_joint_from_uuid(self.ankle.get_uuid())
+        ball_jnt = find_joint_from_uuid(self.ball.get_uuid())
+        toe_jnt = find_joint_from_uuid(self.toe.get_uuid())
 
         # Set Colors
         leg_jnt_list = [hip_jnt, knee_jnt, ankle_jnt, ball_jnt, toe_jnt]
@@ -331,6 +332,7 @@ class ModuleBipedLeg(ModuleGeneric):
         cmds.setAttr(f'{hip_jnt}.preferredAngleZ', 90)
         cmds.setAttr(f'{knee_jnt}.preferredAngleZ', -90)
 
+        # Create Parent Automation Elements
         joint_automation_grp = find_or_create_joint_automation_group()
         module_parent_jnt = get_driven_joint(self.get_parent_uuid())
         hierarchy_utils.parent(source_objects=module_parent_jnt, target_parent=joint_automation_grp)
@@ -366,6 +368,30 @@ class ModuleBipedLeg(ModuleGeneric):
 
         print(f'leg_scale: {leg_scale}')
         print("build leg rig!")
+
+        # Hip Control
+        hip_ctrl = self._assemble_ctrl_name(name=self.hip.get_name())
+        hip_ctrl = create_ctrl_curve(name=hip_ctrl, curve_file_name="_circle_pos_x")
+        self.add_driver_uuid_attr(target=hip_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.hip)
+        hip_offset = add_offset_transform(target_list=hip_ctrl)[0]
+        hip_offset = Node(hip_offset)
+        match_transform(source=hip_jnt, target_list=hip_offset)
+        # scale_shapes(obj_transform=hip_ctrl, offset=spine_scale / 10)
+        hierarchy_utils.parent(source_objects=hip_offset, target_parent=direction_crv)
+
+        self.module_children_drivers = [hip_offset]
+
+    def build_rig_post(self):
+        """
+        Runs post rig creation script.
+        This step runs after the execution of "build_rig" is complete in all modules.
+        Used to define automation or connections that require external elements to exist.
+        """
+        module_parent_jnt = find_joint_from_uuid(self.get_parent_uuid())
+        if module_parent_jnt:
+            drivers = find_drivers_from_joint(module_parent_jnt, as_list=True)
+            if drivers:
+                hierarchy_utils.parent(source_objects=self.module_children_drivers, target_parent=drivers[0])
 
 
 class ModuleBipedLegLeft(ModuleBipedLeg):
@@ -418,43 +444,30 @@ class ModuleBipedLegRight(ModuleBipedLeg):
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
+    # Auto Reload Script - Must have been initialized using "Run-Only" mode.
+    from gt.utils.session_utils import remove_modules_startswith
+    remove_modules_startswith("gt.tools.auto_rigger.rig")
     cmds.file(new=True, force=True)
 
     from gt.tools.auto_rigger.rig_framework import RigProject
-    a_proxy = Proxy()
-    a_proxy.set_initial_position(y=84.5)
-    a_proxy.set_name("pelvis")
+    from gt.tools.auto_rigger.rig_module_spine import ModuleSpine
+
+    a_spine = ModuleSpine()
     a_leg = ModuleBipedLeg()
     a_leg_lf = ModuleBipedLegLeft()
     a_leg_rt = ModuleBipedLegRight()
     a_module = ModuleGeneric()
-    a_module.add_to_proxies(a_proxy)
-    a_leg_lf.set_parent_uuid(a_proxy.get_uuid())
-    a_leg_rt.set_parent_uuid(a_proxy.get_uuid())
+
+    spine_hip_uuid = a_spine.hip.get_uuid()
+    a_leg_lf.set_parent_uuid(spine_hip_uuid)
+    a_leg_rt.set_parent_uuid(spine_hip_uuid)
 
     a_project = RigProject()
-    a_project.add_to_modules(a_module)
+    a_project.add_to_modules(a_spine)
     a_project.add_to_modules(a_leg_lf)
     a_project.add_to_modules(a_leg_rt)
-    # a_project.add_to_modules(a_leg)
     a_project.build_proxy()
     a_project.build_rig()
-
-    # for obj in ["hip", "knee", "ankle", "ball", "toe", "heelPivot"]:
-    #     cmds.setAttr(f'{obj}.displayLocalAxis', 1)
-    #     cmds.setAttr(f'rt_{obj}.displayLocalAxis', 1)
-    #
-    # cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.hip.get_name()}.tx', 10)
-    # cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.ankle.get_name()}.tz', 5)
-    # cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.knee.get_name()}.tz', 3)
-    # cmds.setAttr(f'{NamingConstants.Prefix.LEFT}_{a_leg_lf.ankle.get_name()}.ry', 45)
-    # a_project.read_data_from_scene()
-    # dictionary = a_project.get_project_as_dict()
-    #
-    # cmds.file(new=True, force=True)
-    # a_project2 = RigProject()
-    # a_project2.read_data_from_dict(dictionary)
-    # a_project2.build_proxy()
 
     # Frame all
     cmds.viewFit(all=True)

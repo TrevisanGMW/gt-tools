@@ -161,7 +161,7 @@ def filter_loaded_modules_path_containing(filter_strings, return_module=True):
     """
     Looks through loaded modules and returns the ones containing the provided string under their path
     Args:
-        filter_strings (list): A list of strings used to filter modules. If any are found under the module path,
+        filter_strings (list, str): A list of strings used to filter modules. If any are found under the module path,
                                then they will be included in the return list.
         return_module (bool, optional): If active, it will return the module.
                                         If inactive, it will return the module name.

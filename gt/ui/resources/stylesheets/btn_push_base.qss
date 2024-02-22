@@ -1,9 +1,9 @@
 QPushButton {
-            background-color: @background_color;
-            color: @text_color;
-            border: none;
-            padding: @button_padding;
-        }
+	background-color: @background_color;
+	color: @text_color;
+	border: none;
+	padding: @button_padding;
+}
         
 QPushButton:hover {
 	background-color: @background_hover_color;

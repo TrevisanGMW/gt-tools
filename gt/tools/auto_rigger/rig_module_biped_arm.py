@@ -2,10 +2,9 @@
 Auto Rigger Arm Modules
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_node_from_uuid, get_driven_joint
-from gt.tools.auto_rigger.rig_utils import find_direction_curve_node, find_or_create_joint_automation_group
-from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid, rescale_joint_radius
-from gt.tools.auto_rigger.rig_utils import duplicate_joint_for_automation
+from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, rescale_joint_radius, duplicate_joint_for_automation
+from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_from_uuid, get_driven_joint
+from gt.tools.auto_rigger.rig_utils import find_direction_curve, find_or_create_joint_automation_group
 from gt.utils.transform_utils import match_translate, Vector3, set_equidistant_transforms
 from gt.utils.color_utils import set_color_viewport, ColorConstants, set_color_outliner
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
@@ -56,27 +55,27 @@ class ModuleBipedArm(ModuleGeneric):
         self.clavicle.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.clavicle.set_initial_position(xyz=pos_clavicle)
         self.clavicle.set_locator_scale(scale=2)
-        self.clavicle.set_meta_type(value="clavicle")
+        self.clavicle.set_meta_purpose(value="clavicle")
 
         self.shoulder = Proxy(name=shoulder_name)
         self.shoulder.set_initial_position(xyz=pos_shoulder)
         self.shoulder.set_locator_scale(scale=2)
         self.shoulder.set_parent_uuid(self.clavicle.get_uuid())
-        self.shoulder.set_meta_type(value="shoulder")
+        self.shoulder.set_meta_purpose(value="shoulder")
 
         self.elbow = Proxy(name=elbow_name)
         self.elbow.set_curve(curve=get_curve('_proxy_joint_arrow_neg_z'))
         self.elbow.set_initial_position(xyz=pos_elbow)
         self.elbow.set_locator_scale(scale=2.2)
-        self.elbow.add_meta_parent(line_parent=self.shoulder)
-        self.elbow.set_meta_type(value="elbow")
+        self.elbow.add_line_parent(line_parent=self.shoulder)
+        self.elbow.set_meta_purpose(value="elbow")
 
         self.wrist = Proxy(name=wrist_name)
         self.wrist.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
         self.wrist.set_initial_position(xyz=pos_wrist)
         self.wrist.set_locator_scale(scale=2)
-        self.wrist.add_meta_parent(line_parent=self.elbow)
-        self.wrist.set_meta_type(value="wrist")
+        self.wrist.add_line_parent(line_parent=self.elbow)
+        self.wrist.set_meta_purpose(value="wrist")
 
         # Update Proxies
         self.proxies = [self.clavicle, self.shoulder, self.elbow, self.wrist]
@@ -115,7 +114,7 @@ class ModuleBipedArm(ModuleGeneric):
         if not proxy_dict or not isinstance(proxy_dict, dict):
             logger.debug(f'Unable to read proxies from dictionary. Input must be a dictionary.')
             return
-        self.read_type_matching_proxy_from_dict(proxy_dict)
+        self.read_purpose_matching_proxy_from_dict(proxy_dict)
 
     # --------------------------------------------------- Misc ---------------------------------------------------
     def is_valid(self):
@@ -145,11 +144,11 @@ class ModuleBipedArm(ModuleGeneric):
         When in a project, this runs after the "build_proxy" is done in all modules.
         """
         # Get Maya Elements
-        root = find_objects_with_attr(RiggerConstants.REF_ROOT_PROXY_ATTR)
-        clavicle = find_proxy_node_from_uuid(self.clavicle.get_uuid())
-        shoulder = find_proxy_node_from_uuid(self.shoulder.get_uuid())
-        elbow = find_proxy_node_from_uuid(self.elbow.get_uuid())
-        wrist = find_proxy_node_from_uuid(self.wrist.get_uuid())
+        root = find_objects_with_attr(RiggerConstants.REF_ATTR_ROOT_PROXY)
+        clavicle = find_proxy_from_uuid(self.clavicle.get_uuid())
+        shoulder = find_proxy_from_uuid(self.shoulder.get_uuid())
+        elbow = find_proxy_from_uuid(self.elbow.get_uuid())
+        wrist = find_proxy_from_uuid(self.wrist.get_uuid())
 
         self.clavicle.apply_offset_transform()
         self.shoulder.apply_offset_transform()
@@ -157,11 +156,11 @@ class ModuleBipedArm(ModuleGeneric):
         self.wrist.apply_offset_transform()
 
         # Shoulder -----------------------------------------------------------------------------------
-        hide_lock_default_attrs(shoulder, translate=False)
+        hide_lock_default_attrs(shoulder, rotate=True, scale=True)
 
         # Elbow  -------------------------------------------------------------------------------------
         elbow_tag = elbow.get_short_name()
-        hide_lock_default_attrs(elbow, translate=False, rotate=False)
+        hide_lock_default_attrs(elbow, scale=True)
 
         # Elbow Setup
         elbow_offset = get_proxy_offset(elbow)
@@ -249,12 +248,12 @@ class ModuleBipedArm(ModuleGeneric):
 
     def build_rig(self, project_prefix=None, **kwargs):
         # Get Elements
-        direction_crv = find_direction_curve_node()
-        module_parent_jnt = find_joint_node_from_uuid(self.get_parent_uuid())  # TODO TEMP @@@
-        clavicle_jnt = find_joint_node_from_uuid(self.clavicle.get_uuid())
-        shoulder_jnt = find_joint_node_from_uuid(self.shoulder.get_uuid())
-        elbow_jnt = find_joint_node_from_uuid(self.elbow.get_uuid())
-        wrist_jnt = find_joint_node_from_uuid(self.wrist.get_uuid())
+        direction_crv = find_direction_curve()
+        module_parent_jnt = find_joint_from_uuid(self.get_parent_uuid())  # TODO TEMP @@@
+        clavicle_jnt = find_joint_from_uuid(self.clavicle.get_uuid())
+        shoulder_jnt = find_joint_from_uuid(self.shoulder.get_uuid())
+        elbow_jnt = find_joint_from_uuid(self.elbow.get_uuid())
+        wrist_jnt = find_joint_from_uuid(self.wrist.get_uuid())
         arm_jnt_list = [clavicle_jnt, shoulder_jnt, elbow_jnt, wrist_jnt]
 
         # Set Colors
@@ -352,25 +351,30 @@ class ModuleBipedArmRight(ModuleBipedArm):
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
+    # Auto Reload Script - Must have been initialized using "Run-Only" mode.
+    from gt.utils.session_utils import remove_modules_startswith
+    remove_modules_startswith("gt.tools.auto_rigger.rig")
     cmds.file(new=True, force=True)
 
     from gt.tools.auto_rigger.rig_framework import RigProject
-    a_module = ModuleGeneric()
-    a_proxy = a_module.add_new_proxy()
-    a_proxy.set_initial_position(y=130)
+    from gt.tools.auto_rigger.rig_module_spine import ModuleSpine
+
+    a_spine = ModuleSpine()
     a_arm = ModuleBipedArm()
-    a_arm_rt = ModuleBipedArmRight()
     a_arm_lf = ModuleBipedArmLeft()
-    a_arm_rt.set_parent_uuid(uuid=a_proxy.get_uuid())
-    a_arm_lf.set_parent_uuid(uuid=a_proxy.get_uuid())
+    a_arm_rt = ModuleBipedArmRight()
+
+    spine_chest_uuid = a_spine.chest.get_uuid()
+    a_arm_lf.set_parent_uuid(spine_chest_uuid)
+    a_arm_rt.set_parent_uuid(spine_chest_uuid)
+
     a_project = RigProject()
-    # a_project.add_to_modules(a_arm)  # TODO Change it so it moves down
-    a_project.add_to_modules(a_module)
+    a_project.add_to_modules(a_spine)
     a_project.add_to_modules(a_arm_rt)
     a_project.add_to_modules(a_arm_lf)
     a_project.build_proxy()
     a_project.build_rig()
-    #
+
     # cmds.setAttr(f'{a_arm_rt.get_prefix()}_{a_arm_rt.clavicle.get_name()}.ty', 15)
     # cmds.setAttr(f'{a_arm_rt.get_prefix()}_{a_arm_rt.elbow.get_name()}.tz', -15)
     # cmds.setAttr(f'{a_arm_lf.get_prefix()}_{a_arm_lf.clavicle.get_name()}.ty', 15)

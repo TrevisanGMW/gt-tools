@@ -312,7 +312,7 @@ def get_python_influences_code(obj_list, include_bound_mesh=True, include_existi
         obj_list = [obj_list]
     valid_nodes = []
     for obj in obj_list:
-        shapes = cmds.listRelatives(obj, shapes=True, children=False) or []
+        shapes = cmds.listRelatives(obj, shapes=True, children=False, fullPath=True) or []
         if shapes:
             if cmds.objectType(shapes[0]) == 'mesh' or cmds.objectType(shapes[0]) == 'nurbsSurface':
                 valid_nodes.append(obj)

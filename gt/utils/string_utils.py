@@ -230,6 +230,42 @@ def extract_digits_as_int(input_string, only_first_match=True, can_be_negative=F
         return result
 
 
+def get_int_as_rank(number):
+    """
+    Converts an integer to its corresponding rank string.
+
+    Args:
+        number (int): The input integer.
+
+    Returns:
+        str: The rank string.
+
+    Example:
+        get_int_as_rank(1)
+        '1st'
+        get_int_as_rank(5)
+        '5th'
+        get_int_as_rank(11)
+        '11th'
+    """
+    # Handle special cases for 11, 12, and 13 since they end in "th"
+    if 10 < number % 100 < 20:
+        suffix = "th"
+    else:
+        # Use modulo 10 to determine the last digit
+        last_digit = number % 10
+        if last_digit == 1:
+            suffix = "st"
+        elif last_digit == 2:
+            suffix = "nd"
+        elif last_digit == 3:
+            suffix = "rd"
+        else:
+            suffix = "th"
+
+    return str(number) + suffix
+
+
 if __name__ == "__main__":
     from pprint import pprint
     out = None
