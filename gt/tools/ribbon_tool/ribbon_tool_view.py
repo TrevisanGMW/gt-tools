@@ -281,9 +281,16 @@ class RibbonToolView(metaclass=MayaWindowMeta):
         return self.mode_combo_box.currentIndex()
 
     def clear_source_data_button(self):
+        """
+        Clears the source data content button by changing its colors and text.
+        """
         self.set_source_data_button_values(text="No Data",
+                                           color_text=resource_library.Color.RGB.gray_light,
+                                           color_text_disabled=resource_library.Color.RGB.gray_mid_light,
                                            color_btn=resource_library.Color.RGB.gray_darker,
-                                           color_text=resource_library.Color.RGB.gray_light)
+                                           color_btn_hover=resource_library.Color.RGB.gray_mid_light,
+                                           color_btn_pressed=resource_library.Color.RGB.gray_mid_lighter,
+                                           color_btn_disabled=resource_library.Color.RGB.gray_darker)
 
     def update_ui_from_mode(self, index):
         """
@@ -319,17 +326,18 @@ class RibbonToolView(metaclass=MayaWindowMeta):
         """
         self.prefix_content.setText("")
 
-    def set_source_data_button_values(self, text=None, color_btn=None, color_text=None,
+    def set_source_data_button_values(self, text=None, color_text=None, color_text_disabled=None, color_btn=None,
                                       color_btn_hover=None, color_btn_pressed=None, color_btn_disabled=None):
         """
         Updates the source data button color, text and button color (background color)
         Args:
             text (str, optional): New button text.
             color_btn (str, optional): HEX or RGB string to be used as background color.
-            color_text (str, optional): HEX or RGB string to be used as text color .
-            color_btn_hover (str, optional): HEX or RGB string to be used as text color .
-            color_btn_pressed (str, optional): HEX or RGB string to be used as text color .
-            color_btn_disabled (str, optional): HEX or RGB string to be used as text color .
+            color_text (str, optional): HEX or RGB string to be used as text color.
+            color_text_disabled (str, optional): HEX or RGB string to be used as disabled text color.
+            color_btn_hover (str, optional): HEX or RGB string to be used as button hover color.
+            color_btn_pressed (str, optional): HEX or RGB string to be used as button pressed color.
+            color_btn_disabled (str, optional): HEX or RGB string to be used as button disabled color.
         """
         if text is not None:
             self.surface_data_content_btn.setText(text)
@@ -354,6 +362,8 @@ class RibbonToolView(metaclass=MayaWindowMeta):
         new_stylesheet += "\nQPushButton:disabled {"
         if color_btn_disabled:
             new_stylesheet += f"background-color: {color_btn_disabled}; "
+        if color_text_disabled:
+            new_stylesheet += f"color: {color_text_disabled}; "
         new_stylesheet += "}"
         self.surface_data_content_btn.setStyleSheet(new_stylesheet)
 
