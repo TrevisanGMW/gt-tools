@@ -382,8 +382,10 @@ class Icon:
     ui_arrow_left = get_icon_path(r"ui_arrow_left.svg")
     ui_arrow_right = get_icon_path(r"ui_arrow_right.svg")
     ui_exclamation = get_icon_path(r"ui_exclamation.svg")
-    ui_checkbox_enabled = get_icon_path(r"ui_checkbox_enabled.svg")
-    ui_checkbox_disabled = get_icon_path(r"ui_checkbox_disabled.svg")
+    ui_checkbox_checked = get_icon_path(r"ui_checkbox_checked.svg")
+    ui_checkbox_unchecked = get_icon_path(r"ui_checkbox_unchecked.svg")
+    ui_checkbox_checked_disabled = get_icon_path(r"ui_checkbox_checked_disabled.svg")
+    ui_checkbox_unchecked_disabled = get_icon_path(r"ui_checkbox_unchecked_disabled.svg")
     ui_toggle_enabled = get_icon_path(r"ui_toggle_enabled.svg")
     ui_toggle_disabled = get_icon_path(r"ui_toggle_disabled.svg")
     ui_edit = get_icon_path(r"ui_edit.svg")
@@ -908,12 +910,14 @@ class StylesheetVariables:
     checkbox_base = {
         # Colors
         "@text_color;": Color.RGB.gray_dark_silver,
-        # Icons
-        "@image_checked;": f"url({Icon.ui_checkbox_enabled})".replace("\\", "/"),
+        # Checked
+        "@image_checked;": f"url({Icon.ui_checkbox_checked})".replace("\\", "/"),
+        "@image_checked_disabled;": f"url({Icon.ui_checkbox_checked_disabled})".replace("\\", "/"),
         "@image_checked_width;": 32,
         "@image_checked_height;": 32,
-        # Icons
-        "@image_unchecked;": f"url({Icon.ui_checkbox_disabled})".replace("\\", "/"),
+        # Unchecked
+        "@image_unchecked;": f"url({Icon.ui_checkbox_unchecked})".replace("\\", "/"),
+        "@image_unchecked_disabled;": f"url({Icon.ui_checkbox_unchecked_disabled})".replace("\\", "/"),
         "@image_unchecked_width;": 32,
         "@image_unchecked_height;": 32,
     }
