@@ -381,7 +381,7 @@ class Ribbon:
         else:
             logger.debug("Invalid dropoff value. The valid range is between 0.1 and 10.0.")
 
-    def set_surface_data(self, surface_data=None, is_driven=None, maintain_driven_offset=None, span_multiplier=None):
+    def set_surface_data(self, surface_data=None, is_driven=None, maintain_driven_offset=None):
         """
         Set the surface origin to be used as a ribbon of the object.
         Args:
@@ -395,12 +395,6 @@ class Ribbon:
                                         e.g. follicle -> parent constraint > surface_data list item
             maintain_driven_offset (bool, optional): When True, it constrains follicles with maintain offset active.
                                                      This option is only used when "is_driven" is True.
-            span_multiplier (int): New span multiplier value. Sets the span multiplier value of the generated surface.
-                    That is, the number of divisions in between spans. For example, if a surface is created from
-                    point A to point B and the multiplier is set to zero or one, the surface will not change, and be
-                    composed only of the starting and ending spans.
-                    Now if the multiplier is set to 2, the number of spans will double, essentially adding a span/edge
-                    in between the initial spans. This can be seen as a subdivision value for surfaces.
         """
         if surface_data and not isinstance(surface_data, (str, list, tuple)):
             logger.debug(f'Unable to set surface path. Invalid data was provided.')
@@ -410,8 +404,6 @@ class Ribbon:
             self.sur_data_is_driven = is_driven
         if isinstance(maintain_driven_offset, bool):
             self.sur_data_maintain_offset = maintain_driven_offset
-        if isinstance(span_multiplier, int):
-            self.sur_spans_multiplier = span_multiplier
 
     def clear_surface_data(self):
         """
@@ -458,6 +450,29 @@ class Ribbon:
         _default_ribbon = Ribbon()  # Temporary ribbon used to extract default values
         self.bind_joints_orient_offset = _default_ribbon.bind_joints_orient_offset
         self.bind_joints_parenting = _default_ribbon.bind_joints_parenting
+
+    def set_surface_span_multiplier(self, span_multiplier):
+        """
+        Sets the span multiplier value.
+        Args:
+        span_multiplier (int): New span multiplier value. Sets the span multiplier value of the generated surface.
+                    That is, the number of divisions in between spans. For example, if a surface is created from
+                    point A to point B and the multiplier is set to zero or one, the surface will not change, and be
+                    composed only of the starting and ending spans.
+                    Now if the multiplier is set to 2, the number of spans will double, essentially adding a span/edge
+                    in between the initial spans. This can be seen as a subdivision value for surfaces.
+        """
+        if isinstance(span_multiplier, int):
+            self.sur_spans_multiplier = span_multiplier
+
+    def set_bind_joints_parenting(self, parenting):
+        """
+        Determines if the ribbon should create a hierarchy out of the skin joints.
+        Args:
+            parenting (bool): If True, it will create a hierarchy, otherwise it will not.
+        """
+        if isinstance(parenting, bool):
+            self.bind_joints_parenting = parenting
 
     def _get_or_create_surface(self, prefix):
         """
@@ -514,9 +529,11 @@ class Ribbon:
                 multiply_surface_spans(input_surface=_sur, v_multiplier=self.sur_spans_multiplier, v_degree=3)
                 cmds.delete(obj_list_locator)
                 return _sur
-
+        v_patches = 10
+        if self.sur_spans_multiplier:
+            v_patches *= self.sur_spans_multiplier
         surface = cmds.nurbsPlane(axis=(0, 1, 0), width=1, lengthRatio=24, degree=3,
-                                  patchesU=1, patchesV=10, constructionHistory=False)[0]
+                                  patchesU=1, patchesV=v_patches, constructionHistory=False)[0]
         surface = cmds.rename(surface, f"{prefix}ribbon_sur")
         return surface
 
@@ -638,7 +655,7 @@ class Ribbon:
             cmds.parent(_follicle_transform, follicles_grp)
 
             # Driven List (Follicles drive surface_data source object list)
-            if self.sur_data_is_driven:
+            if self.sur_data_is_driven and isinstance(self.sur_data, list):
                 cmds.parentConstraint(_follicle_transform, self.sur_data_sanitized[index],
                                       maintainOffset=self.sur_data_maintain_offset)
                 continue
@@ -831,18 +848,18 @@ class Ribbon:
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     # Clear Scene
-    cmds.file(new=True, force=True)
-    # Create Test Joints
-    test_joints = [cmds.joint(p=(0, 0, 0)),
-                   cmds.joint(p=(-5, 0, 0)),
-                   cmds.joint(p=(-10, 2, 0)),
-                   cmds.joint(p=(-15, 6, 3)),
-                   cmds.joint(p=(-20, 10, 5)),
-                   cmds.joint(p=(-25, 15, 10)),
-                   cmds.joint(p=(-30, 15, 15))]
+    # cmds.file(new=True, force=True)
+    # # Create Test Joints
+    # test_joints = [cmds.joint(p=(0, 0, 0)),
+    #                cmds.joint(p=(-5, 0, 0)),
+    #                cmds.joint(p=(-10, 2, 0)),
+    #                cmds.joint(p=(-15, 6, 3)),
+    #                cmds.joint(p=(-20, 10, 5)),
+    #                cmds.joint(p=(-25, 15, 10)),
+    #                cmds.joint(p=(-30, 15, 15))]
 
-    from gt.utils.control_utils import create_fk
-    test_fk_ctrls = create_fk(target_list=test_joints, constraint_joint=False)
+    # from gt.utils.control_utils import create_fk
+    # test_fk_ctrls = create_fk(target_list=test_joints, constraint_joint=False)
     # Create Ribbon
     ribbon_factory = Ribbon(equidistant=True,
                             num_controls=5,
@@ -850,10 +867,7 @@ if __name__ == "__main__":
                             add_fk=True)
     ribbon_factory.set_surface_data("mocked_sur")
     ribbon_factory.set_prefix("mocked")
-    ribbon_factory.set_surface_data(surface_data=test_joints, is_driven=True)
-    # ribbon_factory.set_dropoff_rate(2)
-    # ribbon_factory.set_num_controls(9)
-    # ribbon_factory.set_surface_span_multiplier(10)
+    # ribbon_factory.set_surface_data(surface_data=test_joints, is_driven=True)
     # ribbon_factory.set_surface_data([(0, 0, 0), (5, 0, 0), (10, 0, 0)])
     # print(ribbon_factory._get_or_create_surface(prefix="test"))
     ribbon_factory.build()
