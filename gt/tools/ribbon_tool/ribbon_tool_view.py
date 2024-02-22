@@ -46,9 +46,12 @@ class RibbonToolView(metaclass=MayaWindowMeta):
 
         # Prefix
         self.prefix_label = QLabel("Prefix:")
+        self.prefix_label.setMinimumWidth(90)
         self.prefix_content = QLineEdit()
+        self.prefix_content.setPlaceholderText("Enter prefix here...")
         self.prefix_clear_btn = QPushButton("Clear")
         self.prefix_clear_btn.setStyleSheet("padding: 7; border-radius: 5px;")
+        self.prefix_clear_btn.clicked.connect(self.clear_prefix_content)
 
         # Num Controls
         self.num_controls_label = QLabel("Number of Controls:")
@@ -93,31 +96,41 @@ class RibbonToolView(metaclass=MayaWindowMeta):
 
         # Checkboxes
         self.equidistant_label = QLabel("Equidistant:")
+        self.equidistant_label.setToolTip("Ensures equidistant calculation between the distance of every follicle.")
         self.equidistant_label.setMinimumWidth(100)
         self.equidistant_checkbox = QCheckBox()
         self.equidistant_checkbox.setChecked(True)
         self.add_fk_label = QLabel("Add FK:")
+        self.add_fk_label.setToolTip("Creates extra forward-kinematics controls to drive ribbon controls.")
         self.add_fk_label.setMinimumWidth(100)
         self.add_fk_checkbox = QCheckBox()
         self.add_fk_checkbox.setChecked(True)
-        self.drive_list_label = QLabel("Constraint Source:")
-        self.drive_list_label.setMinimumWidth(100)
-        self.drive_list_checkbox = QCheckBox()
-        self.drive_list_checkbox.setChecked(True)
+        self.constraint_source_label = QLabel("Constraint Source:")
+        self.constraint_source_label.setToolTip("Constraint source transforms to follow the ribbon. "
+                                                "(This skips joint creation)")
+        self.constraint_source_label.setMinimumWidth(100)
+        self.constraint_source_checkbox = QCheckBox()
+        self.constraint_source_checkbox.setChecked(True)
         self.parent_jnt_label = QLabel("Parent Skin Joints:")
+        self.parent_jnt_label.setToolTip("Creates a hierarchy with the generated driven joints.")
         self.parent_jnt_label.setMinimumWidth(100)
         self.parent_jnt_checkbox = QCheckBox()
         self.parent_jnt_checkbox.setChecked(True)
 
         # Surface Data / Mode
-        self.mode_label = QLabel("Mode:")
+        self.mode_label = QLabel("Source Mode:")
+        self.mode_label.setToolTip("No Source: Creates a simple ribbon.\n"
+                                         "Surface: Uses provided surface as input.\n"
+                                         "Transform List: Creates ribbon using a provided transform list.")
         self.mode_combo_box = QComboBox()
-        self.mode_combo_box.addItems(["Ribbon Simple", "Ribbon from Surface", "Ribbon from List"])
+        self.mode_combo_box.addItems(["No Source", "Surface", "Transform List"])
         self.mode_combo_box.setStyleSheet("padding: 5;")
 
-        self.surface_data_set_btn = QPushButton('Set Surface Data')
-        self.surface_data_set_btn.setToolTip("Uses selection to determine surface data.")
-        self.surface_data_set_btn.setStyleSheet("padding: 15;")
+        self.surface_data_set_btn = QPushButton('Set')
+        self.surface_data_set_btn.setToolTip("Uses selection to determine source data.")
+        self.surface_data_clear_btn = QPushButton('Clear')
+        self.surface_data_clear_btn.setToolTip("Clears source data.")
+        self.surface_data_set_btn.setStyleSheet("padding: 5;")
         self.surface_data_content_btn = QPushButton("No Data")
         self.surface_data_content_btn.setToolTip('Current Surface Data (Click to Select It)')
 
@@ -145,8 +158,8 @@ class RibbonToolView(metaclass=MayaWindowMeta):
         stylesheet += resource_library.Stylesheet.combobox_rounded
         self.setStyleSheet(stylesheet)
         self.create_ribbon_btn.setStyleSheet(resource_library.Stylesheet.btn_push_bright)
-        self.surface_data_content_btn.setStyleSheet(resource_library.Stylesheet.btn_push_bright)
         qt_utils.center_window(self)
+        self.update_ui_from_mode(0) # No Source
 
     def create_layout(self):
         """Create the layout for the window."""
@@ -160,18 +173,18 @@ class RibbonToolView(metaclass=MayaWindowMeta):
         body_layout = QVBoxLayout()
         body_layout.setContentsMargins(15, 0, 15, 5)  # L-T-R-B
 
-        mode_layout = QHBoxLayout()
-        mode_layout.addWidget(self.mode_label)
-        mode_layout.addWidget(self.mode_combo_box)
-        mode_layout.setContentsMargins(0, 0, 0, 5)  # L-T-R-B
-        body_layout.addLayout(mode_layout)
-
         prefix_layout = QHBoxLayout()
         prefix_layout.addWidget(self.prefix_label)
         prefix_layout.addWidget(self.prefix_content)
         prefix_layout.addWidget(self.prefix_clear_btn)
         prefix_layout.setContentsMargins(0, 0, 0, 5)  # L-T-R-B
         body_layout.addLayout(prefix_layout)
+
+        mode_layout = QHBoxLayout()
+        mode_layout.addWidget(self.mode_label)
+        mode_layout.addWidget(self.mode_combo_box)
+        mode_layout.setContentsMargins(0, 0, 0, 5)  # L-T-R-B
+        body_layout.addLayout(mode_layout)
 
         num_controls_layout = QHBoxLayout()
         num_controls_layout.addWidget(self.num_controls_label)
@@ -203,18 +216,34 @@ class RibbonToolView(metaclass=MayaWindowMeta):
         checkboxes_two_layout = QHBoxLayout()
         checkboxes_two_layout.addWidget(self.add_fk_label)
         checkboxes_two_layout.addWidget(self.add_fk_checkbox)
-        checkboxes_two_layout.addWidget(self.drive_list_label)
-        checkboxes_two_layout.addWidget(self.drive_list_checkbox)
-
+        checkboxes_two_layout.addWidget(self.constraint_source_label)
+        checkboxes_two_layout.addWidget(self.constraint_source_checkbox)
         body_layout.addLayout(checkboxes_two_layout)
 
-        surface_layout = QtWidgets.QVBoxLayout()
-        surface_data_layout = QtWidgets.QHBoxLayout()
-        surface_data_layout.addWidget(self.surface_data_set_btn)
-        surface_data_layout.addWidget(self.surface_data_content_btn)
-        surface_layout.addLayout(surface_data_layout)
-        surface_layout.setContentsMargins(15, 5, 15, 10)  # L-T-R-B
-        body_layout.addLayout(body_layout)
+        surface_data_layout = QtWidgets.QVBoxLayout()
+        sur_data_label_content_layout = QtWidgets.QHBoxLayout()
+        set_clear_layout = QtWidgets.QHBoxLayout()
+        content_layout = QtWidgets.QHBoxLayout()
+        set_clear_layout.addWidget(self.surface_data_set_btn)
+        set_clear_layout.addWidget(self.surface_data_clear_btn)
+        content_layout.addWidget(self.surface_data_content_btn)
+        sur_data_label_content_layout.addLayout(set_clear_layout)
+        sur_data_label_content_layout.addLayout(content_layout)
+        set_clear_layout.setSpacing(0)
+        content_layout.setSpacing(0)
+        source_data_label = QLabel("Source Surface/Transform List:")
+        source_data_label.setStyleSheet(f"font-weight: bold; font-size: 8; margin-top: 0; "
+                                        f"color: {resource_library.Color.RGB.gray_lighter};")
+        source_data_label.setAlignment(QtCore.Qt.AlignCenter)
+        source_data_font = qt_utils.get_font(resource_library.Font.roboto)
+        source_data_font.setPointSize(6)
+        source_data_label.setFont(source_data_font)
+        surface_data_layout.addWidget(source_data_label)
+        surface_data_layout.addLayout(sur_data_label_content_layout)
+
+        source_layout = QVBoxLayout()
+        source_layout.setContentsMargins(15, 0, 15, 5)  # L-T-R-B
+        source_layout.addLayout(surface_data_layout)
 
         bottom_main_button_layout = QVBoxLayout()
         bottom_main_button_layout.addWidget(self.create_ribbon_btn)
@@ -222,6 +251,10 @@ class RibbonToolView(metaclass=MayaWindowMeta):
         separator = QFrame()
         separator.setFrameShape(QFrame.HLine)
         separator.setFrameShadow(QFrame.Sunken)
+
+        separator_two = QFrame()
+        separator_two.setFrameShape(QFrame.HLine)
+        separator_two.setFrameShadow(QFrame.Sunken)
 
         main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
@@ -231,26 +264,43 @@ class RibbonToolView(metaclass=MayaWindowMeta):
         top_layout.setContentsMargins(15, 15, 15, 10)  # L-T-R-B
         main_layout.addLayout(top_layout)
         main_layout.addLayout(body_layout)
-        # main_layout.addLayout(surface_layout)
         main_layout.addWidget(separator)
+        main_layout.addLayout(source_layout)
+        main_layout.addWidget(separator_two)
         bottom_layout.addLayout(bottom_main_button_layout)
         bottom_layout.setContentsMargins(15, 0, 15, 15)  # L-T-R-B
         main_layout.addLayout(bottom_layout)
 
     def update_ui_from_mode(self, index):
-        print("Changed!")
-        # if index == 0:  # Ribbon simple
-        #     self.button1.setEnabled(False)
-        #     self.button2.setEnabled(False)
-        #     self.checkbox.setEnabled(False)
-        # elif index == 1:  # Ribbon from existing surface
-        #     self.button1.setEnabled(True)
-        #     self.button2.setEnabled(False)
-        #     self.checkbox.setEnabled(False)
-        # elif index == 2:  # Ribbon from object list
-        #     self.button1.setEnabled(False)
-        #     self.button2.setEnabled(True)
-        #     self.checkbox.setEnabled(True)
+        """
+        Updates UI according to the selected mode.
+        Args:
+            index (int) The index of the combobox.
+        """
+        if index == 0:  # No Source
+            self.surface_data_set_btn.setEnabled(False)
+            self.surface_data_clear_btn.setEnabled(False)
+            self.surface_data_content_btn.setEnabled(False)
+            self.constraint_source_label.setEnabled(False)
+            self.constraint_source_checkbox.setEnabled(False)
+        elif index == 1:  # From Surface
+            self.surface_data_set_btn.setEnabled(True)
+            self.surface_data_clear_btn.setEnabled(True)
+            self.surface_data_content_btn.setEnabled(True)
+            self.constraint_source_label.setEnabled(False)
+            self.constraint_source_checkbox.setEnabled(False)
+        elif index == 2:  # From Transform List
+            self.surface_data_set_btn.setEnabled(True)
+            self.surface_data_clear_btn.setEnabled(True)
+            self.surface_data_content_btn.setEnabled(True)
+            self.constraint_source_label.setEnabled(True)
+            self.constraint_source_checkbox.setEnabled(True)
+
+    def clear_prefix_content(self):
+        """
+        Clears the text in the QLineEdit used for prefix.
+        """
+        self.prefix_content.setText("")
 
     def close_window(self):
         """ Closes this window """
