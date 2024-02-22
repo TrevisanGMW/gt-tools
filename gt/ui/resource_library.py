@@ -814,6 +814,7 @@ class StylesheetVariables:
         "@maya_button_clicked;": Color.RGB.gray_much_darker,
         "@maya_selection;": Color.RGB.blue_pastel,
         "@maya_text;": Color.RGB.white_smoke_darker,
+        "@maya_text_disabled;": Color.RGB.gray_dim,
         "@background_disabled_color;": Color.RGB.gray_mid_light,
         "@disabled_text_color;": Color.RGB.gray_mid_much_lighter,
         "@text_edit_border;": Color.RGB.gray_mid_dark,
