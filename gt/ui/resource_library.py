@@ -279,6 +279,7 @@ class Icon:
     tool_morphing_attributes = get_icon_path(r"tool_morphing_attributes.svg")
     tool_morphing_utils = get_icon_path(r"tool_morphing_utils.svg")
     tool_orient_joints = get_icon_path(r"tool_orient_joints.svg")
+    tool_ribbon = get_icon_path(r"tool_ribbon.svg")
     # Utils
     util_reload_file = get_icon_path(r"util_reload_file.svg")
     util_open_dir = get_icon_path(r"util_open_dir.svg")
@@ -381,8 +382,10 @@ class Icon:
     ui_arrow_left = get_icon_path(r"ui_arrow_left.svg")
     ui_arrow_right = get_icon_path(r"ui_arrow_right.svg")
     ui_exclamation = get_icon_path(r"ui_exclamation.svg")
-    ui_checkbox_enabled = get_icon_path(r"ui_checkbox_enabled.svg")
-    ui_checkbox_disabled = get_icon_path(r"ui_checkbox_disabled.svg")
+    ui_checkbox_checked = get_icon_path(r"ui_checkbox_checked.svg")
+    ui_checkbox_unchecked = get_icon_path(r"ui_checkbox_unchecked.svg")
+    ui_checkbox_checked_disabled = get_icon_path(r"ui_checkbox_checked_disabled.svg")
+    ui_checkbox_unchecked_disabled = get_icon_path(r"ui_checkbox_unchecked_disabled.svg")
     ui_toggle_enabled = get_icon_path(r"ui_toggle_enabled.svg")
     ui_toggle_disabled = get_icon_path(r"ui_toggle_disabled.svg")
     ui_edit = get_icon_path(r"ui_edit.svg")
@@ -811,6 +814,7 @@ class StylesheetVariables:
         "@maya_button_clicked;": Color.RGB.gray_much_darker,
         "@maya_selection;": Color.RGB.blue_pastel,
         "@maya_text;": Color.RGB.white_smoke_darker,
+        "@maya_text_disabled;": Color.RGB.gray_dim,
         "@background_disabled_color;": Color.RGB.gray_mid_light,
         "@disabled_text_color;": Color.RGB.gray_mid_much_lighter,
         "@text_edit_border;": Color.RGB.gray_mid_dark,
@@ -895,20 +899,26 @@ class StylesheetVariables:
         "@border_color;": Color.RGB.gray_much_darker,
         "@selection_background;": Color.RGB.blue_pastel,
         "@left_border_bg;": Color.RGB.gray_darker_mid,
+        # Style
+        "@border-radius;": "0",
         # Icons
         "@image_arrow_down;": f"url({Icon.ui_arrow_down})".replace("\\", "/"),
         "@image_arrow_down_width;": 12,
         "@image_arrow_down_height;": 12,
     }
+    combobox_rounded = deepcopy(combobox_base)
+    combobox_rounded["@border-radius;"] = "5"
     checkbox_base = {
         # Colors
         "@text_color;": Color.RGB.gray_dark_silver,
-        # Icons
-        "@image_checked;": f"url({Icon.ui_checkbox_enabled})".replace("\\", "/"),
+        # Checked
+        "@image_checked;": f"url({Icon.ui_checkbox_checked})".replace("\\", "/"),
+        "@image_checked_disabled;": f"url({Icon.ui_checkbox_checked_disabled})".replace("\\", "/"),
         "@image_checked_width;": 32,
         "@image_checked_height;": 32,
-        # Icons
-        "@image_unchecked;": f"url({Icon.ui_checkbox_disabled})".replace("\\", "/"),
+        # Unchecked
+        "@image_unchecked;": f"url({Icon.ui_checkbox_unchecked})".replace("\\", "/"),
+        "@image_unchecked_disabled;": f"url({Icon.ui_checkbox_unchecked_disabled})".replace("\\", "/"),
         "@image_unchecked_width;": 32,
         "@image_unchecked_height;": 32,
     }
@@ -966,6 +976,18 @@ class StylesheetVariables:
         # Formatting
         "@border_radius;": "5",
     }
+    spin_box_base = {
+        # Colors
+        "@text_color;": Color.RGB.white,
+        "@background_color;": Color.RGB.gray_darker,
+        "@background_color_pressed;": Color.RGB.gray_mid_dark,
+        "@background_color_buttons;": Color.RGB.gray_mid_light,
+        "@border_color;": Color.RGB.gray_mid_much_lighter,
+        "@up_down_hover_color;": Color.RGB.gray_mid_much_lighter,
+        # Images
+        "@image_arrow_up;": f"url({Icon.ui_arrow_up})".replace("\\", "/"),
+        "@image_arrow_down;": f"url({Icon.ui_arrow_down})".replace("\\", "/"),
+    }
     # Metro QToolButton Start ----------------------------------------------------------------
     btn_tool_metro_base = {
         # Colors
@@ -1008,6 +1030,8 @@ class Stylesheet:
                                             stylesheet_variables=StylesheetVariables.text_edit_base)
     combobox_base = get_stylesheet_content(stylesheet_name="combobox_base",
                                            stylesheet_variables=StylesheetVariables.combobox_base)
+    combobox_rounded = get_stylesheet_content(stylesheet_name="combobox_base",
+                                           stylesheet_variables=StylesheetVariables.combobox_rounded)
     checkbox_base = get_stylesheet_content(stylesheet_name="checkbox_base",
                                            stylesheet_variables=StylesheetVariables.checkbox_base)
     tree_widget_base = get_stylesheet_content(stylesheet_name="tree_widget_base",
@@ -1022,6 +1046,8 @@ class Stylesheet:
                                             stylesheet_variables=StylesheetVariables.group_box_base)
     scroll_area_base = get_stylesheet_content(stylesheet_name="scroll_area_base",
                                             stylesheet_variables=StylesheetVariables.scroll_area_base)
+    spin_box_base = get_stylesheet_content(stylesheet_name="spin_box_base",
+                                           stylesheet_variables=StylesheetVariables.spin_box_base)
 
     # --------------------------------------------- Buttons ---------------------------------------------
     btn_push_base = get_stylesheet_content(stylesheet_name="btn_push_base",

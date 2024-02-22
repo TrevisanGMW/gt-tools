@@ -111,8 +111,8 @@ class TestRigFramework(unittest.TestCase):
         self.assertEqual(expected_long_name, str(result))
         self.assertEqual(expected_short_name, result.get_short_name())
         self.assertTrue(isinstance(result, rig_framework.ProxyData))
-        self.assertTrue(maya_test_tools.cmds.objExists(f'{result}.{rig_framework.RiggerConstants.PROXY_ATTR_UUID}'))
-        self.assertTrue(maya_test_tools.cmds.objExists(f'{result}.{rig_framework.RiggerConstants.PROXY_ATTR_UUID}'))
+        self.assertTrue(maya_test_tools.cmds.objExists(f'{result}.{rig_framework.RiggerConstants.ATTR_PROXY_UUID}'))
+        self.assertTrue(maya_test_tools.cmds.objExists(f'{result}.{rig_framework.RiggerConstants.ATTR_PROXY_UUID}'))
 
     def test_proxy_custom_curve(self):
         from gt.utils.curve_utils import Curves
@@ -285,3 +285,13 @@ class TestRigFramework(unittest.TestCase):
         self.proxy.set_metadata_dict(mocked_dict)
         result = self.proxy.get_metadata()
         self.assertEqual(mocked_dict, result)
+
+    # Create find driver tests:
+    # out_find_driver = self.find_driver(driver_type=RiggerDriverTypes.FK, proxy_purpose=self.hip)
+    # out_find_module_drivers = self.find_module_drivers()
+    # out_get_meta_purpose = self.hip.get_meta_purpose()
+    # out_find_proxy_drivers = self.find_proxy_drivers(proxy=self.hip, as_dict=True)
+    # print(f"out_find_driver:{out_find_driver}")
+    # print(f"out_find_module_drivers:{out_find_module_drivers}")
+    # print(f"out_get_meta_purpose:{out_get_meta_purpose}")
+    # print(f"out_find_proxy_drivers:{out_find_proxy_drivers}")

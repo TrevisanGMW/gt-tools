@@ -30,15 +30,14 @@ variety of tools and utilities. This menu contains sub-menus that have been orga
 for example: modeling, rigging, utilities, etc…
 
 For help on how to use these scripts, click on the “Help” button at the top right of their window (within Maya) or
-check their documentation by going to the <a href="./docs">"docs"</a> folder. For changelog read the text at the top
-of the tool init file (just open the “.py” file using any text editor, such as notepad)
+check their documentation by going to the <a href="./docs">docs</a> folder. For changelog see the <a href="https://github.com/TrevisanGMW/gt-tools/releases">releases</a> page.
 
 All of these items are supplied as is. You alone are solely responsible for any issues. Use at your own risk.
 Hopefully these scripts are helpful to you as they are to me.
 
 Note: Python 2 is no longer supported. If you want to still use an older versions of Maya, make sure to use a GT-Tools version below "3.0.0" for compatibility.
 
-<p><b>Package tested using Autodesk Maya 2022, 2023 and 2024 (Windows 10)</b></p>
+<p><b>Package tested using Autodesk Maya 2022, 2023 and 2024 (Windows 11)</b></p>
 
 <h1>Organization</h1>
 <ul>

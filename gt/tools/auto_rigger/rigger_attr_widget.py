@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class ModuleAttrWidget(QWidget):
+class AttrWidget(QWidget):
     """
     Base Widget for managing attributes of a module.
     """
@@ -268,7 +268,7 @@ class ModuleAttrWidget(QWidget):
     # Utils ----------------------------------------------------------------------------------------------------
     def refresh_current_widgets(self):
         """
-        Refreshes available widgets. For example, tables, so they should the correct module name.
+        Refreshes available widgets. For example, tables, so they display the correct module name.
         """
         if self.mod_name_field:
             _name = self.module.get_name()
@@ -393,6 +393,7 @@ class ModuleAttrWidget(QWidget):
     def update_module_from_raw_data(self, data_getter, module):
         """
         Updates a proxy description using raw string data.
+        Used with "on_button_edit_module_clicked" to update modules from raw data.
         Args:
             data_getter (callable): A function used to retrieve the data string
             module (ModuleGeneric): A module object to be updated using the data
@@ -402,6 +403,7 @@ class ModuleAttrWidget(QWidget):
             _data_as_dict = ast.literal_eval(data)
             module.read_data_from_dict(_data_as_dict)
             self.refresh_current_widgets()
+            self.call_parent_refresh()
         except Exception as e:
             raise Exception(f'Unable to set module attributes from provided raw data. Issue: "{e}".')
 
@@ -748,7 +750,7 @@ class ModuleAttrWidget(QWidget):
         func (callable): The function to be set as the refresh table function.
         """
         if not callable(func):
-            logger.warning(f'Unable to set refresh tree function. Provided argument is not a callable object.')
+            logger.warning(f'Unable to parent refresh function. Provided argument is not a callable object.')
             return
         self.refresh_parent_func = func
 
@@ -772,7 +774,7 @@ class ModuleAttrWidget(QWidget):
         return item.data(self.PROXY_ROLE)
 
 
-class ModuleGenericAttrWidget(ModuleAttrWidget):
+class ModuleGenericAttrWidget(AttrWidget):
     def __init__(self, parent=None, *args, **kwargs):
         """
         Initialize the ModuleGenericAttrWidget.
@@ -794,7 +796,7 @@ class ModuleGenericAttrWidget(ModuleAttrWidget):
         self.add_widget_action_buttons()
 
 
-class ModuleSpineAttrWidget(ModuleAttrWidget):
+class ModuleSpineAttrWidget(AttrWidget):
     def __init__(self, parent=None, *args, **kwargs):
         """
         Initialize the ModuleSpineAttrWidget.
@@ -808,45 +810,134 @@ class ModuleSpineAttrWidget(ModuleAttrWidget):
         self.add_widget_proxy_basic_table()
 
 
-class ProjectAttrWidget(QWidget):
-    def __init__(self, parent=None, project=None, *args, **kwargs):
+class ProjectAttrWidget(AttrWidget):
+    def __init__(self, parent=None, project=None, refresh_parent_func=None, *args, **kwargs):
         super().__init__(parent, *args, **kwargs)
 
+        # Basic Variables
         self.project = project
+        self.project_name_field = None
+        self.project_prefix_field = None
+        self.refresh_parent_func = None
 
-        # Project Header (Icon, Type, Name, Buttons) ----------------------------------------------
-        header_layout = QHBoxLayout()
+        if refresh_parent_func:
+            self.set_refresh_parent_func(refresh_parent_func)
+
+        self.add_widget_project_header()
+
+    # Parameter Widgets ----------------------------------------------------------------------------------------
+    def add_widget_project_header(self):
+        """
+        Adds the header for controlling a project. With Icon, Name and modify button.
+        """
+        # Project Header (Icon, Name, Buttons)
+        _layout = QHBoxLayout()
+        _layout.setContentsMargins(0, 0, 0, 5)  # L-T-R-B
+        _layout.setAlignment(Qt.AlignTop)
 
         # Icon
-        icon = QIcon(project.icon)
+        icon = QIcon(self.project.icon)
         icon_label = QLabel()
         icon_label.setPixmap(icon.pixmap(32, 32))
-        header_layout.addWidget(icon_label)
-
-        # Type (Project)
-        header_layout.addWidget(QLabel("RigProject"))
-        header_layout.setAlignment(Qt.AlignTop)
+        label_tooltip = "Rig Project"
+        icon_label.setToolTip(label_tooltip)
+        _layout.addWidget(icon_label)
 
         # Name (User Custom)
-        name = project.get_name()
-        self.name_text_field = ConfirmableQLineEdit()
+        name = self.project.get_name()
+        self.project_name_field = ConfirmableQLineEdit()
+        self.project_name_field.setFixedHeight(35)
         if name:
-            self.name_text_field.setText(name)
-        self.name_text_field.textChanged.connect(self.set_module_name)
-        header_layout.addWidget(self.name_text_field)
+            self.project_name_field.setText(name)
+        self.project_name_field.editingFinished.connect(self.set_project_name)
+        _layout.addWidget(self.project_name_field)
 
         # Edit Button
-        self.edit_btn = QPushButton()
-        self.edit_btn.setIcon(QIcon(resource_library.Icon.rigger_dict))
-        header_layout.addWidget(self.edit_btn)
+        edit_project_btn = QPushButton()
+        edit_project_btn.setIcon(QIcon(resource_library.Icon.rigger_dict))
+        edit_project_btn.setToolTip("Edit Raw Data")
+        edit_project_btn.clicked.connect(self.on_button_edit_project_clicked)
+        _layout.addWidget(edit_project_btn)
+        self.content_layout.addLayout(_layout)
 
-        # Create Layout
-        scroll_content_layout = QVBoxLayout(self)
-        scroll_content_layout.addLayout(header_layout)
+    # def add_widget_project_prefix(self):
+    #     """
+    #     Adds widgets to control the prefix of the project
+    #     """
+    #     _layout = QHBoxLayout()
+    #     _layout.setContentsMargins(0, 0, 0, 5)  # L-T-R-B
+    #     # Prefix
+    #     prefix_label = QLabel("Prefix:")
+    #     prefix_label.setFixedWidth(50)
+    #     self.project_prefix_field = ConfirmableQLineEdit()
+    #     self.project_prefix_field.setFixedHeight(35)
+    #     _layout.addWidget(prefix_label)
+    #     _layout.addWidget(self.project_prefix_field)
+    #     prefix = self.module.get_prefix()
+    #     self.project_prefix_field.textChanged.connect(self.set_module_prefix)
+    #     if prefix:
+    #         self.project_prefix_field.setText(prefix)
+    #     self.content_layout.addLayout(_layout)
 
-    def set_module_name(self):
-        new_name = self.name_text_field.text() or ""
+    def on_button_edit_project_clicked(self, skip_modules=True, *args):
+        """
+        Shows a text-editor window with the project converted to a dictionary (raw data)
+        If the user applies the changes, and they are considered valid, the module is updated with it.
+        Args:
+            skip_modules (bool, optional): If active, the "modules" key will be ignored.
+            *args: Variable-length argument list. - Here to avoid issues with the "skip_modules" argument.
+        """
+        project_name = self.project.get_name()
+        param_win = InputWindowText(parent=self,
+                                    message=f'Editing Raw Data for the Project "{project_name}"',
+                                    window_title=f'Raw data for "{project_name}"',
+                                    image=resource_library.Icon.rigger_dict,
+                                    window_icon=resource_library.Icon.library_parameters,
+                                    image_scale_pct=10,
+                                    is_python_code=True)
+        param_win.set_confirm_button_text("Apply")
+        project_raw_data = self.project.get_project_as_dict()
+        if "modules" in project_raw_data and skip_modules:
+            project_raw_data.pop("modules")
+        formatted_dict = dict_as_formatted_str(project_raw_data, one_key_per_line=True)
+        param_win.set_text_field_text(formatted_dict)
+        confirm_button_func = partial(self.update_project_from_raw_data,
+                                      param_win.get_text_field_text,
+                                      self.project)
+        param_win.confirm_button.clicked.connect(confirm_button_func)
+        param_win.show()
+
+    # Setters --------------------------------------------------------------------------------------------------
+    def set_project_name(self):
+        new_name = self.project_name_field.text() or ""
         self.project.set_name(new_name)
+        self.call_parent_refresh()
+
+    def update_project_from_raw_data(self, data_getter, project):
+        """
+        Updates a project description using raw string data.
+        Used with "on_button_edit_project_clicked" to update a project from raw data.
+        Args:
+            data_getter (callable): A function used to retrieve the data string. e.g. Get a string from a textfield.
+            project (RigProject): A rig project object to be updated using the provided data.
+        """
+        data = data_getter()
+        try:
+            _data_as_dict = ast.literal_eval(data)
+            project.read_data_from_dict(module_dict=_data_as_dict, clear_modules=False)
+            self.refresh_current_widgets()
+            self.call_parent_refresh()
+        except Exception as e:
+            raise Exception(f'Unable to set project attributes from provided raw data. Issue: "{e}".')
+
+    def refresh_current_widgets(self):
+        """
+        Refreshes available widgets. For example, text-fields, so they display the correct data.
+        """
+        if self.project_name_field:
+            _name = self.project.get_name()
+            if _name:
+                self.project_name_field.setText(_name)
 
 
 if __name__ == "__main__":

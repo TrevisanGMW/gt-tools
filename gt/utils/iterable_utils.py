@@ -338,6 +338,25 @@ def sanitize_maya_list(input_list,
     return _output
 
 
+def filter_list_by_type(input_list, data_type, num_items=None):
+    """
+    Filters a list to include only elements of a specified data type.
+
+    Args:
+        input_list (list): The input list containing elements of various data types.
+        data_type (type, tuple): The desired data type to filter the list. E.g., str, int, float, etc.
+        num_items (int, optional): If provided, filters by the specified number of items in iterable elements.
+
+    Returns:
+        list: A new list containing only elements of the specified data type.
+    """
+    result_list = [item for item in input_list if isinstance(item, data_type)]
+    if num_items is not None:
+        _iterables = (str, list, tuple, dict)
+        result_list = [item for item in result_list if isinstance(item, _iterables) and len(item) == num_items]
+    return result_list
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     a_list = ['|joint1', '|joint1|joint2', '|joint1|joint2|joint3', '|joint1|joint2|joint3|joint4',

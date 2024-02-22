@@ -1,7 +1,7 @@
 """
 Auto Rigger Controller
 """
-from gt.tools.auto_rigger.rig_utils import find_proxy_root_group_node, find_rig_root_group_node
+from gt.tools.auto_rigger.rig_utils import find_proxy_root_group, find_rig_root_group
 from PySide2.QtWidgets import QTreeWidgetItem, QAction, QMessageBox
 from gt.utils.string_utils import camel_case_split, remove_prefix
 from gt.tools.auto_rigger.rig_constants import RiggerConstants
@@ -319,7 +319,9 @@ class RiggerController:
                 return
         # Project ---------------------------------------------------------------
         if isinstance(data_obj, rig_framework.RigProject):
-            self.view.set_module_widget(rigger_attr_widget.ProjectAttrWidget(project=data_obj))
+            widget_object = rigger_attr_widget.ProjectAttrWidget(project=data_obj,
+                                                                 refresh_parent_func=self.refresh_widgets)
+            self.view.set_module_widget(widget_object)
             return
         # Unknown ---------------------------------------------------------------
         self.view.clear_module_widget()
@@ -332,7 +334,7 @@ class RiggerController:
                   False if operation is ready to proceed.
         """
         # Existing Proxy ------------------------------------------------------------------------
-        proxy_grp = find_proxy_root_group_node()
+        proxy_grp = find_proxy_root_group()
         if proxy_grp:
             message_box = QMessageBox(self.view)
             message_box.setWindowTitle(f'Proxy detected in the scene.')
@@ -355,7 +357,7 @@ class RiggerController:
             else:
                 return True
         # Existing Rig -------------------------------------------------------------------------
-        rig_grp = find_rig_root_group_node()
+        rig_grp = find_rig_root_group()
         if rig_grp:
             message_box = QMessageBox(self.view)
             message_box.setWindowTitle(f'Existing rig detected in the scene.')

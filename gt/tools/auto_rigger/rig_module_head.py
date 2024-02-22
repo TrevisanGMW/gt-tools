@@ -2,20 +2,24 @@
 Auto Rigger Head Modules
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rig_utils import find_proxy_node_from_uuid, find_joint_node_from_uuid
+from gt.tools.auto_rigger.rig_utils import find_proxy_from_uuid, find_joint_from_uuid, find_direction_curve
+from gt.tools.auto_rigger.rig_utils import create_ctrl_curve, find_drivers_from_joint
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
+from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
 from gt.utils.color_utils import ColorConstants, set_color_viewport
 from gt.utils.joint_utils import copy_parent_orients, reset_orients
-from gt.tools.auto_rigger.rig_constants import RiggerConstants
 from gt.utils.constraint_utils import equidistant_constraints
+from gt.utils.transform_utils import Vector3, match_transform
 from gt.tools.auto_rigger.rig_utils import get_proxy_offset
+from gt.utils.hierarchy_utils import add_offset_transform
+from gt.utils.math_utils import dist_center_to_center
 from gt.utils.naming_utils import NamingConstants
-from gt.utils.transform_utils import Vector3
+from gt.utils.node_utils import Node
+from gt.utils import hierarchy_utils
 from gt.ui import resource_library
 import maya.cmds as cmds
 import logging
 import re
-
 
 # Logging Setup
 logging.basicConfig()
@@ -41,21 +45,21 @@ class ModuleHead(ModuleGeneric):
         pos_neck_base = Vector3(y=137)
         self.neck_base.set_initial_position(xyz=pos_neck_base)
         self.neck_base.set_locator_scale(scale=1.5)
-        self.neck_base.set_meta_type(value="neckBase")
+        self.neck_base.set_meta_purpose(value="neckBase")
 
         # Head (Chain End)
         self.head = Proxy(name="head")
         pos_head = Vector3(y=142.5)
         self.head.set_initial_position(xyz=pos_head)
         self.head.set_locator_scale(scale=1.5)
-        self.head.set_meta_type(value="head")
+        self.head.set_meta_purpose(value="head")
 
         # Head End
         self.head_end = Proxy(name=f"head{_end_suffix}")
         pos_head_end = Vector3(y=160)
         self.head_end.set_initial_position(xyz=pos_head_end)
         self.head_end.set_locator_scale(scale=1)
-        self.head_end.set_meta_type(value="headEnd")
+        self.head_end.set_meta_purpose(value="headEnd")
         self.head_end.set_parent_uuid(self.head.get_uuid())
         self.head_end.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
 
@@ -64,7 +68,7 @@ class ModuleHead(ModuleGeneric):
         pos_jaw = Vector3(y=147.5, z=2.5)
         self.jaw.set_initial_position(xyz=pos_jaw)
         self.jaw.set_locator_scale(scale=1.5)
-        self.jaw.set_meta_type(value="jaw")
+        self.jaw.set_meta_purpose(value="jaw")
         self.jaw.set_parent_uuid(self.head.get_uuid())
 
         # Jaw End
@@ -72,7 +76,7 @@ class ModuleHead(ModuleGeneric):
         pos_jaw_end = Vector3(y=142.5, z=11)
         self.jaw_end.set_initial_position(xyz=pos_jaw_end)
         self.jaw_end.set_locator_scale(scale=1)
-        self.jaw_end.set_meta_type(value="jawEnd")
+        self.jaw_end.set_meta_purpose(value="jawEnd")
         self.jaw_end.set_parent_uuid(self.jaw.get_uuid())
         self.jaw_end.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
 
@@ -81,7 +85,7 @@ class ModuleHead(ModuleGeneric):
         pos_lt_eye = Vector3(x=3.5, y=151, z=8.7)
         self.lt_eye.set_initial_position(xyz=pos_lt_eye)
         self.lt_eye.set_locator_scale(scale=2.5)
-        self.lt_eye.set_meta_type(value="eyeLeft")
+        self.lt_eye.set_meta_purpose(value="eyeLeft")
         self.lt_eye.set_parent_uuid(self.head.get_uuid())
 
         # Right Eye
@@ -89,7 +93,7 @@ class ModuleHead(ModuleGeneric):
         pos_rt_eye = Vector3(x=-3.5, y=151, z=8.7)
         self.rt_eye.set_initial_position(xyz=pos_rt_eye)
         self.rt_eye.set_locator_scale(scale=2.5)
-        self.rt_eye.set_meta_type(value="eyeRight")
+        self.rt_eye.set_meta_purpose(value="eyeRight")
         self.rt_eye.set_parent_uuid(self.head.get_uuid())
 
         # Neck Mid (In-between)
@@ -120,8 +124,8 @@ class ModuleHead(ModuleGeneric):
                 new_neck_mid = Proxy(name=_neck_mid_name)
                 new_neck_mid.set_locator_scale(scale=1)
                 new_neck_mid.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
-                new_neck_mid.set_meta_type(value=_neck_mid_name)
-                new_neck_mid.add_meta_parent(line_parent=_parent_uuid)
+                new_neck_mid.set_meta_purpose(value=_neck_mid_name)
+                new_neck_mid.add_line_parent(line_parent=_parent_uuid)
                 new_neck_mid.set_parent_uuid(uuid=_parent_uuid)
                 _parent_uuid = new_neck_mid.get_uuid()
                 self.neck_mid_list.append(new_neck_mid)
@@ -130,9 +134,9 @@ class ModuleHead(ModuleGeneric):
             self.neck_mid_list = self.neck_mid_list[:neck_mid_num]  # Truncate the list
 
         if self.neck_mid_list:
-            self.head.add_meta_parent(line_parent=self.neck_mid_list[-1].get_uuid())
+            self.head.add_line_parent(line_parent=self.neck_mid_list[-1].get_uuid())
         else:
-            self.head.add_meta_parent(line_parent=self.neck_base.get_uuid())
+            self.head.add_line_parent(line_parent=self.neck_base.get_uuid())
 
         self.refresh_proxies_list()
 
@@ -175,11 +179,11 @@ class ModuleHead(ModuleGeneric):
         for uuid, description in proxy_dict.items():
             metadata = description.get("metadata")
             if metadata:
-                meta_type = metadata.get(RiggerConstants.PROXY_META_TYPE)
+                meta_type = metadata.get(RiggerConstants.META_PROXY_PURPOSE)
                 if bool(re.match(neck_mid_pattern, meta_type)):
                     _neck_mid_num += 1
         self.set_mid_neck_num(_neck_mid_num)
-        self.read_type_matching_proxy_from_dict(proxy_dict)
+        self.read_purpose_matching_proxy_from_dict(proxy_dict)
         self.refresh_proxies_list()
 
     # --------------------------------------------------- Misc ---------------------------------------------------
@@ -210,12 +214,12 @@ class ModuleHead(ModuleGeneric):
         When in a project, this runs after the "build_proxy" is done in all modules.
         """
         # Get Maya Elements
-        hip = find_proxy_node_from_uuid(self.neck_base.get_uuid())
-        chest = find_proxy_node_from_uuid(self.head.get_uuid())
+        hip = find_proxy_from_uuid(self.neck_base.get_uuid())
+        chest = find_proxy_from_uuid(self.head.get_uuid())
 
         neck_mid_list = []
         for neck_mid in self.neck_mid_list:
-            neck_node = find_proxy_node_from_uuid(neck_mid.get_uuid())
+            neck_node = find_proxy_from_uuid(neck_mid.get_uuid())
             neck_mid_list.append(neck_node)
         self.neck_base.apply_offset_transform()
         self.head.apply_offset_transform()
@@ -254,28 +258,67 @@ class ModuleHead(ModuleGeneric):
         super().build_skeleton_hierarchy()  # Passthrough
         self.head.clear_parent_uuid()
 
-        head_jnt = find_joint_node_from_uuid(self.head.get_uuid())
-        head_end_jnt = find_joint_node_from_uuid(self.head_end.get_uuid())
-        jaw_jnt = find_joint_node_from_uuid(self.jaw.get_uuid())
-        jaw_end_jnt = find_joint_node_from_uuid(self.jaw_end.get_uuid())
-        lt_eye = find_joint_node_from_uuid(self.lt_eye.get_uuid())
-        rt_eye = find_joint_node_from_uuid(self.rt_eye.get_uuid())
+    def build_rig(self, **kwargs):
+        # Get Elements
+        direction_crv = find_direction_curve()
+        neck_base_jnt = find_joint_from_uuid(self.neck_base.get_uuid())
+        head_jnt = find_joint_from_uuid(self.head.get_uuid())
+        head_end_jnt = find_joint_from_uuid(self.head_end.get_uuid())
+        jaw_jnt = find_joint_from_uuid(self.jaw.get_uuid())
+        jaw_end_jnt = find_joint_from_uuid(self.jaw_end.get_uuid())
+        lt_eye = find_joint_from_uuid(self.lt_eye.get_uuid())
+        rt_eye = find_joint_from_uuid(self.rt_eye.get_uuid())
         copy_parent_orients(joint_list=[head_jnt, head_end_jnt])
         reset_orients(joint_list=[lt_eye, rt_eye], verbose=True)
         set_color_viewport(obj_list=[head_end_jnt, jaw_end_jnt], rgb_color=ColorConstants.RigJoint.END)
         set_color_viewport(obj_list=[lt_eye, rt_eye], rgb_color=ColorConstants.RigJoint.UNIQUE)
 
+        # Get Scale
+        head_scale = dist_center_to_center(neck_base_jnt, head_jnt)
+        head_scale += dist_center_to_center(head_jnt, head_end_jnt)
+
+        neck_base_ctrl = self._assemble_ctrl_name(name=self.neck_base.get_name())
+        neck_base_ctrl = create_ctrl_curve(name=neck_base_ctrl, curve_file_name="_pin_neg_z")
+        self.add_driver_uuid_attr(target=neck_base_ctrl,
+                                  driver_type=RiggerDriverTypes.FK,
+                                  proxy_purpose=self.neck_base)
+        neck_base_offset = add_offset_transform(target_list=neck_base_ctrl)[0]
+        neck_base_offset = Node(neck_base_offset)
+        match_transform(source=neck_base_jnt, target_list=neck_base_offset)
+        hierarchy_utils.parent(source_objects=neck_base_offset, target_parent=direction_crv)
+
+        self.module_children_drivers = [neck_base_offset]
+
+    def build_rig_post(self):
+        """
+        Runs post rig creation script.
+        This step runs after the execution of "build_rig" is complete in all modules.
+        Used to define automation or connections that require external elements to exist.
+        TODO @@@ ADD TO BASE OBJECT???
+        """
+        module_parent_jnt = find_joint_from_uuid(self.get_parent_uuid())
+        if module_parent_jnt:
+            drivers = find_drivers_from_joint(module_parent_jnt, as_list=True)
+            if drivers:
+                hierarchy_utils.parent(source_objects=self.module_children_drivers, target_parent=drivers[0])
+
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
+    # Auto Reload Script - Must have been initialized using "Run-Only" mode.
+    from gt.utils.session_utils import remove_modules_startswith
+    remove_modules_startswith("gt.tools.auto_rigger.rig")
     cmds.file(new=True, force=True)
 
     from gt.tools.auto_rigger.rig_framework import RigProject
+    from gt.tools.auto_rigger.rig_module_spine import ModuleSpine
 
+    a_spine = ModuleSpine()
     a_head = ModuleHead()
-    # a_head.set_mid_neck_num(0)
-    # a_head.set_mid_neck_num(6)
+    spine_chest_uuid = a_spine.chest.get_uuid()
+    a_head.set_parent_uuid(spine_chest_uuid)
     a_project = RigProject()
+    a_project.add_to_modules(a_spine)
     a_project.add_to_modules(a_head)
     a_project.build_proxy()
     a_project.build_rig()

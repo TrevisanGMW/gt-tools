@@ -287,7 +287,7 @@ class TestIterableUtils(unittest.TestCase):
                                                    short_names=False)
 
         expected = [f'|{cube}', f'|{sphere}']
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     def test_sanitize_maya_list_filter_unique(self):
         cube = maya_test_tools.create_poly_cube(name='cube')
@@ -305,7 +305,7 @@ class TestIterableUtils(unittest.TestCase):
                                                    convert_to_nodes=False,
                                                    short_names=False)
         expected = [f'|{cube}']
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     def test_sanitize_maya_list_filter_string(self):
         cube = maya_test_tools.create_poly_cube(name='cube')
@@ -324,7 +324,7 @@ class TestIterableUtils(unittest.TestCase):
                                                    convert_to_nodes=False,
                                                    short_names=False)
         expected = [f'|{sphere}']
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     def test_sanitize_maya_list_hierarchy(self):
         cube = maya_test_tools.create_poly_cube(name='cube')
@@ -345,7 +345,7 @@ class TestIterableUtils(unittest.TestCase):
                                                    short_names=False)
         expected = [f'|{cube}', f'|{cube}|{sphere}',
                     f'|{cube}|{cube}Shape', f'|{cube}|{sphere}|{sphere}Shape']
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     def test_sanitize_maya_list_filter_type(self):
         cube = maya_test_tools.create_poly_cube(name='cube')
@@ -361,7 +361,7 @@ class TestIterableUtils(unittest.TestCase):
                                                    convert_to_nodes=False,
                                                    short_names=False)
         expected = [f'|{cube}']
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     def test_sanitize_maya_list_filter_regex(self):
         cube = maya_test_tools.create_poly_cube(name='cube')
@@ -378,7 +378,7 @@ class TestIterableUtils(unittest.TestCase):
                                                    convert_to_nodes=False,
                                                    short_names=False)
         expected = [f'|{cube}']
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     def test_sanitize_maya_list_filter_func(self):
         # Define a custom filter function
@@ -400,7 +400,7 @@ class TestIterableUtils(unittest.TestCase):
                                                    short_names=False)
 
         expected = [f'|{sphere}']
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     def test_sanitize_maya_list_convert_to_nodes(self):
         from gt.utils.node_utils import Node
@@ -438,7 +438,7 @@ class TestIterableUtils(unittest.TestCase):
                                                    short_names=False)
         expected = [f'|{cube}', f'|{sphere}', f'|{cylinder}']
         result_as_str = list(map(str, result))
-        self.assertEqual(result_as_str, expected)
+        self.assertEqual(expected, result_as_str)
 
     def test_sanitize_maya_list_sort_list_reverse(self):
         cube = maya_test_tools.create_poly_cube(name='cube')
@@ -456,7 +456,7 @@ class TestIterableUtils(unittest.TestCase):
                                                    convert_to_nodes=False,
                                                    short_names=False)
         expected = [f'|{cylinder}', f'|{sphere}', f'|{cube}']
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
 
     def test_sanitize_maya_list_short_names(self):
         cube = maya_test_tools.create_poly_cube(name='cube')
@@ -476,4 +476,60 @@ class TestIterableUtils(unittest.TestCase):
                                                    short_names=True)
 
         expected = [f'{cube}', f'{sphere}']
-        self.assertEqual(result, expected)
+        self.assertEqual(expected, result)
+
+    def test_filter_list_by_type_strings(self):
+        input_list = ["world", 2, 3.5, None, "hello", 42]
+        desired_data_type = str
+        result = iterable_utils.filter_list_by_type(input_list, desired_data_type)
+        expected = ["world", "hello"]
+        self.assertEqual(expected, result)
+
+    def test_filter_list_by_type_integers(self):
+        input_list = ["world", 2, 3.5, None, "hello", 42]
+        desired_data_type = int
+        result = iterable_utils.filter_list_by_type(input_list, desired_data_type)
+        expected = [2, 42]
+        self.assertEqual(expected, result)
+
+    def test_filter_list_by_type_floats(self):
+        input_list = ["world", 2, 3.5, None, "hello", 42]
+        desired_data_type = float
+        result = iterable_utils.filter_list_by_type(input_list, desired_data_type)
+        expected = [3.5]
+        self.assertEqual(expected, result)
+
+    def test_filter_list_by_type_none(self):
+        input_list = ["world", 2, 3.5, None, "hello", 42]
+        desired_data_type = type(None)
+        result = iterable_utils.filter_list_by_type(input_list, desired_data_type)
+        expected = [None]
+        self.assertEqual(expected, result)
+
+    def test_filter_list_by_type_none_with_num_items(self):
+        input_list = ["world", 2, 3.5, None, "hello", 42]
+        desired_data_type = type(None)
+        result = iterable_utils.filter_list_by_type(input_list, desired_data_type, num_items=4)
+        expected = []
+        self.assertEqual(expected, result)
+
+    def test_filter_list_by_type_lists_with_num_items(self):
+        input_list = ["world", [1, 2, 3], "hello", [4, 5]]
+        desired_data_type = list
+        result = iterable_utils.filter_list_by_type(input_list, desired_data_type, num_items=3)
+        expected = [[1, 2, 3]]
+        self.assertEqual(expected, result)
+
+    def test_filter_list_by_type_tuples_with_num_items(self):
+        input_list = ["world", (1, 2, 3), "hello", (4, 5)]
+        desired_data_type = tuple
+        result = iterable_utils.filter_list_by_type(input_list, desired_data_type, num_items=3)
+        expected = [(1, 2, 3)]
+        self.assertEqual(expected, result)
+
+    def test_filter_list_by_type_dicts_with_num_items(self):
+        input_list = ["world", {"a": 1, "b": 2}, "hello", {"x": 10, "y": 20, "z": 30}]
+        desired_data_type = dict
+        result = iterable_utils.filter_list_by_type(input_list, desired_data_type, num_items=2)
+        expected = [{"a": 1, "b": 2}]
+        self.assertEqual(expected, result)

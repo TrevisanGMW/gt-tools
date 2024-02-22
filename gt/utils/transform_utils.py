@@ -1151,8 +1151,132 @@ def set_equidistant_transforms(start, end, target_list, skip_start_end=True, con
     cmds.delete(constraints)
 
 
+def translate_shapes(obj_transform, offset):
+    """
+    Rotates the shape of an object without affecting its transform.
+    Args:
+        obj_transform (str): The transform node of the object.
+        offset (tuple): The rotation offset in degrees (X, Y, Z).
+    """
+    shapes = cmds.listRelatives(obj_transform, shapes=True, fullPath=True) or []
+    if not shapes:
+        logger.debug("No shapes found for the given object.")
+        return
+    for shape in shapes:
+        from gt.utils.hierarchy_utils import get_shape_components
+        components = get_shape_components(shape)
+        cmds.move(*offset, components, relative=True, objectSpace=True)
+
+
+def rotate_shapes(obj_transform, offset):
+    """
+    Rotates the shape of an object without affecting its transform.
+    Args:
+        obj_transform (str): The transform node of the object.
+        offset (tuple): The rotation offset in degrees (X, Y, Z).
+    """
+    shapes = cmds.listRelatives(obj_transform, shapes=True, fullPath=True) or []
+    if not shapes:
+        logger.debug("No shapes found for the given object.")
+        return
+    for shape in shapes:
+        from gt.utils.hierarchy_utils import get_shape_components
+        components = get_shape_components(shape)
+        cmds.rotate(*offset, components, relative=True, objectSpace=True)
+
+
+def scale_shapes(obj_transform, offset):
+    """
+    Rotates the shape of an object without affecting its transform.
+    Args:
+        obj_transform (str): The transform node of the object.
+        offset (tuple, float, int): The scale offset in degrees (X, Y, Z).
+                                          If a float or an integer is provided, it will be used as X, Y and Z.
+                                          e.g. 0.5 = (0.5, 0.5, 0.5)
+    """
+    shapes = cmds.listRelatives(obj_transform, shapes=True, fullPath=True) or []
+    if not shapes:
+        logger.debug("No shapes found for the given object.")
+        return
+    if offset and isinstance(offset, (int, float)):
+        offset = (offset, offset, offset)
+    for shape in shapes:
+        from gt.utils.hierarchy_utils import get_shape_components
+        components = get_shape_components(shape)
+        cmds.scale(*offset, components, relative=True, objectSpace=True)
+
+
+def get_component_positions_as_dict(obj_transform, full_path=True, world_space=True):
+    """
+    Retrieves the positions of components (e.g., vertices) of a given object in the specified space.
+
+    Args:
+        obj_transform (str): The transform node of the object.
+        full_path (bool, optional): Flag indicating whether to use full path names for shapes. Defaults to True.
+        world_space (bool, optional): Flag indicating whether to retrieve positions in world space. Defaults to True.
+                                      If set to False, function will use object space.
+
+    Raises:
+        Exception: If there is an issue getting the position, an exception is logged, and the operation continues.
+
+    Returns:
+        dict: A dictionary where component names are keys, and their corresponding positions are values.
+              e.g. "{'|mesh.vtx[0]': [0.5, -1, 1]}"
+    """
+    if not obj_transform or not cmds.objExists(obj_transform):
+        logger.warning(f'Unable to get component position dictionary. Missing object: {str(obj_transform)}')
+        return {}
+    shapes = cmds.listRelatives(obj_transform, shapes=True, fullPath=True) or []
+    components = []
+    for shape in shapes:
+        from gt.utils.hierarchy_utils import get_shape_components
+        components.extend(get_shape_components(shape=shape, mesh_component_type="vtx", full_path=full_path))
+    component_pos_dict = {}
+    for cv in components:
+        try:
+            if world_space:
+                pos = cmds.xform(cv, query=True, worldSpace=True, translation=True)
+            else:
+                pos = cmds.xform(cv, query=True, objectSpace=True, translation=True)
+            component_pos_dict[cv] = pos
+        except Exception as e:
+            logger.debug(f'Unable to get CV position. Issue: {e}')
+    return component_pos_dict
+
+
+def set_component_positions_from_dict(component_pos_dict, world_space=True):
+    """
+    Sets the positions of components (e.g., vertices) based on a provided dictionary.
+    Provided dictionary should use the component path as keys and a list or tuple with X, Y, and Z floats as value.
+
+    Args:
+        component_pos_dict (dict): A dictionary where component names are keys, and their new positions are values.
+                              Use "get_component_positions_as_dict" to generate a dictionary from an existing object.
+        world_space (bool, optional): Flag indicating whether to set positions in world space. Defaults to True.
+                                      If set to False, function will use object space.
+
+    Raises:
+        Exception: If there is an issue setting the position, an exception is logged, and the operation continues.
+
+    Note:
+        This function utilizes the 'cmds.xform' function to set component positions.
+    """
+    if not isinstance(component_pos_dict, dict):
+        logger.debug(f'Unable to set component positions. Invalid component position dictionary.')
+        return
+    for cv, pos in component_pos_dict.items():
+        try:
+            if world_space:
+                cmds.xform(cv, worldSpace=True, translation=pos)
+            else:
+                cmds.xform(cv, objectSpace=True, translation=pos)
+        except Exception as e:
+            logger.debug(f'Unable to set CV position. Issue: {e}')
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    transform = Transform()
-    transform.set_position(0, 10, 0)
-    transform.apply_transform('pSphere1')
+    # transform = Transform()
+    # transform.set_position(0, 10, 0)
+    # transform.apply_transform('pSphere1')
+    rotate_shapes(cmds.ls(selection=True)[0], offset=(0, 0, -90))

@@ -133,7 +133,7 @@ def duplicate_as_node(to_duplicate, name=None, input_connections=False,
     """
     Duplicates the input object with a few extra options, then return a "Node" version of it.
     Args:
-        to_duplicate (str): Object to duplicate (must exist in the scene)
+        to_duplicate (str, Node): Object to duplicate (must exist in the scene)
         name (str, optional): A name for the duplicated object
         input_connections (bool, optional):
         parent_only (bool, optional): If True, only the parent is duplicate. (Will exclude shapes)
@@ -162,7 +162,45 @@ def duplicate_as_node(to_duplicate, name=None, input_connections=False,
     return new_obj
 
 
+def get_shape_components(shape, mesh_component_type="vertices", full_path=False):
+    """
+    Get all components of a shape.
+    Args:
+        shape (str): The shape node.
+        mesh_component_type (str, optional): The type of component to return when the shape is of the type "mesh".
+                                             Can be: "vertices"/"vtx", "edges"/"e", "faces"/"f", or "all".
+                                             If the type is unrecognized, it will return an empty list. e.g. []
+        full_path (bool, optional): when True, returns the full path to the components instead of their short name.
+    Returns:
+        List[str]: List of all components for the given shape.
+    Example:
+        out = get_shape_components(shape=transform, mesh_component_type="faces")
+        print (out)  # ['cube_one.f[0]', 'cube_one.f[1]']
+    """
+    if not shape or not cmds.objExists(shape):
+        return []
+    if cmds.nodeType(shape) == "mesh":
+        if mesh_component_type == 'vertices' or mesh_component_type == 'vtx':
+            return cmds.ls(f"{shape}.vtx[*]", flatten=True, long=full_path)
+        elif mesh_component_type == 'edges' or mesh_component_type == 'e':
+            return cmds.ls(f"{shape}.e[*]", flatten=True, long=full_path)
+        elif mesh_component_type == 'faces' or mesh_component_type == 'f':
+            return cmds.ls(f"{shape}.f[*]", flatten=True, long=full_path)
+        elif mesh_component_type == 'all':
+            components = cmds.ls(f"{shape}.vtx[*]", flatten=True, long=full_path)
+            components += cmds.ls(f"{shape}.e[*]", flatten=True, long=full_path)
+            components += cmds.ls(f"{shape}.f[*]", flatten=True, long=full_path)
+            return components
+        return []
+    elif cmds.nodeType(shape) == "nurbsSurface":
+        return cmds.ls(f"{shape}.cv[*][*]", flatten=True, long=full_path)
+    elif cmds.nodeType(shape) == "nurbsCurve":
+        return cmds.ls(f"{shape}.cv[*]", flatten=True, long=full_path)
+    else:
+        return []
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    out = duplicate_as_node(to_duplicate="pSphere1")
+    out = get_shape_components("pConeShape1")
     print(out)

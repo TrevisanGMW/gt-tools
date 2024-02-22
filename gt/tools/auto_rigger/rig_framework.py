@@ -14,23 +14,23 @@ Rigging Steps:
         5: build_rig
         6: build_rig_post
 """
-from gt.tools.auto_rigger.rig_utils import create_control_root_curve, find_proxy_node_from_uuid, find_proxy_from_uuid
+from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, get_proxy_offset, RiggerConstants, add_driver_to_joint
 from gt.tools.auto_rigger.rig_utils import parent_proxies, create_proxy_root_curve, create_proxy_visualization_lines
-from gt.tools.auto_rigger.rig_utils import create_utility_groups, create_root_group, find_proxy_root_group_node
-from gt.tools.auto_rigger.rig_utils import find_skeleton_group, create_direction_curve, get_meta_type_from_dict
-from gt.tools.auto_rigger.rig_utils import find_joint_node_from_uuid, get_proxy_offset, RiggerConstants
+from gt.tools.auto_rigger.rig_utils import find_skeleton_group, create_direction_curve, get_meta_purpose_from_dict
+from gt.tools.auto_rigger.rig_utils import find_driver_from_uuid, find_proxy_from_uuid, create_control_root_curve
+from gt.tools.auto_rigger.rig_utils import create_utility_groups, create_root_group, find_proxy_root_group
 from gt.utils.attr_utils import add_separator_attr, set_attr, add_attr, list_user_defined_attr, get_attr
 from gt.utils.uuid_utils import add_uuid_attr, is_uuid_valid, is_short_uuid_valid, generate_uuid
+from gt.utils.color_utils import add_side_color_setup, ColorConstants, set_color_viewport
 from gt.utils.string_utils import remove_prefix, camel_case_split, remove_suffix
 from gt.utils.transform_utils import Transform, match_translate, match_rotate
 from gt.utils.curve_utils import Curve, get_curve, add_shape_scale_cluster
-from gt.utils.color_utils import add_side_color_setup, ColorConstants, set_color_viewport
 from gt.utils.iterable_utils import get_highest_int_from_str_list
 from gt.utils.naming_utils import NamingConstants, get_long_name
 from gt.utils.uuid_utils import get_object_from_uuid_attr
 from gt.utils.control_utils import add_snapping_shape
+from gt.utils.node_utils import create_node, Node
 from gt.utils.joint_utils import orient_joint
-from gt.utils.node_utils import create_node
 from gt.utils import hierarchy_utils
 from gt.ui import resource_library
 from dataclasses import dataclass
@@ -370,11 +370,11 @@ class Proxy:
         proxy_offset = get_long_name(proxy_offset)
         proxy_crv = get_long_name(proxy_crv)
 
-        add_separator_attr(target_object=proxy_crv, attr_name=f'proxy{RiggerConstants.SEPARATOR_STD_SUFFIX}')
+        add_separator_attr(target_object=proxy_crv, attr_name=f'proxy{RiggerConstants.SEPARATOR_OPTIONS.title()}')
         uuid_attrs = add_uuid_attr(obj_list=proxy_crv,
-                                   attr_name=RiggerConstants.PROXY_ATTR_UUID,
+                                   attr_name=RiggerConstants.ATTR_PROXY_UUID,
                                    set_initial_uuid_value=False)
-        scale_attr = add_attr(obj_list=proxy_crv, attributes=RiggerConstants.PROXY_ATTR_SCALE, default=1) or []
+        scale_attr = add_attr(obj_list=proxy_crv, attributes=RiggerConstants.ATTR_PROXY_SCALE, default=1) or []
         loc_scale_cluster = None
         if not optimized and scale_attr and len(scale_attr) == 1:
             scale_attr = scale_attr[0]
@@ -653,9 +653,9 @@ class Proxy:
             self.metadata = {}
         self.metadata[key] = value
 
-    def add_meta_parent(self, line_parent):
+    def add_line_parent(self, line_parent):
         """
-        Adds a meta parent UUID to the metadata dictionary. Initializes it in case it was not yet initialized.
+        Adds a line parent UUID to the metadata dictionary. Initializes it in case it was not yet initialized.
         This is used to created visualization lines or other elements without actually parenting the element.
         Args:
             line_parent (str, Proxy): New meta parent, if a UUID string. If Proxy, it will get the UUID (get_uuid).
@@ -663,9 +663,39 @@ class Proxy:
         if not self.metadata:  # Initialize metadata in case it was never used.
             self.metadata = {}
         if isinstance(line_parent, str) and is_uuid_valid(line_parent):
-            self.metadata[RiggerConstants.PROXY_META_PARENT] = line_parent
+            self.metadata[RiggerConstants.META_PROXY_LINE_PARENT] = line_parent
         if isinstance(line_parent, Proxy):
-            self.metadata[RiggerConstants.PROXY_META_PARENT] = line_parent.get_uuid()
+            self.metadata[RiggerConstants.META_PROXY_LINE_PARENT] = line_parent.get_uuid()
+
+    def add_driver_type(self, driver_type):
+        """
+        Adds a type/tag to the list of drivers. Initializes metadata in case it was not yet initialized.
+        A type/tag is used to determine controls driving the joint generated from this proxy
+        A proxy generates a joint, this joint can driven by multiple controls, the tag helps identify them.
+        Args:
+            driver_type (str, list): New type/tag to add. e.g. "fk", "ik", "offset", etc...
+                              Can also be a list of new tags: e.g. ["fk", "ik"]
+        """
+        if not driver_type:
+            logger.debug(f'Invalid tag was provided. Add driver operation was skipped.')
+            return
+        if not self.metadata:  # Initialize metadata in case it was never used.
+            self.metadata = {}
+        if isinstance(driver_type, str):
+            driver_type = [driver_type]
+        new_tags = self.metadata.get(RiggerConstants.META_PROXY_DRIVERS, [])
+        for tag in driver_type:
+            if tag and isinstance(tag, str) and tag not in new_tags:
+                new_tags.append(tag)
+        if new_tags:
+            self.metadata[RiggerConstants.META_PROXY_DRIVERS] = new_tags
+
+    def clear_driver_types(self):
+        """
+        Clears any driver tags found in the metadata.
+        """
+        if self.metadata:
+            self.metadata.pop(RiggerConstants.META_PROXY_DRIVERS, None)
 
     def add_color(self, rgb_color):
         """
@@ -737,14 +767,14 @@ class Proxy:
         """
         self.parent_uuid = None
 
-    def set_meta_type(self, value):
+    def set_meta_purpose(self, value):
         """
         Adds a proxy meta type key and value to the metadata dictionary. Used to define proxy type in modules.
         Args:
             value (str, optional): Type "tag" used to determine overwrites.
                                    e.g. "hip", so the module knows it's a "hip" proxy.
         """
-        self.add_to_metadata(key=RiggerConstants.PROXY_META_TYPE, value=value)
+        self.add_to_metadata(key=RiggerConstants.META_PROXY_PURPOSE, value=value)
 
     def read_data_from_dict(self, proxy_dict):
         """
@@ -801,9 +831,9 @@ class Proxy:
         Returns:
             Proxy: This object (self)
         """
-        ignore_attr_list = [RiggerConstants.PROXY_ATTR_UUID,
-                            RiggerConstants.PROXY_ATTR_SCALE]
-        proxy = get_object_from_uuid_attr(uuid_string=self.uuid, attr_name=RiggerConstants.PROXY_ATTR_UUID)
+        ignore_attr_list = [RiggerConstants.ATTR_PROXY_UUID,
+                            RiggerConstants.ATTR_PROXY_SCALE]
+        proxy = get_object_from_uuid_attr(uuid_string=self.uuid, attr_name=RiggerConstants.ATTR_PROXY_UUID)
         if proxy:
             try:
                 self._initialize_transform()
@@ -828,14 +858,33 @@ class Proxy:
         """
         return self.metadata
 
+    def get_metadata_value(self, key):
+        """
+        Gets the value stored in the metadata. If not found, returns None.
+        Args:
+            key (str): The value key.
+        Returns:
+            any: Value stored in the metadata key. If not found, it returns None
+        """
+        if not self.metadata or not key:
+            return
+        return self.metadata.get(key)
+
     def get_meta_parent_uuid(self):
         """
         Gets the meta parent of this proxy (if present)
         Returns:
             str or None: The UUID set as meta parent, otherwise, None.
         """
-        if self.metadata and isinstance(self.metadata, dict):
-            return self.metadata.get(RiggerConstants.PROXY_META_PARENT, None)
+        return self.get_metadata_value(RiggerConstants.META_PROXY_LINE_PARENT)
+
+    def get_meta_purpose(self):
+        """
+        Gets the meta purpose of this proxy (if present)
+        Returns:
+            str or None: The purpose of this proxy as stored in the metadata, otherwise None.
+        """
+        return self.get_metadata_value(RiggerConstants.META_PROXY_PURPOSE)
 
     def get_name(self):
         """
@@ -877,6 +926,15 @@ class Proxy:
                   e.g. {"locatorScale": 1, "isVisible": True}
         """
         return self.attr_dict
+
+    def get_driver_types(self):
+        """
+        Gets a list of available driver types. e.g.  ["fk", "ik", "offset"]
+        Returns:
+            list or None: A list of driver types (strings) otherwise None.
+        """
+        if self.metadata:
+            return self.metadata.get(RiggerConstants.META_PROXY_DRIVERS, None)
 
     def get_proxy_as_dict(self, include_uuid=False, include_transform_data=True, include_offset_data=True):
         """
@@ -936,6 +994,8 @@ class ModuleGeneric:
             self.set_prefix(prefix)
         if suffix:
             self.set_suffix(suffix)
+
+        self.module_children_drivers = []  # Cached elements to be parented to the "parentUUID" driver
 
     # ------------------------------------------------- Setters -------------------------------------------------
     def set_name(self, name):
@@ -1224,7 +1284,7 @@ class ModuleGeneric:
             self.set_metadata_dict(metadata=_metadata)
         return self
 
-    def read_type_matching_proxy_from_dict(self, proxy_dict):
+    def read_purpose_matching_proxy_from_dict(self, proxy_dict):
         """
         Utility used by inherited modules to detect the proxy meta type when reading their dict data.
         Args:
@@ -1237,13 +1297,13 @@ class ModuleGeneric:
         proxy_type_link = {}
         for proxy in proxies:
             metadata = proxy.get_metadata()
-            meta_type = get_meta_type_from_dict(metadata)
+            meta_type = get_meta_purpose_from_dict(metadata)
             if meta_type and isinstance(meta_type, str):
                 proxy_type_link[meta_type] = proxy
 
         for uuid, description in proxy_dict.items():
             metadata = description.get("metadata")
-            meta_type = get_meta_type_from_dict(metadata)
+            meta_type = get_meta_purpose_from_dict(metadata)
             if meta_type in proxy_type_link:
                 proxy = proxy_type_link.get(meta_type)
                 proxy.set_uuid(uuid)
@@ -1444,6 +1504,123 @@ class ModuleGeneric:
             _module_name = f'{_module_name} ({_class_name})'
         return _module_name
 
+    def find_driver(self, driver_type, proxy_purpose):
+        """
+        Find driver (a.k.a. Control) is responsible for directly or indirectly driving a joint or a group of joints.
+        Args:
+            driver_type (str): A driver type (aka tag) used to identify the type of control. e.g. "fk", "ik", "offset".
+            proxy_purpose (str, Proxy): The purpose of the control (aka Description) e.g. "shoulder"
+                                        This can also be a proxy, in which case the purposed will be extracted.
+        Returns:
+            Node or None: A Node object pointing to an existing driver/control object, otherwise None.
+        """
+        uuid = self.uuid
+        if driver_type:
+            uuid = f'{uuid}-{driver_type}'
+        if proxy_purpose and isinstance(proxy_purpose, Proxy):
+            proxy_purpose = proxy_purpose.get_meta_purpose()
+        if proxy_purpose:
+            uuid = f'{uuid}-{proxy_purpose}'
+        return find_driver_from_uuid(uuid_string=uuid)
+
+    def find_module_drivers(self):
+        """
+        Find driver nodes (a.k.a. Controls) that are responsible for directly or indirectly driving the proxy's joint.
+        Returns:
+            list: A list of transforms used as drivers/controls for this module.
+        """
+        obj_list = cmds.ls(typ="transform", long=True) or []
+        matches = []
+        module_uuid = self.uuid
+        for obj in obj_list:
+            if cmds.objExists(f'{obj}.{RiggerConstants.ATTR_DRIVER_UUID}'):
+                uuid_value = cmds.getAttr(f'{obj}.{RiggerConstants.ATTR_DRIVER_UUID}')
+                if uuid_value.startswith(module_uuid):
+                    matches.append(obj)
+        return matches
+
+    def find_proxy_drivers(self, proxy, as_dict=True):
+        """
+        Find driver nodes (a.k.a. Controls) that are responsible for directly or indirectly driving the proxy's joint.
+        Args:
+            proxy (Proxy): The proxy, used to get the driver purpose and types.
+                           If missing metadata, an empty list is returned.
+            as_dict (bool, optional): If True, this function return a dictionary where the key is the driver type and
+                                      the value is the driver, if False, then it returns a list of drivers.
+        Returns:
+            dict, list: A list of transforms used as drivers/controls for the provided proxy.
+        """
+        proxy_driver_types = proxy.get_driver_types()
+        proxy_purpose = proxy.get_meta_purpose()
+        if not proxy_driver_types:
+            logger.debug(f'Proxy does not have any driver types. No drivers can be found without a type.')
+            return []
+        if not proxy_purpose:
+            logger.debug(f'Proxy does not have a defined purpose. No drivers can be found without a purpose.')
+            return []
+        driver_uuids = []
+        for proxy_type in proxy_driver_types:
+            driver_uuids.append(f'{self.uuid}-{proxy_type}-{proxy_purpose}')
+        obj_list = cmds.ls(typ="transform", long=True) or []
+        module_matches = {}
+        module_uuid = self.uuid
+        for obj in obj_list:
+            if cmds.objExists(f'{obj}.{RiggerConstants.ATTR_DRIVER_UUID}'):
+                uuid_value = cmds.getAttr(f'{obj}.{RiggerConstants.ATTR_DRIVER_UUID}')
+                if uuid_value.startswith(module_uuid):
+                    module_matches[uuid_value] = Node(obj)
+        matches = []
+        matches_dict = {}
+        for driver_uuid in driver_uuids:
+            if driver_uuid in module_matches:
+                matches.append(module_matches.get(driver_uuid))
+                driver_key = str(driver_uuid).split("-")
+                if len(driver_key) >= 3:
+                    matches_dict[driver_key[1]] = module_matches.get(driver_uuid)
+        if len(matches) != driver_uuids:
+            logger.debug(f'Not all drivers were found. '
+                         f'Driver type list has a different length when compared to the list of matches.')
+        if as_dict:
+            matches = matches_dict
+        return matches
+
+    def _assemble_ctrl_name(self, name, project_prefix=None, overwrite_prefix=None, overwrite_suffix=None):
+        """
+        Assemble a new control name based on the given parameters and module prefix/suffix.
+        This function also automatically adds the control suffix at the end of the generated name.
+        Result pattern: "<project_prefix>_<module_prefix>_<name>_<module_suffix>_<control_suffix>"
+        Args:
+            name (str): The base name of the control.
+            project_prefix (str, optional): Prefix specific to the project. Defaults to None.
+            overwrite_prefix (str, optional): Prefix to overwrite the module's prefix. Defaults to None (use module)
+                                              When provided (even if empty) it will replace the module stored value.
+            overwrite_suffix (str, optional): Suffix to overwrite the module's suffix. Defaults to None (use module)
+                                              When provided (even if empty) it will replace the module stored value.
+
+        Returns:
+            str: The assembled new node name.
+
+        Example:
+            instance._assemble_new_node_name(name='NodeName', project_prefix='Project', overwrite_suffix='Custom')
+            'Project_NodeName_Custom'
+        """
+        _suffix = ''
+        module_suffix = self.suffix
+        if module_suffix:
+            module_suffix = f'{module_suffix}_{NamingConstants.Suffix.CTRL}'
+        else:
+            module_suffix = NamingConstants.Suffix.CTRL
+        if isinstance(overwrite_suffix, str):
+            module_suffix = overwrite_suffix
+        if overwrite_suffix:
+            module_suffix = overwrite_suffix
+        if module_suffix:
+            _suffix = f'_{module_suffix}'
+        return self._assemble_new_node_name(name=name,
+                                            project_prefix=project_prefix,
+                                            overwrite_prefix=overwrite_prefix,
+                                            overwrite_suffix=module_suffix)
+
     def _assemble_new_node_name(self, name, project_prefix=None, overwrite_prefix=None, overwrite_suffix=None):
         """
         Assemble a new node name based on the given parameters and module prefix/suffix.
@@ -1508,6 +1685,34 @@ class ModuleGeneric:
             return False
         return True
 
+    def add_driver_uuid_attr(self, target, driver_type=None, proxy_purpose=None):
+        """
+        Adds an attribute to be used as driver UUID to the object.
+        The value of the attribute is created using the module uuid, the driver type and proxy purpose combined.
+        Following this pattern: "<module_uuid>-<driver_type>-<proxy_purpose>" e.g. "abcdef123456-fk-shoulder"
+        Args:
+            target (str): Path to the object that will receive the driver attributes.
+            driver_type (str, optional): A string or tag use to identify the control type. e.g. "fk", "ik", "offset"
+            proxy_purpose (str, Proxy, optional): This is the proxy purpose. It can be a string, e.g. "shoulder" or
+                                                  the proxy object (if a Proxy object is provided, then it tries to extract
+        """
+        uuid = f'{self.uuid}'
+        if driver_type:
+            uuid = f'{uuid}-{driver_type}'
+        if proxy_purpose and isinstance(proxy_purpose, Proxy):
+            proxy_purpose = proxy_purpose.get_meta_purpose()
+        if proxy_purpose:
+            uuid = f'{uuid}-{proxy_purpose}'
+        if not target or not cmds.objExists(target):
+            logger.debug(f'Unable to add UUID attribute. Target object is missing.')
+            return
+        uuid_attr = add_attr(obj_list=target, attr_type="string", is_keyable=False,
+                             attributes=RiggerConstants.ATTR_DRIVER_UUID, verbose=True)[0]
+        if not uuid:
+            uuid = generate_uuid(remove_dashes=True)
+        set_attr(attribute_path=uuid_attr, value=str(uuid))
+        return target
+
     # --------------------------------------------------- Build ---------------------------------------------------
     def build_proxy(self, project_prefix=None, optimized=False):
         """
@@ -1560,7 +1765,7 @@ class ModuleGeneric:
         logger.debug(f'"build_skeleton" function from "{self.get_module_class_name()}" was called.')
         skeleton_grp = find_skeleton_group()
         for proxy in self.proxies:
-            proxy_node = find_proxy_node_from_uuid(proxy.get_uuid())
+            proxy_node = find_proxy_from_uuid(proxy.get_uuid())
             if not proxy_node:
                 continue
             joint = create_node(node_type="joint", name=proxy_node.get_short_name())
@@ -1568,11 +1773,29 @@ class ModuleGeneric:
             cmds.setAttr(f'{joint}.radius', locator_scale)
             match_translate(source=proxy_node, target_list=joint)
 
-            # Add proxy data for reference
+            # Add proxy reference - Proxy/Joint UUID
             add_attr(obj_list=joint,
-                     attributes=RiggerConstants.JOINT_ATTR_UUID,
+                     attributes=RiggerConstants.ATTR_JOINT_UUID,
                      attr_type="string")
-            set_attr(obj_list=joint, attr_list=RiggerConstants.JOINT_ATTR_UUID, value=proxy.get_uuid())
+            set_attr(obj_list=joint, attr_list=RiggerConstants.ATTR_JOINT_UUID, value=proxy.get_uuid())
+            # Add module reference - Module UUID
+            add_attr(obj_list=joint,
+                     attributes=RiggerConstants.ATTR_MODULE_UUID,
+                     attr_type="string")
+            set_attr(obj_list=joint, attr_list=RiggerConstants.ATTR_MODULE_UUID, value=self.get_uuid())
+            # Add proxy purposes - Meta Purpose
+            add_attr(obj_list=joint,
+                     attributes=RiggerConstants.ATTR_JOINT_PURPOSE,
+                     attr_type="string")
+            set_attr(obj_list=joint, attr_list=RiggerConstants.ATTR_JOINT_PURPOSE, value=proxy.get_meta_purpose())
+            # Add proxy purposes - Joint Drivers
+            add_attr(obj_list=joint,
+                     attributes=RiggerConstants.ATTR_JOINT_DRIVERS,
+                     attr_type="string")
+            drivers = proxy.get_driver_types()
+            if drivers:
+                add_driver_to_joint(target_joint=joint, new_drivers=drivers)
+
             set_color_viewport(obj_list=joint, rgb_color=ColorConstants.RigJoint.GENERAL)
             hierarchy_utils.parent(source_objects=joint, target_parent=str(skeleton_grp))
 
@@ -1590,17 +1813,17 @@ class ModuleGeneric:
         module_uuids = self.get_proxies_uuids()
         jnt_nodes = []
         for proxy in self.proxies:
-            joint = find_joint_node_from_uuid(proxy.get_uuid())
+            joint = find_joint_from_uuid(proxy.get_uuid())
             if not joint:
                 continue
             # Inherit Orientation (Before Parenting)
             if self.get_orientation_method() == OrientationData.Methods.inherit:
-                proxy_obj_path = find_proxy_node_from_uuid(proxy.get_uuid())
+                proxy_obj_path = find_proxy_from_uuid(proxy.get_uuid())
                 match_rotate(source=proxy_obj_path, target_list=joint)
             # Parent Joint (Internal Proxies)
             parent_uuid = proxy.get_parent_uuid()
             if parent_uuid in module_uuids:
-                parent_joint_node = find_joint_node_from_uuid(parent_uuid)
+                parent_joint_node = find_joint_from_uuid(parent_uuid)
                 hierarchy_utils.parent(source_objects=joint, target_parent=parent_joint_node)
             jnt_nodes.append(joint)
 
@@ -1612,8 +1835,8 @@ class ModuleGeneric:
         for proxy in self.proxies:
             parent_uuid = proxy.get_parent_uuid()
             if parent_uuid not in module_uuids:
-                joint = find_joint_node_from_uuid(proxy.get_uuid())
-                parent_joint_node = find_joint_node_from_uuid(parent_uuid)
+                joint = find_joint_from_uuid(proxy.get_uuid())
+                parent_joint_node = find_joint_from_uuid(parent_uuid)
                 hierarchy_utils.parent(source_objects=joint, target_parent=parent_joint_node)
         cmds.select(clear=True)
 
@@ -1778,15 +2001,17 @@ class RigProject:
             _module.read_data_from_dict(module_dict=module_description)
             self.modules.append(_module)
 
-    def read_data_from_dict(self, module_dict):
+    def read_data_from_dict(self, module_dict, clear_modules=True):
         """
         Reads the data from a project dictionary and updates the values of this project to match it.
         Args:
             module_dict (dict): A dictionary describing the project data. e.g. {"name": "untitled", "modules": ...}
+            clear_modules (bool, optional): When active, the modules list is cleared before importing new data.
         Returns:
             RigProject: This project (self)
         """
-        self.modules = []
+        if clear_modules:
+            self.modules = []
         self.metadata = None
 
         if module_dict and not isinstance(module_dict, dict):
@@ -1905,7 +2130,7 @@ class RigProject:
             root_transform = create_proxy_root_curve()
             hierarchy_utils.parent(source_objects=root_transform, target_parent=root_group)
             category_groups = create_utility_groups(line=True, target_parent=root_group)
-            line_grp = category_groups.get(RiggerConstants.REF_LINES_ATTR)
+            line_grp = category_groups.get(RiggerConstants.REF_ATTR_LINES)
             attr_to_activate = ['overrideEnabled', 'overrideDisplayType', "hiddenInOutliner"]
             set_attr(obj_list=line_grp, attr_list=attr_to_activate, value=1)
             add_attr(obj_list=str(root_transform),
@@ -1961,8 +2186,8 @@ class RigProject:
                                                     control=True,
                                                     setup=True,
                                                     target_parent=root_group)
-            control_grp = category_groups.get(RiggerConstants.REF_CONTROL_ATTR)
-            setup_grp = category_groups.get(RiggerConstants.REF_SETUP_ATTR)
+            control_grp = category_groups.get(RiggerConstants.REF_ATTR_CONTROL)
+            setup_grp = category_groups.get(RiggerConstants.REF_ATTR_SETUP)
             set_attr(obj_list=setup_grp, attr_list=['overrideEnabled', 'overrideDisplayType'], value=1)
             hierarchy_utils.parent(source_objects=list(category_groups.values()), target_parent=root_group)
             hierarchy_utils.parent(source_objects=root_ctrl, target_parent=control_grp)
@@ -1994,7 +2219,7 @@ class RigProject:
 
             # Delete Proxy
             if delete_proxy:
-                proxy_root = find_proxy_root_group_node()
+                proxy_root = find_proxy_root_group()
                 if proxy_root:
                     cmds.delete(proxy_root)
         except Exception as e:
@@ -2015,6 +2240,7 @@ if __name__ == "__main__":
     # a_biped_project.build_rig()
 
     root = Proxy(name="root")
+    root.set_meta_purpose("root")
     a_1st_proxy = Proxy(name="first")
     a_1st_proxy.set_position(y=5, x=-1)
     a_1st_proxy.set_parent_uuid_from_proxy(root)
@@ -2025,8 +2251,11 @@ if __name__ == "__main__":
 
     a_root_module = ModuleGeneric()
     a_root_module.add_to_proxies(root)
+    test = cmds.polySphere()
+    a_root_module.add_driver_uuid_attr(test[0], "fk", root)
 
     a_module = ModuleGeneric()
+    print(a_module._assemble_ctrl_name(name="test"))
     a_module.add_to_proxies(a_1st_proxy)
     a_module.add_to_proxies(a_2nd_proxy)
     # a_module.set_prefix("prefix")
@@ -2048,4 +2277,4 @@ if __name__ == "__main__":
     # pprint(a_project.get_modules())
     a_project.get_project_as_dict()
     a_project.build_proxy()
-    # a_project.build_rig(delete_proxy=True)
+    a_project.build_rig(delete_proxy=True)
