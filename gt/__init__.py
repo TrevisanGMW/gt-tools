@@ -1,7 +1,7 @@
 import sys
 
 # Package Variables
-__version_tuple__ = (3, 2, 4)
+__version_tuple__ = (3, 3, 0)
 __version_suffix__ = ''
 __version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 __authors__ = ['Guilherme Trevisan']

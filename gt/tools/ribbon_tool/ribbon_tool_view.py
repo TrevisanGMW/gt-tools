@@ -229,7 +229,7 @@ class RibbonToolView(metaclass=MayaWindowMeta):
         content_layout.addWidget(self.surface_data_content_btn)
         sur_data_label_content_layout.addLayout(set_clear_layout)
         sur_data_label_content_layout.addLayout(content_layout)
-        set_clear_layout.setSpacing(0)
+        set_clear_layout.setSpacing(2)
         content_layout.setSpacing(0)
         source_data_label = QLabel("Source Surface/Transform List:")
         source_data_label.setStyleSheet(f"font-weight: bold; font-size: 8; margin-top: 0; "
@@ -283,6 +283,9 @@ class RibbonToolView(metaclass=MayaWindowMeta):
             self.surface_data_content_btn.setEnabled(False)
             self.constraint_source_label.setEnabled(False)
             self.constraint_source_checkbox.setEnabled(False)
+            self.set_source_data_button_values(text="No Data",
+                                               color_button=resource_library.Color.RGB.gray_darker,
+                                               color_text=resource_library.Color.RGB.gray_light)
         elif index == 1:  # From Surface
             self.surface_data_set_btn.setEnabled(True)
             self.surface_data_clear_btn.setEnabled(True)
@@ -302,6 +305,24 @@ class RibbonToolView(metaclass=MayaWindowMeta):
         """
         self.prefix_content.setText("")
 
+    def set_source_data_button_values(self, text=None, color_button=None, color_text=None):
+        """
+        Updates the source data button color, text and button color (background color)
+        Args:
+            text (str, optional): New button text.
+            color_button (str, optional): HEX or RGB string to be used as background color.
+            color_text (str, optional): HEX or RGB string to be used as text color .
+        """
+        if text is not None:
+            self.surface_data_content_btn.setText(text)
+        new_stylesheet = ""
+        if color_text:
+            new_stylesheet += f"color: {color_text}; "
+        if color_button:
+            new_stylesheet += f"background-color: {color_button}; "
+        if new_stylesheet:
+            self.surface_data_content_btn.setStyleSheet(new_stylesheet)
+
     def close_window(self):
         """ Closes this window """
         self.close()
@@ -310,4 +331,5 @@ class RibbonToolView(metaclass=MayaWindowMeta):
 if __name__ == "__main__":
     with qt_utils.QtApplicationContext():
         window = RibbonToolView(version="1.2.3")  # View
+        # window.set_source_data_button_values(text="Some Data", color_button="#333333", color_text="#FFFFFF")
         window.show()
