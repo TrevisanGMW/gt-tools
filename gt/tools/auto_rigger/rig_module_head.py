@@ -2,14 +2,16 @@
 Auto Rigger Head Modules
 github.com/TrevisanGMW/gt-tools
 """
+from gt.tools.auto_rigger.rig_utils import create_ctrl_curve, find_drivers_from_joint, offset_control_orientation
 from gt.tools.auto_rigger.rig_utils import find_proxy_from_uuid, find_joint_from_uuid, find_direction_curve
-from gt.tools.auto_rigger.rig_utils import create_ctrl_curve, find_drivers_from_joint
+from gt.tools.auto_rigger.rig_utils import expose_rotation_order
+from gt.utils.transform_utils import Vector3, match_transform, scale_shapes, translate_shapes
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
+from gt.utils.attr_utils import add_separator_attr, set_attr_state
 from gt.utils.color_utils import ColorConstants, set_color_viewport
 from gt.utils.joint_utils import copy_parent_orients, reset_orients
 from gt.utils.constraint_utils import equidistant_constraints
-from gt.utils.transform_utils import Vector3, match_transform
 from gt.tools.auto_rigger.rig_utils import get_proxy_offset
 from gt.utils.hierarchy_utils import add_offset_transform
 from gt.utils.math_utils import dist_center_to_center
@@ -268,6 +270,11 @@ class ModuleHead(ModuleGeneric):
         jaw_end_jnt = find_joint_from_uuid(self.jaw_end.get_uuid())
         lt_eye = find_joint_from_uuid(self.lt_eye.get_uuid())
         rt_eye = find_joint_from_uuid(self.rt_eye.get_uuid())
+        middle_jnt_list = []
+        for proxy in self.neck_mid_list:
+            mid_jnt = find_joint_from_uuid(proxy.get_uuid())
+            if mid_jnt:
+                middle_jnt_list.append(mid_jnt)
         copy_parent_orients(joint_list=[head_jnt, head_end_jnt])
         reset_orients(joint_list=[lt_eye, rt_eye], verbose=True)
         set_color_viewport(obj_list=[head_end_jnt, jaw_end_jnt], rgb_color=ColorConstants.RigJoint.END)
@@ -277,15 +284,71 @@ class ModuleHead(ModuleGeneric):
         head_scale = dist_center_to_center(neck_base_jnt, head_jnt)
         head_scale += dist_center_to_center(head_jnt, head_end_jnt)
 
+        # Neck Base ------------------------------------------------------------------------------------------
         neck_base_ctrl = self._assemble_ctrl_name(name=self.neck_base.get_name())
-        neck_base_ctrl = create_ctrl_curve(name=neck_base_ctrl, curve_file_name="_pin_neg_z")
+        neck_base_ctrl = create_ctrl_curve(name=neck_base_ctrl, curve_file_name="_pin_neg_y")
         self.add_driver_uuid_attr(target=neck_base_ctrl,
                                   driver_type=RiggerDriverTypes.FK,
                                   proxy_purpose=self.neck_base)
         neck_base_offset = add_offset_transform(target_list=neck_base_ctrl)[0]
         neck_base_offset = Node(neck_base_offset)
         match_transform(source=neck_base_jnt, target_list=neck_base_offset)
+        scale_shapes(obj_transform=neck_base_ctrl, offset=head_scale*.3)
+        offset_control_orientation(ctrl=neck_base_ctrl, offset_transform=neck_base_offset, orient_tuple=(-90, -90, 0))
         hierarchy_utils.parent(source_objects=neck_base_offset, target_parent=direction_crv)
+        cmds.parentConstraint(neck_base_ctrl, neck_base_jnt, maintainOffset=True)
+        # Attributes
+        set_attr_state(attribute_path=f"{neck_base_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
+        add_separator_attr(target_object=neck_base_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
+        expose_rotation_order(neck_base_ctrl)
+
+        # Neck Mid Controls ----------------------------------------------------------------------------------
+        neck_mid_ctrls = []
+        last_mid_parent_ctrl = neck_base_ctrl
+        for neck_mid_proxy, mid_jnt in zip(self.neck_mid_list, middle_jnt_list):
+            neck_mid_ctrl = self._assemble_ctrl_name(name=neck_mid_proxy.get_name())
+            neck_mid_ctrl = create_ctrl_curve(name=neck_mid_ctrl, curve_file_name="_pin_neg_y")
+            self.add_driver_uuid_attr(target=neck_mid_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=neck_mid_proxy)
+            neck_mid_offset = Node(add_offset_transform(target_list=neck_mid_ctrl)[0])
+            _shape_scale_mid = head_scale*.2
+            child_joint = cmds.listRelatives(mid_jnt, fullPath=True, children=True, typ="joint")
+            if child_joint:
+                _distance = dist_center_to_center(obj_a=mid_jnt, obj_b=child_joint[0])
+                _shape_scale_mid = _distance*1.5
+            scale_shapes(obj_transform=neck_mid_ctrl, offset=_shape_scale_mid)
+            # Position and Constraint
+            match_transform(source=mid_jnt, target_list=neck_mid_offset)
+            offset_control_orientation(ctrl=neck_mid_ctrl,
+                                       offset_transform=neck_mid_offset,
+                                       orient_tuple=(-90, -90, 0))
+            hierarchy_utils.parent(source_objects=neck_mid_offset, target_parent=last_mid_parent_ctrl)
+            # Attributes
+            set_attr_state(attribute_path=f"{neck_mid_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
+            add_separator_attr(target_object=neck_mid_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
+            expose_rotation_order(neck_mid_ctrl)
+            neck_mid_ctrls.append(neck_mid_ctrl)
+            cmds.parentConstraint(neck_mid_ctrl, mid_jnt, maintainOffset=True)
+            last_mid_parent_ctrl = neck_mid_ctrl
+
+        # Head Ctrl -----------------------------------------------------------------------------------------
+        head_ctrl = self._assemble_ctrl_name(name=self.neck_base.get_name())
+        head_ctrl = create_ctrl_curve(name=head_ctrl, curve_file_name="_circle_pos_x")
+        self.add_driver_uuid_attr(target=head_ctrl,
+                                  driver_type=RiggerDriverTypes.FK,
+                                  proxy_purpose=self.neck_base)
+        head_offset = add_offset_transform(target_list=head_ctrl)[0]
+        head_offset = Node(head_offset)
+        match_transform(source=head_jnt, target_list=head_offset)
+        scale_shapes(obj_transform=head_ctrl, offset=head_scale * .2)
+        offset_control_orientation(ctrl=head_ctrl, offset_transform=head_offset, orient_tuple=(-90, -90, 0))
+        head_end_distance = dist_center_to_center(head_jnt, head_end_jnt)
+        translate_shapes(obj_transform=head_ctrl, offset=(0, head_end_distance*1.1, 0))  # Move Above Head
+        hierarchy_utils.parent(source_objects=head_offset, target_parent=last_mid_parent_ctrl)
+        cmds.parentConstraint(head_ctrl, head_jnt, maintainOffset=True)
+        # Attributes
+        set_attr_state(attribute_path=f"{head_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
+        add_separator_attr(target_object=head_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
+        expose_rotation_order(head_ctrl)
 
         self.module_children_drivers = [neck_base_offset]
 
