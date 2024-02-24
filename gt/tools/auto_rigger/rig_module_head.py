@@ -8,7 +8,7 @@ from gt.tools.auto_rigger.rig_utils import expose_rotation_order
 from gt.utils.transform_utils import Vector3, match_transform, scale_shapes, translate_shapes, rotate_shapes
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
-from gt.utils.attr_utils import add_separator_attr, set_attr_state
+from gt.utils.attr_utils import add_separator_attr, set_attr_state, rescale
 from gt.utils.color_utils import ColorConstants, set_color_viewport
 from gt.utils.joint_utils import copy_parent_orients, reset_orients
 from gt.utils.constraint_utils import equidistant_constraints
@@ -41,6 +41,7 @@ class ModuleHead(ModuleGeneric):
         self.set_orientation(orientation_data=_orientation)
 
         _end_suffix = NamingConstants.Suffix.END.capitalize()
+        self.main_eye_ctrl = f"main_eye_{NamingConstants.Suffix.CTRL}"  # Not yet exposed/editable
 
         # Neck Base (Chain Base)
         self.neck_base = Proxy(name="neckBase")
@@ -406,6 +407,56 @@ class ModuleHead(ModuleGeneric):
         set_attr_state(attribute_path=f"{jaw_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
         add_separator_attr(target_object=jaw_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
         expose_rotation_order(jaw_ctrl)
+
+        # Eye Controls -------------------------------------------------------------------------------------
+        lt_eye_ctrl = self._assemble_ctrl_name(name=self.lt_eye.get_name())
+        rt_eye_ctrl = self._assemble_ctrl_name(name=self.rt_eye.get_name())
+        lt_eye_ctrl = create_ctrl_curve(name=lt_eye_ctrl, curve_file_name="_circle_pos_z")
+        rt_eye_ctrl = create_ctrl_curve(name=rt_eye_ctrl, curve_file_name="_circle_pos_z")
+        self.add_driver_uuid_attr(target=lt_eye_ctrl,
+                                  driver_type=RiggerDriverTypes.AIM,
+                                  proxy_purpose=self.lt_eye)
+        self.add_driver_uuid_attr(target=rt_eye_ctrl,
+                                  driver_type=RiggerDriverTypes.AIM,
+                                  proxy_purpose=self.rt_eye)
+        main_eye_ctrl = create_ctrl_curve(name=self.main_eye_ctrl , curve_file_name="_peanut_pos_z")
+        lt_eye_offset = add_offset_transform(target_list=lt_eye_ctrl)[0]
+        rt_eye_offset = add_offset_transform(target_list=rt_eye_ctrl)[0]
+        lt_eye_offset = Node(lt_eye_offset)
+        rt_eye_offset = Node(rt_eye_offset)
+        main_eye_offset = add_offset_transform(target_list=main_eye_ctrl)[0]
+
+        # Create Divergence Drivers
+        lt_eye_divergence = add_offset_transform(target_list=lt_eye_ctrl)[0]
+        rt_eye_divergence = add_offset_transform(target_list=rt_eye_ctrl)[0]
+        lt_eye_divergence = Node(lt_eye_divergence)
+        rt_eye_divergence = Node(rt_eye_divergence)
+        lt_eye_divergence.rename(f'{self.lt_eye.get_name()}_divergenceData')
+        rt_eye_divergence.rename(f'{self.rt_eye.get_name()}_divergenceData')
+
+        # Organize and Position Elements
+        hierarchy_utils.parent(source_objects=[lt_eye_offset, rt_eye_offset], target_parent=main_eye_ctrl)
+        cmds.move(1.6, 0, 0, lt_eye_offset)
+        cmds.move(-1.6, 0, 0, rt_eye_offset)
+
+        pupillary_distance = dist_center_to_center(lt_eye, rt_eye)
+        rescale(obj=main_eye_offset, scale=pupillary_distance*.31, freeze=False)
+
+        # Attributes and Colors
+
+        # jaw_offset = Node(jaw_offset)
+        # jaw_end_distance = dist_center_to_center(jaw_jnt, jaw_end_jnt)
+        # match_transform(source=jaw_jnt, target_list=jaw_offset)
+        # scale_shapes(obj_transform=jaw_ctrl, offset=jaw_end_distance * .2)
+        # offset_control_orientation(ctrl=jaw_ctrl, offset_transform=jaw_offset, orient_tuple=(-90, -90, 0))
+        # translate_shapes(obj_transform=jaw_ctrl,
+        #                  offset=(0, jaw_end_distance * 1.1, jaw_end_distance*.1))  # Move Shape To Jaw End
+        # hierarchy_utils.parent(source_objects=jaw_offset, target_parent=head_o_data)
+        # cmds.parentConstraint(jaw_ctrl, jaw_jnt, maintainOffset=True)
+        # # Attributes
+        # set_attr_state(attribute_path=f"{jaw_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
+        # add_separator_attr(target_object=jaw_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
+        # expose_rotation_order(jaw_ctrl)
 
         # Set Children Drivers -----------------------------------------------------------------------------
         self.module_children_drivers = [neck_base_offset]

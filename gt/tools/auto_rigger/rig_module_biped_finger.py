@@ -332,7 +332,7 @@ class ModuleBipedFingers(ModuleGeneric):
         Returns
             bool: True if valid, False otherwise
         """
-        is_valid = super().is_valid()  # Pass-through
+        is_valid = super().is_valid()  # Passthrough
         return is_valid
 
     def build_proxy(self, **kwargs):
@@ -354,7 +354,7 @@ class ModuleBipedFingers(ModuleGeneric):
                 self.pinky01.set_parent_uuid(self.parent_uuid)
             if self.extra01:
                 self.extra01.set_parent_uuid(self.parent_uuid)
-        proxy = super().build_proxy(**kwargs)  # Pass-through
+        proxy = super().build_proxy(**kwargs)  # Passthrough
         return proxy
 
     def build_proxy_setup(self):
