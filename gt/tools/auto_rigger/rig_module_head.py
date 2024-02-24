@@ -5,7 +5,7 @@ github.com/TrevisanGMW/gt-tools
 from gt.tools.auto_rigger.rig_utils import create_ctrl_curve, find_drivers_from_joint, offset_control_orientation
 from gt.tools.auto_rigger.rig_utils import find_proxy_from_uuid, find_joint_from_uuid, find_direction_curve
 from gt.tools.auto_rigger.rig_utils import expose_rotation_order
-from gt.utils.transform_utils import Vector3, match_transform, scale_shapes, translate_shapes
+from gt.utils.transform_utils import Vector3, match_transform, scale_shapes, translate_shapes, rotate_shapes
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
 from gt.utils.attr_utils import add_separator_attr, set_attr_state
@@ -48,6 +48,7 @@ class ModuleHead(ModuleGeneric):
         self.neck_base.set_initial_position(xyz=pos_neck_base)
         self.neck_base.set_locator_scale(scale=1.5)
         self.neck_base.set_meta_purpose(value="neckBase")
+        self.neck_base.add_driver_type(driver_type=[RiggerDriverTypes.FK])
 
         # Head (Chain End)
         self.head = Proxy(name="head")
@@ -55,6 +56,7 @@ class ModuleHead(ModuleGeneric):
         self.head.set_initial_position(xyz=pos_head)
         self.head.set_locator_scale(scale=1.5)
         self.head.set_meta_purpose(value="head")
+        self.head.add_driver_type(driver_type=[RiggerDriverTypes.OFFSET, RiggerDriverTypes.FK])
 
         # Head End
         self.head_end = Proxy(name=f"head{_end_suffix}")
@@ -72,6 +74,7 @@ class ModuleHead(ModuleGeneric):
         self.jaw.set_locator_scale(scale=1.5)
         self.jaw.set_meta_purpose(value="jaw")
         self.jaw.set_parent_uuid(self.head.get_uuid())
+        self.jaw.add_driver_type(driver_type=[RiggerDriverTypes.FK])
 
         # Jaw End
         self.jaw_end = Proxy(name=f"jaw{_end_suffix}")
@@ -89,6 +92,7 @@ class ModuleHead(ModuleGeneric):
         self.lt_eye.set_locator_scale(scale=2.5)
         self.lt_eye.set_meta_purpose(value="eyeLeft")
         self.lt_eye.set_parent_uuid(self.head.get_uuid())
+        self.lt_eye.add_driver_type(driver_type=[RiggerDriverTypes.AIM])
 
         # Right Eye
         self.rt_eye = Proxy(name=f'{NamingConstants.Prefix.RIGHT}_eye')
@@ -97,6 +101,7 @@ class ModuleHead(ModuleGeneric):
         self.rt_eye.set_locator_scale(scale=2.5)
         self.rt_eye.set_meta_purpose(value="eyeRight")
         self.rt_eye.set_parent_uuid(self.head.get_uuid())
+        self.rt_eye.add_driver_type(driver_type=[RiggerDriverTypes.AIM])
 
         # Neck Mid (In-between)
         self.neck_mid_list = []
@@ -129,6 +134,7 @@ class ModuleHead(ModuleGeneric):
                 new_neck_mid.set_meta_purpose(value=_neck_mid_name)
                 new_neck_mid.add_line_parent(line_parent=_parent_uuid)
                 new_neck_mid.set_parent_uuid(uuid=_parent_uuid)
+                new_neck_mid.add_driver_type(driver_type=[RiggerDriverTypes.FK])
                 _parent_uuid = new_neck_mid.get_uuid()
                 self.neck_mid_list.append(new_neck_mid)
         # New number lower than current - Remove unnecessary proxies
@@ -308,7 +314,8 @@ class ModuleHead(ModuleGeneric):
         for neck_mid_proxy, mid_jnt in zip(self.neck_mid_list, middle_jnt_list):
             neck_mid_ctrl = self._assemble_ctrl_name(name=neck_mid_proxy.get_name())
             neck_mid_ctrl = create_ctrl_curve(name=neck_mid_ctrl, curve_file_name="_pin_neg_y")
-            self.add_driver_uuid_attr(target=neck_mid_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=neck_mid_proxy)
+            self.add_driver_uuid_attr(target=neck_mid_ctrl, driver_type=RiggerDriverTypes.FK,
+                                      proxy_purpose=neck_mid_proxy)
             neck_mid_offset = Node(add_offset_transform(target_list=neck_mid_ctrl)[0])
             _shape_scale_mid = head_scale*.2
             child_joint = cmds.listRelatives(mid_jnt, fullPath=True, children=True, typ="joint")
@@ -331,11 +338,11 @@ class ModuleHead(ModuleGeneric):
             last_mid_parent_ctrl = neck_mid_ctrl
 
         # Head Ctrl -----------------------------------------------------------------------------------------
-        head_ctrl = self._assemble_ctrl_name(name=self.neck_base.get_name())
+        head_ctrl = self._assemble_ctrl_name(name=self.head.get_name())
         head_ctrl = create_ctrl_curve(name=head_ctrl, curve_file_name="_circle_pos_x")
         self.add_driver_uuid_attr(target=head_ctrl,
                                   driver_type=RiggerDriverTypes.FK,
-                                  proxy_purpose=self.neck_base)
+                                  proxy_purpose=self.head)
         head_offset = add_offset_transform(target_list=head_ctrl)[0]
         head_offset = Node(head_offset)
         match_transform(source=head_jnt, target_list=head_offset)
@@ -344,26 +351,43 @@ class ModuleHead(ModuleGeneric):
         head_end_distance = dist_center_to_center(head_jnt, head_end_jnt)
         translate_shapes(obj_transform=head_ctrl, offset=(0, head_end_distance*1.1, 0))  # Move Above Head
         hierarchy_utils.parent(source_objects=head_offset, target_parent=last_mid_parent_ctrl)
-        cmds.parentConstraint(head_ctrl, head_jnt, maintainOffset=True)
         # Attributes
         set_attr_state(attribute_path=f"{head_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
         add_separator_attr(target_object=head_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
         expose_rotation_order(head_ctrl)
 
-        self.module_children_drivers = [neck_base_offset]
+        # Head Offset Ctrl
+        head_o_ctrl = self._assemble_ctrl_name(name=self.head.get_name(),
+                                             overwrite_suffix=NamingConstants.Suffix.OFFSET_CTRL)
+        head_o_ctrl = create_ctrl_curve(name=head_o_ctrl, curve_file_name="_circle_pos_x")
+        match_transform(source=head_ctrl, target_list=head_o_ctrl)
+        scale_shapes(obj_transform=head_o_ctrl, offset=head_scale * .15)
+        rotate_shapes(obj_transform=head_o_ctrl, offset=(0, 0, -90))
+        translate_shapes(obj_transform=head_o_ctrl, offset=(0, head_end_distance*1.1, 0))  # Move Above Head
+        set_color_viewport(obj_list= head_o_ctrl, rgb_color=ColorConstants.RigJoint.OFFSET)
+        hierarchy_utils.parent(source_objects=head_o_ctrl, target_parent=head_ctrl)
+        # Head Offset Data Transform
+        head_o_data = self._assemble_ctrl_name(name=self.head.get_name(),
+                                               overwrite_suffix=NamingConstants.Suffix.OFFSET_DATA)
+        head_o_data = cmds.group(name=head_o_data, empty=True, world=True)
+        head_o_data = Node(head_o_data)
+        self.add_driver_uuid_attr(target=head_o_data,
+                                  driver_type=RiggerDriverTypes.OFFSET,
+                                  proxy_purpose=self.head)
+        hierarchy_utils.parent(source_objects=head_o_data, target_parent=head_ctrl)
+        # Connections
+        cmds.connectAttr(f'{head_o_ctrl}.translate', f'{head_o_data}.translate')
+        cmds.connectAttr(f'{head_o_ctrl}.rotate', f'{head_o_data}.rotate')
+        cmds.parentConstraint(head_o_data, head_jnt, maintainOffset=True)
+        # Attributes
+        set_attr_state(attribute_path=f"{head_o_ctrl}.v", hidden=True)  # Hide and Lock Visibility
+        add_separator_attr(target_object=head_o_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
+        expose_rotation_order(head_o_ctrl)
+        cmds.addAttr(head_ctrl, ln='showOffsetCtrl', at='bool', k=True)
+        cmds.connectAttr(f'{head_ctrl}.showOffsetCtrl', f'{head_o_ctrl}.v')
 
-    def build_rig_post(self):
-        """
-        Runs post rig creation script.
-        This step runs after the execution of "build_rig" is complete in all modules.
-        Used to define automation or connections that require external elements to exist.
-        TODO @@@ ADD TO BASE OBJECT???
-        """
-        module_parent_jnt = find_joint_from_uuid(self.get_parent_uuid())
-        if module_parent_jnt:
-            drivers = find_drivers_from_joint(module_parent_jnt, as_list=True)
-            if drivers:
-                hierarchy_utils.parent(source_objects=self.module_children_drivers, target_parent=drivers[0])
+        # Set Children Drivers
+        self.module_children_drivers = [neck_base_offset]
 
 
 if __name__ == "__main__":
