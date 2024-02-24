@@ -70,3 +70,4 @@ class RiggerDriverTypes:
     IK = "ik"
     OFFSET = "offset"
     COG = "cog"
+    AIM = "aim"
