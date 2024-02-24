@@ -19,6 +19,7 @@ from gt.tools.auto_rigger.rig_utils import parent_proxies, create_proxy_root_cur
 from gt.tools.auto_rigger.rig_utils import find_skeleton_group, create_direction_curve, get_meta_purpose_from_dict
 from gt.tools.auto_rigger.rig_utils import find_driver_from_uuid, find_proxy_from_uuid, create_control_root_curve
 from gt.tools.auto_rigger.rig_utils import create_utility_groups, create_root_group, find_proxy_root_group
+from gt.tools.auto_rigger.rig_utils import find_drivers_from_joint
 from gt.utils.attr_utils import add_separator_attr, set_attr, add_attr, list_user_defined_attr, get_attr
 from gt.utils.uuid_utils import add_uuid_attr, is_uuid_valid, is_short_uuid_valid, generate_uuid
 from gt.utils.color_utils import add_side_color_setup, ColorConstants, set_color_viewport
@@ -1691,10 +1692,10 @@ class ModuleGeneric:
         The value of the attribute is created using the module uuid, the driver type and proxy purpose combined.
         Following this pattern: "<module_uuid>-<driver_type>-<proxy_purpose>" e.g. "abcdef123456-fk-shoulder"
         Args:
-            target (str): Path to the object that will receive the driver attributes.
+            target (str, Node): Path to the object that will receive the driver attributes.
             driver_type (str, optional): A string or tag use to identify the control type. e.g. "fk", "ik", "offset"
-            proxy_purpose (str, Proxy, optional): This is the proxy purpose. It can be a string, e.g. "shoulder" or
-                                                  the proxy object (if a Proxy object is provided, then it tries to extract
+            proxy_purpose (str, Proxy, optional): This is the proxy purpose. It can be a string,
+                        e.g. "shoulder" or the proxy object (if a Proxy object is provided, then it tries to extract
         """
         uuid = f'{self.uuid}'
         if driver_type:
@@ -1712,6 +1713,22 @@ class ModuleGeneric:
             uuid = generate_uuid(remove_dashes=True)
         set_attr(attribute_path=uuid_attr, value=str(uuid))
         return target
+
+    def _parent_module_children_drivers(self):
+        """
+        Checks if the module parent joint exists, if it does, checks if it has a control ready to accept children.
+        If all of these is true, then parent the module children drivers to this found control.
+        Essentially, parent module controls to parent proxy controls.
+        Summary:
+        Condition: all elements must exist.
+        Source objects: module children drivers (usually base control of the module)
+        Target object: driver of the module parent joint
+        """
+        module_parent_jnt = find_joint_from_uuid(self.get_parent_uuid())
+        if module_parent_jnt:
+            drivers = find_drivers_from_joint(module_parent_jnt, as_list=True)
+            if drivers:
+                hierarchy_utils.parent(source_objects=self.module_children_drivers, target_parent=drivers[0])
 
     # --------------------------------------------------- Build ---------------------------------------------------
     def build_proxy(self, project_prefix=None, optimized=False):
@@ -1863,6 +1880,7 @@ class ModuleGeneric:
         Used to define automation or connections that require external elements to exist.
         """
         logger.debug(f'"build_rig" function from "{self.get_module_class_name()}" was called.')
+        self._parent_module_children_drivers()
 
 
 class RigProject:
