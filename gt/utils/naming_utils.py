@@ -41,6 +41,8 @@ class NamingConstants:
         MAT = 'mat'  # Material
         LOC = 'loc'  # Locator
         OFFSET = 'offset'  # Offset Transform
+        OFFSET_CTRL = 'offsetCtrl'  # Offset Ctrl
+        OFFSET_DATA = 'offsetData'  # Offset Data
         PROXY = 'proxy'
         DRIVEN = 'driven'
         IK_HANDLE_SC = "ikSC"
