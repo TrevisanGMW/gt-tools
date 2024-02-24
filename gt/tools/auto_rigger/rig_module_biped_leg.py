@@ -379,19 +379,8 @@ class ModuleBipedLeg(ModuleGeneric):
         # scale_shapes(obj_transform=hip_ctrl, offset=spine_scale / 10)
         hierarchy_utils.parent(source_objects=hip_offset, target_parent=direction_crv)
 
+        # Set Children Drivers
         self.module_children_drivers = [hip_offset]
-
-    def build_rig_post(self):
-        """
-        Runs post rig creation script.
-        This step runs after the execution of "build_rig" is complete in all modules.
-        Used to define automation or connections that require external elements to exist.
-        """
-        module_parent_jnt = find_joint_from_uuid(self.get_parent_uuid())
-        if module_parent_jnt:
-            drivers = find_drivers_from_joint(module_parent_jnt, as_list=True)
-            if drivers:
-                hierarchy_utils.parent(source_objects=self.module_children_drivers, target_parent=drivers[0])
 
 
 class ModuleBipedLegLeft(ModuleBipedLeg):

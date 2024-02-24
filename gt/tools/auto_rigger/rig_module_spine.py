@@ -322,7 +322,7 @@ class ModuleSpine(ModuleGeneric):
         _shape_scale = (spine_scale / 4, spine_scale / 4, spine_scale / 3)
         scale_shapes(obj_transform=chest_ctrl, offset=_shape_scale)
         offset_control_orientation(ctrl=chest_ctrl, offset_transform=chest_offset, orient_tuple=(-90, -90, 0))
-        chest_ctrl_parent = spine_ctrls[-1] if spine_ctrls else cog_ctrl
+        chest_ctrl_parent = spine_ctrls[-1] if spine_ctrls else cog_ctrl  # Same as "last_mid_parent_ctrl"
         hierarchy_utils.parent(source_objects=chest_offset, target_parent=chest_ctrl_parent)
         cmds.parentConstraint(chest_ctrl, chest_fk, maintainOffset=True)
         # Attributes
@@ -342,19 +342,8 @@ class ModuleSpine(ModuleGeneric):
         # print(f"out_find_module_drivers:{out_find_module_drivers}")
         # print(f"out_find_proxy_drivers:{out_find_proxy_drivers}")
 
+        # Set Children Drivers
         self.module_children_drivers = [cog_offset]
-
-    def build_rig_post(self):
-        """
-        Runs post rig creation script.
-        This step runs after the execution of "build_rig" is complete in all modules.
-        Used to define automation or connections that require external elements to exist.
-        """
-        module_parent_jnt = find_joint_from_uuid(self.get_parent_uuid())
-        if module_parent_jnt:
-            drivers = find_drivers_from_joint(module_parent_jnt, as_list=True)
-            if drivers:
-                hierarchy_utils.parent(source_objects=self.module_children_drivers, target_parent=drivers[0])
 
 
 if __name__ == "__main__":
