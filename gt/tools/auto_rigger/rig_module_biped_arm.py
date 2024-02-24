@@ -295,7 +295,7 @@ class ModuleBipedArm(ModuleGeneric):
         set_color_outliner(obj_list=fk_joints, rgb_color=ColorConstants.RigOutliner.FK)
         set_color_outliner(obj_list=ik_joints, rgb_color=ColorConstants.RigOutliner.IK)
 
-        # Forearm Twist
+        # Forearm Twist ------------------------------------------------------------------------------------
         forearm_name = self._assemble_new_node_name(name=f"forearm_{NamingConstants.Suffix.DRIVEN}",
                                                     project_prefix=project_prefix)
         forearm = duplicate_joint_for_automation(joint=wrist_jnt, parent=joint_automation_grp)
@@ -311,6 +311,9 @@ class ModuleBipedArm(ModuleGeneric):
 
         print(f'arm_scale: {arm_scale}')
         print("build arm rig!")
+
+        # Set Children Drivers -----------------------------------------------------------------------------
+        self.module_children_drivers = []
 
 
 class ModuleBipedArmLeft(ModuleBipedArm):

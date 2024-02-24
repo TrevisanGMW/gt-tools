@@ -346,7 +346,7 @@ class ModuleHead(ModuleGeneric):
         head_offset = add_offset_transform(target_list=head_ctrl)[0]
         head_offset = Node(head_offset)
         match_transform(source=head_jnt, target_list=head_offset)
-        scale_shapes(obj_transform=head_ctrl, offset=head_scale * .2)
+        scale_shapes(obj_transform=head_ctrl, offset=head_scale * .4)
         offset_control_orientation(ctrl=head_ctrl, offset_transform=head_offset, orient_tuple=(-90, -90, 0))
         head_end_distance = dist_center_to_center(head_jnt, head_end_jnt)
         translate_shapes(obj_transform=head_ctrl, offset=(0, head_end_distance*1.1, 0))  # Move Above Head
@@ -361,7 +361,7 @@ class ModuleHead(ModuleGeneric):
                                              overwrite_suffix=NamingConstants.Suffix.OFFSET_CTRL)
         head_o_ctrl = create_ctrl_curve(name=head_o_ctrl, curve_file_name="_circle_pos_x")
         match_transform(source=head_ctrl, target_list=head_o_ctrl)
-        scale_shapes(obj_transform=head_o_ctrl, offset=head_scale * .15)
+        scale_shapes(obj_transform=head_o_ctrl, offset=head_scale * .35)
         rotate_shapes(obj_transform=head_o_ctrl, offset=(0, 0, -90))
         translate_shapes(obj_transform=head_o_ctrl, offset=(0, head_end_distance*1.1, 0))  # Move Above Head
         set_color_viewport(obj_list= head_o_ctrl, rgb_color=ColorConstants.RigJoint.OFFSET)

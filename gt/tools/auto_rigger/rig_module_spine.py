@@ -259,7 +259,7 @@ class ModuleSpine(ModuleGeneric):
         self.add_driver_uuid_attr(target=cog_ctrl, driver_type=RiggerDriverTypes.COG, proxy_purpose=self.hip)
         cog_offset = Node(add_offset_transform(target_list=cog_ctrl)[0])
         match_transform(source=hip_jnt, target_list=cog_offset)
-        scale_shapes(obj_transform=cog_ctrl, offset=spine_scale / 4)
+        scale_shapes(obj_transform=cog_ctrl, offset=spine_scale * .4)
         offset_control_orientation(ctrl=cog_ctrl, offset_transform=cog_offset, orient_tuple=(-90, -90, 0))
         hierarchy_utils.parent(source_objects=cog_offset, target_parent=direction_crv)
         # Attributes
@@ -342,7 +342,7 @@ class ModuleSpine(ModuleGeneric):
         # print(f"out_find_module_drivers:{out_find_module_drivers}")
         # print(f"out_find_proxy_drivers:{out_find_proxy_drivers}")
 
-        # Set Children Drivers
+        # Set Children Drivers -----------------------------------------------------------------------------
         self.module_children_drivers = [cog_offset]
 
 

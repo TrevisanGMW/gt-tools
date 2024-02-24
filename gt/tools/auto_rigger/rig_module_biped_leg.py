@@ -3,14 +3,14 @@ Auto Rigger Leg Modules
 github.com/TrevisanGMW/gt-tools
 """
 from gt.tools.auto_rigger.rig_utils import duplicate_joint_for_automation, get_proxy_offset, rescale_joint_radius
-from gt.tools.auto_rigger.rig_utils import find_direction_curve, create_ctrl_curve, find_drivers_from_joint
 from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_from_uuid, get_driven_joint
 from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, find_or_create_joint_automation_group
+from gt.tools.auto_rigger.rig_utils import find_direction_curve, create_ctrl_curve
+from gt.utils.transform_utils import match_translate, Vector3, match_transform, scale_shapes
 from gt.utils.attr_utils import add_attr, hide_lock_default_attrs, set_attr_state, set_attr
 from gt.utils.color_utils import ColorConstants, set_color_viewport, set_color_outliner
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
-from gt.utils.transform_utils import match_translate, Vector3, match_transform
 from gt.utils.hierarchy_utils import add_offset_transform
 from gt.utils.math_utils import dist_center_to_center
 from gt.utils.naming_utils import NamingConstants
@@ -309,7 +309,6 @@ class ModuleBipedLeg(ModuleGeneric):
     def build_rig(self, **kwargs):
         # Get Elements
         direction_crv = find_direction_curve()
-        # module_parent_jnt = find_joint_node_from_uuid(self.get_parent_uuid())  # TODO TEMP @@@
         hip_jnt = find_joint_from_uuid(self.hip.get_uuid())
         knee_jnt = find_joint_from_uuid(self.knee.get_uuid())
         ankle_jnt = find_joint_from_uuid(self.ankle.get_uuid())
@@ -376,10 +375,11 @@ class ModuleBipedLeg(ModuleGeneric):
         hip_offset = add_offset_transform(target_list=hip_ctrl)[0]
         hip_offset = Node(hip_offset)
         match_transform(source=hip_jnt, target_list=hip_offset)
-        # scale_shapes(obj_transform=hip_ctrl, offset=spine_scale / 10)
+        scale_shapes(obj_transform=hip_ctrl, offset=leg_scale*.07)
         hierarchy_utils.parent(source_objects=hip_offset, target_parent=direction_crv)
+        cmds.parentConstraint(hip_ctrl, hip_fk, maintainOffset=True)
 
-        # Set Children Drivers
+        # Set Children Drivers -----------------------------------------------------------------------------
         self.module_children_drivers = [hip_offset]
 
 
