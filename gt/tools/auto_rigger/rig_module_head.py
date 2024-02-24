@@ -386,7 +386,28 @@ class ModuleHead(ModuleGeneric):
         cmds.addAttr(head_ctrl, ln='showOffsetCtrl', at='bool', k=True)
         cmds.connectAttr(f'{head_ctrl}.showOffsetCtrl', f'{head_o_ctrl}.v')
 
-        # Set Children Drivers
+        # Jaw Ctrl -----------------------------------------------------------------------------------------
+        jaw_ctrl = self._assemble_ctrl_name(name=self.jaw.get_name())
+        jaw_ctrl = create_ctrl_curve(name=jaw_ctrl, curve_file_name="_concave_crescent_neg_y")
+        self.add_driver_uuid_attr(target=jaw_ctrl,
+                                  driver_type=RiggerDriverTypes.FK,
+                                  proxy_purpose=self.jaw)
+        jaw_offset = add_offset_transform(target_list=jaw_ctrl)[0]
+        jaw_offset = Node(jaw_offset)
+        jaw_end_distance = dist_center_to_center(jaw_jnt, jaw_end_jnt)
+        match_transform(source=jaw_jnt, target_list=jaw_offset)
+        scale_shapes(obj_transform=jaw_ctrl, offset=jaw_end_distance * .2)
+        offset_control_orientation(ctrl=jaw_ctrl, offset_transform=jaw_offset, orient_tuple=(-90, -90, 0))
+        translate_shapes(obj_transform=jaw_ctrl,
+                         offset=(0, jaw_end_distance * 1.1, jaw_end_distance*.1))  # Move Shape To Jaw End
+        hierarchy_utils.parent(source_objects=jaw_offset, target_parent=head_o_data)
+        cmds.parentConstraint(jaw_ctrl, jaw_jnt, maintainOffset=True)
+        # Attributes
+        set_attr_state(attribute_path=f"{jaw_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
+        add_separator_attr(target_object=jaw_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
+        expose_rotation_order(jaw_ctrl)
+
+        # Set Children Drivers -----------------------------------------------------------------------------
         self.module_children_drivers = [neck_base_offset]
 
 
