@@ -6,9 +6,9 @@ from gt.tools.auto_rigger.rig_utils import duplicate_joint_for_automation, get_p
 from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_from_uuid, get_driven_joint
 from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, find_or_create_joint_automation_group
 from gt.tools.auto_rigger.rig_utils import find_direction_curve, create_ctrl_curve
+from gt.utils.color_utils import ColorConstants, set_color_viewport, set_color_outliner, get_directional_color
 from gt.utils.transform_utils import match_translate, Vector3, match_transform, scale_shapes
 from gt.utils.attr_utils import add_attr, hide_lock_default_attrs, set_attr_state, set_attr
-from gt.utils.color_utils import ColorConstants, set_color_viewport, set_color_outliner
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
 from gt.utils.hierarchy_utils import add_offset_transform
@@ -368,7 +368,9 @@ class ModuleBipedLeg(ModuleGeneric):
         print(f'leg_scale: {leg_scale}')
         print("build leg rig!")
 
-        # Hip Control
+        # FK Controls ------------------------------------------------------------------------------------
+
+        # FK Hip Control
         hip_ctrl = self._assemble_ctrl_name(name=self.hip.get_name())
         hip_ctrl = create_ctrl_curve(name=hip_ctrl, curve_file_name="_circle_pos_x")
         self.add_driver_uuid_attr(target=hip_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.hip)
@@ -378,6 +380,42 @@ class ModuleBipedLeg(ModuleGeneric):
         scale_shapes(obj_transform=hip_ctrl, offset=leg_scale*.07)
         hierarchy_utils.parent(source_objects=hip_offset, target_parent=direction_crv)
         cmds.parentConstraint(hip_ctrl, hip_fk, maintainOffset=True)
+        color = get_directional_color(object_name=hip_ctrl)
+        set_color_viewport(obj_list=hip_ctrl, rgb_color=color)
+
+        # FK Knee Control
+        knee_ctrl = self._assemble_ctrl_name(name=self.knee.get_name())
+        knee_ctrl = create_ctrl_curve(name=knee_ctrl, curve_file_name="_circle_pos_x")
+        self.add_driver_uuid_attr(target=knee_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.knee)
+        knee_offset = add_offset_transform(target_list=knee_ctrl)[0]
+        knee_offset = Node(knee_offset)
+        match_transform(source=knee_jnt, target_list=knee_offset)
+        scale_shapes(obj_transform=knee_ctrl, offset=leg_scale * .07)
+        hierarchy_utils.parent(source_objects=knee_offset, target_parent=hip_ctrl)
+        cmds.parentConstraint(knee_ctrl, knee_fk, maintainOffset=True)
+
+        # FK Ankle Control
+        ankle_ctrl = self._assemble_ctrl_name(name=self.ankle.get_name())
+        ankle_ctrl = create_ctrl_curve(name=ankle_ctrl, curve_file_name="_circle_pos_x")
+        self.add_driver_uuid_attr(target=ankle_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.ankle)
+        ankle_offset = add_offset_transform(target_list=ankle_ctrl)[0]
+        ankle_offset = Node(ankle_offset)
+        match_transform(source=ankle_jnt, target_list=ankle_offset)
+        scale_shapes(obj_transform=ankle_ctrl, offset=leg_scale * .07)
+        hierarchy_utils.parent(source_objects=ankle_offset, target_parent=knee_ctrl)
+        cmds.parentConstraint(ankle_ctrl, ankle_fk, maintainOffset=True)
+
+        # FK Ball Control
+        ball_ctrl = self._assemble_ctrl_name(name=self.ball.get_name())
+        ball_ctrl = create_ctrl_curve(name=ball_ctrl, curve_file_name="_circle_pos_x")
+        self.add_driver_uuid_attr(target=ball_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.ball)
+        ball_offset = add_offset_transform(target_list=ball_ctrl)[0]
+        ball_offset = Node(ball_offset)
+        match_transform(source=ball_jnt, target_list=ball_offset)
+        scale_shapes(obj_transform=ball_ctrl, offset=leg_scale * .07)
+        hierarchy_utils.parent(source_objects=ball_offset, target_parent=ankle_ctrl)
+        cmds.parentConstraint(ball_ctrl, ball_fk, maintainOffset=True)
+
 
         # Set Children Drivers -----------------------------------------------------------------------------
         self.module_children_drivers = [hip_offset]
