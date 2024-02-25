@@ -2,18 +2,19 @@
 Auto Rigger Head Modules
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rig_utils import create_ctrl_curve, find_drivers_from_joint, offset_control_orientation
+from gt.tools.auto_rigger.rig_utils import create_ctrl_curve, offset_control_orientation, expose_rotation_order
 from gt.tools.auto_rigger.rig_utils import find_proxy_from_uuid, find_joint_from_uuid, find_direction_curve
-from gt.tools.auto_rigger.rig_utils import expose_rotation_order
+from gt.tools.auto_rigger.rig_utils import get_proxy_offset, get_automation_group
 from gt.utils.transform_utils import Vector3, match_transform, scale_shapes, translate_shapes, rotate_shapes
+from gt.utils.transform_utils import set_equidistant_transforms
+from gt.utils.attr_utils import add_separator_attr, set_attr_state, rescale, hide_lock_default_attrs, set_attr
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
-from gt.utils.attr_utils import add_separator_attr, set_attr_state, rescale
 from gt.utils.color_utils import ColorConstants, set_color_viewport
 from gt.utils.joint_utils import copy_parent_orients, reset_orients
 from gt.utils.constraint_utils import equidistant_constraints
-from gt.tools.auto_rigger.rig_utils import get_proxy_offset
 from gt.utils.hierarchy_utils import add_offset_transform
+from gt.utils.curve_utils import create_connection_line
 from gt.utils.math_utils import dist_center_to_center
 from gt.utils.naming_utils import NamingConstants
 from gt.utils.node_utils import Node
@@ -425,6 +426,7 @@ class ModuleHead(ModuleGeneric):
         lt_eye_offset = Node(lt_eye_offset)
         rt_eye_offset = Node(rt_eye_offset)
         main_eye_offset = add_offset_transform(target_list=main_eye_ctrl)[0]
+        main_eye_offset = Node(main_eye_offset)
 
         # Create Divergence Drivers
         lt_eye_divergence = add_offset_transform(target_list=lt_eye_ctrl)[0]
@@ -442,21 +444,46 @@ class ModuleHead(ModuleGeneric):
         pupillary_distance = dist_center_to_center(lt_eye, rt_eye)
         rescale(obj=main_eye_offset, scale=pupillary_distance*.31, freeze=False)
 
-        # Attributes and Colors
+        hierarchy_utils.parent(source_objects=main_eye_offset, target_parent=head_o_data)
 
-        # jaw_offset = Node(jaw_offset)
-        # jaw_end_distance = dist_center_to_center(jaw_jnt, jaw_end_jnt)
-        # match_transform(source=jaw_jnt, target_list=jaw_offset)
-        # scale_shapes(obj_transform=jaw_ctrl, offset=jaw_end_distance * .2)
-        # offset_control_orientation(ctrl=jaw_ctrl, offset_transform=jaw_offset, orient_tuple=(-90, -90, 0))
-        # translate_shapes(obj_transform=jaw_ctrl,
-        #                  offset=(0, jaw_end_distance * 1.1, jaw_end_distance*.1))  # Move Shape To Jaw End
-        # hierarchy_utils.parent(source_objects=jaw_offset, target_parent=head_o_data)
-        # cmds.parentConstraint(jaw_ctrl, jaw_jnt, maintainOffset=True)
-        # # Attributes
-        # set_attr_state(attribute_path=f"{jaw_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
-        # add_separator_attr(target_object=jaw_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
-        # expose_rotation_order(jaw_ctrl)
+        set_equidistant_transforms(start=rt_eye, end=lt_eye, target_list=main_eye_offset)  # Place in-between eyes
+        cmds.move(0, 0, head_scale * 2, main_eye_offset, relative=True)
+
+        # Constraints and Vectors
+        lt_eye_up_vec = cmds.spaceLocator(name=f'{self.lt_eye.get_name()}_upVec')[0]
+        rt_eye_up_vec = cmds.spaceLocator(name=f'{self.rt_eye.get_name()}_upVec')[0]
+        match_transform(source=lt_eye, target_list=lt_eye_up_vec)
+        match_transform(source=rt_eye, target_list=rt_eye_up_vec)
+        cmds.move(head_scale, lt_eye_up_vec, y=True, relative=True, objectSpace=True)
+        cmds.move(head_scale, rt_eye_up_vec, y=True, relative=True, objectSpace=True)
+        set_attr(obj_list=[lt_eye_up_vec, rt_eye_up_vec],
+                 attr_list=["localScaleX", "localScaleY", "localScaleZ"], value=head_scale*.1)
+        set_attr(obj_list=[lt_eye_up_vec, rt_eye_up_vec],
+                 attr_list="v", value=False)
+        hierarchy_utils.parent(source_objects=[lt_eye_up_vec, rt_eye_up_vec], target_parent=head_o_data)
+
+        cmds.aimConstraint(lt_eye_ctrl, lt_eye, maintainOffset=True, upVector=(0, 1, 0),
+                           worldUpType="object", worldUpObject=lt_eye_up_vec)
+        cmds.aimConstraint(rt_eye_ctrl, rt_eye, maintainOffset=True, upVector=(0, 1, 0),
+                           worldUpType="object", worldUpObject=rt_eye_up_vec)
+
+        # Attributes and Colors
+        lt_lines = create_connection_line(object_a=lt_eye_ctrl,
+                                          object_b=lt_eye)
+        rt_lines = create_connection_line(object_a=rt_eye_ctrl,
+                                          object_b=rt_eye)
+
+        set_color_viewport(obj_list=lt_eye_ctrl, rgb_color=ColorConstants.RigProxy.LEFT)
+        set_color_viewport(obj_list=lt_eye_up_vec, rgb_color=ColorConstants.RigProxy.LEFT)
+        set_color_viewport(obj_list=rt_eye_ctrl, rgb_color=ColorConstants.RigProxy.RIGHT)
+        set_color_viewport(obj_list=rt_eye_up_vec, rgb_color=ColorConstants.RigProxy.RIGHT)
+        aim_lines_grp = get_automation_group(subgroup=f"aimLines_{NamingConstants.Suffix.GRP}")
+        hierarchy_utils.parent(source_objects=lt_lines + rt_lines, target_parent=aim_lines_grp)
+
+        hide_lock_default_attrs(obj_list=[lt_eye_ctrl, rt_eye_ctrl], rotate=True , scale=True, visibility=True)
+        hide_lock_default_attrs(obj_list=main_eye_ctrl, scale=True, visibility=True)
+        add_separator_attr(target_object=main_eye_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
+        expose_rotation_order(main_eye_ctrl)
 
         # Set Children Drivers -----------------------------------------------------------------------------
         self.module_children_drivers = [neck_base_offset]
