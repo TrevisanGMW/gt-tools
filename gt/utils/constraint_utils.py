@@ -120,9 +120,9 @@ def equidistant_constraints(start, end, target_list, skip_start_end=True, constr
     """
     Sets equidistant transforms for a list of objects between a start and end point.
     Args:
-        start
-        end
-        target_list (list, str): A list of objects to affect
+        start (str): Path to object where it should start. In A->B, this would be "A".
+        end (str): Path to the object where it should end. In A->B, this would be "B".
+        target_list (list, str): A list of objects to receive the transform update.
         skip_start_end (bool, optional): If True, it will skip the start and end points, which means objects will be
                                          in-between start and end points, but not on top of start/end points.
         constraint (str): Which constraint type should be created. Supported: "parent", "point", "orient", "scale".
@@ -139,7 +139,7 @@ def equidistant_constraints(start, end, target_list, skip_start_end=True, constr
         steps = 1.0 / len(target_list)  # How much it should increase % by each iteration.
     else:
         steps = 1.0 / (len(target_list) - 1)  # -1 to reach both end point.
-    perc = 0  # Influence: range of 0.0 to 1.0
+    percentage = 0  # Influence: range of 0.0 to 1.0
 
     # Determine Constraint Type
     _func = None
@@ -159,9 +159,9 @@ def equidistant_constraints(start, end, target_list, skip_start_end=True, constr
     constraints = []
     for index, obj in enumerate(target_list):
         if obj and cmds.objExists(obj):
-            constraints.append(_func(start, obj, weight=1.0 - perc)[0])
-            _func(end, obj, weight=perc)
-        perc += steps  # Increase percentage for next iteration.
+            constraints.append(_func(start, obj, weight=1.0 - percentage)[0])
+            _func(end, obj, weight=percentage)
+        percentage += steps  # Increase percentage for next iteration.
     return constraints
 
 
