@@ -1136,19 +1136,20 @@ def set_equidistant_transforms(start, end, target_list, skip_start_end=True, con
     """
     Sets equidistant transforms for a list of objects between a start and end point.
     Args:
-        start
-        end
-        target_list (list, str): A list of objects to affect
+        start (str): Path to object where it should start. In A->B, this would be "A".
+        end (str): Path to the object where it should end. In A->B, this would be "B".
+        target_list (list, str): A list of objects to receive the transform update.
         skip_start_end (bool, optional): If True, it will skip the start and end points, which means objects will be
                                          in-between start and end points, but not on top of start/end points.
         constraint (str): Which constraint type should be created. Supported: "parent", "point", "orient", "scale".
     """
-    constraints = equidistant_constraints(start,
-                                          end,
-                                          target_list,
+    constraints = equidistant_constraints(start=start,
+                                          end=end,
+                                          target_list=target_list,
                                           skip_start_end=skip_start_end,
                                           constraint=constraint)
-    cmds.delete(constraints)
+    if constraints:
+        cmds.delete(constraints)
 
 
 def translate_shapes(obj_transform, offset):
