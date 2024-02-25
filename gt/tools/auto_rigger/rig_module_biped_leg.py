@@ -404,6 +404,14 @@ class ModuleBipedLeg(ModuleGeneric):
         scale_shapes(obj_transform=ankle_ctrl, offset=leg_scale * .07)
         hierarchy_utils.parent(source_objects=ankle_offset, target_parent=knee_ctrl)
         cmds.parentConstraint(ankle_ctrl, ankle_fk, maintainOffset=True)
+        # Remove Ankle Shape Orientation
+        temp_transform = cmds.group(name=ankle_ctrl + '_rotExtraction', empty=True, world=True)
+        match_translate(source=toe_jnt, target_list=temp_transform)
+        match_translate(source=ankle_jnt, target_list=temp_transform, skip=['x', 'z'])
+        cmds.delete(cmds.aimConstraint(temp_transform, ankle_ctrl, offset=(0, 0, 0), aimVector=(0, 1, 0),
+                                       upVector=(1, 0, 0), worldUpType='vector', worldUpVector=(0, -1, 0)))
+        cmds.delete(temp_transform)
+        cmds.makeIdentity(ankle_ctrl, apply=True, rotate=True)
 
         # FK Ball Control
         ball_ctrl = self._assemble_ctrl_name(name=self.ball.get_name())
