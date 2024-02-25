@@ -6,7 +6,7 @@ from gt.tools.auto_rigger.rig_utils import find_or_create_joint_automation_group
 from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, expose_rotation_order, find_drivers_from_joint
 from gt.tools.auto_rigger.rig_utils import find_proxy_from_uuid, find_direction_curve, rescale_joint_radius
 from gt.tools.auto_rigger.rig_utils import duplicate_joint_for_automation, offset_control_orientation
-from gt.utils.transform_utils import Vector3, scale_shapes, match_transform, translate_shapes
+from gt.utils.transform_utils import Vector3, scale_shapes, match_transform, translate_shapes, rotate_shapes
 from gt.utils.color_utils import ColorConstants, set_color_viewport, set_color_outliner
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
@@ -15,6 +15,7 @@ from gt.utils.constraint_utils import equidistant_constraints
 from gt.tools.auto_rigger.rig_utils import get_proxy_offset
 from gt.utils.hierarchy_utils import add_offset_transform
 from gt.utils.math_utils import dist_center_to_center
+from gt.utils.naming_utils import NamingConstants
 from gt.utils.node_utils import Node
 from gt.utils import hierarchy_utils
 from gt.ui import resource_library
@@ -46,7 +47,7 @@ class ModuleSpine(ModuleGeneric):
         self.hip.set_initial_position(xyz=pos_hip)
         self.hip.set_locator_scale(scale=1.5)
         self.hip.set_meta_purpose(value="hip")
-        self.hip.add_driver_type(driver_type=[RiggerDriverTypes.FK, RiggerDriverTypes.COG])
+        self.hip.add_driver_type(driver_type=[RiggerDriverTypes.OFFSET, RiggerDriverTypes.FK, RiggerDriverTypes.COG])
 
         # Chest (End)
         self.chest = Proxy(name="chest")
@@ -219,7 +220,7 @@ class ModuleSpine(ModuleGeneric):
         module_jnt_list.extend(middle_jnt_list)
         module_jnt_list.append(chest_jnt)
 
-        # Set Colors
+        # Set Joint Colors
         set_color_viewport(obj_list=module_jnt_list, rgb_color=ColorConstants.RigJoint.GENERAL)
 
         # Get General Scale
@@ -229,7 +230,7 @@ class ModuleSpine(ModuleGeneric):
         module_parent_jnt = get_driven_joint(self.get_parent_uuid())
         hierarchy_utils.parent(source_objects=module_parent_jnt, target_parent=joint_automation_grp)
 
-        # Create Automation Skeletons (FK/IK)
+        # Create Automation Skeletons (FK/IK) ------------------------------------------------------------
         hip_parent = module_parent_jnt
         if module_parent_jnt:
             set_color_viewport(obj_list=hip_parent, rgb_color=ColorConstants.RigJoint.AUTOMATION)
@@ -253,7 +254,7 @@ class ModuleSpine(ModuleGeneric):
         set_color_viewport(obj_list=fk_joints, rgb_color=ColorConstants.RigJoint.FK)
         set_color_outliner(obj_list=fk_joints, rgb_color=ColorConstants.RigOutliner.FK)
 
-        # COG Control
+        # COG Control ------------------------------------------------------------------------------------
         cog_ctrl = self._assemble_ctrl_name(name="cog")
         cog_ctrl = create_ctrl_curve(name=cog_ctrl, curve_file_name="_circle_pos_x")
         self.add_driver_uuid_attr(target=cog_ctrl, driver_type=RiggerDriverTypes.COG, proxy_purpose=self.hip)
@@ -268,7 +269,7 @@ class ModuleSpine(ModuleGeneric):
         expose_rotation_order(cog_ctrl)
         cmds.parentConstraint(cog_ctrl, hip_fk, maintainOffset=True)
 
-        # Hip Control
+        # Hip Control ----------------------------------------------------------------------------------
         hip_ctrl = self._assemble_ctrl_name(name=self.hip.get_name())
         hip_ctrl = create_ctrl_curve(name=hip_ctrl, curve_file_name="_wavy_circle_pos_x")
         self.add_driver_uuid_attr(target=hip_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.hip)
@@ -281,6 +282,37 @@ class ModuleSpine(ModuleGeneric):
         set_attr_state(attribute_path=f"{hip_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
         add_separator_attr(target_object=hip_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
         expose_rotation_order(hip_ctrl)
+
+        # Hip Offset Ctrl
+        hip_o_ctrl = self._assemble_ctrl_name(name=self.hip.get_name(),
+                                             overwrite_suffix=NamingConstants.Suffix.OFFSET_CTRL)
+        hip_o_ctrl = create_ctrl_curve(name=hip_o_ctrl, curve_file_name="_wavy_circle_pos_x")
+        match_transform(source=hip_ctrl, target_list=hip_o_ctrl)
+        scale_shapes(obj_transform=hip_o_ctrl, offset=spine_scale / 7)
+        rotate_shapes(obj_transform=hip_o_ctrl, offset=(90, 0, 90))
+        # translate_shapes(obj_transform=hip_o_ctrl, offset=(0, hip_end_distance*1.1, 0))  # Move Above hip
+        set_color_viewport(obj_list= hip_o_ctrl, rgb_color=ColorConstants.RigJoint.OFFSET)
+        hierarchy_utils.parent(source_objects=hip_o_ctrl, target_parent=hip_ctrl)
+        # Hip Offset Data Transform
+        hip_o_data = self._assemble_ctrl_name(name=self.hip.get_name(),
+                                               overwrite_suffix=NamingConstants.Suffix.OFFSET_DATA)
+        hip_o_data = cmds.group(name=hip_o_data, empty=True, world=True)
+        hip_o_data = Node(hip_o_data)
+        self.add_driver_uuid_attr(target=hip_o_data,
+                                  driver_type=RiggerDriverTypes.OFFSET,
+                                  proxy_purpose=self.hip)
+        hierarchy_utils.parent(source_objects=hip_o_data, target_parent=hip_ctrl)
+        # Connections
+        cmds.connectAttr(f'{hip_o_ctrl}.translate', f'{hip_o_data}.translate')
+        cmds.connectAttr(f'{hip_o_ctrl}.rotate', f'{hip_o_data}.rotate')
+        cmds.parentConstraint(hip_o_data, hip_jnt, maintainOffset=True)
+        # Attributes
+        set_attr_state(attribute_path=f"{hip_o_ctrl}.v", hidden=True)  # Hide and Lock Visibility
+        add_separator_attr(target_object=hip_o_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
+        expose_rotation_order(hip_o_ctrl)
+        cmds.addAttr(hip_ctrl, ln='showOffsetCtrl', at='bool', k=True)
+        cmds.connectAttr(f'{hip_ctrl}.showOffsetCtrl', f'{hip_o_ctrl}.v')
+
 
         # FK Controls
         spine_ctrls = []
@@ -312,7 +344,7 @@ class ModuleSpine(ModuleGeneric):
             cmds.parentConstraint(spine_ctrl, fk_jnt, maintainOffset=True)
             last_mid_parent_ctrl = spine_ctrl
 
-        # Chest Control
+        # Chest Control --------------------------------------------------------------------------------
         chest_ctrl = self._assemble_ctrl_name(name=self.chest.get_name())
         chest_ctrl = create_ctrl_curve(name=chest_ctrl, curve_file_name="_cube")
         self.add_driver_uuid_attr(target=chest_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.chest)
