@@ -55,7 +55,7 @@ class ModuleSpine(ModuleGeneric):
         self.chest.set_initial_position(xyz=pos_chest)
         self.chest.set_locator_scale(scale=1.5)
         self.chest.set_meta_purpose(value="chest")
-        self.chest.add_driver_type(driver_type=["fk"])
+        self.chest.add_driver_type(driver_type=[RiggerDriverTypes.OFFSET, RiggerDriverTypes.FK])
 
         # Spines (In-between)
         self.spines = []
