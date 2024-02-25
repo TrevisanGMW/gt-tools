@@ -226,7 +226,7 @@ class TestColorUtils(unittest.TestCase):
         maya_test_tools.cmds.setAttr(f'{cube}.tx', -5)
         result = color_utils.get_directional_color(object_name=cube, axis="X")
         from gt.utils.color_utils import ColorConstants
-        expected = ColorConstants.RigControl.LEFT
+        expected = ColorConstants.RigControl.RIGHT
         self.assertEqual(expected, result)
 
     def test_get_directional_color_x_pos_right(self):
@@ -234,7 +234,7 @@ class TestColorUtils(unittest.TestCase):
         maya_test_tools.cmds.setAttr(f'{cube}.tx', 5)
         result = color_utils.get_directional_color(object_name=cube, axis="X")
         from gt.utils.color_utils import ColorConstants
-        expected = ColorConstants.RigControl.RIGHT
+        expected = ColorConstants.RigControl.LEFT
         self.assertEqual(expected, result)
 
     def test_get_directional_color_y_center(self):
@@ -250,7 +250,7 @@ class TestColorUtils(unittest.TestCase):
         maya_test_tools.cmds.setAttr(f'{cube}.ty', 5)
         result = color_utils.get_directional_color(object_name=cube, axis="Y")
         from gt.utils.color_utils import ColorConstants
-        expected = ColorConstants.RigControl.RIGHT
+        expected = ColorConstants.RigControl.LEFT
         self.assertEqual(expected, result)
 
     def test_get_directional_color_y_neg(self):
@@ -258,7 +258,7 @@ class TestColorUtils(unittest.TestCase):
         maya_test_tools.cmds.setAttr(f'{cube}.ty', -5)
         result = color_utils.get_directional_color(object_name=cube, axis="Y")
         from gt.utils.color_utils import ColorConstants
-        expected = ColorConstants.RigControl.LEFT
+        expected = ColorConstants.RigControl.RIGHT
         self.assertEqual(expected, result)
 
     def test_get_directional_color_z_center(self):
@@ -273,7 +273,7 @@ class TestColorUtils(unittest.TestCase):
         maya_test_tools.cmds.setAttr(f'{cube}.tz', -5)
         result = color_utils.get_directional_color(object_name=cube, axis="Z")
         from gt.utils.color_utils import ColorConstants
-        expected = ColorConstants.RigControl.LEFT
+        expected = ColorConstants.RigControl.RIGHT
         self.assertEqual(expected, result)
 
     def test_get_directional_color_z_pos(self):
@@ -281,7 +281,7 @@ class TestColorUtils(unittest.TestCase):
         maya_test_tools.cmds.setAttr(f'{cube}.tz', 5)
         result = color_utils.get_directional_color(object_name=cube, axis="Z")
         from gt.utils.color_utils import ColorConstants
-        expected = ColorConstants.RigControl.RIGHT
+        expected = ColorConstants.RigControl.LEFT
         self.assertEqual(expected, result)
 
     def test_get_directional_color_change(self):
@@ -320,5 +320,5 @@ class TestColorUtils(unittest.TestCase):
         maya_test_tools.cmds.setAttr(f'{cube}.tx', 0.11)
         result = color_utils.get_directional_color(object_name=cube, axis="X", tolerance=0.1)
         from gt.utils.color_utils import ColorConstants
-        expected = ColorConstants.RigControl.RIGHT
+        expected = ColorConstants.RigControl.LEFT
         self.assertEqual(expected, result)

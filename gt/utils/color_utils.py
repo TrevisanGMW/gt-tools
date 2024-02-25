@@ -473,9 +473,9 @@ def add_side_color_setup(obj, color_attr_name="autoColor",
 
 
 def get_directional_color(object_name, axis="X",
-                          negative_color=ColorConstants.RigControl.LEFT,
+                          negative_color=ColorConstants.RigControl.RIGHT,
                           center_color=ColorConstants.RigControl.CENTER,
-                          positive_color=ColorConstants.RigControl.RIGHT,
+                          positive_color=ColorConstants.RigControl.LEFT,
                           tolerance=0.001):  # Add the new tolerance argument with a default value
     """
     Retrieves the color based on the world position along a specified axis for the given object.
