@@ -289,8 +289,7 @@ class ModuleSpine(ModuleGeneric):
         hip_o_ctrl = create_ctrl_curve(name=hip_o_ctrl, curve_file_name="_wavy_circle_pos_x")
         match_transform(source=hip_ctrl, target_list=hip_o_ctrl)
         scale_shapes(obj_transform=hip_o_ctrl, offset=spine_scale / 7)
-        rotate_shapes(obj_transform=hip_o_ctrl, offset=(90, 0, 90))
-        # translate_shapes(obj_transform=hip_o_ctrl, offset=(0, hip_end_distance*1.1, 0))  # Move Above hip
+        rotate_shapes(obj_transform=hip_o_ctrl, offset=(90, 0, 90))  # Undo rotate offset
         set_color_viewport(obj_list= hip_o_ctrl, rgb_color=ColorConstants.RigJoint.OFFSET)
         hierarchy_utils.parent(source_objects=hip_o_ctrl, target_parent=hip_ctrl)
         # Hip Offset Data Transform
@@ -314,7 +313,7 @@ class ModuleSpine(ModuleGeneric):
         cmds.connectAttr(f'{hip_ctrl}.showOffsetCtrl', f'{hip_o_ctrl}.v')
 
 
-        # FK Controls
+        # FK Controls ----------------------------------------------------------------------------------
         spine_ctrls = []
         last_mid_parent_ctrl = cog_ctrl
         for spine_proxy, fk_jnt in zip(self.spines, mid_fk_list):
@@ -361,6 +360,38 @@ class ModuleSpine(ModuleGeneric):
         set_attr_state(attribute_path=f"{chest_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
         add_separator_attr(target_object=chest_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
         expose_rotation_order(chest_ctrl)
+
+        # Chest Offset Ctrl
+        chest_o_ctrl = self._assemble_ctrl_name(name=self.chest.get_name(),
+                                                overwrite_suffix=NamingConstants.Suffix.OFFSET_CTRL)
+        chest_o_ctrl = create_ctrl_curve(name=chest_o_ctrl, curve_file_name="_cube")
+        match_transform(source=chest_ctrl, target_list=chest_o_ctrl)
+        translate_shapes(obj_transform=chest_o_ctrl, offset=(1.1, 0, 0))  # Move Pivot Slightly below base
+        scale_shapes(obj_transform=chest_o_ctrl, offset=_shape_scale)
+        scale_shapes(obj_transform=chest_o_ctrl, offset=.9)
+        rotate_shapes(obj_transform=chest_o_ctrl, offset=(90, 0, 90))  # Undo rotate offset
+        set_color_viewport(obj_list=chest_o_ctrl, rgb_color=ColorConstants.RigJoint.OFFSET)
+        hierarchy_utils.parent(source_objects=chest_o_ctrl, target_parent=chest_ctrl)
+        # Chest Offset Data Transform
+        chest_o_data = self._assemble_ctrl_name(name=self.chest.get_name(),
+                                                overwrite_suffix=NamingConstants.Suffix.OFFSET_DATA)
+        chest_o_data = cmds.group(name=chest_o_data, empty=True, world=True)
+        chest_o_data = Node(chest_o_data)
+        self.add_driver_uuid_attr(target=chest_o_data,
+                                  driver_type=RiggerDriverTypes.OFFSET,
+                                  proxy_purpose=self.chest)
+        hierarchy_utils.parent(source_objects=chest_o_data, target_parent=chest_ctrl)
+        # Connections
+        cmds.connectAttr(f'{chest_o_ctrl}.translate', f'{chest_o_data}.translate')
+        cmds.connectAttr(f'{chest_o_ctrl}.rotate', f'{chest_o_data}.rotate')
+        cmds.parentConstraint(chest_o_data, chest_jnt, maintainOffset=True)
+        # Attributes
+        set_attr_state(attribute_path=f"{chest_o_ctrl}.v", hidden=True)  # Hide and Lock Visibility
+        add_separator_attr(target_object=chest_o_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
+        expose_rotation_order(chest_o_ctrl)
+        cmds.addAttr(chest_ctrl, ln='showOffsetCtrl', at='bool', k=True)
+        cmds.connectAttr(f'{chest_ctrl}.showOffsetCtrl', f'{chest_o_ctrl}.v')
+
 
         # Constraints FK -> Base
         for fk_jnt_zip in zip(fk_joints, module_jnt_list):
