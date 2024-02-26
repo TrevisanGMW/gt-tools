@@ -93,17 +93,25 @@ def find_drivers_from_joint(source_joint, as_list=False):
     return found_drivers
 
 
-def find_objects_with_attr(attr_name, obj_type="transform", transform_lookup=True):
+def find_objects_with_attr(attr_name, obj_type="transform", transform_lookup=True, lookup_list=None):
     """
     Return object if provided UUID is present in it
     Args:
         attr_name (string): Name of the attribute where the UUID is stored.
         obj_type (str, optional): Type of objects to look for (default is "transform")
         transform_lookup (bool, optional): When not a transform, it checks the item parent instead of the item itself.
+        lookup_list (list, optional): If provided, this list will be used instead of a full "ls" type query.
+                                      This can be used to improve performance in case the element was already
+                                      previously listed in another operation. List should use full paths.
+                                      e.g. ["|itemOne", "|transform|itemTwo"]
+
     Returns:
         Node or None: If found, the object with a matching UUID, otherwise None
     """
-    obj_list = cmds.ls(typ=obj_type, long=True) or []
+    if isinstance(lookup_list, list):
+        obj_list = lookup_list
+    else:
+        obj_list = cmds.ls(typ=obj_type, long=True) or []
     for obj in obj_list:
         if transform_lookup and obj_type != "transform":
             _parent = cmds.listRelatives(obj, parent=True, fullPath=True) or []
