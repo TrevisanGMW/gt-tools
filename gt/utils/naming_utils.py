@@ -23,31 +23,34 @@ class NamingConstants:
             <description> : camelCase description of the object. e.g. "circleDirection"
             <sequence> : multiple objects with the same name, may include a number or letter. e.g. "01" or "B"
             <type> : object type (what it represents in the scene) e.g. "jnt" for joint or "grp" for group.
-            e.g. "lf_mid_eyebrow01_jnt", "cn_hip_jnt", "cn_jaw_jnt"
+            e.g.
+                "rt_inner_eyelid01_ik_ctrl",
+                "lf_mid_eyebrow01_jnt",
+                "cn_hip_jnt",
+                "cn_jaw_jnt"
         """
     class Prefix:
-        # Prefixes
         LEFT = "lf"
         RIGHT = "rt"
         CENTER = "cn"
 
     class Suffix:
-        # Suffixes
-        END = "end"  # Last object in a hierarchy
         CTRL = 'ctrl'  # Control
         CRV = 'crv'  # Curve
         GRP = 'grp'  # Group
         JNT = 'jnt'  # Joint
         MAT = 'mat'  # Material
         LOC = 'loc'  # Locator
-        OFFSET = 'offset'  # Offset Transform
-        OFFSET_CTRL = 'offsetCtrl'  # Offset Ctrl
-        OFFSET_DATA = 'offsetData'  # Offset Data
-        PROXY = 'proxy'
-        DRIVEN = 'driven'
-        IK_HANDLE_SC = "ikSC"
-        IK_HANDLE_RP = "ikRP"
-        IK_HANDLE_SPRING = "ikSpring"
+        END = "end"  # Last object in a hierarchy
+        OFFSET = 'offset'  # Offset Transform (control parent)
+        OFFSET_CTRL = 'offsetCtrl'  # Offset control of an existing control
+        OFFSET_DATA = 'offsetData'  # Offset data from an offset control
+        PROXY = 'proxy'  # Intermediary or placeholder for another object
+        DRIVEN = 'driven'  # Is controlled by something (driven)
+        DRIVER = 'driver'  # Controls something (driver)
+        IK_HANDLE_SC = "ikSC"  # Single-Chain Solver
+        IK_HANDLE_RP = "ikRP"  # Rotate-Plane Solver
+        IK_HANDLE_SPRING = "ikSpring"  # Spring Solver
 
     class Position:
         MID = "mid"  # - center (other positions go clockwise starting at 12 o'clock)
@@ -63,6 +66,8 @@ class NamingConstants:
     class Description:
         OFFSET = "offset"
         PIVOT = "pivot"
+        FK = "fk"  # Forward kinematics
+        IK = "ik"  # Inverse kinematics
 
 
 def get_long_name(short_name):
