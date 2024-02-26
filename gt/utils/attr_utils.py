@@ -731,11 +731,11 @@ def add_separator_attr(target_object, attr_name="separator", custom_value=None):
         attr_name (str, optional): Name of the attribute to add. Use camelCase for this string as it will obey the
                                    "niceName" pattern in Maya. e.g. "niceName" = "Nice Name"
         custom_value (str, None, optional): Enum value for the separator value.
-                                               If not provided, default is "-------------".
+                                               If not provided, default is "--------------". (14x "-")
     Returns:
         str: Full path to created attribute. 'target_object.attr_name'
     """
-    separator_value = "-"*13
+    separator_value = "-"*14
     if custom_value:
         separator_value = custom_value
     attribute_path = f'{target_object}.{attr_name}'
