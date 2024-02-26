@@ -29,10 +29,16 @@ class NamingConstants:
                 "cn_hip_jnt",
                 "cn_jaw_jnt"
         """
+    class Description:
+        OFFSET = 'offset'
+        PIVOT = 'pivot'
+        FK = 'fk'  # Forward kinematics
+        IK = 'ik'  # Inverse kinematics
+
     class Prefix:
-        LEFT = "lf"
-        RIGHT = "rt"
-        CENTER = "cn"
+        LEFT = 'lf'
+        RIGHT = 'rt'
+        CENTER = 'cn'
 
     class Suffix:
         CTRL = 'ctrl'  # Control
@@ -41,33 +47,31 @@ class NamingConstants:
         JNT = 'jnt'  # Joint
         MAT = 'mat'  # Material
         LOC = 'loc'  # Locator
-        END = "end"  # Last object in a hierarchy
+        END = 'end'  # Last object in a hierarchy
         OFFSET = 'offset'  # Offset Transform (control parent)
         OFFSET_CTRL = 'offsetCtrl'  # Offset control of an existing control
         OFFSET_DATA = 'offsetData'  # Offset data from an offset control
         PROXY = 'proxy'  # Intermediary or placeholder for another object
         DRIVEN = 'driven'  # Is controlled by something (driven)
         DRIVER = 'driver'  # Controls something (driver)
-        IK_HANDLE_SC = "ikSC"  # Single-Chain Solver
-        IK_HANDLE_RP = "ikRP"  # Rotate-Plane Solver
-        IK_HANDLE_SPRING = "ikSpring"  # Spring Solver
+        IK_HANDLE_SC = 'ikSC'  # Single-Chain Solver
+        IK_HANDLE_RP = 'ikRP'  # Rotate-Plane Solver
+        IK_HANDLE_SPRING = 'ikSpring'  # Spring Solver
+        # IK Suffixes
+        IK_CTRL = f'ik_{CTRL}'  # Same as CTRL but with an extra "ik" description
+        IK_O_CTRL = f'ik_{OFFSET_CTRL}'  # Offset Control
+        IK_O_DATA = f'ik_{OFFSET_DATA}'  # Offset Data
 
     class Position:
-        MID = "mid"  # - center (other positions go clockwise starting at 12 o'clock)
-        UPPER = "upper"  # ^
-        INNER_UP = "inUp"  # >^
-        INNER = "inner"  # >
-        INNER_LO = "inLo"  # >v
-        LOWER = "lower"  # v
-        OUTER_LO = "outLo"  # <v
-        OUTER = "outer"  # <
-        OUTER_UP = "outUp"  # <^
-
-    class Description:
-        OFFSET = "offset"
-        PIVOT = "pivot"
-        FK = "fk"  # Forward kinematics
-        IK = "ik"  # Inverse kinematics
+        MID = 'mid'  # - center (other positions go clockwise starting at 12 o'clock)
+        UPPER = 'upper'  # ^
+        INNER_UP = 'inUp'  # >^
+        INNER = 'inner'  # >
+        INNER_LO = 'inLo'  # >v
+        LOWER = 'lower'  # v
+        OUTER_LO = 'outLo'  # <v
+        OUTER = 'outer'  # <
+        OUTER_UP = 'outUp'  # <^
 
 
 def get_long_name(short_name):
