@@ -1169,12 +1169,13 @@ def translate_shapes(obj_transform, offset):
         cmds.move(*offset, components, relative=True, objectSpace=True)
 
 
-def rotate_shapes(obj_transform, offset):
+def rotate_shapes(obj_transform, offset, pivot=None):
     """
     Rotates the shape of an object without affecting its transform.
     Args:
         obj_transform (str): The transform node of the object.
         offset (tuple): The rotation offset in degrees (X, Y, Z).
+        pivot (tuple, optional): The pivot point for rotating the shape (X, Y, Z). If None, object's pivot is used.
     """
     shapes = cmds.listRelatives(obj_transform, shapes=True, fullPath=True) or []
     if not shapes:
@@ -1183,10 +1184,13 @@ def rotate_shapes(obj_transform, offset):
     for shape in shapes:
         from gt.utils.hierarchy_utils import get_shape_components
         components = get_shape_components(shape)
-        cmds.rotate(*offset, components, relative=True, objectSpace=True)
+        _rotate_parameters = {"relative": True, "objectSpace": True}
+        if pivot:
+            _rotate_parameters["pivot"] = pivot
+        cmds.rotate(*offset, components, **_rotate_parameters)
 
 
-def scale_shapes(obj_transform, offset):
+def scale_shapes(obj_transform, offset, pivot=None):
     """
     Rotates the shape of an object without affecting its transform.
     Args:
@@ -1194,6 +1198,7 @@ def scale_shapes(obj_transform, offset):
         offset (tuple, float, int): The scale offset in degrees (X, Y, Z).
                                           If a float or an integer is provided, it will be used as X, Y and Z.
                                           e.g. 0.5 = (0.5, 0.5, 0.5)
+        pivot (tuple, optional): The pivot point for scaling in the shape (X, Y, Z). If None, object's pivot is used.
     """
     shapes = cmds.listRelatives(obj_transform, shapes=True, fullPath=True) or []
     if not shapes:
@@ -1204,7 +1209,10 @@ def scale_shapes(obj_transform, offset):
     for shape in shapes:
         from gt.utils.hierarchy_utils import get_shape_components
         components = get_shape_components(shape)
-        cmds.scale(*offset, components, relative=True, objectSpace=True)
+        _scale_parameters = {"relative": True, "objectSpace": True}
+        if pivot:
+            _scale_parameters["pivot"] = pivot
+        cmds.scale(*offset, components, **_scale_parameters)
 
 
 def get_component_positions_as_dict(obj_transform, full_path=True, world_space=True):
@@ -1280,4 +1288,4 @@ if __name__ == "__main__":
     # transform = Transform()
     # transform.set_position(0, 10, 0)
     # transform.apply_transform('pSphere1')
-    rotate_shapes(cmds.ls(selection=True)[0], offset=(0, 0, -90))
+    rotate_shapes(cmds.ls(selection=True)[0], offset=(0, 0, -90), pivot=(0, 2, 0))

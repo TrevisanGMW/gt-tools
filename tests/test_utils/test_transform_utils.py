@@ -1396,7 +1396,7 @@ class TestTransformUtils(unittest.TestCase):
                     [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]]
         self.assertEqual(expected, cv_positions)
 
-        transform_utils.rotate_shapes(obj_transform=crv, offset=(90, 0, 0))
+        transform_utils.rotate_shapes(obj_transform=crv, offset=(90, 0, 0), pivot=None)
 
         cv_positions = []
         for i in range(num_cvs):
@@ -1405,6 +1405,33 @@ class TestTransformUtils(unittest.TestCase):
 
         expected = [[0.0, -1.0, 0.0], [0.0, -0.667, 0.0], [0.0, 0.0, 0.0],
                     [0.0, 1.0, 0.0], [0.0, 1.667, 0.0], [0.0, 2.0, 0.0]]
+        self.assertEqual(expected, cv_positions)
+
+    def test_rotate_shapes_pivot(self):
+        crv = maya_test_tools.cmds.curve(point=[[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
+                                                [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]],
+                                         degree=3, name='mocked_curve')
+
+        num_cvs = maya_test_tools.cmds.getAttr(f"{crv}.spans")
+        num_cvs += maya_test_tools.cmds.getAttr(f"{crv}.degree")
+        cv_positions = []
+        for i in range(num_cvs):
+            cv_position = maya_test_tools.cmds.pointPosition(f"{crv}.cv[{i}]", world=True)
+            cv_positions.append(cv_position)
+
+        expected = [[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
+                    [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]]
+        self.assertEqual(expected, cv_positions)
+
+        transform_utils.rotate_shapes(obj_transform=crv, offset=(0, 90, 0), pivot=(5, 0, 0))
+
+        cv_positions = []
+        for i in range(num_cvs):
+            cv_position = maya_test_tools.cmds.pointPosition(f"{crv}.cv[{i}]", world=True)
+            cv_positions.append(cv_position)
+
+        expected = [[6.0, 0.0, 5.0], [5.667, 0.0, 5.0], [5.0, 0.0, 5.0],
+                    [4.0, 0.0, 5.0], [3.333, 0.0, 5.0], [3.0, 0.0, 5.0]]
         self.assertEqual(expected, cv_positions)
 
     def test_scale_shapes_integer(self):
@@ -1423,7 +1450,7 @@ class TestTransformUtils(unittest.TestCase):
                     [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]]
         self.assertEqual(expected, cv_positions)
 
-        transform_utils.scale_shapes(obj_transform=crv, offset=2)
+        transform_utils.scale_shapes(obj_transform=crv, offset=2, pivot=None)
 
         cv_positions = []
         for i in range(num_cvs):
@@ -1450,7 +1477,7 @@ class TestTransformUtils(unittest.TestCase):
                     [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]]
         self.assertEqual(expected, cv_positions)
 
-        transform_utils.scale_shapes(obj_transform=crv, offset=(2, 1, 1))
+        transform_utils.scale_shapes(obj_transform=crv, offset=(2, 1, 1), pivot=None)
 
         cv_positions = []
         for i in range(num_cvs):
@@ -1459,6 +1486,33 @@ class TestTransformUtils(unittest.TestCase):
 
         expected = [[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
                     [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]]
+        self.assertEqual(expected, cv_positions)
+
+    def test_scale_shapes_pivot(self):
+        crv = maya_test_tools.cmds.curve(point=[[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
+                                                [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]],
+                                         degree=3, name='mocked_curve')
+
+        num_cvs = maya_test_tools.cmds.getAttr(f"{crv}.spans")
+        num_cvs += maya_test_tools.cmds.getAttr(f"{crv}.degree")
+        cv_positions = []
+        for i in range(num_cvs):
+            cv_position = maya_test_tools.cmds.pointPosition(f"{crv}.cv[{i}]", world=True)
+            cv_positions.append(cv_position)
+
+        expected = [[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
+                    [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]]
+        self.assertEqual(expected, cv_positions)
+
+        transform_utils.scale_shapes(obj_transform=crv, offset=(2, 1, 1), pivot=(1, 2, 1))
+
+        cv_positions = []
+        for i in range(num_cvs):
+            cv_position = maya_test_tools.cmds.pointPosition(f"{crv}.cv[{i}]", world=True)
+            cv_positions.append(cv_position)
+
+        expected = [[-1.0, 0.0, 1.0], [-1.0, 0.0, 0.667], [-1.0, 0.0, 0.0],
+                    [-1.0, 0.0, -1.0], [-1.0, 0.0, -1.667], [-1.0, 0.0, -2.0]]
         self.assertEqual(expected, cv_positions)
 
     def test_get_component_positions_as_dict_world_space(self):
