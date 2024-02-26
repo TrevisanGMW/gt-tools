@@ -32,6 +32,9 @@ class ModuleBipedLeg(ModuleGeneric):
     icon = resource_library.Icon.rigger_module_biped_leg
     allow_parenting = True
 
+    # Reference Attributes
+    REF_ATTR_KNEE_PROXY_PV = "kneeProxyPoleVectorLookupAttr"
+
     def __init__(self, name="Leg", prefix=None, suffix=None):
         super().__init__(name=name, prefix=prefix, suffix=suffix)
 
@@ -194,17 +197,18 @@ class ModuleBipedLeg(ModuleGeneric):
         cmds.pointConstraint([hip, ankle], knee_offset)
 
         knee_pv_dir = cmds.spaceLocator(name=f'{knee_tag}_poleVectorDir')[0]
+        add_attr(obj_list=knee_pv_dir, attributes=ModuleBipedLeg.REF_ATTR_KNEE_PROXY_PV, attr_type="string")
         match_translate(source=knee, target_list=knee_pv_dir)
         cmds.move(0, 0, 13, knee_pv_dir, relative=True)  # More it forward (in front of the knee)
         hierarchy_utils.parent(knee_pv_dir, knee)
 
         # Lock Knee Unstable Channels
         cmds.addAttr(knee, ln='lockTranslateX', at='bool', k=True, niceName="Lock Unstable Channel")
-        cmds.setAttr(knee + '.lockTranslateX', 1)  # Active by default
-        cmds.setAttr(knee + '.minTransXLimit', 0)
-        cmds.setAttr(knee + '.maxTransXLimit', 0)
-        cmds.connectAttr(knee + '.lockTranslateX', knee + '.minTransXLimitEnable')
-        cmds.connectAttr(knee + '.lockTranslateX', knee + '.maxTransXLimitEnable')
+        cmds.setAttr(f'{knee}.lockTranslateX', 1)  # Active by default
+        cmds.setAttr(f'{knee}.minTransXLimit', 0)
+        cmds.setAttr(f'{knee}.maxTransXLimit', 0)
+        cmds.connectAttr(f'{knee}.lockTranslateX', f'{knee}.minTransXLimitEnable')
+        cmds.connectAttr(f'{knee}.lockTranslateX', f'{knee}.maxTransXLimitEnable')
 
         #  Knee Constraints (Limits)
         knee_dir_loc = cmds.spaceLocator(name=f'{knee_tag}_dirParent_{NamingConstants.Suffix.LOC}')[0]
@@ -432,20 +436,34 @@ class ModuleBipedLeg(ModuleGeneric):
 
         # IK Controls --------------------------------------------------------------------------------------
 
-        # # IK Knee Control
-        # ik_suffix = f'{NamingConstants.Description.IK}_{NamingConstants.Suffix.CTRL}'
-        # knee_ik_ctrl = self._assemble_ctrl_name(name=self.knee.get_name(),
-        #                                      overwrite_suffix=ik_suffix)
-        # knee_ik_ctrl = create_ctrl_curve(name=knee_ik_ctrl, curve_file_name="_locator")
-        # self.add_driver_uuid_attr(target=knee_ik_ctrl, driver_type=RiggerDriverTypes.IK, proxy_purpose=self.knee)
-        # knee_offset = add_offset_transform(target_list=knee_ik_ctrl)[0]
-        # knee_offset = Node(knee_offset)
-        # match_translate(source=knee_jnt, target_list=knee_offset)
-        # scale_shapes(obj_transform=knee_ik_ctrl, offset=leg_scale * .05)
-        # hierarchy_utils.parent(source_objects=knee_offset, target_parent=direction_crv)
-        # # cmds.parentConstraint(knee_ctrl, knee_fk, maintainOffset=True)
-        # color = get_directional_color(object_name=knee_ik_ctrl)
-        # set_color_viewport(obj_list=knee_ik_ctrl, rgb_color=color)
+        # IK Knee Control
+        ik_suffix = f'{NamingConstants.Description.IK}_{NamingConstants.Suffix.CTRL}'
+        knee_ik_ctrl = self._assemble_ctrl_name(name=self.knee.get_name(),
+                                             overwrite_suffix=ik_suffix)
+        knee_ik_ctrl = create_ctrl_curve(name=knee_ik_ctrl, curve_file_name="_locator")
+        self.add_driver_uuid_attr(target=knee_ik_ctrl, driver_type=RiggerDriverTypes.IK, proxy_purpose=self.knee)
+        knee_offset = add_offset_transform(target_list=knee_ik_ctrl)[0]
+        knee_offset = Node(knee_offset)
+        match_translate(source=knee_jnt, target_list=knee_offset)
+        scale_shapes(obj_transform=knee_ik_ctrl, offset=leg_scale * .05)
+        hierarchy_utils.parent(source_objects=knee_offset, target_parent=direction_crv)
+        # cmds.parentConstraint(knee_ctrl, knee_fk, maintainOffset=True)
+        color = get_directional_color(object_name=knee_ik_ctrl)
+        set_color_viewport(obj_list=knee_ik_ctrl, rgb_color=color)
+
+        # Find Pole Vector Position
+        knee_proxy = find_proxy_from_uuid(uuid_string=self.knee.get_uuid())
+        knee_proxy_children = cmds.listRelatives(knee_proxy, children=True, typ="transform", fullPath=True) or []
+        knee_pv_dir = find_objects_with_attr(attr_name=ModuleBipedLeg.REF_ATTR_KNEE_PROXY_PV,
+                                             lookup_list=knee_proxy_children)
+
+        temp_transform = cmds.group(name=knee_ik_ctrl + '_rotExtraction', empty=True, world=True)
+        match_translate(source=knee_jnt, target_list=temp_transform)
+        cmds.delete(cmds.aimConstraint(knee_pv_dir, temp_transform, offset=(0, 0, 0), aimVector=(1, 0, 0),
+                                       upVector=(0, -1, 0), worldUpType='vector', worldUpVector=(0, 1, 0)))
+        cmds.move(leg_scale*.5, 0, 0, temp_transform, objectSpace=True, relative=True)
+        cmds.delete(cmds.pointConstraint(temp_transform, knee_offset))
+        cmds.delete(temp_transform)
 
         # # IK Foot Control
         # if not self.foot_ik_name, then get ankle
