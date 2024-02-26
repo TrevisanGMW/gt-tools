@@ -7,7 +7,7 @@ from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_fr
 from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, find_or_create_joint_automation_group
 from gt.tools.auto_rigger.rig_utils import find_direction_curve, create_ctrl_curve
 from gt.utils.color_utils import ColorConstants, set_color_viewport, set_color_outliner, get_directional_color
-from gt.utils.transform_utils import match_translate, Vector3, match_transform, scale_shapes
+from gt.utils.transform_utils import match_translate, Vector3, match_transform, scale_shapes, translate_shapes
 from gt.utils.attr_utils import add_attr, hide_lock_default_attrs, set_attr_state, set_attr
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
@@ -32,8 +32,9 @@ class ModuleBipedLeg(ModuleGeneric):
     icon = resource_library.Icon.rigger_module_biped_leg
     allow_parenting = True
 
-    # Reference Attributes
+    # Reference Attributes and Metadata Keys
     REF_ATTR_KNEE_PROXY_PV = "kneeProxyPoleVectorLookupAttr"
+    META_FOOT_IK_NAME = "footCtrlName"  # Metadata key for a custom name used for the foot ik control
 
     def __init__(self, name="Leg", prefix=None, suffix=None):
         super().__init__(name=name, prefix=prefix, suffix=suffix)
@@ -48,7 +49,14 @@ class ModuleBipedLeg(ModuleGeneric):
         ball_name = "ball"
         toe_name = "toe"
         heel_name = "heel"
+
+        # Foot Name Control - TODO @@@ Double check ---------------------
         self.foot_ik_name = "foot"
+        current_value = self.get_metadata_value(key=ModuleBipedLeg.META_FOOT_IK_NAME)
+        if not current_value:
+            self.add_to_metadata(key=ModuleBipedLeg.META_FOOT_IK_NAME, value=self.foot_ik_name)
+        else:
+            self.foot_ik_name = current_value
 
         # Default Proxies
         self.hip = Proxy(name=hip_name)
@@ -465,20 +473,33 @@ class ModuleBipedLeg(ModuleGeneric):
         cmds.delete(cmds.pointConstraint(temp_transform, knee_offset))
         cmds.delete(temp_transform)
 
-        # # IK Foot Control
-        # if not self.foot_ik_name, then get ankle
-        # foot_ctrl = self._assemble_ctrl_name(name=self.foot_ik_name,
-        #                                      overwrite_suffix=ik_suffix)
-        # foot_ctrl = create_ctrl_curve(name=foot_ctrl, curve_file_name="_cube")
-        # self.add_driver_uuid_attr(target=foot_ctrl, driver_type=RiggerDriverTypes.IK, proxy_purpose=self.ankle)
-        # foot_offset = add_offset_transform(target_list=foot_ctrl)[0]
-        # foot_offset = Node(foot_offset)
-        # # match_transform(source=foot_jnt, target_list=foot_offset)
+        # IK Foot Control
+        foot_ctrl = self.foot_ik_name if self.foot_ik_name else self.ankle.get_name()
+        foot_ctrl = self._assemble_ctrl_name(name=foot_ctrl,
+                                             overwrite_suffix=ik_suffix)
+        foot_ctrl = create_ctrl_curve(name=foot_ctrl, curve_file_name="_cube")
+        self.add_driver_uuid_attr(target=foot_ctrl, driver_type=RiggerDriverTypes.IK, proxy_purpose=self.ankle)
+        translate_shapes(obj_transform=foot_ctrl, offset=(0, 1, 0))  # Move Pivot to Base
+        foot_offset = add_offset_transform(target_list=foot_ctrl)[0]
+        foot_offset = Node(foot_offset)
+        # match_transform(source=foot_jnt, target_list=foot_offset)
         # scale_shapes(obj_transform=foot_ctrl, offset=foot_scale * .07)
-        # hierarchy_utils.parent(source_objects=foot_offset, target_parent=direction_crv)
-        # # cmds.parentConstraint(foot_ctrl, foot_fk, maintainOffset=True)
-        # color = get_directional_color(object_name=foot_ctrl)
-        # set_color_viewport(obj_list=foot_ctrl, rgb_color=color)
+        scale_shapes(obj_transform=foot_ctrl, offset=(foot_scale*.3, foot_scale*.15, foot_scale*.6))
+        hierarchy_utils.parent(source_objects=foot_offset, target_parent=direction_crv)
+        # cmds.parentConstraint(foot_ctrl, foot_fk, maintainOffset=True)
+
+        # Find Foot Position
+        ankle_proxy = find_proxy_from_uuid(uuid_string=self.ankle.get_uuid())
+        cmds.delete(cmds.pointConstraint([ankle_jnt, toe_jnt], foot_offset, skip='y'))
+        desired_rotation = cmds.xform(ankle_proxy, q=True, ro=True)
+        desired_translation = cmds.xform(ankle_proxy, q=True, t=True, ws=True)
+        cmds.setAttr(f'{foot_offset}.ry', desired_rotation[1])
+        # Foot Pivot Adjustment
+        cmds.xform(foot_offset, piv=desired_translation, ws=True)
+        cmds.xform(foot_ctrl, piv=desired_translation, ws=True)
+        # Foot Color
+        color = get_directional_color(object_name=foot_ctrl)
+        set_color_viewport(obj_list=foot_ctrl, rgb_color=color)
 
         # Set Children Drivers -----------------------------------------------------------------------------
         self.module_children_drivers = [hip_fk_offset]
@@ -557,6 +578,7 @@ if __name__ == "__main__":
     a_project.add_to_modules(a_leg_lf)
     a_project.add_to_modules(a_leg_rt)
     a_project.build_proxy()
+    cmds.setAttr(f'lf_ankle.ry', 30)
     a_project.build_rig()
 
     # Frame all
