@@ -304,7 +304,6 @@ class ModuleSpine(ModuleGeneric):
         # Connections
         cmds.connectAttr(f'{hip_o_ctrl}.translate', f'{hip_o_data}.translate')
         cmds.connectAttr(f'{hip_o_ctrl}.rotate', f'{hip_o_data}.rotate')
-        cmds.parentConstraint(hip_o_data, hip_jnt, maintainOffset=True)
         # Attributes
         set_attr_state(attribute_path=f"{hip_o_ctrl}.v", hidden=True)  # Hide and Lock Visibility
         add_separator_attr(target_object=hip_o_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
@@ -384,7 +383,6 @@ class ModuleSpine(ModuleGeneric):
         # Connections
         cmds.connectAttr(f'{chest_o_ctrl}.translate', f'{chest_o_data}.translate')
         cmds.connectAttr(f'{chest_o_ctrl}.rotate', f'{chest_o_data}.rotate')
-        cmds.parentConstraint(chest_o_data, chest_jnt, maintainOffset=True)
         # Attributes
         set_attr_state(attribute_path=f"{chest_o_ctrl}.v", hidden=True)  # Hide and Lock Visibility
         add_separator_attr(target_object=chest_o_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
