@@ -4,6 +4,7 @@ This script should not globally import "maya.cmds" as it's also intended to be u
 github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.string_utils import extract_digits_as_int
+import numbers
 import logging
 import pprint
 import re
@@ -355,6 +356,39 @@ def filter_list_by_type(input_list, data_type, num_items=None):
         _iterables = (str, list, tuple, dict)
         result_list = [item for item in result_list if isinstance(item, _iterables) and len(item) == num_items]
     return result_list
+
+
+def multiply_collection_by_number(collection, number):
+    """
+    Multiply all numeric elements in a collection by a given number.
+
+    Args:
+        collection (list or tuple): The collection of elements to multiply.
+        number (int, float, Decimal, Fraction): The number to multiply each numeric element by.
+
+    Returns:
+        list or tuple: The resulting collection with each numeric element multiplied by the given number.
+    """
+    if not isinstance(collection, (list, tuple)):
+        raise TypeError("Input collection must be a list or tuple")
+
+    def multiply_element(element):
+        """
+        Multiply a numeric element by a given number.
+        Args:
+            element (int, float): The numeric element to multiply.
+        Returns:
+            int or float: The result of multiplying the element by the given number.
+        """
+        if isinstance(element, numbers.Number):
+            return element * number
+        elif isinstance(element, (list, tuple)):
+            return multiply_collection_by_number(element, number)
+        else:
+            return element
+
+    return type(collection)(multiply_element(item) for item in collection)
+
 
 
 if __name__ == "__main__":

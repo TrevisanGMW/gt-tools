@@ -533,3 +533,42 @@ class TestIterableUtils(unittest.TestCase):
         result = iterable_utils.filter_list_by_type(input_list, desired_data_type, num_items=2)
         expected = [{"a": 1, "b": 2}]
         self.assertEqual(expected, result)
+
+    def test_multiply_collection_by_number_list_multiplication(self):
+        original_list = [1, 2, 3, 4]
+        multiplier = 0.5
+        expected = [0.5, 1, 1.5, 2]
+        result = iterable_utils.multiply_collection_by_number(original_list, multiplier)
+        self.assertEqual(expected, result)
+
+    def test_multiply_collection_by_number_tuple_multiplication(self):
+        original_tuple = (1, 2, 3, 4)
+        multiplier = 2
+        expected = (2, 4, 6, 8)
+        result = iterable_utils.multiply_collection_by_number(original_tuple, multiplier)
+        self.assertEqual(expected, result)
+
+    def test_multiply_collection_by_number_nested_list_multiplication(self):
+        original_list = [1, [2, 3], 4]
+        multiplier = 0.5
+        expected = [0.5, [1, 1.5], 2]
+        result = iterable_utils.multiply_collection_by_number(original_list, multiplier)
+        self.assertEqual(expected, result)
+
+    def test_multiply_collection_by_number_nested_tuple_multiplication(self):
+        original_tuple = (1, (2, 3), 4)
+        multiplier = 2
+        expected = (2, (4, 6), 8)
+        result = iterable_utils.multiply_collection_by_number(original_tuple, multiplier)
+        self.assertEqual(expected, result)
+
+    def test_multiply_collection_by_number_invalid_input_type(self):
+        with self.assertRaises(TypeError):
+            iterable_utils.multiply_collection_by_number(collection=123, number=0.5)
+
+    def test_multiply_collection_by_number_non_numeric_elements(self):
+        original_list = [1, 'a', 3, 'b']
+        multiplier = 2
+        expected = [2, 'a', 6, 'b']
+        result = iterable_utils.multiply_collection_by_number(original_list, multiplier)
+        self.assertEqual(expected, result)
