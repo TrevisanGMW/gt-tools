@@ -212,7 +212,7 @@ def get_bbox_position(obj_list, alignment=None, axis="x"):
 
         points = []
         for shape in shapes:
-            if cmds.objectType(shape) == 'nurbsSurface':
+            if cmds.objectType(shape) == 'nurbsSurface' or cmds.objectType(shape) == 'nurbsCurve':
                 cvs_count = cmds.getAttr(f'{shape}.controlPoints', size=True)
                 points.append(f'{shape}.cv[0:{cvs_count - 1}]')
             else:
@@ -259,8 +259,9 @@ def remap_value(value, old_range, new_range):
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    center = get_bbox_position("pSphere1")
-    print(center)
-    x, y, z = center
-    locator = cmds.spaceLocator()[0]
-    cmds.move(x, y, z, locator)
+    # center = get_bbox_position("pSphere1")
+    # print(center)
+    # x, y, z = center
+    # locator = cmds.spaceLocator()[0]
+    # cmds.move(x, y, z, locator)
+    print(get_bbox_position("combined_curve_01"))

@@ -190,6 +190,33 @@ class TestMathUtils(unittest.TestCase):
         result = math_utils.get_bbox_position(obj_list=obj_a)
         self.assertEqual(expected_result, result)
 
+    def test_get_bbox_center_single_object_nurbs_curve(self):
+        maya_test_tools.import_data_file("curves_nurbs_bezier.ma")
+        obj_a = "combined_curve_01"
+
+        expected_result = (6.5, 0.0, 1.5)
+        result = math_utils.get_bbox_position(obj_list=obj_a)
+        self.assertEqual(expected_result, result)
+
+        maya_test_tools.cmds.setAttr(f'{obj_a}.ty', 100.5)
+
+        expected_result = (6.5, 100.5, 1.5)
+        result = math_utils.get_bbox_position(obj_list=obj_a)
+        self.assertEqual(expected_result, result)
+
+    def test_get_bbox_center_single_object_nurbs_surface(self):
+        obj_a = maya_test_tools.cmds.nurbsPlane(name="plane_surface")[0]
+
+        expected_result = (0.0, 0.0, 0.0)
+        result = math_utils.get_bbox_position(obj_list=obj_a)
+        self.assertEqual(expected_result, result)
+
+        maya_test_tools.cmds.setAttr(f'{obj_a}.ty', 100.5)
+
+        expected_result = (0, 100.5, 0)
+        result = math_utils.get_bbox_position(obj_list=obj_a)
+        self.assertEqual(expected_result, result)
+
     def test_get_bbox_center_multiple_objects(self):
         obj_a = maya_test_tools.create_poly_cube(name="cube_a")
         obj_b = maya_test_tools.create_poly_cube(name="cube_b")
