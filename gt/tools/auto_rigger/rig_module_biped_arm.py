@@ -2,15 +2,18 @@
 Auto Rigger Arm Modules
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, rescale_joint_radius, duplicate_joint_for_automation
+from gt.tools.auto_rigger.rig_utils import duplicate_joint_for_automation, find_or_create_joint_automation_group
+from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, rescale_joint_radius, find_direction_curve
+from gt.tools.auto_rigger.rig_utils import create_ctrl_curve, get_proxy_offset, offset_control_orientation
 from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_from_uuid, get_driven_joint
-from gt.tools.auto_rigger.rig_utils import find_direction_curve, find_or_create_joint_automation_group
-from gt.utils.transform_utils import match_translate, Vector3, set_equidistant_transforms
-from gt.utils.color_utils import set_color_viewport, ColorConstants, set_color_outliner
+from gt.utils.color_utils import set_color_viewport, ColorConstants, set_color_outliner, get_directional_color
+from gt.utils.transform_utils import match_translate, match_transform, Vector3, set_equidistant_transforms
+from gt.utils.transform_utils import scale_shapes, rotate_shapes
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.utils.attr_utils import hide_lock_default_attrs, set_attr_state, set_attr
-from gt.tools.auto_rigger.rig_constants import RiggerConstants
-from gt.tools.auto_rigger.rig_utils import get_proxy_offset
+from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
+from gt.utils.iterable_utils import multiply_collection_by_number
+from gt.utils.hierarchy_utils import add_offset_transform
 from gt.utils.math_utils import dist_center_to_center
 from gt.utils.node_utils import Node, create_node
 from gt.utils.naming_utils import NamingConstants
@@ -30,7 +33,10 @@ class ModuleBipedArm(ModuleGeneric):
     __version__ = '0.0.2-alpha'
     icon = resource_library.Icon.rigger_module_biped_arm
     allow_parenting = True
-    FOREARM_ACTIVE_KEY = "twistForearm"
+
+    # Metadata Keys
+    META_FOREARM_ACTIVE = "forearmActive"  # Metadata key for forearm activation
+    META_FOREARM_NAME = "forearmName"  # Metadata key for a forearm name
 
     def __init__(self, name="Arm", prefix=None, suffix=None):
         super().__init__(name=name, prefix=prefix, suffix=suffix)
@@ -38,7 +44,8 @@ class ModuleBipedArm(ModuleGeneric):
         _orientation = OrientationData(aim_axis=(1, 0, 0), up_axis=(0, 0, 1), up_dir=(0, 1, 0))
         self.set_orientation(orientation_data=_orientation)
 
-        self.add_to_metadata(key=self.FOREARM_ACTIVE_KEY, value=True)
+        # Extra Module Data
+        self.add_to_metadata(key=self.META_FOREARM_ACTIVE, value=True)
 
         clavicle_name = "clavicle"
         shoulder_name = "shoulder"
@@ -260,7 +267,7 @@ class ModuleBipedArm(ModuleGeneric):
         for jnt in arm_jnt_list:
             set_color_viewport(obj_list=jnt, rgb_color=(.3, .3, 0))
 
-        # Get Scale
+        # Get General Scale
         arm_scale = dist_center_to_center(shoulder_jnt, elbow_jnt)
         arm_scale += dist_center_to_center(elbow_jnt, wrist_jnt)
 
@@ -306,14 +313,34 @@ class ModuleBipedArm(ModuleGeneric):
         set_attr(obj_list=forearm, attr_list="radius", value=forearm_radius)
 
         # Is Twist Activated
-        if self.get_metadata_value(self.FOREARM_ACTIVE_KEY) is True:
+        if self.get_metadata_value(self.META_FOREARM_ACTIVE) is True:
             print("Forearm is active")
 
         print(f'arm_scale: {arm_scale}')
         print("build arm rig!")
 
+        # Clavicle Control
+        clavicle_scale = dist_center_to_center(clavicle_jnt, shoulder_jnt)
+        clavicle_ctrl = self._assemble_ctrl_name(name=self.clavicle.get_name())
+        clavicle_ctrl = create_ctrl_curve(name=clavicle_ctrl, curve_file_name="_pin_pos_y")
+        self.add_driver_uuid_attr(target=clavicle_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.clavicle)
+        clavicle_offset = add_offset_transform(target_list=clavicle_ctrl)[0]
+        clavicle_offset = Node(clavicle_offset)
+        match_transform(source=clavicle_jnt, target_list=clavicle_offset)
+        scale_shapes(obj_transform=clavicle_ctrl, offset=clavicle_scale*.2)
+        module_orientation = self.get_orientation_data()
+        aim_axis = module_orientation.get_aim_axis()
+        rotate_offset = multiply_collection_by_number(collection=aim_axis, number=90)
+        rotate_shapes(obj_transform=clavicle_ctrl, offset=(rotate_offset[0], 30, 0))
+        offset_control_orientation(ctrl=clavicle_ctrl, offset_transform=clavicle_offset, orient_tuple=(90, 0, 0))
+        hierarchy_utils.parent(source_objects=clavicle_offset, target_parent=direction_crv)
+        cmds.parentConstraint(clavicle_ctrl, clavicle_jnt, maintainOffset=True)
+        color = get_directional_color(object_name=clavicle_ctrl)
+        set_color_viewport(obj_list=clavicle_ctrl, rgb_color=color)
+
+
         # Set Children Drivers -----------------------------------------------------------------------------
-        self.module_children_drivers = []
+        self.module_children_drivers = [clavicle_offset]
 
 
 class ModuleBipedArmLeft(ModuleBipedArm):
