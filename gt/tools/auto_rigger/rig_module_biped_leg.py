@@ -4,11 +4,11 @@ github.com/TrevisanGMW/gt-tools
 """
 from gt.tools.auto_rigger.rig_utils import duplicate_joint_for_automation, get_proxy_offset, rescale_joint_radius
 from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_from_uuid, get_driven_joint
+from gt.tools.auto_rigger.rig_utils import find_direction_curve, create_ctrl_curve, expose_rotation_order
 from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, find_or_create_joint_automation_group
-from gt.tools.auto_rigger.rig_utils import find_direction_curve, create_ctrl_curve
+from gt.utils.attr_utils import add_attr, hide_lock_default_attrs, set_attr_state, set_attr, add_separator_attr
 from gt.utils.color_utils import ColorConstants, set_color_viewport, set_color_outliner, get_directional_color
 from gt.utils.transform_utils import match_translate, Vector3, match_transform, scale_shapes, translate_shapes
-from gt.utils.attr_utils import add_attr, hide_lock_default_attrs, set_attr_state, set_attr
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
 from gt.utils.math_utils import dist_center_to_center, get_bbox_position
@@ -28,7 +28,7 @@ logger.setLevel(logging.INFO)
 
 
 class ModuleBipedLeg(ModuleGeneric):
-    __version__ = '0.0.1-alpha'
+    __version__ = '0.0.2-alpha'
     icon = resource_library.Icon.rigger_module_biped_leg
     allow_parenting = True
 
@@ -50,13 +50,8 @@ class ModuleBipedLeg(ModuleGeneric):
         toe_name = "toe"
         heel_name = "heel"
 
-        # Foot Name Control - TODO @@@ Double check ---------------------
-        self.foot_ik_name = "foot"
-        current_value = self.get_metadata_value(key=ModuleBipedLeg.META_FOOT_IK_NAME)
-        if not current_value:
-            self.add_to_metadata(key=ModuleBipedLeg.META_FOOT_IK_NAME, value=self.foot_ik_name)
-        else:
-            self.foot_ik_name = current_value
+        # Extra Module Data - TODO @@@ Double check ---------------------
+        self.add_to_metadata(key=ModuleBipedLeg.META_FOOT_IK_NAME, value="foot")
 
         # Default Proxies
         self.hip = Proxy(name=hip_name)
@@ -473,7 +468,8 @@ class ModuleBipedLeg(ModuleGeneric):
         cmds.delete(temp_transform)
 
         # IK Foot Control
-        foot_ctrl_name = self.foot_ik_name if self.foot_ik_name else self.ankle.get_name()
+        foot_ik_name = self.get_metadata_value(key=ModuleBipedLeg.META_FOOT_IK_NAME)
+        foot_ctrl_name = foot_ik_name if foot_ik_name else self.ankle.get_name()
         foot_ctrl = self._assemble_ctrl_name(name=foot_ctrl_name, overwrite_suffix=NamingConstants.Suffix.IK_CTRL)
         foot_ctrl = create_ctrl_curve(name=foot_ctrl, curve_file_name="_cube")
         self.add_driver_uuid_attr(target=foot_ctrl, driver_type=RiggerDriverTypes.IK, proxy_purpose=self.ankle)
@@ -511,10 +507,22 @@ class ModuleBipedLeg(ModuleGeneric):
         set_color_viewport(obj_list=foot_o_ctrl, rgb_color=color)
         foot_center = get_bbox_position(obj_list=foot_o_ctrl)
         scale_shapes(obj_transform=foot_o_ctrl, offset=0.9, pivot=foot_center)
-
+        add_separator_attr(target_object=foot_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
+        expose_rotation_order(foot_ctrl)
+        add_separator_attr(target_object=foot_o_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
+        expose_rotation_order(foot_o_ctrl)
 
         # Set Children Drivers -----------------------------------------------------------------------------
         self.module_children_drivers = [hip_fk_offset]
+
+    # ------------------------------------------- Extra Module Setters -------------------------------------------
+    def set_foot_ctrl_name(self, name):
+        """
+        Sets the foot control name by editing the metadata value associated with it.
+        Args:
+            name (str): New name for the IK foot control. If empty the ankle control will be used instead.
+        """
+        self.add_to_metadata(ModuleBipedLeg.META_FOOT_IK_NAME, value=name)
 
 
 class ModuleBipedLegLeft(ModuleBipedLeg):
