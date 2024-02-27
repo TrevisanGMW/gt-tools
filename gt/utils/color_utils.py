@@ -252,7 +252,9 @@ class ColorConstants:
         ROOT = (1, 0.17, 0.44)  # Soft Pink
         CENTER = (1, 1, 0)  # Yellow
         LEFT = (0.21, 0.45, 1)  # Soft Blue
-        RIGHT = (1, 0.1, 0.1)  # Soft Red
+        LEFT_OFFSET = (0.4, 0.7, 1)
+        RIGHT = (1, 0.15, 0.15)#(1, 0.1, 0.1)  # Soft Red
+        RIGHT_OFFSET = (1, 0.5, 0.5)
         OFFSET = (0.4, 0.4, 0)  # Dark Yellow
         PIVOT = (1, 0, 0)  # Red (Pure)
         END = (1, 0, 0)
