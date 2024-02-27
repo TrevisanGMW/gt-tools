@@ -11,8 +11,8 @@ from gt.utils.transform_utils import match_translate, Vector3, match_transform, 
 from gt.utils.attr_utils import add_attr, hide_lock_default_attrs, set_attr_state, set_attr
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
+from gt.utils.math_utils import dist_center_to_center, get_bbox_position
 from gt.utils.hierarchy_utils import add_offset_transform
-from gt.utils.math_utils import dist_center_to_center
 from gt.utils.naming_utils import NamingConstants
 from gt.utils.node_utils import create_node, Node
 from gt.utils.curve_utils import get_curve
@@ -395,7 +395,7 @@ class ModuleBipedLeg(ModuleGeneric):
         hip_fk_offset = add_offset_transform(target_list=hip_fk_ctrl)[0]
         hip_fk_offset = Node(hip_fk_offset)
         match_transform(source=hip_jnt, target_list=hip_fk_offset)
-        scale_shapes(obj_transform=hip_fk_ctrl, offset=leg_scale*.07)
+        scale_shapes(obj_transform=hip_fk_ctrl, offset=leg_scale*.1)
         hierarchy_utils.parent(source_objects=hip_fk_offset, target_parent=direction_crv)
         cmds.parentConstraint(hip_fk_ctrl, hip_fk, maintainOffset=True)
         color = get_directional_color(object_name=hip_fk_ctrl)
@@ -408,7 +408,7 @@ class ModuleBipedLeg(ModuleGeneric):
         knee_fk_offset = add_offset_transform(target_list=knee_fk_ctrl)[0]
         knee_fk_offset = Node(knee_fk_offset)
         match_transform(source=knee_jnt, target_list=knee_fk_offset)
-        scale_shapes(obj_transform=knee_fk_ctrl, offset=leg_scale * .07)
+        scale_shapes(obj_transform=knee_fk_ctrl, offset=leg_scale * .1)
         hierarchy_utils.parent(source_objects=knee_fk_offset, target_parent=hip_fk_ctrl)
         cmds.parentConstraint(knee_fk_ctrl, knee_fk, maintainOffset=True)
 
@@ -419,7 +419,7 @@ class ModuleBipedLeg(ModuleGeneric):
         ankle_fk_offset = add_offset_transform(target_list=ankle_fk_ctrl)[0]
         ankle_fk_offset = Node(ankle_fk_offset)
         match_transform(source=ankle_jnt, target_list=ankle_fk_offset)
-        scale_shapes(obj_transform=ankle_fk_ctrl, offset=leg_scale * .07)
+        scale_shapes(obj_transform=ankle_fk_ctrl, offset=leg_scale * .1)
         hierarchy_utils.parent(source_objects=ankle_fk_offset, target_parent=knee_fk_ctrl)
         cmds.parentConstraint(ankle_fk_ctrl, ankle_fk, maintainOffset=True)
         # Remove Ankle Shape Orientation
@@ -438,16 +438,15 @@ class ModuleBipedLeg(ModuleGeneric):
         ball_offset = add_offset_transform(target_list=ball_fk_ctrl)[0]
         ball_offset = Node(ball_offset)
         match_transform(source=ball_jnt, target_list=ball_offset)
-        scale_shapes(obj_transform=ball_fk_ctrl, offset=leg_scale * .07)
+        scale_shapes(obj_transform=ball_fk_ctrl, offset=foot_scale * .3)
         hierarchy_utils.parent(source_objects=ball_offset, target_parent=ankle_fk_ctrl)
         cmds.parentConstraint(ball_fk_ctrl, ball_fk, maintainOffset=True)
 
         # IK Controls --------------------------------------------------------------------------------------
 
         # IK Knee Control
-        ik_suffix = f'{NamingConstants.Description.IK}_{NamingConstants.Suffix.CTRL}'
         knee_ik_ctrl = self._assemble_ctrl_name(name=self.knee.get_name(),
-                                             overwrite_suffix=ik_suffix)
+                                             overwrite_suffix=NamingConstants.Suffix.IK_CTRL)
         knee_ik_ctrl = create_ctrl_curve(name=knee_ik_ctrl, curve_file_name="_locator")
         self.add_driver_uuid_attr(target=knee_ik_ctrl, driver_type=RiggerDriverTypes.IK, proxy_purpose=self.knee)
         knee_offset = add_offset_transform(target_list=knee_ik_ctrl)[0]
@@ -474,19 +473,16 @@ class ModuleBipedLeg(ModuleGeneric):
         cmds.delete(temp_transform)
 
         # IK Foot Control
-        foot_ctrl = self.foot_ik_name if self.foot_ik_name else self.ankle.get_name()
-        foot_ctrl = self._assemble_ctrl_name(name=foot_ctrl,
-                                             overwrite_suffix=ik_suffix)
+        foot_ctrl_name = self.foot_ik_name if self.foot_ik_name else self.ankle.get_name()
+        foot_ctrl = self._assemble_ctrl_name(name=foot_ctrl_name, overwrite_suffix=NamingConstants.Suffix.IK_CTRL)
         foot_ctrl = create_ctrl_curve(name=foot_ctrl, curve_file_name="_cube")
         self.add_driver_uuid_attr(target=foot_ctrl, driver_type=RiggerDriverTypes.IK, proxy_purpose=self.ankle)
         translate_shapes(obj_transform=foot_ctrl, offset=(0, 1, 0))  # Move Pivot to Base
         foot_offset = add_offset_transform(target_list=foot_ctrl)[0]
         foot_offset = Node(foot_offset)
-        # match_transform(source=foot_jnt, target_list=foot_offset)
-        # scale_shapes(obj_transform=foot_ctrl, offset=foot_scale * .07)
-        scale_shapes(obj_transform=foot_ctrl, offset=(foot_scale*.3, foot_scale*.15, foot_scale*.6))
+        foot_ctrl_scale = (foot_scale*.3, foot_scale*.15, foot_scale*.6)
+        scale_shapes(obj_transform=foot_ctrl, offset=foot_ctrl_scale)
         hierarchy_utils.parent(source_objects=foot_offset, target_parent=direction_crv)
-        # cmds.parentConstraint(foot_ctrl, foot_fk, maintainOffset=True)
 
         # Find Foot Position
         ankle_proxy = find_proxy_from_uuid(uuid_string=self.ankle.get_uuid())
@@ -500,6 +496,22 @@ class ModuleBipedLeg(ModuleGeneric):
         # Foot Color
         color = get_directional_color(object_name=foot_ctrl)
         set_color_viewport(obj_list=foot_ctrl, rgb_color=color)
+
+        # Duplicate for Offset Control And Create Data Transform
+        foot_o_ctrl = self._assemble_ctrl_name(name=foot_ctrl_name, overwrite_suffix=NamingConstants.Suffix.IK_O_CTRL)
+        foot_o_ctrl = cmds.duplicate(foot_ctrl, name=foot_o_ctrl)[0]
+        foot_o_data = self._assemble_ctrl_name(name=foot_ctrl_name, overwrite_suffix=NamingConstants.Suffix.IK_O_DATA)
+        foot_o_data = cmds.duplicate(foot_offset, parentOnly=True, name=foot_o_data)[0]
+        hierarchy_utils.parent(source_objects=[foot_o_ctrl, foot_o_data], target_parent=foot_ctrl)
+        cmds.connectAttr(f'{foot_o_ctrl}.translate', f'{foot_o_data}.translate', f=True)
+        cmds.connectAttr(f'{foot_o_ctrl}.rotate', f'{foot_o_data}.rotate', f=True)
+        color = get_directional_color(object_name=foot_ctrl,
+                                      negative_color=ColorConstants.RigControl.RIGHT_OFFSET,
+                                      positive_color=ColorConstants.RigControl.LEFT_OFFSET)
+        set_color_viewport(obj_list=foot_o_ctrl, rgb_color=color)
+        foot_center = get_bbox_position(obj_list=foot_o_ctrl)
+        scale_shapes(obj_transform=foot_o_ctrl, offset=0.9, pivot=foot_center)
+
 
         # Set Children Drivers -----------------------------------------------------------------------------
         self.module_children_drivers = [hip_fk_offset]
