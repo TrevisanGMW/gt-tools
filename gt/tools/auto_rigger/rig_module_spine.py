@@ -3,9 +3,9 @@ Auto Rigger Spine Modules
 github.com/TrevisanGMW/gt-tools
 """
 from gt.tools.auto_rigger.rig_utils import find_or_create_joint_automation_group, get_driven_joint, create_ctrl_curve
-from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, expose_rotation_order, find_drivers_from_joint
+from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, expose_rotation_order, offset_control_orientation
 from gt.tools.auto_rigger.rig_utils import find_proxy_from_uuid, find_direction_curve, rescale_joint_radius
-from gt.tools.auto_rigger.rig_utils import duplicate_joint_for_automation, offset_control_orientation
+from gt.tools.auto_rigger.rig_utils import duplicate_joint_for_automation
 from gt.utils.transform_utils import Vector3, scale_shapes, match_transform, translate_shapes, rotate_shapes
 from gt.utils.color_utils import ColorConstants, set_color_viewport, set_color_outliner
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
@@ -31,7 +31,7 @@ logger.setLevel(logging.INFO)
 
 
 class ModuleSpine(ModuleGeneric):
-    __version__ = '0.0.1-alpha'
+    __version__ = '0.0.2-alpha'
     icon = resource_library.Icon.rigger_module_spine
     allow_parenting = True
 
@@ -354,7 +354,6 @@ class ModuleSpine(ModuleGeneric):
         offset_control_orientation(ctrl=chest_ctrl, offset_transform=chest_offset, orient_tuple=(-90, -90, 0))
         chest_ctrl_parent = spine_ctrls[-1] if spine_ctrls else cog_ctrl  # Same as "last_mid_parent_ctrl"
         hierarchy_utils.parent(source_objects=chest_offset, target_parent=chest_ctrl_parent)
-        cmds.parentConstraint(chest_ctrl, chest_fk, maintainOffset=True)
         # Attributes
         set_attr_state(attribute_path=f"{chest_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
         add_separator_attr(target_object=chest_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
@@ -383,13 +382,13 @@ class ModuleSpine(ModuleGeneric):
         # Connections
         cmds.connectAttr(f'{chest_o_ctrl}.translate', f'{chest_o_data}.translate')
         cmds.connectAttr(f'{chest_o_ctrl}.rotate', f'{chest_o_data}.rotate')
+        cmds.parentConstraint(chest_o_data, chest_fk, maintainOffset=True)
         # Attributes
         set_attr_state(attribute_path=f"{chest_o_ctrl}.v", hidden=True)  # Hide and Lock Visibility
         add_separator_attr(target_object=chest_o_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
         expose_rotation_order(chest_o_ctrl)
         cmds.addAttr(chest_ctrl, ln='showOffsetCtrl', at='bool', k=True)
         cmds.connectAttr(f'{chest_ctrl}.showOffsetCtrl', f'{chest_o_ctrl}.v')
-
 
         # Constraints FK -> Base
         for fk_jnt_zip in zip(fk_joints, module_jnt_list):
