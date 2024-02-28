@@ -32,7 +32,8 @@ class RiggerConstants:
     META_PROXY_DRIVERS = "proxyDrivers"  # Metadata key, used to find drivers (aka controls) driving the created joint
     META_PROXY_CLR = "color"  # Metadata key, describes color to be used instead of side setup.
     # Separator Attributes
-    SEPARATOR_OPTIONS = "controlOptions"
+    SEPARATOR_OPTIONS = "options"
+    SEPARATOR_CONTROL = "controlOptions"
     # Group Names
     GRP_RIG_NAME = f'rig_{NamingConstants.Suffix.GRP}'
     GRP_PROXY_NAME = f'rig_proxy_{NamingConstants.Suffix.GRP}'

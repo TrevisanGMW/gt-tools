@@ -307,7 +307,7 @@ class ModuleHead(ModuleGeneric):
         cmds.parentConstraint(neck_base_ctrl, neck_base_jnt, maintainOffset=True)
         # Attributes
         set_attr_state(attribute_path=f"{neck_base_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
-        add_separator_attr(target_object=neck_base_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
+        add_separator_attr(target_object=neck_base_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
         expose_rotation_order(neck_base_ctrl)
 
         # Neck Mid Controls ----------------------------------------------------------------------------------
@@ -333,7 +333,7 @@ class ModuleHead(ModuleGeneric):
             hierarchy_utils.parent(source_objects=neck_mid_offset, target_parent=last_mid_parent_ctrl)
             # Attributes
             set_attr_state(attribute_path=f"{neck_mid_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
-            add_separator_attr(target_object=neck_mid_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
+            add_separator_attr(target_object=neck_mid_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
             expose_rotation_order(neck_mid_ctrl)
             neck_mid_ctrls.append(neck_mid_ctrl)
             cmds.parentConstraint(neck_mid_ctrl, mid_jnt, maintainOffset=True)
@@ -355,7 +355,7 @@ class ModuleHead(ModuleGeneric):
         hierarchy_utils.parent(source_objects=head_offset, target_parent=last_mid_parent_ctrl)
         # Attributes
         set_attr_state(attribute_path=f"{head_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
-        add_separator_attr(target_object=head_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
+        add_separator_attr(target_object=head_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
         expose_rotation_order(head_ctrl)
 
         # Head Offset Ctrl
@@ -383,7 +383,7 @@ class ModuleHead(ModuleGeneric):
         cmds.parentConstraint(head_o_data, head_jnt, maintainOffset=True)
         # Attributes
         set_attr_state(attribute_path=f"{head_o_ctrl}.v", hidden=True)  # Hide and Lock Visibility
-        add_separator_attr(target_object=head_o_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
+        add_separator_attr(target_object=head_o_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
         expose_rotation_order(head_o_ctrl)
         cmds.addAttr(head_ctrl, ln='showOffsetCtrl', at='bool', k=True)
         cmds.connectAttr(f'{head_ctrl}.showOffsetCtrl', f'{head_o_ctrl}.v')
@@ -406,7 +406,7 @@ class ModuleHead(ModuleGeneric):
         cmds.parentConstraint(jaw_ctrl, jaw_jnt, maintainOffset=True)
         # Attributes
         set_attr_state(attribute_path=f"{jaw_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
-        add_separator_attr(target_object=jaw_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
+        add_separator_attr(target_object=jaw_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
         expose_rotation_order(jaw_ctrl)
 
         # Eye Controls -------------------------------------------------------------------------------------
@@ -482,7 +482,7 @@ class ModuleHead(ModuleGeneric):
 
         hide_lock_default_attrs(obj_list=[lt_eye_ctrl, rt_eye_ctrl], rotate=True , scale=True, visibility=True)
         hide_lock_default_attrs(obj_list=main_eye_ctrl, scale=True, visibility=True)
-        add_separator_attr(target_object=main_eye_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
+        add_separator_attr(target_object=main_eye_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
         expose_rotation_order(main_eye_ctrl)
 
         # Set Children Drivers -----------------------------------------------------------------------------

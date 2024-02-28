@@ -507,9 +507,9 @@ class ModuleBipedLeg(ModuleGeneric):
         set_color_viewport(obj_list=foot_o_ctrl, rgb_color=color)
         foot_center = get_bbox_position(obj_list=foot_o_ctrl)
         scale_shapes(obj_transform=foot_o_ctrl, offset=0.9, pivot=foot_center)
-        add_separator_attr(target_object=foot_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
+        add_separator_attr(target_object=foot_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
         expose_rotation_order(foot_ctrl)
-        add_separator_attr(target_object=foot_o_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
+        add_separator_attr(target_object=foot_o_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
         expose_rotation_order(foot_o_ctrl)
 
         # Set Children Drivers -----------------------------------------------------------------------------

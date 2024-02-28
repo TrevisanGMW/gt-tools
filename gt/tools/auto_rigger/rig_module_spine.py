@@ -265,7 +265,7 @@ class ModuleSpine(ModuleGeneric):
         hierarchy_utils.parent(source_objects=cog_offset, target_parent=direction_crv)
         # Attributes
         set_attr_state(attribute_path=f"{cog_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
-        add_separator_attr(target_object=cog_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
+        add_separator_attr(target_object=cog_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
         expose_rotation_order(cog_ctrl)
         cmds.parentConstraint(cog_ctrl, hip_fk, maintainOffset=True)
 
@@ -280,7 +280,7 @@ class ModuleSpine(ModuleGeneric):
         hierarchy_utils.parent(source_objects=hip_offset, target_parent=cog_ctrl)
         # Attributes
         set_attr_state(attribute_path=f"{hip_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
-        add_separator_attr(target_object=hip_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
+        add_separator_attr(target_object=hip_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
         expose_rotation_order(hip_ctrl)
 
         # Hip Offset Ctrl
@@ -306,7 +306,7 @@ class ModuleSpine(ModuleGeneric):
         cmds.connectAttr(f'{hip_o_ctrl}.rotate', f'{hip_o_data}.rotate')
         # Attributes
         set_attr_state(attribute_path=f"{hip_o_ctrl}.v", hidden=True)  # Hide and Lock Visibility
-        add_separator_attr(target_object=hip_o_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
+        add_separator_attr(target_object=hip_o_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
         expose_rotation_order(hip_o_ctrl)
         cmds.addAttr(hip_ctrl, ln='showOffsetCtrl', at='bool', k=True)
         cmds.connectAttr(f'{hip_ctrl}.showOffsetCtrl', f'{hip_o_ctrl}.v')
@@ -336,7 +336,7 @@ class ModuleSpine(ModuleGeneric):
             hierarchy_utils.parent(source_objects=spine_offset, target_parent=last_mid_parent_ctrl)
             # Attributes
             set_attr_state(attribute_path=f"{spine_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
-            add_separator_attr(target_object=spine_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
+            add_separator_attr(target_object=spine_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
             expose_rotation_order(spine_ctrl)
             spine_ctrls.append(spine_ctrl)
             cmds.parentConstraint(spine_ctrl, fk_jnt, maintainOffset=True)
@@ -356,7 +356,7 @@ class ModuleSpine(ModuleGeneric):
         hierarchy_utils.parent(source_objects=chest_offset, target_parent=chest_ctrl_parent)
         # Attributes
         set_attr_state(attribute_path=f"{chest_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
-        add_separator_attr(target_object=chest_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
+        add_separator_attr(target_object=chest_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
         expose_rotation_order(chest_ctrl)
 
         # Chest Offset Ctrl
@@ -385,7 +385,7 @@ class ModuleSpine(ModuleGeneric):
         cmds.parentConstraint(chest_o_data, chest_fk, maintainOffset=True)
         # Attributes
         set_attr_state(attribute_path=f"{chest_o_ctrl}.v", hidden=True)  # Hide and Lock Visibility
-        add_separator_attr(target_object=chest_o_ctrl, attr_name=RiggerConstants.SEPARATOR_OPTIONS)
+        add_separator_attr(target_object=chest_o_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
         expose_rotation_order(chest_o_ctrl)
         cmds.addAttr(chest_ctrl, ln='showOffsetCtrl', at='bool', k=True)
         cmds.connectAttr(f'{chest_ctrl}.showOffsetCtrl', f'{chest_o_ctrl}.v')
