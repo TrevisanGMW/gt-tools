@@ -64,12 +64,14 @@ class ModuleBipedArm(ModuleGeneric):
         self.clavicle.set_initial_position(xyz=pos_clavicle)
         self.clavicle.set_locator_scale(scale=2)
         self.clavicle.set_meta_purpose(value="clavicle")
+        self.clavicle.add_driver_type(driver_type=[RiggerDriverTypes.FK])
 
         self.shoulder = Proxy(name=shoulder_name)
         self.shoulder.set_initial_position(xyz=pos_shoulder)
         self.shoulder.set_locator_scale(scale=2)
         self.shoulder.set_parent_uuid(self.clavicle.get_uuid())
         self.shoulder.set_meta_purpose(value="shoulder")
+        self.shoulder.add_driver_type(driver_type=[RiggerDriverTypes.FK])
 
         self.elbow = Proxy(name=elbow_name)
         self.elbow.set_curve(curve=get_curve('_proxy_joint_arrow_neg_z'))
@@ -77,6 +79,7 @@ class ModuleBipedArm(ModuleGeneric):
         self.elbow.set_locator_scale(scale=2.2)
         self.elbow.add_line_parent(line_parent=self.shoulder)
         self.elbow.set_meta_purpose(value="elbow")
+        self.elbow.add_driver_type(driver_type=[RiggerDriverTypes.FK])
 
         self.wrist = Proxy(name=wrist_name)
         self.wrist.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
@@ -84,6 +87,7 @@ class ModuleBipedArm(ModuleGeneric):
         self.wrist.set_locator_scale(scale=2)
         self.wrist.add_line_parent(line_parent=self.elbow)
         self.wrist.set_meta_purpose(value="wrist")
+        self.wrist.add_driver_type(driver_type=[RiggerDriverTypes.FK])
 
         # Update Proxies
         self.proxies = [self.clavicle, self.shoulder, self.elbow, self.wrist]
