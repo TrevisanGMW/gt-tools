@@ -3,17 +3,18 @@ Auto Rigger Digit Modules (Fingers, Toes)
 github.com/TrevisanGMW/gt-tools
 """
 from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, get_meta_purpose_from_dict, find_direction_curve
-from gt.tools.auto_rigger.rig_utils import create_ctrl_curve
+from gt.tools.auto_rigger.rig_utils import create_ctrl_curve, expose_rotation_order
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.tools.biped_rigger_legacy.rigger_utilities import dist_center_to_center
-from gt.utils.color_utils import ColorConstants, set_color_viewport
-from gt.utils.hierarchy_utils import add_offset_transform
-from gt.utils.math_utils import get_transforms_center_position
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
-from gt.utils.node_utils import Node
 from gt.utils.transform_utils import Vector3, match_transform, scale_shapes
+from gt.utils.attr_utils import add_separator_attr, hide_lock_default_attrs
+from gt.utils.color_utils import ColorConstants, set_color_viewport
+from gt.utils.math_utils import get_transforms_center_position
+from gt.utils.hierarchy_utils import add_offset_transform
 from gt.utils.naming_utils import NamingConstants
 from gt.utils.curve_utils import get_curve
+from gt.utils.node_utils import Node
 from gt.utils import hierarchy_utils
 from gt.ui import resource_library
 import maya.cmds as cmds
@@ -380,6 +381,7 @@ class ModuleBipedFingers(ModuleGeneric):
         """
         Runs post rig script.
         """
+        # Get Elements -----------------------------------------------------------------------------------------
         _proxy_joint_map = {} # Key = Joint, Value = Proxy
         _thumb_joints = []
         _index_joints = []
@@ -425,7 +427,7 @@ class ModuleBipedFingers(ModuleGeneric):
         direction_crv = find_direction_curve()
         module_parent_jnt = find_joint_from_uuid(self.get_parent_uuid())
 
-        # Control Parent (Main System Driver)
+        # Control Parent (Main System Driver) ------------------------------------------------------------------
         finger_lists = [_thumb_joints, _index_joints, _middle_joints,
                         _ring_joints, _pinky_joints, _extra_joints]
         wrist_grp = self._assemble_new_node_name(name=f"fingers_{NamingConstants.Suffix.DRIVEN}",
@@ -440,7 +442,7 @@ class ModuleBipedFingers(ModuleGeneric):
             cmds.xform(wrist_grp, translation=fingers_center, worldSpace=True)
         hierarchy_utils.parent(source_objects=wrist_grp, target_parent=direction_crv)
 
-        # Create FK Controls
+        # Create Controls -------------------------------------------------------------------------------------
         for finger_list in finger_lists:
             if not finger_list:
                 continue # Ignore skipped fingers
@@ -467,6 +469,9 @@ class ModuleBipedFingers(ModuleGeneric):
                 match_transform(source=finger_jnt, target_list=offset)
                 scale_shapes(obj_transform=ctrl, offset=finger_scale*.1)
                 hierarchy_utils.parent(source_objects=offset, target_parent=wrist_grp)
+                add_separator_attr(target_object=ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
+                hide_lock_default_attrs(obj_list=ctrl, scale=True, visibility=True)
+                expose_rotation_order(target=ctrl)
                 
         # Set Children Drivers -----------------------------------------------------------------------------
         self.module_children_drivers = [wrist_grp]
