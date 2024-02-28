@@ -256,6 +256,26 @@ class TestMathUtils(unittest.TestCase):
         result = math_utils.get_bbox_position(obj_list=[obj_a, obj_b], alignment="-", axis="z")
         self.assertEqual(expected_result, result)
 
+    def test_get_transforms_center_position(self):
+        obj_a = maya_test_tools.cmds.joint(name="joint_a")
+        obj_b = maya_test_tools.create_poly_cube(name="cube_a")
+        maya_test_tools.cmds.setAttr(f'{obj_a}.ty', -2)
+        maya_test_tools.cmds.setAttr(f'{obj_b}.ty', 6)
+
+        expected_result = (0.0, 2.0, 0.0)
+        result = math_utils.get_transforms_center_position(transform_list=[obj_a, obj_b])
+        self.assertEqual(expected_result, result)
+
+        # Add missing object
+        expected_result = (0.0, 2.0, 0.0)
+        result = math_utils.get_transforms_center_position(transform_list=[obj_a, obj_b, "missing_one"])
+        self.assertEqual(expected_result, result)
+
+    def test_get_transforms_center_position_origin_missing_objects(self):
+        expected_result = (0, 0, 0)
+        result = math_utils.get_transforms_center_position(transform_list=["missing_one", "missing_two"])
+        self.assertEqual(expected_result, result)
+
     def test_remap_value_within_range(self):
         value = 50
         old_range = (0, 100)

@@ -238,6 +238,48 @@ def get_bbox_position(obj_list, alignment=None, axis="x"):
     return tuple(mid_point)
 
 
+def get_transforms_center_position(transform_list):
+    """
+    Get the center position of a list of transform nodes.
+    Missing objects are ignored. If none of the objects are found, the origin (0, 0, 0) is returned instead.
+
+    Args:
+        transform_list (list): List of transform node paths/names.
+
+    Returns:
+        tuple: Center position as a tuple (x, y, z).
+    """
+    # Initialize variables to store total position and count
+    total_position = [0, 0, 0]
+    num_transforms = 0
+
+    # Iterate through each transform
+    for transform_name in transform_list:
+        # Check if the transform exists
+        if cmds.objExists(transform_name):
+            # Get the translation values of the transform
+            transform_position = cmds.xform(transform_name, query=True, translation=True, worldSpace=True)
+            # Add the position values to the total
+            total_position[0] += transform_position[0]
+            total_position[1] += transform_position[1]
+            total_position[2] += transform_position[2]
+            num_transforms += 1  # Increment the count of existing transforms
+
+    # Check if any transforms exist
+    if num_transforms == 0:
+        # If no transforms exist, return the origin
+        return 0, 0, 0
+
+    # Calculate the average position by dividing the total by the number of existing transforms
+    center_position = (
+        total_position[0] / num_transforms,
+        total_position[1] / num_transforms,
+        total_position[2] / num_transforms
+    )
+
+    return center_position
+
+
 def remap_value(value, old_range, new_range):
     """
     Remap a value from one range to another.
