@@ -6,11 +6,12 @@ from gt.tools.auto_rigger.rig_utils import duplicate_joint_for_automation, find_
 from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, rescale_joint_radius, find_direction_curve
 from gt.tools.auto_rigger.rig_utils import create_ctrl_curve, get_proxy_offset, offset_control_orientation
 from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_from_uuid, get_driven_joint
+from gt.tools.auto_rigger.rig_utils import expose_rotation_order
 from gt.utils.color_utils import set_color_viewport, ColorConstants, set_color_outliner, get_directional_color
 from gt.utils.transform_utils import match_translate, match_transform, Vector3, set_equidistant_transforms
 from gt.utils.transform_utils import scale_shapes, rotate_shapes
+from gt.utils.attr_utils import hide_lock_default_attrs, set_attr_state, set_attr, add_separator_attr
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
-from gt.utils.attr_utils import hide_lock_default_attrs, set_attr_state, set_attr
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
 from gt.utils.iterable_utils import multiply_collection_by_number
 from gt.utils.hierarchy_utils import add_offset_transform
@@ -302,7 +303,7 @@ class ModuleBipedArm(ModuleGeneric):
         set_color_outliner(obj_list=fk_joints, rgb_color=ColorConstants.RigOutliner.FK)
         set_color_outliner(obj_list=ik_joints, rgb_color=ColorConstants.RigOutliner.IK)
 
-        # Forearm Twist ------------------------------------------------------------------------------------
+        # Forearm Twist ----------------------------------------------------------------------------------------
         forearm_name = self._assemble_new_node_name(name=f"forearm_{NamingConstants.Suffix.DRIVEN}",
                                                     project_prefix=project_prefix)
         forearm = duplicate_joint_for_automation(joint=wrist_jnt, parent=joint_automation_grp)
@@ -318,6 +319,8 @@ class ModuleBipedArm(ModuleGeneric):
 
         print(f'arm_scale: {arm_scale}')
         print("build arm rig!")
+
+        # FK Controls ----------------------------------------------------------------------------------------
 
         # Clavicle Control
         clavicle_scale = dist_center_to_center(clavicle_jnt, shoulder_jnt)
@@ -337,7 +340,56 @@ class ModuleBipedArm(ModuleGeneric):
         cmds.parentConstraint(clavicle_ctrl, clavicle_jnt, maintainOffset=True)
         color = get_directional_color(object_name=clavicle_ctrl)
         set_color_viewport(obj_list=clavicle_ctrl, rgb_color=color)
+        add_separator_attr(target_object=clavicle_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
+        expose_rotation_order(clavicle_ctrl)
 
+        # Shoulder FK Control
+        shoulder_fk_ctrl = self._assemble_ctrl_name(name=self.shoulder.get_name())
+        shoulder_fk_ctrl = create_ctrl_curve(name=shoulder_fk_ctrl, curve_file_name="_circle_pos_x")
+        self.add_driver_uuid_attr(target=shoulder_fk_ctrl, driver_type=RiggerDriverTypes.FK,
+                                  proxy_purpose=self.shoulder)
+        shoulder_fk_offset = add_offset_transform(target_list=shoulder_fk_ctrl)[0]
+        shoulder_fk_offset = Node(shoulder_fk_offset)
+        match_transform(source=shoulder_jnt, target_list=shoulder_fk_offset)
+        scale_shapes(obj_transform=shoulder_fk_ctrl, offset=arm_scale * .16)
+        hierarchy_utils.parent(source_objects=shoulder_fk_offset, target_parent=clavicle_ctrl)
+        cmds.parentConstraint(shoulder_fk_ctrl, shoulder_fk, maintainOffset=True)
+        color = get_directional_color(object_name=shoulder_fk_ctrl)
+        set_color_viewport(obj_list=shoulder_fk_ctrl, rgb_color=color)
+        add_separator_attr(target_object=shoulder_fk_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
+        expose_rotation_order(shoulder_fk_ctrl)
+
+        # Elbow FK Control
+        elbow_fk_ctrl = self._assemble_ctrl_name(name=self.elbow.get_name())
+        elbow_fk_ctrl = create_ctrl_curve(name=elbow_fk_ctrl, curve_file_name="_circle_pos_x")
+        self.add_driver_uuid_attr(target=elbow_fk_ctrl, driver_type=RiggerDriverTypes.FK,
+                                  proxy_purpose=self.elbow)
+        elbow_fk_offset = add_offset_transform(target_list=elbow_fk_ctrl)[0]
+        elbow_fk_offset = Node(elbow_fk_offset)
+        match_transform(source=elbow_jnt, target_list=elbow_fk_offset)
+        scale_shapes(obj_transform=elbow_fk_ctrl, offset=arm_scale * .14)
+        hierarchy_utils.parent(source_objects=elbow_fk_offset, target_parent=shoulder_fk_ctrl)
+        cmds.parentConstraint(elbow_fk_ctrl, elbow_fk, maintainOffset=True)
+        color = get_directional_color(object_name=elbow_fk_ctrl)
+        set_color_viewport(obj_list=elbow_fk_ctrl, rgb_color=color)
+        add_separator_attr(target_object=elbow_fk_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
+        expose_rotation_order(elbow_fk_ctrl)
+
+        # Wrist FK Control
+        wrist_fk_ctrl = self._assemble_ctrl_name(name=self.wrist.get_name())
+        wrist_fk_ctrl = create_ctrl_curve(name=wrist_fk_ctrl, curve_file_name="_circle_pos_x")
+        self.add_driver_uuid_attr(target=wrist_fk_ctrl, driver_type=RiggerDriverTypes.FK,
+                                  proxy_purpose=self.wrist)
+        wrist_fk_offset = add_offset_transform(target_list=wrist_fk_ctrl)[0]
+        wrist_fk_offset = Node(wrist_fk_offset)
+        match_transform(source=wrist_jnt, target_list=wrist_fk_offset)
+        scale_shapes(obj_transform=wrist_fk_ctrl, offset=arm_scale * .1)
+        hierarchy_utils.parent(source_objects=wrist_fk_offset, target_parent=elbow_fk_ctrl)
+        cmds.parentConstraint(wrist_fk_ctrl, wrist_fk, maintainOffset=True)
+        color = get_directional_color(object_name=wrist_fk_ctrl)
+        set_color_viewport(obj_list=wrist_fk_ctrl, rgb_color=color)
+        add_separator_attr(target_object=wrist_fk_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
+        expose_rotation_order(wrist_fk_ctrl)
 
         # Set Children Drivers -----------------------------------------------------------------------------
         self.module_children_drivers = [clavicle_offset]
