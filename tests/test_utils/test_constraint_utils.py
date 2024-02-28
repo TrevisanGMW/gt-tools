@@ -61,6 +61,94 @@ class TestConstraintUtils(unittest.TestCase):
         self.assertEqual(significand_1, significand_2)
         self.assertEqual(exponent_1, exponent_2)
 
+    def test_constraint_type_constants(self):
+        attributes = vars(constraint_utils.ConstraintTypes)
+        keys = [attr for attr in attributes if not (attr.startswith('__') and attr.endswith('__'))]
+        for key in keys:
+            constraint_type = getattr(constraint_utils.ConstraintTypes, key)
+            if not constraint_type:
+                raise Exception(f'Missing constraint type: {key}')
+            if not isinstance(constraint_type, str):
+                raise Exception(f'Incorrect constraint type. Expected string, but got: "{type(constraint_type)}".')
+
+    def test_get_constraint_function_parent(self):
+        expected = maya_test_tools.cmds.parentConstraint
+        constraint_type = constraint_utils.ConstraintTypes.PARENT
+        function = constraint_utils.get_constraint_function(constraint_type=constraint_type)
+        self.assertEqual(expected, function)
+
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        result = function(cube_one, cube_two)
+        expected = ["cube_two_parentConstraint1"]
+        self.assertEqual(expected, result)
+
+    def test_get_constraint_function_point(self):
+        expected = maya_test_tools.cmds.pointConstraint
+        constraint_type = constraint_utils.ConstraintTypes.POINT
+        function = constraint_utils.get_constraint_function(constraint_type=constraint_type)
+        self.assertEqual(expected, function)
+
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        result = function(cube_one, cube_two)
+        expected = ["cube_two_pointConstraint1"]
+        self.assertEqual(expected, result)
+
+    def test_get_constraint_function_orient(self):
+        expected = maya_test_tools.cmds.orientConstraint
+        constraint_type = constraint_utils.ConstraintTypes.ORIENT
+        function = constraint_utils.get_constraint_function(constraint_type=constraint_type)
+        self.assertEqual(expected, function)
+
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        result = function(cube_one, cube_two)
+        expected = ["cube_two_orientConstraint1"]
+        self.assertEqual(expected, result)
+
+    def test_get_constraint_function_scale(self):
+        expected = maya_test_tools.cmds.scaleConstraint
+        constraint_type = constraint_utils.ConstraintTypes.SCALE
+        function = constraint_utils.get_constraint_function(constraint_type=constraint_type)
+        self.assertEqual(expected, function)
+
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        result = function(cube_one, cube_two)
+        expected = ["cube_two_scaleConstraint1"]
+        self.assertEqual(expected, result)
+
+    def test_get_constraint_function_aim(self):
+        expected = maya_test_tools.cmds.aimConstraint
+        constraint_type = constraint_utils.ConstraintTypes.AIM
+        function = constraint_utils.get_constraint_function(constraint_type=constraint_type)
+        self.assertEqual(expected, function)
+
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        result = function(cube_one, cube_two)
+        expected = ["cube_two_aimConstraint1"]
+        self.assertEqual(expected, result)
+
+    def test_get_constraint_function_other(self):
+        expected = maya_test_tools.cmds.geometryConstraint
+        constraint_type = constraint_utils.ConstraintTypes.GEOMETRY
+        function = constraint_utils.get_constraint_function(constraint_type=constraint_type)
+        self.assertEqual(expected, function)
+        expected = maya_test_tools.cmds.normalConstraint
+        constraint_type = constraint_utils.ConstraintTypes.NORMAL
+        function = constraint_utils.get_constraint_function(constraint_type=constraint_type)
+        self.assertEqual(expected, function)
+        expected = maya_test_tools.cmds.tangentConstraint
+        constraint_type = constraint_utils.ConstraintTypes.TANGENT
+        function = constraint_utils.get_constraint_function(constraint_type=constraint_type)
+        self.assertEqual(expected, function)
+        expected = maya_test_tools.cmds.poleVectorConstraint
+        constraint_type = constraint_utils.ConstraintTypes.POLE_VECTOR
+        function = constraint_utils.get_constraint_function(constraint_type=constraint_type)
+        self.assertEqual(expected, function)
+
     def test_create_rivet_poly_creation(self):
         cube = maya_test_tools.create_poly_cube()
         edges = [f'{cube}.e[0]', f'{cube}.e[1]']
