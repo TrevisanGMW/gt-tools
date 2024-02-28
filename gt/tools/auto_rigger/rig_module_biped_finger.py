@@ -2,12 +2,13 @@
 Auto Rigger Digit Modules (Fingers, Toes)
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, get_meta_purpose_from_dict
+from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, get_meta_purpose_from_dict, find_direction_curve
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.utils.color_utils import ColorConstants, set_color_viewport
 from gt.tools.auto_rigger.rig_constants import RiggerConstants
+from gt.utils.transform_utils import Vector3, match_transform
 from gt.utils.naming_utils import NamingConstants
-from gt.utils.transform_utils import Vector3
+from gt.utils.math_utils import get_bbox_position, get_transforms_center_position
 from gt.utils.curve_utils import get_curve
 from gt.ui import resource_library
 import maya.cmds as cmds
@@ -322,7 +323,6 @@ class ModuleBipedFingers(ModuleGeneric):
                     _extra = True
         self.refresh_proxies_list(thumb=_thumb, index=_index, middle=_middle,
                                   ring=_ring, pinky=_pinky, extra=_extra)
-        print(proxy_dict)
         self.read_purpose_matching_proxy_from_dict(proxy_dict)
 
     # --------------------------------------------------- Misc ---------------------------------------------------
@@ -371,17 +371,57 @@ class ModuleBipedFingers(ModuleGeneric):
     def build_skeleton_joints(self):
         super().build_skeleton_joints()  # Passthrough
 
-    def build_rig(self, **kwargs):
+    def build_rig(self, project_prefix=None, **kwargs):
         """
         Runs post rig script.
         """
+        _thumb_joints = []
+        _index_joints = []
+        _middle_joints = []
+        _ring_joints = []
+        _pinky_joints = []
+        _extra_joints = []
+        _all_joints = []
+        # Get Joints & Set Colors
         for digit in self.proxies:
             digit_jnt = find_joint_from_uuid(digit.get_uuid())
             meta_type = get_meta_purpose_from_dict(digit.get_metadata())
+            # Store Joints In Lists
+            if meta_type and digit_jnt and self.tag_thumb in meta_type:
+                _thumb_joints.append(digit_jnt)
+            elif meta_type and digit_jnt and self.tag_index in meta_type:
+                _index_joints.append(digit_jnt)
+            elif meta_type and digit_jnt  and self.tag_middle in meta_type:
+                _middle_joints.append(digit_jnt)
+            elif meta_type and digit_jnt  and self.tag_ring in meta_type:
+                _ring_joints.append(digit_jnt)
+            elif meta_type and digit_jnt  and self.tag_pinky in meta_type:
+                _pinky_joints.append(digit_jnt)
+            elif meta_type and digit_jnt  and self.tag_extra in meta_type:
+                _extra_joints.append(digit_jnt)
+            # Color
             if meta_type and str(meta_type).endswith("End"):
                 set_color_viewport(obj_list=digit_jnt, rgb_color=ColorConstants.RigJoint.END)
             else:
                 set_color_viewport(obj_list=digit_jnt, rgb_color=ColorConstants.RigJoint.OFFSET)
+            _all_joints.append(digit_jnt)
+        # Get Misc Elements
+        direction_crv = find_direction_curve()
+        module_parent_jnt = find_joint_from_uuid(self.get_parent_uuid())
+
+        # Control Parent
+        wrist_grp = self._assemble_new_node_name(name=f"fingers_{NamingConstants.Suffix.DRIVEN}",
+                                                    project_prefix=project_prefix)
+        wrist_grp = cmds.group(name=wrist_grp, empty=True, world=True)
+        if module_parent_jnt:
+            match_transform(source=module_parent_jnt, target_list=wrist_grp)
+        else: # No parent, average the position of the fingers group
+            finger_lists = [_thumb_joints, _index_joints, _middle_joints,
+                            _ring_joints, _pinky_joints,_extra_joints]
+            first_joints = [sublist[0] for sublist in finger_lists if sublist]
+            fingers_center = get_transforms_center_position(transform_list=first_joints)
+            cmds.xform(wrist_grp, translation=fingers_center, worldSpace=True)
+
 
         # Set Children Drivers -----------------------------------------------------------------------------
         self.module_children_drivers = []
@@ -524,32 +564,53 @@ class ModuleBipedFingersRight(ModuleBipedFingers):
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     cmds.file(new=True, force=True)
+    # Auto Reload Script - Must have been initialized using "Run-Only" mode.
+    from gt.utils.session_utils import remove_modules_startswith
+
+    remove_modules_startswith("gt.tools.auto_rigger.rig")
+    cmds.file(new=True, force=True)
 
     from gt.tools.auto_rigger.rig_framework import RigProject
-    a_digit_mod = ModuleBipedFingers()
-    a_digit_mod_lf = ModuleBipedFingersLeft()
-    a_digit_mod_lf.refresh_proxies_list(index=False, extra=True)
-    a_digit_mod_rt = ModuleBipedFingersRight()
+    from gt.tools.auto_rigger.rig_module_spine import ModuleSpine
+    from gt.tools.auto_rigger.rig_module_biped_arm import ModuleBipedArmLeft, ModuleBipedArmRight
+
+    a_spine = ModuleSpine()
+    a_lt_arm = ModuleBipedArmLeft()
+    a_rt_arm = ModuleBipedArmRight()
+    a_lt_fingers_mod = ModuleBipedFingersLeft()
+    a_rt_fingers_mod = ModuleBipedFingersRight()
+    # a_fingers_mod = ModuleBipedFingers()
+
     a_project = RigProject()
-    # a_project.add_to_modules(a_digit_mod)
-    a_project.add_to_modules(a_digit_mod_lf)
+    # a_project.add_to_modules(a_fingers_mod)
+    a_project.add_to_modules(a_spine)
+    a_project.add_to_modules(a_lt_arm)
+    a_project.add_to_modules(a_rt_arm)
+    a_project.add_to_modules(a_lt_fingers_mod)
+    # a_project.add_to_modules(a_rt_fingers_mod)
+    a_lt_arm.set_parent_uuid(uuid=a_spine.chest.get_uuid())
+    a_rt_arm.set_parent_uuid(uuid=a_spine.chest.get_uuid())
+    a_lt_fingers_mod.set_parent_uuid(uuid=a_lt_arm.wrist.get_uuid())
+    a_rt_fingers_mod.set_parent_uuid(uuid=a_rt_arm.wrist.get_uuid())
     # a_project.add_to_modules(a_digit_mod_rt)
     a_project.build_proxy()
-    # a_project.build_rig()
+    a_project.build_rig()
 
     # cmds.setAttr(f'lf_thumb02.rx', 30)
-    cmds.setAttr(f'lf_ring02.rz', -45)
+    # cmds.setAttr(f'lf_ring02.rz', -45)
     # # cmds.setAttr(f'rt_thumb02.rx', 30)
 
-    a_project.read_data_from_scene()
-    dictionary = a_project.get_project_as_dict()
+    # a_project.read_data_from_scene()
+    # dictionary = a_project.get_project_as_dict()
+    #
+    # cmds.file(new=True, force=True)
+    # a_project2 = RigProject()
+    # a_project2.read_data_from_dict(dictionary)
+    # print(a_project2.get_project_as_dict().get("modules"))
+    # a_project2.build_proxy()
+    # # a_project2.build_rig()
 
-    cmds.file(new=True, force=True)
-    a_project2 = RigProject()
-    a_project2.read_data_from_dict(dictionary)
-    print(a_project2.get_project_as_dict().get("modules"))
-    a_project2.build_proxy()
-    # a_project2.build_rig()
-
-    # Frame all
+    # Frame elements
     cmds.viewFit(all=True)
+    cmds.viewFit(["lf_thumbEnd", "lf_pinkyEnd"])  # Left
+    # cmds.viewFit(["rt_thumbEnd", "rt_pinkyEnd"])  # Right
