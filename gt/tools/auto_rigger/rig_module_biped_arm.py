@@ -13,6 +13,7 @@ from gt.utils.transform_utils import scale_shapes, rotate_shapes
 from gt.utils.attr_utils import hide_lock_default_attrs, set_attr_state, set_attr, add_separator_attr
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
+from gt.utils.constraint_utils import ConstraintTypes, constraint_targets
 from gt.utils.iterable_utils import multiply_collection_by_number
 from gt.utils.hierarchy_utils import add_offset_transform
 from gt.utils.math_utils import dist_center_to_center
@@ -313,7 +314,8 @@ class ModuleBipedArm(ModuleGeneric):
         forearm = duplicate_joint_for_automation(joint=wrist_jnt, parent=joint_automation_grp)
         set_color_viewport(obj_list=forearm, rgb_color=ColorConstants.RigJoint.AUTOMATION)
         forearm.rename(forearm_name)
-        set_equidistant_transforms(start=elbow_jnt, end=wrist_jnt, target_list=forearm, constraint='point')
+        set_equidistant_transforms(start=elbow_jnt, end=wrist_jnt,
+                                   target_list=forearm, constraint=ConstraintTypes.POINT)
         forearm_radius = (self.elbow.get_locator_scale() + self.wrist.get_locator_scale())/2
         set_attr(obj_list=forearm, attr_list="radius", value=forearm_radius)
 
@@ -341,7 +343,7 @@ class ModuleBipedArm(ModuleGeneric):
         rotate_shapes(obj_transform=clavicle_ctrl, offset=(rotate_offset[0], 30, 0))
         offset_control_orientation(ctrl=clavicle_ctrl, offset_transform=clavicle_offset, orient_tuple=(90, 0, 0))
         hierarchy_utils.parent(source_objects=clavicle_offset, target_parent=direction_crv)
-        cmds.parentConstraint(clavicle_ctrl, clavicle_jnt, maintainOffset=True)
+        constraint_targets(source_driver=clavicle_ctrl, target_driven=clavicle_jnt)
         color = get_directional_color(object_name=clavicle_ctrl)
         set_color_viewport(obj_list=clavicle_ctrl, rgb_color=color)
         add_separator_attr(target_object=clavicle_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
@@ -357,7 +359,7 @@ class ModuleBipedArm(ModuleGeneric):
         match_transform(source=shoulder_jnt, target_list=shoulder_fk_offset)
         scale_shapes(obj_transform=shoulder_fk_ctrl, offset=arm_scale * .16)
         hierarchy_utils.parent(source_objects=shoulder_fk_offset, target_parent=clavicle_ctrl)
-        cmds.parentConstraint(shoulder_fk_ctrl, shoulder_fk, maintainOffset=True)
+        constraint_targets(source_driver=shoulder_fk_ctrl, target_driven=shoulder_fk)
         color = get_directional_color(object_name=shoulder_fk_ctrl)
         set_color_viewport(obj_list=shoulder_fk_ctrl, rgb_color=color)
         add_separator_attr(target_object=shoulder_fk_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
@@ -373,7 +375,7 @@ class ModuleBipedArm(ModuleGeneric):
         match_transform(source=elbow_jnt, target_list=elbow_fk_offset)
         scale_shapes(obj_transform=elbow_fk_ctrl, offset=arm_scale * .14)
         hierarchy_utils.parent(source_objects=elbow_fk_offset, target_parent=shoulder_fk_ctrl)
-        cmds.parentConstraint(elbow_fk_ctrl, elbow_fk, maintainOffset=True)
+        constraint_targets(source_driver=elbow_fk_ctrl, target_driven=elbow_fk)
         color = get_directional_color(object_name=elbow_fk_ctrl)
         set_color_viewport(obj_list=elbow_fk_ctrl, rgb_color=color)
         add_separator_attr(target_object=elbow_fk_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
@@ -389,7 +391,7 @@ class ModuleBipedArm(ModuleGeneric):
         match_transform(source=wrist_jnt, target_list=wrist_fk_offset)
         scale_shapes(obj_transform=wrist_fk_ctrl, offset=arm_scale * .1)
         hierarchy_utils.parent(source_objects=wrist_fk_offset, target_parent=elbow_fk_ctrl)
-        cmds.parentConstraint(wrist_fk_ctrl, wrist_fk, maintainOffset=True)
+        constraint_targets(source_driver=wrist_fk_ctrl, target_driven=wrist_fk)
         color = get_directional_color(object_name=wrist_fk_ctrl)
         set_color_viewport(obj_list=wrist_fk_ctrl, rgb_color=color)
         add_separator_attr(target_object=wrist_fk_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)

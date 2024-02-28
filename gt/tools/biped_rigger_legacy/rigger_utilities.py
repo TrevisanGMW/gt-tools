@@ -52,7 +52,6 @@ def dist_center_to_center(obj_a, obj_b):
     Returns:
         distance (float): A distance value between object A and B. For example : 4.0
     """
-
     def dist_position_to_position(pos_a_x, pos_a_y, pos_a_z, pos_b_x, pos_b_y, pos_b_z):
         """
         Calculates the distance between XYZ position A and XYZ position B

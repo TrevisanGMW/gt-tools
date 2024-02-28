@@ -10,8 +10,8 @@ from gt.utils.transform_utils import Vector3, scale_shapes, match_transform, tra
 from gt.utils.color_utils import ColorConstants, set_color_viewport, set_color_outliner
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
+from gt.utils.constraint_utils import equidistant_constraints, constraint_targets
 from gt.utils.attr_utils import add_separator_attr, set_attr_state
-from gt.utils.constraint_utils import equidistant_constraints
 from gt.tools.auto_rigger.rig_utils import get_proxy_offset
 from gt.utils.hierarchy_utils import add_offset_transform
 from gt.utils.math_utils import dist_center_to_center
@@ -267,7 +267,7 @@ class ModuleSpine(ModuleGeneric):
         set_attr_state(attribute_path=f"{cog_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
         add_separator_attr(target_object=cog_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
         expose_rotation_order(cog_ctrl)
-        cmds.parentConstraint(cog_ctrl, hip_fk, maintainOffset=True)
+        constraint_targets(source_driver=cog_ctrl, target_driven=hip_fk)
 
         # Hip Control ----------------------------------------------------------------------------------
         hip_ctrl = self._assemble_ctrl_name(name=self.hip.get_name())
@@ -339,7 +339,7 @@ class ModuleSpine(ModuleGeneric):
             add_separator_attr(target_object=spine_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
             expose_rotation_order(spine_ctrl)
             spine_ctrls.append(spine_ctrl)
-            cmds.parentConstraint(spine_ctrl, fk_jnt, maintainOffset=True)
+            constraint_targets(source_driver=spine_ctrl, target_driven=fk_jnt)
             last_mid_parent_ctrl = spine_ctrl
 
         # Chest Control --------------------------------------------------------------------------------
@@ -382,7 +382,7 @@ class ModuleSpine(ModuleGeneric):
         # Connections
         cmds.connectAttr(f'{chest_o_ctrl}.translate', f'{chest_o_data}.translate')
         cmds.connectAttr(f'{chest_o_ctrl}.rotate', f'{chest_o_data}.rotate')
-        cmds.parentConstraint(chest_o_data, chest_fk, maintainOffset=True)
+        constraint_targets(source_driver=chest_o_data, target_driven=chest_fk)
         # Attributes
         set_attr_state(attribute_path=f"{chest_o_ctrl}.v", hidden=True)  # Hide and Lock Visibility
         add_separator_attr(target_object=chest_o_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
@@ -392,7 +392,7 @@ class ModuleSpine(ModuleGeneric):
 
         # Constraints FK -> Base
         for fk_jnt_zip in zip(fk_joints, module_jnt_list):
-            cmds.parentConstraint(fk_jnt_zip[0], fk_jnt_zip[1])
+            constraint_targets(source_driver=fk_jnt_zip[0], target_driven=fk_jnt_zip[1])
 
         # # TODO TEMP @@@
         # out_find_driver = self.find_driver(driver_type=RiggerDriverTypes.FK, proxy_purpose=self.hip)

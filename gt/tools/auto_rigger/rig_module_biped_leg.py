@@ -11,6 +11,7 @@ from gt.utils.color_utils import ColorConstants, set_color_viewport, set_color_o
 from gt.utils.transform_utils import match_translate, Vector3, match_transform, scale_shapes, translate_shapes
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
+from gt.utils.constraint_utils import constraint_targets, ConstraintTypes
 from gt.utils.math_utils import dist_center_to_center, get_bbox_position
 from gt.utils.hierarchy_utils import add_offset_transform
 from gt.utils.naming_utils import NamingConstants
@@ -197,7 +198,10 @@ class ModuleBipedLeg(ModuleGeneric):
 
         # Knee Setup - Always Between Hip and Ankle
         knee_offset = get_proxy_offset(knee)
-        cmds.pointConstraint([hip, ankle], knee_offset)
+        constraint_targets(source_driver=[hip, ankle],
+                           target_driven=knee_offset,
+                           constraint_type=ConstraintTypes.POINT,
+                           maintain_offset=False)
 
         knee_pv_dir = cmds.spaceLocator(name=f'{knee_tag}_poleVectorDir')[0]
         add_attr(obj_list=knee_pv_dir, attributes=ModuleBipedLeg.REF_ATTR_KNEE_PROXY_PV, attr_type="string")
@@ -392,7 +396,7 @@ class ModuleBipedLeg(ModuleGeneric):
         match_transform(source=hip_jnt, target_list=hip_fk_offset)
         scale_shapes(obj_transform=hip_fk_ctrl, offset=leg_scale*.1)
         hierarchy_utils.parent(source_objects=hip_fk_offset, target_parent=direction_crv)
-        cmds.parentConstraint(hip_fk_ctrl, hip_fk, maintainOffset=True)
+        constraint_targets(source_driver=hip_fk_ctrl,target_driven=hip_fk)
         color = get_directional_color(object_name=hip_fk_ctrl)
         set_color_viewport(obj_list=hip_fk_ctrl, rgb_color=color)
 
@@ -405,7 +409,7 @@ class ModuleBipedLeg(ModuleGeneric):
         match_transform(source=knee_jnt, target_list=knee_fk_offset)
         scale_shapes(obj_transform=knee_fk_ctrl, offset=leg_scale * .1)
         hierarchy_utils.parent(source_objects=knee_fk_offset, target_parent=hip_fk_ctrl)
-        cmds.parentConstraint(knee_fk_ctrl, knee_fk, maintainOffset=True)
+        constraint_targets(source_driver=knee_fk_ctrl, target_driven=knee_fk)
 
         # FK Ankle Control
         ankle_fk_ctrl = self._assemble_ctrl_name(name=self.ankle.get_name())
@@ -416,7 +420,7 @@ class ModuleBipedLeg(ModuleGeneric):
         match_transform(source=ankle_jnt, target_list=ankle_fk_offset)
         scale_shapes(obj_transform=ankle_fk_ctrl, offset=leg_scale * .1)
         hierarchy_utils.parent(source_objects=ankle_fk_offset, target_parent=knee_fk_ctrl)
-        cmds.parentConstraint(ankle_fk_ctrl, ankle_fk, maintainOffset=True)
+        constraint_targets(source_driver=ankle_fk_ctrl, target_driven=ankle_fk)
         # Remove Ankle Shape Orientation
         temp_transform = cmds.group(name=ankle_fk_ctrl + '_rotExtraction', empty=True, world=True)
         match_translate(source=toe_jnt, target_list=temp_transform)
@@ -435,7 +439,7 @@ class ModuleBipedLeg(ModuleGeneric):
         match_transform(source=ball_jnt, target_list=ball_offset)
         scale_shapes(obj_transform=ball_fk_ctrl, offset=foot_scale * .3)
         hierarchy_utils.parent(source_objects=ball_offset, target_parent=ankle_fk_ctrl)
-        cmds.parentConstraint(ball_fk_ctrl, ball_fk, maintainOffset=True)
+        constraint_targets(source_driver=ball_fk_ctrl, target_driven=ball_fk)
 
         # IK Controls --------------------------------------------------------------------------------------
 
@@ -449,7 +453,6 @@ class ModuleBipedLeg(ModuleGeneric):
         match_translate(source=knee_jnt, target_list=knee_offset)
         scale_shapes(obj_transform=knee_ik_ctrl, offset=leg_scale * .05)
         hierarchy_utils.parent(source_objects=knee_offset, target_parent=direction_crv)
-        # cmds.parentConstraint(knee_ctrl, knee_fk, maintainOffset=True)
         color = get_directional_color(object_name=knee_ik_ctrl)
         set_color_viewport(obj_list=knee_ik_ctrl, rgb_color=color)
 

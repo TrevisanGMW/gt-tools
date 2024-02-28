@@ -8,11 +8,11 @@ from gt.tools.auto_rigger.rig_utils import get_proxy_offset, get_automation_grou
 from gt.utils.transform_utils import Vector3, match_transform, scale_shapes, translate_shapes, rotate_shapes
 from gt.utils.transform_utils import set_equidistant_transforms
 from gt.utils.attr_utils import add_separator_attr, set_attr_state, rescale, hide_lock_default_attrs, set_attr
+from gt.utils.constraint_utils import equidistant_constraints, constraint_targets, ConstraintTypes
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
 from gt.utils.color_utils import ColorConstants, set_color_viewport
 from gt.utils.joint_utils import copy_parent_orients, reset_orients
-from gt.utils.constraint_utils import equidistant_constraints
 from gt.utils.hierarchy_utils import add_offset_transform
 from gt.utils.curve_utils import create_connection_line
 from gt.utils.math_utils import dist_center_to_center
@@ -304,7 +304,7 @@ class ModuleHead(ModuleGeneric):
         scale_shapes(obj_transform=neck_base_ctrl, offset=head_scale*.3)
         offset_control_orientation(ctrl=neck_base_ctrl, offset_transform=neck_base_offset, orient_tuple=(-90, -90, 0))
         hierarchy_utils.parent(source_objects=neck_base_offset, target_parent=direction_crv)
-        cmds.parentConstraint(neck_base_ctrl, neck_base_jnt, maintainOffset=True)
+        constraint_targets(source_driver=neck_base_ctrl, target_driven=neck_base_jnt)
         # Attributes
         set_attr_state(attribute_path=f"{neck_base_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
         add_separator_attr(target_object=neck_base_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
@@ -336,7 +336,7 @@ class ModuleHead(ModuleGeneric):
             add_separator_attr(target_object=neck_mid_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
             expose_rotation_order(neck_mid_ctrl)
             neck_mid_ctrls.append(neck_mid_ctrl)
-            cmds.parentConstraint(neck_mid_ctrl, mid_jnt, maintainOffset=True)
+            constraint_targets(source_driver=neck_mid_ctrl, target_driven=mid_jnt)
             last_mid_parent_ctrl = neck_mid_ctrl
 
         # Head Ctrl -----------------------------------------------------------------------------------------
@@ -380,7 +380,7 @@ class ModuleHead(ModuleGeneric):
         # Connections
         cmds.connectAttr(f'{head_o_ctrl}.translate', f'{head_o_data}.translate')
         cmds.connectAttr(f'{head_o_ctrl}.rotate', f'{head_o_data}.rotate')
-        cmds.parentConstraint(head_o_data, head_jnt, maintainOffset=True)
+        constraint_targets(source_driver=head_o_data, target_driven=head_jnt)
         # Attributes
         set_attr_state(attribute_path=f"{head_o_ctrl}.v", hidden=True)  # Hide and Lock Visibility
         add_separator_attr(target_object=head_o_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
@@ -403,7 +403,7 @@ class ModuleHead(ModuleGeneric):
         translate_shapes(obj_transform=jaw_ctrl,
                          offset=(0, jaw_end_distance * 1.1, jaw_end_distance*.1))  # Move Shape To Jaw End
         hierarchy_utils.parent(source_objects=jaw_offset, target_parent=head_o_data)
-        cmds.parentConstraint(jaw_ctrl, jaw_jnt, maintainOffset=True)
+        constraint_targets(source_driver=jaw_ctrl, target_driven=jaw_jnt)
         # Attributes
         set_attr_state(attribute_path=f"{jaw_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
         add_separator_attr(target_object=jaw_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
@@ -462,10 +462,10 @@ class ModuleHead(ModuleGeneric):
                  attr_list="v", value=False)
         hierarchy_utils.parent(source_objects=[lt_eye_up_vec, rt_eye_up_vec], target_parent=head_o_data)
 
-        cmds.aimConstraint(lt_eye_ctrl, lt_eye, maintainOffset=True, upVector=(0, 1, 0),
-                           worldUpType="object", worldUpObject=lt_eye_up_vec)
-        cmds.aimConstraint(rt_eye_ctrl, rt_eye, maintainOffset=True, upVector=(0, 1, 0),
-                           worldUpType="object", worldUpObject=rt_eye_up_vec)
+        constraint_targets(source_driver=lt_eye_ctrl, target_driven=lt_eye, constraint_type=ConstraintTypes.AIM,
+                           upVector=(0, 1, 0), worldUpType="object", worldUpObject=lt_eye_up_vec)
+        constraint_targets(source_driver=rt_eye_ctrl, target_driven=rt_eye, constraint_type=ConstraintTypes.AIM,
+                           upVector=(0, 1, 0), worldUpType="object", worldUpObject=rt_eye_up_vec)
 
         # Attributes and Colors
         lt_lines = create_connection_line(object_a=lt_eye_ctrl,

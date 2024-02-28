@@ -380,45 +380,52 @@ class ModuleBipedFingers(ModuleGeneric):
         """
         Runs post rig script.
         """
-        _digit_joints_map = {}  # Key = Joint, Value = Proxy
+        _proxy_joint_map = {} # Key = Joint, Value = Proxy
         _thumb_joints = []
         _index_joints = []
         _middle_joints = []
         _ring_joints = []
         _pinky_joints = []
         _extra_joints = []
-        _all_joints = []
-        # Get Joints & Set Colors
+        _end_joints = []  # Only the last joints of every digit
+        # Get Joints
         for proxy in self.proxies:
-            digit_jnt = find_joint_from_uuid(proxy.get_uuid())
+            finger_jnt = find_joint_from_uuid(proxy.get_uuid())
             meta_type = get_meta_purpose_from_dict(proxy.get_metadata())
-            if not digit_jnt:
+            if not finger_jnt:
                 continue  # Skipped finger
-            _digit_joints_map[digit_jnt] = proxy
+            if not meta_type:
+                continue  # Unexpected Proxy
+            _proxy_joint_map[finger_jnt] = proxy  # Add to map
             # Store Joints In Lists/Dict
             if self.tag_thumb in meta_type:
-                _thumb_joints.append(digit_jnt)
+                _thumb_joints.append(finger_jnt)
             elif self.tag_index in meta_type:
-                _index_joints.append(digit_jnt)
+                _index_joints.append(finger_jnt)
             elif self.tag_middle in meta_type:
-                _middle_joints.append(digit_jnt)
+                _middle_joints.append(finger_jnt)
             elif self.tag_ring in meta_type:
-                _ring_joints.append(digit_jnt)
+                _ring_joints.append(finger_jnt)
             elif self.tag_pinky in meta_type:
-                _pinky_joints.append(digit_jnt)
+                _pinky_joints.append(finger_jnt)
             elif self.tag_extra in meta_type:
-                _extra_joints.append(digit_jnt)
-            # Color
+                _extra_joints.append(finger_jnt)
+            # End Joints
             if meta_type and str(meta_type).endswith("End"):
-                set_color_viewport(obj_list=digit_jnt, rgb_color=ColorConstants.RigJoint.END)
-            else:
-                set_color_viewport(obj_list=digit_jnt, rgb_color=ColorConstants.RigJoint.OFFSET)
-            _all_joints.append(digit_jnt)
+                _end_joints.append(finger_jnt)
+        _all_joints_no_end = list(set(_proxy_joint_map.keys()) - set(_end_joints))
+
+        # Set Joint Colors
+        for jnt in _all_joints_no_end:
+            set_color_viewport(obj_list=jnt, rgb_color=ColorConstants.RigJoint.OFFSET)
+        for jnt in _end_joints:
+            set_color_viewport(obj_list=jnt, rgb_color=ColorConstants.RigJoint.END)
+
         # Get Misc Elements
         direction_crv = find_direction_curve()
         module_parent_jnt = find_joint_from_uuid(self.get_parent_uuid())
 
-        # Control Parent
+        # Control Parent (Main System Driver)
         finger_lists = [_thumb_joints, _index_joints, _middle_joints,
                         _ring_joints, _pinky_joints, _extra_joints]
         wrist_grp = self._assemble_new_node_name(name=f"fingers_{NamingConstants.Suffix.DRIVEN}",
@@ -437,12 +444,18 @@ class ModuleBipedFingers(ModuleGeneric):
         for finger_list in finger_lists:
             if not finger_list:
                 continue # Ignore skipped fingers
+            # Unpack elements
+            digit_base = finger_list[0]
+            digit_middle = finger_list[1]
+            digit_tip = finger_list[2]
+            digit_tip_end = finger_list[3]
             # Determine finger scale
-            finger_scale = dist_center_to_center(finger_list[0], finger_list[1])
-            finger_scale += dist_center_to_center(finger_list[1], finger_list[2])
-            finger_scale += dist_center_to_center(finger_list[2], finger_list[3])
+            finger_scale = dist_center_to_center(digit_base, digit_middle)
+            finger_scale += dist_center_to_center(digit_middle, digit_tip)
+            finger_scale += dist_center_to_center(digit_tip, digit_tip_end)
+            # Create FK Controls
             for finger_jnt in finger_list:
-                finger_proxy = _digit_joints_map.get(finger_jnt)
+                finger_proxy = _proxy_joint_map.get(finger_jnt)
                 meta_type = get_meta_purpose_from_dict(finger_proxy.get_metadata())
                 if meta_type and str(meta_type).endswith("End"):
                     continue  # Skip end joints
@@ -454,6 +467,7 @@ class ModuleBipedFingers(ModuleGeneric):
                 match_transform(source=finger_jnt, target_list=offset)
                 scale_shapes(obj_transform=ctrl, offset=finger_scale*.1)
                 hierarchy_utils.parent(source_objects=offset, target_parent=wrist_grp)
+                
         # Set Children Drivers -----------------------------------------------------------------------------
         self.module_children_drivers = [wrist_grp]
 
