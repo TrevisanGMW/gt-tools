@@ -337,3 +337,77 @@ class TestConstraintUtils(unittest.TestCase):
                                                                constraint='parent')
         expected_constraints = ['pCube3_parentConstraint1']
         self.assertEqual(expected_constraints, constraints)
+
+    def test_constraint_targets_single_source_single_target(self):
+        cube_source = maya_test_tools.create_poly_cube(name="cube_source")
+        cube_target = maya_test_tools.create_poly_cube(name="cube_target")
+
+        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="tx", value=10)
+        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="tz", value=10)
+        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="rx", value=90)
+
+        constraint_type = constraint_utils.ConstraintTypes.PARENT
+        constraints = constraint_utils.constraint_targets(source_driver=cube_source,
+                                                          target_driven=cube_target,
+                                                          constraint_type=constraint_type,
+                                                          maintain_offset=False,
+                                                          inter_type=0,
+                                                          rename_constraint=True)
+        expected_constraints = ["|cube_target|cube_target_parentConstraint"]
+        self.assertEqual(expected_constraints, constraints)
+
+        tx = maya_test_tools.cmds.getAttr(f'{cube_target}.tx')
+        tz = maya_test_tools.cmds.getAttr(f'{cube_target}.tz')
+        rx = maya_test_tools.cmds.getAttr(f'{cube_target}.rx')
+        expected_tx = 10
+        expected_tz = 10
+        expected_rx = 90
+        self.assertEqual(expected_tx, tx)
+        self.assertEqual(expected_tz, tz)
+        self.assertEqual(expected_rx, rx)
+
+    def test_constraint_targets_multiple_sources_multiple_targets(self):
+        cube_source_one = maya_test_tools.create_poly_cube(name="cube_source_one")
+        cube_source_two = maya_test_tools.create_poly_cube(name="cube_source_two")
+        cube_target_one = maya_test_tools.create_poly_cube(name="cube_target_one")
+        cube_target_two = maya_test_tools.create_poly_cube(name="cube_target_two")
+
+        maya_test_tools.set_attribute(obj_name=cube_source_one, attr_name="tx", value=5)
+
+        constraint_type = constraint_utils.ConstraintTypes.PARENT
+        constraints = constraint_utils.constraint_targets(source_driver=[cube_source_one, cube_source_two],
+                                                          target_driven=[cube_target_one, cube_target_two],
+                                                          constraint_type=constraint_type,
+                                                          maintain_offset=False,
+                                                          inter_type=0,
+                                                          rename_constraint=True)
+        expected_constraints = ["|cube_target_one|cube_target_one_parentConstraint",
+                                "|cube_target_two|cube_target_two_parentConstraint"]
+        self.assertEqual(expected_constraints, constraints)
+
+        tx = maya_test_tools.cmds.getAttr(f'{cube_target_one}.tx')
+        expected_tx = 2.5
+        self.assertEqual(expected_tx, tx)
+        tx = maya_test_tools.cmds.getAttr(f'{cube_target_two}.tx')
+        expected_tx = 2.5
+        self.assertEqual(expected_tx, tx)
+
+    def test_constraint_targets_offset_and_naming(self):
+        cube_source_one = maya_test_tools.create_poly_cube(name="cube_source")
+        cube_target_one = maya_test_tools.create_poly_cube(name="cube_target")
+
+        maya_test_tools.set_attribute(obj_name=cube_source_one, attr_name="tx", value=5)
+
+        constraint_type = constraint_utils.ConstraintTypes.POINT
+        constraints = constraint_utils.constraint_targets(source_driver=cube_source_one,
+                                                          target_driven=cube_target_one,
+                                                          constraint_type=constraint_type,
+                                                          maintain_offset=True,
+                                                          inter_type=0,
+                                                          rename_constraint=False)
+        expected_constraints = ["|cube_target|cube_target_pointConstraint1"]
+        self.assertEqual(expected_constraints, constraints)
+
+        tx = maya_test_tools.cmds.getAttr(f'{cube_target_one}.tx')
+        expected_tx = 0
+        self.assertEqual(expected_tx, tx)

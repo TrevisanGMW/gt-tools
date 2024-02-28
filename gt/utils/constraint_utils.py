@@ -252,8 +252,9 @@ def constraint_targets(source_driver, target_driven, constraint_type=ConstraintT
             constraint = _func(source_driver, obj, maintainOffset=maintain_offset, **kwargs)[0]
             if constraint:
                 constraint = Node(constraint)
-                constraint_name = f'{get_short_name(obj)}_{constraint_type}Constraint'
-                constraint.rename(constraint_name)
+                if rename_constraint:
+                    constraint_name = f'{get_short_name(obj)}_{constraint_type}Constraint'
+                    constraint.rename(constraint_name)
                 constraints.append(constraint)
     # Changes the 'interpType' attribute of constraints to "No Flip"
     for constraint_type in constraints:
@@ -265,9 +266,4 @@ def constraint_targets(source_driver, target_driven, constraint_type=ConstraintT
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     # equidistant_constraints(start="locator1", end="locator2", target_list=["pCube1", "pCube2", "pCube3"])
-    # equidistant_constraints(start="locator1", end="locator2", target_list="pCube1")
-    out = constraint_targets(source_driver="pCube1", target_driven=["pCube3", "pCube2"])
-    out2 = constraint_targets(source_driver="pCube1", target_driven=["pCube3", "pCube2"],
-                             constraint_type=ConstraintTypes.SCALE)
-    print(out)
-    print(out2)
+    equidistant_constraints(start="locator1", end="locator2", target_list="pCube1")
