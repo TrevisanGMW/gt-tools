@@ -3,12 +3,15 @@ Auto Rigger Digit Modules (Fingers, Toes)
 github.com/TrevisanGMW/gt-tools
 """
 from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, get_meta_purpose_from_dict, find_direction_curve
+from gt.tools.auto_rigger.rig_utils import create_ctrl_curve
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.tools.biped_rigger_legacy.rigger_utilities import dist_center_to_center
 from gt.utils.color_utils import ColorConstants, set_color_viewport
+from gt.utils.hierarchy_utils import add_offset_transform
 from gt.utils.math_utils import get_transforms_center_position
-from gt.tools.auto_rigger.rig_constants import RiggerConstants
-from gt.utils.transform_utils import Vector3, match_transform
+from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
+from gt.utils.node_utils import Node
+from gt.utils.transform_utils import Vector3, match_transform, scale_shapes
 from gt.utils.naming_utils import NamingConstants
 from gt.utils.curve_utils import get_curve
 from gt.utils import hierarchy_utils
@@ -377,6 +380,7 @@ class ModuleBipedFingers(ModuleGeneric):
         """
         Runs post rig script.
         """
+        _digit_joints_map = {}  # Key = Joint, Value = Proxy
         _thumb_joints = []
         _index_joints = []
         _middle_joints = []
@@ -385,21 +389,24 @@ class ModuleBipedFingers(ModuleGeneric):
         _extra_joints = []
         _all_joints = []
         # Get Joints & Set Colors
-        for digit in self.proxies:
-            digit_jnt = find_joint_from_uuid(digit.get_uuid())
-            meta_type = get_meta_purpose_from_dict(digit.get_metadata())
-            # Store Joints In Lists
-            if meta_type and digit_jnt and self.tag_thumb in meta_type:
+        for proxy in self.proxies:
+            digit_jnt = find_joint_from_uuid(proxy.get_uuid())
+            meta_type = get_meta_purpose_from_dict(proxy.get_metadata())
+            if not digit_jnt:
+                continue  # Skipped finger
+            _digit_joints_map[digit_jnt] = proxy
+            # Store Joints In Lists/Dict
+            if self.tag_thumb in meta_type:
                 _thumb_joints.append(digit_jnt)
-            elif meta_type and digit_jnt and self.tag_index in meta_type:
+            elif self.tag_index in meta_type:
                 _index_joints.append(digit_jnt)
-            elif meta_type and digit_jnt  and self.tag_middle in meta_type:
+            elif self.tag_middle in meta_type:
                 _middle_joints.append(digit_jnt)
-            elif meta_type and digit_jnt  and self.tag_ring in meta_type:
+            elif self.tag_ring in meta_type:
                 _ring_joints.append(digit_jnt)
-            elif meta_type and digit_jnt  and self.tag_pinky in meta_type:
+            elif self.tag_pinky in meta_type:
                 _pinky_joints.append(digit_jnt)
-            elif meta_type and digit_jnt  and self.tag_extra in meta_type:
+            elif self.tag_extra in meta_type:
                 _extra_joints.append(digit_jnt)
             # Color
             if meta_type and str(meta_type).endswith("End"):
@@ -417,6 +424,7 @@ class ModuleBipedFingers(ModuleGeneric):
         wrist_grp = self._assemble_new_node_name(name=f"fingers_{NamingConstants.Suffix.DRIVEN}",
                                                     project_prefix=project_prefix)
         wrist_grp = cmds.group(name=wrist_grp, empty=True, world=True)
+        wrist_grp = Node(wrist_grp)
         if module_parent_jnt:
             match_transform(source=module_parent_jnt, target_list=wrist_grp)
         else: # No parent, average the position of the fingers group
@@ -425,6 +433,7 @@ class ModuleBipedFingers(ModuleGeneric):
             cmds.xform(wrist_grp, translation=fingers_center, worldSpace=True)
         hierarchy_utils.parent(source_objects=wrist_grp, target_parent=direction_crv)
 
+        # Create FK Controls
         for finger_list in finger_lists:
             if not finger_list:
                 continue # Ignore skipped fingers
@@ -432,14 +441,21 @@ class ModuleBipedFingers(ModuleGeneric):
             finger_scale = dist_center_to_center(finger_list[0], finger_list[1])
             finger_scale += dist_center_to_center(finger_list[1], finger_list[2])
             finger_scale += dist_center_to_center(finger_list[2], finger_list[3])
-            # ctrl = self._assemble_ctrl_name(name=self.clavicle.get_name())
-            # ctrl = create_ctrl_curve(name=clavicle_ctrl, curve_file_name="_pin_pos_y")
-
-
-
-
+            for finger_jnt in finger_list:
+                finger_proxy = _digit_joints_map.get(finger_jnt)
+                meta_type = get_meta_purpose_from_dict(finger_proxy.get_metadata())
+                if meta_type and str(meta_type).endswith("End"):
+                    continue  # Skip end joints
+                ctrl = self._assemble_ctrl_name(name=finger_proxy.get_name())
+                ctrl = create_ctrl_curve(name=ctrl, curve_file_name="_pin_pos_y")
+                self.add_driver_uuid_attr(target=ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=finger_proxy)
+                offset = add_offset_transform(target_list=ctrl)[0]
+                offset = Node(offset)
+                match_transform(source=finger_jnt, target_list=offset)
+                scale_shapes(obj_transform=ctrl, offset=finger_scale*.1)
+                hierarchy_utils.parent(source_objects=offset, target_parent=wrist_grp)
         # Set Children Drivers -----------------------------------------------------------------------------
-        self.module_children_drivers = []
+        self.module_children_drivers = [wrist_grp]
 
 
 class ModuleBipedFingersLeft(ModuleBipedFingers):
