@@ -4,12 +4,14 @@ github.com/TrevisanGMW/gt-tools
 """
 from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, get_meta_purpose_from_dict, find_direction_curve
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
+from gt.tools.biped_rigger_legacy.rigger_utilities import dist_center_to_center
 from gt.utils.color_utils import ColorConstants, set_color_viewport
+from gt.utils.math_utils import get_transforms_center_position
 from gt.tools.auto_rigger.rig_constants import RiggerConstants
 from gt.utils.transform_utils import Vector3, match_transform
 from gt.utils.naming_utils import NamingConstants
-from gt.utils.math_utils import get_bbox_position, get_transforms_center_position
 from gt.utils.curve_utils import get_curve
+from gt.utils import hierarchy_utils
 from gt.ui import resource_library
 import maya.cmds as cmds
 import logging
@@ -410,17 +412,30 @@ class ModuleBipedFingers(ModuleGeneric):
         module_parent_jnt = find_joint_from_uuid(self.get_parent_uuid())
 
         # Control Parent
+        finger_lists = [_thumb_joints, _index_joints, _middle_joints,
+                        _ring_joints, _pinky_joints, _extra_joints]
         wrist_grp = self._assemble_new_node_name(name=f"fingers_{NamingConstants.Suffix.DRIVEN}",
                                                     project_prefix=project_prefix)
         wrist_grp = cmds.group(name=wrist_grp, empty=True, world=True)
         if module_parent_jnt:
             match_transform(source=module_parent_jnt, target_list=wrist_grp)
         else: # No parent, average the position of the fingers group
-            finger_lists = [_thumb_joints, _index_joints, _middle_joints,
-                            _ring_joints, _pinky_joints,_extra_joints]
-            first_joints = [sublist[0] for sublist in finger_lists if sublist]
+            first_joints = [sublist[0] for sublist in finger_lists if sublist]  # Only first element of each list
             fingers_center = get_transforms_center_position(transform_list=first_joints)
             cmds.xform(wrist_grp, translation=fingers_center, worldSpace=True)
+        hierarchy_utils.parent(source_objects=wrist_grp, target_parent=direction_crv)
+
+        for finger_list in finger_lists:
+            if not finger_list:
+                continue # Ignore skipped fingers
+            # Determine finger scale
+            finger_scale = dist_center_to_center(finger_list[0], finger_list[1])
+            finger_scale += dist_center_to_center(finger_list[1], finger_list[2])
+            finger_scale += dist_center_to_center(finger_list[2], finger_list[3])
+            # ctrl = self._assemble_ctrl_name(name=self.clavicle.get_name())
+            # ctrl = create_ctrl_curve(name=clavicle_ctrl, curve_file_name="_pin_pos_y")
+
+
 
 
         # Set Children Drivers -----------------------------------------------------------------------------
