@@ -177,6 +177,52 @@ class TestMathUtils(unittest.TestCase):
         result = math_utils.dist_center_to_center(obj_a, obj_b)
         self.assertEqual(expected_result, result)
 
+    def test_dist_path_sum_maya_objects(self):
+        obj_one = maya_test_tools.create_poly_cube(name="cube_one")
+        obj_two = maya_test_tools.create_poly_cube(name="cube_two")
+        obj_three = maya_test_tools.create_poly_cube(name="cube_three")
+        obj_four = maya_test_tools.create_poly_cube(name="cube_four")
+        obj_five = maya_test_tools.create_poly_cube(name="cube_five")
+
+        maya_test_tools.cmds.setAttr(f'{obj_two}.tz', 2)
+        maya_test_tools.cmds.setAttr(f'{obj_three}.tx', 2)
+        maya_test_tools.cmds.setAttr(f'{obj_three}.tz', 2)
+        maya_test_tools.cmds.setAttr(f'{obj_four}.tx', 2)
+        maya_test_tools.cmds.setAttr(f'{obj_five}.tx', 6)
+
+        input_list = [obj_one, obj_two, obj_three, obj_four, obj_five]
+
+        expected_result = 10
+        result = math_utils.dist_path_sum(input_list=input_list)
+        self.assertEqual(expected_result, result)
+
+    def test_dist_path_sum_xyz_tuples_and_lists(self):
+        input_list = [(0, 0, 0), (0, 0, 2), (2, 0, 2), (2, 0, 0), (6, 0, 0)]  # Tuples
+        expected_result = 10
+        result = math_utils.dist_path_sum(input_list=input_list)
+        self.assertEqual(expected_result, result)
+        input_list = [[0, 0, 0], [0, 0, 2], [2, 0, 2], [2, 0, 0], [6, 0, 0]]  # Lists
+        expected_result = 10
+        result = math_utils.dist_path_sum(input_list=input_list)
+        self.assertEqual(expected_result, result)
+        input_list = [[0, 0, 0], (0, 0, 2), [2, 0, 2], (2, 0, 0), [6, 0, 0]]  # Lists and Tuples
+        expected_result = 10
+        result = math_utils.dist_path_sum(input_list=input_list)
+        self.assertEqual(expected_result, result)
+
+    def test_dist_path_sum_mixed_types(self):
+        obj_two = maya_test_tools.create_poly_cube(name="cube_two")
+        obj_four = maya_test_tools.create_poly_cube(name="cube_four")
+
+        maya_test_tools.cmds.setAttr(f'{obj_two}.tz', 2)
+        maya_test_tools.cmds.setAttr(f'{obj_four}.tx', 2)
+
+        input_list = [(0, 0, 0), obj_two, [2, 0, 2], obj_four, (6, 0, 0)]
+
+        expected_result = 10
+        result = math_utils.dist_path_sum(input_list=input_list)
+        self.assertEqual(expected_result, result)
+
     def test_get_bbox_center_single_object(self):
         obj_a = maya_test_tools.create_poly_cube(name="cube_a")
 

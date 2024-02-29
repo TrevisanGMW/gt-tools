@@ -161,8 +161,8 @@ def dist_center_to_center(obj_a, obj_b):
     Calculates the position between the center of one object (A)  to the center of another object (B)
 
     Args:
-        obj_a (string) : Name of object A
-        obj_b (string) : Name of object B
+        obj_a (str) : Name of object A
+        obj_b (str) : Name of object B
 
     Returns:
         float: A distance value between object A and B. For example : 4.0 (or 0 if operation failed)
@@ -175,6 +175,43 @@ def dist_center_to_center(obj_a, obj_b):
     ws_pos_a = cmds.xform(obj_a, q=True, ws=True, t=True)
     ws_pos_b = cmds.xform(obj_b, q=True, ws=True, t=True)
     return dist_xyz_to_xyz(ws_pos_a[0], ws_pos_a[1], ws_pos_a[2], ws_pos_b[0], ws_pos_b[1], ws_pos_b[2])
+
+
+def dist_path_sum(input_list):
+    """
+    Calculates the sum of distances between elements in a list of Maya paths or XYZ positions.
+    Order matters in this case as it calculates the path between the first and last element in order.
+
+    Args:
+        input_list (list): A list containing Maya paths (str) or XYZ positions (tuple or list)
+
+    Returns:
+        float: The sum of distances between consecutive elements. For example: 12.0
+    """
+    total_distance = 0
+    num_elements = len(input_list)
+
+    if num_elements < 2:
+        logger.debug("At least two elements are required to properly calculate distances. "
+                     "Distance is zero otherwise.")
+        return total_distance
+
+    for index in range(num_elements - 1):
+        element_a = input_list[index]
+        element_b = input_list[index + 1]
+        if isinstance(element_a, str):
+            element_a = cmds.xform(element_a, q=True, ws=True, t=True)
+        if isinstance(element_b, str):
+            element_b = cmds.xform(element_b, q=True, ws=True, t=True)
+        if isinstance(element_a, (tuple, list)) and isinstance(element_b, (tuple, list)):
+            distance = dist_xyz_to_xyz(element_a[0], element_a[1], element_a[2],   # A: XYZ
+                                       element_b[0], element_b[1], element_b[2])   # B: XYZ
+        else:
+            logger.warning("Unsupported types detected. Total distance might not be accurate. "
+                           "Please provide only Maya paths (str) or XYZ positions. (tuple/list)")
+            continue
+        total_distance += distance
+    return total_distance
 
 
 def get_bbox_position(obj_list, alignment=None, axis="x"):
@@ -306,4 +343,5 @@ if __name__ == "__main__":
     # x, y, z = center
     # locator = cmds.spaceLocator()[0]
     # cmds.move(x, y, z, locator)
-    print(get_bbox_position("combined_curve_01"))
+    # print(get_bbox_position("combined_curve_01"))
+    print(dist_between_elements(["a", "b", "cf","d",(5, 0, 0)]))
