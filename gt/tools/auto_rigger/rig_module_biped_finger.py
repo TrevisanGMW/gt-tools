@@ -3,14 +3,14 @@ Auto Rigger Digit Modules (Fingers, Toes)
 github.com/TrevisanGMW/gt-tools
 """
 from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, get_meta_purpose_from_dict, find_direction_curve
-from gt.tools.auto_rigger.rig_utils import create_ctrl_curve, expose_rotation_order
+from gt.tools.auto_rigger.rig_utils import create_ctrl_curve, expose_rotation_order, get_automation_group
+from gt.utils.transform_utils import Vector3, match_transform, scale_shapes, rotate_shapes
+from gt.utils.attr_utils import add_separator_attr, hide_lock_default_attrs, set_attr
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
-from gt.tools.biped_rigger_legacy.rigger_utilities import dist_center_to_center
+from gt.utils.data.controls.cluster_driven import create_scalable_two_sides_arrow
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
-from gt.utils.transform_utils import Vector3, match_transform, scale_shapes
-from gt.utils.attr_utils import add_separator_attr, hide_lock_default_attrs
+from gt.utils.math_utils import get_transforms_center_position, dist_path_sum
 from gt.utils.color_utils import ColorConstants, set_color_viewport
-from gt.utils.math_utils import get_transforms_center_position
 from gt.utils.hierarchy_utils import add_offset_transform
 from gt.utils.naming_utils import NamingConstants
 from gt.utils.curve_utils import get_curve
@@ -39,11 +39,17 @@ class ModuleBipedFingers(ModuleGeneric):
     tag_pinky = "pinky"
     tag_extra = "extra"
 
+    # Reference Attributes and Metadata Keys
+    META_SETUP_NAME = "setupName"  # Metadata key for the system name
+
     def __init__(self, name="Fingers", prefix=None, suffix=None):
         super().__init__(name=name, prefix=prefix, suffix=suffix)
 
         _orientation = OrientationData(aim_axis=(1, 0, 0), up_axis=(0, 1, 0), up_dir=(0, 1, 0))
         self.set_orientation(orientation_data=_orientation)
+
+        # Extra Module Data
+        self.add_to_metadata(key=self.META_SETUP_NAME, value="fingers")
 
         # Positions
         pos_thumb01 = Vector3(x=-4, y=130)
@@ -415,21 +421,26 @@ class ModuleBipedFingers(ModuleGeneric):
             # End Joints
             if meta_type and str(meta_type).endswith("End"):
                 _end_joints.append(finger_jnt)
-        _all_joints_no_end = list(set(_proxy_joint_map.keys()) - set(_end_joints))
+        # Helpful Lists
+        _finger_lists = [_thumb_joints, _index_joints, _middle_joints,
+                        _ring_joints, _pinky_joints, _extra_joints]
+        _joints_no_end = list(set(_proxy_joint_map.keys()) - set(_end_joints))
+        _joints_base_only = [sublist[0] for sublist in _finger_lists if sublist]  # Only first element of each list
+        _end_joints_no_thumb = list(set(_end_joints) - set(_thumb_joints))
+        # Get Misc Elements
+        direction_crv = find_direction_curve()
+        module_parent_jnt = find_joint_from_uuid(self.get_parent_uuid())
+        setup_name = self.get_metadata_value(key=self.META_SETUP_NAME)
+        setup_name = setup_name if setup_name else 'fingers'  # If not provided, use generic "fingers"
+        fingers_automation_grp = get_automation_group(f'{setup_name}Automation_{NamingConstants.Suffix.GRP}')
 
-        # Set Joint Colors
-        for jnt in _all_joints_no_end:
+        # Set Joint Colors ------------------------------------------------------------------------------------
+        for jnt in _joints_no_end:
             set_color_viewport(obj_list=jnt, rgb_color=ColorConstants.RigJoint.OFFSET)
         for jnt in _end_joints:
             set_color_viewport(obj_list=jnt, rgb_color=ColorConstants.RigJoint.END)
 
-        # Get Misc Elements
-        direction_crv = find_direction_curve()
-        module_parent_jnt = find_joint_from_uuid(self.get_parent_uuid())
-
         # Control Parent (Main System Driver) ------------------------------------------------------------------
-        finger_lists = [_thumb_joints, _index_joints, _middle_joints,
-                        _ring_joints, _pinky_joints, _extra_joints]
         wrist_grp = self._assemble_new_node_name(name=f"fingers_{NamingConstants.Suffix.DRIVEN}",
                                                     project_prefix=project_prefix)
         wrist_grp = cmds.group(name=wrist_grp, empty=True, world=True)
@@ -437,13 +448,12 @@ class ModuleBipedFingers(ModuleGeneric):
         if module_parent_jnt:
             match_transform(source=module_parent_jnt, target_list=wrist_grp)
         else: # No parent, average the position of the fingers group
-            first_joints = [sublist[0] for sublist in finger_lists if sublist]  # Only first element of each list
-            fingers_center = get_transforms_center_position(transform_list=first_joints)
-            cmds.xform(wrist_grp, translation=fingers_center, worldSpace=True)
+            base_center_pos = get_transforms_center_position(transform_list=_joints_base_only)
+            cmds.xform(wrist_grp, translation=base_center_pos, worldSpace=True)
         hierarchy_utils.parent(source_objects=wrist_grp, target_parent=direction_crv)
 
         # Create Controls -------------------------------------------------------------------------------------
-        for finger_list in finger_lists:
+        for finger_list in _finger_lists:
             if not finger_list:
                 continue # Ignore skipped fingers
             # Unpack elements
@@ -452,10 +462,9 @@ class ModuleBipedFingers(ModuleGeneric):
             digit_tip = finger_list[2]
             digit_tip_end = finger_list[3]
             # Determine finger scale
-            finger_scale = dist_center_to_center(digit_base, digit_middle)
-            finger_scale += dist_center_to_center(digit_middle, digit_tip)
-            finger_scale += dist_center_to_center(digit_tip, digit_tip_end)
+            finger_scale = dist_path_sum([digit_base, digit_middle, digit_tip, digit_tip_end])
             # Create FK Controls
+            last_ctrl = None
             for finger_jnt in finger_list:
                 finger_proxy = _proxy_joint_map.get(finger_jnt)
                 meta_type = get_meta_purpose_from_dict(finger_proxy.get_metadata())
@@ -472,7 +481,81 @@ class ModuleBipedFingers(ModuleGeneric):
                 add_separator_attr(target_object=ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
                 hide_lock_default_attrs(obj_list=ctrl, scale=True, visibility=True)
                 expose_rotation_order(target=ctrl)
-                
+                # Create FK Hierarchy
+                if last_ctrl:
+                    hierarchy_utils.parent(source_objects=offset, target_parent=last_ctrl)
+                last_ctrl = ctrl
+
+        # Fingers System Ctrl ---------------------------------------------------------------------------------
+        fingers_ctrl = self._assemble_ctrl_name(name=setup_name)
+        fingers_ctrl = create_ctrl_curve(name=fingers_ctrl, curve_file_name="_sphere_half_double_arrows")
+        # self.add_driver_uuid_attr(target=fingers_ctrl,
+        #                           driver_type=RiggerDriverTypes.ROLL,
+        #                           proxy_purpose=self.ankle)  # TODO Add to every finger as automation? @@@
+        fingers_offset = add_offset_transform(target_list=fingers_ctrl)[0]
+        fingers_offset = Node(fingers_offset)
+        # Shape Scale Inverse Offset
+        shape_scale_offset_name = self._assemble_ctrl_name(name=setup_name, overwrite_suffix=f'shapeScaleOffset')
+        shape_scale_offset = add_offset_transform(target_list=fingers_ctrl)[0]
+        shape_scale_offset = Node(shape_scale_offset)
+        shape_scale_offset.rename(shape_scale_offset_name)
+        # Abduction Feedback Shape
+        abduction_crv_data = self._assemble_ctrl_name(name=setup_name,
+                                                      overwrite_suffix=f'abduction_{NamingConstants.Suffix.CRV}')
+        abduction_crv_data = create_scalable_two_sides_arrow(name=abduction_crv_data)  # Returns ControlData
+        abduction_crv = abduction_crv_data.get_name()
+        abduction_driver = abduction_crv_data.get_drivers()[0]
+        abduction_setup = abduction_crv_data.get_setup()
+
+        # Set Position and Attributes
+        rotate_shapes(obj_transform=fingers_ctrl, offset=(0, 90, 0))
+        set_attr(obj_list=abduction_crv, attr_list=["overrideEnabled", "overrideDisplayType"], value=1)
+        hierarchy_utils.parent(source_objects=abduction_crv, target_parent=fingers_ctrl)
+        hierarchy_utils.parent(source_objects=abduction_setup, target_parent=fingers_automation_grp)
+        match_transform(source=wrist_grp, target_list=fingers_offset)
+        hierarchy_utils.parent(source_objects=fingers_offset, target_parent=wrist_grp)
+
+        # Find Fingers Control Position and Scale
+        end_center_pos = get_transforms_center_position(transform_list=_end_joints_no_thumb)
+        if module_parent_jnt:  # Has Parent
+            distance_from_wrist = dist_path_sum(input_list=[module_parent_jnt, end_center_pos])
+        else:
+            base_center_pos = get_transforms_center_position(transform_list=_joints_base_only)
+            distance_from_wrist = dist_path_sum(input_list=[base_center_pos, end_center_pos])
+
+        cmds.rotate(90, fingers_offset, rotateX=True)
+        cmds.move(distance_from_wrist*1.2, fingers_offset, moveX=True, relative=True, objectSpace=True)
+        scale_shapes(obj_transform=fingers_ctrl, offset=distance_from_wrist*.07)
+        scale_shapes(obj_transform=abduction_crv, offset=distance_from_wrist*.07)
+
+        # Fingers Curl Visibility (Attributes)
+        add_separator_attr(target_object=fingers_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
+        cmds.addAttr(fingers_ctrl, ln='showCurlControls', at='bool', k=True)
+        cmds.addAttr(fingers_ctrl, ln='showFkFingerCtrls', at='bool', k=True, niceName='Show FK Finger Ctrls')
+
+        # Fingers Limits (Attributes)
+        cmds.addAttr(fingers_ctrl, ln='maximumRotationZ', at='double', k=True)
+        cmds.setAttr(f'{fingers_ctrl}.maximumRotationZ', 10)
+        cmds.addAttr(fingers_ctrl, ln='minimumRotationZ', at='double', k=True)
+        cmds.setAttr(f'{fingers_ctrl}.minimumRotationZ', -130)
+
+        cmds.addAttr(fingers_ctrl, ln='rotateShape', at='bool', k=True)
+        cmds.setAttr(f'{fingers_ctrl}.rotateShape', 1)
+
+        cmds.setAttr(f'{fingers_ctrl}.maxRotZLimitEnable', 1)
+        cmds.setAttr(f'{fingers_ctrl}.minRotZLimitEnable', 1)
+
+
+        # match_transform(source=ankle_proxy, target_list=fingers_offset)
+        # match_translate(source=ball_jnt, target_list=fingers_offset, skip=('x', 'z'))
+        # rotate_shapes(obj_transform=fingers_ctrl, offset=(0, 180, 0))
+        # desired_rotation = cmds.xform(ankle_proxy, query=True, rotation=True)
+        # cmds.setAttr(f'{fingers_offset}.rx', 0)
+        # cmds.setAttr(f'{fingers_offset}.ry', desired_rotation[1])
+        # scale_shapes(obj_transform=fingers_ctrl, offset=foot_scale * .1)
+        # hierarchy_utils.parent(source_objects=fingers_offset, target_parent=foot_o_data)
+        # cmds.move(foot_scale * -.4, fingers_offset, z=True, relative=True, objectSpace=True)
+
         # Set Children Drivers -----------------------------------------------------------------------------
         self.module_children_drivers = [wrist_grp]
 
