@@ -10,6 +10,7 @@ from gt.tools.auto_rigger.rig_utils import find_control_root_curve
 from gt.utils.attr_utils import add_attr, hide_lock_default_attrs, set_attr_state, set_attr, add_separator_attr
 from gt.utils.color_utils import ColorConstants, set_color_viewport, set_color_outliner, get_directional_color
 from gt.utils.transform_utils import match_translate, Vector3, match_transform, scale_shapes, translate_shapes
+from gt.utils.transform_utils import rotate_shapes
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
 from gt.utils.constraint_utils import constraint_targets, ConstraintTypes
@@ -333,6 +334,7 @@ class ModuleBipedLeg(ModuleGeneric):
         # Get Module Orientation  # TODO @@@ CHECK IF USED
         module_orientation = self.get_orientation_data()
         aim_axis = module_orientation.get_aim_axis()
+        aim_axis_x = aim_axis[0]  # Positive=Left, Negative=Right
 
         # Get Elements
         root_ctrl = find_control_root_curve()
@@ -578,6 +580,42 @@ class ModuleBipedLeg(ModuleGeneric):
         hierarchy_utils.parent(source_objects=up_down_toe_offset, target_parent=foot_o_data)
         cmds.move(foot_scale * .55, up_down_toe_offset, z=True, relative=True, objectSpace=True)
 
+        # Ball Roll
+        roll_ball_ctrl = self._assemble_ctrl_name(name="ball", overwrite_suffix=NamingConstants.Suffix.ROLL_CTRL)
+        roll_ball_ctrl = create_ctrl_curve(name=roll_ball_ctrl, curve_file_name="_sphere_half_arrow")
+        self.add_driver_uuid_attr(target=roll_ball_ctrl,
+                                  driver_type=RiggerDriverTypes.ROLL,
+                                  proxy_purpose=self.ball)
+        roll_ball_offset = add_offset_transform(target_list=roll_ball_ctrl)[0]
+        roll_ball_offset = Node(roll_ball_offset)
+        match_transform(source=ball_jnt, target_list=roll_ball_offset)
+        desired_rotation = cmds.xform(ankle_proxy, query=True, rotation=True)
+        cmds.setAttr(f'{roll_ball_offset}.rx', 0)
+        cmds.setAttr(f'{roll_ball_offset}.ry', desired_rotation[1])
+        scale_shapes(obj_transform=roll_ball_ctrl, offset=foot_scale * .1)
+        hierarchy_utils.parent(source_objects=roll_ball_offset, target_parent=foot_o_data)
+        x_offset = (foot_scale*.45)*aim_axis_x
+        cmds.move(x_offset, roll_ball_offset, x=True, relative=True, objectSpace=True)
+
+        # Heel Roll
+        roll_heel_ctrl = self._assemble_ctrl_name(name="heel", overwrite_suffix=NamingConstants.Suffix.ROLL_CTRL)
+        roll_heel_ctrl = create_ctrl_curve(name=roll_heel_ctrl, curve_file_name="_sphere_half_arrow")
+        self.add_driver_uuid_attr(target=roll_heel_ctrl,
+                                  driver_type=RiggerDriverTypes.ROLL,
+                                  proxy_purpose=self.ankle)
+        roll_heel_offset = add_offset_transform(target_list=roll_heel_ctrl)[0]
+        roll_heel_offset = Node(roll_heel_offset)
+        match_transform(source=ankle_proxy, target_list=roll_heel_offset)
+        match_translate(source=ball_jnt, target_list=roll_heel_offset, skip=('x', 'z'))
+        rotate_shapes(obj_transform=roll_heel_ctrl, offset=(0, 180, 0))
+        desired_rotation = cmds.xform(ankle_proxy, query=True, rotation=True)
+        cmds.setAttr(f'{roll_heel_offset}.rx', 0)
+        cmds.setAttr(f'{roll_heel_offset}.ry', desired_rotation[1])
+        scale_shapes(obj_transform=roll_heel_ctrl, offset=foot_scale * .1)
+        hierarchy_utils.parent(source_objects=roll_heel_offset, target_parent=foot_o_data)
+        cmds.move(foot_scale * -.4, roll_heel_offset, z=True, relative=True, objectSpace=True)
+
+        # heel_proxy = find_proxy_from_uuid(uuid_string=self.heel.get_uuid())
 
         # Set Children Drivers -----------------------------------------------------------------------------
         self.module_children_drivers = [hip_fk_offset]
