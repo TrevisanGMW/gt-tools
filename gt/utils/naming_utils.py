@@ -58,6 +58,7 @@ class NamingConstants:
         IK_HANDLE_RP = 'ikRP'  # Rotate-Plane Solver
         IK_HANDLE_SPRING = 'ikSpring'  # Spring Solver
         # IK Suffixes
+        SWITCH_CTRL = f'switch_{CTRL}'  # Same as CTRL but with an extra "ik" description
         IK_CTRL = f'ik_{CTRL}'  # Same as CTRL but with an extra "ik" description
         IK_O_CTRL = f'ik_{OFFSET_CTRL}'  # Offset Control
         IK_O_DATA = f'ik_{OFFSET_DATA}'  # Offset Data
