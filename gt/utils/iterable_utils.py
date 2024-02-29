@@ -312,7 +312,8 @@ def sanitize_maya_list(input_list,
         _output.extend(temp_output)
 
     if filter_unique:
-        _output = list(set(_output))
+        seen = set()  # Keep it separated to retain original order
+        _output = [item for item in _output if not (item in seen or seen.add(item))]
 
     if filter_type:
         _output = [item for item in _output if cmds.objectType(item) == filter_type]
