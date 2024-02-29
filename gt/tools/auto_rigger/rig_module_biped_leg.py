@@ -14,7 +14,7 @@ from gt.utils.transform_utils import rotate_shapes
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
 from gt.utils.constraint_utils import constraint_targets, ConstraintTypes
-from gt.utils.math_utils import dist_center_to_center, get_bbox_position
+from gt.utils.math_utils import get_bbox_position, dist_path_sum
 from gt.utils.hierarchy_utils import add_offset_transform
 from gt.utils.naming_utils import NamingConstants
 from gt.utils.node_utils import create_node, Node
@@ -352,10 +352,8 @@ class ModuleBipedLeg(ModuleGeneric):
         set_color_viewport(obj_list=toe_jnt, rgb_color=ColorConstants.RigJoint.END)
 
         # Get Scale
-        leg_scale = dist_center_to_center(hip_jnt, knee_jnt)
-        leg_scale += dist_center_to_center(knee_jnt, ankle_jnt)
-        foot_scale = dist_center_to_center(ankle_jnt, ball_jnt)
-        foot_scale += dist_center_to_center(ball_jnt, toe_jnt)
+        leg_scale = dist_path_sum(input_list=[hip_jnt, knee_jnt, ankle_jnt])
+        foot_scale = dist_path_sum(input_list=[ankle_jnt, ball_jnt, toe_jnt])
 
         # Set Preferred Angle
         cmds.setAttr(f'{hip_jnt}.preferredAngleZ', 90)
