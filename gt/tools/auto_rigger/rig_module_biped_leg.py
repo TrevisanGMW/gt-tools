@@ -6,6 +6,7 @@ from gt.tools.auto_rigger.rig_utils import duplicate_joint_for_automation, get_p
 from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_from_uuid, get_driven_joint
 from gt.tools.auto_rigger.rig_utils import find_direction_curve, create_ctrl_curve, expose_rotation_order
 from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, find_or_create_joint_automation_group
+from gt.tools.auto_rigger.rig_utils import find_control_root_curve
 from gt.utils.attr_utils import add_attr, hide_lock_default_attrs, set_attr_state, set_attr, add_separator_attr
 from gt.utils.color_utils import ColorConstants, set_color_viewport, set_color_outliner, get_directional_color
 from gt.utils.transform_utils import match_translate, Vector3, match_transform, scale_shapes, translate_shapes
@@ -35,6 +36,7 @@ class ModuleBipedLeg(ModuleGeneric):
 
     # Reference Attributes and Metadata Keys
     REF_ATTR_KNEE_PROXY_PV = "kneeProxyPoleVectorLookupAttr"
+    META_SETUP_NAME = "setupName"  # Metadata key for the system name
     META_FOOT_IK_NAME = "footCtrlName"  # Metadata key for a custom name used for the foot ik control
 
     def __init__(self, name="Leg", prefix=None, suffix=None):
@@ -51,8 +53,9 @@ class ModuleBipedLeg(ModuleGeneric):
         toe_name = "toe"
         heel_name = "heel"
 
-        # Extra Module Data - TODO @@@ Double check ---------------------
-        self.add_to_metadata(key=ModuleBipedLeg.META_FOOT_IK_NAME, value="foot")
+        # Extra Module Data
+        self.add_to_metadata(key=self.META_SETUP_NAME, value="leg")
+        self.add_to_metadata(key=self.META_FOOT_IK_NAME, value="foot")
 
         # Default Proxies
         self.hip = Proxy(name=hip_name)
@@ -328,6 +331,7 @@ class ModuleBipedLeg(ModuleGeneric):
         Build core rig setup for this module.
         """
         # Get Elements
+        root_ctrl = find_control_root_curve()
         direction_crv = find_direction_curve()
         hip_jnt = find_joint_from_uuid(self.hip.get_uuid())
         knee_jnt = find_joint_from_uuid(self.knee.get_uuid())
@@ -471,7 +475,7 @@ class ModuleBipedLeg(ModuleGeneric):
         cmds.delete(temp_transform)
 
         # IK Foot Control
-        foot_ik_name = self.get_metadata_value(key=ModuleBipedLeg.META_FOOT_IK_NAME)
+        foot_ik_name = self.get_metadata_value(key=self.META_FOOT_IK_NAME)
         foot_ctrl_name = foot_ik_name if foot_ik_name else self.ankle.get_name()
         foot_ctrl = self._assemble_ctrl_name(name=foot_ctrl_name, overwrite_suffix=NamingConstants.Suffix.IK_CTRL)
         foot_ctrl = create_ctrl_curve(name=foot_ctrl, curve_file_name="_cube")
@@ -517,6 +521,30 @@ class ModuleBipedLeg(ModuleGeneric):
         expose_rotation_order(foot_o_ctrl)
         cmds.addAttr(foot_ctrl, ln=RiggerConstants.ATTR_SHOW_OFFSET, at='bool', k=True)
         cmds.connectAttr(f'{foot_ctrl}.{RiggerConstants.ATTR_SHOW_OFFSET}', f'{foot_o_ctrl}.v')
+
+        # Switch Control
+
+        # Switch Control
+        # ankle_proxy # Get Rotation here
+        setup_name = self.get_metadata_value(key=self.META_SETUP_NAME)
+        setup_name = setup_name if setup_name else self.ankle.get_name()  # If not provided, use wrist name
+        ik_switch_ctrl = self._assemble_ctrl_name(name=setup_name, overwrite_suffix=NamingConstants.Suffix.SWITCH_CTRL)
+        ik_switch_ctrl = create_ctrl_curve(name=ik_switch_ctrl, curve_file_name="_fk_ik_switch")
+        self.add_driver_uuid_attr(target=ik_switch_ctrl,
+                                  driver_type=RiggerDriverTypes.SWITCH,
+                                  proxy_purpose=self.ankle)
+        ik_switch_offset = add_offset_transform(target_list=ik_switch_ctrl)[0]
+        ik_switch_offset = Node(ik_switch_offset)
+        match_transform(source=ankle_proxy, target_list=ik_switch_offset)
+        translate_shapes(obj_transform=ik_switch_ctrl, offset=(0, 0, leg_scale * -.015))  # Move it away from wrist
+        scale_shapes(obj_transform=ik_switch_ctrl, offset=leg_scale * .1)
+        hierarchy_utils.parent(source_objects=ik_switch_offset, target_parent=root_ctrl)
+        # constraint_targets(source_driver=ik_switch_ctrl, target_driven=ik_switch)
+        color = get_directional_color(object_name=ik_switch_ctrl)
+        set_color_viewport(obj_list=ik_switch_ctrl, rgb_color=color)
+        add_separator_attr(target_object=ik_switch_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
+
+
 
         # Set Children Drivers -----------------------------------------------------------------------------
         self.module_children_drivers = [hip_fk_offset]
