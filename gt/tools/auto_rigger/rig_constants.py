@@ -75,3 +75,4 @@ class RiggerDriverTypes:
     COG = "cog"  # Center of Gravity
     AIM = "aim"  # e.g. eyes
     ROLL = "roll"  # e.g. toe_roll
+    UP_DOWN = "upDown"  # e.g. toe_upDown

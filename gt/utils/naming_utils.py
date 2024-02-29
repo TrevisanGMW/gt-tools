@@ -64,6 +64,7 @@ class NamingConstants:
         IK_O_DATA = f'ik_{OFFSET_DATA}'  # Offset Data
         # Automation
         ROLL_CTRL = f'roll_{CTRL}'
+        UP_DOWN_CTRL = f'upDown_{CTRL}'
 
     class Position:
         MID = 'mid'  # - center (other positions go clockwise starting at 12 o'clock)
