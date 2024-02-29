@@ -9,14 +9,14 @@ from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_fr
 from gt.tools.auto_rigger.rig_utils import expose_rotation_order
 from gt.utils.color_utils import set_color_viewport, ColorConstants, set_color_outliner, get_directional_color
 from gt.utils.transform_utils import match_translate, match_transform, Vector3, set_equidistant_transforms
-from gt.utils.transform_utils import scale_shapes, rotate_shapes
+from gt.utils.transform_utils import scale_shapes, rotate_shapes, translate_shapes
 from gt.utils.attr_utils import hide_lock_default_attrs, set_attr_state, set_attr, add_separator_attr
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
 from gt.utils.constraint_utils import ConstraintTypes, constraint_targets
 from gt.utils.iterable_utils import multiply_collection_by_number
 from gt.utils.hierarchy_utils import add_offset_transform
-from gt.utils.math_utils import dist_center_to_center
+from gt.utils.math_utils import dist_center_to_center, get_bbox_position
 from gt.utils.node_utils import Node, create_node
 from gt.utils.naming_utils import NamingConstants
 from gt.utils.curve_utils import get_curve
@@ -88,7 +88,7 @@ class ModuleBipedArm(ModuleGeneric):
         self.wrist.set_locator_scale(scale=2)
         self.wrist.add_line_parent(line_parent=self.elbow)
         self.wrist.set_meta_purpose(value="wrist")
-        self.wrist.add_driver_type(driver_type=[RiggerDriverTypes.FK])
+        self.wrist.add_driver_type(driver_type=[RiggerDriverTypes.DRIVEN, RiggerDriverTypes.FK, RiggerDriverTypes.IK])
 
         # Update Proxies
         self.proxies = [self.clavicle, self.shoulder, self.elbow, self.wrist]
@@ -260,6 +260,10 @@ class ModuleBipedArm(ModuleGeneric):
         self.wrist.clear_parent_uuid()
 
     def build_rig(self, project_prefix=None, **kwargs):
+        # Get Module Orientation
+        module_orientation = self.get_orientation_data()
+        aim_axis = module_orientation.get_aim_axis()
+
         # Get Elements
         direction_crv = find_direction_curve()
         module_parent_jnt = find_joint_from_uuid(self.get_parent_uuid())  # TODO TEMP @@@
@@ -337,8 +341,6 @@ class ModuleBipedArm(ModuleGeneric):
         clavicle_offset = Node(clavicle_offset)
         match_transform(source=clavicle_jnt, target_list=clavicle_offset)
         scale_shapes(obj_transform=clavicle_ctrl, offset=clavicle_scale*.2)
-        module_orientation = self.get_orientation_data()
-        aim_axis = module_orientation.get_aim_axis()
         rotate_offset = multiply_collection_by_number(collection=aim_axis, number=90)
         rotate_shapes(obj_transform=clavicle_ctrl, offset=(rotate_offset[0], 30, 0))
         offset_control_orientation(ctrl=clavicle_ctrl, offset_transform=clavicle_offset, orient_tuple=(90, 0, 0))
@@ -396,6 +398,60 @@ class ModuleBipedArm(ModuleGeneric):
         set_color_viewport(obj_list=wrist_fk_ctrl, rgb_color=color)
         add_separator_attr(target_object=wrist_fk_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
         expose_rotation_order(wrist_fk_ctrl)
+
+        # IK Controls -------------------------------------------------------------------------------------
+        # IK wrist Control
+        wrist_ik_ctrl = self._assemble_ctrl_name(name=self.wrist.get_name(),
+                                                 overwrite_suffix=NamingConstants.Suffix.IK_CTRL)
+        wrist_ik_ctrl = create_ctrl_curve(name=wrist_ik_ctrl, curve_file_name="_cube")
+        self.add_driver_uuid_attr(target=wrist_ik_ctrl, driver_type=RiggerDriverTypes.IK, proxy_purpose=self.wrist)
+        translate_shapes(obj_transform=wrist_ik_ctrl, offset=(1, 0, 0))  # Move Pivot to Side
+        wrist_ik_offset = add_offset_transform(target_list=wrist_ik_ctrl)[0]
+        wrist_ik_offset = Node(wrist_ik_offset)
+        hierarchy_utils.parent(source_objects=wrist_ik_offset, target_parent=direction_crv)
+        match_transform(source=wrist_jnt, target_list=wrist_ik_offset)
+        offset_control_orientation(ctrl=wrist_ik_ctrl, offset_transform=wrist_ik_offset, orient_tuple=(90, 0, 0))
+        # x_scale = aim_axis[0]
+        wrist_ctrl_scale = (arm_scale*.15, arm_scale * .08, arm_scale * .15)
+        scale_shapes(obj_transform=wrist_ik_ctrl, offset=wrist_ctrl_scale)
+        if aim_axis[0] == -1:
+            cmds.setAttr(f'{wrist_ik_offset}.sx', -1)
+            cmds.setAttr(f'{wrist_ik_offset}.rx', 0)
+            cmds.setAttr(f'{wrist_ik_offset}.ry', 0)
+            cmds.setAttr(f'{wrist_ik_offset}.rz', 0)
+
+        # Wrist Color
+        color = get_directional_color(object_name=wrist_ik_ctrl)
+        set_color_viewport(obj_list=wrist_ik_ctrl, rgb_color=color)
+
+        # Duplicate for Offset Control And Create Data Transform
+        wrist_o_ik_ctrl = self._assemble_ctrl_name(name=self.wrist.get_name(),
+                                                   overwrite_suffix=NamingConstants.Suffix.IK_O_CTRL)
+        wrist_o_ik_ctrl = cmds.duplicate(wrist_ik_ctrl, name=wrist_o_ik_ctrl)[0]
+        wrist_o_ik_data = self._assemble_ctrl_name(name=self.wrist.get_name(),
+                                                   overwrite_suffix=NamingConstants.Suffix.IK_O_DATA)
+        wrist_o_ik_data = cmds.duplicate(wrist_ik_offset, parentOnly=True, name=wrist_o_ik_data)[0]
+        hierarchy_utils.parent(source_objects=[wrist_o_ik_ctrl, wrist_o_ik_data], target_parent=wrist_ik_ctrl)
+        cmds.connectAttr(f'{wrist_o_ik_ctrl}.translate', f'{wrist_o_ik_data}.translate')
+        cmds.connectAttr(f'{wrist_o_ik_ctrl}.rotate', f'{wrist_o_ik_data}.rotate')
+        color = get_directional_color(object_name=wrist_ik_ctrl,
+                                      negative_color=ColorConstants.RigControl.RIGHT_OFFSET,
+                                      positive_color=ColorConstants.RigControl.LEFT_OFFSET)
+        set_color_viewport(obj_list=wrist_o_ik_ctrl, rgb_color=color)
+        wrist_center = get_bbox_position(obj_list=wrist_o_ik_ctrl)
+        scale_shapes(obj_transform=wrist_o_ik_ctrl, offset=0.9, pivot=wrist_center)
+        # Attributes
+        add_separator_attr(target_object=wrist_ik_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
+        expose_rotation_order(wrist_ik_ctrl)
+        add_separator_attr(target_object=wrist_o_ik_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
+        expose_rotation_order(wrist_o_ik_ctrl)
+        cmds.addAttr(wrist_ik_ctrl, ln=RiggerConstants.ATTR_SHOW_OFFSET, at='bool', k=True)
+        cmds.connectAttr(f'{wrist_ik_ctrl}.{RiggerConstants.ATTR_SHOW_OFFSET}', f'{wrist_o_ik_ctrl}.v')
+
+        # # Wrist Driven Data (FK & IK)
+        # wrist_driven_data = self._assemble_ctrl_name(name=self.wrist.get_name(),
+        #                                              overwrite_suffix=NamingConstants.Suffix.DRIVEN)
+        # wrist_o_data = cmds.duplicate(wrist_offset, parentOnly=True, name=wrist_o_data)[0]
 
         # Set Children Drivers -----------------------------------------------------------------------------
         self.module_children_drivers = [clavicle_offset]
