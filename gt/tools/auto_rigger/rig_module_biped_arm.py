@@ -6,7 +6,7 @@ from gt.tools.auto_rigger.rig_utils import duplicate_joint_for_automation, find_
 from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, rescale_joint_radius, find_direction_curve
 from gt.tools.auto_rigger.rig_utils import create_ctrl_curve, get_proxy_offset, offset_control_orientation
 from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_from_uuid, get_driven_joint
-from gt.tools.auto_rigger.rig_utils import expose_rotation_order
+from gt.tools.auto_rigger.rig_utils import expose_rotation_order, find_control_root_curve
 from gt.utils.attr_utils import hide_lock_default_attrs, set_attr_state, set_attr, add_separator_attr, add_attr
 from gt.utils.color_utils import set_color_viewport, ColorConstants, set_color_outliner, get_directional_color
 from gt.utils.transform_utils import match_translate, match_transform, Vector3, set_equidistant_transforms
@@ -89,7 +89,9 @@ class ModuleBipedArm(ModuleGeneric):
         self.wrist.set_locator_scale(scale=2)
         self.wrist.add_line_parent(line_parent=self.elbow)
         self.wrist.set_meta_purpose(value="wrist")
-        self.wrist.add_driver_type(driver_type=[RiggerDriverTypes.DRIVEN, RiggerDriverTypes.FK, RiggerDriverTypes.IK])
+        # self.wrist.add_driver_type(driver_type=[RiggerDriverTypes.DRIVEN, RiggerDriverTypes.FK,
+        #                                         RiggerDriverTypes.IK, RiggerDriverTypes.SWITCH])  # After driven
+        self.wrist.add_driver_type(driver_type=[RiggerDriverTypes.FK, RiggerDriverTypes.IK, RiggerDriverTypes.SWITCH])
 
         # Update Proxies
         self.proxies = [self.clavicle, self.shoulder, self.elbow, self.wrist]
@@ -267,8 +269,9 @@ class ModuleBipedArm(ModuleGeneric):
         aim_axis = module_orientation.get_aim_axis()
 
         # Get Elements
+        root_ctrl = find_control_root_curve()
         direction_crv = find_direction_curve()
-        module_parent_jnt = find_joint_from_uuid(self.get_parent_uuid())  # TODO TEMP @@@
+        # module_parent_jnt = find_joint_from_uuid(self.get_parent_uuid())  # TODO TEMP @@@
         clavicle_jnt = find_joint_from_uuid(self.clavicle.get_uuid())
         shoulder_jnt = find_joint_from_uuid(self.shoulder.get_uuid())
         elbow_jnt = find_joint_from_uuid(self.elbow.get_uuid())
@@ -449,6 +452,7 @@ class ModuleBipedArm(ModuleGeneric):
         expose_rotation_order(wrist_o_ik_ctrl)
         cmds.addAttr(wrist_ik_ctrl, ln=RiggerConstants.ATTR_SHOW_OFFSET, at='bool', k=True)
         cmds.connectAttr(f'{wrist_ik_ctrl}.{RiggerConstants.ATTR_SHOW_OFFSET}', f'{wrist_o_ik_ctrl}.v')
+        hide_lock_default_attrs(obj_list=[wrist_ik_ctrl, wrist_o_ik_ctrl], scale=True, visibility=True)
 
         # IK Elbow Control
         elbow_ik_ctrl = self._assemble_ctrl_name(name=self.elbow.get_name(),
@@ -477,6 +481,24 @@ class ModuleBipedArm(ModuleGeneric):
         cmds.move(arm_scale * .6, 0, 0, temp_transform, objectSpace=True, relative=True)
         cmds.delete(cmds.pointConstraint(temp_transform, elbow_offset))
         cmds.delete(temp_transform)
+
+        # Switch Control
+        wrist_proxy = find_proxy_from_uuid(uuid_string=self.wrist.get_uuid())
+        ik_switch_ctrl = self._assemble_ctrl_name(name=self.wrist.get_name())
+        ik_switch_ctrl = create_ctrl_curve(name=ik_switch_ctrl, curve_file_name="_fk_ik_switch")
+        self.add_driver_uuid_attr(target=ik_switch_ctrl,
+                                  driver_type=RiggerDriverTypes.SWITCH,
+                                  proxy_purpose=self.wrist)
+        ik_switch_offset = add_offset_transform(target_list=ik_switch_ctrl)[0]
+        ik_switch_offset = Node(ik_switch_offset)
+        match_transform(source=wrist_proxy, target_list=ik_switch_offset)
+        translate_shapes(obj_transform=ik_switch_ctrl, offset=(0, 0, arm_scale * -.025))  # Move it away from wrist
+        scale_shapes(obj_transform=ik_switch_ctrl, offset=arm_scale * .2)
+        hierarchy_utils.parent(source_objects=ik_switch_offset, target_parent=root_ctrl)
+        # constraint_targets(source_driver=ik_switch_ctrl, target_driven=ik_switch)
+        color = get_directional_color(object_name=ik_switch_ctrl)
+        set_color_viewport(obj_list=ik_switch_ctrl, rgb_color=color)
+        add_separator_attr(target_object=ik_switch_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
 
         # # Wrist Driven Data (FK & IK)
         # wrist_driven_data = self._assemble_ctrl_name(name=self.wrist.get_name(),
