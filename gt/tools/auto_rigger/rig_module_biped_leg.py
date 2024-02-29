@@ -502,18 +502,21 @@ class ModuleBipedLeg(ModuleGeneric):
         foot_o_data = self._assemble_ctrl_name(name=foot_ctrl_name, overwrite_suffix=NamingConstants.Suffix.IK_O_DATA)
         foot_o_data = cmds.duplicate(foot_offset, parentOnly=True, name=foot_o_data)[0]
         hierarchy_utils.parent(source_objects=[foot_o_ctrl, foot_o_data], target_parent=foot_ctrl)
-        cmds.connectAttr(f'{foot_o_ctrl}.translate', f'{foot_o_data}.translate', f=True)
-        cmds.connectAttr(f'{foot_o_ctrl}.rotate', f'{foot_o_data}.rotate', f=True)
+        cmds.connectAttr(f'{foot_o_ctrl}.translate', f'{foot_o_data}.translate')
+        cmds.connectAttr(f'{foot_o_ctrl}.rotate', f'{foot_o_data}.rotate')
         color = get_directional_color(object_name=foot_ctrl,
                                       negative_color=ColorConstants.RigControl.RIGHT_OFFSET,
                                       positive_color=ColorConstants.RigControl.LEFT_OFFSET)
         set_color_viewport(obj_list=foot_o_ctrl, rgb_color=color)
         foot_center = get_bbox_position(obj_list=foot_o_ctrl)
         scale_shapes(obj_transform=foot_o_ctrl, offset=0.9, pivot=foot_center)
+        # Attributes
         add_separator_attr(target_object=foot_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
         expose_rotation_order(foot_ctrl)
         add_separator_attr(target_object=foot_o_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
         expose_rotation_order(foot_o_ctrl)
+        cmds.addAttr(foot_ctrl, ln=RiggerConstants.ATTR_SHOW_OFFSET, at='bool', k=True)
+        cmds.connectAttr(f'{foot_ctrl}.{RiggerConstants.ATTR_SHOW_OFFSET}', f'{foot_o_ctrl}.v')
 
         # Set Children Drivers -----------------------------------------------------------------------------
         self.module_children_drivers = [hip_fk_offset]

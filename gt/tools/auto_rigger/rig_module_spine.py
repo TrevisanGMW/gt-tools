@@ -308,8 +308,8 @@ class ModuleSpine(ModuleGeneric):
         set_attr_state(attribute_path=f"{hip_o_ctrl}.v", hidden=True)  # Hide and Lock Visibility
         add_separator_attr(target_object=hip_o_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
         expose_rotation_order(hip_o_ctrl)
-        cmds.addAttr(hip_ctrl, ln='showOffsetCtrl', at='bool', k=True)
-        cmds.connectAttr(f'{hip_ctrl}.showOffsetCtrl', f'{hip_o_ctrl}.v')
+        cmds.addAttr(hip_ctrl, ln=RiggerConstants.ATTR_SHOW_OFFSET, at='bool', k=True)
+        cmds.connectAttr(f'{hip_ctrl}.{RiggerConstants.ATTR_SHOW_OFFSET}', f'{hip_o_ctrl}.v')
 
 
         # FK Controls ----------------------------------------------------------------------------------
@@ -387,8 +387,8 @@ class ModuleSpine(ModuleGeneric):
         set_attr_state(attribute_path=f"{chest_o_ctrl}.v", hidden=True)  # Hide and Lock Visibility
         add_separator_attr(target_object=chest_o_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
         expose_rotation_order(chest_o_ctrl)
-        cmds.addAttr(chest_ctrl, ln='showOffsetCtrl', at='bool', k=True)
-        cmds.connectAttr(f'{chest_ctrl}.showOffsetCtrl', f'{chest_o_ctrl}.v')
+        cmds.addAttr(chest_ctrl, ln=RiggerConstants.ATTR_SHOW_OFFSET, at='bool', k=True)
+        cmds.connectAttr(f'{chest_ctrl}.{RiggerConstants.ATTR_SHOW_OFFSET}', f'{chest_o_ctrl}.v')
 
         # Constraints FK -> Base
         for fk_jnt_zip in zip(fk_joints, module_jnt_list):
