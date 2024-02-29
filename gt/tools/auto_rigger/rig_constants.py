@@ -26,6 +26,8 @@ class RiggerConstants:
     ATTR_JOINT_DRIVERS = "jointDrivers"
     ATTR_LINE_CHILD_UUID = "lineProxySourceUUID"  # Used by the proxy lines to store source
     ATTR_LINE_PARENT_UUID = "lineProxyTargetUUID"  # Used by the proxy lines to store target
+    # Common Rigging Attributes
+    ATTR_SHOW_OFFSET = 'showOffsetCtrl'
     # Metadata Keys
     META_PROXY_LINE_PARENT = "lineParentUUID"  # Metadata key, line parent. Actual parent is ignored when present.
     META_PROXY_PURPOSE = "proxyPurpose"  # Metadata key, used to recognize proxy purpose within modules
@@ -68,5 +70,6 @@ class RiggerDriverTypes:
     FK = "fk"
     IK = "ik"
     OFFSET = "offset"
+    DRIVEN = "driven"
     COG = "cog"
     AIM = "aim"
