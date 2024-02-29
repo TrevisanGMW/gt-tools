@@ -7,16 +7,16 @@ from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, rescale_joint_r
 from gt.tools.auto_rigger.rig_utils import create_ctrl_curve, get_proxy_offset, offset_control_orientation
 from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_from_uuid, get_driven_joint
 from gt.tools.auto_rigger.rig_utils import expose_rotation_order
+from gt.utils.attr_utils import hide_lock_default_attrs, set_attr_state, set_attr, add_separator_attr, add_attr
 from gt.utils.color_utils import set_color_viewport, ColorConstants, set_color_outliner, get_directional_color
 from gt.utils.transform_utils import match_translate, match_transform, Vector3, set_equidistant_transforms
 from gt.utils.transform_utils import scale_shapes, rotate_shapes, translate_shapes
-from gt.utils.attr_utils import hide_lock_default_attrs, set_attr_state, set_attr, add_separator_attr
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
 from gt.utils.constraint_utils import ConstraintTypes, constraint_targets
+from gt.utils.math_utils import dist_center_to_center, get_bbox_position
 from gt.utils.iterable_utils import multiply_collection_by_number
 from gt.utils.hierarchy_utils import add_offset_transform
-from gt.utils.math_utils import dist_center_to_center, get_bbox_position
 from gt.utils.node_utils import Node, create_node
 from gt.utils.naming_utils import NamingConstants
 from gt.utils.curve_utils import get_curve
@@ -36,7 +36,8 @@ class ModuleBipedArm(ModuleGeneric):
     icon = resource_library.Icon.rigger_module_biped_arm
     allow_parenting = True
 
-    # Metadata Keys
+    # Reference Attributes and Metadata Keys
+    REF_ATTR_ELBOW_PROXY_PV = "elbowProxyPoleVectorLookupAttr"
     META_FOREARM_ACTIVE = "forearmActive"  # Metadata key for forearm activation
     META_FOREARM_NAME = "forearmName"  # Metadata key for a forearm name
 
@@ -80,7 +81,7 @@ class ModuleBipedArm(ModuleGeneric):
         self.elbow.set_locator_scale(scale=2.2)
         self.elbow.add_line_parent(line_parent=self.shoulder)
         self.elbow.set_meta_purpose(value="elbow")
-        self.elbow.add_driver_type(driver_type=[RiggerDriverTypes.FK])
+        self.elbow.add_driver_type(driver_type=[RiggerDriverTypes.FK, RiggerDriverTypes.IK])
 
         self.wrist = Proxy(name=wrist_name)
         self.wrist.set_curve(curve=get_curve('_proxy_joint_dir_pos_y'))
@@ -179,6 +180,7 @@ class ModuleBipedArm(ModuleGeneric):
         elbow_offset = get_proxy_offset(elbow)
 
         elbow_pv_dir = cmds.spaceLocator(name=f'{elbow_tag}_poleVectorDir')[0]
+        add_attr(obj_list=elbow_pv_dir, attributes=ModuleBipedArm.REF_ATTR_ELBOW_PROXY_PV, attr_type="string")
         elbow_pv_dir = Node(elbow_pv_dir)
         match_translate(source=elbow, target_list=elbow_pv_dir)
         cmds.move(0, 0, -10, elbow_pv_dir, relative=True)  # More it backwards (in front of the elbow)
@@ -447,6 +449,34 @@ class ModuleBipedArm(ModuleGeneric):
         expose_rotation_order(wrist_o_ik_ctrl)
         cmds.addAttr(wrist_ik_ctrl, ln=RiggerConstants.ATTR_SHOW_OFFSET, at='bool', k=True)
         cmds.connectAttr(f'{wrist_ik_ctrl}.{RiggerConstants.ATTR_SHOW_OFFSET}', f'{wrist_o_ik_ctrl}.v')
+
+        # IK Elbow Control
+        elbow_ik_ctrl = self._assemble_ctrl_name(name=self.elbow.get_name(),
+                                                 overwrite_suffix=NamingConstants.Suffix.IK_CTRL)
+        elbow_ik_ctrl = create_ctrl_curve(name=elbow_ik_ctrl, curve_file_name="_locator")
+        self.add_driver_uuid_attr(target=elbow_ik_ctrl, driver_type=RiggerDriverTypes.IK, proxy_purpose=self.elbow)
+        elbow_offset = add_offset_transform(target_list=elbow_ik_ctrl)[0]
+        elbow_offset = Node(elbow_offset)
+        match_translate(source=elbow_jnt, target_list=elbow_offset)
+        scale_shapes(obj_transform=elbow_ik_ctrl, offset=arm_scale * .05)
+        hierarchy_utils.parent(source_objects=elbow_offset, target_parent=direction_crv)
+        color = get_directional_color(object_name=elbow_ik_ctrl)
+        set_color_viewport(obj_list=elbow_ik_ctrl, rgb_color=color)
+
+        # Find Elbow Position
+        elbow_proxy = find_proxy_from_uuid(uuid_string=self.elbow.get_uuid())
+        elbow_proxy_children = cmds.listRelatives(elbow_proxy, children=True, typ="transform", fullPath=True) or []
+        elbow_pv_dir = find_objects_with_attr(attr_name=ModuleBipedArm.REF_ATTR_ELBOW_PROXY_PV,
+                                              lookup_list=elbow_proxy_children)
+
+        temp_transform = cmds.group(name=elbow_ik_ctrl + '_rotExtraction', empty=True, world=True)
+        cmds.delete(cmds.pointConstraint(elbow_jnt, temp_transform))
+        cmds.delete(cmds.aimConstraint(elbow_pv_dir, temp_transform, offset=(0, 0, 0),
+                                       aimVector=(1, 0, 0), upVector=(0, -1, 0), worldUpType='vector',
+                                       worldUpVector=(0, 1, 0)))
+        cmds.move(arm_scale * .6, 0, 0, temp_transform, objectSpace=True, relative=True)
+        cmds.delete(cmds.pointConstraint(temp_transform, elbow_offset))
+        cmds.delete(temp_transform)
 
         # # Wrist Driven Data (FK & IK)
         # wrist_driven_data = self._assemble_ctrl_name(name=self.wrist.get_name(),
