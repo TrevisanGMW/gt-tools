@@ -67,10 +67,11 @@ class RiggerDriverTypes:
         """
         Driver Type Constant values used by the drivers and controls.
         """
-    FK = "fk"
-    IK = "ik"
-    OFFSET = "offset"
-    DRIVEN = "driven"
-    COG = "cog"
-    AIM = "aim"
-    SWITCH = "switch"
+    FK = "fk"  # Forward kinematics
+    IK = "ik"  # Inverse kinematics
+    SWITCH = "switch"  # Secondary driver that allows switching between systems. e.g. FK/IK
+    OFFSET = "offset"  # Driver is the data of an offset control
+    DRIVEN = "driven"  # Driver controlled by multiple elements. e.g. FK/IK
+    COG = "cog"  # Center of Gravity
+    AIM = "aim"  # e.g. eyes
+    ROLL = "roll"  # e.g. toe_roll
