@@ -330,6 +330,10 @@ class ModuleBipedLeg(ModuleGeneric):
         """
         Build core rig setup for this module.
         """
+        # Get Module Orientation  # TODO @@@ CHECK IF USED
+        module_orientation = self.get_orientation_data()
+        aim_axis = module_orientation.get_aim_axis()
+
         # Get Elements
         root_ctrl = find_control_root_curve()
         direction_crv = find_direction_curve()
@@ -523,9 +527,6 @@ class ModuleBipedLeg(ModuleGeneric):
         cmds.connectAttr(f'{foot_ctrl}.{RiggerConstants.ATTR_SHOW_OFFSET}', f'{foot_o_ctrl}.v')
 
         # Switch Control
-
-        # Switch Control
-        # ankle_proxy # Get Rotation here
         setup_name = self.get_metadata_value(key=self.META_SETUP_NAME)
         setup_name = setup_name if setup_name else self.ankle.get_name()  # If not provided, use wrist name
         ik_switch_ctrl = self._assemble_ctrl_name(name=setup_name, overwrite_suffix=NamingConstants.Suffix.SWITCH_CTRL)
@@ -544,7 +545,21 @@ class ModuleBipedLeg(ModuleGeneric):
         set_color_viewport(obj_list=ik_switch_ctrl, rgb_color=color)
         add_separator_attr(target_object=ik_switch_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
 
-
+        # Roll Controls ------------------------------------------------------------------------------------
+        roll_toe_ctrl = self._assemble_ctrl_name(name="toe", overwrite_suffix=NamingConstants.Suffix.ROLL_CTRL)
+        roll_toe_ctrl = create_ctrl_curve(name=roll_toe_ctrl, curve_file_name="_sphere_half_arrow")
+        self.add_driver_uuid_attr(target=roll_toe_ctrl,
+                                  driver_type=RiggerDriverTypes.ROLL,
+                                  proxy_purpose=self.toe)
+        roll_toe_offset = add_offset_transform(target_list=roll_toe_ctrl)[0]
+        roll_toe_offset = Node(roll_toe_offset)
+        match_transform(source=toe_jnt, target_list=roll_toe_offset)
+        desired_rotation = cmds.xform(ankle_proxy, query=True, rotation=True)
+        cmds.setAttr(f'{roll_toe_offset}.rx', 0)
+        cmds.setAttr(f'{roll_toe_offset}.ry', desired_rotation[1])
+        scale_shapes(obj_transform=roll_toe_ctrl, offset=foot_scale * .1)
+        hierarchy_utils.parent(source_objects=roll_toe_offset, target_parent=foot_o_data)
+        cmds.move(foot_scale*.35, roll_toe_offset, z=True, relative=True, objectSpace=True)
 
         # Set Children Drivers -----------------------------------------------------------------------------
         self.module_children_drivers = [hip_fk_offset]
