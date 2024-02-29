@@ -1106,7 +1106,7 @@ def match_transform(source, target_list, translate=True, rotate=True, scale=True
     Match the transform attributes of the target object to the source object.
 
     Args:
-        source (str): The name of the source object (to extract the transform from)
+        source (str, Node): The name of the source object (to extract the transform from)
         target_list (str, list, tuple): The name(s) of the target objects (objects to receive transform update)
         translate (bool): Match translation attributes if True.
         rotate (bool): Match rotation attributes if True.
@@ -1194,7 +1194,7 @@ def scale_shapes(obj_transform, offset, pivot=None):
     """
     Rotates the shape of an object without affecting its transform.
     Args:
-        obj_transform (str): The transform node of the object.
+        obj_transform (str, Node): The transform node of the object.
         offset (tuple, float, int): The scale offset in degrees (X, Y, Z).
                                           If a float or an integer is provided, it will be used as X, Y and Z.
                                           e.g. 0.5 = (0.5, 0.5, 0.5)
