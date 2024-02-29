@@ -73,3 +73,4 @@ class RiggerDriverTypes:
     DRIVEN = "driven"
     COG = "cog"
     AIM = "aim"
+    SWITCH = "switch"
