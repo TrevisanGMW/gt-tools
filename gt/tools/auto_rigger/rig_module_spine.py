@@ -5,10 +5,11 @@ github.com/TrevisanGMW/gt-tools
 from gt.tools.auto_rigger.rig_utils import find_or_create_joint_automation_group, get_driven_joint, create_ctrl_curve
 from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, expose_rotation_order, offset_control_orientation
 from gt.tools.auto_rigger.rig_utils import find_proxy_from_uuid, find_direction_curve, rescale_joint_radius
-from gt.tools.auto_rigger.rig_utils import duplicate_joint_for_automation
+from gt.tools.auto_rigger.rig_utils import duplicate_joint_for_automation, get_automation_group
 from gt.utils.transform_utils import Vector3, scale_shapes, match_transform, translate_shapes, rotate_shapes
 from gt.utils.color_utils import ColorConstants, set_color_viewport, set_color_outliner
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
+from gt.utils.surface_utils import create_surface_from_object_list, create_follicle
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
 from gt.utils.constraint_utils import equidistant_constraints, constraint_targets
 from gt.utils.attr_utils import add_separator_attr, set_attr_state
@@ -205,9 +206,9 @@ class ModuleSpine(ModuleGeneric):
         self.chest.clear_parent_uuid()
 
     def build_rig(self, **kwargs):
-        # Get Elements
+        # Get Elements ------------------------------------------------------------------------------------
         direction_crv = find_direction_curve()
-        module_parent_jnt = find_joint_from_uuid(self.get_parent_uuid())  # TODO TEMP @@@
+        # module_parent_jnt = find_joint_from_uuid(self.get_parent_uuid())  # TODO TEMP @@@
         hip_jnt = find_joint_from_uuid(self.hip.get_uuid())
         chest_jnt = find_joint_from_uuid(self.chest.get_uuid())
         middle_jnt_list = []
@@ -215,12 +216,14 @@ class ModuleSpine(ModuleGeneric):
             mid_jnt = find_joint_from_uuid(proxy.get_uuid())
             if mid_jnt:
                 middle_jnt_list.append(mid_jnt)
+        spine_jnt_list = [hip_jnt] + middle_jnt_list + [chest_jnt]
 
         module_jnt_list = [hip_jnt]
         module_jnt_list.extend(middle_jnt_list)
         module_jnt_list.append(chest_jnt)
+        spine_automation_grp = get_automation_group(f'spineAutomation_{NamingConstants.Suffix.GRP}')
 
-        # Set Joint Colors
+        # Set Joint Colors  -------------------------------------------------------------------------------
         set_color_viewport(obj_list=module_jnt_list, rgb_color=ColorConstants.RigJoint.GENERAL)
 
         # Get General Scale
@@ -394,6 +397,26 @@ class ModuleSpine(ModuleGeneric):
         for fk_jnt_zip in zip(fk_joints, module_jnt_list):
             constraint_targets(source_driver=fk_jnt_zip[0], target_driven=fk_jnt_zip[1])
 
+        # ############# IK Spine (Ribbon) ##############
+        spine_ik_grp = cmds.group(name=f'spineRibbon_{NamingConstants.Suffix.GRP}', empty=True, world=True)
+        cmds.setAttr(f'{spine_ik_grp}.inheritsTransform', 0)  # Ignore Hierarchy Transform
+
+        ribbon_sur = self._assemble_ctrl_name(name="spineRibbon", overwrite_suffix=NamingConstants.Suffix.SUR)
+        ribbon_sur = create_surface_from_object_list(obj_list=spine_jnt_list,
+                                                     surface_name=ribbon_sur,
+                                                     custom_normal=(0, 0, 1))
+        hierarchy_utils.parent(source_objects=ribbon_sur, target_parent=spine_ik_grp)
+        u_position_joints = [0, 0.5, 1]
+        for index in range(len(u_position_joints)):
+            prefix = ''
+            if self.prefix:
+                prefix = f'{self.prefix}_'
+            fol_trans, fol_shape = create_follicle(input_surface=ribbon_sur,
+                                                   uv_position=(0.5, u_position_joints[index]),
+                                                   name=f"{prefix}follicle_{(index + 1):02d}")
+            print(fol_trans)
+            print(fol_shape)
+
         # # TODO TEMP @@@
         # out_find_driver = self.find_driver(driver_type=RiggerDriverTypes.FK, proxy_purpose=self.hip)
         # out_find_module_drivers = self.find_module_drivers()
@@ -415,10 +438,14 @@ if __name__ == "__main__":
     cmds.file(new=True, force=True)
 
     from gt.tools.auto_rigger.rig_framework import RigProject
+    from gt.tools.auto_rigger.rig_module_root import ModuleRoot
+    a_root = ModuleRoot()
     a_spine = ModuleSpine()
     a_spine.set_spine_num(0)
     a_spine.set_spine_num(6)
+    a_spine.set_parent_uuid(a_root.root.get_uuid())
     a_project = RigProject()
+    a_project.add_to_modules(a_root)
     a_project.add_to_modules(a_spine)
     a_project.build_proxy()
 
