@@ -4,7 +4,7 @@ github.com/TrevisanGMW/gt-tools
 """
 from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, get_meta_purpose_from_dict, find_direction_curve
 from gt.tools.auto_rigger.rig_utils import create_ctrl_curve, expose_rotation_order, get_automation_group
-from gt.utils.transform_utils import Vector3, match_transform, scale_shapes, rotate_shapes
+from gt.utils.transform_utils import Vector3, match_transform, scale_shapes, rotate_shapes, get_directional_position
 from gt.utils.attr_utils import add_separator_attr, hide_lock_default_attrs, set_attr, rescale
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.utils.data.controls.cluster_driven import create_scalable_two_sides_arrow
@@ -507,6 +507,8 @@ class ModuleBipedFingers(ModuleGeneric):
         else:
             base_center_pos = get_transforms_center_position(transform_list=_joints_base_only)
             distance_from_wrist = dist_path_sum(input_list=[base_center_pos, end_center_pos])
+        wrist_directional_pos = get_directional_position(object_name=wrist_grp, tolerance=0)  # 0 = No Center
+        is_right_side = wrist_directional_pos == -1  # Right Side?
         fingers_ctrl_scale = distance_from_wrist*.07
         # Finger Control (Main)
         fingers_ctrl = self._assemble_ctrl_name(name=setup_name)
@@ -537,10 +539,15 @@ class ModuleBipedFingers(ModuleGeneric):
         match_transform(source=wrist_grp, target_list=fingers_offset)
         hierarchy_utils.parent(source_objects=fingers_offset, target_parent=wrist_grp)
 
-        cmds.rotate(90, fingers_offset, rotateX=True)
-        cmds.move(distance_from_wrist*1.2, fingers_offset, moveX=True, relative=True, objectSpace=True)
-        # scale_shapes(obj_transform=fingers_ctrl, offset=fingers_ctrl_scale)
-        # rescale(obj=fingers_offset, scale=2, freeze=False)
+        # Determine Side Orientation
+        cmds.rotate(90, fingers_offset, rotateX=True, relative=True, objectSpace=True)
+        if is_right_side:
+            cmds.rotate(180, fingers_offset, rotateY=True, relative=True, objectSpace=True)
+            cmds.rotate(180, fingers_offset, rotateX=True, relative=True, objectSpace=True)
+        # Position
+        fingers_move_offset = (distance_from_wrist*1.2)
+        cmds.move(fingers_move_offset, fingers_offset, moveX=True, relative=True, objectSpace=True)
+        rescale(obj=fingers_offset, scale=fingers_ctrl_scale, freeze=False)
 
         # Fingers Visibility (Attributes)
         add_separator_attr(target_object=fingers_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
@@ -566,7 +573,8 @@ class ModuleBipedFingers(ModuleGeneric):
         ring_curl_ctrl = None
         pinky_curl_ctrl = None
         extra_curl_ctrl = None
-        dist_offset_curl = 2
+        curl_ctrls = []
+        dist_offset_curl = 2*wrist_directional_pos
         if _thumb_joints:
             thumb_name = self.get_metadata_value(key=self.META_THUMB_NAME)
             thumb_curl_ctrl = self._assemble_ctrl_name(name=thumb_name,
@@ -580,10 +588,13 @@ class ModuleBipedFingers(ModuleGeneric):
             rotate_shapes(obj_transform=thumb_curl_ctrl, offset=(0, 90, 0))
             scale_shapes(obj_transform=thumb_curl_ctrl, offset=fingers_ctrl_scale*.5)
             match_transform(source=fingers_ctrl, target_list=thumb_curl_offset)
-            hierarchy_utils.parent(source_objects=thumb_curl_offset, target_parent=fingers_ctrl)
+            hierarchy_utils.parent(source_objects=thumb_curl_offset, target_parent=fingers_offset)
             cmds.rotate(-90, thumb_curl_offset, rotateY=True, relative=True, objectSpace=True)
             cmds.move(-distance_from_wrist*.15, thumb_curl_offset, z=True, relative=True, objectSpace=True)
             cmds.move(dist_offset_curl*2, thumb_curl_offset, x=True, relative=True, objectSpace=True)
+            if is_right_side:
+                cmds.rotate(180, thumb_curl_offset, rotateY=True, relative=True, objectSpace=True)
+            curl_ctrls.append(thumb_curl_ctrl)
         if _index_joints:
             index_name = self.get_metadata_value(key=self.META_INDEX_NAME)
             index_curl_ctrl = self._assemble_ctrl_name(name=index_name,
@@ -594,9 +605,10 @@ class ModuleBipedFingers(ModuleGeneric):
             scale_shapes(obj_transform=index_curl_ctrl, offset=fingers_ctrl_scale * .5)
             match_transform(source=fingers_ctrl, target_list=index_curl_offset)
             rotate_shapes(obj_transform=index_curl_ctrl, offset=(0, 90, 0))
-            hierarchy_utils.parent(source_objects=index_curl_offset, target_parent=fingers_ctrl)
+            hierarchy_utils.parent(source_objects=index_curl_offset, target_parent=fingers_offset)
             cmds.move(distance_from_wrist * .15, index_curl_offset, x=True, relative=True, objectSpace=True)
             cmds.move(dist_offset_curl, index_curl_offset, z=True, relative=True, objectSpace=True)
+            curl_ctrls.append(index_curl_ctrl)
         if _middle_joints:
             middle_name = self.get_metadata_value(key=self.META_MIDDLE_NAME)
             middle_curl_ctrl = self._assemble_ctrl_name(name=middle_name,
@@ -607,9 +619,9 @@ class ModuleBipedFingers(ModuleGeneric):
             scale_shapes(obj_transform=middle_curl_ctrl, offset=fingers_ctrl_scale * .5)
             match_transform(source=fingers_ctrl, target_list=middle_curl_offset)
             rotate_shapes(obj_transform=middle_curl_ctrl, offset=(0, 90, 0))
-            hierarchy_utils.parent(source_objects=middle_curl_offset, target_parent=fingers_ctrl)
+            hierarchy_utils.parent(source_objects=middle_curl_offset, target_parent=fingers_offset)
             cmds.move(distance_from_wrist * .15, middle_curl_offset, x=True, relative=True, objectSpace=True)
-            # cmds.move(dist_offset_curl, middle_curl_offset, z=True, relative=True, objectSpace=True)
+            curl_ctrls.append(middle_curl_ctrl)
         if _ring_joints:
             ring_name = self.get_metadata_value(key=self.META_RING_NAME)
             ring_curl_ctrl = self._assemble_ctrl_name(name=ring_name,
@@ -620,9 +632,10 @@ class ModuleBipedFingers(ModuleGeneric):
             scale_shapes(obj_transform=ring_curl_ctrl, offset=fingers_ctrl_scale * .5)
             match_transform(source=fingers_ctrl, target_list=ring_curl_offset)
             rotate_shapes(obj_transform=ring_curl_ctrl, offset=(0, 90, 0))
-            hierarchy_utils.parent(source_objects=ring_curl_offset, target_parent=fingers_ctrl)
+            hierarchy_utils.parent(source_objects=ring_curl_offset, target_parent=fingers_offset)
             cmds.move(distance_from_wrist * .15, ring_curl_offset, x=True, relative=True, objectSpace=True)
             cmds.move(dist_offset_curl*-1, ring_curl_offset, z=True, relative=True, objectSpace=True)
+            curl_ctrls.append(ring_curl_ctrl)
         if _pinky_joints:
             pinky_name = self.get_metadata_value(key=self.META_PINKY_NAME)
             pinky_curl_ctrl = self._assemble_ctrl_name(name=pinky_name,
@@ -633,9 +646,10 @@ class ModuleBipedFingers(ModuleGeneric):
             scale_shapes(obj_transform=pinky_curl_ctrl, offset=fingers_ctrl_scale * .5)
             match_transform(source=fingers_ctrl, target_list=pinky_curl_offset)
             rotate_shapes(obj_transform=pinky_curl_ctrl, offset=(0, 90, 0))
-            hierarchy_utils.parent(source_objects=pinky_curl_offset, target_parent=fingers_ctrl)
+            hierarchy_utils.parent(source_objects=pinky_curl_offset, target_parent=fingers_offset)
             cmds.move(distance_from_wrist * .15, pinky_curl_offset, x=True, relative=True, objectSpace=True)
             cmds.move(dist_offset_curl*-2, pinky_curl_offset, z=True, relative=True, objectSpace=True)
+            curl_ctrls.append(pinky_curl_ctrl)
         if _extra_joints:
             extra_name = self.get_metadata_value(key=self.META_EXTRA_NAME)
             extra_curl_ctrl = self._assemble_ctrl_name(name=extra_name,
@@ -646,9 +660,16 @@ class ModuleBipedFingers(ModuleGeneric):
             scale_shapes(obj_transform=extra_curl_ctrl, offset=fingers_ctrl_scale * .5)
             match_transform(source=fingers_ctrl, target_list=extra_curl_offset)
             rotate_shapes(obj_transform=extra_curl_ctrl, offset=(0, 90, 0))
-            hierarchy_utils.parent(source_objects=extra_curl_offset, target_parent=fingers_ctrl)
+            hierarchy_utils.parent(source_objects=extra_curl_offset, target_parent=fingers_offset)
             cmds.move(distance_from_wrist * .15, extra_curl_offset, x=True, relative=True, objectSpace=True)
             cmds.move(dist_offset_curl*-3, extra_curl_offset, z=True, relative=True, objectSpace=True)
+            curl_ctrls.append(extra_curl_ctrl)
+
+        # Lock and Hide Unnecessary Attributes
+        for ctrl in curl_ctrls:
+            hide_lock_default_attrs(obj_list=ctrl, translate=True, scale=True, visibility=True)
+            cmds.setAttr(f'{ctrl}.rx', lock=True, keyable=False)
+            cmds.setAttr(f'{ctrl}.ry', lock=True, keyable=False)
 
         # Set Children Drivers -----------------------------------------------------------------------------
         self.module_children_drivers = [wrist_grp]
