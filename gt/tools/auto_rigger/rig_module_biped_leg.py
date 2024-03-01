@@ -31,7 +31,7 @@ logger.setLevel(logging.INFO)
 
 
 class ModuleBipedLeg(ModuleGeneric):
-    __version__ = '0.0.2-alpha'
+    __version__ = '0.0.3-alpha'
     icon = resource_library.Icon.rigger_module_biped_leg
     allow_parenting = True
 
@@ -39,6 +39,9 @@ class ModuleBipedLeg(ModuleGeneric):
     REF_ATTR_KNEE_PROXY_PV = "kneeProxyPoleVectorLookupAttr"
     META_SETUP_NAME = "setupName"  # Metadata key for the system name
     META_FOOT_IK_NAME = "footCtrlName"  # Metadata key for a custom name used for the foot ik control
+    # Default Values
+    DEFAULT_SYSTEM = "leg"
+    DEFAULT_FOOT = "foot"
 
     def __init__(self, name="Leg", prefix=None, suffix=None):
         super().__init__(name=name, prefix=prefix, suffix=suffix)
@@ -55,8 +58,8 @@ class ModuleBipedLeg(ModuleGeneric):
         heel_name = "heel"
 
         # Extra Module Data
-        self.add_to_metadata(key=self.META_SETUP_NAME, value="leg")
-        self.add_to_metadata(key=self.META_FOOT_IK_NAME, value="foot")
+        self.add_to_metadata(key=self.META_SETUP_NAME, value=self.DEFAULT_SYSTEM)
+        self.add_to_metadata(key=self.META_FOOT_IK_NAME, value=self.DEFAULT_FOOT)
 
         # Default Proxies
         self.hip = Proxy(name=hip_name)
@@ -479,8 +482,7 @@ class ModuleBipedLeg(ModuleGeneric):
         cmds.delete(temp_transform)
 
         # IK Foot Control
-        foot_ik_name = self.get_metadata_value(key=self.META_FOOT_IK_NAME)
-        foot_ctrl_name = foot_ik_name if foot_ik_name else self.ankle.get_name()
+        foot_ctrl_name = self.get_metadata_value(key=self.META_FOOT_IK_NAME)
         foot_ctrl = self._assemble_ctrl_name(name=foot_ctrl_name, overwrite_suffix=NamingConstants.Suffix.IK_CTRL)
         foot_ctrl = create_ctrl_curve(name=foot_ctrl, curve_file_name="_cube")
         self.add_driver_uuid_attr(target=foot_ctrl, driver_type=RiggerDriverTypes.IK, proxy_purpose=self.ankle)
@@ -623,9 +625,12 @@ class ModuleBipedLeg(ModuleGeneric):
         """
         Sets the foot control name by editing the metadata value associated with it.
         Args:
-            name (str): New name for the IK foot control. If empty the ankle control will be used instead.
+            name (str): New name for the IK foot control. If empty the default "foot" name will be used instead.
         """
-        self.add_to_metadata(ModuleBipedLeg.META_FOOT_IK_NAME, value=name)
+        if name:
+            self.add_to_metadata(ModuleBipedLeg.META_FOOT_IK_NAME, value=name)
+        else:
+            self.add_to_metadata(ModuleBipedLeg.META_FOOT_IK_NAME, value=self.DEFAULT_FOOT)
 
 
 class ModuleBipedLegLeft(ModuleBipedLeg):
