@@ -101,6 +101,29 @@ class TestSurfaceUtils(unittest.TestCase):
         expected = (1, 1)
         self.assertEqual(expected, result)
 
+    def test_create_surface_from_object_list_custom_normal(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        maya_test_tools.cmds.setAttr(f'{cube_two}.tx', 5)
+        obj_list = [cube_one, cube_two]
+        sur = surface_utils.create_surface_from_object_list(obj_list=obj_list)
+        expected = "loftedSurface1"
+        self.assertEqual(expected, sur)
+        sur = surface_utils.create_surface_from_object_list(obj_list=obj_list,
+                                                            surface_name="mocked_name",
+                                                            custom_normal=(0, 0, 1))
+        expected = "mocked_name"
+        self.assertEqual(expected, sur)
+        expected = [0.0, 2.0, 0.0]
+        result = maya_test_tools.cmds.xform(f'{sur}.cv[0]',query=True, translation=True)
+        self.assertEqual(expected, result)
+        sur = surface_utils.create_surface_from_object_list(obj_list=obj_list,
+                                                            surface_name="mocked_name_two",
+                                                            custom_normal=(0, 1, 0))
+        expected = [0.0, 0.0, -2.0]
+        result = maya_test_tools.cmds.xform(f'{sur}.cv[0]', query=True, translation=True)
+        self.assertEqual(expected, result)
+
     def test_multiply_surface_spans(self):
         surface = maya_test_tools.cmds.nurbsPlane(ch=False)[0]
         surface_shape = maya_test_tools.cmds.listRelatives(surface, shapes=True, typ="nurbsSurface")

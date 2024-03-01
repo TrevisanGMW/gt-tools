@@ -86,7 +86,7 @@ def get_surface_function_set(surface):
     return surface_fn
 
 
-def create_surface_from_object_list(obj_list, surface_name=None, degree=3):
+def create_surface_from_object_list(obj_list, surface_name=None, degree=3, custom_normal=None):
     """
     Creates a surface from a list of objects (according to list order)
     The surface is created using curve offsets.
@@ -97,6 +97,8 @@ def create_surface_from_object_list(obj_list, surface_name=None, degree=3):
         obj_list (list): List of objects used to generate the surface (order matters)
         surface_name (str, optional): Name of the generated surface.
         degree (int, optional): The degree of the generated lofted surface. Default is cubic (3)
+        custom_normal (tuple, list, optional): A custom XYZ normal value to be used when creating the surface.
+                                               Must be a tuple or list with X, Y and Z values. e.g. (1, 0, 0)
     Returns:
         str or None: Generated surface (loft) object, otherwise None.
     """
@@ -112,12 +114,18 @@ def create_surface_from_object_list(obj_list, surface_name=None, degree=3):
     crv_mid = cmds.curve(d=1, p=positions, n=f'{surface_name}_curveFromList')
     crv_mid = Node(crv_mid)
 
+    # Custom Normal
+    normal_parameters = {"useGivenNormal": False}
+    if custom_normal:
+        normal_parameters["useGivenNormal"] = True
+        normal_parameters["normal"] = custom_normal
+
     # Offset the duplicated curve positively
-    offset_distance = 1
-    crv_pos = cmds.offsetCurve(crv_mid, name=f'{crv_mid}PositiveOffset',
-                               distance=offset_distance, constructionHistory=False)[0]
-    crv_neg = cmds.offsetCurve(crv_mid, name=f'{crv_mid}NegativeOffset',
-                               distance=-offset_distance, constructionHistory=False)[0]
+    offset_distance = 2
+    crv_pos = cmds.offsetCurve(crv_mid, name=f'{crv_mid}PositiveOffset', distance=offset_distance,
+                               constructionHistory=True, **normal_parameters)[0]
+    crv_neg = cmds.offsetCurve(crv_mid, name=f'{crv_mid}NegativeOffset', distance=-offset_distance,
+                               constructionHistory=True, **normal_parameters)[0]
     crv_pos = Node(crv_pos)
     crv_neg = Node(crv_neg)
 
