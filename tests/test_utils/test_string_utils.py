@@ -308,3 +308,117 @@ class TestStringUtils(unittest.TestCase):
                 expected = f'{i}{expected_suffix}'
                 result = string_utils.get_int_as_rank(i)
                 self.assertEqual(expected, result)
+
+    def test_get_int_to_en_zero(self):
+        expected = "zero"
+        result = string_utils.get_int_as_en(0)
+        self.assertEqual(expected, result)
+
+    def test_get_int_to_en_positive_single_digit(self):
+        expected = "five"
+        result = string_utils.get_int_as_en(5)
+        self.assertEqual(expected, result)
+
+        expected = "nine"
+        result = string_utils.get_int_as_en(9)
+        self.assertEqual(expected, result)
+
+    def test_get_int_to_en_positive_double_digit(self):
+        expected = "ten"
+        result = string_utils.get_int_as_en(10)
+        self.assertEqual(expected, result)
+
+        expected = "twenty-one"
+        result = string_utils.get_int_as_en(21)
+        self.assertEqual(expected, result)
+
+        expected = "ninety-nine"
+        result = string_utils.get_int_as_en(99)
+        self.assertEqual(expected, result)
+
+    def test_get_int_to_en_positive_hundreds(self):
+        expected = "one hundred"
+        result = string_utils.get_int_as_en(100)
+        self.assertEqual(expected, result)
+
+        expected = "one hundred and twenty-three"
+        result = string_utils.get_int_as_en(123)
+        self.assertEqual(expected, result)
+
+        expected = "nine hundred and ninety-nine"
+        result = string_utils.get_int_as_en(999)
+        self.assertEqual(expected, result)
+
+    def test_get_int_to_en_positive_thousands(self):
+        expected = "one thousand"
+        result = string_utils.get_int_as_en(1000)
+        self.assertEqual(expected, result)
+
+        expected = "two thousand, three hundred and forty-five"
+        result = string_utils.get_int_as_en(2345)
+        self.assertEqual(expected, result)
+
+        expected = "nine thousand, nine hundred and ninety-nine"
+        result = string_utils.get_int_as_en(9999)
+        self.assertEqual(expected, result)
+
+    def test_get_int_to_en_positive_millions(self):
+        expected = "one million"
+        result = string_utils.get_int_as_en(1000000)
+        self.assertEqual(expected, result)
+
+        expected = ("one million, two hundred and thirty-four thousand, "
+                    "five hundred and sixty-seven")
+        result = string_utils.get_int_as_en(1234567)
+        self.assertEqual(expected, result)
+
+        expected = ("nine million, nine hundred and ninety-nine thousand, "
+                    "nine hundred and ninety-nine")
+        result = string_utils.get_int_as_en(9999999)
+        self.assertEqual(expected, result)
+
+    def test_get_int_to_en_positive_billions(self):
+        expected = "one billion"
+        result = string_utils.get_int_as_en(1000000000)
+        self.assertEqual(expected, result)
+
+        expected = ("one billion, two hundred and thirty-four million, "
+                    "five hundred and sixty-seven thousand, eight hundred and ninety")
+        result = string_utils.get_int_as_en(1234567890)
+        self.assertEqual(expected, result)
+
+        expected = ("nine billion, nine hundred and ninety-nine million, "
+                    "nine hundred and ninety-nine thousand, nine hundred and ninety-nine")
+        result = string_utils.get_int_as_en(9999999999)
+        self.assertEqual(expected, result)
+
+    def test_get_int_to_en_positive_trillions(self):
+        expected = "one trillion"
+        result = string_utils.get_int_as_en(1000000000000)
+        self.assertEqual(expected, result)
+
+        expected = ("one trillion, two hundred and thirty-four billion, "
+                    "five hundred and sixty-seven million, eight hundred and ninety thousand, "
+                    "one hundred and twenty-three")
+        result = string_utils.get_int_as_en(1234567890123)
+        self.assertEqual(expected, result)
+
+        expected = ("nine trillion, nine hundred and ninety-nine billion, "
+                    "nine hundred and ninety-nine million, nine hundred and ninety-nine thousand, "
+                    "nine hundred and ninety-nine")
+        result = string_utils.get_int_as_en(9999999999999)
+        self.assertEqual(expected, result)
+
+    def test_get_int_to_en_negative_numbers(self):
+        expected = "negative five"
+        result = string_utils.get_int_as_en(-5)
+        self.assertEqual(expected, result)
+
+        expected = ("negative nine hundred and eighty-seven million, "
+                    "six hundred and fifty-four thousand, three hundred and twenty-one")
+        result = string_utils.get_int_as_en(-987654321)
+        self.assertEqual(expected, result)
+
+    def test_get_int_to_en_non_integer_input(self):
+        with self.assertRaises(AssertionError):
+            string_utils.get_int_as_en(3.5)
