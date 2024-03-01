@@ -47,6 +47,7 @@ class NamingConstants:
         JNT = 'jnt'  # Joint
         MAT = 'mat'  # Material
         LOC = 'loc'  # Locator
+        SUR = 'sur'  # Locator
         END = 'end'  # Last object in a hierarchy
         OFFSET = 'offset'  # Offset Transform (control parent)
         OFFSET_CTRL = 'offsetCtrl'  # Offset control of an existing control
