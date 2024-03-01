@@ -2,13 +2,14 @@
 Auto Rigger Arm Modules
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rig_utils import duplicate_joint_for_automation, find_or_create_joint_automation_group
-from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, rescale_joint_radius, find_direction_curve
-from gt.tools.auto_rigger.rig_utils import create_ctrl_curve, get_proxy_offset, offset_control_orientation
 from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_from_uuid, get_driven_joint
-from gt.tools.auto_rigger.rig_utils import expose_rotation_order, find_control_root_curve
+from gt.tools.auto_rigger.rig_utils import create_ctrl_curve, get_proxy_offset, find_control_root_curve
+from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, find_direction_curve
+from gt.tools.auto_rigger.rig_utils import find_or_create_joint_automation_group
 from gt.utils.attr_utils import hide_lock_default_attrs, set_attr_state, set_attr, add_separator_attr, add_attr
 from gt.utils.color_utils import set_color_viewport, ColorConstants, set_color_outliner, get_directional_color
+from gt.utils.rigging_utils import rescale_joint_radius, offset_control_orientation, expose_rotation_order
+from gt.utils.rigging_utils import duplicate_joint_for_automation
 from gt.utils.transform_utils import match_translate, match_transform, Vector3, set_equidistant_transforms
 from gt.utils.transform_utils import scale_shapes, rotate_shapes, translate_shapes
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
@@ -419,7 +420,6 @@ class ModuleBipedArm(ModuleGeneric):
         hierarchy_utils.parent(source_objects=wrist_ik_offset, target_parent=direction_crv)
         match_transform(source=wrist_jnt, target_list=wrist_ik_offset)
         offset_control_orientation(ctrl=wrist_ik_ctrl, offset_transform=wrist_ik_offset, orient_tuple=(90, 0, 0))
-        # x_scale = aim_axis[0]
         wrist_ctrl_scale = (arm_scale*.15, arm_scale * .08, arm_scale * .15)
         scale_shapes(obj_transform=wrist_ik_ctrl, offset=wrist_ctrl_scale)
         if aim_axis[0] == -1:

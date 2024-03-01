@@ -2,14 +2,14 @@
 Auto Rigger Head Modules
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rig_utils import create_ctrl_curve, offset_control_orientation, expose_rotation_order
 from gt.tools.auto_rigger.rig_utils import find_proxy_from_uuid, find_joint_from_uuid, find_direction_curve
-from gt.tools.auto_rigger.rig_utils import get_proxy_offset, get_automation_group
+from gt.tools.auto_rigger.rig_utils import get_proxy_offset, get_automation_group, create_ctrl_curve
 from gt.utils.transform_utils import Vector3, match_transform, scale_shapes, translate_shapes, rotate_shapes
 from gt.utils.transform_utils import set_equidistant_transforms
 from gt.utils.attr_utils import add_separator_attr, set_attr_state, rescale, hide_lock_default_attrs, set_attr
 from gt.utils.constraint_utils import equidistant_constraints, constraint_targets, ConstraintTypes
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
+from gt.utils.rigging_utils import offset_control_orientation, expose_rotation_order
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
 from gt.utils.color_utils import ColorConstants, set_color_viewport
 from gt.utils.joint_utils import copy_parent_orients, reset_orients

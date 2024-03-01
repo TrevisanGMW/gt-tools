@@ -3,7 +3,7 @@ Auto Rigger Digit Modules (Fingers, Toes)
 github.com/TrevisanGMW/gt-tools
 """
 from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, get_meta_purpose_from_dict, find_direction_curve
-from gt.tools.auto_rigger.rig_utils import create_ctrl_curve, expose_rotation_order, get_automation_group
+from gt.tools.auto_rigger.rig_utils import create_ctrl_curve, get_automation_group
 from gt.utils.transform_utils import Vector3, match_transform, scale_shapes, rotate_shapes, get_directional_position
 from gt.utils.attr_utils import add_separator_attr, hide_lock_default_attrs, set_attr, rescale
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
@@ -12,6 +12,7 @@ from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverType
 from gt.utils.math_utils import get_transforms_center_position, dist_path_sum
 from gt.utils.color_utils import ColorConstants, set_color_viewport
 from gt.utils.hierarchy_utils import add_offset_transform
+from gt.utils.rigging_utils import expose_rotation_order
 from gt.utils.naming_utils import NamingConstants
 from gt.utils.curve_utils import get_curve
 from gt.utils.node_utils import Node

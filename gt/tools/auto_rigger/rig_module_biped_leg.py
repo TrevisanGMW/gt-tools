@@ -2,13 +2,12 @@
 Auto Rigger Leg Modules
 github.com/TrevisanGMW/gt-tools
 """
-from gt.tools.auto_rigger.rig_utils import duplicate_joint_for_automation, get_proxy_offset, rescale_joint_radius
+from gt.tools.auto_rigger.rig_utils import create_ctrl_curve, find_or_create_joint_automation_group, get_proxy_offset
+from gt.tools.auto_rigger.rig_utils import find_direction_curve, find_control_root_curve, find_joint_from_uuid
 from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_from_uuid, get_driven_joint
-from gt.tools.auto_rigger.rig_utils import find_direction_curve, create_ctrl_curve, expose_rotation_order
-from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, find_or_create_joint_automation_group
-from gt.tools.auto_rigger.rig_utils import find_control_root_curve
 from gt.utils.attr_utils import add_attr, hide_lock_default_attrs, set_attr_state, set_attr, add_separator_attr
 from gt.utils.color_utils import ColorConstants, set_color_viewport, set_color_outliner, get_directional_color
+from gt.utils.rigging_utils import rescale_joint_radius, expose_rotation_order, duplicate_joint_for_automation
 from gt.utils.transform_utils import match_translate, Vector3, match_transform, scale_shapes, translate_shapes
 from gt.utils.transform_utils import rotate_shapes
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
