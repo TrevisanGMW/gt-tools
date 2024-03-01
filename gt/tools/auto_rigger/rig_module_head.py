@@ -477,7 +477,8 @@ class ModuleHead(ModuleGeneric):
         set_color_viewport(obj_list=lt_eye_up_vec, rgb_color=ColorConstants.RigProxy.LEFT)
         set_color_viewport(obj_list=rt_eye_ctrl, rgb_color=ColorConstants.RigProxy.RIGHT)
         set_color_viewport(obj_list=rt_eye_up_vec, rgb_color=ColorConstants.RigProxy.RIGHT)
-        aim_lines_grp = get_automation_group(subgroup=f"aimLines_{NamingConstants.Suffix.GRP}")
+        aim_lines_grp = get_automation_group(name=f"headAutomation_{NamingConstants.Suffix.GRP}",
+                                             subgroup=f"aimLines_{NamingConstants.Suffix.GRP}")
         hierarchy_utils.parent(source_objects=lt_lines + rt_lines, target_parent=aim_lines_grp)
 
         hide_lock_default_attrs(obj_list=[lt_eye_ctrl, rt_eye_ctrl], rotate=True , scale=True, visibility=True)
