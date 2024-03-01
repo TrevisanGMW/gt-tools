@@ -65,6 +65,7 @@ class NamingConstants:
         # Automation
         ROLL_CTRL = f'roll_{CTRL}'
         UP_DOWN_CTRL = f'upDown_{CTRL}'
+        CURL = f'curl_{CTRL}'
 
     class Position:
         MID = 'mid'  # - center (other positions go clockwise starting at 12 o'clock)
