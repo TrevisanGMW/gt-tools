@@ -1288,23 +1288,30 @@ def get_directional_position(object_name, axis="X", tolerance=0.001):
     Retrieves the position direction along a specified axis for the given object. For
 
     Args:
-        object_name (str): The name of the object whose position direction needs to be determined.
+        object_name (str, Node): The name of the object whose position direction needs to be determined.
         axis (str, optional): The axis along which to evaluate the object's position ('X', 'Y', or 'Z').
                               Defaults to 'X'.
         tolerance (float, optional): Tolerance value to determine if the position is close enough to zero.
+                                     If tolerance is set to zero, the value can only be +1 or -1, never 0 (center).
+                                     Center will be considered positive "+1" (positive)
                                      Defaults to 1e-6.
 
     Returns:
         int: -1 if the position is negative, 0 if it's in the center, and 1 if it's positive.
     """
+    # If tolerance is zero, system cannot return center (0)
+    center = 0
+    if tolerance == 0:
+        center = 1
+    # Basic Checks
     if not object_name or not cmds.objExists(object_name):
         logger.warning(f"Object '{str(object_name)}' does not exist.")
-        return 0
+        return center
 
     axis = axis.upper()
     if axis not in ["X", "Y", "Z"]:
         logger.warning(f"Invalid axis '{axis}'. Please use 'X', 'Y', or 'Z'.")
-        return 0
+        return center
 
     # Get the world position of the object
     world_position = cmds.xform(object_name, query=True, worldSpace=True, rotatePivot=True)
@@ -1318,7 +1325,7 @@ def get_directional_position(object_name, axis="X", tolerance=0.001):
     elif position_value > tolerance:
         return 1
     else:
-        return 0
+        return center
 
 
 if __name__ == "__main__":

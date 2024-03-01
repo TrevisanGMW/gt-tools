@@ -1671,32 +1671,46 @@ class TestTransformUtils(unittest.TestCase):
         expected = 0
         self.assertEqual(expected, result)
 
-    def test_get_directional_position_position_negative(self):
+    def test_get_directional_position_negative(self):
         cube = maya_test_tools.create_poly_cube(name="cube_one")
         maya_test_tools.cmds.setAttr(f'{cube}.tx', -10)
         result = transform_utils.get_directional_position(object_name=cube, axis="X", tolerance=0.001)
         expected = -1
         self.assertEqual(expected, result)
 
-    def test_get_directional_position_position_positive(self):
+    def test_get_directional_position_positive(self):
         cube = maya_test_tools.create_poly_cube(name="cube_one")
         maya_test_tools.cmds.setAttr(f'{cube}.tx', 10)
         result = transform_utils.get_directional_position(object_name=cube, axis="X", tolerance=0.001)
         expected = 1
         self.assertEqual(expected, result)
 
-    def test_get_directional_position_position_center(self):
+    def test_get_directional_position_center(self):
         cube = maya_test_tools.create_poly_cube(name="cube_one")
         result = transform_utils.get_directional_position(object_name=cube, axis="X", tolerance=0.001)
         expected = 0
         self.assertEqual(expected, result)
 
-    def test_get_directional_position_position_tolerance(self):
-        cube = maya_test_tools.create_poly_cube(name="cube_one")
-        maya_test_tools.cmds.setAttr(f'{cube}.tx', 0.05)
-        result = transform_utils.get_directional_position(object_name=cube, axis="X", tolerance=0.001)
+    def test_get_directional_position_tolerance(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        maya_test_tools.cmds.setAttr(f'{cube_one}.tx', 0.05)
+        result = transform_utils.get_directional_position(object_name=cube_one, axis="X", tolerance=0.001)
         expected = 1
         self.assertEqual(expected, result)
-        result = transform_utils.get_directional_position(object_name=cube, axis="X", tolerance=0.1)
+        result = transform_utils.get_directional_position(object_name=cube_one, axis="X", tolerance=0.1)
         expected = 0
+        self.assertEqual(expected, result)
+        result = transform_utils.get_directional_position(object_name=cube_two, axis="X", tolerance=0.1)
+        expected = 0
+        self.assertEqual(expected, result)
+        result = transform_utils.get_directional_position(object_name=cube_two, axis="X", tolerance=0) # No Center
+        expected = 1
+        self.assertEqual(expected, result)
+        result = transform_utils.get_directional_position(object_name=cube_one, axis="X", tolerance=0) # No Center
+        expected = 1
+        self.assertEqual(expected, result)
+        maya_test_tools.cmds.setAttr(f'{cube_one}.tx', -0.05)
+        result = transform_utils.get_directional_position(object_name=cube_one, axis="X", tolerance=0) # No Center
+        expected = -1
         self.assertEqual(expected, result)
