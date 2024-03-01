@@ -3,13 +3,14 @@ Auto Rigger Spine Modules
 github.com/TrevisanGMW/gt-tools
 """
 from gt.tools.auto_rigger.rig_utils import find_or_create_joint_automation_group, get_driven_joint, create_ctrl_curve
-from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, expose_rotation_order, offset_control_orientation
-from gt.tools.auto_rigger.rig_utils import find_proxy_from_uuid, find_direction_curve, rescale_joint_radius
-from gt.tools.auto_rigger.rig_utils import duplicate_joint_for_automation, get_automation_group
+from gt.tools.auto_rigger.rig_utils import find_proxy_from_uuid, find_direction_curve, find_joint_from_uuid
+from gt.tools.auto_rigger.rig_utils import get_automation_group
 from gt.utils.transform_utils import Vector3, scale_shapes, match_transform, translate_shapes, rotate_shapes
+from gt.utils.rigging_utils import expose_rotation_order, offset_control_orientation, rescale_joint_radius
+from gt.utils.rigging_utils import duplicate_joint_for_automation
+from gt.utils.surface_utils import create_surface_from_object_list, create_follicle, get_closest_uv_point
 from gt.utils.color_utils import ColorConstants, set_color_viewport, set_color_outliner
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
-from gt.utils.surface_utils import create_surface_from_object_list, create_follicle
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
 from gt.utils.constraint_utils import equidistant_constraints, constraint_targets
 from gt.utils.attr_utils import add_separator_attr, set_attr_state
@@ -23,7 +24,6 @@ from gt.ui import resource_library
 import maya.cmds as cmds
 import logging
 import re
-
 
 # Logging Setup
 logging.basicConfig()
@@ -233,7 +233,7 @@ class ModuleSpine(ModuleGeneric):
         module_parent_jnt = get_driven_joint(self.get_parent_uuid())
         hierarchy_utils.parent(source_objects=module_parent_jnt, target_parent=joint_automation_grp)
 
-        # Create Automation Skeletons (FK/IK) ------------------------------------------------------------
+        # Create Automation Skeletons (FK/IK/LimitQuery) ------------------------------------------------------------
         hip_parent = module_parent_jnt
         if module_parent_jnt:
             set_color_viewport(obj_list=hip_parent, rgb_color=ColorConstants.RigJoint.AUTOMATION)
@@ -241,21 +241,56 @@ class ModuleSpine(ModuleGeneric):
         else:
             hip_parent = joint_automation_grp
 
-        hip_fk = duplicate_joint_for_automation(hip_jnt, suffix="fk", parent=hip_parent)
+        # FK
+        suffix = NamingConstants.Description.FK
+        hip_fk = duplicate_joint_for_automation(hip_jnt, suffix=suffix, parent=hip_parent)
         fk_joints = [hip_fk]
         last_mid_parent = hip_fk
         mid_fk_list = []
         for mid in middle_jnt_list:
-            mid_fk = duplicate_joint_for_automation(mid, suffix="fk", parent=last_mid_parent)
+            mid_fk = duplicate_joint_for_automation(mid, suffix=suffix, parent=last_mid_parent)
             mid_fk_list.append(mid_fk)
             last_mid_parent = mid_fk
         fk_joints.extend(mid_fk_list)
-        chest_fk = duplicate_joint_for_automation(chest_jnt, suffix="fk", parent=last_mid_parent)
+        chest_fk = duplicate_joint_for_automation(chest_jnt, suffix=suffix, parent=last_mid_parent)
         fk_joints.append(chest_fk)
-
         rescale_joint_radius(joint_list=fk_joints, multiplier=RiggerConstants.LOC_RADIUS_MULTIPLIER_FK)
         set_color_viewport(obj_list=fk_joints, rgb_color=ColorConstants.RigJoint.FK)
         set_color_outliner(obj_list=fk_joints, rgb_color=ColorConstants.RigOutliner.FK)
+
+        # IK
+        suffix = NamingConstants.Description.IK
+        hip_ik = duplicate_joint_for_automation(hip_jnt, suffix=suffix, parent=hip_parent)
+        ik_joints = [hip_ik]
+        last_mid_parent = hip_ik
+        mid_ik_list = []
+        for mid in middle_jnt_list:
+            mid_ik = duplicate_joint_for_automation(mid, suffix=suffix, parent=last_mid_parent)
+            mid_ik_list.append(mid_ik)
+            last_mid_parent = mid_ik
+        ik_joints.extend(mid_ik_list)
+        chest_ik = duplicate_joint_for_automation(chest_jnt, suffix=suffix, parent=last_mid_parent)
+        ik_joints.append(chest_ik)
+        rescale_joint_radius(joint_list=ik_joints, multiplier=RiggerConstants.LOC_RADIUS_MULTIPLIER_IK)
+        set_color_viewport(obj_list=ik_joints, rgb_color=ColorConstants.RigJoint.IK)
+        set_color_outliner(obj_list=ik_joints, rgb_color=ColorConstants.RigOutliner.IK)
+
+        # Limit Chain
+        suffix = "limitQuery"
+        hip_limit = duplicate_joint_for_automation(hip_jnt, suffix=suffix, parent=hip_parent)
+        limit_joints = [hip_limit]
+        last_mid_parent = hip_limit
+        mid_limit_list = []
+        for mid in middle_jnt_list:
+            mid_limit = duplicate_joint_for_automation(mid, suffix=suffix, parent=last_mid_parent)
+            mid_limit_list.append(mid_limit)
+            last_mid_parent = mid_limit
+        limit_joints.extend(mid_limit_list)
+        chest_limit = duplicate_joint_for_automation(chest_jnt, suffix=suffix, parent=last_mid_parent)
+        limit_joints.append(chest_limit)
+        rescale_joint_radius(joint_list=limit_joints, multiplier=RiggerConstants.LOC_RADIUS_MULTIPLIER_DATA_QUERY)
+        set_color_viewport(obj_list=limit_joints, rgb_color=ColorConstants.RigJoint.DATA_QUERY)
+        set_color_outliner(obj_list=ik_joints, rgb_color=ColorConstants.RigOutliner.DATA_QUERY)
 
         # COG Control ------------------------------------------------------------------------------------
         cog_ctrl = self._assemble_ctrl_name(name="cog")
@@ -313,7 +348,6 @@ class ModuleSpine(ModuleGeneric):
         expose_rotation_order(hip_o_ctrl)
         cmds.addAttr(hip_ctrl, ln=RiggerConstants.ATTR_SHOW_OFFSET, at='bool', k=True)
         cmds.connectAttr(f'{hip_ctrl}.{RiggerConstants.ATTR_SHOW_OFFSET}', f'{hip_o_ctrl}.v')
-
 
         # FK Controls ----------------------------------------------------------------------------------
         spine_ctrls = []
@@ -393,12 +427,9 @@ class ModuleSpine(ModuleGeneric):
         cmds.addAttr(chest_ctrl, ln=RiggerConstants.ATTR_SHOW_OFFSET, at='bool', k=True)
         cmds.connectAttr(f'{chest_ctrl}.{RiggerConstants.ATTR_SHOW_OFFSET}', f'{chest_o_ctrl}.v')
 
-        # Constraints FK -> Base
-        for fk_jnt_zip in zip(fk_joints, module_jnt_list):
-            constraint_targets(source_driver=fk_jnt_zip[0], target_driven=fk_jnt_zip[1])
-
-        # ############# IK Spine (Ribbon) ##############
+        # IK Spine (Ribbon) -----------------------------------------------------------------------------------
         spine_ik_grp = cmds.group(name=f'spineRibbon_{NamingConstants.Suffix.GRP}', empty=True, world=True)
+        # hierarchy_utils.parent(source_objects=spine_ik_grp, target_parent=spine_automation_grp)
         cmds.setAttr(f'{spine_ik_grp}.inheritsTransform', 0)  # Ignore Hierarchy Transform
 
         ribbon_sur = self._assemble_ctrl_name(name="spineRibbon", overwrite_suffix=NamingConstants.Suffix.SUR)
@@ -406,16 +437,36 @@ class ModuleSpine(ModuleGeneric):
                                                      surface_name=ribbon_sur,
                                                      custom_normal=(0, 0, 1))
         hierarchy_utils.parent(source_objects=ribbon_sur, target_parent=spine_ik_grp)
-        u_position_joints = [0, 0.5, 1]
-        for index in range(len(u_position_joints)):
+        # Create Follicles
+        follicle_nodes = []
+        follicle_transforms = []
+        for index, joint in enumerate(spine_jnt_list):
+            joint_pos = cmds.xform(joint, query=True, translation=True, worldSpace=True)
+            u_pos, v_pos = get_closest_uv_point(surface=ribbon_sur, xyz_pos=joint_pos)
+            v_pos_normalized = v_pos/(len(spine_jnt_list)-1)
             prefix = ''
             if self.prefix:
                 prefix = f'{self.prefix}_'
             fol_trans, fol_shape = create_follicle(input_surface=ribbon_sur,
-                                                   uv_position=(0.5, u_position_joints[index]),
-                                                   name=f"{prefix}follicle_{(index + 1):02d}")
-            print(fol_trans)
-            print(fol_shape)
+                                                   uv_position=(u_pos, v_pos_normalized),
+                                                   name=f"{prefix}spineFollicle_{(index + 1):02d}")
+            follicle_nodes.append(fol_shape)
+            follicle_transforms.append(fol_trans)
+        hierarchy_utils.parent(source_objects=follicle_transforms, target_parent=spine_ik_grp)
+
+        # Constraints FK -> Base
+        for fk_jnt, base_jnt in zip(fk_joints, module_jnt_list):
+            constraint_targets(source_driver=fk_jnt, target_driven=base_jnt)
+        # Constraints Follicle -> IK
+        for spine_fol, ik_jnt in zip(follicle_transforms, ik_joints):
+            constraint_targets(source_driver=spine_fol, target_driven=ik_jnt)
+
+        # ik_spine_constraint_handle = cmds.ikHandle(n='spineConstraint_SC_ikHandle', sj=ik_spine_constraint_joints[0],
+        #                                            ee=ik_spine_constraint_joints[-1], sol='ikSCsolver')
+
+        # for (control, joint) in zip(follicle_transforms, ik_joints):
+        #     cmds.parentConstraint(control, joint)
+        #     cmds.scaleConstraint(control, joint)
 
         # # TODO TEMP @@@
         # out_find_driver = self.find_driver(driver_type=RiggerDriverTypes.FK, proxy_purpose=self.hip)
