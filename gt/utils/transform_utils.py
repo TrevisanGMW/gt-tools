@@ -1283,9 +1283,48 @@ def set_component_positions_from_dict(component_pos_dict, world_space=True):
             logger.debug(f'Unable to set CV position. Issue: {e}')
 
 
+def get_directional_position(object_name, axis="X", tolerance=0.001):
+    """
+    Retrieves the position direction along a specified axis for the given object. For
+
+    Args:
+        object_name (str): The name of the object whose position direction needs to be determined.
+        axis (str, optional): The axis along which to evaluate the object's position ('X', 'Y', or 'Z').
+                              Defaults to 'X'.
+        tolerance (float, optional): Tolerance value to determine if the position is close enough to zero.
+                                     Defaults to 1e-6.
+
+    Returns:
+        int: -1 if the position is negative, 0 if it's in the center, and 1 if it's positive.
+    """
+    if not object_name or not cmds.objExists(object_name):
+        logger.warning(f"Object '{str(object_name)}' does not exist.")
+        return 0
+
+    axis = axis.upper()
+    if axis not in ["X", "Y", "Z"]:
+        logger.warning(f"Invalid axis '{axis}'. Please use 'X', 'Y', or 'Z'.")
+        return 0
+
+    # Get the world position of the object
+    world_position = cmds.xform(object_name, query=True, worldSpace=True, rotatePivot=True)
+
+    # Get the value along the specified axis
+    position_value = world_position["XYZ".index(axis)]
+
+    # Determine the position direction based on the position value
+    if position_value < -tolerance:
+        return -1
+    elif position_value > tolerance:
+        return 1
+    else:
+        return 0
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     # transform = Transform()
     # transform.set_position(0, 10, 0)
     # transform.apply_transform('pSphere1')
-    rotate_shapes(cmds.ls(selection=True)[0], offset=(0, 0, -90), pivot=(0, 2, 0))
+    # rotate_shapes(cmds.ls(selection=True)[0], offset=(0, 0, -90), pivot=(0, 2, 0))
+    print(get_directional_position('pSphere1'))

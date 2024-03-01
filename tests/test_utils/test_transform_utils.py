@@ -1653,3 +1653,50 @@ class TestTransformUtils(unittest.TestCase):
 
         expected = [0.0, 1.0, 3.0]
         self.assertEqual(expected, result)
+
+    def test_get_directional_position_object_does_not_exist(self):
+        object_name = "non_existing_object"
+        logging.disable(logging.WARNING)
+        result = transform_utils.get_directional_position(object_name=object_name)
+        logging.disable(logging.NOTSET)
+        expected = 0
+        self.assertEqual(expected, result)
+
+    def test_get_directional_position_invalid_axis(self):
+        cube = maya_test_tools.create_poly_cube(name="cube_one")
+        invalid_axis = "invalid_axis"
+        logging.disable(logging.WARNING)
+        result = transform_utils.get_directional_position(object_name=cube, axis=invalid_axis)
+        logging.disable(logging.NOTSET)
+        expected = 0
+        self.assertEqual(expected, result)
+
+    def test_get_directional_position_position_negative(self):
+        cube = maya_test_tools.create_poly_cube(name="cube_one")
+        maya_test_tools.cmds.setAttr(f'{cube}.tx', -10)
+        result = transform_utils.get_directional_position(object_name=cube, axis="X", tolerance=0.001)
+        expected = -1
+        self.assertEqual(expected, result)
+
+    def test_get_directional_position_position_positive(self):
+        cube = maya_test_tools.create_poly_cube(name="cube_one")
+        maya_test_tools.cmds.setAttr(f'{cube}.tx', 10)
+        result = transform_utils.get_directional_position(object_name=cube, axis="X", tolerance=0.001)
+        expected = 1
+        self.assertEqual(expected, result)
+
+    def test_get_directional_position_position_center(self):
+        cube = maya_test_tools.create_poly_cube(name="cube_one")
+        result = transform_utils.get_directional_position(object_name=cube, axis="X", tolerance=0.001)
+        expected = 0
+        self.assertEqual(expected, result)
+
+    def test_get_directional_position_position_tolerance(self):
+        cube = maya_test_tools.create_poly_cube(name="cube_one")
+        maya_test_tools.cmds.setAttr(f'{cube}.tx', 0.05)
+        result = transform_utils.get_directional_position(object_name=cube, axis="X", tolerance=0.001)
+        expected = 1
+        self.assertEqual(expected, result)
+        result = transform_utils.get_directional_position(object_name=cube, axis="X", tolerance=0.1)
+        expected = 0
+        self.assertEqual(expected, result)
