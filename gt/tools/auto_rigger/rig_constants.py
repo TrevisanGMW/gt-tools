@@ -76,3 +76,4 @@ class RiggerDriverTypes:
     AIM = "aim"  # e.g. eyes
     ROLL = "roll"  # e.g. toe_roll
     UP_DOWN = "upDown"  # e.g. toe_upDown
+    CURL = "curl"  # e.g. thumb_curl
