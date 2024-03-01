@@ -277,6 +277,7 @@ class ColorConstants:
         END = (1, 0, 0)  # Red Pure
         UNIQUE = (0, 1, 0)  # Green
         AUTOMATION = (1, 0.17, 0.75)  # Hot Pink
+        DATA_QUERY = (1, 1, 1)  # White
 
     class RigOutliner:
         def __init__(self):
@@ -296,6 +297,7 @@ class ColorConstants:
         AUTOMATION = (1, .65, .45)  # Soft Orange
         FK = (1, .5, .5)  # Soft Red
         IK = (.5, .5, 1)  # Soft Blue
+        DATA_QUERY = (1, 1, 1)  # White
 
 
 def set_color_viewport(obj_list, rgb_color=(1, 1, 1)):

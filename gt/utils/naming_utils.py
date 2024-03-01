@@ -34,6 +34,7 @@ class NamingConstants:
         PIVOT = 'pivot'
         FK = 'fk'  # Forward kinematics
         IK = 'ik'  # Inverse kinematics
+        DATA_QUERY = 'dataQuery'
 
     class Prefix:
         LEFT = 'lf'
