@@ -2225,8 +2225,6 @@ class RigProject:
                                                     setup=True,
                                                     target_parent=root_group)
             control_grp = category_groups.get(RiggerConstants.REF_ATTR_CONTROL)
-            setup_grp = category_groups.get(RiggerConstants.REF_ATTR_SETUP)
-            set_attr(obj_list=setup_grp, attr_list=['overrideEnabled', 'overrideDisplayType'], value=1)
             hierarchy_utils.parent(source_objects=list(category_groups.values()), target_parent=root_group)
             hierarchy_utils.parent(source_objects=root_ctrl, target_parent=control_grp)
             hierarchy_utils.parent(source_objects=dir_ctrl, target_parent=root_ctrl)
