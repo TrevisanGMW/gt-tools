@@ -359,7 +359,7 @@ def create_root_group(is_proxy=False):
     add_attr(obj_list=root_group, attr_type="string", is_keyable=False,
              attributes=_attr, verbose=True)
     set_color_outliner(root_group, rgb_color=_color)
-    return Node(root_group)
+    return root_group
 
 
 def create_proxy_root_curve():
