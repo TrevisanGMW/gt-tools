@@ -29,9 +29,10 @@ class RiggerConstants:
     # Common Rigging Attributes
     ATTR_SHOW_OFFSET = 'showOffsetCtrl'
     # Metadata Keys
+    META_SETUP_NAME = "setupName"  # Metadata key for the system name. (Determines naming pattern)
     META_PROXY_LINE_PARENT = "lineParentUUID"  # Metadata key, line parent. Actual parent is ignored when present.
     META_PROXY_PURPOSE = "proxyPurpose"  # Metadata key, used to recognize proxy purpose within modules
-    META_PROXY_DRIVERS = "proxyDrivers"  # Metadata key, used to find drivers (aka controls) driving the created joint
+    META_PROXY_DRIVERS = "proxyDrivers"  # Metadata key, used to find drivers (aka controls) driving the created joint.
     META_PROXY_CLR = "color"  # Metadata key, describes color to be used instead of side setup.
     # Separator Attributes
     SEPARATOR_OPTIONS = "options"
