@@ -21,6 +21,45 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+def duplicate_object(obj, name=None, parent_to_world=True):
+    """
+    Duplicate the transform and its shapes.
+
+    Args:
+        obj (str, Node): The name/path of the object to duplicate.
+        name (str, optional): If provided, the transform of the duplicated object is renamed using this string.
+        parent_to_world (bool, optional): If True, makes sure parent is parented to the world.
+    Returns:
+        str, Node: A node with the path/name of the duplicated object.
+    """
+    # Store Selection
+    selection = cmds.ls(selection=True) or []
+    # Duplicate
+    duplicated_obj = cmds.duplicate(obj, renameChildren=True)[0]
+    duplicated_obj = Node(duplicated_obj)
+    # Remove children
+    shapes = cmds.listRelatives(duplicated_obj, shapes=True) or []
+    children = cmds.listRelatives(duplicated_obj, children=True) or []
+    for child in children:
+        if child not in shapes:
+            cmds.delete(child)
+    # Parent to World
+    has_parent = bool(cmds.listRelatives(duplicated_obj, parent=True))
+    if has_parent and parent_to_world:
+        cmds.parent(duplicated_obj, world=True)
+    # Rename
+    if name and isinstance(name, str):
+        duplicated_obj.rename(name)
+    # Manage Selection
+    cmds.select(clear=True)
+    if selection:
+        try:
+            cmds.select(selection)
+        except Exception as e:
+            logger.debug(f'Unable to restore previous selection. Issue: {e}')
+    # Return
+    return duplicated_obj
+
 
 def duplicate_joint_for_automation(joint, suffix=NamingConstants.Suffix.DRIVEN, parent=None, connect_rot_order=True):
     """
@@ -348,20 +387,21 @@ def create_stretchy_ik_setup(ik_handle, attribute_holder=None, prefix=None):
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    cmds.file(new=True, force=True)
-    test_joints = [cmds.joint(p=(0, 10, 0)),
-                   cmds.joint(p=(0, 5, .1)),
-                   cmds.joint(p=(0, 0, 0)),
-                   # cmds.joint(p=(15, -5, 0)),
-                   ]
-    an_ik_handle = cmds.ikHandle(n='spineConstraint_SC_ikHandle',
-                              sj=test_joints[0], ee=test_joints[-1], sol='ikRPsolver')[0]
-
-    cube = cmds.polyCube(ch=False)[0]
-    cmds.delete(cmds.pointConstraint(test_joints[-1], cube))
-    cmds.parentConstraint(cube, an_ik_handle, maintainOffset=True)
-    from gt.utils.joint_utils import orient_joint
-    orient_joint(test_joints)
-    out = create_stretchy_ik_setup(ik_handle=an_ik_handle, prefix="mocked", attribute_holder=cube)
-    print(out)
-    cmds.viewFit(all=True)
+    # cmds.file(new=True, force=True)
+    # test_joints = [cmds.joint(p=(0, 10, 0)),
+    #                cmds.joint(p=(0, 5, .1)),
+    #                cmds.joint(p=(0, 0, 0)),
+    #                # cmds.joint(p=(15, -5, 0)),
+    #                ]
+    # an_ik_handle = cmds.ikHandle(n='spineConstraint_SC_ikHandle',
+    #                           sj=test_joints[0], ee=test_joints[-1], sol='ikRPsolver')[0]
+    #
+    # cube = cmds.polyCube(ch=False)[0]
+    # cmds.delete(cmds.pointConstraint(test_joints[-1], cube))
+    # cmds.parentConstraint(cube, an_ik_handle, maintainOffset=True)
+    # from gt.utils.joint_utils import orient_joint
+    # orient_joint(test_joints)
+    # out = create_stretchy_ik_setup(ik_handle=an_ik_handle, prefix="mocked", attribute_holder=cube)
+    # print(out)
+    # cmds.viewFit(all=True)
+    duplicate_object('pSphere1')

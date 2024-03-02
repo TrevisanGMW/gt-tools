@@ -27,39 +27,43 @@ class TestRiggingUtils(unittest.TestCase):
     def setUpClass(cls):
         maya_test_tools.import_maya_standalone(initialize=True)  # Start Maya Headless (mayapy.exe)
 
-    def assertAlmostEqualSigFig(self, arg1, arg2, tolerance=2):
-        """
-        Asserts that two numbers are almost equal up to a given number of significant figures.
+    def test_duplicate_object_children(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        maya_test_tools.cmds.parent(cube_two, cube_one)
+        # Duplicate
+        duplicated_obj = rigging_utils.duplicate_object(obj=cube_one, name=None, parent_to_world=True)
+        expected = '|cube_one1'
+        self.assertEqual(expected, duplicated_obj)
+        # Check Children
+        result = maya_test_tools.cmds.listRelatives(cube_one, children=True)
+        expected = ['cube_oneShape', 'cube_two']
+        self.assertEqual(expected, result)
+        result = maya_test_tools.cmds.listRelatives(duplicated_obj, children=True)
+        expected = ['cube_one1Shape']
+        self.assertEqual(expected, result)
 
-        Args:
-            self (object): The current test case or class object.
-            arg1 (float): The first number for comparison.
-            arg2 (float): The second number for comparison.
-            tolerance (int, optional): The number of significant figures to consider for comparison. Default is 2.
+    def test_duplicate_object_naming(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        maya_test_tools.cmds.parent(cube_two, cube_one)
+        # Duplicate
+        duplicated_obj = rigging_utils.duplicate_object(obj=cube_one, name="mocked_cube", parent_to_world=True)
+        expected = '|mocked_cube'
+        self.assertEqual(expected, duplicated_obj)
 
-        Returns:
-            None
-
-        Raises:
-            AssertionError: If the significands of arg1 and arg2 differ by more than the specified tolerance.
-
-        Example:
-            obj = TestClass()
-            obj.assertAlmostEqualSigFig(3.145, 3.14159, tolerance=3)
-            # No assertion error will be raised as the first 3 significant figures are equal (3.14)
-        """
-        if tolerance > 1:
-            tolerance = tolerance - 1
-
-        str_formatter = '{0:.' + str(tolerance) + 'e}'
-        significand_1 = float(str_formatter.format(arg1).split('e')[0])
-        significand_2 = float(str_formatter.format(arg2).split('e')[0])
-
-        exponent_1 = int(str_formatter.format(arg1).split('e')[1])
-        exponent_2 = int(str_formatter.format(arg2).split('e')[1])
-
-        self.assertEqual(significand_1, significand_2)
-        self.assertEqual(exponent_1, exponent_2)
+    def test_duplicate_object_parenting(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        maya_test_tools.cmds.parent(cube_two, cube_one)
+        # Duplicate; World Parenting
+        duplicated_obj = rigging_utils.duplicate_object(obj=cube_two, name="world_parent", parent_to_world=True)
+        expected = '|world_parent'
+        self.assertEqual(expected, duplicated_obj)
+        # Duplicate; Keep Parent
+        duplicated_obj = rigging_utils.duplicate_object(obj=cube_two, name="keep_parent", parent_to_world=False)
+        expected = '|cube_one|keep_parent'
+        self.assertEqual(expected, duplicated_obj)
 
     def test_duplicate_joint_for_automation(self):
         joint_one = maya_test_tools.cmds.joint(name="one_jnt")
