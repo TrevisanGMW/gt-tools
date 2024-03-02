@@ -880,7 +880,7 @@ if __name__ == "__main__":
     cmds.file(new=True, force=True)
     # Auto Reload Script - Must have been initialized using "Run-Only" mode.
     from gt.utils.session_utils import remove_modules_startswith
-
+    remove_modules_startswith("gt.tools.auto_rigger.module")
     remove_modules_startswith("gt.tools.auto_rigger.rig")
     cmds.file(new=True, force=True)
 
