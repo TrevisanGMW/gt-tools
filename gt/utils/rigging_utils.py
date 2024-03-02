@@ -123,7 +123,7 @@ def create_stretchy_ik_setup(ik_handle, attribute_holder=None, prefix=None):
     # Prefix
     _prefix = ''
     if prefix and isinstance(prefix, str):
-        _prefix = f'{_prefix}_'
+        _prefix = f'{prefix}_'
 
     # Find end joint
     end_ik_jnt = ''
@@ -362,6 +362,6 @@ if __name__ == "__main__":
     cmds.parentConstraint(cube, an_ik_handle, maintainOffset=True)
     from gt.utils.joint_utils import orient_joint
     orient_joint(test_joints)
-    out = create_stretchy_ik_setup(ik_handle=an_ik_handle, prefix=None, attribute_holder=cube)
+    out = create_stretchy_ik_setup(ik_handle=an_ik_handle, prefix="mocked", attribute_holder=cube)
     print(out)
     cmds.viewFit(all=True)
