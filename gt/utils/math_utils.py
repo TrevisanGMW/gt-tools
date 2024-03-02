@@ -338,10 +338,3 @@ def remap_value(value, old_range, new_range):
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    # center = get_bbox_position("pSphere1")
-    # print(center)
-    # x, y, z = center
-    # locator = cmds.spaceLocator()[0]
-    # cmds.move(x, y, z, locator)
-    # print(get_bbox_position("combined_curve_01"))
-    print(dist_between_elements(["a", "b", "cf","d",(5, 0, 0)]))
