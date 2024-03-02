@@ -461,8 +461,10 @@ class ModuleSpine(ModuleGeneric):
         for spine_fol, ik_jnt in zip(follicle_transforms, ik_joints):
             constraint_targets(source_driver=spine_fol, target_driven=ik_jnt)
 
-        # ik_spine_constraint_handle = cmds.ikHandle(n='spineConstraint_SC_ikHandle', sj=ik_spine_constraint_joints[0],
-        #                                            ee=ik_spine_constraint_joints[-1], sol='ikSCsolver')
+        ik_limit_handle = self._assemble_ctrl_name(name="spineLimit",
+                                                   overwrite_suffix=NamingConstants.Suffix.IK_HANDLE_SC)
+        ik_limit_handle = cmds.ikHandle(name=ik_limit_handle, solver='ikSCsolver',
+                                        startJoint=limit_joints[0], endEffector=limit_joints[-1])
 
         # for (control, joint) in zip(follicle_transforms, ik_joints):
         #     cmds.parentConstraint(control, joint)
