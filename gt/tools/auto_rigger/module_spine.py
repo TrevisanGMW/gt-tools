@@ -504,7 +504,7 @@ if __name__ == "__main__":
     cmds.file(new=True, force=True)
 
     from gt.tools.auto_rigger.rig_framework import RigProject
-    from gt.tools.auto_rigger.rig_module_root import ModuleRoot
+    from gt.tools.auto_rigger.module_root import ModuleRoot
     a_root = ModuleRoot()
     a_spine = ModuleSpine()
     a_spine.set_spine_num(0)

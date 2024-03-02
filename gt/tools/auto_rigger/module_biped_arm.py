@@ -559,7 +559,7 @@ if __name__ == "__main__":
     cmds.file(new=True, force=True)
 
     from gt.tools.auto_rigger.rig_framework import RigProject
-    from gt.tools.auto_rigger.rig_module_spine import ModuleSpine
+    from gt.tools.auto_rigger.module_spine import ModuleSpine
 
     a_spine = ModuleSpine()
     a_arm = ModuleBipedArm()

@@ -31,7 +31,7 @@ logger.setLevel(logging.INFO)
 
 
 class ModuleHead(ModuleGeneric):
-    __version__ = '0.0.1-alpha'
+    __version__ = '0.0.2-alpha'
     icon = resource_library.Icon.rigger_module_head
     allow_parenting = True
 
@@ -498,7 +498,7 @@ if __name__ == "__main__":
     cmds.file(new=True, force=True)
 
     from gt.tools.auto_rigger.rig_framework import RigProject
-    from gt.tools.auto_rigger.rig_module_spine import ModuleSpine
+    from gt.tools.auto_rigger.module_spine import ModuleSpine
 
     a_spine = ModuleSpine()
     a_head = ModuleHead()
