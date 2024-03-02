@@ -211,3 +211,22 @@ class TestRiggingUtils(unittest.TestCase):
         expected = [0.0, 0.0, 1.0]
         result = maya_test_tools.cmds.xform(f'{ctrl}.cv[0]', query=True, worldSpace=True, translation=True)
         self.assertEqual(expected, result)
+
+    def test_create_stretchy_ik_setup(self):
+        test_joints = [maya_test_tools.cmds.joint(p=(0, 10, 0)),
+                       maya_test_tools.cmds.joint(p=(0, 5, .1)),
+                       maya_test_tools.cmds.joint(p=(0, 0, 0))]
+        an_ik_handle = maya_test_tools.cmds.ikHandle(n='spineConstraint_SC_ikHandle',
+                                                     sj=test_joints[0], ee=test_joints[-1],
+                                                     sol='ikRPsolver')[0]
+
+        cube = maya_test_tools.cmds.polyCube(ch=False)[0]  # Control in this case
+        maya_test_tools.cmds.delete(maya_test_tools.cmds.pointConstraint(test_joints[-1], cube))
+        maya_test_tools.cmds.parentConstraint(cube, an_ik_handle, maintainOffset=True)
+        from gt.utils.joint_utils import orient_joint
+        orient_joint(test_joints)
+
+        stretchy_grp = rigging_utils.create_stretchy_ik_setup(ik_handle=an_ik_handle,
+                                                              prefix=None, attribute_holder=cube)
+        expected = "|stretchy_grp"
+        self.assertEqual(expected, stretchy_grp)
