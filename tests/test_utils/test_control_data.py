@@ -138,7 +138,7 @@ class TestControlData(unittest.TestCase):
 
     def test_create_scalable_two_sides_arrow(self):
         result = cluster_driven.create_scalable_two_sides_arrow("mocked_scalable_arrow")
-        expected = "mocked_scalable_arrow"
+        expected = "|mocked_scalable_arrow"
         self.assertEqual(expected, result.name)
         self.assertIsInstance(result, ControlData)
 
