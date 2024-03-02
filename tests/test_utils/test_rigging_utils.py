@@ -32,7 +32,8 @@ class TestRiggingUtils(unittest.TestCase):
         cube_two = maya_test_tools.create_poly_cube(name="cube_two")
         maya_test_tools.cmds.parent(cube_two, cube_one)
         # Duplicate
-        duplicated_obj = rigging_utils.duplicate_object(obj=cube_one, name=None, parent_to_world=True)
+        duplicated_obj = rigging_utils.duplicate_object(obj=cube_one, name=None,
+                                                        parent_to_world=True, reset_attributes=True)
         expected = '|cube_one1'
         self.assertEqual(expected, duplicated_obj)
         # Check Children
@@ -48,7 +49,8 @@ class TestRiggingUtils(unittest.TestCase):
         cube_two = maya_test_tools.create_poly_cube(name="cube_two")
         maya_test_tools.cmds.parent(cube_two, cube_one)
         # Duplicate
-        duplicated_obj = rigging_utils.duplicate_object(obj=cube_one, name="mocked_cube", parent_to_world=True)
+        duplicated_obj = rigging_utils.duplicate_object(obj=cube_one, name="mocked_cube",
+                                                        parent_to_world=True, reset_attributes=True)
         expected = '|mocked_cube'
         self.assertEqual(expected, duplicated_obj)
 
@@ -57,13 +59,39 @@ class TestRiggingUtils(unittest.TestCase):
         cube_two = maya_test_tools.create_poly_cube(name="cube_two")
         maya_test_tools.cmds.parent(cube_two, cube_one)
         # Duplicate; World Parenting
-        duplicated_obj = rigging_utils.duplicate_object(obj=cube_two, name="world_parent", parent_to_world=True)
+        duplicated_obj = rigging_utils.duplicate_object(obj=cube_two, name="world_parent",
+                                                        parent_to_world=True, reset_attributes=True)
         expected = '|world_parent'
         self.assertEqual(expected, duplicated_obj)
         # Duplicate; Keep Parent
-        duplicated_obj = rigging_utils.duplicate_object(obj=cube_two, name="keep_parent", parent_to_world=False)
+        duplicated_obj = rigging_utils.duplicate_object(obj=cube_two, name="keep_parent",
+                                                        parent_to_world=False, reset_attributes=True)
         expected = '|cube_one|keep_parent'
         self.assertEqual(expected, duplicated_obj)
+
+    def test_duplicate_object_attrs(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        maya_test_tools.cmds.addAttr(cube_one, ln='test', at='bool', k=True)  # Add User-defined attribute
+        maya_test_tools.cmds.setAttr(f'{cube_one}.tx', lock=True)  # Lock TranslateX
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        maya_test_tools.cmds.parent(cube_two, cube_one)
+        # Duplicate
+        duplicated_obj = rigging_utils.duplicate_object(obj=cube_one, name="mocked_cube",
+                                                        parent_to_world=True, reset_attributes=True)
+        # Original Item
+        expected = True
+        result = maya_test_tools.cmds.getAttr(f'{cube_one}.tx', lock=True)
+        self.assertEqual(expected, result)
+        expected = True
+        result = maya_test_tools.cmds.objExists(f'{cube_one}.test')
+        self.assertEqual(expected, result)
+        # Duplicate
+        expected = False
+        result = maya_test_tools.cmds.getAttr(f'{duplicated_obj}.tx', lock=True)
+        self.assertEqual(expected, result)
+        expected = False
+        result = maya_test_tools.cmds.objExists(f'{duplicated_obj}.test')
+        self.assertEqual(expected, result)
 
     def test_duplicate_joint_for_automation(self):
         joint_one = maya_test_tools.cmds.joint(name="one_jnt")

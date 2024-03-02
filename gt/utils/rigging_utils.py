@@ -3,8 +3,9 @@ Rigging Utilities
 github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.transform_utils import get_component_positions_as_dict, set_component_positions_from_dict, match_translate
+from gt.utils.attr_utils import connect_attr, get_attr, add_attr, delete_user_defined_attrs, set_attr_state
+from gt.utils.attr_utils import DEFAULT_ATTRS
 from gt.utils.naming_utils import NamingConstants, get_short_name
-from gt.utils.attr_utils import connect_attr, get_attr, add_attr
 from gt.utils.hierarchy_utils import duplicate_as_node
 from gt.utils.color_utils import set_color_outliner
 from gt.utils.node_utils import Node, create_node
@@ -15,13 +16,13 @@ import maya.cmds as cmds
 import logging
 import random
 
-
 # Logging Setup
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-def duplicate_object(obj, name=None, parent_to_world=True):
+
+def duplicate_object(obj, name=None, parent_to_world=True, reset_attributes=True):
     """
     Duplicate the transform and its shapes.
 
@@ -29,6 +30,9 @@ def duplicate_object(obj, name=None, parent_to_world=True):
         obj (str, Node): The name/path of the object to duplicate.
         name (str, optional): If provided, the transform of the duplicated object is renamed using this string.
         parent_to_world (bool, optional): If True, makes sure parent is parented to the world.
+        reset_attributes (bool, optional): If True, it removes all user-defined attributes and un-hides/un-locks
+                                           default attributes such as translate, rotate, scale, visibility.
+                                           This option does not change TRS+V values, only un-hides/unlocks them.
     Returns:
         str, Node: A node with the path/name of the duplicated object.
     """
@@ -47,6 +51,9 @@ def duplicate_object(obj, name=None, parent_to_world=True):
     has_parent = bool(cmds.listRelatives(duplicated_obj, parent=True))
     if has_parent and parent_to_world:
         cmds.parent(duplicated_obj, world=True)
+    if reset_attributes:
+        delete_user_defined_attrs(obj_list=duplicated_obj, delete_locked=True, verbose=False)
+        set_attr_state(obj_list=duplicated_obj, attr_list=DEFAULT_ATTRS, locked=False, hidden=False)
     # Rename
     if name and isinstance(name, str):
         duplicated_obj.rename(name)
