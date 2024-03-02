@@ -33,15 +33,17 @@ logger.setLevel(logging.INFO)
 
 
 class ModuleBipedArm(ModuleGeneric):
-    __version__ = '0.0.2-alpha'
+    __version__ = '0.0.3-alpha'
     icon = resource_library.Icon.rigger_module_biped_arm
     allow_parenting = True
+    allow_multiple = True
 
     # Reference Attributes and Metadata Keys
     REF_ATTR_ELBOW_PROXY_PV = "elbowProxyPoleVectorLookupAttr"
-    META_SETUP_NAME = "setupName"  # Metadata key for the system name
     META_FOREARM_ACTIVE = "forearmActive"  # Metadata key for forearm activation
     META_FOREARM_NAME = "forearmName"  # Metadata key for the forearm name
+    # Default Values
+    DEFAULT_SETUP_NAME = "arm"
 
     def __init__(self, name="Arm", prefix=None, suffix=None):
         super().__init__(name=name, prefix=prefix, suffix=suffix)
@@ -50,7 +52,7 @@ class ModuleBipedArm(ModuleGeneric):
         self.set_orientation(orientation_data=_orientation)
 
         # Extra Module Data
-        self.add_to_metadata(key=self.META_SETUP_NAME, value="arm")
+        self.set_meta_setup_name(name=self.DEFAULT_SETUP_NAME)
         self.add_to_metadata(key=self.META_FOREARM_ACTIVE, value=True)
         self.add_to_metadata(key=self.META_FOREARM_NAME, value="forearm")
 
@@ -487,9 +489,8 @@ class ModuleBipedArm(ModuleGeneric):
 
         # Switch Control
         wrist_proxy = find_proxy_from_uuid(uuid_string=self.wrist.get_uuid())
-        setup_name = self.get_metadata_value(key=self.META_SETUP_NAME)
-        setup_name = setup_name if setup_name else self.wrist.get_name()  # If not provided, use wrist name
-        ik_switch_ctrl = self._assemble_ctrl_name(name=setup_name, overwrite_suffix=NamingConstants.Suffix.SWITCH_CTRL)
+        ik_switch_ctrl = self._assemble_ctrl_name(name=self.get_meta_setup_name(),
+                                                  overwrite_suffix=NamingConstants.Suffix.SWITCH_CTRL)
         ik_switch_ctrl = create_ctrl_curve(name=ik_switch_ctrl, curve_file_name="_fk_ik_switch")
         self.add_driver_uuid_attr(target=ik_switch_ctrl,
                                   driver_type=RiggerDriverTypes.SWITCH,
@@ -504,8 +505,6 @@ class ModuleBipedArm(ModuleGeneric):
         color = get_directional_color(object_name=ik_switch_ctrl)
         set_color_viewport(obj_list=ik_switch_ctrl, rgb_color=color)
         add_separator_attr(target_object=ik_switch_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
-
-
 
         # # Wrist Driven Data (FK & IK)
         # wrist_driven_data = self._assemble_ctrl_name(name=self.wrist.get_name(),

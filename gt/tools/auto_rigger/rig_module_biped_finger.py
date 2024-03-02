@@ -33,7 +33,6 @@ class ModuleBipedFingers(ModuleGeneric):
     allow_parenting = True
 
     # Reference Attributes and Metadata Keys
-    META_SETUP_NAME = "setupName"  # Metadata key for the system name
     META_THUMB_NAME = "thumbName"  # Metadata key for the thumb digit name
     META_INDEX_NAME = "indexName"  # Metadata key for the index digit name
     META_MIDDLE_NAME = "middleName"  # Metadata key for the middle digit name
@@ -41,7 +40,7 @@ class ModuleBipedFingers(ModuleGeneric):
     META_PINKY_NAME = "pinkyName"  # Metadata key for the pinky digit name
     META_EXTRA_NAME = "extraName"  # Metadata key for the extra digit name
     # Default Label Values
-    DEFAULT_SYSTEM = "fingers"
+    DEFAULT_SETUP_NAME = "fingers"
     DEFAULT_THUMB = "thumb"
     DEFAULT_INDEX = "index"
     DEFAULT_MIDDLE = "middle"
@@ -56,7 +55,7 @@ class ModuleBipedFingers(ModuleGeneric):
         self.set_orientation(orientation_data=_orientation)
 
         # Extra Module Data
-        self.add_to_metadata(key=self.META_SETUP_NAME, value=self.DEFAULT_SYSTEM)
+        self.set_meta_setup_name(name=self.DEFAULT_SETUP_NAME)
         self.add_to_metadata(key=self.META_THUMB_NAME, value=self.DEFAULT_THUMB)
         self.add_to_metadata(key=self.META_INDEX_NAME, value=self.DEFAULT_INDEX)
         self.add_to_metadata(key=self.META_MIDDLE_NAME, value=self.DEFAULT_MIDDLE)
@@ -444,8 +443,7 @@ class ModuleBipedFingers(ModuleGeneric):
         # Get Misc Elements
         direction_crv = find_direction_curve()
         module_parent_jnt = find_joint_from_uuid(self.get_parent_uuid())
-        setup_name = self.get_metadata_value(key=self.META_SETUP_NAME)
-        setup_name = setup_name if setup_name else 'fingers'  # If not provided, use generic "fingers"
+        setup_name = self.get_meta_setup_name()
         fingers_automation_grp = get_automation_group(f'{setup_name}Automation_{NamingConstants.Suffix.GRP}')
 
         # Set Joint Colors ------------------------------------------------------------------------------------

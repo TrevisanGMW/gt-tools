@@ -972,10 +972,13 @@ class Proxy:
 
 
 class ModuleGeneric:
-    __version__ = '0.1.0-beta'
+    __version__ = '0.1.1-beta'
     icon = resource_library.Icon.rigger_module_generic
     allow_parenting = True
     allow_multiple = True
+
+    # Default Values
+    DEFAULT_SETUP_NAME = "generic"
 
     def __init__(self, name=None, prefix=None, suffix=None):
         # Default Values
@@ -1322,6 +1325,14 @@ class ModuleGeneric:
             proxy.read_data_from_scene()
         return self
 
+    def set_meta_setup_name(self, name):
+        """
+        Sets the meta system name. Used to properly name the automation hierarchies or elements when creating a rig.
+        Args:
+            name (str): New system name. If invalid or empty the default value for this module will be used instead.
+        """
+        self.add_to_metadata(RiggerConstants.META_SETUP_NAME, value=name if name else self.DEFAULT_SETUP_NAME)
+
     # ------------------------------------------------- Getters -------------------------------------------------
     def get_name(self):
         """
@@ -1584,6 +1595,15 @@ class ModuleGeneric:
         if as_dict:
             matches = matches_dict
         return matches
+
+    def get_meta_setup_name(self):
+        """
+        Gets the meta system name. Used to properly name the automation hierarchies or elements when creating a rig.
+        Returns:
+            str: System name. If invalid or empty the default value for this module will be returned instead.
+                 If this metadata value was never set, this function will still return the default system value.
+        """
+        return self.get_metadata_value(key=RiggerConstants.META_SETUP_NAME) or self.DEFAULT_SETUP_NAME
 
     def _assemble_ctrl_name(self, name, project_prefix=None, overwrite_prefix=None, overwrite_suffix=None):
         """

@@ -7,7 +7,7 @@ from gt.tools.auto_rigger.rig_utils import find_proxy_from_uuid, find_direction_
 from gt.tools.auto_rigger.rig_utils import get_automation_group
 from gt.utils.transform_utils import Vector3, scale_shapes, match_transform, translate_shapes, rotate_shapes
 from gt.utils.rigging_utils import expose_rotation_order, offset_control_orientation, rescale_joint_radius
-from gt.utils.rigging_utils import duplicate_joint_for_automation
+from gt.utils.rigging_utils import duplicate_joint_for_automation, create_stretchy_ik_setup
 from gt.utils.surface_utils import create_surface_from_object_list, create_follicle, get_closest_uv_point
 from gt.utils.color_utils import ColorConstants, set_color_viewport, set_color_outliner
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
@@ -32,15 +32,21 @@ logger.setLevel(logging.INFO)
 
 
 class ModuleSpine(ModuleGeneric):
-    __version__ = '0.0.2-alpha'
+    __version__ = '0.0.3-alpha'
     icon = resource_library.Icon.rigger_module_spine
     allow_parenting = True
+
+    # Default Values
+    DEFAULT_SETUP_NAME = "spine"
 
     def __init__(self, name="Spine", prefix=None, suffix=None):
         super().__init__(name=name, prefix=prefix, suffix=suffix)
 
         _orientation = OrientationData(aim_axis=(1, 0, 0), up_axis=(0, 0, 1), up_dir=(1, 0, 0))
         self.set_orientation(orientation_data=_orientation)
+
+        # Extra Module Data
+        self.set_meta_setup_name(name=self.DEFAULT_SETUP_NAME)
 
         # Hip (Base)
         self.hip = Proxy(name="hip")
@@ -222,6 +228,10 @@ class ModuleSpine(ModuleGeneric):
         module_jnt_list.extend(middle_jnt_list)
         module_jnt_list.append(chest_jnt)
         spine_automation_grp = get_automation_group(f'spineAutomation_{NamingConstants.Suffix.GRP}')
+        # Get Formatted Prefix
+        _prefix = ''
+        if self.prefix:
+            _prefix = f'{self.prefix}_'
 
         # Set Joint Colors  -------------------------------------------------------------------------------
         set_color_viewport(obj_list=module_jnt_list, rgb_color=ColorConstants.RigJoint.GENERAL)
@@ -444,12 +454,9 @@ class ModuleSpine(ModuleGeneric):
             joint_pos = cmds.xform(joint, query=True, translation=True, worldSpace=True)
             u_pos, v_pos = get_closest_uv_point(surface=ribbon_sur, xyz_pos=joint_pos)
             v_pos_normalized = v_pos/(len(spine_jnt_list)-1)
-            prefix = ''
-            if self.prefix:
-                prefix = f'{self.prefix}_'
             fol_trans, fol_shape = create_follicle(input_surface=ribbon_sur,
                                                    uv_position=(u_pos, v_pos_normalized),
-                                                   name=f"{prefix}spineFollicle_{(index + 1):02d}")
+                                                   name=f"{_prefix}spineFollicle_{(index + 1):02d}")
             follicle_nodes.append(fol_shape)
             follicle_transforms.append(fol_trans)
         hierarchy_utils.parent(source_objects=follicle_transforms, target_parent=spine_ik_grp)
@@ -464,7 +471,13 @@ class ModuleSpine(ModuleGeneric):
         ik_limit_handle = self._assemble_ctrl_name(name="spineLimit",
                                                    overwrite_suffix=NamingConstants.Suffix.IK_HANDLE_SC)
         ik_limit_handle = cmds.ikHandle(name=ik_limit_handle, solver='ikSCsolver',
-                                        startJoint=limit_joints[0], endEffector=limit_joints[-1])
+                                        startJoint=limit_joints[0], endEffector=limit_joints[-1])[0]
+        add_separator_attr(target_object=cog_ctrl, attr_name='squashStretch')
+        setup_name = self.get_meta_setup_name()
+        if _prefix:
+            setup_name = f'{_prefix}{setup_name}'
+        create_stretchy_ik_setup(ik_handle=ik_limit_handle, attribute_holder=cog_ctrl, prefix=setup_name)
+        # create_stretchy_ik_setup(ik_handle=ik_limit_handle, attribute_holder=cog_ctrl, prefix=f'{_prefix}_spine')
 
         # for (control, joint) in zip(follicle_transforms, ik_joints):
         #     cmds.parentConstraint(control, joint)

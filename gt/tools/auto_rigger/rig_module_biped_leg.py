@@ -36,10 +36,9 @@ class ModuleBipedLeg(ModuleGeneric):
 
     # Reference Attributes and Metadata Keys
     REF_ATTR_KNEE_PROXY_PV = "kneeProxyPoleVectorLookupAttr"
-    META_SETUP_NAME = "setupName"  # Metadata key for the system name
     META_FOOT_IK_NAME = "footCtrlName"  # Metadata key for a custom name used for the foot ik control
     # Default Values
-    DEFAULT_SYSTEM = "leg"
+    DEFAULT_SETUP_NAME = "leg"
     DEFAULT_FOOT = "foot"
 
     def __init__(self, name="Leg", prefix=None, suffix=None):
@@ -57,7 +56,7 @@ class ModuleBipedLeg(ModuleGeneric):
         heel_name = "heel"
 
         # Extra Module Data
-        self.add_to_metadata(key=self.META_SETUP_NAME, value=self.DEFAULT_SYSTEM)
+        self.set_meta_setup_name(name=self.DEFAULT_SETUP_NAME)
         self.add_to_metadata(key=self.META_FOOT_IK_NAME, value=self.DEFAULT_FOOT)
 
         # Default Proxies
@@ -528,9 +527,8 @@ class ModuleBipedLeg(ModuleGeneric):
         cmds.connectAttr(f'{foot_ctrl}.{RiggerConstants.ATTR_SHOW_OFFSET}', f'{foot_o_ctrl}.v')
 
         # Switch Control
-        setup_name = self.get_metadata_value(key=self.META_SETUP_NAME)
-        setup_name = setup_name if setup_name else self.ankle.get_name()  # If not provided, use wrist name
-        ik_switch_ctrl = self._assemble_ctrl_name(name=setup_name, overwrite_suffix=NamingConstants.Suffix.SWITCH_CTRL)
+        ik_switch_ctrl = self._assemble_ctrl_name(name=self.get_meta_setup_name(),
+                                                  overwrite_suffix=NamingConstants.Suffix.SWITCH_CTRL)
         ik_switch_ctrl = create_ctrl_curve(name=ik_switch_ctrl, curve_file_name="_fk_ik_switch")
         self.add_driver_uuid_attr(target=ik_switch_ctrl,
                                   driver_type=RiggerDriverTypes.SWITCH,
@@ -626,10 +624,7 @@ class ModuleBipedLeg(ModuleGeneric):
         Args:
             name (str): New name for the IK foot control. If empty the default "foot" name will be used instead.
         """
-        if name:
-            self.add_to_metadata(ModuleBipedLeg.META_FOOT_IK_NAME, value=name)
-        else:
-            self.add_to_metadata(ModuleBipedLeg.META_FOOT_IK_NAME, value=self.DEFAULT_FOOT)
+        self.add_to_metadata(self.META_FOOT_IK_NAME, value=name if name else self.DEFAULT_FOOT)
 
 
 class ModuleBipedLegLeft(ModuleBipedLeg):
