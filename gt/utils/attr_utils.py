@@ -14,6 +14,7 @@ logger.setLevel(logging.INFO)
 
 DEFAULT_CHANNELS = ['t', 'r', 's']
 DEFAULT_DIMENSIONS = ['x', 'y', 'z']
+DEFAULT_ATTRS = ['tx', 'ty', 'tz', 'rx', 'ry', 'rz', 'sx', 'sy', 'sz', 'v']
 
 
 # -------------------------------------------- Setters ---------------------------------------------
@@ -302,12 +303,9 @@ def selection_unlock_default_channels(feedback=True):
         return
     unlocked_counter = 0
     try:
-        attr_list = ['tx', 'ty', 'tz',
-                     'rx', 'ry', 'rz',
-                     'sx', 'sy', 'sz', 'v']
         for obj in selection:
             try:
-                set_attr_state(obj_list=obj, attr_list=attr_list, locked=False, raise_exceptions=True)
+                set_attr_state(obj_list=obj, attr_list=DEFAULT_ATTRS, locked=False, raise_exceptions=True)
                 unlocked_counter += 1
             except Exception as e:
                 errors += str(e) + '\n'
@@ -347,12 +345,9 @@ def selection_unhide_default_channels(feedback=True):
         return
     unhidden_counter = 0
     try:
-        attr_list = ['tx', 'ty', 'tz',
-                     'rx', 'ry', 'rz',
-                     'sx', 'sy', 'sz', 'v']
         for obj in selection:
             try:
-                set_attr_state(obj_list=obj, attr_list=attr_list, hidden=False, raise_exceptions=True)
+                set_attr_state(obj_list=obj, attr_list=DEFAULT_ATTRS, hidden=False, raise_exceptions=True)
                 unhidden_counter += 1
             except Exception as e:
                 errors += str(e) + '\n'
