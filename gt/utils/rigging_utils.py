@@ -409,19 +409,43 @@ def create_stretchy_ik_setup(ik_handle, attribute_holder=None, prefix=None):
     return stretchy_grp
 
 def create_switch_setup(source_a, source_b, target_base, attr_holder, visibility_a=None, visibility_b=None,
-                        prefix=None, shape_visibility=True, attr_name=RiggingConstants.ATTR_INFLUENCE_SWITCH,
-                        constraint_type=ConstraintTypes.PARENT, maintain_offset=False):
+                        shape_visibility=True, attr_influence=RiggingConstants.ATTR_INFLUENCE_SWITCH,
+                        constraint_type=ConstraintTypes.PARENT, maintain_offset=False, prefix=None):
     """
-    Args:
-        source_a (list, tuple, str): The first argument.
-        source_b (list, tuple, str): The second argument.
-        target_base (list, tuple, str): The third argument.
-
+    Creates a switch setup to control the influence between two systems.
     Creates a constraint
     Switch Range: 0.0 to 1.0
     System A Range: 0.0 to 0.5
     System B Range: 0.5 to 1.0
+
+    Args:
+        source_a (list, tuple, str): The objects or attributes representing the first system.
+        source_b (list, tuple, str): The objects or attributes representing the second system.
+        target_base (list, tuple, str): The target objects affected by the switch setup. (usually a base skeleton)
+        attr_holder (str): The attribute holder object name/path.
+                           This is the switch control, the influence attribute is found under this object.
+                           Output attributes are also found under this object, but are hidden.
+                           These are the source attributes that are plugged on the system objects.
+                           'influenceA', 'influenceB': 0.0 to 1.0 value of the influence. (B is A inverted)
+                           'visibilityA', 'visibilityB': On or Off visibility values according to range.
+        visibility_a (list, optional): The objects affected by the visibility of the first system.
+        visibility_b (list, optional): The objects affected by the visibility of the second system.
+        shape_visibility (bool, optional): Whether to affect the visibility of shapes or the main objects.
+        attr_influence (str, optional): The name of the attribute controlling the influence.
+                                    Default is "RiggingConstants.ATTR_INFLUENCE_SWITCH".
+                                    If attribute already exists, it's used as is.
+        constraint_type (str, optional): The type of constraint to create. Default is parent.
+        maintain_offset (bool, optional): Whether to maintain offset in constraints. Default is Off.
+        prefix (str, optional): Prefix for naming created nodes.
+
+    Returns:
+        tuple: A tuple with the switch output attributes. ()
     """
+    # Check attr holder and convert it to Node
+    if not attr_holder or not cmds.objExists(attr_holder):
+        logger.warning(f'Missing attribute holder. Switch setup was skipped.')
+        return
+    attr_holder = Node(attr_holder)
     # Strings to List
     if isinstance(source_a, str):
         source_a = [source_a]
@@ -450,18 +474,35 @@ def create_switch_setup(source_a, source_b, target_base, attr_holder, visibility
         _prefix = f'{prefix}_'
 
     # Switch Setup
-    add_attr(obj_list=attr_holder, attributes=attr_name, attr_type='double', is_keyable=True, maximum=1, minimum=0)
-    cmds.setAttr(f'{attr_holder}.{attr_name}', 1)
+    attr_influence_a = f'influenceA'
+    attr_influence_b = f'influenceB'
+    attr_vis_a = f'visibilityA'
+    attr_vis_b = f'visibilityB'
+    add_attr(obj_list=attr_holder, attributes=attr_influence, attr_type='double', is_keyable=True, maximum=1, minimum=0)
+    add_attr(obj_list=attr_holder, attributes=attr_influence_a, attr_type='double', is_keyable=False)
+    add_attr(obj_list=attr_holder, attributes=attr_influence_b, attr_type='double', is_keyable=False)
+    add_attr(obj_list=attr_holder, attributes=attr_vis_a, attr_type='bool', is_keyable=False)
+    add_attr(obj_list=attr_holder, attributes=attr_vis_b, attr_type='bool', is_keyable=False)
+    # Setup Visibility Condition
+    cmds.setAttr(f'{attr_holder}.{attr_influence}', 1)
     condition = create_node(node_type='condition', name=f'{_prefix}switchVisibility_condition')
-    cmds.connectAttr(f'{attr_holder}.{attr_name}', f'{condition}.firstTerm')
+    cmds.connectAttr(f'{attr_holder}.{attr_influence}', f'{condition}.firstTerm')
     set_attr(attribute_path=f'{condition}.operation', value=4)  # Operation = Less Than (4)
     set_attr(attribute_path=f'{condition}.secondTerm', value=0.5)  # Range A:0->0.5  B: 0.5->1
     set_attr(obj_list=condition, attr_list=["colorIfTrueR", "colorIfTrueG", "colorIfTrueB"], value=1)
     set_attr(obj_list=condition, attr_list=["colorIfFalseR", "colorIfFalseG", "colorIfFalseB"], value=0)
-    reverse_visibility = create_node(node_type='reverse', name=f'{_prefix}switchInfluence_reverse')
+    reverse_visibility = create_node(node_type='reverse', name=f'{_prefix}switchVisibility_reverse')
     cmds.connectAttr(f'{condition}.outColorR', f'{reverse_visibility}.inputX', f=True)
+    # Setup Influence Reversal
     reverse_influence = create_node(node_type='reverse', name=f'{_prefix}switchInfluence_reverse')
-    cmds.connectAttr(f'{attr_holder}.{attr_name}', f'{reverse_influence}.inputX', f=True)
+    cmds.connectAttr(f'{attr_holder}.{attr_influence}', f'{reverse_influence}.inputX', f=True)
+
+    # Send Data back to Attr Holder
+    cmds.connectAttr(f'{attr_holder}.{attr_influence}', f'{attr_holder}.{attr_influence_a}', f=True)
+    cmds.connectAttr(f'{reverse_influence}.outputX', f'{attr_holder}.{attr_influence_b}', f=True)
+    cmds.connectAttr(f'{reverse_visibility}.outputX', f'{attr_holder}.{attr_vis_a}', f=True)
+    cmds.connectAttr(f'{condition}.outColorR', f'{attr_holder}.{attr_vis_b}', f=True)
+
     # Constraints
     constraints = []
     for source_a, source_b, target in zip(source_a, source_b, target_base):
@@ -470,14 +511,18 @@ def create_switch_setup(source_a, source_b, target_base, attr_holder, visibility
         if _constraints:
             constraints.extend(_constraints)
     for constraint in constraints:
-        cmds.connectAttr(f'{attr_holder}.{attr_name}', f'{constraint}.w0', force=True)
-        cmds.connectAttr(f'{reverse_influence}.outputX', f'{constraint}.w1', force=True)
+        cmds.connectAttr(f'{attr_holder}.{attr_influence_a}', f'{constraint}.w0', force=True)
+        cmds.connectAttr(f'{attr_holder}.{attr_influence_b}', f'{constraint}.w1', force=True)
 
     # Visibility Setup
+    if isinstance(visibility_a, str):
+        visibility_a = [visibility_a]
     if not visibility_a:
         visibility_a = []
     else:
         visibility_a = sanitize_maya_list(input_list=visibility_a)
+    if isinstance(visibility_b, str):
+        visibility_b = [visibility_b]
     if not visibility_b:
         visibility_b = []
     else:
@@ -485,39 +530,20 @@ def create_switch_setup(source_a, source_b, target_base, attr_holder, visibility
     for obj_a in visibility_a:
         if shape_visibility:
             for shape in cmds.listRelatives(obj_a, shapes=True, fullPath=True) or []:
-                cmds.connectAttr(f'{reverse_visibility}.outputX', f'{shape}.v', f=True)
+                cmds.connectAttr(f'{attr_holder}.{attr_vis_a}', f'{shape}.v', f=True)
         else:
-            cmds.connectAttr(f'{reverse_visibility}.outputX', f'{obj_a}.v', f=True)
+            cmds.connectAttr(f'{attr_holder}.{attr_vis_a}', f'{obj_a}.v', f=True)
     for obj_b in visibility_b:
         if shape_visibility:
             for shape in cmds.listRelatives(obj_b, shapes=True, fullPath=True) or []:
-                cmds.connectAttr(f'{condition}.outColorR', f'{shape}.v', f=True)
+                cmds.connectAttr(f'{attr_holder}.{attr_vis_b}', f'{shape}.v', f=True)
         else:
-            cmds.connectAttr(f'{reverse_visibility}.outputX', f'{obj_b}.v', f=True)
+            cmds.connectAttr(f'{attr_holder}.{attr_vis_b}', f'{obj_b}.v', f=True)
     # Return Data
-    return
-
+    return (f'{attr_holder}.{attr_influence_a}', f'{attr_holder}.{attr_influence_b}',
+            f'{attr_holder}.{attr_vis_a}', f'{attr_holder}.{attr_vis_b}')
 
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    # cmds.file(new=True, force=True)
-    # test_joints = [cmds.joint(p=(0, 10, 0)),
-    #                cmds.joint(p=(0, 5, .1)),
-    #                cmds.joint(p=(0, 0, 0)),
-    #                # cmds.joint(p=(15, -5, 0)),
-    #                ]
-    # an_ik_handle = cmds.ikHandle(n='spineConstraint_SC_ikHandle',
-    #                           sj=test_joints[0], ee=test_joints[-1], sol='ikRPsolver')[0]
-    #
-    # cube = cmds.polyCube(ch=False)[0]
-    # cmds.delete(cmds.pointConstraint(test_joints[-1], cube))
-    # cmds.parentConstraint(cube, an_ik_handle, maintainOffset=True)
-    # from gt.utils.joint_utils import orient_joint
-    # orient_joint(test_joints)
-    # out = create_stretchy_ik_setup(ik_handle=an_ik_handle, prefix="mocked", attribute_holder=cube)
-    # print(out)
-    # cmds.viewFit(all=True)
-    # duplicate_object('pSphere1')
-    create_switch_setup(source_a=["a", "a2"], source_b=["b", "b2"], target_base=["base", "base_child"],
-                        attr_holder="ctrl", visibility_a=["a_ctrl", "a2_ctrl"], visibility_b=["b_ctrl", "b2_ctrl"])
+    cmds.viewFit(all=True)
