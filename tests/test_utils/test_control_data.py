@@ -19,6 +19,7 @@ from tests import maya_test_tools
 from gt.utils.data.controls.control_data import ControlData
 from gt.utils.data.controls import cluster_driven
 from gt.utils.data.controls import slider
+cmds = maya_test_tools.cmds
 
 
 class TestControlData(unittest.TestCase):
@@ -188,14 +189,14 @@ class TestControlData(unittest.TestCase):
         offset_ctrl = slider.create_slider_squared_one_dimension('offset_ctrl')
         expected = 5
         for driver in offset_ctrl.drivers:
-            min_trans_y_limit = maya_test_tools.cmds.getAttr(f'{driver}.minTransYLimit')
-            max_trans_y_limit = maya_test_tools.cmds.getAttr(f'{driver}.maxTransYLimit')
+            min_trans_y_limit = cmds.getAttr(f'{driver}.minTransYLimit')
+            max_trans_y_limit = cmds.getAttr(f'{driver}.maxTransYLimit')
             self.assertEqual(expected, max_trans_y_limit)
             self.assertEqual(-expected, min_trans_y_limit)
         slider._offset_slider_range(slider_control_data=offset_ctrl, offset_by=5, offset_thickness=1)
         expected = 10
         for driver in offset_ctrl.drivers:
-            min_trans_y_limit = maya_test_tools.cmds.getAttr(f'{driver}.minTransYLimit')
-            max_trans_y_limit = maya_test_tools.cmds.getAttr(f'{driver}.maxTransYLimit')
+            min_trans_y_limit = cmds.getAttr(f'{driver}.minTransYLimit')
+            max_trans_y_limit = cmds.getAttr(f'{driver}.maxTransYLimit')
             self.assertEqual(expected, max_trans_y_limit)
             self.assertEqual(-expected, min_trans_y_limit)

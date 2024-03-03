@@ -21,6 +21,7 @@ for to_append in [package_root_dir, tests_dir]:
 from tests import maya_test_tools
 from gt.utils import curve_utils
 from gt.utils import transform_utils
+cmds = maya_test_tools.cmds
 
 
 def import_curve_test_file():
@@ -121,7 +122,7 @@ class TestCurveUtils(unittest.TestCase):
     @patch('sys.stdout', new_callable=StringIO)
     def test_selected_curves_combine(self, mocked_stout):
         import_curve_test_file()
-        maya_test_tools.cmds.select(["curve_01", "curve_02"])
+        cmds.select(["curve_01", "curve_02"])
         result = curve_utils.selected_curves_combine(show_bezier_conversion_dialog=False)
         expected = 'curve_01'
         self.assertEqual(expected, result)
@@ -132,7 +133,7 @@ class TestCurveUtils(unittest.TestCase):
     @patch('sys.stdout', new_callable=StringIO)
     def test_selected_curves_separate(self, mocked_stout):
         import_curve_test_file()
-        maya_test_tools.cmds.select("combined_curve_01")
+        cmds.select("combined_curve_01")
         result = curve_utils.selected_curves_separate()
         expected = ['combined_curve_1', 'combined_curve_2']
         self.assertEqual(expected, result)
@@ -569,12 +570,12 @@ class TestCurveUtils(unittest.TestCase):
     def test_add_thumbnail_metadata_attr_to_selection(self, mock_stdout):
         import_curve_test_file()
         curves_to_test = ["curve_01", "curve_02"]
-        maya_test_tools.cmds.select(curves_to_test)
+        cmds.select(curves_to_test)
         curve_utils.add_thumbnail_metadata_attr_to_selection()
         for crv in curves_to_test:
-            axis = maya_test_tools.cmds.objExists(f'{crv}.{curve_utils.PROJECTION_AXIS_KEY}')
-            scale = maya_test_tools.cmds.objExists(f'{crv}.{curve_utils.PROJECTION_SCALE_KEY}')
-            fit = maya_test_tools.cmds.objExists(f'{crv}.{curve_utils.PROJECTION_FIT_KEY}')
+            axis = cmds.objExists(f'{crv}.{curve_utils.PROJECTION_AXIS_KEY}')
+            scale = cmds.objExists(f'{crv}.{curve_utils.PROJECTION_SCALE_KEY}')
+            fit = cmds.objExists(f'{crv}.{curve_utils.PROJECTION_FIT_KEY}')
             self.assertTrue(axis)
             self.assertTrue(scale)
             self.assertTrue(fit)
@@ -584,7 +585,7 @@ class TestCurveUtils(unittest.TestCase):
         import_curve_test_file()
         temp_folder = maya_test_tools.generate_test_temp_dir()
         curves_to_test = ["curve_01", "curve_02"]
-        maya_test_tools.cmds.select(curves_to_test)
+        cmds.select(curves_to_test)
         curve_utils.add_thumbnail_metadata_attr_to_selection()
         maya_test_tools.set_attribute(obj_name="curve_01",
                                       attr_name=curve_utils.PROJECTION_AXIS_KEY,
@@ -716,9 +717,9 @@ class TestCurveUtils(unittest.TestCase):
             self.assertEqual(expected, obj_type)
 
     def test_add_shape_scale_cluster(self):
-        cube = maya_test_tools.cmds.circle(ch=False)[0]
+        cube = cmds.circle(ch=False)[0]
         control_attr = "mockedAttr"
-        maya_test_tools.cmds.addAttr(cube, longName=control_attr, at='double', k=True, minValue=0)
+        cmds.addAttr(cube, longName=control_attr, at='double', k=True, minValue=0)
         result = curve_utils.add_shape_scale_cluster(cube, f"{cube}.{control_attr}")
         expected = "nurbsCircle1_LocScaleHandle"
         self.assertEqual(expected, result)
@@ -733,7 +734,7 @@ class TestCurveUtils(unittest.TestCase):
         curve.set_transform(transform)
         self.assertEqual(transform, curve.transform)
         maya_curve = curve.build()
-        ty_value = maya_test_tools.cmds.getAttr(f'{maya_curve}.ty')
+        ty_value = cmds.getAttr(f'{maya_curve}.ty')
         expected = 10
         self.assertEqual(expected, ty_value)
 
@@ -758,7 +759,7 @@ class TestCurveUtils(unittest.TestCase):
         curve.set_position(0, 10, 0)
         self.assertEqual(transform, curve.transform)
         maya_curve = curve.build()
-        ty_value = maya_test_tools.cmds.getAttr(f'{maya_curve}.ty')
+        ty_value = cmds.getAttr(f'{maya_curve}.ty')
         expected = 10
         self.assertEqual(expected, ty_value)
 
@@ -772,7 +773,7 @@ class TestCurveUtils(unittest.TestCase):
         curve.set_rotation(0, 10, 0)
         self.assertEqual(transform, curve.transform)
         maya_curve = curve.build()
-        ty_value = maya_test_tools.cmds.getAttr(f'{maya_curve}.ry')
+        ty_value = cmds.getAttr(f'{maya_curve}.ry')
         expected = 10
         self.assertEqual(expected, ty_value)
 
@@ -786,14 +787,14 @@ class TestCurveUtils(unittest.TestCase):
         curve.set_scale(0, 10, 0)
         self.assertEqual(transform, curve.transform)
         maya_curve = curve.build()
-        ty_value = maya_test_tools.cmds.getAttr(f'{maya_curve}.sy')
+        ty_value = cmds.getAttr(f'{maya_curve}.sy')
         expected = 10
         self.assertEqual(expected, ty_value)
 
     def test_filter_curve_shapes(self):
         cube = maya_test_tools.create_poly_cube()
-        circle_one = maya_test_tools.cmds.circle()[0]
-        circle_two = maya_test_tools.cmds.circle()[0]
+        circle_one = cmds.circle()[0]
+        circle_two = cmds.circle()[0]
         items = [circle_one, circle_two, cube]
         expected = ['|nurbsCircle1|nurbsCircleShape1', '|nurbsCircle2|nurbsCircleShape2']
         result = curve_utils.filter_curve_shapes(obj_list=items, get_transforms=False)  # False is default
@@ -801,8 +802,8 @@ class TestCurveUtils(unittest.TestCase):
 
     def test_filter_curve_shapes_transforms(self):
         cube = maya_test_tools.create_poly_cube()
-        circle_one = maya_test_tools.cmds.circle()[0]
-        circle_two = maya_test_tools.cmds.circle()[0]
+        circle_one = cmds.circle()[0]
+        circle_two = cmds.circle()[0]
         items = [circle_one, circle_two, cube]
         expected = ['nurbsCircle2', 'nurbsCircle1']
         result = curve_utils.filter_curve_shapes(obj_list=items, get_transforms=True)
@@ -810,8 +811,8 @@ class TestCurveUtils(unittest.TestCase):
 
     def test_get_python_shape_code(self):
         cube = maya_test_tools.create_poly_cube()
-        circle_one = maya_test_tools.cmds.circle()[0]
-        circle_two = maya_test_tools.cmds.circle()[0]
+        circle_one = cmds.circle()[0]
+        circle_two = cmds.circle()[0]
         items = [circle_one, circle_two, cube]
         expected = '# Shape state for "nurbsCircleShape1":\nfor cv in [(\'nurbsCircle1.cv[0]\', (0.0, 0.0, 0.0)), ' \
                    '(\'nurbsCircle1.cv[1]\', (0.0, 0.0, 0.0)), (\'nurbsCircle1.cv[2]\', (0.0, 0.0, 0.0)), ' \
@@ -829,8 +830,8 @@ class TestCurveUtils(unittest.TestCase):
 
     def test_get_python_curve_code(self):
         cube = maya_test_tools.create_poly_cube()
-        circle_one = maya_test_tools.cmds.circle()[0]
-        circle_two = maya_test_tools.cmds.circle()[0]
+        circle_one = cmds.circle()[0]
+        circle_two = cmds.circle()[0]
         items = [circle_one, circle_two, cube]
         expected = '# Curve data for "nurbsCircleShape1":\ncmds.curve(point=[[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], ' \
                    '[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], ' \
@@ -845,23 +846,23 @@ class TestCurveUtils(unittest.TestCase):
         self.assertEqual(expected, result)
 
     def test_set_curve_width(self):
-        circle_one = maya_test_tools.cmds.circle()[0]
+        circle_one = cmds.circle()[0]
         result = curve_utils.set_curve_width(obj_list=circle_one, line_width=5)
         expected_shapes = ['|nurbsCircle1|nurbsCircleShape1']
         self.assertEqual(expected_shapes, result)
-        value = maya_test_tools.cmds.getAttr(f'{expected_shapes[0]}.lineWidth')
+        value = cmds.getAttr(f'{expected_shapes[0]}.lineWidth')
         expected_width = 5
         self.assertEqual(expected_width, value)
 
     def test_set_curve_width_list(self):
-        circle_one = maya_test_tools.cmds.circle()[0]
-        circle_two = maya_test_tools.cmds.circle()[0]
+        circle_one = cmds.circle()[0]
+        circle_two = cmds.circle()[0]
         crv_transforms = [circle_one, circle_two]
         result = curve_utils.set_curve_width(obj_list=crv_transforms, line_width=5)
         expected_shapes = ['|nurbsCircle1|nurbsCircleShape1', '|nurbsCircle2|nurbsCircleShape2']
         self.assertEqual(expected_shapes, result)
         for shape in expected_shapes:
-            value = maya_test_tools.cmds.getAttr(f'{shape}.lineWidth')
+            value = cmds.getAttr(f'{shape}.lineWidth')
             expected_width = 5
             self.assertEqual(expected_width, value)
 
@@ -873,7 +874,7 @@ class TestCurveUtils(unittest.TestCase):
         self.assertEqual(expected, result)
 
     def test_get_positions_from_curve_periodic(self):
-        crv = maya_test_tools.cmds.curve(point=[[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
+        crv = cmds.curve(point=[[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
                                                 [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]],
                                          degree=3, name='mocked_curve')
         result = curve_utils.get_positions_from_curve(curve=crv,
@@ -885,7 +886,7 @@ class TestCurveUtils(unittest.TestCase):
         self.assertEqual(expected, result)
 
     def test_get_positions_from_curve_open(self):
-        crv = maya_test_tools.cmds.curve(point=[[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
+        crv = cmds.curve(point=[[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
                                                 [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]],
                                          degree=3, name='mocked_curve')
         result = curve_utils.get_positions_from_curve(curve=crv,
@@ -897,7 +898,7 @@ class TestCurveUtils(unittest.TestCase):
         self.assertEqual(expected, result)
 
     def test_get_positions_from_curve_not_normalized(self):
-        crv = maya_test_tools.cmds.curve(point=[[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
+        crv = cmds.curve(point=[[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
                                                 [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]],
                                          degree=3, name='mocked_curve')
         result = curve_utils.get_positions_from_curve(curve=crv,
@@ -909,7 +910,7 @@ class TestCurveUtils(unittest.TestCase):
         self.assertEqual(expected, result)
 
     def test_get_positions_from_curve_world_space(self):
-        crv = maya_test_tools.cmds.curve(point=[[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
+        crv = cmds.curve(point=[[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
                                                 [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]],
                                          degree=3, name='mocked_curve')
         result = curve_utils.get_positions_from_curve(curve=crv,
@@ -921,15 +922,15 @@ class TestCurveUtils(unittest.TestCase):
         self.assertEqual(expected, result)
 
     def test_rescale_curve(self):
-        crv = maya_test_tools.cmds.curve(point=[[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
+        crv = cmds.curve(point=[[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
                                                 [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]],
                                          degree=3, name='mocked_curve')
 
-        num_cvs = maya_test_tools.cmds.getAttr(f"{crv}.spans")
-        num_cvs += maya_test_tools.cmds.getAttr(f"{crv}.degree")
+        num_cvs = cmds.getAttr(f"{crv}.spans")
+        num_cvs += cmds.getAttr(f"{crv}.degree")
         cv_positions = []
         for i in range(num_cvs):
-            cv_position = maya_test_tools.cmds.pointPosition(f"{crv}.cv[{i}]", world=True)
+            cv_position = cmds.pointPosition(f"{crv}.cv[{i}]", world=True)
             cv_positions.append(cv_position)
 
         expected = [[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
@@ -940,7 +941,7 @@ class TestCurveUtils(unittest.TestCase):
 
         cv_positions = []
         for i in range(num_cvs):
-            cv_position = maya_test_tools.cmds.pointPosition(f"{crv}.cv[{i}]", world=True)
+            cv_position = cmds.pointPosition(f"{crv}.cv[{i}]", world=True)
             cv_positions.append(cv_position)
 
         expected = [[0.0, 0.0, 2.0], [0.0, 0.0, 1.334], [0.0, 0.0, 0.0],
@@ -948,15 +949,15 @@ class TestCurveUtils(unittest.TestCase):
         self.assertEqual(expected, cv_positions)
 
     def test_rescale_curve_tuple(self):
-        crv = maya_test_tools.cmds.curve(point=[[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
+        crv = cmds.curve(point=[[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
                                                 [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]],
                                          degree=3, name='mocked_curve')
 
-        num_cvs = maya_test_tools.cmds.getAttr(f"{crv}.spans")
-        num_cvs += maya_test_tools.cmds.getAttr(f"{crv}.degree")
+        num_cvs = cmds.getAttr(f"{crv}.spans")
+        num_cvs += cmds.getAttr(f"{crv}.degree")
         cv_positions = []
         for i in range(num_cvs):
-            cv_position = maya_test_tools.cmds.pointPosition(f"{crv}.cv[{i}]", world=True)
+            cv_position = cmds.pointPosition(f"{crv}.cv[{i}]", world=True)
             cv_positions.append(cv_position)
 
         expected = [[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
@@ -967,7 +968,7 @@ class TestCurveUtils(unittest.TestCase):
 
         cv_positions = []
         for i in range(num_cvs):
-            cv_position = maya_test_tools.cmds.pointPosition(f"{crv}.cv[{i}]", world=True)
+            cv_position = cmds.pointPosition(f"{crv}.cv[{i}]", world=True)
             cv_positions.append(cv_position)
 
         expected = [[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],

@@ -17,6 +17,7 @@ for to_append in [package_root_dir, tests_dir]:
         sys.path.append(to_append)
 from tests import maya_test_tools
 from gt.utils import math_utils
+cmds = maya_test_tools.cmds
 
 
 class TestMathUtils(unittest.TestCase):
@@ -136,8 +137,8 @@ class TestMathUtils(unittest.TestCase):
         cube_one = maya_test_tools.create_poly_cube()
         cube_two = maya_test_tools.create_poly_cube()
         cube_three = maya_test_tools.create_poly_cube()
-        maya_test_tools.cmds.setAttr(f'{cube_two}.ty', 5)
-        maya_test_tools.cmds.setAttr(f'{cube_three}.tx', 5)
+        cmds.setAttr(f'{cube_two}.ty', 5)
+        cmds.setAttr(f'{cube_three}.tx', 5)
         expected = (0, 0, 1)
         result = math_utils.objects_cross_direction(cube_one, cube_two, cube_three)
         self.assertEqual(expected, tuple(result))
@@ -162,7 +163,7 @@ class TestMathUtils(unittest.TestCase):
     def test_dist_center_to_center_close(self):
         obj_a = maya_test_tools.create_poly_cube(name="cube_a")
         obj_b = maya_test_tools.create_poly_cube(name="cube_b")
-        maya_test_tools.cmds.setAttr(f'{obj_b}.ty', 5.35)
+        cmds.setAttr(f'{obj_b}.ty', 5.35)
 
         expected_result = 5.35
         result = math_utils.dist_center_to_center(obj_a, obj_b)
@@ -171,7 +172,7 @@ class TestMathUtils(unittest.TestCase):
     def test_dist_center_to_center_far_precise(self):
         obj_a = maya_test_tools.create_poly_cube(name="cube_a")
         obj_b = maya_test_tools.create_poly_cube(name="cube_b")
-        maya_test_tools.cmds.setAttr(f'{obj_b}.ty', 100.5)
+        cmds.setAttr(f'{obj_b}.ty', 100.5)
 
         expected_result = 100.5
         result = math_utils.dist_center_to_center(obj_a, obj_b)
@@ -184,11 +185,11 @@ class TestMathUtils(unittest.TestCase):
         obj_four = maya_test_tools.create_poly_cube(name="cube_four")
         obj_five = maya_test_tools.create_poly_cube(name="cube_five")
 
-        maya_test_tools.cmds.setAttr(f'{obj_two}.tz', 2)
-        maya_test_tools.cmds.setAttr(f'{obj_three}.tx', 2)
-        maya_test_tools.cmds.setAttr(f'{obj_three}.tz', 2)
-        maya_test_tools.cmds.setAttr(f'{obj_four}.tx', 2)
-        maya_test_tools.cmds.setAttr(f'{obj_five}.tx', 6)
+        cmds.setAttr(f'{obj_two}.tz', 2)
+        cmds.setAttr(f'{obj_three}.tx', 2)
+        cmds.setAttr(f'{obj_three}.tz', 2)
+        cmds.setAttr(f'{obj_four}.tx', 2)
+        cmds.setAttr(f'{obj_five}.tx', 6)
 
         input_list = [obj_one, obj_two, obj_three, obj_four, obj_five]
 
@@ -214,8 +215,8 @@ class TestMathUtils(unittest.TestCase):
         obj_two = maya_test_tools.create_poly_cube(name="cube_two")
         obj_four = maya_test_tools.create_poly_cube(name="cube_four")
 
-        maya_test_tools.cmds.setAttr(f'{obj_two}.tz', 2)
-        maya_test_tools.cmds.setAttr(f'{obj_four}.tx', 2)
+        cmds.setAttr(f'{obj_two}.tz', 2)
+        cmds.setAttr(f'{obj_four}.tx', 2)
 
         input_list = [(0, 0, 0), obj_two, [2, 0, 2], obj_four, (6, 0, 0)]
 
@@ -230,7 +231,7 @@ class TestMathUtils(unittest.TestCase):
         result = math_utils.get_bbox_position(obj_list=obj_a)
         self.assertEqual(expected_result, result)
 
-        maya_test_tools.cmds.setAttr(f'{obj_a}.ty', 100.5)
+        cmds.setAttr(f'{obj_a}.ty', 100.5)
 
         expected_result = (0, 100.5, 0)
         result = math_utils.get_bbox_position(obj_list=obj_a)
@@ -244,20 +245,20 @@ class TestMathUtils(unittest.TestCase):
         result = math_utils.get_bbox_position(obj_list=obj_a)
         self.assertEqual(expected_result, result)
 
-        maya_test_tools.cmds.setAttr(f'{obj_a}.ty', 100.5)
+        cmds.setAttr(f'{obj_a}.ty', 100.5)
 
         expected_result = (6.5, 100.5, 1.5)
         result = math_utils.get_bbox_position(obj_list=obj_a)
         self.assertEqual(expected_result, result)
 
     def test_get_bbox_center_single_object_nurbs_surface(self):
-        obj_a = maya_test_tools.cmds.nurbsPlane(name="plane_surface")[0]
+        obj_a = cmds.nurbsPlane(name="plane_surface")[0]
 
         expected_result = (0.0, 0.0, 0.0)
         result = math_utils.get_bbox_position(obj_list=obj_a)
         self.assertEqual(expected_result, result)
 
-        maya_test_tools.cmds.setAttr(f'{obj_a}.ty', 100.5)
+        cmds.setAttr(f'{obj_a}.ty', 100.5)
 
         expected_result = (0, 100.5, 0)
         result = math_utils.get_bbox_position(obj_list=obj_a)
@@ -266,7 +267,7 @@ class TestMathUtils(unittest.TestCase):
     def test_get_bbox_center_multiple_objects(self):
         obj_a = maya_test_tools.create_poly_cube(name="cube_a")
         obj_b = maya_test_tools.create_poly_cube(name="cube_b")
-        maya_test_tools.cmds.setAttr(f'{obj_b}.ty', 5)
+        cmds.setAttr(f'{obj_b}.ty', 5)
 
         expected_result = (0, 2.5, 0)
         result = math_utils.get_bbox_position(obj_list=[obj_a, obj_b])
@@ -275,7 +276,7 @@ class TestMathUtils(unittest.TestCase):
     def test_get_bbox_center_alignment_pos(self):
         obj_a = maya_test_tools.create_poly_cube(name="cube_a")
         obj_b = maya_test_tools.create_poly_cube(name="cube_b")
-        maya_test_tools.cmds.setAttr(f'{obj_b}.ty', 5)
+        cmds.setAttr(f'{obj_b}.ty', 5)
 
         expected_result = (0.5, 2.5, 0.0)
         result = math_utils.get_bbox_position(obj_list=[obj_a, obj_b], alignment="+", axis="x")
@@ -290,7 +291,7 @@ class TestMathUtils(unittest.TestCase):
     def test_get_bbox_center_alignment_neg(self):
         obj_a = maya_test_tools.create_poly_cube(name="cube_a")
         obj_b = maya_test_tools.create_poly_cube(name="cube_b")
-        maya_test_tools.cmds.setAttr(f'{obj_b}.ty', 5)
+        cmds.setAttr(f'{obj_b}.ty', 5)
 
         expected_result = (-0.5, 2.5, 0.0)
         result = math_utils.get_bbox_position(obj_list=[obj_a, obj_b], alignment="-", axis="x")
@@ -303,10 +304,10 @@ class TestMathUtils(unittest.TestCase):
         self.assertEqual(expected_result, result)
 
     def test_get_transforms_center_position(self):
-        obj_a = maya_test_tools.cmds.joint(name="joint_a")
+        obj_a = cmds.joint(name="joint_a")
         obj_b = maya_test_tools.create_poly_cube(name="cube_a")
-        maya_test_tools.cmds.setAttr(f'{obj_a}.ty', -2)
-        maya_test_tools.cmds.setAttr(f'{obj_b}.ty', 6)
+        cmds.setAttr(f'{obj_a}.ty', -2)
+        cmds.setAttr(f'{obj_b}.ty', 6)
 
         expected_result = (0.0, 2.0, 0.0)
         result = math_utils.get_transforms_center_position(transform_list=[obj_a, obj_b])

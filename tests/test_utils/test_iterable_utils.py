@@ -14,6 +14,7 @@ if tools_root_dir not in sys.path:
     sys.path.append(tools_root_dir)
 from gt.utils import iterable_utils
 from tests import maya_test_tools
+cmds = maya_test_tools.cmds
 
 
 class TestIterableUtils(unittest.TestCase):
@@ -335,7 +336,7 @@ class TestIterableUtils(unittest.TestCase):
     def test_sanitize_maya_list_hierarchy(self):
         cube = maya_test_tools.create_poly_cube(name='cube')
         sphere = maya_test_tools.create_poly_sphere(name='sphere')
-        maya_test_tools.cmds.parent(sphere, cube)
+        cmds.parent(sphere, cube)
         non_existent_obj = 'non_existent_object'
 
         result = iterable_utils.sanitize_maya_list(input_list=[cube, non_existent_obj],
