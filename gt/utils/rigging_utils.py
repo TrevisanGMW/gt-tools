@@ -16,10 +16,26 @@ import maya.cmds as cmds
 import logging
 import random
 
+from utils.constraint_utils import ConstraintTypes
+
 # Logging Setup
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+
+class RiggingConstants:
+    def __init__(self):
+        """
+        Constant values used by rigging systems.
+        e.g. Attribute names, dictionary keys or initial values.
+        """
+    # Common Attributes
+    ATTR_SHOW_OFFSET = 'showOffsetCtrl'
+    ATTR_INFLUENCE_SWITCH = 'influenceSwitch'
+    # Separator Attributes
+    SEPARATOR_OPTIONS = "options"
+    SEPARATOR_CONTROL = "controlOptions"
 
 
 def duplicate_object(obj, name=None, parent_to_world=True, reset_attributes=True):
@@ -390,6 +406,49 @@ def create_stretchy_ik_setup(ik_handle, attribute_holder=None, prefix=None):
     connect_attr(source_attr=f'{stretchy_grp}.message', target_attr_list=f'{end_loc_one}.termEnd')
 
     return stretchy_grp
+
+def create_switch_setup(system_a, system_b, attr_holder,
+                        attr_name=RiggingConstants.ATTR_INFLUENCE_SWITCH,
+                        prefix=None, constraint_type=ConstraintTypes.PARENT):
+    """
+    Creates a constraint
+    Switch Range: 0.0 to 1.0
+    System A Range: 0.0 to 0.5
+    System B Range: 0.5 to 1.0
+    """
+
+    _prefix = ''
+    if prefix:
+        _prefix = f'{prefix}_'
+
+    cmds.addAttr(attr_holder, ln=attr_name, at='double', k=True, maxValue=1, minValue=0)
+    cmds.setAttr(f'{attr_holder}.attr_name', 1)
+
+    condition_node = create_node(node_type='condition', name=f'{_prefix}switchVisibility_condition')
+    right_fingers_visibility_condition_node = cmds.createNode('condition', name='right_fingers_ikVisibility_condition')
+
+    cmds.connectAttr(right_fingers_ctrl + '.influenceSwitch', right_fingers_visibility_condition_node + '.firstTerm',
+                     f=True)
+    cmds.setAttr(f'{condition_node}.operation', 4)  # Less Than
+    cmds.setAttr(f'{condition_node}.secondTerm', .5)
+    cmds.setAttr(f'{condition_node}.colorIfTrueR', 1)
+    cmds.setAttr(f'{condition_node}.colorIfTrueG', 1)
+    cmds.setAttr(f'{condition_node}.colorIfTrueB', 1)
+    cmds.setAttr(f'{condition_node}.colorIfFalseR', 0)
+    cmds.setAttr(f'{condition_node}.colorIfFalseG', 0)
+    cmds.setAttr(f'{condition_node}.colorIfFalseB', 0)
+
+    for ctrl in ik_finger_ctrls:
+        for shape in cmds.listRelatives(ctrl, s=True, f=True) or []:
+            cmds.connectAttr(f'{condition_node}.outColorR', shape + '.v', f=True)
+
+    reverse_node = cmds.createNode('reverse', name='right_fingers_ik_reverse')
+    cmds.connectAttr(right_fingers_ctrl + '.influenceSwitch', reverse_node + '.inputX', f=True)
+
+    for constraint in finger_switch_constraints:
+        cmds.connectAttr(right_fingers_ctrl + '.influenceSwitch', constraint[0] + '.w0', f=True)
+        cmds.connectAttr(reverse_node + '.outputX', constraint[0] + '.w1', f=True)
+
 
 
 if __name__ == "__main__":
