@@ -10,9 +10,9 @@ from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, Orientation
 from gt.utils.data.controls.cluster_driven import create_scalable_two_sides_arrow
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
 from gt.utils.math_utils import get_transforms_center_position, dist_path_sum
+from gt.utils.rigging_utils import expose_rotation_order, RiggingConstants
 from gt.utils.color_utils import ColorConstants, set_color_viewport
 from gt.utils.hierarchy_utils import add_offset_transform
-from gt.utils.rigging_utils import expose_rotation_order
 from gt.utils.naming_utils import NamingConstants
 from gt.utils.curve_utils import get_curve
 from gt.utils.node_utils import Node
@@ -490,7 +490,7 @@ class ModuleBipedFingers(ModuleGeneric):
                 match_transform(source=finger_jnt, target_list=offset)
                 scale_shapes(obj_transform=ctrl, offset=finger_scale*.1)
                 hierarchy_utils.parent(source_objects=offset, target_parent=wrist_grp)
-                add_separator_attr(target_object=ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
+                add_separator_attr(target_object=ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
                 hide_lock_default_attrs(obj_list=ctrl, scale=True, visibility=True)
                 expose_rotation_order(target=ctrl)
                 # Create FK Hierarchy
@@ -549,7 +549,7 @@ class ModuleBipedFingers(ModuleGeneric):
         rescale(obj=fingers_offset, scale=fingers_ctrl_scale, freeze=False)
 
         # Fingers Visibility (Attributes)
-        add_separator_attr(target_object=fingers_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
+        add_separator_attr(target_object=fingers_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
         cmds.addAttr(fingers_ctrl, ln='showCurlControls', at='bool', k=True)
         cmds.addAttr(fingers_ctrl, ln='showFkFingerCtrls', at='bool', k=True, niceName='Show FK Finger Ctrls')
 

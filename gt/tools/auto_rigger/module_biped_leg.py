@@ -8,6 +8,7 @@ from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_fr
 from gt.utils.attr_utils import add_attr, hide_lock_default_attrs, set_attr_state, set_attr, add_separator_attr
 from gt.utils.color_utils import ColorConstants, set_color_viewport, set_color_outliner, get_directional_color
 from gt.utils.rigging_utils import rescale_joint_radius, expose_rotation_order, duplicate_joint_for_automation
+from gt.utils.rigging_utils import RiggingConstants
 from gt.utils.transform_utils import match_translate, Vector3, match_transform, scale_shapes, translate_shapes
 from gt.utils.transform_utils import rotate_shapes
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
@@ -519,12 +520,12 @@ class ModuleBipedLeg(ModuleGeneric):
         foot_center = get_bbox_position(obj_list=foot_o_ctrl)
         scale_shapes(obj_transform=foot_o_ctrl, offset=0.9, pivot=foot_center)
         # Attributes
-        add_separator_attr(target_object=foot_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
+        add_separator_attr(target_object=foot_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
         expose_rotation_order(foot_ctrl)
-        add_separator_attr(target_object=foot_o_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
+        add_separator_attr(target_object=foot_o_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
         expose_rotation_order(foot_o_ctrl)
-        cmds.addAttr(foot_ctrl, ln=RiggerConstants.ATTR_SHOW_OFFSET, at='bool', k=True)
-        cmds.connectAttr(f'{foot_ctrl}.{RiggerConstants.ATTR_SHOW_OFFSET}', f'{foot_o_ctrl}.v')
+        cmds.addAttr(foot_ctrl, ln=RiggingConstants.ATTR_SHOW_OFFSET, at='bool', k=True)
+        cmds.connectAttr(f'{foot_ctrl}.{RiggingConstants.ATTR_SHOW_OFFSET}', f'{foot_o_ctrl}.v')
 
         # Switch Control
         ik_switch_ctrl = self._assemble_ctrl_name(name=self.get_meta_setup_name(),
@@ -542,7 +543,7 @@ class ModuleBipedLeg(ModuleGeneric):
         # constraint_targets(source_driver=ik_switch_ctrl, target_driven=ik_switch)
         color = get_directional_color(object_name=ik_switch_ctrl)
         set_color_viewport(obj_list=ik_switch_ctrl, rgb_color=color)
-        add_separator_attr(target_object=ik_switch_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
+        add_separator_attr(target_object=ik_switch_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
 
         # Roll Controls ------------------------------------------------------------------------------------
         # Toe Roll

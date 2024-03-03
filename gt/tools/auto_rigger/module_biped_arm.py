@@ -9,7 +9,7 @@ from gt.tools.auto_rigger.rig_utils import find_or_create_joint_automation_group
 from gt.utils.attr_utils import hide_lock_default_attrs, set_attr_state, set_attr, add_separator_attr, add_attr
 from gt.utils.color_utils import set_color_viewport, ColorConstants, set_color_outliner, get_directional_color
 from gt.utils.rigging_utils import rescale_joint_radius, offset_control_orientation, expose_rotation_order
-from gt.utils.rigging_utils import duplicate_joint_for_automation
+from gt.utils.rigging_utils import duplicate_joint_for_automation, RiggingConstants
 from gt.utils.transform_utils import match_translate, match_transform, Vector3, set_equidistant_transforms
 from gt.utils.transform_utils import scale_shapes, rotate_shapes, translate_shapes
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
@@ -359,7 +359,7 @@ class ModuleBipedArm(ModuleGeneric):
         constraint_targets(source_driver=clavicle_ctrl, target_driven=clavicle_jnt)
         color = get_directional_color(object_name=clavicle_ctrl)
         set_color_viewport(obj_list=clavicle_ctrl, rgb_color=color)
-        add_separator_attr(target_object=clavicle_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
+        add_separator_attr(target_object=clavicle_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
         expose_rotation_order(clavicle_ctrl)
 
         # Shoulder FK Control
@@ -375,7 +375,7 @@ class ModuleBipedArm(ModuleGeneric):
         constraint_targets(source_driver=shoulder_fk_ctrl, target_driven=shoulder_fk)
         color = get_directional_color(object_name=shoulder_fk_ctrl)
         set_color_viewport(obj_list=shoulder_fk_ctrl, rgb_color=color)
-        add_separator_attr(target_object=shoulder_fk_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
+        add_separator_attr(target_object=shoulder_fk_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
         expose_rotation_order(shoulder_fk_ctrl)
 
         # Elbow FK Control
@@ -391,7 +391,7 @@ class ModuleBipedArm(ModuleGeneric):
         constraint_targets(source_driver=elbow_fk_ctrl, target_driven=elbow_fk)
         color = get_directional_color(object_name=elbow_fk_ctrl)
         set_color_viewport(obj_list=elbow_fk_ctrl, rgb_color=color)
-        add_separator_attr(target_object=elbow_fk_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
+        add_separator_attr(target_object=elbow_fk_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
         expose_rotation_order(elbow_fk_ctrl)
 
         # Wrist FK Control
@@ -407,7 +407,7 @@ class ModuleBipedArm(ModuleGeneric):
         constraint_targets(source_driver=wrist_fk_ctrl, target_driven=wrist_fk)
         color = get_directional_color(object_name=wrist_fk_ctrl)
         set_color_viewport(obj_list=wrist_fk_ctrl, rgb_color=color)
-        add_separator_attr(target_object=wrist_fk_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
+        add_separator_attr(target_object=wrist_fk_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
         expose_rotation_order(wrist_fk_ctrl)
 
         # IK Controls -------------------------------------------------------------------------------------
@@ -451,12 +451,12 @@ class ModuleBipedArm(ModuleGeneric):
         wrist_center = get_bbox_position(obj_list=wrist_o_ik_ctrl)
         scale_shapes(obj_transform=wrist_o_ik_ctrl, offset=0.9, pivot=wrist_center)
         # Attributes
-        add_separator_attr(target_object=wrist_ik_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
+        add_separator_attr(target_object=wrist_ik_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
         expose_rotation_order(wrist_ik_ctrl)
-        add_separator_attr(target_object=wrist_o_ik_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
+        add_separator_attr(target_object=wrist_o_ik_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
         expose_rotation_order(wrist_o_ik_ctrl)
-        cmds.addAttr(wrist_ik_ctrl, ln=RiggerConstants.ATTR_SHOW_OFFSET, at='bool', k=True)
-        cmds.connectAttr(f'{wrist_ik_ctrl}.{RiggerConstants.ATTR_SHOW_OFFSET}', f'{wrist_o_ik_ctrl}.v')
+        cmds.addAttr(wrist_ik_ctrl, ln=RiggingConstants.ATTR_SHOW_OFFSET, at='bool', k=True)
+        cmds.connectAttr(f'{wrist_ik_ctrl}.{RiggingConstants.ATTR_SHOW_OFFSET}', f'{wrist_o_ik_ctrl}.v')
         hide_lock_default_attrs(obj_list=[wrist_ik_ctrl, wrist_o_ik_ctrl], scale=True, visibility=True)
 
         # IK Elbow Control
@@ -504,7 +504,7 @@ class ModuleBipedArm(ModuleGeneric):
         # constraint_targets(source_driver=ik_switch_ctrl, target_driven=ik_switch)
         color = get_directional_color(object_name=ik_switch_ctrl)
         set_color_viewport(obj_list=ik_switch_ctrl, rgb_color=color)
-        add_separator_attr(target_object=ik_switch_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
+        add_separator_attr(target_object=ik_switch_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
 
         # # Wrist Driven Data (FK & IK)
         # wrist_driven_data = self._assemble_ctrl_name(name=self.wrist.get_name(),

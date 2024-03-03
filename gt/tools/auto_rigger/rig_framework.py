@@ -21,15 +21,16 @@ from gt.tools.auto_rigger.rig_utils import find_driver_from_uuid, find_proxy_fro
 from gt.tools.auto_rigger.rig_utils import create_utility_groups, create_root_group, find_proxy_root_group
 from gt.tools.auto_rigger.rig_utils import find_drivers_from_joint
 from gt.utils.attr_utils import add_separator_attr, set_attr, add_attr, list_user_defined_attr, get_attr
+from gt.utils.string_utils import remove_prefix, camel_case_split, remove_suffix, upper_first_char
 from gt.utils.uuid_utils import add_uuid_attr, is_uuid_valid, is_short_uuid_valid, generate_uuid
 from gt.utils.color_utils import add_side_color_setup, ColorConstants, set_color_viewport
-from gt.utils.string_utils import remove_prefix, camel_case_split, remove_suffix
 from gt.utils.transform_utils import Transform, match_translate, match_rotate
 from gt.utils.curve_utils import Curve, get_curve, add_shape_scale_cluster
 from gt.utils.iterable_utils import get_highest_int_from_str_list
 from gt.utils.naming_utils import NamingConstants, get_long_name
 from gt.utils.uuid_utils import get_object_from_uuid_attr
 from gt.utils.control_utils import add_snapping_shape
+from gt.utils.rigging_utils import RiggingConstants
 from gt.utils.node_utils import create_node, Node
 from gt.utils.joint_utils import orient_joint
 from gt.utils import hierarchy_utils
@@ -371,7 +372,8 @@ class Proxy:
         proxy_offset = get_long_name(proxy_offset)
         proxy_crv = get_long_name(proxy_crv)
 
-        add_separator_attr(target_object=proxy_crv, attr_name=f'proxy{RiggerConstants.SEPARATOR_OPTIONS.title()}')
+        add_separator_attr(target_object=proxy_crv,
+                           attr_name=f'proxy{upper_first_char(RiggingConstants.SEPARATOR_CONTROL)}')
         uuid_attrs = add_uuid_attr(obj_list=proxy_crv,
                                    attr_name=RiggerConstants.ATTR_PROXY_UUID,
                                    set_initial_uuid_value=False)

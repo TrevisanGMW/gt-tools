@@ -5,9 +5,10 @@ github.com/TrevisanGMW/gt-tools
 from gt.tools.auto_rigger.rig_utils import find_or_create_joint_automation_group, get_driven_joint, create_ctrl_curve
 from gt.tools.auto_rigger.rig_utils import find_proxy_from_uuid, find_direction_curve, find_joint_from_uuid
 from gt.tools.auto_rigger.rig_utils import get_automation_group
-from gt.utils.transform_utils import Vector3, scale_shapes, match_transform, translate_shapes, rotate_shapes
 from gt.utils.rigging_utils import duplicate_joint_for_automation, create_stretchy_ik_setup, duplicate_object
 from gt.utils.rigging_utils import expose_rotation_order, offset_control_orientation, rescale_joint_radius
+from gt.utils.rigging_utils import RiggingConstants
+from gt.utils.transform_utils import Vector3, scale_shapes, match_transform, translate_shapes, rotate_shapes
 from gt.utils.surface_utils import create_surface_from_object_list, create_follicle, get_closest_uv_point
 from gt.utils.color_utils import ColorConstants, set_color_viewport, set_color_outliner
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
@@ -317,7 +318,7 @@ class ModuleSpine(ModuleGeneric):
         hierarchy_utils.parent(source_objects=cog_offset, target_parent=direction_crv)
         # Attributes
         set_attr_state(attribute_path=f"{cog_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
-        add_separator_attr(target_object=cog_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
+        add_separator_attr(target_object=cog_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
         expose_rotation_order(cog_ctrl)
         constraint_targets(source_driver=cog_ctrl, target_driven=hip_fk)
 
@@ -332,7 +333,7 @@ class ModuleSpine(ModuleGeneric):
         hierarchy_utils.parent(source_objects=hip_offset, target_parent=cog_ctrl)
         # Attributes
         set_attr_state(attribute_path=f"{hip_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
-        add_separator_attr(target_object=hip_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
+        add_separator_attr(target_object=hip_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
         expose_rotation_order(hip_ctrl)
 
         # Hip Offset Ctrl
@@ -358,10 +359,10 @@ class ModuleSpine(ModuleGeneric):
         cmds.connectAttr(f'{hip_o_ctrl}.rotate', f'{hip_o_data}.rotate')
         # Attributes
         set_attr_state(attribute_path=f"{hip_o_ctrl}.v", hidden=True)  # Hide and Lock Visibility
-        add_separator_attr(target_object=hip_o_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
+        add_separator_attr(target_object=hip_o_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
         expose_rotation_order(hip_o_ctrl)
-        cmds.addAttr(hip_ctrl, ln=RiggerConstants.ATTR_SHOW_OFFSET, at='bool', k=True)
-        cmds.connectAttr(f'{hip_ctrl}.{RiggerConstants.ATTR_SHOW_OFFSET}', f'{hip_o_ctrl}.v')
+        cmds.addAttr(hip_ctrl, ln=RiggingConstants.ATTR_SHOW_OFFSET, at='bool', k=True)
+        cmds.connectAttr(f'{hip_ctrl}.{RiggingConstants.ATTR_SHOW_OFFSET}', f'{hip_o_ctrl}.v')
 
         # Spine FK Controls ----------------------------------------------------------------------------------
         spine_ctrls = []
@@ -387,7 +388,7 @@ class ModuleSpine(ModuleGeneric):
             hierarchy_utils.parent(source_objects=spine_offset, target_parent=last_mid_parent_ctrl)
             # Attributes
             set_attr_state(attribute_path=f"{spine_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
-            add_separator_attr(target_object=spine_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
+            add_separator_attr(target_object=spine_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
             expose_rotation_order(spine_ctrl)
             spine_ctrls.append(spine_ctrl)
             constraint_targets(source_driver=spine_ctrl, target_driven=fk_jnt)
@@ -407,7 +408,7 @@ class ModuleSpine(ModuleGeneric):
         hierarchy_utils.parent(source_objects=chest_offset, target_parent=chest_ctrl_parent)
         # Attributes
         set_attr_state(attribute_path=f"{chest_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
-        add_separator_attr(target_object=chest_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
+        add_separator_attr(target_object=chest_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
         expose_rotation_order(chest_ctrl)
 
         # Chest Ribbon (IK) Control -----------------------------------------------------------------------
@@ -416,7 +417,7 @@ class ModuleSpine(ModuleGeneric):
         chest_ik_ctrl = duplicate_object(obj=chest_ctrl, name=chest_ik_ctrl)
         chest_ik_offset = Node(add_offset_transform(target_list=chest_ik_ctrl)[0])
         hierarchy_utils.parent(source_objects=chest_ik_offset, target_parent=cog_ctrl)
-        add_separator_attr(target_object=chest_ik_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
+        add_separator_attr(target_object=chest_ik_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
         expose_rotation_order(chest_ik_ctrl)
 
         # Chest Ribbon (IK) Offset Ctrl --------------------------------------------------------------------
@@ -445,10 +446,10 @@ class ModuleSpine(ModuleGeneric):
         constraint_targets(source_driver=chest_o_data, target_driven=chest_fk)
         # Attributes
         set_attr_state(attribute_path=f"{chest_o_ctrl}.v", hidden=True)  # Hide and Lock Visibility
-        add_separator_attr(target_object=chest_o_ctrl, attr_name=RiggerConstants.SEPARATOR_CONTROL)
+        add_separator_attr(target_object=chest_o_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
         expose_rotation_order(chest_o_ctrl)
-        cmds.addAttr(chest_ik_ctrl, ln=RiggerConstants.ATTR_SHOW_OFFSET, at='bool', k=True)
-        cmds.connectAttr(f'{chest_ik_ctrl}.{RiggerConstants.ATTR_SHOW_OFFSET}', f'{chest_o_ctrl}.v')
+        cmds.addAttr(chest_ik_ctrl, ln=RiggingConstants.ATTR_SHOW_OFFSET, at='bool', k=True)
+        cmds.connectAttr(f'{chest_ik_ctrl}.{RiggingConstants.ATTR_SHOW_OFFSET}', f'{chest_o_ctrl}.v')
 
         # IK Spine (Ribbon) -----------------------------------------------------------------------------------
         spine_ribbon_grp = f'{prefixed_setup_name}_ribbon_{NamingConstants.Suffix.GRP}'
