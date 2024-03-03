@@ -422,3 +422,23 @@ class TestStringUtils(unittest.TestCase):
     def test_get_int_to_en_non_integer_input(self):
         with self.assertRaises(AssertionError):
             string_utils.get_int_as_en(3.5)
+
+    def test_upper_first_char(self):
+        with self.assertRaises(AssertionError):
+            string_utils.get_int_as_en(3.5)
+
+    def test_upper_first_char_with_long_string(self):
+        result = string_utils.upper_first_char("hello")
+        self.assertEqual(result, "Hello")
+
+    def test_upper_first_char_with_single_character(self):
+        result = string_utils.upper_first_char("h")
+        self.assertEqual(result, "H")
+
+    def test_upper_first_char_with_empty_string(self):
+        result = string_utils.upper_first_char("")
+        self.assertEqual(result, "")
+
+    def test_upper_first_char_with_none_input(self):
+        with self.assertRaises(ValueError):
+            string_utils.upper_first_char(None)

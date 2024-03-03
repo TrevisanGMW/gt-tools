@@ -230,12 +230,12 @@ def extract_digits_as_int(input_string, only_first_match=True, can_be_negative=F
         return result
 
 
-def get_int_as_rank(number):
+def get_int_as_rank(num):
     """
     Converts an integer to its corresponding rank string.
 
     Args:
-        number (int): The input integer.
+        num (int): The input integer.
 
     Returns:
         str: The rank string.
@@ -249,11 +249,11 @@ def get_int_as_rank(number):
         '11th'
     """
     # Handle special cases for 11, 12, and 13 since they end in "th"
-    if 10 < number % 100 < 20:
+    if 10 < num % 100 < 20:
         suffix = "th"
     else:
         # Use modulo 10 to determine the last digit
-        last_digit = number % 10
+        last_digit = num % 10
         if last_digit == 1:
             suffix = "st"
         elif last_digit == 2:
@@ -263,7 +263,8 @@ def get_int_as_rank(number):
         else:
             suffix = "th"
 
-    return str(number) + suffix
+    return str(num) + suffix
+
 
 def get_int_as_en(num):
     """
@@ -333,6 +334,32 @@ def get_int_as_en(num):
         return neg_prefix + f'{get_int_as_en(num // trillion)} trillion'
     else:
         return neg_prefix + f'{get_int_as_en(num // trillion)} trillion, {get_int_as_en(num % trillion)}'
+
+
+def upper_first_char(input_string):
+    """
+    Capitalize the first letter of a string. Does nothing in case the string is empty ('')
+
+    Args:
+        input_string (str): The input string.
+
+    Returns:
+        str: The string with only the first letter capitalized, or the string itself if it's empty.
+
+    Raises:
+        ValueError: If the input string is None.
+    """
+    # Check if the input string is None
+    if input_string is None:
+        raise ValueError("Invalid input type. Input string cannot be None")
+    # Check if the string is empty
+    if not input_string:
+        return input_string
+    # If the string has only one character, capitalize it
+    if len(input_string) == 1:
+        return input_string.upper()
+    # Capitalize the first letter and keep the rest of the string unchanged
+    return input_string[0].upper() + input_string[1:]
 
 
 
