@@ -3,10 +3,12 @@ Rigging Utilities
 github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.transform_utils import get_component_positions_as_dict, set_component_positions_from_dict, match_translate
-from gt.utils.attr_utils import connect_attr, get_attr, add_attr, delete_user_defined_attrs, set_attr_state
+from gt.utils.attr_utils import connect_attr, get_attr, add_attr, delete_user_defined_attrs, set_attr_state, set_attr
 from gt.utils.attr_utils import DEFAULT_ATTRS
+from gt.utils.constraint_utils import ConstraintTypes, constraint_targets
 from gt.utils.naming_utils import NamingConstants, get_short_name
 from gt.utils.hierarchy_utils import duplicate_as_node
+from gt.utils.iterable_utils import sanitize_maya_list
 from gt.utils.color_utils import set_color_outliner
 from gt.utils.node_utils import Node, create_node
 from gt.utils.math_utils import dist_xyz_to_xyz
@@ -16,7 +18,6 @@ import maya.cmds as cmds
 import logging
 import random
 
-from utils.constraint_utils import ConstraintTypes
 
 # Logging Setup
 logging.basicConfig()
@@ -407,47 +408,94 @@ def create_stretchy_ik_setup(ik_handle, attribute_holder=None, prefix=None):
 
     return stretchy_grp
 
-def create_switch_setup(system_a, system_b, attr_holder,
-                        attr_name=RiggingConstants.ATTR_INFLUENCE_SWITCH,
-                        prefix=None, constraint_type=ConstraintTypes.PARENT):
+def create_switch_setup(source_a, source_b, target_base, attr_holder, visibility_a=None, visibility_b=None,
+                        prefix=None, shape_visibility=True, attr_name=RiggingConstants.ATTR_INFLUENCE_SWITCH,
+                        constraint_type=ConstraintTypes.PARENT, maintain_offset=False):
     """
+    Args:
+        source_a (list, tuple, str): The first argument.
+        source_b (list, tuple, str): The second argument.
+        target_base (list, tuple, str): The third argument.
+
     Creates a constraint
     Switch Range: 0.0 to 1.0
     System A Range: 0.0 to 0.5
     System B Range: 0.5 to 1.0
     """
+    # Strings to List
+    if isinstance(source_a, str):
+        source_a = [source_a]
+    if isinstance(source_b, str):
+        source_b = [source_b]
+    if isinstance(target_base, str):
+        target_base = [target_base]
 
+    # Tuple to List
+    if isinstance(source_a, tuple):
+        source_a = list(source_a)
+    if isinstance(source_b, tuple):
+        source_b = list(source_b)
+    if isinstance(target_base, tuple):
+        target_base = list(target_base)
+
+    # Length Check
+    list_len = {len(source_a), len(source_b), len(target_base)}
+    if len(list_len) != 1:
+        logger.warning(f'Unable to create switch setup. All input lists must be of the same length.')
+        return
+
+    # Prefix
     _prefix = ''
     if prefix:
         _prefix = f'{prefix}_'
 
-    cmds.addAttr(attr_holder, ln=attr_name, at='double', k=True, maxValue=1, minValue=0)
-    cmds.setAttr(f'{attr_holder}.attr_name', 1)
+    # Switch Setup
+    add_attr(obj_list=attr_holder, attributes=attr_name, attr_type='double', is_keyable=True, maximum=1, minimum=0)
+    cmds.setAttr(f'{attr_holder}.{attr_name}', 1)
+    condition = create_node(node_type='condition', name=f'{_prefix}switchVisibility_condition')
+    cmds.connectAttr(f'{attr_holder}.{attr_name}', f'{condition}.firstTerm')
+    set_attr(attribute_path=f'{condition}.operation', value=4)  # Operation = Less Than (4)
+    set_attr(attribute_path=f'{condition}.secondTerm', value=0.5)  # Range A:0->0.5  B: 0.5->1
+    set_attr(obj_list=condition, attr_list=["colorIfTrueR", "colorIfTrueG", "colorIfTrueB"], value=1)
+    set_attr(obj_list=condition, attr_list=["colorIfFalseR", "colorIfFalseG", "colorIfFalseB"], value=0)
+    reverse_visibility = create_node(node_type='reverse', name=f'{_prefix}switchInfluence_reverse')
+    cmds.connectAttr(f'{condition}.outColorR', f'{reverse_visibility}.inputX', f=True)
+    reverse_influence = create_node(node_type='reverse', name=f'{_prefix}switchInfluence_reverse')
+    cmds.connectAttr(f'{attr_holder}.{attr_name}', f'{reverse_influence}.inputX', f=True)
+    # Constraints
+    constraints = []
+    for source_a, source_b, target in zip(source_a, source_b, target_base):
+        _constraints = constraint_targets(source_driver=[source_a, source_b], target_driven=target,
+                                          constraint_type=constraint_type, maintain_offset=maintain_offset)
+        if _constraints:
+            constraints.extend(_constraints)
+    for constraint in constraints:
+        cmds.connectAttr(f'{attr_holder}.{attr_name}', f'{constraint}.w0', force=True)
+        cmds.connectAttr(f'{reverse_influence}.outputX', f'{constraint}.w1', force=True)
 
-    condition_node = create_node(node_type='condition', name=f'{_prefix}switchVisibility_condition')
-    right_fingers_visibility_condition_node = cmds.createNode('condition', name='right_fingers_ikVisibility_condition')
-
-    cmds.connectAttr(right_fingers_ctrl + '.influenceSwitch', right_fingers_visibility_condition_node + '.firstTerm',
-                     f=True)
-    cmds.setAttr(f'{condition_node}.operation', 4)  # Less Than
-    cmds.setAttr(f'{condition_node}.secondTerm', .5)
-    cmds.setAttr(f'{condition_node}.colorIfTrueR', 1)
-    cmds.setAttr(f'{condition_node}.colorIfTrueG', 1)
-    cmds.setAttr(f'{condition_node}.colorIfTrueB', 1)
-    cmds.setAttr(f'{condition_node}.colorIfFalseR', 0)
-    cmds.setAttr(f'{condition_node}.colorIfFalseG', 0)
-    cmds.setAttr(f'{condition_node}.colorIfFalseB', 0)
-
-    for ctrl in ik_finger_ctrls:
-        for shape in cmds.listRelatives(ctrl, s=True, f=True) or []:
-            cmds.connectAttr(f'{condition_node}.outColorR', shape + '.v', f=True)
-
-    reverse_node = cmds.createNode('reverse', name='right_fingers_ik_reverse')
-    cmds.connectAttr(right_fingers_ctrl + '.influenceSwitch', reverse_node + '.inputX', f=True)
-
-    for constraint in finger_switch_constraints:
-        cmds.connectAttr(right_fingers_ctrl + '.influenceSwitch', constraint[0] + '.w0', f=True)
-        cmds.connectAttr(reverse_node + '.outputX', constraint[0] + '.w1', f=True)
+    # Visibility Setup
+    if not visibility_a:
+        visibility_a = []
+    else:
+        visibility_a = sanitize_maya_list(input_list=visibility_a)
+    if not visibility_b:
+        visibility_b = []
+    else:
+        visibility_b = sanitize_maya_list(input_list=visibility_b)
+    for obj_a in visibility_a:
+        if shape_visibility:
+            for shape in cmds.listRelatives(obj_a, shapes=True, fullPath=True) or []:
+                cmds.connectAttr(f'{reverse_visibility}.outputX', f'{shape}.v', f=True)
+        else:
+            cmds.connectAttr(f'{reverse_visibility}.outputX', f'{obj_a}.v', f=True)
+    for obj_b in visibility_b:
+        if shape_visibility:
+            for shape in cmds.listRelatives(obj_b, shapes=True, fullPath=True) or []:
+                cmds.connectAttr(f'{condition}.outColorR', f'{shape}.v', f=True)
+        else:
+            cmds.connectAttr(f'{reverse_visibility}.outputX', f'{obj_b}.v', f=True)
+    # Return Data
+    return
 
 
 
@@ -470,4 +518,6 @@ if __name__ == "__main__":
     # out = create_stretchy_ik_setup(ik_handle=an_ik_handle, prefix="mocked", attribute_holder=cube)
     # print(out)
     # cmds.viewFit(all=True)
-    duplicate_object('pSphere1')
+    # duplicate_object('pSphere1')
+    create_switch_setup(source_a=["a", "a2"], source_b=["b", "b2"], target_base=["base", "base_child"],
+                        attr_holder="ctrl", visibility_a=["a_ctrl", "a2_ctrl"], visibility_b=["b_ctrl", "b2_ctrl"])
