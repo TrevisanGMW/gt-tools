@@ -2,14 +2,13 @@
 Hierarchy Utilities
 github.com/TrevisanGMW/gt-tools
 """
+from gt.utils.attr_utils import delete_user_defined_attrs, set_attr_state, DEFAULT_ATTRS
 from gt.utils.naming_utils import get_long_name, get_short_name
-from gt.utils.attr_utils import delete_user_defined_attrs
 from gt.utils.transform_utils import match_transform
 from gt.utils.feedback_utils import log_when_true
 from gt.utils.node_utils import Node
 import maya.cmds as cmds
 import logging
-
 
 # Logging Setup
 logging.basicConfig()
@@ -128,38 +127,54 @@ def add_offset_transform(target_list, transform_type="group", pivot_source="targ
     return offset_transforms
 
 
-def duplicate_as_node(to_duplicate, name=None, input_connections=False,
-                      parent_only=False, delete_attrs=True):
+def duplicate_as_node(obj, name=None, parent_to_world=True, reset_attributes=True,
+                      parent_only=True, input_connections=False):
     """
-    Duplicates the input object with a few extra options, then return a "Node" version of it.
+    Duplicate the transform and its shapes.
+
     Args:
-        to_duplicate (str, Node): Object to duplicate (must exist in the scene)
-        name (str, optional): A name for the duplicated object
-        input_connections (bool, optional):
-        parent_only (bool, optional): If True, only the parent is duplicate. (Will exclude shapes)
-        delete_attrs (bool, optional): If True, user-defined attributes will be removed from the duplicated object.
+        obj (str, Node): The name/path of the object to duplicate.
+        name (str, optional): If provided, the transform of the duplicated object is renamed using this string.
+        parent_to_world (bool, optional): If True, makes sure parent is parented to the world.
+        reset_attributes (bool, optional): If True, it removes all user-defined attributes and un-hides/un-locks
+                                           default attributes such as translate, rotate, scale, visibility.
+                                           This option does not change TRS+V values, only un-hides/unlocks them.
+        parent_only (bool, optional): When True, it deletes all children (but keeps shapes)
+        input_connections (bool, optional): When True, it retains any incoming connections/inputs.
     Returns:
-        Node, str: The duplicated object
+        Node: A node with the path/name of the duplicated object.
     """
-    selection = cmds.ls(selection=True)
-    if not to_duplicate or not cmds.objExists(to_duplicate):
-        logger.debug(f'Unable to duplicate object. Missing provided input: "{str(input)}".')
-        return
-    param = {"inputConnections": input_connections,
-             "parentOnly": parent_only}
+    # Store Selection
+    selection = cmds.ls(selection=True) or []
+    # Duplicate
+    duplicated_obj = cmds.duplicate(obj, renameChildren=True, inputConnections=input_connections)[0]
+    duplicated_obj = Node(duplicated_obj)
+    # Remove children
+    if parent_only:
+        shapes = cmds.listRelatives(duplicated_obj, shapes=True) or []
+        children = cmds.listRelatives(duplicated_obj, children=True) or []
+        for child in children:
+            if child not in shapes:
+                cmds.delete(child)
+    # Parent to World
+    has_parent = bool(cmds.listRelatives(duplicated_obj, parent=True))
+    if has_parent and parent_to_world:
+        cmds.parent(duplicated_obj, world=True)
+    if reset_attributes:
+        delete_user_defined_attrs(obj_list=duplicated_obj, delete_locked=True, verbose=False)
+        set_attr_state(obj_list=duplicated_obj, attr_list=DEFAULT_ATTRS, locked=False, hidden=False)
+    # Rename
     if name and isinstance(name, str):
-        param["name"] = name
-    new_obj = cmds.duplicate(to_duplicate, **param)[0]
-    new_obj = Node(new_obj)
-    if delete_attrs:
-        delete_user_defined_attrs(obj_list=new_obj)
+        duplicated_obj.rename(name)
+    # Manage Selection
     cmds.select(clear=True)
     if selection:
         try:
-            cmds.select(selection=True)
+            cmds.select(selection)
         except Exception as e:
-            logger.debug(f'Unable to restore initial selection. Issue: {str(e)}')
-    return new_obj
+            logger.debug(f'Unable to restore previous selection. Issue: {e}')
+    # Return Duplicated Object
+    return duplicated_obj
 
 
 def get_shape_components(shape, mesh_component_type="vertices", full_path=False):
@@ -198,6 +213,28 @@ def get_shape_components(shape, mesh_component_type="vertices", full_path=False)
         return cmds.ls(f"{shape}.cv[*]", flatten=True, long=full_path)
     else:
         return []
+
+
+def create_group(name=None, children=None):
+    """
+    Creates an empty group in Maya.
+    Args:
+        name (str): The name of the group to be created.
+        children (list, optional): List of child objects to be parented under the group. Defaults to None.
+    Returns:
+        Node: A Node object with the path to the created group.
+    """
+    # Create an empty group
+    _parameters = {"empty": True,
+                   "world": True}
+    if name and isinstance(name, str):
+        _parameters["name"] = name
+    group = cmds.group(**_parameters)
+    group = Node(group)
+    # Parent children under the group
+    if children:
+        parent(source_objects=children, target_parent=group)
+    return group
 
 
 if __name__ == "__main__":

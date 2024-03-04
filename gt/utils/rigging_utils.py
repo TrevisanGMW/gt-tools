@@ -7,12 +7,12 @@ from gt.utils.attr_utils import connect_attr, get_attr, add_attr, delete_user_de
 from gt.utils.attr_utils import DEFAULT_ATTRS
 from gt.utils.constraint_utils import ConstraintTypes, constraint_targets
 from gt.utils.naming_utils import NamingConstants, get_short_name
-from gt.utils.hierarchy_utils import duplicate_as_node
 from gt.utils.iterable_utils import sanitize_maya_list
 from gt.utils.color_utils import set_color_outliner
 from gt.utils.node_utils import Node, create_node
 from gt.utils.math_utils import dist_xyz_to_xyz
 from gt.utils.string_utils import get_int_as_en
+from gt.utils.hierarchy_utils import duplicate_as_node
 from gt.utils import hierarchy_utils
 import maya.cmds as cmds
 import logging
@@ -39,52 +39,6 @@ class RiggingConstants:
     SEPARATOR_CONTROL = "controlOptions"
 
 
-def duplicate_object(obj, name=None, parent_to_world=True, reset_attributes=True):
-    """
-    Duplicate the transform and its shapes.
-
-    Args:
-        obj (str, Node): The name/path of the object to duplicate.
-        name (str, optional): If provided, the transform of the duplicated object is renamed using this string.
-        parent_to_world (bool, optional): If True, makes sure parent is parented to the world.
-        reset_attributes (bool, optional): If True, it removes all user-defined attributes and un-hides/un-locks
-                                           default attributes such as translate, rotate, scale, visibility.
-                                           This option does not change TRS+V values, only un-hides/unlocks them.
-    Returns:
-        str, Node: A node with the path/name of the duplicated object.
-    """
-    # Store Selection
-    selection = cmds.ls(selection=True) or []
-    # Duplicate
-    duplicated_obj = cmds.duplicate(obj, renameChildren=True)[0]
-    duplicated_obj = Node(duplicated_obj)
-    # Remove children
-    shapes = cmds.listRelatives(duplicated_obj, shapes=True) or []
-    children = cmds.listRelatives(duplicated_obj, children=True) or []
-    for child in children:
-        if child not in shapes:
-            cmds.delete(child)
-    # Parent to World
-    has_parent = bool(cmds.listRelatives(duplicated_obj, parent=True))
-    if has_parent and parent_to_world:
-        cmds.parent(duplicated_obj, world=True)
-    if reset_attributes:
-        delete_user_defined_attrs(obj_list=duplicated_obj, delete_locked=True, verbose=False)
-        set_attr_state(obj_list=duplicated_obj, attr_list=DEFAULT_ATTRS, locked=False, hidden=False)
-    # Rename
-    if name and isinstance(name, str):
-        duplicated_obj.rename(name)
-    # Manage Selection
-    cmds.select(clear=True)
-    if selection:
-        try:
-            cmds.select(selection)
-        except Exception as e:
-            logger.debug(f'Unable to restore previous selection. Issue: {e}')
-    # Return
-    return duplicated_obj
-
-
 def duplicate_joint_for_automation(joint, suffix=NamingConstants.Suffix.DRIVEN, parent=None, connect_rot_order=True):
     """
     Preset version of the "duplicate_as_node" function used to duplicate joints for automation.
@@ -100,8 +54,8 @@ def duplicate_joint_for_automation(joint, suffix=NamingConstants.Suffix.DRIVEN, 
     """
     if not joint or not cmds.objExists(str(joint)):
         return
-    jnt_as_node = duplicate_as_node(to_duplicate=str(joint), name=f'{get_short_name(joint)}_{suffix}',
-                                    parent_only=True, delete_attrs=True, input_connections=False)
+    jnt_as_node = duplicate_as_node(obj=joint, name=f'{get_short_name(joint)}_{suffix}',
+                                    parent_only=True, reset_attributes=True, input_connections=False)
     if connect_rot_order:
         connect_attr(source_attr=f'{str(joint)}.rotateOrder', target_attr_list=f'{jnt_as_node}.rotateOrder')
     if parent:

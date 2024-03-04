@@ -240,53 +240,75 @@ class TestHierarchyUtils(unittest.TestCase):
         expected = [f"|{self.transform_one}|cube_one_offset", f"|{self.transform_one}|cube_two_offset"]
         self.assertEqual(expected, created_offsets)
 
-    def test_duplicate_as_node(self):
-        cube_one_node = Node(self.cube_one)
-        cmds.addAttr(cube_one_node, longName='mockedAttr', attributeType='double')
-        duplicate = hierarchy_utils.duplicate_as_node(to_duplicate=cube_one_node,
-                                                      name="pCube2",
-                                                      input_connections=False,
-                                                      parent_only=False,
-                                                      delete_attrs=True)
+    def test_duplicate_as_node_children(self):
+        cmds.file(new=True, force=True)
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        cmds.parent(cube_two, cube_one)
+        # Duplicate
+        duplicated_obj = hierarchy_utils.duplicate_as_node(obj=cube_one, name=None,
+                                                           parent_to_world=True, reset_attributes=True)
+        expected = '|cube_one1'
+        self.assertEqual(expected, duplicated_obj)
+        # Check Children
+        result = cmds.listRelatives(cube_one, children=True)
+        expected = ['cube_oneShape', 'cube_two']
+        self.assertEqual(expected, result)
+        result = cmds.listRelatives(duplicated_obj, children=True)
+        expected = ['cube_one1Shape']
+        self.assertEqual(expected, result)
 
-        expected = f"|pCube2"
-        self.assertTrue(cmds.objExists(expected), "Missing duplicated object.")
-        self.assertEqual(expected, str(duplicate))
-        shapes = cmds.listRelatives(duplicate, shapes=True)
-        expected = ['pCube2Shape']
-        self.assertEqual(expected, shapes)
-        self.assertFalse(cmds.objExists(f'|pCube2.mockedAttr'),
-                         "Unexpected attr found in duplicated object.")
+    def test_duplicate_as_node_naming(self):
+        cmds.file(new=True, force=True)
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        cmds.parent(cube_two, cube_one)
+        # Duplicate
+        duplicated_obj = hierarchy_utils.duplicate_as_node(obj=cube_one, name="mocked_cube",
+                                                           parent_to_world=True, reset_attributes=True)
+        expected = '|mocked_cube'
+        self.assertEqual(expected, duplicated_obj)
 
-    def test_duplicate_as_node_parent_only(self):
-        cube_one_node = Node(self.cube_one)
-        duplicate = hierarchy_utils.duplicate_as_node(to_duplicate=cube_one_node,
-                                                      name="pCube2",
-                                                      input_connections=False,
-                                                      parent_only=True,
-                                                      delete_attrs=True)
+    def test_duplicate_as_node_parenting(self):
+        cmds.file(new=True, force=True)
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        cmds.parent(cube_two, cube_one)
+        # Duplicate; World Parenting
+        duplicated_obj = hierarchy_utils.duplicate_as_node(obj=cube_two, name="world_parent",
+                                                           parent_to_world=True, reset_attributes=True)
+        expected = '|world_parent'
+        self.assertEqual(expected, duplicated_obj)
+        # Duplicate; Keep Parent
+        duplicated_obj = hierarchy_utils.duplicate_as_node(obj=cube_two, name="keep_parent",
+                                                           parent_to_world=False, reset_attributes=True)
+        expected = '|cube_one|keep_parent'
+        self.assertEqual(expected, duplicated_obj)
 
-        expected = f"|pCube2"
-        self.assertTrue(cmds.objExists(expected), "Missing duplicated object.")
-        self.assertEqual(expected, str(duplicate))
-        shapes = cmds.listRelatives(duplicate, shapes=True)
-        expected = None
-        self.assertEqual(expected, shapes)
-
-    def test_duplicate_as_node_keep_attrs(self):
-        cube_one_node = Node(self.cube_one)
-        cmds.addAttr(cube_one_node, longName='mockedAttr', attributeType='double')
-        duplicate = hierarchy_utils.duplicate_as_node(to_duplicate=cube_one_node,
-                                                      name="pCube2",
-                                                      input_connections=False,
-                                                      parent_only=False,
-                                                      delete_attrs=False)
-
-        expected = f"|pCube2"
-        self.assertTrue(cmds.objExists(expected), "Missing duplicated object.")
-        self.assertEqual(expected, str(duplicate))
-        self.assertTrue(cmds.objExists(f'|pCube2.mockedAttr'),
-                        "Unexpected attr found in duplicated object.")
+    def test_duplicate_as_node_attrs(self):
+        cmds.file(new=True, force=True)
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cmds.addAttr(cube_one, ln='test', at='bool', k=True)  # Add User-defined attribute
+        cmds.setAttr(f'{cube_one}.tx', lock=True)  # Lock TranslateX
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        cmds.parent(cube_two, cube_one)
+        # Duplicate
+        duplicated_obj = hierarchy_utils.duplicate_as_node(obj=cube_one, name="mocked_cube",
+                                                           parent_to_world=True, reset_attributes=True)
+        # Original Item
+        expected = True
+        result = cmds.getAttr(f'{cube_one}.tx', lock=True)
+        self.assertEqual(expected, result)
+        expected = True
+        result = cmds.objExists(f'{cube_one}.test')
+        self.assertEqual(expected, result)
+        # Duplicate
+        expected = False
+        result = cmds.getAttr(f'{duplicated_obj}.tx', lock=True)
+        self.assertEqual(expected, result)
+        expected = False
+        result = cmds.objExists(f'{duplicated_obj}.test')
+        self.assertEqual(expected, result)
 
     def test_get_shape_components_mesh_vtx(self):
         cube = Node(self.cube_one)
@@ -376,3 +398,21 @@ class TestHierarchyUtils(unittest.TestCase):
         expected = ['|cube_one.vtx[0]', '|cube_one.vtx[1]', '|cube_one.vtx[2]', '|cube_one.vtx[3]',
                     '|cube_one.vtx[4]', '|cube_one.vtx[5]', '|cube_one.vtx[6]', '|cube_one.vtx[7]']
         self.assertEqual(expected, components_vtx_a)
+
+    def test_create_group(self):
+        result = hierarchy_utils.create_group()
+        expected = "|null1"
+        self.assertEqual(expected, result)
+
+    def test_create_group_name(self):
+        result = hierarchy_utils.create_group(name="mocked_group")
+        expected = "|mocked_group"
+        self.assertEqual(expected, result)
+
+    def test_create_group_children(self):
+        result = hierarchy_utils.create_group(name="mocked_group", children=self.cube_one)
+        expected = "|mocked_group"
+        self.assertEqual(expected, result)
+        result = cmds.listRelatives(result, children=True, fullPath=True)
+        expected = ['|mocked_group|cube_one']
+        self.assertEqual(expected, result)
