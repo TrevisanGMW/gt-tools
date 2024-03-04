@@ -219,7 +219,7 @@ def create_group(name=None, children=None):
     """
     Creates an empty group in Maya.
     Args:
-        name (str): The name of the group to be created.
+        name (str): The name of the group to be created. Defaults to None.
         children (list, optional): List of child objects to be parented under the group. Defaults to None.
     Returns:
         Node: A Node object with the path to the created group.

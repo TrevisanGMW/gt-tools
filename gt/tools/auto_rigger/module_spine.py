@@ -5,26 +5,29 @@ github.com/TrevisanGMW/gt-tools
 from gt.tools.auto_rigger.rig_utils import find_or_create_joint_automation_group, get_driven_joint, create_ctrl_curve
 from gt.tools.auto_rigger.rig_utils import find_proxy_from_uuid, find_direction_curve, find_joint_from_uuid
 from gt.tools.auto_rigger.rig_utils import get_automation_group
-from gt.utils.rigging_utils import duplicate_joint_for_automation, create_stretchy_ik_setup, duplicate_object
+from gt.utils.rigging_utils import duplicate_joint_for_automation, create_stretchy_ik_setup, duplicate_as_node
 from gt.utils.rigging_utils import expose_rotation_order, offset_control_orientation, rescale_joint_radius
-from gt.utils.rigging_utils import RiggingConstants
+from gt.utils.rigging_utils import RiggingConstants, create_switch_setup
 from gt.utils.transform_utils import Vector3, scale_shapes, match_transform, translate_shapes, rotate_shapes
 from gt.utils.surface_utils import create_surface_from_object_list, create_follicle, get_closest_uv_point
 from gt.utils.color_utils import ColorConstants, set_color_viewport, set_color_outliner
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
 from gt.utils.constraint_utils import equidistant_constraints, constraint_targets
+from gt.utils.hierarchy_utils import add_offset_transform, create_group
 from gt.utils.attr_utils import add_separator_attr, set_attr_state
 from gt.tools.auto_rigger.rig_utils import get_proxy_offset
-from gt.utils.hierarchy_utils import add_offset_transform
 from gt.utils.math_utils import dist_center_to_center
+from gt.utils.string_utils import upper_first_char
 from gt.utils.naming_utils import NamingConstants
+from gt.utils.curve_utils import set_curve_width
 from gt.utils.node_utils import Node
 from gt.utils import hierarchy_utils
 from gt.ui import resource_library
 import maya.cmds as cmds
 import logging
 import re
+
 
 # Logging Setup
 logging.basicConfig()
@@ -321,6 +324,7 @@ class ModuleSpine(ModuleGeneric):
         add_separator_attr(target_object=cog_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
         expose_rotation_order(cog_ctrl)
         constraint_targets(source_driver=cog_ctrl, target_driven=hip_fk)
+        set_curve_width(obj_list=cog_ctrl, line_width=2)
 
         # Hip Control ----------------------------------------------------------------------------------
         hip_ctrl = self._assemble_ctrl_name(name=self.hip.get_name())
@@ -338,18 +342,17 @@ class ModuleSpine(ModuleGeneric):
 
         # Hip Offset Ctrl
         hip_o_ctrl = self._assemble_ctrl_name(name=self.hip.get_name(),
-                                             overwrite_suffix=NamingConstants.Suffix.OFFSET_CTRL)
+                                              overwrite_suffix=NamingConstants.Suffix.OFFSET_CTRL)
         hip_o_ctrl = create_ctrl_curve(name=hip_o_ctrl, curve_file_name="_wavy_circle_pos_x")
         match_transform(source=hip_ctrl, target_list=hip_o_ctrl)
         scale_shapes(obj_transform=hip_o_ctrl, offset=spine_scale / 7)
         rotate_shapes(obj_transform=hip_o_ctrl, offset=(90, 0, 90))  # Undo rotate offset
-        set_color_viewport(obj_list= hip_o_ctrl, rgb_color=ColorConstants.RigJoint.OFFSET)
+        set_color_viewport(obj_list=hip_o_ctrl, rgb_color=ColorConstants.RigJoint.OFFSET)
         hierarchy_utils.parent(source_objects=hip_o_ctrl, target_parent=hip_ctrl)
         # Hip Offset Data Transform
         hip_o_data = self._assemble_ctrl_name(name=self.hip.get_name(),
-                                               overwrite_suffix=NamingConstants.Suffix.OFFSET_DATA)
-        hip_o_data = cmds.group(name=hip_o_data, empty=True, world=True)
-        hip_o_data = Node(hip_o_data)
+                                              overwrite_suffix=NamingConstants.Suffix.OFFSET_DATA)
+        hip_o_data = create_group(name=hip_o_data)
         self.add_driver_uuid_attr(target=hip_o_data,
                                   driver_type=RiggerDriverTypes.OFFSET,
                                   proxy_purpose=self.hip)
@@ -395,65 +398,64 @@ class ModuleSpine(ModuleGeneric):
             last_mid_parent_ctrl = spine_ctrl
 
         # Chest FK Control --------------------------------------------------------------------------------
-        chest_ctrl = self._assemble_ctrl_name(name=self.chest.get_name())
-        chest_ctrl = create_ctrl_curve(name=chest_ctrl, curve_file_name="_cube")
-        self.add_driver_uuid_attr(target=chest_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.chest)
-        chest_offset = Node(add_offset_transform(target_list=chest_ctrl)[0])
-        match_transform(source=chest_jnt, target_list=chest_offset)
-        translate_shapes(obj_transform=chest_ctrl, offset=(1, 0, 0))  # Move Pivot to Base
+        chest_fk_ctrl = self._assemble_ctrl_name(name=self.chest.get_name())
+        chest_fk_ctrl = create_ctrl_curve(name=chest_fk_ctrl, curve_file_name="_cube")
+        self.add_driver_uuid_attr(target=chest_fk_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.chest)
+        chest_fk_offset = Node(add_offset_transform(target_list=chest_fk_ctrl)[0])
+        match_transform(source=chest_jnt, target_list=chest_fk_offset)
+        translate_shapes(obj_transform=chest_fk_ctrl, offset=(1, 0, 0))  # Move Pivot to Base
         _shape_scale = (spine_scale / 4, spine_scale / 4, spine_scale / 3)
-        scale_shapes(obj_transform=chest_ctrl, offset=_shape_scale)
-        offset_control_orientation(ctrl=chest_ctrl, offset_transform=chest_offset, orient_tuple=(-90, -90, 0))
+        scale_shapes(obj_transform=chest_fk_ctrl, offset=_shape_scale)
+        offset_control_orientation(ctrl=chest_fk_ctrl, offset_transform=chest_fk_offset, orient_tuple=(-90, -90, 0))
         chest_ctrl_parent = spine_ctrls[-1] if spine_ctrls else cog_ctrl  # Same as "last_mid_parent_ctrl"
-        hierarchy_utils.parent(source_objects=chest_offset, target_parent=chest_ctrl_parent)
+        hierarchy_utils.parent(source_objects=chest_fk_offset, target_parent=chest_ctrl_parent)
+        constraint_targets(source_driver=chest_fk_ctrl, target_driven=chest_fk)
         # Attributes
-        set_attr_state(attribute_path=f"{chest_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
-        add_separator_attr(target_object=chest_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
-        expose_rotation_order(chest_ctrl)
+        set_attr_state(attribute_path=f"{chest_fk_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
+        add_separator_attr(target_object=chest_fk_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
+        expose_rotation_order(chest_fk_ctrl)
 
         # Chest Ribbon (IK) Control -----------------------------------------------------------------------
         chest_ik_ctrl = self._assemble_ctrl_name(name=self.chest.get_name(),
                                                  overwrite_suffix=NamingConstants.Suffix.IK_CTRL)
-        chest_ik_ctrl = duplicate_object(obj=chest_ctrl, name=chest_ik_ctrl)
+        chest_ik_ctrl = duplicate_as_node(obj=chest_fk_ctrl, name=chest_ik_ctrl)
         chest_ik_offset = Node(add_offset_transform(target_list=chest_ik_ctrl)[0])
         hierarchy_utils.parent(source_objects=chest_ik_offset, target_parent=cog_ctrl)
         add_separator_attr(target_object=chest_ik_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
         expose_rotation_order(chest_ik_ctrl)
 
         # Chest Ribbon (IK) Offset Ctrl --------------------------------------------------------------------
-        chest_o_ctrl = self._assemble_ctrl_name(name=self.chest.get_name(),
-                                                overwrite_suffix=NamingConstants.Suffix.IK_O_CTRL)
-        chest_o_ctrl = create_ctrl_curve(name=chest_o_ctrl, curve_file_name="_cube")
-        match_transform(source=chest_ctrl, target_list=chest_o_ctrl)
-        translate_shapes(obj_transform=chest_o_ctrl, offset=(1.1, 0, 0))  # Move Pivot Slightly below base
-        scale_shapes(obj_transform=chest_o_ctrl, offset=_shape_scale)
-        scale_shapes(obj_transform=chest_o_ctrl, offset=.9)
-        rotate_shapes(obj_transform=chest_o_ctrl, offset=(90, 0, 90))  # Undo rotate offset
-        set_color_viewport(obj_list=chest_o_ctrl, rgb_color=ColorConstants.RigJoint.OFFSET)
-        hierarchy_utils.parent(source_objects=chest_o_ctrl, target_parent=chest_ik_ctrl)
+        chest_o_ik_ctrl = self._assemble_ctrl_name(name=self.chest.get_name(),
+                                                   overwrite_suffix=NamingConstants.Suffix.IK_O_CTRL)
+        chest_o_ik_ctrl = create_ctrl_curve(name=chest_o_ik_ctrl, curve_file_name="_cube")
+        match_transform(source=chest_fk_ctrl, target_list=chest_o_ik_ctrl)
+        translate_shapes(obj_transform=chest_o_ik_ctrl, offset=(1.1, 0, 0))  # Move Pivot Slightly below base
+        scale_shapes(obj_transform=chest_o_ik_ctrl, offset=_shape_scale)
+        scale_shapes(obj_transform=chest_o_ik_ctrl, offset=.9)
+        rotate_shapes(obj_transform=chest_o_ik_ctrl, offset=(90, 0, 90))  # Undo rotate offset
+        set_color_viewport(obj_list=chest_o_ik_ctrl, rgb_color=ColorConstants.RigJoint.OFFSET)
+        hierarchy_utils.parent(source_objects=chest_o_ik_ctrl, target_parent=chest_ik_ctrl)
         # Chest Offset Data Transform
-        chest_o_data = self._assemble_ctrl_name(name=self.chest.get_name(),
-                                                overwrite_suffix=NamingConstants.Suffix.OFFSET_DATA)
-        chest_o_data = cmds.group(name=chest_o_data, empty=True, world=True)
-        chest_o_data = Node(chest_o_data)
-        self.add_driver_uuid_attr(target=chest_o_data,
+        chest_o_ik_data = self._assemble_ctrl_name(name=self.chest.get_name(),
+                                                   overwrite_suffix=NamingConstants.Suffix.OFFSET_DATA)
+        chest_o_ik_data = create_group(name=chest_o_ik_data)
+        self.add_driver_uuid_attr(target=chest_o_ik_data,
                                   driver_type=RiggerDriverTypes.OFFSET,
                                   proxy_purpose=self.chest)
-        hierarchy_utils.parent(source_objects=chest_o_data, target_parent=chest_ik_ctrl)
+        hierarchy_utils.parent(source_objects=chest_o_ik_data, target_parent=chest_ik_ctrl)
         # Connections
-        cmds.connectAttr(f'{chest_o_ctrl}.translate', f'{chest_o_data}.translate')
-        cmds.connectAttr(f'{chest_o_ctrl}.rotate', f'{chest_o_data}.rotate')
-        constraint_targets(source_driver=chest_o_data, target_driven=chest_fk)
+        cmds.connectAttr(f'{chest_o_ik_ctrl}.translate', f'{chest_o_ik_data}.translate')
+        cmds.connectAttr(f'{chest_o_ik_ctrl}.rotate', f'{chest_o_ik_data}.rotate')
         # Attributes
-        set_attr_state(attribute_path=f"{chest_o_ctrl}.v", hidden=True)  # Hide and Lock Visibility
-        add_separator_attr(target_object=chest_o_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
-        expose_rotation_order(chest_o_ctrl)
+        set_attr_state(attribute_path=f"{chest_o_ik_ctrl}.v", hidden=True)  # Hide and Lock Visibility
+        add_separator_attr(target_object=chest_o_ik_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
+        expose_rotation_order(chest_o_ik_ctrl)
         cmds.addAttr(chest_ik_ctrl, ln=RiggingConstants.ATTR_SHOW_OFFSET, at='bool', k=True)
-        cmds.connectAttr(f'{chest_ik_ctrl}.{RiggingConstants.ATTR_SHOW_OFFSET}', f'{chest_o_ctrl}.v')
+        cmds.connectAttr(f'{chest_ik_ctrl}.{RiggingConstants.ATTR_SHOW_OFFSET}', f'{chest_o_ik_ctrl}.v')
 
         # IK Spine (Ribbon) -----------------------------------------------------------------------------------
         spine_ribbon_grp = f'{prefixed_setup_name}_ribbon_{NamingConstants.Suffix.GRP}'
-        spine_ribbon_grp = cmds.group(name=spine_ribbon_grp, empty=True, world=True)
+        spine_ribbon_grp = create_group(name=spine_ribbon_grp)
         cmds.setAttr(f'{spine_ribbon_grp}.inheritsTransform', 0)  # Ignore Hierarchy Transform
 
         ribbon_sur = self._assemble_ctrl_name(name="spineRibbon", overwrite_suffix=NamingConstants.Suffix.SUR)
@@ -487,6 +489,14 @@ class ModuleSpine(ModuleGeneric):
         ik_limit_handle = cmds.ikHandle(name=ik_limit_handle, solver='ikSCsolver',
                                         startJoint=limit_joints[0], endEffector=limit_joints[-1])[0]
         ik_limit_handle = Node(ik_limit_handle)
+
+        # Create Switch Setup ---------------------------------------------------------------------------------
+        fk_controls = [chest_fk_ctrl] + spine_ctrls
+        create_switch_setup(source_a=fk_joints, source_b=ik_joints, target_base=module_jnt_list, attr_holder=cog_ctrl,
+                            visibility_a=fk_controls, visibility_b=[chest_ik_ctrl, chest_o_ik_ctrl])
+        cmds.setAttr(f'{cog_ctrl}.{RiggingConstants.ATTR_INFLUENCE_SWITCH}', 0)  # Default is IK
+
+        # Create Squash Stretch System (limitQuery) -----------------------------------------------------------
         add_separator_attr(target_object=cog_ctrl, attr_name='squashStretch')
         stretchy_grp = create_stretchy_ik_setup(ik_handle=ik_limit_handle,
                                                 attribute_holder=cog_ctrl,
@@ -496,27 +506,28 @@ class ModuleSpine(ModuleGeneric):
 
         end_loc, start_loc = cmds.listConnections(f'{stretchy_grp}.message')
 
-        #
-        # print(chest_ik_ctrl)
-        # # Disconnect Stretchy System Driver
-        # for child in cmds.listRelatives(end_loc, children=True, typ="pointConstraint") or []:
-        #     cmds.delete(child)
+        # Setup Ribbon Limit Query Logic ----------------------------------------------------------------------
+        last_limit_query_jnt = limit_joints[-1]
+        # Disconnect Stretchy System Driver
+        for child in cmds.listRelatives(end_loc, children=True, typ="pointConstraint") or []:
+            cmds.delete(child)
 
-        # chest_pivot_grp = cmds.group(name='chest_pivot' + GRP_SUFFIX.capitalize(), empty=True, world=True)
-        # cmds.delete(cmds.parentConstraint(ik_spine_constraint_joints[-1], chest_pivot_grp))
-        #
-        # cmds.parentConstraint(chest_pivot_grp, spine_stretchy_elements[0])
-        # cmds.parent(ik_spine_constraint_handle[0], chest_pivot_grp)
-        #
-        # chest_pivot_parent_grp = \
-        #     cmds.duplicate(chest_pivot_grp, name='chest_pivotParent' + GRP_SUFFIX.capitalize(), po=True)[0]
-        # chest_pivot_data_grp = cmds.duplicate(chest_pivot_grp, name='chest_data', po=True)[0]
-        # cmds.parent(chest_pivot_grp, chest_pivot_parent_grp)
-        # cmds.pointConstraint(ik_spine_constraint_joints[-1], chest_pivot_data_grp)
-        #
+        chest_ik_data = f'{self.chest.get_name()}_ik{upper_first_char(NamingConstants.Description.DATA)}'
+        chest_ik_data = create_group(name=chest_ik_data)
+        match_transform(source=last_limit_query_jnt, target_list=chest_ik_data)
+        constraint_targets(source_driver=chest_ik_data,  # Chest Pivot Determines the Stretch Factor
+                           target_driven=end_loc)
+        cmds.parent(ik_limit_handle, chest_ik_data)
+
+        # chest_ik_data_offset = cmds.duplicate(chest_ik_data, name='chest_pivotParentGrp', parentOnly=True)[0]
+        # chest_ik_data_offset = duplicate_object(obj=chest_ik_data, name=)
+        chest_pivot_data_grp = cmds.duplicate(chest_ik_data, name='chest_data', parentOnly=True)[0]
+        # cmds.parent(chest_ik_data, chest_ik_data_offset)
+        cmds.pointConstraint(last_limit_query_jnt, chest_pivot_data_grp)
+
         # cmds.parent(chest_pivot_parent_grp, spine_automation_grp)
-        # cmds.parent(spine_stretchy_elements[1], spine_automation_grp)
-        #
+        # cmds.parent(stretchy_grp, spine_automation_grp)
+
         # cmds.parentConstraint(spine_follicles.get('spine01_follicle'), ik_spine01_jnt, mo=True)
         # cmds.parentConstraint(spine_follicles.get('spine02_follicle'), ik_spine02_jnt, mo=True)
         # cmds.parentConstraint(spine_follicles.get('spine03_follicle'), ik_spine03_jnt, mo=True)

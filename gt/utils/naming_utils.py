@@ -34,6 +34,7 @@ class NamingConstants:
         PIVOT = 'pivot'
         FK = 'fk'  # Forward kinematics
         IK = 'ik'  # Inverse kinematics
+        DATA = 'data'
         DATA_QUERY = 'dataQuery'
         RIBBON = "ribbon"
 
@@ -49,7 +50,7 @@ class NamingConstants:
         JNT = 'jnt'  # Joint
         MAT = 'mat'  # Material
         LOC = 'loc'  # Locator
-        SUR = 'sur'  # Locator
+        SUR = 'sur'  # Surface
         END = 'end'  # Last object in a hierarchy
         OFFSET = 'offset'  # Offset Transform (control parent)
         OFFSET_CTRL = 'offsetCtrl'  # Offset control of an existing control
@@ -61,7 +62,7 @@ class NamingConstants:
         IK_HANDLE_RP = 'ikRP'  # Rotate-Plane Solver
         IK_HANDLE_SPRING = 'ikSpring'  # Spring Solver
         # IK Suffixes
-        SWITCH_CTRL = f'switch_{CTRL}'  # Same as CTRL but with an extra "ik" description
+        SWITCH_CTRL = f'switch_{CTRL}'  # Influence Switch Control (A-B System)
         IK_CTRL = f'ik_{CTRL}'  # Same as CTRL but with an extra "ik" description
         IK_O_CTRL = f'ik_{OFFSET_CTRL}'  # Offset Control
         IK_O_DATA = f'ik_{OFFSET_DATA}'  # Offset Data

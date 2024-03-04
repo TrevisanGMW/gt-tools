@@ -11,8 +11,8 @@ from gt.utils.data.controls.cluster_driven import create_scalable_two_sides_arro
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
 from gt.utils.math_utils import get_transforms_center_position, dist_path_sum
 from gt.utils.rigging_utils import expose_rotation_order, RiggingConstants
+from gt.utils.hierarchy_utils import add_offset_transform, create_group
 from gt.utils.color_utils import ColorConstants, set_color_viewport
-from gt.utils.hierarchy_utils import add_offset_transform
 from gt.utils.naming_utils import NamingConstants
 from gt.utils.curve_utils import get_curve
 from gt.utils.node_utils import Node
@@ -400,7 +400,7 @@ class ModuleBipedFingers(ModuleGeneric):
         Runs post rig script.
         """
         # Get Elements -----------------------------------------------------------------------------------------
-        _proxy_joint_map = {} # Key = Joint, Value = Proxy
+        _proxy_joint_map = {}  # Key = Joint, Value = Proxy
         _thumb_joints = []
         _index_joints = []
         _middle_joints = []
@@ -454,12 +454,11 @@ class ModuleBipedFingers(ModuleGeneric):
 
         # Control Parent (Main System Driver) ------------------------------------------------------------------
         wrist_grp = self._assemble_new_node_name(name=f"fingers_{NamingConstants.Suffix.DRIVEN}",
-                                                    project_prefix=project_prefix)
-        wrist_grp = cmds.group(name=wrist_grp, empty=True, world=True)
-        wrist_grp = Node(wrist_grp)
+                                                 project_prefix=project_prefix)
+        wrist_grp = create_group(name=wrist_grp)
         if module_parent_jnt:
             match_transform(source=module_parent_jnt, target_list=wrist_grp)
-        else: # No parent, average the position of the fingers group
+        else:  # No parent, average the position of the fingers group
             base_center_pos = get_transforms_center_position(transform_list=_joints_base_only)
             cmds.xform(wrist_grp, translation=base_center_pos, worldSpace=True)
         hierarchy_utils.parent(source_objects=wrist_grp, target_parent=direction_crv)
@@ -467,7 +466,7 @@ class ModuleBipedFingers(ModuleGeneric):
         # Create Controls -------------------------------------------------------------------------------------
         for finger_list in _finger_lists:
             if not finger_list:
-                continue # Ignore skipped fingers
+                continue  # Ignore skipped fingers
             # Unpack elements
             digit_base = finger_list[0]
             digit_middle = finger_list[1]

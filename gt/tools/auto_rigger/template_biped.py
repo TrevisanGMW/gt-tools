@@ -12,7 +12,6 @@ from gt.tools.auto_rigger.module_head import ModuleHead
 import maya.cmds as cmds
 import logging
 
-
 # Logging Setup
 logging.basicConfig()
 logger = logging.getLogger(__name__)

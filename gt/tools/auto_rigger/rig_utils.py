@@ -423,7 +423,7 @@ def create_direction_curve():
         Node, str: A Node containing the generated root curve
     """
     direction_crv = cmds.circle(name=f'direction_{NamingConstants.Suffix.CTRL}',
-                                 nr=(0, 1, 0), ch=False, radius=44.5)[0]
+                                normal=(0, 1, 0), ch=False, radius=44.5)[0]
     cmds.rebuildCurve(direction_crv, ch=False, rpo=1, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=20, d=3, tol=0.01)
     add_separator_attr(target_object=direction_crv,
                        attr_name=f'rig{upper_first_char(RiggingConstants.SEPARATOR_CONTROL)}')

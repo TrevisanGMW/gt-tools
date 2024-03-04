@@ -11,9 +11,9 @@ from gt.utils.rigging_utils import offset_control_orientation, expose_rotation_o
 from gt.utils.constraint_utils import equidistant_constraints, constraint_targets, ConstraintTypes
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
+from gt.utils.hierarchy_utils import add_offset_transform, create_group
 from gt.utils.color_utils import ColorConstants, set_color_viewport
 from gt.utils.joint_utils import copy_parent_orients, reset_orients
-from gt.utils.hierarchy_utils import add_offset_transform
 from gt.utils.curve_utils import create_connection_line
 from gt.utils.math_utils import dist_center_to_center
 from gt.utils.naming_utils import NamingConstants
@@ -360,18 +360,18 @@ class ModuleHead(ModuleGeneric):
 
         # Head Offset Ctrl
         head_o_ctrl = self._assemble_ctrl_name(name=self.head.get_name(),
-                                             overwrite_suffix=NamingConstants.Suffix.OFFSET_CTRL)
+                                               overwrite_suffix=NamingConstants.Suffix.OFFSET_CTRL)
         head_o_ctrl = create_ctrl_curve(name=head_o_ctrl, curve_file_name="_circle_pos_x")
         match_transform(source=head_ctrl, target_list=head_o_ctrl)
         scale_shapes(obj_transform=head_o_ctrl, offset=head_scale * .35)
         rotate_shapes(obj_transform=head_o_ctrl, offset=(0, 0, -90))
         translate_shapes(obj_transform=head_o_ctrl, offset=(0, head_end_distance*1.1, 0))  # Move Above Head
-        set_color_viewport(obj_list= head_o_ctrl, rgb_color=ColorConstants.RigJoint.OFFSET)
+        set_color_viewport(obj_list=head_o_ctrl, rgb_color=ColorConstants.RigJoint.OFFSET)
         hierarchy_utils.parent(source_objects=head_o_ctrl, target_parent=head_ctrl)
         # Head Offset Data Transform
         head_o_data = self._assemble_ctrl_name(name=self.head.get_name(),
                                                overwrite_suffix=NamingConstants.Suffix.OFFSET_DATA)
-        head_o_data = cmds.group(name=head_o_data, empty=True, world=True)
+        head_o_data = create_group(name=head_o_data)
         head_o_data = Node(head_o_data)
         self.add_driver_uuid_attr(target=head_o_data,
                                   driver_type=RiggerDriverTypes.OFFSET,
@@ -420,7 +420,7 @@ class ModuleHead(ModuleGeneric):
         self.add_driver_uuid_attr(target=rt_eye_ctrl,
                                   driver_type=RiggerDriverTypes.AIM,
                                   proxy_purpose=self.rt_eye)
-        main_eye_ctrl = create_ctrl_curve(name=self.main_eye_ctrl , curve_file_name="_peanut_pos_z")
+        main_eye_ctrl = create_ctrl_curve(name=self.main_eye_ctrl, curve_file_name="_peanut_pos_z")
         lt_eye_offset = add_offset_transform(target_list=lt_eye_ctrl)[0]
         rt_eye_offset = add_offset_transform(target_list=rt_eye_ctrl)[0]
         lt_eye_offset = Node(lt_eye_offset)
@@ -481,7 +481,7 @@ class ModuleHead(ModuleGeneric):
                                              subgroup=f"aimLines_{NamingConstants.Suffix.GRP}")
         hierarchy_utils.parent(source_objects=lt_lines + rt_lines, target_parent=aim_lines_grp)
 
-        hide_lock_default_attrs(obj_list=[lt_eye_ctrl, rt_eye_ctrl], rotate=True , scale=True, visibility=True)
+        hide_lock_default_attrs(obj_list=[lt_eye_ctrl, rt_eye_ctrl], rotate=True, scale=True, visibility=True)
         hide_lock_default_attrs(obj_list=main_eye_ctrl, scale=True, visibility=True)
         add_separator_attr(target_object=main_eye_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
         expose_rotation_order(main_eye_ctrl)

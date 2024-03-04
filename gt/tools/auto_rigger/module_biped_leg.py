@@ -14,8 +14,8 @@ from gt.utils.transform_utils import rotate_shapes
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
 from gt.utils.constraint_utils import constraint_targets, ConstraintTypes
+from gt.utils.hierarchy_utils import add_offset_transform, create_group
 from gt.utils.math_utils import get_bbox_position, dist_path_sum
-from gt.utils.hierarchy_utils import add_offset_transform
 from gt.utils.naming_utils import NamingConstants
 from gt.utils.node_utils import create_node, Node
 from gt.utils.curve_utils import get_curve
@@ -228,7 +228,7 @@ class ModuleBipedLeg(ModuleGeneric):
         knee_aim_loc = cmds.spaceLocator(name=f'{knee_tag}_dirAim_{NamingConstants.Suffix.LOC}')[0]
         knee_upvec_loc = cmds.spaceLocator(name=f'{knee_tag}_dirParentUp_{NamingConstants.Suffix.LOC}')[0]
         knee_upvec_loc_grp = f'{knee_tag}_dirParentUp_{NamingConstants.Suffix.GRP}'
-        knee_upvec_loc_grp = cmds.group(name=knee_upvec_loc_grp, empty=True, world=True)
+        knee_upvec_loc_grp = create_group(name=knee_upvec_loc_grp)
 
         # Hide Reference Elements
         set_attr(obj_list=[knee_pv_dir, knee_upvec_loc_grp, knee_dir_loc],
@@ -277,7 +277,7 @@ class ModuleBipedLeg(ModuleGeneric):
         # Ball -----------------------------------------------------------------------------------
         ankle_tag = ankle.get_short_name()
         ball_offset = get_proxy_offset(ball)
-        ball_driver = cmds.group(empty=True, world=True, name=f'{ankle_tag}_pivot')
+        ball_driver = create_group(name=f'{ankle_tag}_pivot')
         ball_driver = hierarchy_utils.parent(source_objects=ball_driver, target_parent=root)[0]
         ankle_pos = cmds.xform(ankle, q=True, ws=True, rp=True)
         cmds.move(ankle_pos[0], ball_driver, moveX=True)
@@ -406,7 +406,7 @@ class ModuleBipedLeg(ModuleGeneric):
         match_transform(source=hip_jnt, target_list=hip_fk_offset)
         scale_shapes(obj_transform=hip_fk_ctrl, offset=leg_scale*.1)
         hierarchy_utils.parent(source_objects=hip_fk_offset, target_parent=direction_crv)
-        constraint_targets(source_driver=hip_fk_ctrl,target_driven=hip_fk)
+        constraint_targets(source_driver=hip_fk_ctrl, target_driven=hip_fk)
         color = get_directional_color(object_name=hip_fk_ctrl)
         set_color_viewport(obj_list=hip_fk_ctrl, rgb_color=color)
 
@@ -432,7 +432,7 @@ class ModuleBipedLeg(ModuleGeneric):
         hierarchy_utils.parent(source_objects=ankle_fk_offset, target_parent=knee_fk_ctrl)
         constraint_targets(source_driver=ankle_fk_ctrl, target_driven=ankle_fk)
         # Remove Ankle Shape Orientation
-        temp_transform = cmds.group(name=ankle_fk_ctrl + '_rotExtraction', empty=True, world=True)
+        temp_transform = create_group(name=ankle_fk_ctrl + '_rotExtraction')
         match_translate(source=toe_jnt, target_list=temp_transform)
         match_translate(source=ankle_jnt, target_list=temp_transform, skip=['x', 'z'])
         cmds.delete(cmds.aimConstraint(temp_transform, ankle_fk_ctrl, offset=(0, 0, 0), aimVector=(0, 1, 0),
@@ -455,7 +455,7 @@ class ModuleBipedLeg(ModuleGeneric):
 
         # IK Knee Control
         knee_ik_ctrl = self._assemble_ctrl_name(name=self.knee.get_name(),
-                                             overwrite_suffix=NamingConstants.Suffix.IK_CTRL)
+                                                overwrite_suffix=NamingConstants.Suffix.IK_CTRL)
         knee_ik_ctrl = create_ctrl_curve(name=knee_ik_ctrl, curve_file_name="_locator")
         self.add_driver_uuid_attr(target=knee_ik_ctrl, driver_type=RiggerDriverTypes.IK, proxy_purpose=self.knee)
         knee_offset = add_offset_transform(target_list=knee_ik_ctrl)[0]
@@ -472,7 +472,7 @@ class ModuleBipedLeg(ModuleGeneric):
         knee_pv_dir = find_objects_with_attr(attr_name=ModuleBipedLeg.REF_ATTR_KNEE_PROXY_PV,
                                              lookup_list=knee_proxy_children)
 
-        temp_transform = cmds.group(name=knee_ik_ctrl + '_rotExtraction', empty=True, world=True)
+        temp_transform = create_group(name=knee_ik_ctrl + '_rotExtraction')
         match_translate(source=knee_jnt, target_list=temp_transform)
         cmds.delete(cmds.aimConstraint(knee_pv_dir, temp_transform, offset=(0, 0, 0), aimVector=(1, 0, 0),
                                        upVector=(0, -1, 0), worldUpType='vector', worldUpVector=(0, 1, 0)))

@@ -16,8 +16,8 @@ from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, Orientation
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
 from gt.utils.constraint_utils import ConstraintTypes, constraint_targets
 from gt.utils.math_utils import dist_center_to_center, get_bbox_position
+from gt.utils.hierarchy_utils import add_offset_transform, create_group
 from gt.utils.iterable_utils import multiply_collection_by_number
-from gt.utils.hierarchy_utils import add_offset_transform
 from gt.utils.node_utils import Node, create_node
 from gt.utils.naming_utils import NamingConstants
 from gt.utils.curve_utils import get_curve
@@ -198,12 +198,11 @@ class ModuleBipedArm(ModuleGeneric):
         elbow_aim_loc = cmds.spaceLocator(name=f'{elbow_tag}_dirAim_{NamingConstants.Suffix.LOC}')[0]
         elbow_upvec_loc = cmds.spaceLocator(name=f'{elbow_tag}_dirParentUp_{NamingConstants.Suffix.LOC}')[0]
         elbow_upvec_loc_grp = f'{elbow_tag}_dirParentUp_{NamingConstants.Suffix.GRP}'
-        elbow_upvec_loc_grp = cmds.group(name=elbow_upvec_loc_grp, empty=True, world=True)
+        elbow_upvec_loc_grp = create_group(name=elbow_upvec_loc_grp)
 
         elbow_dir_loc = Node(elbow_dir_loc)
         elbow_aim_loc = Node(elbow_aim_loc)
         elbow_upvec_loc = Node(elbow_upvec_loc)
-        elbow_upvec_loc_grp = Node(elbow_upvec_loc_grp)
 
         # Hide Reference Elements
         hierarchy_utils.parent(elbow_aim_loc, elbow_dir_loc)
@@ -478,7 +477,7 @@ class ModuleBipedArm(ModuleGeneric):
         elbow_pv_dir = find_objects_with_attr(attr_name=ModuleBipedArm.REF_ATTR_ELBOW_PROXY_PV,
                                               lookup_list=elbow_proxy_children)
 
-        temp_transform = cmds.group(name=elbow_ik_ctrl + '_rotExtraction', empty=True, world=True)
+        temp_transform = create_group(name=elbow_ik_ctrl + '_rotExtraction')
         cmds.delete(cmds.pointConstraint(elbow_jnt, temp_transform))
         cmds.delete(cmds.aimConstraint(elbow_pv_dir, temp_transform, offset=(0, 0, 0),
                                        aimVector=(1, 0, 0), upVector=(0, -1, 0), worldUpType='vector',

@@ -2293,7 +2293,7 @@ if __name__ == "__main__":
     a_root_module.add_driver_uuid_attr(test[0], "fk", root)
 
     a_module = ModuleGeneric()
-    print(a_module._assemble_ctrl_name(name="test"))
+    # print(a_module._assemble_ctrl_name(name="test"))
     a_module.add_to_proxies(a_1st_proxy)
     a_module.add_to_proxies(a_2nd_proxy)
     # a_module.set_prefix("prefix")

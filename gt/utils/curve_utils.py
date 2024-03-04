@@ -1847,8 +1847,8 @@ def create_connection_line(object_a, object_b, constraint=True, line_width=3):
     Creates a curve attached to two objects, often used to better visualize hierarchies
 
     Args:
-        object_a (str): Name of the object driving the start of the curve
-        object_b (str): Name of the object driving end of the curve (usually a child of object_a)
+        object_a (str, Node): Name of the object driving the start of the curve
+        object_b (str, Node): Name of the object driving end of the curve (usually a child of object_a)
         constraint (bool, optional): If True, it will constrain the clusters to "object_a" and "object_b".
         line_width (float, optional): Width of the connection line. (Default is 3)
 
