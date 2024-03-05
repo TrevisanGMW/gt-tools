@@ -4,7 +4,8 @@ github.com/TrevisanGMW/gt-tools
 """
 from gt.tools.auto_rigger.rig_utils import find_or_create_joint_automation_group, get_driven_joint, create_ctrl_curve
 from gt.tools.auto_rigger.rig_utils import find_proxy_from_uuid, find_direction_curve, find_joint_from_uuid
-from gt.tools.auto_rigger.rig_utils import get_automation_group
+from gt.tools.auto_rigger.rig_utils import get_automation_group, get_proxy_offset
+from gt.utils.attr_utils import add_separator_attr, set_attr_state, connect_attr, hide_lock_default_attrs, add_attr
 from gt.utils.rigging_utils import duplicate_joint_for_automation, create_stretchy_ik_setup, duplicate_object
 from gt.utils.rigging_utils import expose_rotation_order, offset_control_orientation, rescale_joint_radius
 from gt.utils.rigging_utils import RiggingConstants, create_switch_setup
@@ -15,21 +16,18 @@ from gt.utils.color_utils import ColorConstants, set_color_viewport, set_color_o
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
 from gt.utils.constraint_utils import equidistant_constraints, constraint_targets
-from gt.utils.attr_utils import add_separator_attr, set_attr_state, connect_attr
+from gt.utils.curve_utils import set_curve_width, create_connection_line
 from gt.utils.hierarchy_utils import add_offset_transform, create_group
-from gt.tools.auto_rigger.rig_utils import get_proxy_offset
 from gt.utils.math_utils import dist_center_to_center
 from gt.utils.joint_utils import set_joint_radius
 from gt.utils.string_utils import upper_first_char
 from gt.utils.naming_utils import NamingConstants
-from gt.utils.curve_utils import set_curve_width
 from gt.utils.node_utils import Node
 from gt.utils import hierarchy_utils
 from gt.ui import resource_library
 import maya.cmds as cmds
 import logging
 import re
-
 
 # Logging Setup
 logging.basicConfig()
@@ -38,7 +36,7 @@ logger.setLevel(logging.INFO)
 
 
 class ModuleSpine(ModuleGeneric):
-    __version__ = '0.0.3-alpha'
+    __version__ = '0.0.4-alpha'
     icon = resource_library.Icon.rigger_module_spine
     allow_parenting = True
 
@@ -238,6 +236,7 @@ class ModuleSpine(ModuleGeneric):
         module_jnt_list.extend(middle_jnt_list)
         module_jnt_list.append(chest_jnt)
         spine_automation_grp = get_automation_group(f'spineAutomation_{NamingConstants.Suffix.GRP}')
+        # line_automation_grp = find_or_create_lines_automation_group()
         # Get Formatted Prefix
         _prefix = ''
         if self.prefix:
@@ -348,7 +347,7 @@ class ModuleSpine(ModuleGeneric):
 
         # Hip Offset Ctrl
         hip_o_ctrl = self._assemble_ctrl_name(name=self.hip.get_name(),
-                                              overwrite_suffix=NamingConstants.Suffix.OFFSET_CTRL)
+                                              overwrite_suffix=NamingConstants.Control.OFFSET_CTRL)
         hip_o_ctrl = create_ctrl_curve(name=hip_o_ctrl, curve_file_name="_wavy_circle_pos_x")
         match_transform(source=hip_ctrl, target_list=hip_o_ctrl)
         scale_shapes(obj_transform=hip_o_ctrl, offset=spine_scale / 7)
@@ -357,7 +356,7 @@ class ModuleSpine(ModuleGeneric):
         hierarchy_utils.parent(source_objects=hip_o_ctrl, target_parent=hip_ctrl)
         # Hip Offset Data Transform
         hip_o_data = self._assemble_ctrl_name(name=self.hip.get_name(),
-                                              overwrite_suffix=NamingConstants.Suffix.OFFSET_DATA)
+                                              overwrite_suffix=NamingConstants.Control.OFFSET_DATA)
         hip_o_data = create_group(name=hip_o_data)
         self.add_driver_uuid_attr(target=hip_o_data,
                                   driver_type=RiggerDriverTypes.OFFSET,
@@ -423,16 +422,47 @@ class ModuleSpine(ModuleGeneric):
 
         # Chest Ribbon (IK) Control -----------------------------------------------------------------------
         chest_ik_ctrl = self._assemble_ctrl_name(name=self.chest.get_name(),
-                                                 overwrite_suffix=NamingConstants.Suffix.IK_CTRL)
+                                                 overwrite_suffix=NamingConstants.Control.IK_CTRL)
         chest_ik_ctrl = duplicate_object(obj=chest_fk_ctrl, name=chest_ik_ctrl)
         chest_ik_offset = Node(add_offset_transform(target_list=chest_ik_ctrl)[0])
         hierarchy_utils.parent(source_objects=chest_ik_offset, target_parent=cog_ctrl)
         add_separator_attr(target_object=chest_ik_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
         expose_rotation_order(chest_ik_ctrl)
 
+        # Chest Rotate Pivot (Movable Pivot)
+        chest_piv_ik_data = self._assemble_ctrl_name(name=self.chest.get_name(),
+                                                     overwrite_suffix=NamingConstants.Control.PIVOT_CTRL)
+        chest_piv_ik_data = create_ctrl_curve(name=chest_piv_ik_data, curve_file_name="_locator")
+        # Aim Lines
+        spine_line_grp = f'{prefixed_setup_name}_lines_{NamingConstants.Suffix.GRP}'
+        spine_line_grp = create_group(name=spine_line_grp)
+        piv_line_data = create_connection_line(object_a=chest_ik_offset, object_b=chest_piv_ik_data, line_width=3)
+        piv_aim_crv = piv_line_data[0]
+        hierarchy_utils.parent(source_objects=piv_line_data, target_parent=spine_line_grp)
+        hierarchy_utils.parent(source_objects=spine_line_grp, target_parent=spine_automation_grp)
+        cmds.setAttr(f'{piv_aim_crv}.inheritsTransform', 0)  # So it can be parented to control
+        cmds.setAttr(f'{piv_aim_crv}.overrideEnabled', 1)  # Enable Modes (So it can be seen as template)
+        cmds.setAttr(f'{piv_aim_crv}.overrideDisplayType', 1)  # Template
+        hierarchy_utils.parent(source_objects=piv_aim_crv, target_parent=chest_piv_ik_data)
+        # Setup and Connections
+        match_transform(source=chest_ik_ctrl, target_list=chest_piv_ik_data)
+        scale_shapes(obj_transform=chest_piv_ik_data, offset=spine_scale*0.7)
+        set_curve_width(obj_list=chest_piv_ik_data, line_width=3)
+        self.add_driver_uuid_attr(target=chest_piv_ik_data,
+                                  driver_type=RiggerDriverTypes.PIVOT,
+                                  proxy_purpose=self.chest)
+        hierarchy_utils.parent(source_objects=chest_piv_ik_data, target_parent=chest_ik_ctrl)
+        cmds.connectAttr(f'{chest_piv_ik_data}.translate', f'{chest_ik_ctrl}.rotatePivot')
+        hide_lock_default_attrs(obj_list=chest_piv_ik_data, rotate=True, scale=True)
+        add_attr(obj_list=chest_ik_ctrl, attributes=RiggingConstants.ATTR_SHOW_PIVOT, attr_type="bool")
+        connect_attr(source_attr=f'{chest_ik_ctrl}.{RiggingConstants.ATTR_SHOW_PIVOT}',
+                     target_attr_list=[f'{chest_piv_ik_data}.v'])
+        set_attr_state(attribute_path=f'{chest_piv_ik_data}.v', hidden=True)
+        set_color_viewport(obj_list=chest_piv_ik_data, rgb_color=ColorConstants.RigControl.PIVOT)
+
         # Chest Ribbon (IK) Offset Ctrl --------------------------------------------------------------------
         chest_o_ik_ctrl = self._assemble_ctrl_name(name=self.chest.get_name(),
-                                                   overwrite_suffix=NamingConstants.Suffix.IK_O_CTRL)
+                                                   overwrite_suffix=NamingConstants.Control.IK_O_CTRL)
         chest_o_ik_ctrl = create_ctrl_curve(name=chest_o_ik_ctrl, curve_file_name="_cube")
         match_transform(source=chest_fk_ctrl, target_list=chest_o_ik_ctrl)
         translate_shapes(obj_transform=chest_o_ik_ctrl, offset=(1.1, 0, 0))  # Move Pivot Slightly below base
@@ -443,7 +473,7 @@ class ModuleSpine(ModuleGeneric):
         hierarchy_utils.parent(source_objects=chest_o_ik_ctrl, target_parent=chest_ik_ctrl)
         # Chest Offset Data Transform
         chest_o_ik_data = self._assemble_ctrl_name(name=self.chest.get_name(),
-                                                   overwrite_suffix=NamingConstants.Suffix.OFFSET_DATA)
+                                                   overwrite_suffix=NamingConstants.Control.OFFSET_DATA)
         chest_o_ik_data = create_group(name=chest_o_ik_data)
         self.add_driver_uuid_attr(target=chest_o_ik_data,
                                   driver_type=RiggerDriverTypes.OFFSET,
