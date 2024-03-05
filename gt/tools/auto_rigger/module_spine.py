@@ -5,19 +5,21 @@ github.com/TrevisanGMW/gt-tools
 from gt.tools.auto_rigger.rig_utils import find_or_create_joint_automation_group, get_driven_joint, create_ctrl_curve
 from gt.tools.auto_rigger.rig_utils import find_proxy_from_uuid, find_direction_curve, find_joint_from_uuid
 from gt.tools.auto_rigger.rig_utils import get_automation_group
-from gt.utils.rigging_utils import duplicate_joint_for_automation, create_stretchy_ik_setup, duplicate_as_node
+from gt.utils.rigging_utils import duplicate_joint_for_automation, create_stretchy_ik_setup, duplicate_object
 from gt.utils.rigging_utils import expose_rotation_order, offset_control_orientation, rescale_joint_radius
 from gt.utils.rigging_utils import RiggingConstants, create_switch_setup
 from gt.utils.transform_utils import Vector3, scale_shapes, match_transform, translate_shapes, rotate_shapes
+from gt.utils.transform_utils import match_translate, set_equidistant_transforms
 from gt.utils.surface_utils import create_surface_from_object_list, create_follicle, get_closest_uv_point
 from gt.utils.color_utils import ColorConstants, set_color_viewport, set_color_outliner
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
 from gt.utils.constraint_utils import equidistant_constraints, constraint_targets
+from gt.utils.attr_utils import add_separator_attr, set_attr_state, connect_attr
 from gt.utils.hierarchy_utils import add_offset_transform, create_group
-from gt.utils.attr_utils import add_separator_attr, set_attr_state
 from gt.tools.auto_rigger.rig_utils import get_proxy_offset
 from gt.utils.math_utils import dist_center_to_center
+from gt.utils.joint_utils import set_joint_radius
 from gt.utils.string_utils import upper_first_char
 from gt.utils.naming_utils import NamingConstants
 from gt.utils.curve_utils import set_curve_width
@@ -40,8 +42,11 @@ class ModuleSpine(ModuleGeneric):
     icon = resource_library.Icon.rigger_module_spine
     allow_parenting = True
 
+    # Metadata Keys
+    META_DROPOFF_RATE = "ribbonDropoffRate"
     # Default Values
     DEFAULT_SETUP_NAME = "spine"
+    DEFAULT_DROPOFF_RATE = 1
 
     def __init__(self, name="Spine", prefix=None, suffix=None):
         super().__init__(name=name, prefix=prefix, suffix=suffix)
@@ -51,6 +56,7 @@ class ModuleSpine(ModuleGeneric):
 
         # Extra Module Data
         self.set_meta_setup_name(name=self.DEFAULT_SETUP_NAME)
+        self.add_to_metadata(key=self.META_DROPOFF_RATE, value=self.DEFAULT_DROPOFF_RATE)
 
         # Hip (Base)
         self.hip = Proxy(name="hip")
@@ -418,7 +424,7 @@ class ModuleSpine(ModuleGeneric):
         # Chest Ribbon (IK) Control -----------------------------------------------------------------------
         chest_ik_ctrl = self._assemble_ctrl_name(name=self.chest.get_name(),
                                                  overwrite_suffix=NamingConstants.Suffix.IK_CTRL)
-        chest_ik_ctrl = duplicate_as_node(obj=chest_fk_ctrl, name=chest_ik_ctrl)
+        chest_ik_ctrl = duplicate_object(obj=chest_fk_ctrl, name=chest_ik_ctrl)
         chest_ik_offset = Node(add_offset_transform(target_list=chest_ik_ctrl)[0])
         hierarchy_utils.parent(source_objects=chest_ik_offset, target_parent=cog_ctrl)
         add_separator_attr(target_object=chest_ik_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
@@ -497,13 +503,12 @@ class ModuleSpine(ModuleGeneric):
         cmds.setAttr(f'{cog_ctrl}.{RiggingConstants.ATTR_INFLUENCE_SWITCH}', 0)  # Default is IK
 
         # Create Squash Stretch System (limitQuery) -----------------------------------------------------------
-        add_separator_attr(target_object=cog_ctrl, attr_name='squashStretch')
+        add_separator_attr(target_object=cog_ctrl, attr_name='ribbonSquashStretch')
         stretchy_grp = create_stretchy_ik_setup(ik_handle=ik_limit_handle,
                                                 attribute_holder=cog_ctrl,
                                                 prefix=prefixed_setup_name)
         hierarchy_utils.parent(source_objects=ik_limit_handle, target_parent=spine_ribbon_grp)
         hierarchy_utils.parent(source_objects=[stretchy_grp, spine_ribbon_grp], target_parent=spine_automation_grp)
-
         end_loc, start_loc = cmds.listConnections(f'{stretchy_grp}.message')
 
         # Setup Ribbon Limit Query Logic ----------------------------------------------------------------------
@@ -516,32 +521,83 @@ class ModuleSpine(ModuleGeneric):
         chest_ik_data = create_group(name=chest_ik_data)
         match_transform(source=last_limit_query_jnt, target_list=chest_ik_data)
         constraint_targets(source_driver=chest_ik_data,  # Chest Pivot Determines the Stretch Factor
-                           target_driven=end_loc)
+                           target_driven=end_loc, maintain_offset=False)
         cmds.parent(ik_limit_handle, chest_ik_data)
 
-        # chest_ik_data_offset = cmds.duplicate(chest_ik_data, name='chest_pivotParentGrp', parentOnly=True)[0]
-        # chest_ik_data_offset = duplicate_object(obj=chest_ik_data, name=)
-        chest_pivot_data_grp = cmds.duplicate(chest_ik_data, name='chest_data', parentOnly=True)[0]
-        # cmds.parent(chest_ik_data, chest_ik_data_offset)
-        cmds.pointConstraint(last_limit_query_jnt, chest_pivot_data_grp)
+        # TODO Organize
+        chest_ik_data_offset = f'{chest_ik_data.get_short_name()}{upper_first_char(NamingConstants.Suffix.OFFSET)}'
+        chest_ik_data_offset = cmds.duplicate(chest_ik_data, name=chest_ik_data_offset, parentOnly=True)[0]
+        aka_chest_data = cmds.duplicate(chest_ik_data, name="aka_chest_data", parentOnly=True)[0]  # TODO TEMP @@@
+        cmds.parent(chest_ik_data, chest_ik_data_offset)
+        cmds.pointConstraint(last_limit_query_jnt, aka_chest_data)
 
-        # cmds.parent(chest_pivot_parent_grp, spine_automation_grp)
-        # cmds.parent(stretchy_grp, spine_automation_grp)
+        # Spine IK Control ----------------------------------------------------------------------------------
+        temp_fol_trans, _ = create_follicle(input_surface=ribbon_sur,
+                                            uv_position=(0.5, 0.5),
+                                            name=f"{_prefix}tempFollicle")
+        spine_ik_ctrl = self._assemble_ctrl_name(name=f'{setup_name}_ik')
+        spine_ik_ctrl = create_ctrl_curve(name=spine_ik_ctrl, curve_file_name="_cube")
+        spine_ik_offset = Node(add_offset_transform(target_list=spine_ik_ctrl)[0])
+        spine_ik_hip_chest_data = add_offset_transform(target_list=spine_ik_ctrl, transform_suffix="hipChestData")
+        set_equidistant_transforms(start=chest_ik_ctrl, end=cog_ctrl, target_list=spine_ik_offset)
+        match_translate(source=temp_fol_trans, target_list=spine_ik_offset)
+        cmds.delete(temp_fol_trans)
+        # Scale
+        _shape_scale = (spine_scale / 3, spine_scale / 10, spine_scale / 4)
+        scale_shapes(obj_transform=spine_ik_ctrl, offset=_shape_scale)
+        # Attributes
+        set_attr_state(attribute_path=f"{spine_ik_ctrl}.v", locked=True, hidden=True)  # Hide and Lock Visibility
+        add_separator_attr(target_object=spine_ik_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
+        expose_rotation_order(spine_ik_ctrl)
 
-        # cmds.parentConstraint(spine_follicles.get('spine01_follicle'), ik_spine01_jnt, mo=True)
-        # cmds.parentConstraint(spine_follicles.get('spine02_follicle'), ik_spine02_jnt, mo=True)
-        # cmds.parentConstraint(spine_follicles.get('spine03_follicle'), ik_spine03_jnt, mo=True)
+        # Ribbon Driver Joints
+        hip_ribbon_jnt = f'{self.hip.get_name()}_{NamingConstants.Description.RIBBON}_{NamingConstants.Suffix.JNT}'
+        hip_ribbon_jnt = duplicate_object(obj=hip_jnt, name=hip_ribbon_jnt)
+        match_transform(source=cog_ctrl, target_list=hip_ribbon_jnt)
 
-        # # TODO TEMP @@@
-        # out_find_driver = self.find_driver(driver_type=RiggerDriverTypes.FK, proxy_purpose=self.hip)
-        # out_find_module_drivers = self.find_module_drivers()
-        # out_find_proxy_drivers = self.find_proxy_drivers(proxy=self.hip, as_dict=True)
-        # print(f"out_find_driver:{out_find_driver}")
-        # print(f"out_find_module_drivers:{out_find_module_drivers}")
-        # print(f"out_find_proxy_drivers:{out_find_proxy_drivers}")
+        spine_ribbon_jnt = f'{setup_name}_{NamingConstants.Description.RIBBON}_{NamingConstants.Suffix.JNT}'
+        spine_ribbon_jnt = duplicate_object(obj=hip_ribbon_jnt, name=spine_ribbon_jnt)
+        match_transform(source=spine_ik_ctrl, target_list=spine_ribbon_jnt)
+
+        chest_ribbon_jnt = f'{self.chest.get_name()}_{NamingConstants.Description.RIBBON}_{NamingConstants.Suffix.JNT}'
+        chest_ribbon_jnt = duplicate_object(obj=chest_jnt, name=chest_ribbon_jnt)
+        match_transform(source=chest_ik_ctrl, target_list=chest_ribbon_jnt)
+
+        # Connect Ribbon Controls and Joints
+        constraint_targets(source_driver=[cog_ctrl, chest_o_ik_data], target_driven=spine_ik_hip_chest_data)
+        ribbon_driver_joints = [hip_ribbon_jnt, spine_ribbon_jnt, chest_ribbon_jnt]
+        set_joint_radius(joints=ribbon_driver_joints, radius=spine_scale * .1)
+        set_color_viewport(obj_list=ribbon_driver_joints, rgb_color=ColorConstants.RigJoint.AUTOMATION)
+        dropoff_rate = self.get_metadata_value(key=self.META_DROPOFF_RATE)
+        ribbon_skin_cluster = cmds.skinCluster(ribbon_driver_joints, ribbon_sur,
+                                               dropoffRate=dropoff_rate,
+                                               nurbsSamples=15,
+                                               bindMethod=0,  # Closest Distance
+                                               name=f"{_prefix}spineRibbon_skinCluster")[0]
+
+        constraint_targets(source_driver=cog_ctrl, target_driven=hip_ribbon_jnt)
+        constraint_targets(source_driver=spine_ik_ctrl, target_driven=spine_ribbon_jnt)
+        constraint_targets(source_driver=chest_o_ik_data, target_driven=chest_ribbon_jnt)
+        spine_ik_ctrl_shape = cmds.listRelatives(spine_ik_ctrl, shapes=True, fullPath=True)[0]
+        connect_attr(source_attr=f'{cog_ctrl}.visibilityB', target_attr_list=f'{spine_ik_ctrl_shape}.v')
+        set_color_viewport(obj_list=spine_ik_ctrl, rgb_color=ColorConstants.RigControl.CENTER)
+        hierarchy_utils.parent(source_objects=ribbon_driver_joints, target_parent=joint_automation_grp)
 
         # Set Children Drivers -----------------------------------------------------------------------------
         self.module_children_drivers = [cog_offset]
+
+    # ------------------------------------------- Extra Module Setters -------------------------------------------
+    def set_ribbon_dropoff_rate(self, rate):
+        """
+        Sets the foot control name by editing the metadata value associated with it.
+        Args:
+            rate (int, float): Dropoff rate for the ribbon controls. Range 0.1 to 10.0
+        """
+        if not (0.1 <= rate <= 10.0):
+            logger.warning("Dropoff rate must be between 0.1 and 10.0")
+            return
+
+        self.add_to_metadata(self.META_DROPOFF_RATE, value=rate)
 
 
 if __name__ == "__main__":
@@ -557,8 +613,8 @@ if __name__ == "__main__":
     from gt.tools.auto_rigger.module_root import ModuleRoot
     a_root = ModuleRoot()
     a_spine = ModuleSpine()
-    a_spine.set_spine_num(0)
-    a_spine.set_spine_num(6)
+    # a_spine.set_spine_num(0)
+    # a_spine.set_spine_num(6)
     a_spine.set_parent_uuid(a_root.root.get_uuid())
     a_project = RigProject()
     a_project.add_to_modules(a_root)
