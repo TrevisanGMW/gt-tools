@@ -33,6 +33,7 @@ class RiggingConstants:
         """
     # Common Attributes
     ATTR_SHOW_OFFSET = 'showOffsetCtrl'
+    ATTR_SHOW_PIVOT = 'showPivotCtrl'
     ATTR_INFLUENCE_SWITCH = 'influenceSwitch'
     # Separator Attributes
     SEPARATOR_OPTIONS = "options"
