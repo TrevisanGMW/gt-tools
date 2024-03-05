@@ -253,10 +253,10 @@ class ColorConstants:
         CENTER = (1, 1, 0)  # Yellow
         LEFT = (0.21, 0.45, 1)  # Soft Blue
         LEFT_OFFSET = (0.4, 0.7, 1)
-        RIGHT = (1, 0.15, 0.15)#(1, 0.1, 0.1)  # Soft Red
+        RIGHT = (1, 0.15, 0.15)  # Soft Red
         RIGHT_OFFSET = (1, 0.5, 0.5)
         OFFSET = (0.4, 0.4, 0)  # Dark Yellow
-        PIVOT = (1, 0, 0)  # Red (Pure)
+        PIVOT = (.17, 0, .78)  # Deep Purple
         END = (1, 0, 0)
         TWEAK = (0.6, 0.2, 1)  # Pinkish Purple
 
