@@ -70,7 +70,9 @@ class ModuleSpine(ModuleGeneric):
         self.chest.set_initial_position(xyz=pos_chest)
         self.chest.set_locator_scale(scale=1.5)
         self.chest.set_meta_purpose(value="chest")
-        self.chest.add_driver_type(driver_type=[RiggerDriverTypes.OFFSET, RiggerDriverTypes.FK])
+        self.chest.add_driver_type(driver_type=[RiggerDriverTypes.DRIVEN,
+                                                RiggerDriverTypes.OFFSET,
+                                                RiggerDriverTypes.FK])
 
         # Spines (In-between)
         self.spines = []
@@ -580,6 +582,9 @@ class ModuleSpine(ModuleGeneric):
         add_separator_attr(target_object=spine_ik_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
         expose_rotation_order(spine_ik_ctrl)
 
+        # Set Initial Chest Pivot to Spine Control
+        match_translate(source=spine_ik_ctrl, target_list=chest_piv_ik_data)
+
         # Ribbon Driver Joints
         hip_ribbon_jnt = f'{self.hip.get_name()}_{NamingConstants.Description.RIBBON}_{NamingConstants.Suffix.JNT}'
         hip_ribbon_jnt = duplicate_object(obj=hip_jnt, name=hip_ribbon_jnt)
@@ -613,6 +618,15 @@ class ModuleSpine(ModuleGeneric):
         set_color_viewport(obj_list=spine_ik_ctrl, rgb_color=ColorConstants.RigControl.CENTER)
         hierarchy_utils.parent(source_objects=ribbon_driver_joints, target_parent=joint_automation_grp)
 
+        # Chest Driven Group (For Parented Controls) -------------------------------------------------------
+        chest_driven = self._assemble_ctrl_name(name=self.chest.get_name(),
+                                                overwrite_suffix=NamingConstants.Suffix.DRIVEN)
+        chest_driven = create_group(name=chest_driven)
+        self.add_driver_uuid_attr(target=chest_driven,
+                                  driver_type=RiggerDriverTypes.DRIVEN,
+                                  proxy_purpose=self.chest)
+        constraint_targets(source_driver=chest_jnt, target_driven=chest_driven, maintain_offset=False)
+        hierarchy_utils.parent(source_objects=chest_driven, target_parent=cog_ctrl)
         # Set Children Drivers -----------------------------------------------------------------------------
         self.module_children_drivers = [cog_offset]
 
