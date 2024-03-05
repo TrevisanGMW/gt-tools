@@ -2,6 +2,7 @@
 Naming Utilities
 github.com/TrevisanGMW/gt-tools
 """
+from gt.utils.string_utils import upper_first_char
 import maya.cmds as cmds
 import logging
 
@@ -53,23 +54,36 @@ class NamingConstants:
         SUR = 'sur'  # Surface
         END = 'end'  # Last object in a hierarchy
         OFFSET = 'offset'  # Offset Transform (control parent)
-        OFFSET_CTRL = 'offsetCtrl'  # Offset control of an existing control
-        OFFSET_DATA = 'offsetData'  # Offset data from an offset control
+        # OFFSET_CTRL = 'offsetCtrl'
+        # OFFSET_DATA = 'offsetData'
         PROXY = 'proxy'  # Intermediary or placeholder for another object
         DRIVEN = 'driven'  # Is controlled by something (driven)
         DRIVER = 'driver'  # Controls something (driver)
         IK_HANDLE_SC = 'ikSC'  # Single-Chain Solver
         IK_HANDLE_RP = 'ikRP'  # Rotate-Plane Solver
         IK_HANDLE_SPRING = 'ikSpring'  # Spring Solver
+
+    class Control:
+        """
+        Control suffixes are distinct from those in the "Suffix" category to ensure simplicity.
+        Suffixes used by controls are usually more intricate, potentially diminishing code completion efficiency.
+        """
+        # Common Suffixes (Private)
+        _CTRL = "ctrl"
+        _DATA = "data"
+        OFFSET_CTRL = f'offset_{_CTRL}'  # Offset control of an existing control
+        OFFSET_DATA = f'offset_{_DATA}'  # Offset data from an offset control
         # IK Suffixes
-        SWITCH_CTRL = f'switch_{CTRL}'  # Influence Switch Control (A-B System)
-        IK_CTRL = f'ik_{CTRL}'  # Same as CTRL but with an extra "ik" description
+        SWITCH_CTRL = f'switch_{_CTRL}'  # Influence Switch Control (A-B System)
+        IK_CTRL = f'ik_{_CTRL}'  # Same as CTRL but with an extra "ik" description
         IK_O_CTRL = f'ik_{OFFSET_CTRL}'  # Offset Control
         IK_O_DATA = f'ik_{OFFSET_DATA}'  # Offset Data
         # Automation
-        ROLL_CTRL = f'roll_{CTRL}'
-        UP_DOWN_CTRL = f'upDown_{CTRL}'
-        CURL_CTRL = f'curl_{CTRL}'
+        ROLL_CTRL = f'roll_{_CTRL}'
+        UP_DOWN_CTRL = f'upDown_{_CTRL}'
+        CURL_CTRL = f'curl_{_CTRL}'
+        # Pivot Manipulation
+        PIVOT_CTRL = f'pivot_{_CTRL}'
 
     class Position:
         MID = 'mid'  # - center (other positions go clockwise starting at 12 o'clock)

@@ -412,7 +412,7 @@ class ModuleBipedArm(ModuleGeneric):
         # IK Controls -------------------------------------------------------------------------------------
         # IK wrist Control
         wrist_ik_ctrl = self._assemble_ctrl_name(name=self.wrist.get_name(),
-                                                 overwrite_suffix=NamingConstants.Suffix.IK_CTRL)
+                                                 overwrite_suffix=NamingConstants.Control.IK_CTRL)
         wrist_ik_ctrl = create_ctrl_curve(name=wrist_ik_ctrl, curve_file_name="_cube")
         self.add_driver_uuid_attr(target=wrist_ik_ctrl, driver_type=RiggerDriverTypes.IK, proxy_purpose=self.wrist)
         translate_shapes(obj_transform=wrist_ik_ctrl, offset=(1, 0, 0))  # Move Pivot to Side
@@ -435,10 +435,10 @@ class ModuleBipedArm(ModuleGeneric):
 
         # Duplicate for Offset Control And Create Data Transform
         wrist_o_ik_ctrl = self._assemble_ctrl_name(name=self.wrist.get_name(),
-                                                   overwrite_suffix=NamingConstants.Suffix.IK_O_CTRL)
+                                                   overwrite_suffix=NamingConstants.Control.IK_O_CTRL)
         wrist_o_ik_ctrl = cmds.duplicate(wrist_ik_ctrl, name=wrist_o_ik_ctrl)[0]
         wrist_o_ik_data = self._assemble_ctrl_name(name=self.wrist.get_name(),
-                                                   overwrite_suffix=NamingConstants.Suffix.IK_O_DATA)
+                                                   overwrite_suffix=NamingConstants.Control.IK_O_DATA)
         wrist_o_ik_data = cmds.duplicate(wrist_ik_offset, parentOnly=True, name=wrist_o_ik_data)[0]
         hierarchy_utils.parent(source_objects=[wrist_o_ik_ctrl, wrist_o_ik_data], target_parent=wrist_ik_ctrl)
         cmds.connectAttr(f'{wrist_o_ik_ctrl}.translate', f'{wrist_o_ik_data}.translate')
@@ -460,7 +460,7 @@ class ModuleBipedArm(ModuleGeneric):
 
         # IK Elbow Control
         elbow_ik_ctrl = self._assemble_ctrl_name(name=self.elbow.get_name(),
-                                                 overwrite_suffix=NamingConstants.Suffix.IK_CTRL)
+                                                 overwrite_suffix=NamingConstants.Control.IK_CTRL)
         elbow_ik_ctrl = create_ctrl_curve(name=elbow_ik_ctrl, curve_file_name="_locator")
         self.add_driver_uuid_attr(target=elbow_ik_ctrl, driver_type=RiggerDriverTypes.IK, proxy_purpose=self.elbow)
         elbow_offset = add_offset_transform(target_list=elbow_ik_ctrl)[0]
@@ -489,7 +489,7 @@ class ModuleBipedArm(ModuleGeneric):
         # Switch Control
         wrist_proxy = find_proxy_from_uuid(uuid_string=self.wrist.get_uuid())
         ik_switch_ctrl = self._assemble_ctrl_name(name=self.get_meta_setup_name(),
-                                                  overwrite_suffix=NamingConstants.Suffix.SWITCH_CTRL)
+                                                  overwrite_suffix=NamingConstants.Control.SWITCH_CTRL)
         ik_switch_ctrl = create_ctrl_curve(name=ik_switch_ctrl, curve_file_name="_fk_ik_switch")
         self.add_driver_uuid_attr(target=ik_switch_ctrl,
                                   driver_type=RiggerDriverTypes.SWITCH,

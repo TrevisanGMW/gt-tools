@@ -455,7 +455,7 @@ class ModuleBipedLeg(ModuleGeneric):
 
         # IK Knee Control
         knee_ik_ctrl = self._assemble_ctrl_name(name=self.knee.get_name(),
-                                                overwrite_suffix=NamingConstants.Suffix.IK_CTRL)
+                                                overwrite_suffix=NamingConstants.Control.IK_CTRL)
         knee_ik_ctrl = create_ctrl_curve(name=knee_ik_ctrl, curve_file_name="_locator")
         self.add_driver_uuid_attr(target=knee_ik_ctrl, driver_type=RiggerDriverTypes.IK, proxy_purpose=self.knee)
         knee_offset = add_offset_transform(target_list=knee_ik_ctrl)[0]
@@ -482,7 +482,7 @@ class ModuleBipedLeg(ModuleGeneric):
 
         # IK Foot Control
         foot_ctrl_name = self.get_metadata_value(key=self.META_FOOT_IK_NAME)
-        foot_ctrl = self._assemble_ctrl_name(name=foot_ctrl_name, overwrite_suffix=NamingConstants.Suffix.IK_CTRL)
+        foot_ctrl = self._assemble_ctrl_name(name=foot_ctrl_name, overwrite_suffix=NamingConstants.Control.IK_CTRL)
         foot_ctrl = create_ctrl_curve(name=foot_ctrl, curve_file_name="_cube")
         self.add_driver_uuid_attr(target=foot_ctrl, driver_type=RiggerDriverTypes.IK, proxy_purpose=self.ankle)
         translate_shapes(obj_transform=foot_ctrl, offset=(0, 1, 0))  # Move Pivot to Base
@@ -506,9 +506,9 @@ class ModuleBipedLeg(ModuleGeneric):
         set_color_viewport(obj_list=foot_ctrl, rgb_color=color)
 
         # Duplicate for Offset Control And Create Data Transform
-        foot_o_ctrl = self._assemble_ctrl_name(name=foot_ctrl_name, overwrite_suffix=NamingConstants.Suffix.IK_O_CTRL)
+        foot_o_ctrl = self._assemble_ctrl_name(name=foot_ctrl_name, overwrite_suffix=NamingConstants.Control.IK_O_CTRL)
         foot_o_ctrl = cmds.duplicate(foot_ctrl, name=foot_o_ctrl)[0]
-        foot_o_data = self._assemble_ctrl_name(name=foot_ctrl_name, overwrite_suffix=NamingConstants.Suffix.IK_O_DATA)
+        foot_o_data = self._assemble_ctrl_name(name=foot_ctrl_name, overwrite_suffix=NamingConstants.Control.IK_O_DATA)
         foot_o_data = cmds.duplicate(foot_offset, parentOnly=True, name=foot_o_data)[0]
         hierarchy_utils.parent(source_objects=[foot_o_ctrl, foot_o_data], target_parent=foot_ctrl)
         cmds.connectAttr(f'{foot_o_ctrl}.translate', f'{foot_o_data}.translate')
@@ -529,7 +529,7 @@ class ModuleBipedLeg(ModuleGeneric):
 
         # Switch Control
         ik_switch_ctrl = self._assemble_ctrl_name(name=self.get_meta_setup_name(),
-                                                  overwrite_suffix=NamingConstants.Suffix.SWITCH_CTRL)
+                                                  overwrite_suffix=NamingConstants.Control.SWITCH_CTRL)
         ik_switch_ctrl = create_ctrl_curve(name=ik_switch_ctrl, curve_file_name="_fk_ik_switch")
         self.add_driver_uuid_attr(target=ik_switch_ctrl,
                                   driver_type=RiggerDriverTypes.SWITCH,
@@ -547,7 +547,7 @@ class ModuleBipedLeg(ModuleGeneric):
 
         # Roll Controls ------------------------------------------------------------------------------------
         # Toe Roll
-        roll_toe_ctrl = self._assemble_ctrl_name(name="toe", overwrite_suffix=NamingConstants.Suffix.ROLL_CTRL)
+        roll_toe_ctrl = self._assemble_ctrl_name(name="toe", overwrite_suffix=NamingConstants.Control.ROLL_CTRL)
         roll_toe_ctrl = create_ctrl_curve(name=roll_toe_ctrl, curve_file_name="_sphere_half_arrow")
         self.add_driver_uuid_attr(target=roll_toe_ctrl,
                                   driver_type=RiggerDriverTypes.ROLL,
@@ -563,7 +563,7 @@ class ModuleBipedLeg(ModuleGeneric):
         cmds.move(foot_scale*.35, roll_toe_offset, z=True, relative=True, objectSpace=True)
 
         # Toe Up Down
-        up_down_toe_ctrl = self._assemble_ctrl_name(name="toe", overwrite_suffix=NamingConstants.Suffix.UP_DOWN_CTRL)
+        up_down_toe_ctrl = self._assemble_ctrl_name(name="toe", overwrite_suffix=NamingConstants.Control.UP_DOWN_CTRL)
         up_down_toe_ctrl = create_ctrl_curve(name=up_down_toe_ctrl, curve_file_name="_two_sides_arrow_pos_y")
         self.add_driver_uuid_attr(target=up_down_toe_ctrl,
                                   driver_type=RiggerDriverTypes.UP_DOWN,
@@ -579,7 +579,7 @@ class ModuleBipedLeg(ModuleGeneric):
         cmds.move(foot_scale * .55, up_down_toe_offset, z=True, relative=True, objectSpace=True)
 
         # Ball Roll
-        roll_ball_ctrl = self._assemble_ctrl_name(name="ball", overwrite_suffix=NamingConstants.Suffix.ROLL_CTRL)
+        roll_ball_ctrl = self._assemble_ctrl_name(name="ball", overwrite_suffix=NamingConstants.Control.ROLL_CTRL)
         roll_ball_ctrl = create_ctrl_curve(name=roll_ball_ctrl, curve_file_name="_sphere_half_arrow")
         self.add_driver_uuid_attr(target=roll_ball_ctrl,
                                   driver_type=RiggerDriverTypes.ROLL,
@@ -596,7 +596,7 @@ class ModuleBipedLeg(ModuleGeneric):
         cmds.move(x_offset, roll_ball_offset, x=True, relative=True, objectSpace=True)
 
         # Heel Roll
-        roll_heel_ctrl = self._assemble_ctrl_name(name="heel", overwrite_suffix=NamingConstants.Suffix.ROLL_CTRL)
+        roll_heel_ctrl = self._assemble_ctrl_name(name="heel", overwrite_suffix=NamingConstants.Control.ROLL_CTRL)
         roll_heel_ctrl = create_ctrl_curve(name=roll_heel_ctrl, curve_file_name="_sphere_half_arrow")
         self.add_driver_uuid_attr(target=roll_heel_ctrl,
                                   driver_type=RiggerDriverTypes.ROLL,

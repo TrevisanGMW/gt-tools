@@ -360,7 +360,7 @@ class ModuleHead(ModuleGeneric):
 
         # Head Offset Ctrl
         head_o_ctrl = self._assemble_ctrl_name(name=self.head.get_name(),
-                                               overwrite_suffix=NamingConstants.Suffix.OFFSET_CTRL)
+                                               overwrite_suffix=NamingConstants.Control.OFFSET_CTRL)
         head_o_ctrl = create_ctrl_curve(name=head_o_ctrl, curve_file_name="_circle_pos_x")
         match_transform(source=head_ctrl, target_list=head_o_ctrl)
         scale_shapes(obj_transform=head_o_ctrl, offset=head_scale * .35)
@@ -370,7 +370,7 @@ class ModuleHead(ModuleGeneric):
         hierarchy_utils.parent(source_objects=head_o_ctrl, target_parent=head_ctrl)
         # Head Offset Data Transform
         head_o_data = self._assemble_ctrl_name(name=self.head.get_name(),
-                                               overwrite_suffix=NamingConstants.Suffix.OFFSET_DATA)
+                                               overwrite_suffix=NamingConstants.Control.OFFSET_DATA)
         head_o_data = create_group(name=head_o_data)
         head_o_data = Node(head_o_data)
         self.add_driver_uuid_attr(target=head_o_data,

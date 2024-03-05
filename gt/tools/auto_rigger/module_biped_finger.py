@@ -576,7 +576,7 @@ class ModuleBipedFingers(ModuleGeneric):
         if _thumb_joints:
             thumb_name = self.get_metadata_value(key=self.META_THUMB_NAME)
             thumb_curl_ctrl = self._assemble_ctrl_name(name=thumb_name,
-                                                       overwrite_suffix=NamingConstants.Suffix.CURL_CTRL)
+                                                       overwrite_suffix=NamingConstants.Control.CURL_CTRL)
             thumb_curl_ctrl = create_ctrl_curve(name=thumb_curl_ctrl, curve_file_name="_sphere_half_arrow")
             self.add_driver_uuid_attr(target=thumb_curl_ctrl,
                                       driver_type=RiggerDriverTypes.CURL,
@@ -596,7 +596,7 @@ class ModuleBipedFingers(ModuleGeneric):
         if _index_joints:
             index_name = self.get_metadata_value(key=self.META_INDEX_NAME)
             index_curl_ctrl = self._assemble_ctrl_name(name=index_name,
-                                                       overwrite_suffix=NamingConstants.Suffix.CURL_CTRL)
+                                                       overwrite_suffix=NamingConstants.Control.CURL_CTRL)
             index_curl_ctrl = create_ctrl_curve(name=index_curl_ctrl, curve_file_name="_sphere_half_arrow")
             index_curl_offset = add_offset_transform(target_list=index_curl_ctrl)[0]
             index_curl_offset = Node(index_curl_offset)
@@ -610,7 +610,7 @@ class ModuleBipedFingers(ModuleGeneric):
         if _middle_joints:
             middle_name = self.get_metadata_value(key=self.META_MIDDLE_NAME)
             middle_curl_ctrl = self._assemble_ctrl_name(name=middle_name,
-                                                        overwrite_suffix=NamingConstants.Suffix.CURL_CTRL)
+                                                        overwrite_suffix=NamingConstants.Control.CURL_CTRL)
             middle_curl_ctrl = create_ctrl_curve(name=middle_curl_ctrl, curve_file_name="_sphere_half_arrow")
             middle_curl_offset = add_offset_transform(target_list=middle_curl_ctrl)[0]
             middle_curl_offset = Node(middle_curl_offset)
@@ -623,7 +623,7 @@ class ModuleBipedFingers(ModuleGeneric):
         if _ring_joints:
             ring_name = self.get_metadata_value(key=self.META_RING_NAME)
             ring_curl_ctrl = self._assemble_ctrl_name(name=ring_name,
-                                                      overwrite_suffix=NamingConstants.Suffix.CURL_CTRL)
+                                                      overwrite_suffix=NamingConstants.Control.CURL_CTRL)
             ring_curl_ctrl = create_ctrl_curve(name=ring_curl_ctrl, curve_file_name="_sphere_half_arrow")
             ring_curl_offset = add_offset_transform(target_list=ring_curl_ctrl)[0]
             ring_curl_offset = Node(ring_curl_offset)
@@ -637,7 +637,7 @@ class ModuleBipedFingers(ModuleGeneric):
         if _pinky_joints:
             pinky_name = self.get_metadata_value(key=self.META_PINKY_NAME)
             pinky_curl_ctrl = self._assemble_ctrl_name(name=pinky_name,
-                                                       overwrite_suffix=NamingConstants.Suffix.CURL_CTRL)
+                                                       overwrite_suffix=NamingConstants.Control.CURL_CTRL)
             pinky_curl_ctrl = create_ctrl_curve(name=pinky_curl_ctrl, curve_file_name="_sphere_half_arrow")
             pinky_curl_offset = add_offset_transform(target_list=pinky_curl_ctrl)[0]
             pinky_curl_offset = Node(pinky_curl_offset)
@@ -651,7 +651,7 @@ class ModuleBipedFingers(ModuleGeneric):
         if _extra_joints:
             extra_name = self.get_metadata_value(key=self.META_EXTRA_NAME)
             extra_curl_ctrl = self._assemble_ctrl_name(name=extra_name,
-                                                       overwrite_suffix=NamingConstants.Suffix.CURL_CTRL)
+                                                       overwrite_suffix=NamingConstants.Control.CURL_CTRL)
             extra_curl_ctrl = create_ctrl_curve(name=extra_curl_ctrl, curve_file_name="_sphere_half_arrow")
             extra_curl_offset = add_offset_transform(target_list=extra_curl_ctrl)[0]
             extra_curl_offset = Node(extra_curl_offset)
