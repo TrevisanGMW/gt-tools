@@ -298,3 +298,16 @@ class TestJointUtils(unittest.TestCase):
         result = joint_utils.convert_joints_to_mesh(root_jnt=joint_one)
         expected = [f'{joint_one}JointMesh']
         self.assertEqual(expected, result)
+
+    def test_set_joint_radius(self):
+        test_joints = [cmds.joint(p=(0, 10, 0)),
+                       cmds.joint(p=(0, 5, .1)),
+                       cmds.joint(p=(0, 0, 0))]
+        result = joint_utils.set_joint_radius(joints=test_joints, radius=5)
+        expected = ["|joint1", "|joint1|joint2", "|joint1|joint2|joint3"]
+        self.assertEqual(expected, result)
+
+        expected = 5
+        for jnt in result:
+            radius = cmds.getAttr(f'{jnt}.radius')
+            self.assertEqual(expected, radius)
