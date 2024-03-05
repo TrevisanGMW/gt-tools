@@ -170,8 +170,8 @@ def equidistant_constraints(start, end, target_list, skip_start_end=True, constr
     """
     Sets equidistant transforms for a list of objects between a start and end point.
     Args:
-        start (str): Path to object where it should start. In A->B, this would be "A".
-        end (str): Path to the object where it should end. In A->B, this would be "B".
+        start (str, Node): Path to object where it should start. In A->B, this would be "A".
+        end (str, Node): Path to the object where it should end. In A->B, this would be "B".
         target_list (list, str): A list of objects to receive the transform update.
         skip_start_end (bool, optional): If True, it will skip the start and end points, which means objects will be
                                          in-between start and end points, but not on top of start/end points.

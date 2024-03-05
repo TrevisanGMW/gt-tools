@@ -127,10 +127,10 @@ def add_offset_transform(target_list, transform_type="group", pivot_source="targ
     return offset_transforms
 
 
-def duplicate_as_node(obj, name=None, parent_to_world=True, reset_attributes=True,
-                      parent_only=True, input_connections=False):
+def duplicate_object(obj, name=None, parent_to_world=True, reset_attributes=True,
+                     parent_only=True, input_connections=False):
     """
-    Duplicate the transform and its shapes.
+    Duplicate provided object. If a transform duplicate its shapes too.
 
     Args:
         obj (str, Node): The name/path of the object to duplicate.

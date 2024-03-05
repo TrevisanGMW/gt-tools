@@ -240,14 +240,14 @@ class TestHierarchyUtils(unittest.TestCase):
         expected = [f"|{self.transform_one}|cube_one_offset", f"|{self.transform_one}|cube_two_offset"]
         self.assertEqual(expected, created_offsets)
 
-    def test_duplicate_as_node_children(self):
+    def test_duplicate_object_children(self):
         cmds.file(new=True, force=True)
         cube_one = maya_test_tools.create_poly_cube(name="cube_one")
         cube_two = maya_test_tools.create_poly_cube(name="cube_two")
         cmds.parent(cube_two, cube_one)
         # Duplicate
-        duplicated_obj = hierarchy_utils.duplicate_as_node(obj=cube_one, name=None,
-                                                           parent_to_world=True, reset_attributes=True)
+        duplicated_obj = hierarchy_utils.duplicate_object(obj=cube_one, name=None,
+                                                          parent_to_world=True, reset_attributes=True)
         expected = '|cube_one1'
         self.assertEqual(expected, duplicated_obj)
         # Check Children
@@ -258,34 +258,34 @@ class TestHierarchyUtils(unittest.TestCase):
         expected = ['cube_one1Shape']
         self.assertEqual(expected, result)
 
-    def test_duplicate_as_node_naming(self):
+    def test_duplicate_object_naming(self):
         cmds.file(new=True, force=True)
         cube_one = maya_test_tools.create_poly_cube(name="cube_one")
         cube_two = maya_test_tools.create_poly_cube(name="cube_two")
         cmds.parent(cube_two, cube_one)
         # Duplicate
-        duplicated_obj = hierarchy_utils.duplicate_as_node(obj=cube_one, name="mocked_cube",
-                                                           parent_to_world=True, reset_attributes=True)
+        duplicated_obj = hierarchy_utils.duplicate_object(obj=cube_one, name="mocked_cube",
+                                                          parent_to_world=True, reset_attributes=True)
         expected = '|mocked_cube'
         self.assertEqual(expected, duplicated_obj)
 
-    def test_duplicate_as_node_parenting(self):
+    def test_duplicate_object_parenting(self):
         cmds.file(new=True, force=True)
         cube_one = maya_test_tools.create_poly_cube(name="cube_one")
         cube_two = maya_test_tools.create_poly_cube(name="cube_two")
         cmds.parent(cube_two, cube_one)
         # Duplicate; World Parenting
-        duplicated_obj = hierarchy_utils.duplicate_as_node(obj=cube_two, name="world_parent",
-                                                           parent_to_world=True, reset_attributes=True)
+        duplicated_obj = hierarchy_utils.duplicate_object(obj=cube_two, name="world_parent",
+                                                          parent_to_world=True, reset_attributes=True)
         expected = '|world_parent'
         self.assertEqual(expected, duplicated_obj)
         # Duplicate; Keep Parent
-        duplicated_obj = hierarchy_utils.duplicate_as_node(obj=cube_two, name="keep_parent",
-                                                           parent_to_world=False, reset_attributes=True)
+        duplicated_obj = hierarchy_utils.duplicate_object(obj=cube_two, name="keep_parent",
+                                                          parent_to_world=False, reset_attributes=True)
         expected = '|cube_one|keep_parent'
         self.assertEqual(expected, duplicated_obj)
 
-    def test_duplicate_as_node_attrs(self):
+    def test_duplicate_object_attrs(self):
         cmds.file(new=True, force=True)
         cube_one = maya_test_tools.create_poly_cube(name="cube_one")
         cmds.addAttr(cube_one, ln='test', at='bool', k=True)  # Add User-defined attribute
@@ -293,8 +293,8 @@ class TestHierarchyUtils(unittest.TestCase):
         cube_two = maya_test_tools.create_poly_cube(name="cube_two")
         cmds.parent(cube_two, cube_one)
         # Duplicate
-        duplicated_obj = hierarchy_utils.duplicate_as_node(obj=cube_one, name="mocked_cube",
-                                                           parent_to_world=True, reset_attributes=True)
+        duplicated_obj = hierarchy_utils.duplicate_object(obj=cube_one, name="mocked_cube",
+                                                          parent_to_world=True, reset_attributes=True)
         # Original Item
         expected = True
         result = cmds.getAttr(f'{cube_one}.tx', lock=True)

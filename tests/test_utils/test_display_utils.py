@@ -110,7 +110,7 @@ class TestDisplayUtils(unittest.TestCase):
             expected = "jaw"
             self.assertEqual(expected, label_value)
         # Update Label
-        affected_joints = display_utils.set_joint_name_as_label(jnt_list=joints_to_test, verbose=False)
+        affected_joints = display_utils.set_joint_name_as_label(joints=joints_to_test, verbose=False)
         expected = 2
         self.assertEqual(expected, affected_joints)
         for jnt in joints_to_test:

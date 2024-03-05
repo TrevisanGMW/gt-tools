@@ -12,7 +12,7 @@ from gt.utils.color_utils import set_color_outliner
 from gt.utils.node_utils import Node, create_node
 from gt.utils.math_utils import dist_xyz_to_xyz
 from gt.utils.string_utils import get_int_as_en
-from gt.utils.hierarchy_utils import duplicate_as_node
+from gt.utils.hierarchy_utils import duplicate_object
 from gt.utils import hierarchy_utils
 import maya.cmds as cmds
 import logging
@@ -54,8 +54,8 @@ def duplicate_joint_for_automation(joint, suffix=NamingConstants.Suffix.DRIVEN, 
     """
     if not joint or not cmds.objExists(str(joint)):
         return
-    jnt_as_node = duplicate_as_node(obj=joint, name=f'{get_short_name(joint)}_{suffix}',
-                                    parent_only=True, reset_attributes=True, input_connections=False)
+    jnt_as_node = duplicate_object(obj=joint, name=f'{get_short_name(joint)}_{suffix}',
+                                   parent_only=True, reset_attributes=True, input_connections=False)
     if connect_rot_order:
         connect_attr(source_attr=f'{str(joint)}.rotateOrder', target_attr_list=f'{jnt_as_node}.rotateOrder')
     if parent:

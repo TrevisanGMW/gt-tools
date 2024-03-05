@@ -158,7 +158,7 @@ def toggle_uniform_jnt_label(jnt_list=None, verbose=True):
 
         for obj in _joints:
             try:
-                current_label_state = cmds.getAttr(obj + '.drawLabel')
+                current_label_state = cmds.getAttr(f'{obj}.drawLabel')
                 if current_label_state:
                     active_label.append(obj)
                 else:
@@ -169,7 +169,7 @@ def toggle_uniform_jnt_label(jnt_list=None, verbose=True):
         if len(active_label) == 0:
             for obj in inactive_label:
                 try:
-                    cmds.setAttr(obj + '.drawLabel', 1)
+                    cmds.setAttr(f'{obj}.drawLabel', 1)
                     operation_result = 'on'
                     label_state = True
                 except Exception as e:
@@ -177,14 +177,14 @@ def toggle_uniform_jnt_label(jnt_list=None, verbose=True):
         elif len(inactive_label) == 0:
             for obj in active_label:
                 try:
-                    cmds.setAttr(obj + '.drawLabel', 0)
+                    cmds.setAttr(f'{obj}.drawLabel', 0)
                     label_state = False
                 except Exception as e:
                     errors += str(e) + '\n'
         elif len(active_label) > len(inactive_label):
             for obj in inactive_label:
                 try:
-                    cmds.setAttr(obj + '.drawLabel', 1)
+                    cmds.setAttr(f'{obj}.drawLabel', 1)
                     operation_result = 'on'
                     label_state = True
                 except Exception as e:
@@ -192,7 +192,7 @@ def toggle_uniform_jnt_label(jnt_list=None, verbose=True):
         else:
             for obj in active_label:
                 try:
-                    cmds.setAttr(obj + '.drawLabel', 0)
+                    cmds.setAttr(f'{obj}.drawLabel', 0)
                     label_state = False
                 except Exception as e:
                     errors += str(e) + '\n'
@@ -364,20 +364,20 @@ def toggle_full_hud(verbose=True):
     return toggle
 
 
-def set_joint_name_as_label(jnt_list=None, verbose=True):
+def set_joint_name_as_label(joints=None, verbose=True):
     """
     Transfer the name of the joint to its label.
     Args:
-        jnt_list (list, str): A list with the name of the objects it should affect. (Strings are converted into list)
+        joints (list, str): A list with the name of the objects it should affect. (Strings are converted into list)
         verbose (bool, optional): If True, it will return feedback about the operation.
     Returns:
         int: Number of affected joints.
     """
     _joints = None
-    if jnt_list and isinstance(jnt_list, list):
-        _joints = jnt_list
-    if jnt_list and isinstance(jnt_list, str):
-        _joints = [jnt_list]
+    if joints and isinstance(joints, list):
+        _joints = joints
+    if joints and isinstance(joints, str):
+        _joints = [joints]
     if not _joints:
         _joints = cmds.ls(selection=True, typ="joint") or []
 
