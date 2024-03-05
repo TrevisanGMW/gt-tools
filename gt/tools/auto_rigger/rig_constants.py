@@ -64,6 +64,7 @@ class RiggerDriverTypes:
         """
     FK = "fk"  # Forward kinematics
     IK = "ik"  # Inverse kinematics
+    PIVOT = "pivot"  # Inverse kinematics
     SWITCH = "switch"  # Secondary driver that allows switching between systems. e.g. FK/IK
     OFFSET = "offset"  # Driver is the data of an offset control
     DRIVEN = "driven"  # Driver controlled by multiple elements. e.g. FK/IK
