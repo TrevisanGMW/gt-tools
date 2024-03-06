@@ -252,9 +252,11 @@ class ColorConstants:
         ROOT = (1, 0.17, 0.44)  # Soft Pink
         CENTER = (1, 1, 0)  # Yellow
         LEFT = (0.21, 0.45, 1)  # Soft Blue
-        RIGHT = (1, 0.1, 0.1)  # Soft Red
+        LEFT_OFFSET = (0.4, 0.7, 1)
+        RIGHT = (1, 0.15, 0.15)  # Soft Red
+        RIGHT_OFFSET = (1, 0.5, 0.5)
         OFFSET = (0.4, 0.4, 0)  # Dark Yellow
-        PIVOT = (1, 0, 0)  # Red (Pure)
+        PIVOT = (.17, 0, .78)  # Deep Purple
         END = (1, 0, 0)
         TWEAK = (0.6, 0.2, 1)  # Pinkish Purple
 
@@ -275,6 +277,7 @@ class ColorConstants:
         END = (1, 0, 0)  # Red Pure
         UNIQUE = (0, 1, 0)  # Green
         AUTOMATION = (1, 0.17, 0.75)  # Hot Pink
+        DATA_QUERY = (1, 1, 1)  # White
 
     class RigOutliner:
         def __init__(self):
@@ -294,6 +297,7 @@ class ColorConstants:
         AUTOMATION = (1, .65, .45)  # Soft Orange
         FK = (1, .5, .5)  # Soft Red
         IK = (.5, .5, 1)  # Soft Blue
+        DATA_QUERY = (1, 1, 1)  # White
 
 
 def set_color_viewport(obj_list, rgb_color=(1, 1, 1)):
@@ -473,9 +477,9 @@ def add_side_color_setup(obj, color_attr_name="autoColor",
 
 
 def get_directional_color(object_name, axis="X",
-                          negative_color=ColorConstants.RigControl.LEFT,
+                          negative_color=ColorConstants.RigControl.RIGHT,
                           center_color=ColorConstants.RigControl.CENTER,
-                          positive_color=ColorConstants.RigControl.RIGHT,
+                          positive_color=ColorConstants.RigControl.LEFT,
                           tolerance=0.001):  # Add the new tolerance argument with a default value
     """
     Retrieves the color based on the world position along a specified axis for the given object.

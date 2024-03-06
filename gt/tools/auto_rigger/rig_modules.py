@@ -2,18 +2,18 @@ import inspect
 from gt.ui import resource_library
 from gt.utils.string_utils import remove_suffix, remove_prefix
 from gt.tools.auto_rigger.rig_framework import ModuleGeneric
-from gt.tools.auto_rigger.rig_module_root import ModuleRoot
-from gt.tools.auto_rigger.rig_module_biped_leg import (ModuleBipedLeg,
-                                                       ModuleBipedLegLeft,
-                                                       ModuleBipedLegRight)
-from gt.tools.auto_rigger.rig_module_spine import ModuleSpine
-from gt.tools.auto_rigger.rig_module_biped_arm import (ModuleBipedArm,
-                                                       ModuleBipedArmLeft,
-                                                       ModuleBipedArmRight)
-from gt.tools.auto_rigger.rig_module_biped_finger import (ModuleBipedFingers,
-                                                          ModuleBipedFingersLeft,
-                                                          ModuleBipedFingersRight)
-from gt.tools.auto_rigger.rig_module_head import ModuleHead
+from gt.tools.auto_rigger.module_root import ModuleRoot
+from gt.tools.auto_rigger.module_biped_leg import (ModuleBipedLeg,
+                                                   ModuleBipedLegLeft,
+                                                   ModuleBipedLegRight)
+from gt.tools.auto_rigger.module_spine import ModuleSpine
+from gt.tools.auto_rigger.module_biped_arm import (ModuleBipedArm,
+                                                   ModuleBipedArmLeft,
+                                                   ModuleBipedArmRight)
+from gt.tools.auto_rigger.module_biped_finger import (ModuleBipedFingers,
+                                                      ModuleBipedFingersLeft,
+                                                      ModuleBipedFingersRight)
+from gt.tools.auto_rigger.module_head import ModuleHead
 
 
 class RigModules:

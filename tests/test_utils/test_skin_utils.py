@@ -17,6 +17,7 @@ for to_append in [package_root_dir, tests_dir]:
         sys.path.append(to_append)
 from tests import maya_test_tools
 from gt.utils import skin_utils
+cmds = maya_test_tools.cmds
 
 
 def import_skinned_test_file():
@@ -109,10 +110,10 @@ class TestSkinUtils(unittest.TestCase):
                      '3': {'mid_jnt': 1.0},
                      '4': {'end_jnt': 1.0},
                      '5': {'end_jnt': 1.0}}
-        maya_test_tools.cmds.delete("skinCluster1")
-        maya_test_tools.cmds.select(['root_jnt', 'mid_jnt', 'end_jnt', 'plane'])
-        skin_cluster = maya_test_tools.cmds.skinCluster(tsb=True)[0]
-        self.assertTrue(maya_test_tools.cmds.objExists(skin_cluster))
+        cmds.delete("skinCluster1")
+        cmds.select(['root_jnt', 'mid_jnt', 'end_jnt', 'plane'])
+        skin_cluster = cmds.skinCluster(tsb=True)[0]
+        self.assertTrue(cmds.objExists(skin_cluster))
         skin_utils.set_skin_weights(skin_cluster=skin_cluster, skin_data=skin_data)
         result = skin_utils.get_skin_weights(skin_cluster)
         self.assertEqual(skin_data, result)
@@ -130,17 +131,17 @@ class TestSkinUtils(unittest.TestCase):
         with open(temp_file, 'w') as file:
             import json
             json.dump(skin_data, file)
-        maya_test_tools.cmds.delete("skinCluster1")
-        maya_test_tools.cmds.select(['root_jnt', 'mid_jnt', 'end_jnt', 'plane'])
-        skin_cluster = maya_test_tools.cmds.skinCluster(tsb=True)[0]
-        self.assertTrue(maya_test_tools.cmds.objExists(skin_cluster))
+        cmds.delete("skinCluster1")
+        cmds.select(['root_jnt', 'mid_jnt', 'end_jnt', 'plane'])
+        skin_cluster = cmds.skinCluster(tsb=True)[0]
+        self.assertTrue(cmds.objExists(skin_cluster))
         skin_utils.import_skin_weights_from_json(target_object="plane", import_file_path=temp_file)
         result = skin_utils.get_skin_weights(skin_cluster)
         self.assertEqual(skin_data, result)
 
     def test_bind_skin(self):
         import_skinned_test_file()
-        maya_test_tools.cmds.delete("skinCluster1")
+        cmds.delete("skinCluster1")
         result = skin_utils.bind_skin(joints=['root_jnt', 'mid_jnt', 'end_jnt'], objects="plane")
         expected = ['skinCluster3']
         self.assertEqual(expected, result)
@@ -189,7 +190,7 @@ class TestSkinUtils(unittest.TestCase):
 
     def test_selected_get_python_influences_code(self):
         import_skinned_test_file()
-        maya_test_tools.cmds.select(['plane', 'plane_two'])
+        cmds.select(['plane', 'plane_two'])
         result = skin_utils.selected_get_python_influences_code()
         expected = "# Joint influences found in \"plane\":\n" \
                    "bound_list = ['plane', 'root_jnt', 'mid_jnt', 'end_jnt']" \
@@ -209,7 +210,7 @@ class TestSkinUtils(unittest.TestCase):
 
     def test_selected_add_influences_to_set(self):
         import_skinned_test_file()
-        maya_test_tools.cmds.select(['plane', 'plane_two'])
+        cmds.select(['plane', 'plane_two'])
         result = skin_utils.selected_add_influences_to_set()
         expected = ['plane_influenceSet', 'plane_two_influenceSet']
         self.assertEqual(expected, result)

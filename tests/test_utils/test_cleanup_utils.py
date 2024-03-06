@@ -17,6 +17,7 @@ for to_append in [package_root_dir, tests_dir]:
         sys.path.append(to_append)
 from tests import maya_test_tools
 from gt.utils import cleanup_utils
+cmds = maya_test_tools.cmds
 
 
 class TestCleanUpUtils(unittest.TestCase):
@@ -28,9 +29,9 @@ class TestCleanUpUtils(unittest.TestCase):
         maya_test_tools.import_maya_standalone(initialize=True)  # Start Maya Headless (mayapy.exe)
 
     def test_delete_unused_nodes(self):
-        node = maya_test_tools.cmds.createNode("multiplyDivide")
+        node = cmds.createNode("multiplyDivide")
         num_deleted_nodes = cleanup_utils.delete_unused_nodes(verbose=False)
-        result = maya_test_tools.cmds.objExists(node)
+        result = cmds.objExists(node)
         self.assertFalse(result, f'Expected to not find "{node}. But it was found."')
         expected_num_deleted_nodes = 1
         self.assertEqual(expected_num_deleted_nodes, num_deleted_nodes)
@@ -49,9 +50,9 @@ class TestCleanUpUtils(unittest.TestCase):
                          'instancer']
         nodes = []
         for node_type in types_to_test:
-            new_node = maya_test_tools.cmds.createNode(node_type)
+            new_node = cmds.createNode(node_type)
             nodes.append(new_node)
-            exists_result = maya_test_tools.cmds.objExists(new_node)
+            exists_result = cmds.objExists(new_node)
             self.assertTrue(exists_result, f'Missing expected node: "{str(new_node)}".')
 
         num_deleted_nodes = cleanup_utils.delete_nucleus_nodes(verbose=False, include_fields=False)
@@ -59,7 +60,7 @@ class TestCleanUpUtils(unittest.TestCase):
         self.assertEqual(expected_num_deleted_nodes, num_deleted_nodes)
 
         for node in nodes:
-            exists_result = maya_test_tools.cmds.objExists(node)
+            exists_result = cmds.objExists(node)
             self.assertFalse(exists_result, f'Found unexpected node: "{node}".')
 
     def test_delete_nucleus_nodes_include_fields(self):
@@ -73,9 +74,9 @@ class TestCleanUpUtils(unittest.TestCase):
                          'volumeAxisField']
         nodes = []
         for node_type in types_to_test:
-            new_node = maya_test_tools.cmds.createNode(node_type)
+            new_node = cmds.createNode(node_type)
             nodes.append(new_node)
-            exists_result = maya_test_tools.cmds.objExists(new_node)
+            exists_result = cmds.objExists(new_node)
             self.assertTrue(exists_result, f'Missing expected node: "{str(new_node)}".')
 
         num_deleted_nodes = cleanup_utils.delete_nucleus_nodes(verbose=False, include_fields=False)
@@ -86,15 +87,15 @@ class TestCleanUpUtils(unittest.TestCase):
         self.assertEqual(expected_num_deleted_nodes, num_deleted_nodes)
 
         for node in nodes:
-            exists_result = maya_test_tools.cmds.objExists(node)
+            exists_result = cmds.objExists(node)
             self.assertFalse(exists_result, f'Found unexpected node: "{node}".')
 
     def test_delete_all_locators(self):
         mocked_locators = []
         for node_type in range(0, 10):
-            new_loc = maya_test_tools.cmds.spaceLocator()[0]
+            new_loc = cmds.spaceLocator()[0]
             mocked_locators.append(new_loc)
-            exists_result = maya_test_tools.cmds.objExists(new_loc)
+            exists_result = cmds.objExists(new_loc)
             self.assertTrue(exists_result, f'Missing expected node: "{str(new_loc)}".')
 
         num_deleted_nodes = cleanup_utils.delete_locators(verbose=False, filter_str=None)
@@ -102,5 +103,5 @@ class TestCleanUpUtils(unittest.TestCase):
         self.assertEqual(expected_num_deleted_nodes, num_deleted_nodes)
 
         for node in mocked_locators:
-            exists_result = maya_test_tools.cmds.objExists(node)
+            exists_result = cmds.objExists(node)
             self.assertFalse(exists_result, f'Found unexpected node: "{node}".')

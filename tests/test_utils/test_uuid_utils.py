@@ -19,6 +19,7 @@ for to_append in [package_root_dir, tests_dir]:
         sys.path.append(to_append)
 from tests import maya_test_tools
 from gt.utils import uuid_utils
+cmds = maya_test_tools.cmds
 
 
 class TestUUIDUtils(unittest.TestCase):
@@ -173,8 +174,8 @@ class TestUUIDUtils(unittest.TestCase):
         maya_test_tools.create_poly_cube()
         attr_name = "mockedAttrName"
         created_uuid_attr = uuid_utils.add_uuid_attr([cube_one, cube_two], attr_name)
-        maya_test_tools.cmds.setAttr(created_uuid_attr[0], "mocked_uuid_value", typ="string")
-        maya_test_tools.cmds.setAttr(created_uuid_attr[1], "mocked_uuid_value_two", typ="string")
+        cmds.setAttr(created_uuid_attr[0], "mocked_uuid_value", typ="string")
+        cmds.setAttr(created_uuid_attr[1], "mocked_uuid_value_two", typ="string")
         result = uuid_utils.get_object_from_uuid_attr(uuid_string="mocked_uuid_value", attr_name="mockedAttrName")
         expected = "|pCube1"
         self.assertEqual(expected, result)
@@ -183,13 +184,13 @@ class TestUUIDUtils(unittest.TestCase):
         cube = maya_test_tools.create_poly_cube()
 
         result = uuid_utils.get_uuid(cube)
-        expected = maya_test_tools.cmds.ls(cube, uuid=True)[0]
+        expected = cmds.ls(cube, uuid=True)[0]
         self.assertEqual(expected, result)
 
     def test_get_object_from_uuid(self):
         cube = maya_test_tools.create_poly_cube()
 
-        _uuid = maya_test_tools.cmds.ls(cube, uuid=True)[0]
+        _uuid = cmds.ls(cube, uuid=True)[0]
         result = uuid_utils.get_object_from_uuid(_uuid)
-        expected = maya_test_tools.cmds.ls(cube, long=True)[0]
+        expected = cmds.ls(cube, long=True)[0]
         self.assertEqual(expected, result)

@@ -19,6 +19,7 @@ for to_append in [package_root_dir, tests_dir]:
 from tests import maya_test_tools
 from gt.utils.control_utils import Control
 from gt.utils import control_utils
+cmds = maya_test_tools.cmds
 
 
 class TestControlUtils(unittest.TestCase):
@@ -201,7 +202,7 @@ class TestControlUtils(unittest.TestCase):
     def test_add_snapping_shape(self):
         cube = maya_test_tools.create_poly_cube()
         result = control_utils.add_snapping_shape(target_object=cube)
-        cube_shapes = maya_test_tools.cmds.listRelatives(cube, shapes=True, fullPath=True) or []
+        cube_shapes = cmds.listRelatives(cube, shapes=True, fullPath=True) or []
         expected = '|pCube1|snappingPointShape'
         self.assertIn(expected, cube_shapes)
         self.assertEqual(expected, result)
@@ -212,12 +213,12 @@ class TestControlUtils(unittest.TestCase):
     def test_add_snapping_shape_attr_visibility(self):
         cube = maya_test_tools.create_poly_cube()
         shape = control_utils.add_snapping_shape(target_object=cube)
-        is_hidden_lpx = maya_test_tools.cmds.getAttr(f'{shape}.lpx', channelBox=True)
-        is_hidden_lpy = maya_test_tools.cmds.getAttr(f'{shape}.lpy', channelBox=True)
-        is_hidden_lpz = maya_test_tools.cmds.getAttr(f'{shape}.lpz', channelBox=True)
-        is_hidden_lsx = maya_test_tools.cmds.getAttr(f'{shape}.lsx', channelBox=True)
-        is_hidden_lsy = maya_test_tools.cmds.getAttr(f'{shape}.lsy', channelBox=True)
-        is_hidden_lsz = maya_test_tools.cmds.getAttr(f'{shape}.lsz', channelBox=True)
+        is_hidden_lpx = cmds.getAttr(f'{shape}.lpx', channelBox=True)
+        is_hidden_lpy = cmds.getAttr(f'{shape}.lpy', channelBox=True)
+        is_hidden_lpz = cmds.getAttr(f'{shape}.lpz', channelBox=True)
+        is_hidden_lsx = cmds.getAttr(f'{shape}.lsx', channelBox=True)
+        is_hidden_lsy = cmds.getAttr(f'{shape}.lsy', channelBox=True)
+        is_hidden_lsz = cmds.getAttr(f'{shape}.lsz', channelBox=True)
         self.assertFalse(is_hidden_lpx)
         self.assertFalse(is_hidden_lpy)
         self.assertFalse(is_hidden_lpz)
@@ -226,13 +227,13 @@ class TestControlUtils(unittest.TestCase):
         self.assertFalse(is_hidden_lsz)
 
     def test_create_fk(self):
-        joint_one = maya_test_tools.cmds.createNode("joint", name="jnt_one")
-        joint_two = maya_test_tools.cmds.createNode("joint", name="jnt_two")
-        joint_three = maya_test_tools.cmds.createNode("joint", name="jnt_three")
-        maya_test_tools.cmds.setAttr(f'{joint_two}.tx', 1)
-        maya_test_tools.cmds.setAttr(f'{joint_three}.tx', 2)
-        maya_test_tools.cmds.parent(joint_two, joint_one)
-        maya_test_tools.cmds.parent(joint_three, joint_two)
+        joint_one = cmds.createNode("joint", name="jnt_one")
+        joint_two = cmds.createNode("joint", name="jnt_two")
+        joint_three = cmds.createNode("joint", name="jnt_three")
+        cmds.setAttr(f'{joint_two}.tx', 1)
+        cmds.setAttr(f'{joint_three}.tx', 2)
+        cmds.parent(joint_two, joint_one)
+        cmds.parent(joint_three, joint_two)
         joints = [joint_one, joint_two, joint_three]
 
         result = control_utils.create_fk(target_list=joints,
@@ -254,13 +255,13 @@ class TestControlUtils(unittest.TestCase):
         self.assertEqual(str(expected), str(result))
 
     def test_create_fk_no_hierarchy(self):
-        joint_one = maya_test_tools.cmds.createNode("joint", name="jnt_one")
-        joint_two = maya_test_tools.cmds.createNode("joint", name="jnt_two")
-        joint_three = maya_test_tools.cmds.createNode("joint", name="jnt_three")
-        maya_test_tools.cmds.setAttr(f'{joint_two}.tx', 1)
-        maya_test_tools.cmds.setAttr(f'{joint_three}.tx', 2)
-        maya_test_tools.cmds.parent(joint_two, joint_one)
-        maya_test_tools.cmds.parent(joint_three, joint_two)
+        joint_one = cmds.createNode("joint", name="jnt_one")
+        joint_two = cmds.createNode("joint", name="jnt_two")
+        joint_three = cmds.createNode("joint", name="jnt_three")
+        cmds.setAttr(f'{joint_two}.tx', 1)
+        cmds.setAttr(f'{joint_three}.tx', 2)
+        cmds.parent(joint_two, joint_one)
+        cmds.parent(joint_three, joint_two)
         joints = [joint_one, joint_two, joint_three]
 
         result = control_utils.create_fk(target_list=joints,
@@ -282,13 +283,13 @@ class TestControlUtils(unittest.TestCase):
         self.assertEqual(str(expected), str(result))
 
     def test_create_fk_custom_curve_shape(self):
-        joint_one = maya_test_tools.cmds.createNode("joint", name="jnt_one")
-        joint_two = maya_test_tools.cmds.createNode("joint", name="jnt_two")
-        joint_three = maya_test_tools.cmds.createNode("joint", name="jnt_three")
-        maya_test_tools.cmds.setAttr(f'{joint_two}.tx', 1)
-        maya_test_tools.cmds.setAttr(f'{joint_three}.tx', 2)
-        maya_test_tools.cmds.parent(joint_two, joint_one)
-        maya_test_tools.cmds.parent(joint_three, joint_two)
+        joint_one = cmds.createNode("joint", name="jnt_one")
+        joint_two = cmds.createNode("joint", name="jnt_two")
+        joint_three = cmds.createNode("joint", name="jnt_three")
+        cmds.setAttr(f'{joint_two}.tx', 1)
+        cmds.setAttr(f'{joint_three}.tx', 2)
+        cmds.parent(joint_two, joint_one)
+        cmds.parent(joint_three, joint_two)
         joints = [joint_one, joint_two, joint_three]
 
         from gt.utils.curve_utils import Curves
@@ -311,13 +312,13 @@ class TestControlUtils(unittest.TestCase):
         self.assertEqual(str(expected), str(result))
 
     def test_create_fk_custom_names(self):
-        joint_one = maya_test_tools.cmds.createNode("joint", name="jnt_one")
-        joint_two = maya_test_tools.cmds.createNode("joint", name="jnt_two")
-        joint_three = maya_test_tools.cmds.createNode("joint", name="jnt_three")
-        maya_test_tools.cmds.setAttr(f'{joint_two}.tx', 1)
-        maya_test_tools.cmds.setAttr(f'{joint_three}.tx', 2)
-        maya_test_tools.cmds.parent(joint_two, joint_one)
-        maya_test_tools.cmds.parent(joint_three, joint_two)
+        joint_one = cmds.createNode("joint", name="jnt_one")
+        joint_two = cmds.createNode("joint", name="jnt_two")
+        joint_three = cmds.createNode("joint", name="jnt_three")
+        cmds.setAttr(f'{joint_two}.tx', 1)
+        cmds.setAttr(f'{joint_three}.tx', 2)
+        cmds.parent(joint_two, joint_one)
+        cmds.parent(joint_three, joint_two)
         joints = [joint_one, joint_two, joint_three]
 
         from gt.utils.curve_utils import Curves
@@ -358,15 +359,15 @@ class TestControlUtils(unittest.TestCase):
         self.assertEqual(str(expected), str(result))
 
     def test_selected_create_fk(self):
-        joint_one = maya_test_tools.cmds.createNode("joint", name="jnt_one")
-        joint_two = maya_test_tools.cmds.createNode("joint", name="jnt_two")
-        joint_three = maya_test_tools.cmds.createNode("joint", name="jnt_three")
-        maya_test_tools.cmds.setAttr(f'{joint_two}.tx', 1)
-        maya_test_tools.cmds.setAttr(f'{joint_three}.tx', 2)
-        maya_test_tools.cmds.parent(joint_two, joint_one)
-        maya_test_tools.cmds.parent(joint_three, joint_two)
+        joint_one = cmds.createNode("joint", name="jnt_one")
+        joint_two = cmds.createNode("joint", name="jnt_two")
+        joint_three = cmds.createNode("joint", name="jnt_three")
+        cmds.setAttr(f'{joint_two}.tx', 1)
+        cmds.setAttr(f'{joint_three}.tx', 2)
+        cmds.parent(joint_two, joint_one)
+        cmds.parent(joint_three, joint_two)
         joints = [joint_one, joint_two, joint_three]
-        maya_test_tools.cmds.select(joints)
+        cmds.select(joints)
 
         result = control_utils.selected_create_fk()
         from gt.utils.node_utils import Node

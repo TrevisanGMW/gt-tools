@@ -14,6 +14,7 @@ if tools_root_dir not in sys.path:
     sys.path.append(tools_root_dir)
 from gt.utils import iterable_utils
 from tests import maya_test_tools
+cmds = maya_test_tools.cmds
 
 
 class TestIterableUtils(unittest.TestCase):
@@ -290,10 +291,16 @@ class TestIterableUtils(unittest.TestCase):
         self.assertEqual(expected, result)
 
     def test_sanitize_maya_list_filter_unique(self):
-        cube = maya_test_tools.create_poly_cube(name='cube')
+        cube_one = maya_test_tools.create_poly_cube(name='cube_one')  # Added two times below
+        cube_two = maya_test_tools.create_poly_cube(name='cube_two')
+        cube_three = maya_test_tools.create_poly_cube(name='cube_three')  # Added two times below
         non_existent_obj = 'non_existent_object'
 
-        result = iterable_utils.sanitize_maya_list(input_list=[cube, cube, non_existent_obj],
+        input_list = [cube_one, cube_one,
+                      non_existent_obj, cube_two,
+                      cube_three, cube_three]
+
+        result = iterable_utils.sanitize_maya_list(input_list=input_list,
                                                    filter_unique=True,
                                                    filter_string=None,
                                                    filter_func=None,
@@ -304,7 +311,7 @@ class TestIterableUtils(unittest.TestCase):
                                                    hierarchy=False,
                                                    convert_to_nodes=False,
                                                    short_names=False)
-        expected = [f'|{cube}']
+        expected = [f'|{cube_one}', f'|{cube_two}', f'|{cube_three}']
         self.assertEqual(expected, result)
 
     def test_sanitize_maya_list_filter_string(self):
@@ -329,7 +336,7 @@ class TestIterableUtils(unittest.TestCase):
     def test_sanitize_maya_list_hierarchy(self):
         cube = maya_test_tools.create_poly_cube(name='cube')
         sphere = maya_test_tools.create_poly_sphere(name='sphere')
-        maya_test_tools.cmds.parent(sphere, cube)
+        cmds.parent(sphere, cube)
         non_existent_obj = 'non_existent_object'
 
         result = iterable_utils.sanitize_maya_list(input_list=[cube, non_existent_obj],
@@ -532,4 +539,43 @@ class TestIterableUtils(unittest.TestCase):
         desired_data_type = dict
         result = iterable_utils.filter_list_by_type(input_list, desired_data_type, num_items=2)
         expected = [{"a": 1, "b": 2}]
+        self.assertEqual(expected, result)
+
+    def test_multiply_collection_by_number_list_multiplication(self):
+        original_list = [1, 2, 3, 4]
+        multiplier = 0.5
+        expected = [0.5, 1, 1.5, 2]
+        result = iterable_utils.multiply_collection_by_number(original_list, multiplier)
+        self.assertEqual(expected, result)
+
+    def test_multiply_collection_by_number_tuple_multiplication(self):
+        original_tuple = (1, 2, 3, 4)
+        multiplier = 2
+        expected = (2, 4, 6, 8)
+        result = iterable_utils.multiply_collection_by_number(original_tuple, multiplier)
+        self.assertEqual(expected, result)
+
+    def test_multiply_collection_by_number_nested_list_multiplication(self):
+        original_list = [1, [2, 3], 4]
+        multiplier = 0.5
+        expected = [0.5, [1, 1.5], 2]
+        result = iterable_utils.multiply_collection_by_number(original_list, multiplier)
+        self.assertEqual(expected, result)
+
+    def test_multiply_collection_by_number_nested_tuple_multiplication(self):
+        original_tuple = (1, (2, 3), 4)
+        multiplier = 2
+        expected = (2, (4, 6), 8)
+        result = iterable_utils.multiply_collection_by_number(original_tuple, multiplier)
+        self.assertEqual(expected, result)
+
+    def test_multiply_collection_by_number_invalid_input_type(self):
+        with self.assertRaises(TypeError):
+            iterable_utils.multiply_collection_by_number(collection=123, number=0.5)
+
+    def test_multiply_collection_by_number_non_numeric_elements(self):
+        original_list = [1, 'a', 3, 'b']
+        multiplier = 2
+        expected = [2, 'a', 6, 'b']
+        result = iterable_utils.multiply_collection_by_number(original_list, multiplier)
         self.assertEqual(expected, result)

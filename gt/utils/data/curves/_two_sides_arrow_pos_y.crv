@@ -1,0 +1,75 @@
+{
+    "name": "two_sides_arrow_pos_y",
+    "transform": null,
+    "shapes": [
+        {
+            "name": "two_sides_arrow_pos_yShape",
+            "points": [
+                [
+                    0.0,
+                    1.0,
+                    0.0
+                ],
+                [
+                    0.0,
+                    0.598,
+                    -0.399
+                ],
+                [
+                    0.0,
+                    0.598,
+                    -0.105
+                ],
+                [
+                    0.0,
+                    -0.598,
+                    -0.105
+                ],
+                [
+                    0.0,
+                    -0.598,
+                    -0.399
+                ],
+                [
+                    0.0,
+                    -1.0,
+                    0.0
+                ],
+                [
+                    0.0,
+                    -0.598,
+                    0.399
+                ],
+                [
+                    0.0,
+                    -0.598,
+                    0.105
+                ],
+                [
+                    0.0,
+                    0.598,
+                    0.105
+                ],
+                [
+                    0.0,
+                    0.598,
+                    0.399
+                ],
+                [
+                    0.0,
+                    1.0,
+                    0.0
+                ]
+            ],
+            "degree": 1,
+            "knot": null,
+            "periodic": 0,
+            "is_bezier": false
+        }
+    ],
+    "metadata": {
+        "projectionAxis": "persp",
+        "projectionScale": 5,
+        "projectionFit": null
+    }
+}

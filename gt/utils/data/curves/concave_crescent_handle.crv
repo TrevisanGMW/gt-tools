@@ -1,9 +1,9 @@
 {
-    "name": "concave_half_moon_handle",
+    "name": "concave_crescent_handle",
     "transform": null,
     "shapes": [
         {
-            "name": "concave_half_moon_handleShape",
+            "name": "concave_crescent_handleShape",
             "points": [
                 [
                     -0.0,

@@ -4,12 +4,12 @@ github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.attr_utils import add_separator_attr, hide_lock_default_attrs, connect_attr, add_attr, set_attr, get_attr
 from gt.utils.attr_utils import set_attr_state, delete_user_defined_attrs
-from gt.utils.transform_utils import get_component_positions_as_dict, set_component_positions_from_dict
 from gt.utils.color_utils import set_color_viewport, ColorConstants, set_color_outliner
 from gt.utils.curve_utils import get_curve, set_curve_width, create_connection_line
+from gt.utils.rigging_utils import duplicate_joint_for_automation, RiggingConstants
 from gt.tools.auto_rigger.rig_constants import RiggerConstants
 from gt.utils.uuid_utils import get_object_from_uuid_attr
-from gt.utils.hierarchy_utils import duplicate_as_node
+from gt.utils.string_utils import upper_first_char
 from gt.utils.naming_utils import NamingConstants
 from gt.utils import hierarchy_utils
 from gt.utils.node_utils import Node
@@ -93,17 +93,25 @@ def find_drivers_from_joint(source_joint, as_list=False):
     return found_drivers
 
 
-def find_objects_with_attr(attr_name, obj_type="transform", transform_lookup=True):
+def find_objects_with_attr(attr_name, obj_type="transform", transform_lookup=True, lookup_list=None):
     """
     Return object if provided UUID is present in it
     Args:
         attr_name (string): Name of the attribute where the UUID is stored.
         obj_type (str, optional): Type of objects to look for (default is "transform")
         transform_lookup (bool, optional): When not a transform, it checks the item parent instead of the item itself.
+        lookup_list (list, optional): If provided, this list will be used instead of a full "ls" type query.
+                                      This can be used to improve performance in case the element was already
+                                      previously listed in another operation. List should use full paths.
+                                      e.g. ["|itemOne", "|transform|itemTwo"]
+
     Returns:
         Node or None: If found, the object with a matching UUID, otherwise None
     """
-    obj_list = cmds.ls(typ=obj_type, long=True) or []
+    if isinstance(lookup_list, list):
+        obj_list = lookup_list
+    else:
+        obj_list = cmds.ls(typ=obj_type, long=True) or []
     for obj in obj_list:
         if transform_lookup and obj_type != "transform":
             _parent = cmds.listRelatives(obj, parent=True, fullPath=True) or []
@@ -353,7 +361,7 @@ def create_root_group(is_proxy=False):
     add_attr(obj_list=root_group, attr_type="string", is_keyable=False,
              attributes=_attr, verbose=True)
     set_color_outliner(root_group, rgb_color=_color)
-    return Node(root_group)
+    return root_group
 
 
 def create_proxy_root_curve():
@@ -364,7 +372,9 @@ def create_proxy_root_curve():
     """
     root_transform = create_root_curve(name="root_proxy")
     hide_lock_default_attrs(obj_list=root_transform, translate=True, rotate=True)
-    add_separator_attr(target_object=root_transform, attr_name=f'proxy{RiggerConstants.SEPARATOR_OPTIONS.title()}')
+
+    add_separator_attr(target_object=root_transform,
+                       attr_name=f'proxy{upper_first_char(RiggingConstants.SEPARATOR_CONTROL)}')
     add_attr(obj_list=root_transform, attr_type="string", is_keyable=False,
              attributes=RiggerConstants.REF_ATTR_ROOT_PROXY, verbose=True)
 
@@ -379,7 +389,8 @@ def create_control_root_curve():
         Node, str: A Node containing the generated root curve
     """
     root_transform = create_root_curve(name=f'root_{NamingConstants.Suffix.CTRL}')
-    add_separator_attr(target_object=root_transform, attr_name=f'rig{RiggerConstants.SEPARATOR_OPTIONS.title()}')
+    add_separator_attr(target_object=root_transform,
+                       attr_name=f'rig{upper_first_char(RiggingConstants.SEPARATOR_CONTROL)}')
     add_attr(obj_list=root_transform, attr_type="string", is_keyable=False,
              attributes=RiggerConstants.REF_ATTR_ROOT_CONTROL, verbose=True)
     set_curve_width(obj_list=root_transform, line_width=3)
@@ -412,9 +423,10 @@ def create_direction_curve():
         Node, str: A Node containing the generated root curve
     """
     direction_crv = cmds.circle(name=f'direction_{NamingConstants.Suffix.CTRL}',
-                                 nr=(0, 1, 0), ch=False, radius=44.5)[0]
+                                normal=(0, 1, 0), ch=False, radius=44.5)[0]
     cmds.rebuildCurve(direction_crv, ch=False, rpo=1, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=20, d=3, tol=0.01)
-    add_separator_attr(target_object=direction_crv, attr_name=f'rig{RiggerConstants.SEPARATOR_OPTIONS.title()}')
+    add_separator_attr(target_object=direction_crv,
+                       attr_name=f'rig{upper_first_char(RiggingConstants.SEPARATOR_CONTROL)}')
     add_attr(obj_list=direction_crv, attr_type="string", is_keyable=False,
              attributes=RiggerConstants.REF_ATTR_DIR_CURVE, verbose=True)
     set_color_viewport(obj_list=direction_crv, rgb_color=ColorConstants.RigControl.CENTER)
@@ -431,7 +443,7 @@ def create_utility_groups(geometry=False, skeleton=False, control=False,
         skeleton (bool, optional): If True, the skeleton group is created.
         control (bool, optional): If True, the control group is created.
         setup (bool, optional): If True, the setup group is created.
-        line (bool, optional): If True, the visualization line group is created.
+        line (bool, optional): If True, the visualization line group gets created.
         target_parent (str, Node, optional): If provided, groups will be parented to this object after creation.
     Returns:
         dict: A dictionary with lookup attributes (RiggerConstants) as keys and "Node" objects as values.
@@ -577,30 +589,6 @@ def get_automation_group(name=f'generalAutomation_{NamingConstants.Suffix.GRP}',
     return _grp_path
 
 
-def duplicate_joint_for_automation(joint, suffix=NamingConstants.Suffix.DRIVEN, parent=None, connect_rot_order=True):
-    """
-    Preset version of the "duplicate_as_node" function used to duplicate joints for automation.
-    Args:
-        joint (str, Node): The joint to be duplicated
-        suffix (str, optional): The suffix to be added at the end of the duplicated joint.
-        parent (str, optional): If provided, and it exists, the duplicated object will be parented to this object.
-        connect_rot_order (bool, optional): If True, it will create a connection between the original joint rotate
-                                            order and the duplicate joint rotate order.
-                                            (duplicate receives from original)
-    Returns:
-        str, None: A node (that has a str base) of the duplicated object, or None if it failed.
-    """
-    if not joint or not cmds.objExists(str(joint)):
-        return
-    jnt_as_node = duplicate_as_node(to_duplicate=str(joint), name=f'{joint.get_short_name()}_{suffix}',
-                                    parent_only=True, delete_attrs=True, input_connections=False)
-    if connect_rot_order:
-        connect_attr(source_attr=f'{str(joint)}.rotateOrder', target_attr_list=f'{jnt_as_node}.rotateOrder')
-    if parent:
-        hierarchy_utils.parent(source_objects=jnt_as_node, target_parent=parent)
-    return jnt_as_node
-
-
 def get_driven_joint(uuid_string, suffix=NamingConstants.Suffix.DRIVEN, constraint_to_source=True):
     """
     Gets the path to a driven joint or create it in case it's missing.
@@ -629,23 +617,6 @@ def get_driven_joint(uuid_string, suffix=NamingConstants.Suffix.DRIVEN, constrai
             constraint = cmds.parentConstraint(source_jnt, driven_jnt)
             cmds.setAttr(f'{constraint[0]}.interpType', 0)  # Set to No Flip
     return driven_jnt
-
-
-def rescale_joint_radius(joint_list, multiplier):
-    """
-    Re-scales the joint radius attribute of the provided joints.
-    It gets the original value and multiply it by the provided "multiplier" argument.
-    Args:
-        joint_list (list, str): Path to the target joints.
-        multiplier (int, float): Value to multiply the radius by. For example "0.5" means 50% of the original value.
-    """
-    if joint_list and isinstance(joint_list, str):
-        joint_list = [joint_list]
-    for jnt in joint_list:
-        if not cmds.objExists(f'{jnt}.radius'):
-            continue
-        scaled_radius = get_attr(f'{jnt}.radius') * multiplier
-        cmds.setAttr(f'{jnt}.radius', scaled_radius)
 
 
 def get_drivers_list_from_joint(source_joint):
@@ -713,39 +684,9 @@ def get_driver_uuids_from_joint(source_joint, as_list=False):
     return driver_uuids
 
 
-def expose_rotation_order(target):
-    """
-    Creates an attribute to control the rotation order of the target object and connects the attribute
-    to the hidden "rotationOrder" attribute.
-    Args:
-        target (str): Path to the target object (usually a control)
-    """
-    cmds.addAttr(target, ln='rotationOrder', at='enum', keyable=True,
-                 en=RiggerConstants.ENUM_ROTATE_ORDER, niceName='Rotate Order')
-    cmds.connectAttr(f'{target}.rotationOrder', f'{target}.rotateOrder', f=True)
-
-
-def offset_control_orientation(ctrl, offset_transform, orient_tuple):
-    """
-    Offsets orientation of the control offset transform, while maintaining the original curve shape point position.
-    Args:
-        ctrl (str, Node): Path to the control transform (with curve shapes)
-        offset_transform (str, Node): Path to the control offset transform.
-        orient_tuple (tuple): A tuple with X, Y and Z values used as offset.
-                              e.g. (90, 0, 0)  # offsets orientation 90 in X
-    """
-    for obj in [ctrl, offset_transform]:
-        if not obj or not cmds.objExists(obj):
-            logger.debug(f'Unable to offset control orientation, not all objects were found in the scene. '
-                         f'Missing: {str(obj)}')
-            return
-    cv_pos_dict = get_component_positions_as_dict(obj_transform=ctrl, full_path=True, world_space=True)
-    cmds.rotate(*orient_tuple, offset_transform, relative=True, objectSpace=True)
-    set_component_positions_from_dict(component_pos_dict=cv_pos_dict)
-
-
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     # cmds.file(new=True, force=True)
     # cmds.viewFit(all=True)
     # create_direction_curve()
+    create_proxy_root_curve()

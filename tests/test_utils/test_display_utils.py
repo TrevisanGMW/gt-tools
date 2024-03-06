@@ -19,6 +19,7 @@ for to_append in [package_root_dir, tests_dir]:
         sys.path.append(to_append)
 from tests import maya_test_tools
 from gt.utils import display_utils
+cmds = maya_test_tools.cmds
 
 
 class TestDisplayUtils(unittest.TestCase):
@@ -32,12 +33,12 @@ class TestDisplayUtils(unittest.TestCase):
     def test_toggle_uniform_lra(self):
         cube = maya_test_tools.create_poly_cube()
         lra_visibility_result = display_utils.toggle_uniform_lra(obj_list=cube, verbose=False)
-        result = maya_test_tools.cmds.getAttr(f'{cube}.displayLocalAxis')
+        result = cmds.getAttr(f'{cube}.displayLocalAxis')
         expected = True
         self.assertEqual(expected, lra_visibility_result)
         self.assertEqual(expected, result)
         lra_visibility_result = display_utils.toggle_uniform_lra(obj_list=cube, verbose=False)
-        result = maya_test_tools.cmds.getAttr(f'{cube}.displayLocalAxis')
+        result = cmds.getAttr(f'{cube}.displayLocalAxis')
         expected = False
         self.assertEqual(expected, lra_visibility_result)
         self.assertEqual(expected, result)
@@ -45,7 +46,7 @@ class TestDisplayUtils(unittest.TestCase):
     def test_set_lra_state_true(self):
         cube = maya_test_tools.create_poly_cube()
         affected_list = display_utils.set_lra_state(obj_list=cube, state=True, verbose=False)
-        result = maya_test_tools.cmds.getAttr(f'{cube}.displayLocalAxis')
+        result = cmds.getAttr(f'{cube}.displayLocalAxis')
         expected = True
         self.assertEqual([cube], affected_list)
         self.assertEqual(expected, result)
@@ -53,7 +54,7 @@ class TestDisplayUtils(unittest.TestCase):
     def test_set_lra_state_false(self):
         cube = maya_test_tools.create_poly_cube()
         affected_list = display_utils.set_lra_state(obj_list=cube, state=False, verbose=False)
-        result = maya_test_tools.cmds.getAttr(f'{cube}.displayLocalAxis')
+        result = cmds.getAttr(f'{cube}.displayLocalAxis')
         expected = False
         self.assertEqual([cube], affected_list)
         self.assertEqual(expected, result)
@@ -66,19 +67,19 @@ class TestDisplayUtils(unittest.TestCase):
                                                     state=True, verbose=False)
         self.assertEqual(to_test, affected_list)
         for obj in to_test:
-            result = maya_test_tools.cmds.getAttr(f'{obj}.displayLocalAxis')
+            result = cmds.getAttr(f'{obj}.displayLocalAxis')
             expected = True
             self.assertEqual(expected, result)
 
     def test_toggle_uniform_jnt_label(self):
-        joint = maya_test_tools.cmds.joint()
+        joint = cmds.joint()
         label_visibility_state = display_utils.toggle_uniform_jnt_label(jnt_list=joint, verbose=False)
-        result = maya_test_tools.cmds.getAttr(f'{joint}.drawLabel')
+        result = cmds.getAttr(f'{joint}.drawLabel')
         expected = True
         self.assertEqual(expected, label_visibility_state)
         self.assertEqual(expected, result)
         label_visibility_state = display_utils.toggle_uniform_jnt_label(jnt_list=joint, verbose=False)
-        result = maya_test_tools.cmds.getAttr(f'{joint}.drawLabel')
+        result = cmds.getAttr(f'{joint}.drawLabel')
         expected = False
         self.assertEqual(expected, label_visibility_state)
         self.assertEqual(expected, result)
@@ -94,39 +95,39 @@ class TestDisplayUtils(unittest.TestCase):
         self.assertEqual(expected, label_visibility_state)
 
     def test_set_joint_name_as_label(self):
-        joint_one = maya_test_tools.cmds.joint()
-        joint_two = maya_test_tools.cmds.joint()
+        joint_one = cmds.joint()
+        joint_two = cmds.joint()
         joints_to_test = [joint_one, joint_two]
 
         for jnt in joints_to_test:
-            side_value = maya_test_tools.cmds.getAttr(f'{jnt}.side')
+            side_value = cmds.getAttr(f'{jnt}.side')
             expected = 0  # Center
             self.assertEqual(expected, side_value)
-            type_value = maya_test_tools.cmds.getAttr(f'{jnt}.type')
+            type_value = cmds.getAttr(f'{jnt}.type')
             expected = 0  # None
             self.assertEqual(expected, type_value)
-            label_value = maya_test_tools.cmds.getAttr(f'{jnt}.otherType')
+            label_value = cmds.getAttr(f'{jnt}.otherType')
             expected = "jaw"
             self.assertEqual(expected, label_value)
         # Update Label
-        affected_joints = display_utils.set_joint_name_as_label(jnt_list=joints_to_test, verbose=False)
+        affected_joints = display_utils.set_joint_name_as_label(joints=joints_to_test, verbose=False)
         expected = 2
         self.assertEqual(expected, affected_joints)
         for jnt in joints_to_test:
-            side_value = maya_test_tools.cmds.getAttr(f'{jnt}.side')
+            side_value = cmds.getAttr(f'{jnt}.side')
             expected = 0  # Center
             self.assertEqual(expected, side_value)
-            type_value = maya_test_tools.cmds.getAttr(f'{jnt}.type')
+            type_value = cmds.getAttr(f'{jnt}.type')
             expected = 18  # Other
             self.assertEqual(expected, type_value)
-            label_value = maya_test_tools.cmds.getAttr(f'{jnt}.otherType')
+            label_value = cmds.getAttr(f'{jnt}.otherType')
             expected = jnt
             self.assertEqual(expected, label_value)
 
     @patch('gt.utils.display_utils.mel')
     def test_generate_udim_previews(self, mock_mel):
         for index in range(0, 10):
-            maya_test_tools.cmds.createNode("file")
+            cmds.createNode("file")
         mock_eval = MagicMock()
         mock_mel.eval = mock_eval
         affected_nodes = display_utils.generate_udim_previews(verbose=False)
@@ -135,28 +136,28 @@ class TestDisplayUtils(unittest.TestCase):
         self.assertEqual(expected, affected_nodes)
 
     def test_reset_joint_display(self):
-        joint_one = maya_test_tools.cmds.joint()
-        joint_two = maya_test_tools.cmds.joint()
-        maya_test_tools.cmds.joint()  # Purposely left out of affected joints
+        joint_one = cmds.joint()
+        joint_two = cmds.joint()
+        cmds.joint()  # Purposely left out of affected joints
         joints_to_test = [joint_one, joint_two]
 
         expected = 2
-        maya_test_tools.cmds.jointDisplayScale(expected)  # Something other than 1
-        display_scale = maya_test_tools.cmds.jointDisplayScale(query=True)
+        cmds.jointDisplayScale(expected)  # Something other than 1
+        display_scale = cmds.jointDisplayScale(query=True)
         self.assertEqual(expected, display_scale)
 
         for jnt in joints_to_test:
             expected = 2
-            maya_test_tools.cmds.setAttr(f'{jnt}.radius', expected)  # Something other than 1
-            radius_value = maya_test_tools.cmds.getAttr(f'{jnt}.radius')
+            cmds.setAttr(f'{jnt}.radius', expected)  # Something other than 1
+            radius_value = cmds.getAttr(f'{jnt}.radius')
             self.assertEqual(expected, radius_value)
             expected = 2
-            maya_test_tools.cmds.setAttr(f'{jnt}.drawStyle', expected)  # None
-            draw_style_value = maya_test_tools.cmds.getAttr(f'{jnt}.drawStyle')
+            cmds.setAttr(f'{jnt}.drawStyle', expected)  # None
+            draw_style_value = cmds.getAttr(f'{jnt}.drawStyle')
             self.assertEqual(expected, draw_style_value)
             expected = False
-            maya_test_tools.cmds.setAttr(f'{jnt}.visibility', expected)
-            visibility_value = maya_test_tools.cmds.getAttr(f'{jnt}.visibility')
+            cmds.setAttr(f'{jnt}.visibility', expected)
+            visibility_value = cmds.getAttr(f'{jnt}.visibility')
             self.assertEqual(expected, visibility_value)
         # Update Label
         affected_joints = display_utils.reset_joint_display(jnt_list=joints_to_test, verbose=False)
@@ -164,28 +165,28 @@ class TestDisplayUtils(unittest.TestCase):
         self.assertEqual(expected_affected_joints, affected_joints)
 
         expected_display_scale = 1
-        display_scale = maya_test_tools.cmds.jointDisplayScale(query=True)
+        display_scale = cmds.jointDisplayScale(query=True)
         self.assertEqual(expected_display_scale, display_scale)
 
         for jnt in joints_to_test:
             expected = 1
-            maya_test_tools.cmds.setAttr(f'{jnt}.radius', expected)  # Something other than 1
-            radius_value = maya_test_tools.cmds.getAttr(f'{jnt}.radius')
+            cmds.setAttr(f'{jnt}.radius', expected)  # Something other than 1
+            radius_value = cmds.getAttr(f'{jnt}.radius')
             self.assertEqual(expected, radius_value)
             expected = 1
-            maya_test_tools.cmds.setAttr(f'{jnt}.drawStyle', expected)  # None
-            draw_style_value = maya_test_tools.cmds.getAttr(f'{jnt}.drawStyle')
+            cmds.setAttr(f'{jnt}.drawStyle', expected)  # None
+            draw_style_value = cmds.getAttr(f'{jnt}.drawStyle')
             self.assertEqual(expected, draw_style_value)
             expected = True
-            maya_test_tools.cmds.setAttr(f'{jnt}.visibility', expected)
-            visibility_value = maya_test_tools.cmds.getAttr(f'{jnt}.visibility')
+            cmds.setAttr(f'{jnt}.visibility', expected)
+            visibility_value = cmds.getAttr(f'{jnt}.visibility')
             self.assertEqual(expected, visibility_value)
 
     def test_delete_display_layers(self):
-        display_layer_one = maya_test_tools.cmds.createDisplayLayer(name="mocked_layer_one", empty=True)
-        display_layer_two = maya_test_tools.cmds.createDisplayLayer(name="mocked_layer_two", empty=True)
+        display_layer_one = cmds.createDisplayLayer(name="mocked_layer_one", empty=True)
+        display_layer_two = cmds.createDisplayLayer(name="mocked_layer_two", empty=True)
         affected_layers = display_utils.delete_display_layers(layer_list=display_layer_one, verbose=False)
         expected_affected_layers = 1
         self.assertEqual(expected_affected_layers, affected_layers)
-        self.assertFalse(maya_test_tools.cmds.objExists(display_layer_one), "Found unexpected layer.")
-        self.assertTrue(maya_test_tools.cmds.objExists(display_layer_two), "Missing expected layer.")
+        self.assertFalse(cmds.objExists(display_layer_one), "Found unexpected layer.")
+        self.assertTrue(cmds.objExists(display_layer_two), "Missing expected layer.")

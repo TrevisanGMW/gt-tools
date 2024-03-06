@@ -1,9 +1,9 @@
 {
-    "name": "concave_half_moon_skinny",
+    "name": "concave_crescent_skinny",
     "transform": null,
     "shapes": [
         {
-            "name": "concave_half_moon_skinnyShape",
+            "name": "concave_crescent_skinnyShape",
             "points": [
                 [
                     1.53,

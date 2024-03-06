@@ -7,6 +7,7 @@ from gt.tools.auto_rigger.rig_utils import find_proxy_from_uuid, find_vis_lines_
 from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric
 from gt.utils.color_utils import ColorConstants, set_color_viewport
+from gt.utils.constraint_utils import constraint_targets
 from gt.utils.attr_utils import set_attr, add_attr
 from gt.ui import resource_library
 import maya.cmds as cmds
@@ -117,7 +118,7 @@ class ModuleRoot(ModuleGeneric):
         """
         root_jnt = find_joint_from_uuid(self.root.get_uuid())
         root_ctrl = find_control_root_curve()
-        cmds.parentConstraint(root_ctrl, root_jnt)
+        constraint_targets(source_driver=root_ctrl, target_driven=root_jnt)
         set_color_viewport(obj_list=root_jnt, rgb_color=ColorConstants.RigJoint.ROOT)
 
 
