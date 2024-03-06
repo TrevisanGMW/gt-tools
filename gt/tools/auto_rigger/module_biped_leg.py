@@ -402,7 +402,6 @@ class ModuleBipedLeg(ModuleGeneric):
         hip_fk_ctrl = create_ctrl_curve(name=hip_fk_ctrl, curve_file_name="_circle_pos_x")
         self.add_driver_uuid_attr(target=hip_fk_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.hip)
         hip_fk_offset = add_offset_transform(target_list=hip_fk_ctrl)[0]
-        hip_fk_offset = Node(hip_fk_offset)
         match_transform(source=hip_jnt, target_list=hip_fk_offset)
         scale_shapes(obj_transform=hip_fk_ctrl, offset=leg_scale*.1)
         hierarchy_utils.parent(source_objects=hip_fk_offset, target_parent=direction_crv)
@@ -415,7 +414,6 @@ class ModuleBipedLeg(ModuleGeneric):
         knee_fk_ctrl = create_ctrl_curve(name=knee_fk_ctrl, curve_file_name="_circle_pos_x")
         self.add_driver_uuid_attr(target=knee_fk_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.knee)
         knee_fk_offset = add_offset_transform(target_list=knee_fk_ctrl)[0]
-        knee_fk_offset = Node(knee_fk_offset)
         match_transform(source=knee_jnt, target_list=knee_fk_offset)
         scale_shapes(obj_transform=knee_fk_ctrl, offset=leg_scale * .1)
         hierarchy_utils.parent(source_objects=knee_fk_offset, target_parent=hip_fk_ctrl)
@@ -426,7 +424,6 @@ class ModuleBipedLeg(ModuleGeneric):
         ankle_fk_ctrl = create_ctrl_curve(name=ankle_fk_ctrl, curve_file_name="_circle_pos_x")
         self.add_driver_uuid_attr(target=ankle_fk_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.ankle)
         ankle_fk_offset = add_offset_transform(target_list=ankle_fk_ctrl)[0]
-        ankle_fk_offset = Node(ankle_fk_offset)
         match_transform(source=ankle_jnt, target_list=ankle_fk_offset)
         scale_shapes(obj_transform=ankle_fk_ctrl, offset=leg_scale * .1)
         hierarchy_utils.parent(source_objects=ankle_fk_offset, target_parent=knee_fk_ctrl)
@@ -445,7 +442,6 @@ class ModuleBipedLeg(ModuleGeneric):
         ball_fk_ctrl = create_ctrl_curve(name=ball_fk_ctrl, curve_file_name="_circle_pos_x")
         self.add_driver_uuid_attr(target=ball_fk_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.ball)
         ball_offset = add_offset_transform(target_list=ball_fk_ctrl)[0]
-        ball_offset = Node(ball_offset)
         match_transform(source=ball_jnt, target_list=ball_offset)
         scale_shapes(obj_transform=ball_fk_ctrl, offset=foot_scale * .3)
         hierarchy_utils.parent(source_objects=ball_offset, target_parent=ankle_fk_ctrl)
@@ -459,7 +455,6 @@ class ModuleBipedLeg(ModuleGeneric):
         knee_ik_ctrl = create_ctrl_curve(name=knee_ik_ctrl, curve_file_name="_locator")
         self.add_driver_uuid_attr(target=knee_ik_ctrl, driver_type=RiggerDriverTypes.IK, proxy_purpose=self.knee)
         knee_offset = add_offset_transform(target_list=knee_ik_ctrl)[0]
-        knee_offset = Node(knee_offset)
         match_translate(source=knee_jnt, target_list=knee_offset)
         scale_shapes(obj_transform=knee_ik_ctrl, offset=leg_scale * .05)
         hierarchy_utils.parent(source_objects=knee_offset, target_parent=direction_crv)
@@ -487,7 +482,6 @@ class ModuleBipedLeg(ModuleGeneric):
         self.add_driver_uuid_attr(target=foot_ctrl, driver_type=RiggerDriverTypes.IK, proxy_purpose=self.ankle)
         translate_shapes(obj_transform=foot_ctrl, offset=(0, 1, 0))  # Move Pivot to Base
         foot_offset = add_offset_transform(target_list=foot_ctrl)[0]
-        foot_offset = Node(foot_offset)
         foot_ctrl_scale = (foot_scale*.3, foot_scale*.15, foot_scale*.6)
         scale_shapes(obj_transform=foot_ctrl, offset=foot_ctrl_scale)
         hierarchy_utils.parent(source_objects=foot_offset, target_parent=direction_crv)
@@ -535,7 +529,6 @@ class ModuleBipedLeg(ModuleGeneric):
                                   driver_type=RiggerDriverTypes.SWITCH,
                                   proxy_purpose=self.ankle)
         ik_switch_offset = add_offset_transform(target_list=ik_switch_ctrl)[0]
-        ik_switch_offset = Node(ik_switch_offset)
         match_transform(source=ankle_proxy, target_list=ik_switch_offset)
         translate_shapes(obj_transform=ik_switch_ctrl, offset=(0, 0, leg_scale * -.015))  # Move it away from wrist
         scale_shapes(obj_transform=ik_switch_ctrl, offset=leg_scale * .1)
@@ -553,7 +546,6 @@ class ModuleBipedLeg(ModuleGeneric):
                                   driver_type=RiggerDriverTypes.ROLL,
                                   proxy_purpose=self.toe)
         roll_toe_offset = add_offset_transform(target_list=roll_toe_ctrl)[0]
-        roll_toe_offset = Node(roll_toe_offset)
         match_transform(source=toe_jnt, target_list=roll_toe_offset)
         desired_rotation = cmds.xform(ankle_proxy, query=True, rotation=True)
         cmds.setAttr(f'{roll_toe_offset}.rx', 0)
@@ -569,7 +561,6 @@ class ModuleBipedLeg(ModuleGeneric):
                                   driver_type=RiggerDriverTypes.UP_DOWN,
                                   proxy_purpose=self.ball)
         up_down_toe_offset = add_offset_transform(target_list=up_down_toe_ctrl)[0]
-        up_down_toe_offset = Node(up_down_toe_offset)
         match_transform(source=toe_jnt, target_list=up_down_toe_offset)
         desired_rotation = cmds.xform(ankle_proxy, query=True, rotation=True)
         cmds.setAttr(f'{up_down_toe_offset}.rx', 0)
@@ -585,7 +576,6 @@ class ModuleBipedLeg(ModuleGeneric):
                                   driver_type=RiggerDriverTypes.ROLL,
                                   proxy_purpose=self.ball)
         roll_ball_offset = add_offset_transform(target_list=roll_ball_ctrl)[0]
-        roll_ball_offset = Node(roll_ball_offset)
         match_transform(source=ball_jnt, target_list=roll_ball_offset)
         desired_rotation = cmds.xform(ankle_proxy, query=True, rotation=True)
         cmds.setAttr(f'{roll_ball_offset}.rx', 0)
@@ -602,7 +592,6 @@ class ModuleBipedLeg(ModuleGeneric):
                                   driver_type=RiggerDriverTypes.ROLL,
                                   proxy_purpose=self.ankle)
         roll_heel_offset = add_offset_transform(target_list=roll_heel_ctrl)[0]
-        roll_heel_offset = Node(roll_heel_offset)
         match_transform(source=ankle_proxy, target_list=roll_heel_offset)
         match_translate(source=ball_jnt, target_list=roll_heel_offset, skip=('x', 'z'))
         rotate_shapes(obj_transform=roll_heel_ctrl, offset=(0, 180, 0))

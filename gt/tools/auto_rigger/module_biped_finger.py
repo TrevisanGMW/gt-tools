@@ -485,7 +485,6 @@ class ModuleBipedFingers(ModuleGeneric):
                 ctrl = create_ctrl_curve(name=ctrl, curve_file_name="_pin_pos_y")
                 self.add_driver_uuid_attr(target=ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=finger_proxy)
                 offset = add_offset_transform(target_list=ctrl)[0]
-                offset = Node(offset)
                 match_transform(source=finger_jnt, target_list=offset)
                 scale_shapes(obj_transform=ctrl, offset=finger_scale*.1)
                 hierarchy_utils.parent(source_objects=offset, target_parent=wrist_grp)
@@ -515,11 +514,9 @@ class ModuleBipedFingers(ModuleGeneric):
         #                           driver_type=RiggerDriverTypes.ROLL,
         #                           proxy_purpose=self.ankle)  # TODO Add to every finger as automation? @@@
         fingers_offset = add_offset_transform(target_list=fingers_ctrl)[0]
-        fingers_offset = Node(fingers_offset)
         # Shape Scale Inverse Offset
         shape_scale_offset_name = self._assemble_ctrl_name(name=setup_name, overwrite_suffix=f'shapeScaleOffset')
         shape_scale_offset = add_offset_transform(target_list=fingers_ctrl)[0]
-        shape_scale_offset = Node(shape_scale_offset)
         shape_scale_offset.rename(shape_scale_offset_name)
         # Abduction Feedback Shape
         abduction_crv_data = self._assemble_ctrl_name(name=setup_name,
@@ -582,7 +579,6 @@ class ModuleBipedFingers(ModuleGeneric):
                                       driver_type=RiggerDriverTypes.CURL,
                                       proxy_purpose=self.thumb01)  # TODO @@@ Apply to other finger controls too?
             thumb_curl_offset = add_offset_transform(target_list=thumb_curl_ctrl)[0]
-            thumb_curl_offset = Node(thumb_curl_offset)
             rotate_shapes(obj_transform=thumb_curl_ctrl, offset=(0, 90, 0))
             scale_shapes(obj_transform=thumb_curl_ctrl, offset=fingers_ctrl_scale*.5)
             match_transform(source=fingers_ctrl, target_list=thumb_curl_offset)
@@ -599,7 +595,6 @@ class ModuleBipedFingers(ModuleGeneric):
                                                        overwrite_suffix=NamingConstants.Control.CURL_CTRL)
             index_curl_ctrl = create_ctrl_curve(name=index_curl_ctrl, curve_file_name="_sphere_half_arrow")
             index_curl_offset = add_offset_transform(target_list=index_curl_ctrl)[0]
-            index_curl_offset = Node(index_curl_offset)
             scale_shapes(obj_transform=index_curl_ctrl, offset=fingers_ctrl_scale * .5)
             match_transform(source=fingers_ctrl, target_list=index_curl_offset)
             rotate_shapes(obj_transform=index_curl_ctrl, offset=(0, 90, 0))
@@ -613,7 +608,6 @@ class ModuleBipedFingers(ModuleGeneric):
                                                         overwrite_suffix=NamingConstants.Control.CURL_CTRL)
             middle_curl_ctrl = create_ctrl_curve(name=middle_curl_ctrl, curve_file_name="_sphere_half_arrow")
             middle_curl_offset = add_offset_transform(target_list=middle_curl_ctrl)[0]
-            middle_curl_offset = Node(middle_curl_offset)
             scale_shapes(obj_transform=middle_curl_ctrl, offset=fingers_ctrl_scale * .5)
             match_transform(source=fingers_ctrl, target_list=middle_curl_offset)
             rotate_shapes(obj_transform=middle_curl_ctrl, offset=(0, 90, 0))
@@ -626,7 +620,6 @@ class ModuleBipedFingers(ModuleGeneric):
                                                       overwrite_suffix=NamingConstants.Control.CURL_CTRL)
             ring_curl_ctrl = create_ctrl_curve(name=ring_curl_ctrl, curve_file_name="_sphere_half_arrow")
             ring_curl_offset = add_offset_transform(target_list=ring_curl_ctrl)[0]
-            ring_curl_offset = Node(ring_curl_offset)
             scale_shapes(obj_transform=ring_curl_ctrl, offset=fingers_ctrl_scale * .5)
             match_transform(source=fingers_ctrl, target_list=ring_curl_offset)
             rotate_shapes(obj_transform=ring_curl_ctrl, offset=(0, 90, 0))
@@ -640,7 +633,6 @@ class ModuleBipedFingers(ModuleGeneric):
                                                        overwrite_suffix=NamingConstants.Control.CURL_CTRL)
             pinky_curl_ctrl = create_ctrl_curve(name=pinky_curl_ctrl, curve_file_name="_sphere_half_arrow")
             pinky_curl_offset = add_offset_transform(target_list=pinky_curl_ctrl)[0]
-            pinky_curl_offset = Node(pinky_curl_offset)
             scale_shapes(obj_transform=pinky_curl_ctrl, offset=fingers_ctrl_scale * .5)
             match_transform(source=fingers_ctrl, target_list=pinky_curl_offset)
             rotate_shapes(obj_transform=pinky_curl_ctrl, offset=(0, 90, 0))
@@ -654,7 +646,6 @@ class ModuleBipedFingers(ModuleGeneric):
                                                        overwrite_suffix=NamingConstants.Control.CURL_CTRL)
             extra_curl_ctrl = create_ctrl_curve(name=extra_curl_ctrl, curve_file_name="_sphere_half_arrow")
             extra_curl_offset = add_offset_transform(target_list=extra_curl_ctrl)[0]
-            extra_curl_offset = Node(extra_curl_offset)
             scale_shapes(obj_transform=extra_curl_ctrl, offset=fingers_ctrl_scale * .5)
             match_transform(source=fingers_ctrl, target_list=extra_curl_offset)
             rotate_shapes(obj_transform=extra_curl_ctrl, offset=(0, 90, 0))

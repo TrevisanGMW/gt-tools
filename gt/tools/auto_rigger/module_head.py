@@ -299,7 +299,6 @@ class ModuleHead(ModuleGeneric):
                                   driver_type=RiggerDriverTypes.FK,
                                   proxy_purpose=self.neck_base)
         neck_base_offset = add_offset_transform(target_list=neck_base_ctrl)[0]
-        neck_base_offset = Node(neck_base_offset)
         match_transform(source=neck_base_jnt, target_list=neck_base_offset)
         scale_shapes(obj_transform=neck_base_ctrl, offset=head_scale*.3)
         offset_control_orientation(ctrl=neck_base_ctrl, offset_transform=neck_base_offset, orient_tuple=(-90, -90, 0))
@@ -318,7 +317,7 @@ class ModuleHead(ModuleGeneric):
             neck_mid_ctrl = create_ctrl_curve(name=neck_mid_ctrl, curve_file_name="_pin_neg_y")
             self.add_driver_uuid_attr(target=neck_mid_ctrl, driver_type=RiggerDriverTypes.FK,
                                       proxy_purpose=neck_mid_proxy)
-            neck_mid_offset = Node(add_offset_transform(target_list=neck_mid_ctrl)[0])
+            neck_mid_offset = add_offset_transform(target_list=neck_mid_ctrl)[0]
             _shape_scale_mid = head_scale*.2
             child_joint = cmds.listRelatives(mid_jnt, fullPath=True, children=True, typ="joint")
             if child_joint:
@@ -346,7 +345,6 @@ class ModuleHead(ModuleGeneric):
                                   driver_type=RiggerDriverTypes.FK,
                                   proxy_purpose=self.head)
         head_offset = add_offset_transform(target_list=head_ctrl)[0]
-        head_offset = Node(head_offset)
         match_transform(source=head_jnt, target_list=head_offset)
         scale_shapes(obj_transform=head_ctrl, offset=head_scale * .4)
         offset_control_orientation(ctrl=head_ctrl, offset_transform=head_offset, orient_tuple=(-90, -90, 0))
@@ -395,7 +393,6 @@ class ModuleHead(ModuleGeneric):
                                   driver_type=RiggerDriverTypes.FK,
                                   proxy_purpose=self.jaw)
         jaw_offset = add_offset_transform(target_list=jaw_ctrl)[0]
-        jaw_offset = Node(jaw_offset)
         jaw_end_distance = dist_center_to_center(jaw_jnt, jaw_end_jnt)
         match_transform(source=jaw_jnt, target_list=jaw_offset)
         scale_shapes(obj_transform=jaw_ctrl, offset=jaw_end_distance * .2)
@@ -423,16 +420,11 @@ class ModuleHead(ModuleGeneric):
         main_eye_ctrl = create_ctrl_curve(name=self.main_eye_ctrl, curve_file_name="_peanut_pos_z")
         lt_eye_offset = add_offset_transform(target_list=lt_eye_ctrl)[0]
         rt_eye_offset = add_offset_transform(target_list=rt_eye_ctrl)[0]
-        lt_eye_offset = Node(lt_eye_offset)
-        rt_eye_offset = Node(rt_eye_offset)
         main_eye_offset = add_offset_transform(target_list=main_eye_ctrl)[0]
-        main_eye_offset = Node(main_eye_offset)
 
         # Create Divergence Drivers
         lt_eye_divergence = add_offset_transform(target_list=lt_eye_ctrl)[0]
         rt_eye_divergence = add_offset_transform(target_list=rt_eye_ctrl)[0]
-        lt_eye_divergence = Node(lt_eye_divergence)
-        rt_eye_divergence = Node(rt_eye_divergence)
         lt_eye_divergence.rename(f'{self.lt_eye.get_name()}_divergenceData')
         rt_eye_divergence.rename(f'{self.rt_eye.get_name()}_divergenceData')
 

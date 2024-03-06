@@ -348,7 +348,6 @@ class ModuleBipedArm(ModuleGeneric):
         clavicle_ctrl = create_ctrl_curve(name=clavicle_ctrl, curve_file_name="_pin_pos_y")
         self.add_driver_uuid_attr(target=clavicle_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.clavicle)
         clavicle_offset = add_offset_transform(target_list=clavicle_ctrl)[0]
-        clavicle_offset = Node(clavicle_offset)
         match_transform(source=clavicle_jnt, target_list=clavicle_offset)
         scale_shapes(obj_transform=clavicle_ctrl, offset=clavicle_scale*.2)
         rotate_offset = multiply_collection_by_number(collection=aim_axis, number=90)
@@ -367,7 +366,6 @@ class ModuleBipedArm(ModuleGeneric):
         self.add_driver_uuid_attr(target=shoulder_fk_ctrl, driver_type=RiggerDriverTypes.FK,
                                   proxy_purpose=self.shoulder)
         shoulder_fk_offset = add_offset_transform(target_list=shoulder_fk_ctrl)[0]
-        shoulder_fk_offset = Node(shoulder_fk_offset)
         match_transform(source=shoulder_jnt, target_list=shoulder_fk_offset)
         scale_shapes(obj_transform=shoulder_fk_ctrl, offset=arm_scale * .16)
         hierarchy_utils.parent(source_objects=shoulder_fk_offset, target_parent=clavicle_ctrl)
@@ -383,7 +381,6 @@ class ModuleBipedArm(ModuleGeneric):
         self.add_driver_uuid_attr(target=elbow_fk_ctrl, driver_type=RiggerDriverTypes.FK,
                                   proxy_purpose=self.elbow)
         elbow_fk_offset = add_offset_transform(target_list=elbow_fk_ctrl)[0]
-        elbow_fk_offset = Node(elbow_fk_offset)
         match_transform(source=elbow_jnt, target_list=elbow_fk_offset)
         scale_shapes(obj_transform=elbow_fk_ctrl, offset=arm_scale * .14)
         hierarchy_utils.parent(source_objects=elbow_fk_offset, target_parent=shoulder_fk_ctrl)
@@ -399,7 +396,6 @@ class ModuleBipedArm(ModuleGeneric):
         self.add_driver_uuid_attr(target=wrist_fk_ctrl, driver_type=RiggerDriverTypes.FK,
                                   proxy_purpose=self.wrist)
         wrist_fk_offset = add_offset_transform(target_list=wrist_fk_ctrl)[0]
-        wrist_fk_offset = Node(wrist_fk_offset)
         match_transform(source=wrist_jnt, target_list=wrist_fk_offset)
         scale_shapes(obj_transform=wrist_fk_ctrl, offset=arm_scale * .1)
         hierarchy_utils.parent(source_objects=wrist_fk_offset, target_parent=elbow_fk_ctrl)
@@ -417,7 +413,6 @@ class ModuleBipedArm(ModuleGeneric):
         self.add_driver_uuid_attr(target=wrist_ik_ctrl, driver_type=RiggerDriverTypes.IK, proxy_purpose=self.wrist)
         translate_shapes(obj_transform=wrist_ik_ctrl, offset=(1, 0, 0))  # Move Pivot to Side
         wrist_ik_offset = add_offset_transform(target_list=wrist_ik_ctrl)[0]
-        wrist_ik_offset = Node(wrist_ik_offset)
         hierarchy_utils.parent(source_objects=wrist_ik_offset, target_parent=direction_crv)
         match_transform(source=wrist_jnt, target_list=wrist_ik_offset)
         offset_control_orientation(ctrl=wrist_ik_ctrl, offset_transform=wrist_ik_offset, orient_tuple=(90, 0, 0))
@@ -464,7 +459,6 @@ class ModuleBipedArm(ModuleGeneric):
         elbow_ik_ctrl = create_ctrl_curve(name=elbow_ik_ctrl, curve_file_name="_locator")
         self.add_driver_uuid_attr(target=elbow_ik_ctrl, driver_type=RiggerDriverTypes.IK, proxy_purpose=self.elbow)
         elbow_offset = add_offset_transform(target_list=elbow_ik_ctrl)[0]
-        elbow_offset = Node(elbow_offset)
         match_translate(source=elbow_jnt, target_list=elbow_offset)
         scale_shapes(obj_transform=elbow_ik_ctrl, offset=arm_scale * .05)
         hierarchy_utils.parent(source_objects=elbow_offset, target_parent=direction_crv)
@@ -495,7 +489,6 @@ class ModuleBipedArm(ModuleGeneric):
                                   driver_type=RiggerDriverTypes.SWITCH,
                                   proxy_purpose=self.wrist)
         ik_switch_offset = add_offset_transform(target_list=ik_switch_ctrl)[0]
-        ik_switch_offset = Node(ik_switch_offset)
         match_transform(source=wrist_proxy, target_list=ik_switch_offset)
         translate_shapes(obj_transform=ik_switch_ctrl, offset=(0, 0, arm_scale * -.025))  # Move it away from wrist
         scale_shapes(obj_transform=ik_switch_ctrl, offset=arm_scale * .2)

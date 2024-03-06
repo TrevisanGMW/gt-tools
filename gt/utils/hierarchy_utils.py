@@ -90,7 +90,7 @@ def add_offset_transform(target_list, transform_type="group", pivot_source="targ
                                       "target" means that it will use the pivot of the object (self)
         transform_suffix (str, optional): Suffix of the new transform. Name will be "<object-name>_<transform_suffix>"
     Returns:
-        list: A list of created in-between transforms (offsets) - Full paths
+        list: A list of created in-between transforms (offsets) - As Nodes
     """
     offset_transforms = []
     if target_list and isinstance(target_list, str):
@@ -123,7 +123,7 @@ def add_offset_transform(target_list, transform_type="group", pivot_source="targ
             match_transform(source=obj, target_list=offset)
             cmds.parent(obj, offset_node.get_long_name())
 
-        offset_transforms.append(offset_node.get_long_name())
+        offset_transforms.append(offset_node)
     return offset_transforms
 
 
