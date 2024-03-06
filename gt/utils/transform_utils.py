@@ -1106,7 +1106,7 @@ def match_transform(source, target_list, translate=True, rotate=True, scale=True
     Match the transform attributes of the target object to the source object.
 
     Args:
-        source (str): The name of the source object (to extract the transform from)
+        source (str, Node): The name of the source object (to extract the transform from)
         target_list (str, list, tuple): The name(s) of the target objects (objects to receive transform update)
         translate (bool): Match translation attributes if True.
         rotate (bool): Match rotation attributes if True.
@@ -1136,19 +1136,20 @@ def set_equidistant_transforms(start, end, target_list, skip_start_end=True, con
     """
     Sets equidistant transforms for a list of objects between a start and end point.
     Args:
-        start
-        end
-        target_list (list, str): A list of objects to affect
+        start (str, Node): Path to object where it should start. In A->B, this would be "A".
+        end (str, Node): Path to the object where it should end. In A->B, this would be "B".
+        target_list (list, str): A list of objects to receive the transform update.
         skip_start_end (bool, optional): If True, it will skip the start and end points, which means objects will be
                                          in-between start and end points, but not on top of start/end points.
         constraint (str): Which constraint type should be created. Supported: "parent", "point", "orient", "scale".
     """
-    constraints = equidistant_constraints(start,
-                                          end,
-                                          target_list,
+    constraints = equidistant_constraints(start=start,
+                                          end=end,
+                                          target_list=target_list,
                                           skip_start_end=skip_start_end,
                                           constraint=constraint)
-    cmds.delete(constraints)
+    if constraints:
+        cmds.delete(constraints)
 
 
 def translate_shapes(obj_transform, offset):
@@ -1168,12 +1169,13 @@ def translate_shapes(obj_transform, offset):
         cmds.move(*offset, components, relative=True, objectSpace=True)
 
 
-def rotate_shapes(obj_transform, offset):
+def rotate_shapes(obj_transform, offset, pivot=None):
     """
     Rotates the shape of an object without affecting its transform.
     Args:
         obj_transform (str): The transform node of the object.
         offset (tuple): The rotation offset in degrees (X, Y, Z).
+        pivot (tuple, optional): The pivot point for rotating the shape (X, Y, Z). If None, object's pivot is used.
     """
     shapes = cmds.listRelatives(obj_transform, shapes=True, fullPath=True) or []
     if not shapes:
@@ -1182,17 +1184,21 @@ def rotate_shapes(obj_transform, offset):
     for shape in shapes:
         from gt.utils.hierarchy_utils import get_shape_components
         components = get_shape_components(shape)
-        cmds.rotate(*offset, components, relative=True, objectSpace=True)
+        _rotate_parameters = {"relative": True, "objectSpace": True}
+        if pivot:
+            _rotate_parameters["pivot"] = pivot
+        cmds.rotate(*offset, components, **_rotate_parameters)
 
 
-def scale_shapes(obj_transform, offset):
+def scale_shapes(obj_transform, offset, pivot=None):
     """
     Rotates the shape of an object without affecting its transform.
     Args:
-        obj_transform (str): The transform node of the object.
+        obj_transform (str, Node): The transform node of the object.
         offset (tuple, float, int): The scale offset in degrees (X, Y, Z).
                                           If a float or an integer is provided, it will be used as X, Y and Z.
                                           e.g. 0.5 = (0.5, 0.5, 0.5)
+        pivot (tuple, optional): The pivot point for scaling in the shape (X, Y, Z). If None, object's pivot is used.
     """
     shapes = cmds.listRelatives(obj_transform, shapes=True, fullPath=True) or []
     if not shapes:
@@ -1203,7 +1209,10 @@ def scale_shapes(obj_transform, offset):
     for shape in shapes:
         from gt.utils.hierarchy_utils import get_shape_components
         components = get_shape_components(shape)
-        cmds.scale(*offset, components, relative=True, objectSpace=True)
+        _scale_parameters = {"relative": True, "objectSpace": True}
+        if pivot:
+            _scale_parameters["pivot"] = pivot
+        cmds.scale(*offset, components, **_scale_parameters)
 
 
 def get_component_positions_as_dict(obj_transform, full_path=True, world_space=True):
@@ -1274,9 +1283,55 @@ def set_component_positions_from_dict(component_pos_dict, world_space=True):
             logger.debug(f'Unable to set CV position. Issue: {e}')
 
 
+def get_directional_position(object_name, axis="X", tolerance=0.001):
+    """
+    Retrieves the position direction along a specified axis for the given object. For
+
+    Args:
+        object_name (str, Node): The name of the object whose position direction needs to be determined.
+        axis (str, optional): The axis along which to evaluate the object's position ('X', 'Y', or 'Z').
+                              Defaults to 'X'.
+        tolerance (float, optional): Tolerance value to determine if the position is close enough to zero.
+                                     If tolerance is set to zero, the value can only be +1 or -1, never 0 (center).
+                                     Center will be considered positive "+1" (positive)
+                                     Defaults to 1e-6.
+
+    Returns:
+        int: -1 if the position is negative, 0 if it's in the center, and 1 if it's positive.
+    """
+    # If tolerance is zero, system cannot return center (0)
+    center = 0
+    if tolerance == 0:
+        center = 1
+    # Basic Checks
+    if not object_name or not cmds.objExists(object_name):
+        logger.warning(f"Object '{str(object_name)}' does not exist.")
+        return center
+
+    axis = axis.upper()
+    if axis not in ["X", "Y", "Z"]:
+        logger.warning(f"Invalid axis '{axis}'. Please use 'X', 'Y', or 'Z'.")
+        return center
+
+    # Get the world position of the object
+    world_position = cmds.xform(object_name, query=True, worldSpace=True, rotatePivot=True)
+
+    # Get the value along the specified axis
+    position_value = world_position["XYZ".index(axis)]
+
+    # Determine the position direction based on the position value
+    if position_value < -tolerance:
+        return -1
+    elif position_value > tolerance:
+        return 1
+    else:
+        return center
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     # transform = Transform()
     # transform.set_position(0, 10, 0)
     # transform.apply_transform('pSphere1')
-    rotate_shapes(cmds.ls(selection=True)[0], offset=(0, 0, -90))
+    # rotate_shapes(cmds.ls(selection=True)[0], offset=(0, 0, -90), pivot=(0, 2, 0))
+    print(get_directional_position('pSphere1'))

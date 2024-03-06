@@ -3,6 +3,8 @@ Joint Utilities
 github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.math_utils import dot_product, objects_cross_direction
+from gt.utils.iterable_utils import sanitize_maya_list
+from gt.utils.attr_utils import set_attr
 import maya.api.OpenMaya as OpenMaya
 from gt.utils.node_utils import Node
 import maya.cmds as cmds
@@ -239,6 +241,21 @@ def convert_joints_to_mesh(root_jnt=None, combine_mesh=True, verbose=True):
     else:
         cmds.select(clear=True)
         return generated_mesh
+
+
+def set_joint_radius(joints, radius=1):
+    """
+    Function for quickly setting the radius of multiple joints.
+    Missing elements or elements of the incorrect type are ignored.
+    Args:
+        joints (list): A list of joints to be affected.
+        radius (float, integer, optional): New radius value.
+    Returns:
+        list: A list of affected joints.
+    """
+    sanitized_joints = sanitize_maya_list(input_list=joints, sort_list=False, filter_type="joint")
+    set_attr(obj_list=sanitized_joints, attr_list="radius", value=radius, verbose=False, raise_exceptions=False)
+    return sanitized_joints
 
 
 if __name__ == "__main__":

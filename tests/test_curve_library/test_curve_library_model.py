@@ -19,6 +19,7 @@ for to_append in [package_root_dir, tests_dir]:
 from gt.tools.curve_library import curve_library_model
 from gt.utils.curve_utils import Curves, Curve
 from tests import maya_test_tools
+cmds = maya_test_tools.cmds
 
 
 class TestCurveLibraryModel(unittest.TestCase):
@@ -196,11 +197,11 @@ class TestCurveLibraryModel(unittest.TestCase):
 
     def test_build_curve_from_name(self):
         self.model.build_curve_from_name(curve_name="circle_arrow")
-        self.assertTrue(maya_test_tools.cmds.objExists("circle_arrow"))
+        self.assertTrue(cmds.objExists("circle_arrow"))
 
     def test_build_curve(self):
         self.model.build_curve(curve=Curves.circle_arrow)
-        self.assertTrue(maya_test_tools.cmds.objExists("circle_arrow"))
+        self.assertTrue(cmds.objExists("circle_arrow"))
 
     def test_get_curve_from_name(self):
         curve = Curve(name="two_lines")

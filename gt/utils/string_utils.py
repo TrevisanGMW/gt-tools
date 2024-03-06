@@ -230,12 +230,12 @@ def extract_digits_as_int(input_string, only_first_match=True, can_be_negative=F
         return result
 
 
-def get_int_as_rank(number):
+def get_int_as_rank(num):
     """
     Converts an integer to its corresponding rank string.
 
     Args:
-        number (int): The input integer.
+        num (int): The input integer.
 
     Returns:
         str: The rank string.
@@ -249,11 +249,11 @@ def get_int_as_rank(number):
         '11th'
     """
     # Handle special cases for 11, 12, and 13 since they end in "th"
-    if 10 < number % 100 < 20:
+    if 10 < num % 100 < 20:
         suffix = "th"
     else:
         # Use modulo 10 to determine the last digit
-        last_digit = number % 10
+        last_digit = num % 10
         if last_digit == 1:
             suffix = "st"
         elif last_digit == 2:
@@ -263,10 +263,121 @@ def get_int_as_rank(number):
         else:
             suffix = "th"
 
-    return str(number) + suffix
+    return str(num) + suffix
+
+
+def get_int_as_en(num):
+    """
+    Given an integer number, returns an English word for it.
+
+    Args:
+        num (int) and integer to be converted to English words.
+
+    Returns:
+        number (str): The input number as English words.
+    """
+    digit_to_word = {
+        0: 'zero', 1: 'one', 2: 'two', 3: 'three', 4: 'four', 5: 'five', 6: 'six',
+        7: 'seven', 8: 'eight', 9: 'nine', 10: 'ten', 11: 'eleven', 12: 'twelve',
+        13: 'thirteen', 14: 'fourteen', 15: 'fifteen', 16: 'sixteen', 17: 'seventeen',
+        18: 'eighteen', 19: 'nineteen', 20: 'twenty', 30: 'thirty', 40: 'forty',
+        50: 'fifty', 60: 'sixty', 70: 'seventy', 80: 'eighty', 90: 'ninety'
+    }
+    thousand = 1000
+    million = thousand * 1000
+    billion = million * 1000
+    trillion = billion * 1000
+
+    assert isinstance(num, int), "Input must be an integer."
+
+    negative = False
+    if num < 0:
+        negative = True
+        num = abs(num)
+
+    neg_prefix = "negative " if negative else ""
+
+    if num < 20:
+        return neg_prefix + digit_to_word[num]
+
+    if num < 100:
+        if num % 10 == 0:
+            return neg_prefix + digit_to_word[num]
+        else:
+            return neg_prefix + f'{digit_to_word[num // 10 * 10]}-{digit_to_word[num % 10]}'
+
+    if num < thousand:
+        if num % 100 == 0:
+            return neg_prefix + f'{digit_to_word[num // 100]} hundred'
+        else:
+            return neg_prefix + f'{digit_to_word[num // 100]} hundred and {get_int_as_en(num % 100)}'
+
+    if num < million:
+        if num % thousand == 0:
+            return neg_prefix + f'{get_int_as_en(num // thousand)} thousand'
+        else:
+            return neg_prefix + f'{get_int_as_en(num // thousand)} thousand, {get_int_as_en(num % thousand)}'
+
+    if num < billion:
+        if (num % million) == 0:
+            return neg_prefix + f'{get_int_as_en(num // million)} million'
+        else:
+            return neg_prefix + f'{get_int_as_en(num // million)} million, {get_int_as_en(num % million)}'
+
+    if num < trillion:
+        if (num % billion) == 0:
+            return neg_prefix + f'{get_int_as_en(num // billion)} billion'
+        else:
+            return neg_prefix + f'{get_int_as_en(num // billion)} billion, {get_int_as_en(num % billion)}'
+
+    if num % trillion == 0:
+        return neg_prefix + f'{get_int_as_en(num // trillion)} trillion'
+    else:
+        return neg_prefix + f'{get_int_as_en(num // trillion)} trillion, {get_int_as_en(num % trillion)}'
+
+
+def upper_first_char(input_string):
+    """
+    Capitalize the first letter of a string. Does nothing in case the string is empty ('')
+
+    Args:
+        input_string (str): The input string.
+
+    Returns:
+        str: The string with only the first letter capitalized, or the string itself if it's empty.
+
+    Raises:
+        ValueError: If the input string is None.
+    """
+    # Check if the input string is None
+    if input_string is None:
+        raise ValueError("Invalid input type. Input string cannot be None")
+    # Check if the string is empty
+    if not input_string:
+        return input_string
+    # If the string has only one character, capitalize it
+    if len(input_string) == 1:
+        return input_string.upper()
+    # Capitalize the first letter and keep the rest of the string unchanged
+    return input_string[0].upper() + input_string[1:]
+
 
 
 if __name__ == "__main__":
-    from pprint import pprint
-    out = None
-    pprint(out)
+    logger.setLevel(logging.DEBUG)
+    test_cases = [
+        # Single-digit numbers
+        0, 1, 5, 9,
+        # Two-digit numbers
+        10, 11, 12, 20, 21, 36, 47, 58, 99,
+        # Three-digit numbers
+        100, 123, 200, 512, 999,
+        # Large numbers
+        1000, 1000000, 123456789,
+        # Negative numbers
+        -5, -123, -123456789
+    ]
+
+    # Print test cases
+    for n in test_cases:
+        print(f"#: {n}, : {get_int_as_en(n)}")

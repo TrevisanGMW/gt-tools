@@ -18,6 +18,7 @@ for to_append in [package_root_dir, tests_dir]:
 from tests import maya_test_tools
 from gt.utils.node_utils import Node
 from gt.utils import node_utils
+cmds = maya_test_tools.cmds
 
 
 class TestNodeUtils(unittest.TestCase):
@@ -34,20 +35,20 @@ class TestNodeUtils(unittest.TestCase):
     def test_node_init(self):
         cube = maya_test_tools.create_poly_cube()
         result = Node(path=cube)
-        expected = maya_test_tools.cmds.ls(cube, uuid=True)[0]
+        expected = cmds.ls(cube, uuid=True)[0]
         self.assertEqual(expected, result.uuid)
         self.assertEqual(f'|{cube}', str(result))
 
     def test_node_get_uuid(self):
         cube = maya_test_tools.create_poly_cube()
         result = Node(path=cube)
-        expected = maya_test_tools.cmds.ls(cube, uuid=True)[0]
+        expected = cmds.ls(cube, uuid=True)[0]
         self.assertEqual(expected, result.get_uuid())
 
     def test_node_get_long_name(self):
         cube = maya_test_tools.create_poly_cube()
-        group = maya_test_tools.cmds.group(empty=True, world=True, name="parent")
-        maya_test_tools.cmds.parent(cube, group)
+        group = cmds.group(empty=True, world=True, name="parent")
+        cmds.parent(cube, group)
         node = Node(path=cube)
         result = node.get_long_name()
         expected = "|parent|pCube1"
@@ -55,8 +56,8 @@ class TestNodeUtils(unittest.TestCase):
 
     def test_node_get_short_name(self):
         cube = maya_test_tools.create_poly_cube()
-        group = maya_test_tools.cmds.group(empty=True, world=True, name="parent")
-        maya_test_tools.cmds.parent(cube, group)
+        group = cmds.group(empty=True, world=True, name="parent")
+        cmds.parent(cube, group)
         node = Node(path=cube)
         result = node.get_short_name()
         expected = "pCube1"
@@ -70,7 +71,7 @@ class TestNodeUtils(unittest.TestCase):
         self.assertEqual(expected, result)
 
     def test_node_is_dag_false(self):
-        cube = maya_test_tools.cmds.createNode("multiplyDivide")
+        cube = cmds.createNode("multiplyDivide")
         node = Node(path=cube)
         result = node.is_dag()
         expected = False
@@ -84,7 +85,7 @@ class TestNodeUtils(unittest.TestCase):
         self.assertEqual(expected, result)
 
     def test_node_is_transform_false(self):
-        cube = maya_test_tools.cmds.createNode("multiplyDivide")
+        cube = cmds.createNode("multiplyDivide")
         node = Node(path=cube)
         result = node.is_transform()
         expected = False
@@ -100,7 +101,7 @@ class TestNodeUtils(unittest.TestCase):
     def test_node_exists_false(self):
         cube = maya_test_tools.create_poly_cube()
         node = Node(path=cube)
-        maya_test_tools.cmds.delete(cube)
+        cmds.delete(cube)
         result = node.exists()
         expected = False
         self.assertEqual(expected, result)
@@ -115,8 +116,8 @@ class TestNodeUtils(unittest.TestCase):
     def test_node_string_conversion(self):
         cube = maya_test_tools.create_poly_cube()
         node = Node(path=cube)
-        maya_test_tools.cmds.setAttr(f"{node}.ty", 5)
-        result = maya_test_tools.cmds.getAttr(f"{node}.ty")
+        cmds.setAttr(f"{node}.ty", 5)
+        result = cmds.getAttr(f"{node}.ty")
         expected = 5
         self.assertEqual(expected, result)
         expected = '|pCube1'
@@ -127,12 +128,12 @@ class TestNodeUtils(unittest.TestCase):
         cube_one = maya_test_tools.create_poly_cube()
         cube_two = maya_test_tools.create_poly_cube()
         node = Node(path=cube_one)
-        group = maya_test_tools.cmds.group(empty=True, world=True, name="group")
-        maya_test_tools.cmds.parent(cube_two, group)
-        maya_test_tools.cmds.rename(cube_one, "mocked_name")
-        maya_test_tools.cmds.rename(cube_two, "mocked_name")
-        maya_test_tools.cmds.setAttr(f"{node}.ty", 5)
-        result = maya_test_tools.cmds.getAttr(f"{node}.ty")
+        group = cmds.group(empty=True, world=True, name="group")
+        cmds.parent(cube_two, group)
+        cmds.rename(cube_one, "mocked_name")
+        cmds.rename(cube_two, "mocked_name")
+        cmds.setAttr(f"{node}.ty", 5)
+        result = cmds.getAttr(f"{node}.ty")
         expected = 5
         self.assertEqual(expected, result)
 
@@ -170,11 +171,11 @@ class TestNodeUtils(unittest.TestCase):
 
     def test_node_string_cmds_use(self):
         cube_one = maya_test_tools.create_poly_cube()
-        group = maya_test_tools.cmds.group(name="group", empty=True, world=True)
+        group = cmds.group(name="group", empty=True, world=True)
         a_node = Node(path=cube_one)
-        maya_test_tools.cmds.parent(a_node, group)
+        cmds.parent(a_node, group)
         a_node.rename("mockedName")
-        maya_test_tools.cmds.parent(a_node, world=True)
+        cmds.parent(a_node, world=True)
         expected = "mockedName"
         result = a_node.get_short_name()
         self.assertEqual(expected, result)
@@ -185,13 +186,13 @@ class TestNodeUtils(unittest.TestCase):
     def test_node_is_unique_false(self):
         cube = maya_test_tools.create_poly_cube(name="cube_one")
         cube_node = Node(path=cube)
-        group_one = maya_test_tools.cmds.group(name="group1", empty=True, world=True)
-        maya_test_tools.cmds.parent(cube_node, group_one)
+        group_one = cmds.group(name="group1", empty=True, world=True)
+        cmds.parent(cube_node, group_one)
 
         cube_b = maya_test_tools.create_poly_cube(name="cube_one")
         cube_b_node = Node(path=cube_b)
-        group_two = maya_test_tools.cmds.group(name="group2", empty=True, world=True)
-        maya_test_tools.cmds.parent(cube_b_node, group_two)
+        group_two = cmds.group(name="group2", empty=True, world=True)
+        cmds.parent(cube_b_node, group_two)
 
         self.assertFalse(cube_node.is_unique(), "Node is unique, but it should not be.")
         self.assertFalse(cube_b_node.is_unique(), "Node is unique, but it should not be.")
@@ -199,13 +200,13 @@ class TestNodeUtils(unittest.TestCase):
     def test_node_is_unique_true(self):
         cube = maya_test_tools.create_poly_cube(name="cube_one")
         cube_node = Node(path=cube)
-        group_one = maya_test_tools.cmds.group(name="group1", empty=True, world=True)
-        maya_test_tools.cmds.parent(cube_node, group_one)
+        group_one = cmds.group(name="group1", empty=True, world=True)
+        cmds.parent(cube_node, group_one)
 
         cube_b = maya_test_tools.create_poly_cube(name="cube_two")
         cube_b_node = Node(path=cube_b)
-        group_two = maya_test_tools.cmds.group(name="group2", empty=True, world=True)
-        maya_test_tools.cmds.parent(cube_b_node, group_two)
+        group_two = cmds.group(name="group2", empty=True, world=True)
+        cmds.parent(cube_b_node, group_two)
 
         self.assertTrue(cube_node.is_unique(), "Node is not unique, but it should be.")
         self.assertTrue(cube_b_node.is_unique(), "Node is not unique, but it should be.")
@@ -286,4 +287,4 @@ class TestNodeUtils(unittest.TestCase):
         expected = Node("|mockedName")
         self.assertEqual(expected, result_one)
         self.assertEqual(expected, result_two)
-        self.assertFalse(maya_test_tools.cmds.objExists("mockedName1"))
+        self.assertFalse(cmds.objExists("mockedName1"))

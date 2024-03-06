@@ -17,6 +17,7 @@ for to_append in [package_root_dir, tests_dir]:
         sys.path.append(to_append)
 from tests import maya_test_tools
 from gt.utils import naming_utils
+cmds = maya_test_tools.cmds
 
 
 class TestNamingUtils(unittest.TestCase):
@@ -62,8 +63,8 @@ class TestNamingUtils(unittest.TestCase):
 
     def test_get_long_name_with_parents(self):
         cube = maya_test_tools.create_poly_cube()
-        group = maya_test_tools.cmds.group(empty=True, world=True, name="mocked_parent")
-        maya_test_tools.cmds.parent(cube, group)
+        group = cmds.group(empty=True, world=True, name="mocked_parent")
+        cmds.parent(cube, group)
         result = naming_utils.get_long_name(cube)
         expected = "|mocked_parent|pCube1"
         self.assertEqual(expected, result)
@@ -84,12 +85,12 @@ class TestNamingUtils(unittest.TestCase):
         self.assertEqual(expected, result)
 
     def test_get_short_name_maya(self):
-        group_one = maya_test_tools.cmds.group(world=True, empty=True, name="group_one")
-        group_two = maya_test_tools.cmds.group(world=True, empty=True, name="group_two")
+        group_one = cmds.group(world=True, empty=True, name="group_one")
+        group_two = cmds.group(world=True, empty=True, name="group_two")
         sphere_one = maya_test_tools.create_poly_cube(name="cube")
-        maya_test_tools.cmds.parent(sphere_one, group_one)
+        cmds.parent(sphere_one, group_one)
         sphere_two = maya_test_tools.create_poly_cube(name="cube")
-        maya_test_tools.cmds.parent(sphere_two, group_two)
+        cmds.parent(sphere_two, group_two)
         non_unique_cubes = maya_test_tools.list_objects(type="mesh")
         expected = ['group_two|cube|cubeShape', 'group_one|cube|cubeShape']
         self.assertEqual(expected, non_unique_cubes)

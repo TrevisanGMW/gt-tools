@@ -19,6 +19,7 @@ from gt.utils.transform_utils import Transform
 from gt.tools.auto_rigger.rig_framework import Proxy
 from gt.tools.auto_rigger import rig_framework
 from tests import maya_test_tools
+cmds = maya_test_tools.cmds
 
 
 class TestRigFramework(unittest.TestCase):
@@ -111,8 +112,8 @@ class TestRigFramework(unittest.TestCase):
         self.assertEqual(expected_long_name, str(result))
         self.assertEqual(expected_short_name, result.get_short_name())
         self.assertTrue(isinstance(result, rig_framework.ProxyData))
-        self.assertTrue(maya_test_tools.cmds.objExists(f'{result}.{rig_framework.RiggerConstants.ATTR_PROXY_UUID}'))
-        self.assertTrue(maya_test_tools.cmds.objExists(f'{result}.{rig_framework.RiggerConstants.ATTR_PROXY_UUID}'))
+        self.assertTrue(cmds.objExists(f'{result}.{rig_framework.RiggerConstants.ATTR_PROXY_UUID}'))
+        self.assertTrue(cmds.objExists(f'{result}.{rig_framework.RiggerConstants.ATTR_PROXY_UUID}'))
 
     def test_proxy_custom_curve(self):
         from gt.utils.curve_utils import Curves

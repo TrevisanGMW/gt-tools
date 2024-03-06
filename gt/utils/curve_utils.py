@@ -1021,9 +1021,9 @@ class Curves:
     circle_wavy_hips = get_curve(file_name="circle_wavy_hips")
     circle_wavy_ten_sides = get_curve(file_name="circle_wavy_ten_sides")
     coffee_mug_plate_side = get_curve(file_name="coffee_mug_plate_side")
-    concave_half_moon = get_curve(file_name="concave_half_moon")
-    concave_half_moon_handle = get_curve(file_name="concave_half_moon_handle")
-    concave_half_moon_skinny = get_curve(file_name="concave_half_moon_skinny")
+    concave_crescent = get_curve(file_name="concave_crescent")
+    concave_crescent_handle = get_curve(file_name="concave_crescent_handle")
+    concave_crescent_skinny = get_curve(file_name="concave_crescent_skinny")
     creature_batman_symbol = get_curve(file_name="creature_batman_symbol")
     creature_bat_simplified = get_curve(file_name="creature_bat_simplified")
     creature_bat_simplified_two = get_curve(file_name="creature_bat_simplified_two")
@@ -1847,8 +1847,8 @@ def create_connection_line(object_a, object_b, constraint=True, line_width=3):
     Creates a curve attached to two objects, often used to better visualize hierarchies
 
     Args:
-        object_a (str): Name of the object driving the start of the curve
-        object_b (str): Name of the object driving end of the curve (usually a child of object_a)
+        object_a (str, Node): Name of the object driving the start of the curve
+        object_b (str, Node): Name of the object driving end of the curve (usually a child of object_a)
         constraint (bool, optional): If True, it will constrain the clusters to "object_a" and "object_b".
         line_width (float, optional): Width of the connection line. (Default is 3)
 

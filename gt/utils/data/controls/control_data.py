@@ -15,12 +15,12 @@ class ControlData:
         """
         Initialize ControlData response object.
         Args:
-            name (str): Control transform name (long name with "|" pipe characters)
+            name (str, Node): Control transform name (long name with "|" pipe characters) or Node object.
                         If not a string a ValueError is raised.
-            offset (str, optional): Offset transform name (aka Offset Group). Main parent of the control.
-            setup (str, optional): Rig setup transform name. Long name of the group carrying any extra
+            offset (str, Node, optional): Offset transform name (aka Offset Group). Main parent of the control.
+            setup (str, Node, optional): Rig setup transform name. Long name of the group carrying any extra
                                    elements used to drive the control.
-            drivers (list, str, optional): Driver names. This would be extra objects used to drive the control.
+            drivers (list, str, Node, optional): Driver names. This would be extra objects used to drive the control.
                                            For example, other controls inside a main control.
                                            If not provided, the main transform ("name") is assumed to be the driver.
                                            Causing it to become "self.drivers = [self.name]"

@@ -14,6 +14,7 @@ logger.setLevel(logging.INFO)
 
 DEFAULT_CHANNELS = ['t', 'r', 's']
 DEFAULT_DIMENSIONS = ['x', 'y', 'z']
+DEFAULT_ATTRS = ['tx', 'ty', 'tz', 'rx', 'ry', 'rz', 'sx', 'sy', 'sz', 'v']
 
 
 # -------------------------------------------- Setters ---------------------------------------------
@@ -302,12 +303,9 @@ def selection_unlock_default_channels(feedback=True):
         return
     unlocked_counter = 0
     try:
-        attr_list = ['tx', 'ty', 'tz',
-                     'rx', 'ry', 'rz',
-                     'sx', 'sy', 'sz', 'v']
         for obj in selection:
             try:
-                set_attr_state(obj_list=obj, attr_list=attr_list, locked=False, raise_exceptions=True)
+                set_attr_state(obj_list=obj, attr_list=DEFAULT_ATTRS, locked=False, raise_exceptions=True)
                 unlocked_counter += 1
             except Exception as e:
                 errors += str(e) + '\n'
@@ -347,12 +345,9 @@ def selection_unhide_default_channels(feedback=True):
         return
     unhidden_counter = 0
     try:
-        attr_list = ['tx', 'ty', 'tz',
-                     'rx', 'ry', 'rz',
-                     'sx', 'sy', 'sz', 'v']
         for obj in selection:
             try:
-                set_attr_state(obj_list=obj, attr_list=attr_list, hidden=False, raise_exceptions=True)
+                set_attr_state(obj_list=obj, attr_list=DEFAULT_ATTRS, hidden=False, raise_exceptions=True)
                 unhidden_counter += 1
             except Exception as e:
                 errors += str(e) + '\n'
@@ -727,15 +722,15 @@ def add_separator_attr(target_object, attr_name="separator", custom_value=None):
     """
     Creates a locked enum attribute to be used as a separator
     Args:
-        target_object (str): Name of the object to affect in the operation
+        target_object (str, Node): Name of the object to affect in the operation
         attr_name (str, optional): Name of the attribute to add. Use camelCase for this string as it will obey the
                                    "niceName" pattern in Maya. e.g. "niceName" = "Nice Name"
         custom_value (str, None, optional): Enum value for the separator value.
-                                               If not provided, default is "-------------".
+                                               If not provided, default is "--------------". (14x "-")
     Returns:
         str: Full path to created attribute. 'target_object.attr_name'
     """
-    separator_value = "-"*13
+    separator_value = "-"*14
     if custom_value:
         separator_value = custom_value
     attribute_path = f'{target_object}.{attr_name}'

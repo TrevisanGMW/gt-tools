@@ -27,14 +27,11 @@ class RiggerConstants:
     ATTR_LINE_CHILD_UUID = "lineProxySourceUUID"  # Used by the proxy lines to store source
     ATTR_LINE_PARENT_UUID = "lineProxyTargetUUID"  # Used by the proxy lines to store target
     # Metadata Keys
+    META_SETUP_NAME = "setupName"  # Metadata key for the system name. (Determines naming pattern)
     META_PROXY_LINE_PARENT = "lineParentUUID"  # Metadata key, line parent. Actual parent is ignored when present.
     META_PROXY_PURPOSE = "proxyPurpose"  # Metadata key, used to recognize proxy purpose within modules
-    META_PROXY_DRIVERS = "proxyDrivers"  # Metadata key, used to find drivers (aka controls) driving the created joint
+    META_PROXY_DRIVERS = "proxyDrivers"  # Metadata key, used to find drivers (aka controls) driving the created joint.
     META_PROXY_CLR = "color"  # Metadata key, describes color to be used instead of side setup.
-    # Separator Attributes
-    SEPARATOR_OPTIONS = "options"
-    SEPARATOR_BEHAVIOR = "behavior"
-    SEPARATOR_AUTOMATION = "automation"
     # Group Names
     GRP_RIG_NAME = f'rig_{NamingConstants.Suffix.GRP}'
     GRP_PROXY_NAME = f'rig_proxy_{NamingConstants.Suffix.GRP}'
@@ -57,8 +54,7 @@ class RiggerConstants:
     LOC_RADIUS_MULTIPLIER_DRIVEN = .8
     LOC_RADIUS_MULTIPLIER_FK = .3
     LOC_RADIUS_MULTIPLIER_IK = .6
-    # Misc
-    ENUM_ROTATE_ORDER = 'xyz:yzx:zxy:xzy:yxz:zyx'
+    LOC_RADIUS_MULTIPLIER_DATA_QUERY = .1
 
 
 class RiggerDriverTypes:
@@ -66,7 +62,14 @@ class RiggerDriverTypes:
         """
         Driver Type Constant values used by the drivers and controls.
         """
-    FK = "fk"
-    IK = "ik"
-    OFFSET = "offset"
-    COG = "cog"
+    FK = "fk"  # Forward kinematics
+    IK = "ik"  # Inverse kinematics
+    PIVOT = "pivot"  # Inverse kinematics
+    SWITCH = "switch"  # Secondary driver that allows switching between systems. e.g. FK/IK
+    OFFSET = "offset"  # Driver is the data of an offset control
+    DRIVEN = "driven"  # Driver controlled by multiple elements. e.g. FK/IK
+    COG = "cog"  # Center of Gravity
+    AIM = "aim"  # e.g. eyes
+    ROLL = "roll"  # e.g. toe_roll
+    UP_DOWN = "upDown"  # e.g. toe_upDown
+    CURL = "curl"  # e.g. thumb_curl

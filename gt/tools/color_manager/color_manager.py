@@ -169,13 +169,13 @@ def build_gui_color_manager():
 
     # Main Color Picker
     cmds.separator(h=10, style='none', p=body_column)  # Empty Space
-    cmds.rowColumnLayout(p=body_column, nc=1, h=25, cw=[(1, 310)], cs=[(1, 5)])
+    cmds.rowColumnLayout(p=body_column, nc=2, h=25, cw=[(1, 270), (2, 30)], cs=[(1, 5), (2, 10)])
     color_slider = cmds.colorSliderGrp(label='Current Color  ', rgb=(gt_color_manager_settings.get("current_color")[0],
                                                                      gt_color_manager_settings.get("current_color")[1],
                                                                      gt_color_manager_settings.get("current_color")[2]),
                                        cal=[1, 'left'],
-                                       columnWidth=((1, 80), (3, 130)), cc=lambda x: update_stored_values())
-
+                                       columnWidth=((1, 70), (3, 130)), cc=lambda x: update_stored_values())
+    cmds.button(l='Get', h=15, c=lambda args: get_selection_color())
     cmds.separator(h=7, style='none', p=body_column)  # Empty Space
 
     c_btn_w = 30
@@ -263,8 +263,69 @@ def build_gui_color_manager():
         update_stored_values()
         set_color()
 
+    def get_selection_color():
+        """
+        Gets the selection color and stores it as the current color.
+        Prioritizes outliner, then viewport.
+        """
+        selection = cmds.ls(selection=True)
+        if not selection or len(selection) > 1:
+            cmds.warning("Select only one object to get the color from and try again.")
+            return
+        try:
+            selected_item = selection[0]
+            target = cmds.optionMenu(target_option, q=True, value=True)
+            # Determine what to color
+            if target == 'Shape':
+                shapes = cmds.listRelatives(selected_item, shapes=True, fullPath=True) or []
+                if shapes:
+                    selected_item = shapes[0]
+                else:
+                    cmds.warning('No shapes were found. Make sure you\'re using the correct "Target" option.')
+                    return
+
+            set_viewport = cmds.checkBox(viewport_chk, q=True, value=True)
+            set_outliner = cmds.checkBox(outliner_chk, q=True, value=True)
+            viewport_r = None
+            viewport_g = None
+            viewport_b = None
+            if set_viewport:
+                viewport_r = cmds.getAttr(f'{selected_item}.overrideColorR')
+                viewport_g = cmds.getAttr(f'{selected_item}.overrideColorG')
+                viewport_b = cmds.getAttr(f'{selected_item}.overrideColorB')
+            managed_r = None
+            managed_g = None
+            managed_b = None
+            if set_outliner:
+                outliner_r = cmds.getAttr(f'{selected_item}.outlinerColorR')
+                outliner_g = cmds.getAttr(f'{selected_item}.outlinerColorG')
+                outliner_b = cmds.getAttr(f'{selected_item}.outlinerColorB')
+                managed_r = math.pow((outliner_r + 0.055) / 1.055, 2.4)
+                managed_g = math.pow((outliner_g + 0.055) / 1.055, 2.4)
+                managed_b = math.pow((outliner_b + 0.055) / 1.055, 2.4)
+
+            if set_viewport and set_outliner:
+                color_feedback = f'({managed_r}, {managed_g}, {managed_b})'
+                sys.stdout.write(f'Read Color: {color_feedback}. Both "Outliner" and "Viewport" options were selected. '
+                                 f'Outliner color was prioritized. \n')
+
+            if set_viewport:
+                color_feedback = f'({viewport_r}, {viewport_g}, {viewport_b})'
+                sys.stdout.write(f'Read Color: {color_feedback}.\n')
+                cmds.colorSliderGrp(color_slider, e=True, rgb=(viewport_r, viewport_g, viewport_b))
+
+            if set_outliner:
+
+                color_feedback = f'({managed_r}, {managed_g}, {managed_b})'
+                sys.stdout.write(f'Read Color: {color_feedback}.\n')
+                cmds.colorSliderGrp(color_slider, e=True, rgb=(managed_r, managed_g, managed_b))
+
+            update_stored_values()
+        except Exception as e:
+            cmds.warning(f'Unable to extract color. Issue: {e}')
+
     def set_color(reset=False):
-        """'
+        """
         Uses the provided settings to manage colors (Main function of this script) 
         
         Args:

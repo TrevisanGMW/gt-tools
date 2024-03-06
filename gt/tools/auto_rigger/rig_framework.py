@@ -19,16 +19,18 @@ from gt.tools.auto_rigger.rig_utils import parent_proxies, create_proxy_root_cur
 from gt.tools.auto_rigger.rig_utils import find_skeleton_group, create_direction_curve, get_meta_purpose_from_dict
 from gt.tools.auto_rigger.rig_utils import find_driver_from_uuid, find_proxy_from_uuid, create_control_root_curve
 from gt.tools.auto_rigger.rig_utils import create_utility_groups, create_root_group, find_proxy_root_group
+from gt.tools.auto_rigger.rig_utils import find_drivers_from_joint
 from gt.utils.attr_utils import add_separator_attr, set_attr, add_attr, list_user_defined_attr, get_attr
+from gt.utils.string_utils import remove_prefix, camel_case_split, remove_suffix, upper_first_char
 from gt.utils.uuid_utils import add_uuid_attr, is_uuid_valid, is_short_uuid_valid, generate_uuid
 from gt.utils.color_utils import add_side_color_setup, ColorConstants, set_color_viewport
-from gt.utils.string_utils import remove_prefix, camel_case_split, remove_suffix
 from gt.utils.transform_utils import Transform, match_translate, match_rotate
 from gt.utils.curve_utils import Curve, get_curve, add_shape_scale_cluster
 from gt.utils.iterable_utils import get_highest_int_from_str_list
 from gt.utils.naming_utils import NamingConstants, get_long_name
 from gt.utils.uuid_utils import get_object_from_uuid_attr
 from gt.utils.control_utils import add_snapping_shape
+from gt.utils.rigging_utils import RiggingConstants
 from gt.utils.node_utils import create_node, Node
 from gt.utils.joint_utils import orient_joint
 from gt.utils import hierarchy_utils
@@ -370,7 +372,8 @@ class Proxy:
         proxy_offset = get_long_name(proxy_offset)
         proxy_crv = get_long_name(proxy_crv)
 
-        add_separator_attr(target_object=proxy_crv, attr_name=f'proxy{RiggerConstants.SEPARATOR_OPTIONS.title()}')
+        add_separator_attr(target_object=proxy_crv,
+                           attr_name=f'proxy{upper_first_char(RiggingConstants.SEPARATOR_CONTROL)}')
         uuid_attrs = add_uuid_attr(obj_list=proxy_crv,
                                    attr_name=RiggerConstants.ATTR_PROXY_UUID,
                                    set_initial_uuid_value=False)
@@ -971,10 +974,13 @@ class Proxy:
 
 
 class ModuleGeneric:
-    __version__ = '0.1.0-beta'
+    __version__ = '0.1.1-beta'
     icon = resource_library.Icon.rigger_module_generic
     allow_parenting = True
     allow_multiple = True
+
+    # Default Values
+    DEFAULT_SETUP_NAME = "generic"
 
     def __init__(self, name=None, prefix=None, suffix=None):
         # Default Values
@@ -1321,6 +1327,14 @@ class ModuleGeneric:
             proxy.read_data_from_scene()
         return self
 
+    def set_meta_setup_name(self, name):
+        """
+        Sets the meta system name. Used to properly name the automation hierarchies or elements when creating a rig.
+        Args:
+            name (str): New system name. If invalid or empty the default value for this module will be used instead.
+        """
+        self.add_to_metadata(RiggerConstants.META_SETUP_NAME, value=name if name else self.DEFAULT_SETUP_NAME)
+
     # ------------------------------------------------- Getters -------------------------------------------------
     def get_name(self):
         """
@@ -1584,6 +1598,15 @@ class ModuleGeneric:
             matches = matches_dict
         return matches
 
+    def get_meta_setup_name(self):
+        """
+        Gets the meta system name. Used to properly name the automation hierarchies or elements when creating a rig.
+        Returns:
+            str: System name. If invalid or empty the default value for this module will be returned instead.
+                 If this metadata value was never set, this function will still return the default system value.
+        """
+        return self.get_metadata_value(key=RiggerConstants.META_SETUP_NAME) or self.DEFAULT_SETUP_NAME
+
     def _assemble_ctrl_name(self, name, project_prefix=None, overwrite_prefix=None, overwrite_suffix=None):
         """
         Assemble a new control name based on the given parameters and module prefix/suffix.
@@ -1691,10 +1714,10 @@ class ModuleGeneric:
         The value of the attribute is created using the module uuid, the driver type and proxy purpose combined.
         Following this pattern: "<module_uuid>-<driver_type>-<proxy_purpose>" e.g. "abcdef123456-fk-shoulder"
         Args:
-            target (str): Path to the object that will receive the driver attributes.
+            target (str, Node): Path to the object that will receive the driver attributes.
             driver_type (str, optional): A string or tag use to identify the control type. e.g. "fk", "ik", "offset"
-            proxy_purpose (str, Proxy, optional): This is the proxy purpose. It can be a string, e.g. "shoulder" or
-                                                  the proxy object (if a Proxy object is provided, then it tries to extract
+            proxy_purpose (str, Proxy, optional): This is the proxy purpose. It can be a string,
+                        e.g. "shoulder" or the proxy object (if a Proxy object is provided, then it tries to extract
         """
         uuid = f'{self.uuid}'
         if driver_type:
@@ -1712,6 +1735,22 @@ class ModuleGeneric:
             uuid = generate_uuid(remove_dashes=True)
         set_attr(attribute_path=uuid_attr, value=str(uuid))
         return target
+
+    def _parent_module_children_drivers(self):
+        """
+        Checks if the module parent joint exists, if it does, checks if it has a control ready to accept children.
+        If all of these is true, then parent the module children drivers to this found control.
+        Essentially, parent module controls to parent proxy controls.
+        Summary:
+        Condition: all elements must exist.
+        Source objects: module children drivers (usually base control of the module)
+        Target object: driver of the module parent joint
+        """
+        module_parent_jnt = find_joint_from_uuid(self.get_parent_uuid())
+        if module_parent_jnt:
+            drivers = find_drivers_from_joint(module_parent_jnt, as_list=True)
+            if drivers:
+                hierarchy_utils.parent(source_objects=self.module_children_drivers, target_parent=drivers[0])
 
     # --------------------------------------------------- Build ---------------------------------------------------
     def build_proxy(self, project_prefix=None, optimized=False):
@@ -1863,6 +1902,7 @@ class ModuleGeneric:
         Used to define automation or connections that require external elements to exist.
         """
         logger.debug(f'"build_rig" function from "{self.get_module_class_name()}" was called.')
+        self._parent_module_children_drivers()
 
 
 class RigProject:
@@ -2187,8 +2227,6 @@ class RigProject:
                                                     setup=True,
                                                     target_parent=root_group)
             control_grp = category_groups.get(RiggerConstants.REF_ATTR_CONTROL)
-            setup_grp = category_groups.get(RiggerConstants.REF_ATTR_SETUP)
-            set_attr(obj_list=setup_grp, attr_list=['overrideEnabled', 'overrideDisplayType'], value=1)
             hierarchy_utils.parent(source_objects=list(category_groups.values()), target_parent=root_group)
             hierarchy_utils.parent(source_objects=root_ctrl, target_parent=control_grp)
             hierarchy_utils.parent(source_objects=dir_ctrl, target_parent=root_ctrl)
@@ -2255,7 +2293,7 @@ if __name__ == "__main__":
     a_root_module.add_driver_uuid_attr(test[0], "fk", root)
 
     a_module = ModuleGeneric()
-    print(a_module._assemble_ctrl_name(name="test"))
+    # print(a_module._assemble_ctrl_name(name="test"))
     a_module.add_to_proxies(a_1st_proxy)
     a_module.add_to_proxies(a_2nd_proxy)
     # a_module.set_prefix("prefix")

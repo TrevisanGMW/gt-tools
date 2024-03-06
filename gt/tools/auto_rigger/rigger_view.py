@@ -1,9 +1,8 @@
 """
 Auto Rigger View
 """
-from PySide2.QtWidgets import QMenuBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QLabel, QScrollArea, QAction, QMenu, \
-    QLineEdit
-from PySide2.QtWidgets import QWidget, QSplitter, QDesktopWidget, QHBoxLayout, QPushButton, QGroupBox
+from PySide2.QtWidgets import QMenuBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QLabel, QScrollArea, QAction, QMenu
+from PySide2.QtWidgets import QWidget, QSplitter, QDesktopWidget, QHBoxLayout, QPushButton, QGroupBox, QLineEdit
 from gt.utils.session_utils import is_script_in_interactive_maya
 from gt.ui.tree_widget_enhanced import QTreeEnhanced
 import gt.ui.resource_library as resource_library

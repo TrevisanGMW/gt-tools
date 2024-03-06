@@ -17,6 +17,7 @@ for to_append in [package_root_dir, tests_dir]:
         sys.path.append(to_append)
 from tests import maya_test_tools
 from gt.utils import color_utils
+cmds = maya_test_tools.cmds
 
 
 class TestColorUtils(unittest.TestCase):
@@ -115,9 +116,9 @@ class TestColorUtils(unittest.TestCase):
         result = color_utils.set_color_viewport(obj_list=cube_one, rgb_color=expected_color)
         expected_result = [cube_one]
         self.assertEqual(expected_result, result)
-        set_color = maya_test_tools.cmds.getAttr(f'{cube_one}.overrideColorRGB')[0]
+        set_color = cmds.getAttr(f'{cube_one}.overrideColorRGB')[0]
         self.assertEqual(expected_color, set_color)
-        override_state = maya_test_tools.cmds.getAttr(f'{cube_one}.overrideEnabled')
+        override_state = cmds.getAttr(f'{cube_one}.overrideEnabled')
         self.assertTrue(override_state, "Expected override to be enabled.")
 
     def test_set_color_viewport_list(self):
@@ -129,9 +130,9 @@ class TestColorUtils(unittest.TestCase):
         expected_result = [cube_one, cube_two]
         self.assertEqual(expected_result, result)
         for obj in [cube_one, cube_two]:
-            set_color = maya_test_tools.cmds.getAttr(f'{obj}.overrideColorRGB')[0]
+            set_color = cmds.getAttr(f'{obj}.overrideColorRGB')[0]
             self.assertEqual(expected_color, set_color)
-            override_state = maya_test_tools.cmds.getAttr(f'{obj}.overrideEnabled')
+            override_state = cmds.getAttr(f'{obj}.overrideEnabled')
             self.assertTrue(override_state, "Expected override to be enabled.")
 
     def test_set_color_outliner(self):
@@ -140,11 +141,11 @@ class TestColorUtils(unittest.TestCase):
         result = color_utils.set_color_outliner(obj_list=cube_one, rgb_color=expected_color)
         expected_result = [cube_one]
         self.assertEqual(expected_result, result)
-        clr_r = maya_test_tools.cmds.getAttr(f'{cube_one}.outlinerColorR')
-        clr_g = maya_test_tools.cmds.getAttr(f'{cube_one}.outlinerColorG')
-        clr_b = maya_test_tools.cmds.getAttr(f'{cube_one}.outlinerColorB')
+        clr_r = cmds.getAttr(f'{cube_one}.outlinerColorR')
+        clr_g = cmds.getAttr(f'{cube_one}.outlinerColorG')
+        clr_b = cmds.getAttr(f'{cube_one}.outlinerColorB')
         self.assertEqual(expected_color, (clr_r, clr_g, clr_b))
-        override_state = maya_test_tools.cmds.getAttr(f'{cube_one}.useOutlinerColor')
+        override_state = cmds.getAttr(f'{cube_one}.useOutlinerColor')
         self.assertTrue(override_state, "Expected override to be enabled.")
 
     def test_set_color_outliner_list(self):
@@ -156,11 +157,11 @@ class TestColorUtils(unittest.TestCase):
         expected_result = [cube_one, cube_two]
         self.assertEqual(expected_result, result)
         for obj in [cube_one, cube_two]:
-            clr_r = maya_test_tools.cmds.getAttr(f'{obj}.outlinerColorR')
-            clr_g = maya_test_tools.cmds.getAttr(f'{obj}.outlinerColorG')
-            clr_b = maya_test_tools.cmds.getAttr(f'{obj}.outlinerColorB')
+            clr_r = cmds.getAttr(f'{obj}.outlinerColorR')
+            clr_g = cmds.getAttr(f'{obj}.outlinerColorG')
+            clr_b = cmds.getAttr(f'{obj}.outlinerColorB')
             self.assertEqual(expected_color, (clr_r, clr_g, clr_b))
-            override_state = maya_test_tools.cmds.getAttr(f'{obj}.useOutlinerColor')
+            override_state = cmds.getAttr(f'{obj}.useOutlinerColor')
             self.assertTrue(override_state, "Expected override to be enabled.")
 
     def test_apply_gamma_correction_to_rgb(self):
@@ -194,23 +195,23 @@ class TestColorUtils(unittest.TestCase):
         expected_bool_attrs = ['autoColor']
         expected_double_attrs = ['colorDefault', 'colorRight', 'colorLeft']
         for attr in expected_bool_attrs + expected_double_attrs:
-            self.assertTrue(maya_test_tools.cmds.objExists(f'{test_obj}.{attr}'),
+            self.assertTrue(cmds.objExists(f'{test_obj}.{attr}'),
                             f'Missing expected attribute: "{attr}".')
 
         expected = 'bool'
         for attr in expected_bool_attrs:
-            attr_type = maya_test_tools.cmds.getAttr(f'{test_obj}.{attr}', type=True)
+            attr_type = cmds.getAttr(f'{test_obj}.{attr}', type=True)
             self.assertEqual(expected, attr_type)
         expected = 'double3'
         for attr in expected_double_attrs:
-            attr_type = maya_test_tools.cmds.getAttr(f'{test_obj}.{attr}', type=True)
+            attr_type = cmds.getAttr(f'{test_obj}.{attr}', type=True)
             self.assertEqual(expected, attr_type)
 
         expected = True
-        result = maya_test_tools.cmds.getAttr(f'{test_obj}.overrideEnabled')
+        result = cmds.getAttr(f'{test_obj}.overrideEnabled')
         self.assertEqual(expected, result)
         expected = 1
-        result = maya_test_tools.cmds.getAttr(f'{test_obj}.overrideRGBColors')
+        result = cmds.getAttr(f'{test_obj}.overrideRGBColors')
         self.assertEqual(expected, result)
 
     def test_get_directional_color_x_center(self):
@@ -223,18 +224,18 @@ class TestColorUtils(unittest.TestCase):
 
     def test_get_directional_color_x_neg_left(self):
         cube = maya_test_tools.create_poly_cube(name='test_cube')
-        maya_test_tools.cmds.setAttr(f'{cube}.tx', -5)
+        cmds.setAttr(f'{cube}.tx', -5)
         result = color_utils.get_directional_color(object_name=cube, axis="X")
         from gt.utils.color_utils import ColorConstants
-        expected = ColorConstants.RigControl.LEFT
+        expected = ColorConstants.RigControl.RIGHT
         self.assertEqual(expected, result)
 
     def test_get_directional_color_x_pos_right(self):
         cube = maya_test_tools.create_poly_cube(name='test_cube')
-        maya_test_tools.cmds.setAttr(f'{cube}.tx', 5)
+        cmds.setAttr(f'{cube}.tx', 5)
         result = color_utils.get_directional_color(object_name=cube, axis="X")
         from gt.utils.color_utils import ColorConstants
-        expected = ColorConstants.RigControl.RIGHT
+        expected = ColorConstants.RigControl.LEFT
         self.assertEqual(expected, result)
 
     def test_get_directional_color_y_center(self):
@@ -247,18 +248,18 @@ class TestColorUtils(unittest.TestCase):
 
     def test_get_directional_color_y_pos(self):
         cube = maya_test_tools.create_poly_cube(name='test_cube')
-        maya_test_tools.cmds.setAttr(f'{cube}.ty', 5)
+        cmds.setAttr(f'{cube}.ty', 5)
         result = color_utils.get_directional_color(object_name=cube, axis="Y")
         from gt.utils.color_utils import ColorConstants
-        expected = ColorConstants.RigControl.RIGHT
+        expected = ColorConstants.RigControl.LEFT
         self.assertEqual(expected, result)
 
     def test_get_directional_color_y_neg(self):
         cube = maya_test_tools.create_poly_cube(name='test_cube')
-        maya_test_tools.cmds.setAttr(f'{cube}.ty', -5)
+        cmds.setAttr(f'{cube}.ty', -5)
         result = color_utils.get_directional_color(object_name=cube, axis="Y")
         from gt.utils.color_utils import ColorConstants
-        expected = ColorConstants.RigControl.LEFT
+        expected = ColorConstants.RigControl.RIGHT
         self.assertEqual(expected, result)
 
     def test_get_directional_color_z_center(self):
@@ -270,18 +271,18 @@ class TestColorUtils(unittest.TestCase):
 
     def test_get_directional_color_z_neg(self):
         cube = maya_test_tools.create_poly_cube(name='test_cube')
-        maya_test_tools.cmds.setAttr(f'{cube}.tz', -5)
+        cmds.setAttr(f'{cube}.tz', -5)
         result = color_utils.get_directional_color(object_name=cube, axis="Z")
         from gt.utils.color_utils import ColorConstants
-        expected = ColorConstants.RigControl.LEFT
+        expected = ColorConstants.RigControl.RIGHT
         self.assertEqual(expected, result)
 
     def test_get_directional_color_z_pos(self):
         cube = maya_test_tools.create_poly_cube(name='test_cube')
-        maya_test_tools.cmds.setAttr(f'{cube}.tz', 5)
+        cmds.setAttr(f'{cube}.tz', 5)
         result = color_utils.get_directional_color(object_name=cube, axis="Z")
         from gt.utils.color_utils import ColorConstants
-        expected = ColorConstants.RigControl.RIGHT
+        expected = ColorConstants.RigControl.LEFT
         self.assertEqual(expected, result)
 
     def test_get_directional_color_change(self):
@@ -293,7 +294,7 @@ class TestColorUtils(unittest.TestCase):
         expected = (0, 1, 0)
         self.assertEqual(expected, result)
 
-        maya_test_tools.cmds.setAttr(f'{cube}.tz', 5)
+        cmds.setAttr(f'{cube}.tz', 5)
         result = color_utils.get_directional_color(object_name=cube, axis="Z",
                                                    negative_color=(1, 0, 0),
                                                    center_color=(0, 1, 0),
@@ -301,7 +302,7 @@ class TestColorUtils(unittest.TestCase):
         expected = (0, 0, 1)
         self.assertEqual(expected, result)
 
-        maya_test_tools.cmds.setAttr(f'{cube}.tz', -5)
+        cmds.setAttr(f'{cube}.tz', -5)
         result = color_utils.get_directional_color(object_name=cube, axis="Z",
                                                    negative_color=(1, 0, 0),
                                                    center_color=(0, 1, 0),
@@ -311,14 +312,14 @@ class TestColorUtils(unittest.TestCase):
 
     def test_get_directional_color_tolerance(self):
         cube = maya_test_tools.create_poly_cube(name='test_cube')
-        maya_test_tools.cmds.setAttr(f'{cube}.tx', 0.05)
+        cmds.setAttr(f'{cube}.tx', 0.05)
         result = color_utils.get_directional_color(object_name=cube, axis="X", tolerance=0.1)
         from gt.utils.color_utils import ColorConstants
         expected = ColorConstants.RigControl.CENTER
         self.assertEqual(expected, result)
         cube = maya_test_tools.create_poly_cube(name='test_cube')
-        maya_test_tools.cmds.setAttr(f'{cube}.tx', 0.11)
+        cmds.setAttr(f'{cube}.tx', 0.11)
         result = color_utils.get_directional_color(object_name=cube, axis="X", tolerance=0.1)
         from gt.utils.color_utils import ColorConstants
-        expected = ColorConstants.RigControl.RIGHT
+        expected = ColorConstants.RigControl.LEFT
         self.assertEqual(expected, result)

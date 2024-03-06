@@ -167,18 +167,18 @@ def build_gui_transfer_transforms():
 
     cmds.text('T')
     tx_copy_text_field = cmds.textField(text='0.0', ann='tx', cc=lambda x: update_get_dict(tx_copy_text_field))
-    ty_copy_text_field = cmds.textField(text='0.0', ann='ty')
-    tz_copy_text_field = cmds.textField(text='0.0', ann='tz')
+    ty_copy_text_field = cmds.textField(text='0.0', ann='ty', cc=lambda x: update_get_dict(ty_copy_text_field))
+    tz_copy_text_field = cmds.textField(text='0.0', ann='tz', cc=lambda x: update_get_dict(tz_copy_text_field))
 
     cmds.text('R')
-    rx_copy_text_field = cmds.textField(text='0.0', ann='rx')
-    ry_copy_text_field = cmds.textField(text='0.0', ann='ry')
-    rz_copy_text_field = cmds.textField(text='0.0', ann='rz')
+    rx_copy_text_field = cmds.textField(text='0.0', ann='rx', cc=lambda x: update_get_dict(rx_copy_text_field))
+    ry_copy_text_field = cmds.textField(text='0.0', ann='ry', cc=lambda x: update_get_dict(ry_copy_text_field))
+    rz_copy_text_field = cmds.textField(text='0.0', ann='rz', cc=lambda x: update_get_dict(rz_copy_text_field))
 
     cmds.text('S')
-    sx_copy_text_field = cmds.textField(text='1.0', ann='sx')
-    sy_copy_text_field = cmds.textField(text='1.0', ann='sy')
-    sz_copy_text_field = cmds.textField(text='1.0', ann='sz')
+    sx_copy_text_field = cmds.textField(text='1.0', ann='sx', cc=lambda x: update_get_dict(sx_copy_text_field))
+    sy_copy_text_field = cmds.textField(text='1.0', ann='sy', cc=lambda x: update_get_dict(sy_copy_text_field))
+    sz_copy_text_field = cmds.textField(text='1.0', ann='sz', cc=lambda x: update_get_dict(sz_copy_text_field))
 
     cmds.separator(h=7, style='none', p=content_main)  # Empty Space
 
@@ -224,9 +224,8 @@ def build_gui_transfer_transforms():
         """
         Returns a list with all the TRS data
         
-                Returns:
-                    transforms (list): T(XYZ) R(XYZ) S(XYZ)
-        
+        Returns:
+            list: transforms as T(XYZ) R(XYZ) S(XYZ)
         """
         transforms = []
         tx = extract_checkbox_transform_value(translate_x_checkbox, 'tx')
@@ -423,12 +422,12 @@ def build_gui_transfer_transforms():
                 for transform in transforms:  # Using Transform, Inverted?, Attribute
                     if transform[0]:  # Using Transform?
                         for target in targets:
-                            if not cmds.getAttr(target + '.' + transform[2], lock=True):
+                            if not cmds.getAttr(f'{target}.{transform[2]}', lock=True):
                                 if transform[1]:  # Inverted?
-                                    cmds.setAttr(target + '.' + transform[2],
+                                    cmds.setAttr(f'{target}.{transform[2]}',
                                                  (float(gt_transfer_transforms_dict.get(transform[2]) * -1)))
                                 else:
-                                    cmds.setAttr(target + '.' + transform[2],
+                                    cmds.setAttr(f'{target}.{transform[2]}',
                                                  float(gt_transfer_transforms_dict.get(transform[2])))
                             else:
                                 errors.append(target + ' (' + transform[2] + ') is locked.')

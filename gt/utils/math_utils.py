@@ -161,8 +161,8 @@ def dist_center_to_center(obj_a, obj_b):
     Calculates the position between the center of one object (A)  to the center of another object (B)
 
     Args:
-        obj_a (string) : Name of object A
-        obj_b (string) : Name of object B
+        obj_a (str) : Name of object A
+        obj_b (str) : Name of object B
 
     Returns:
         float: A distance value between object A and B. For example : 4.0 (or 0 if operation failed)
@@ -175,6 +175,43 @@ def dist_center_to_center(obj_a, obj_b):
     ws_pos_a = cmds.xform(obj_a, q=True, ws=True, t=True)
     ws_pos_b = cmds.xform(obj_b, q=True, ws=True, t=True)
     return dist_xyz_to_xyz(ws_pos_a[0], ws_pos_a[1], ws_pos_a[2], ws_pos_b[0], ws_pos_b[1], ws_pos_b[2])
+
+
+def dist_path_sum(input_list):
+    """
+    Calculates the sum of distances between elements in a list of Maya paths or XYZ positions.
+    Order matters in this case as it calculates the path between the first and last element in order.
+
+    Args:
+        input_list (list): A list containing Maya paths (str) or XYZ positions (tuple or list)
+
+    Returns:
+        float: The sum of distances between consecutive elements. For example: 12.0
+    """
+    total_distance = 0
+    num_elements = len(input_list)
+
+    if num_elements < 2:
+        logger.debug("At least two elements are required to properly calculate distances. "
+                     "Distance is zero otherwise.")
+        return total_distance
+
+    for index in range(num_elements - 1):
+        element_a = input_list[index]
+        element_b = input_list[index + 1]
+        if isinstance(element_a, str):
+            element_a = cmds.xform(element_a, q=True, ws=True, t=True)
+        if isinstance(element_b, str):
+            element_b = cmds.xform(element_b, q=True, ws=True, t=True)
+        if isinstance(element_a, (tuple, list)) and isinstance(element_b, (tuple, list)):
+            distance = dist_xyz_to_xyz(element_a[0], element_a[1], element_a[2],   # A: XYZ
+                                       element_b[0], element_b[1], element_b[2])   # B: XYZ
+        else:
+            logger.warning("Unsupported types detected. Total distance might not be accurate. "
+                           "Please provide only Maya paths (str) or XYZ positions. (tuple/list)")
+            continue
+        total_distance += distance
+    return total_distance
 
 
 def get_bbox_position(obj_list, alignment=None, axis="x"):
@@ -212,7 +249,7 @@ def get_bbox_position(obj_list, alignment=None, axis="x"):
 
         points = []
         for shape in shapes:
-            if cmds.objectType(shape) == 'nurbsSurface':
+            if cmds.objectType(shape) == 'nurbsSurface' or cmds.objectType(shape) == 'nurbsCurve':
                 cvs_count = cmds.getAttr(f'{shape}.controlPoints', size=True)
                 points.append(f'{shape}.cv[0:{cvs_count - 1}]')
             else:
@@ -238,6 +275,48 @@ def get_bbox_position(obj_list, alignment=None, axis="x"):
     return tuple(mid_point)
 
 
+def get_transforms_center_position(transform_list):
+    """
+    Get the center position of a list of transform nodes.
+    Missing objects are ignored. If none of the objects are found, the origin (0, 0, 0) is returned instead.
+
+    Args:
+        transform_list (list): List of transform node paths/names.
+
+    Returns:
+        tuple: Center position as a tuple (x, y, z).
+    """
+    # Initialize variables to store total position and count
+    total_position = [0, 0, 0]
+    num_transforms = 0
+
+    # Iterate through each transform
+    for transform_name in transform_list:
+        # Check if the transform exists
+        if cmds.objExists(transform_name):
+            # Get the translation values of the transform
+            transform_position = cmds.xform(transform_name, query=True, translation=True, worldSpace=True)
+            # Add the position values to the total
+            total_position[0] += transform_position[0]
+            total_position[1] += transform_position[1]
+            total_position[2] += transform_position[2]
+            num_transforms += 1  # Increment the count of existing transforms
+
+    # Check if any transforms exist
+    if num_transforms == 0:
+        # If no transforms exist, return the origin
+        return 0, 0, 0
+
+    # Calculate the average position by dividing the total by the number of existing transforms
+    center_position = (
+        total_position[0] / num_transforms,
+        total_position[1] / num_transforms,
+        total_position[2] / num_transforms
+    )
+
+    return center_position
+
+
 def remap_value(value, old_range, new_range):
     """
     Remap a value from one range to another.
@@ -259,8 +338,3 @@ def remap_value(value, old_range, new_range):
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    center = get_bbox_position("pSphere1")
-    print(center)
-    x, y, z = center
-    locator = cmds.spaceLocator()[0]
-    cmds.move(x, y, z, locator)
