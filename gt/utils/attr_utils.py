@@ -722,7 +722,7 @@ def add_separator_attr(target_object, attr_name="separator", custom_value=None):
     """
     Creates a locked enum attribute to be used as a separator
     Args:
-        target_object (str): Name of the object to affect in the operation
+        target_object (str, Node): Name of the object to affect in the operation
         attr_name (str, optional): Name of the attribute to add. Use camelCase for this string as it will obey the
                                    "niceName" pattern in Maya. e.g. "niceName" = "Nice Name"
         custom_value (str, None, optional): Enum value for the separator value.
