@@ -21,7 +21,7 @@ from gt.utils.hierarchy_utils import add_offset_transform, create_group
 from gt.utils.math_utils import dist_center_to_center
 from gt.utils.joint_utils import set_joint_radius
 from gt.utils.naming_utils import NamingConstants
-from gt.utils.node_utils import Node
+from gt.utils.node_utils import Node, create_node
 from gt.utils import hierarchy_utils
 from gt.ui import resource_library
 import maya.cmds as cmds
@@ -45,7 +45,7 @@ class ModuleSpine(ModuleGeneric):
     # Default Values
     DEFAULT_SETUP_NAME = "spine"
     DEFAULT_COG_NAME = "cog"
-    DEFAULT_DROPOFF_RATE = 2
+    DEFAULT_DROPOFF_RATE = 1
 
     def __init__(self, name="Spine", prefix=None, suffix=None):
         super().__init__(name=name, prefix=prefix, suffix=suffix)
@@ -605,17 +605,6 @@ class ModuleSpine(ModuleGeneric):
         expose_rotation_order(spine_ik_ctrl)
         hierarchy_utils.parent(source_objects=spine_ik_offset, target_parent=cog_o_data)
 
-        # Follow Hip and Chest Attribute
-        add_attr(obj_list=spine_ik_ctrl, attributes="followHipAndChest", default=1, minimum=0, maximum=1)
-
-        # spine_follow_reverse_node = create_node('reverse', name='spine_follow_reverse')
-        #
-        # cmds.connectAttr(spine_ribbon_ctrl + '.followChestAndHip', spine_follow_reverse_node + '.inputX', f=True)
-        #
-        # cmds.connectAttr(spine_ribbon_ctrl + '.followChestAndHip', inbetween_cog_spine_constraint[0] + '.w0', f=True)
-        # cmds.connectAttr(spine_ribbon_ctrl + '.followChestAndHip', inbetween_cog_spine_constraint[0] + '.w1', f=True)
-        # cmds.connectAttr(spine_follow_reverse_node + '.outputX', inbetween_cog_spine_constraint[0] + '.w2', f=True)
-
         # Ribbon Driver Joints
         hip_ribbon_jnt = f'{self.hip.get_name()}_{NamingConstants.Description.RIBBON}_{NamingConstants.Suffix.JNT}'
         hip_ribbon_jnt = duplicate_object(obj=hip_jnt, name=hip_ribbon_jnt)
@@ -656,6 +645,15 @@ class ModuleSpine(ModuleGeneric):
         connect_attr(source_attr=f'{cog_ctrl}.visibilityB', target_attr_list=f'{spine_ik_ctrl_shape}.v')
         set_color_viewport(obj_list=spine_ik_ctrl, rgb_color=ColorConstants.RigControl.CENTER)
         hierarchy_utils.parent(source_objects=ribbon_driver_joints, target_parent=joint_automation_grp)
+
+        # Follow Hip and Chest Attribute
+        add_attr(obj_list=spine_ik_ctrl, attributes="followHipAndChest", default=1, minimum=0, maximum=1)
+        follow_constraint = constraint_targets(source_driver=spine_ik_offset, target_driven=spine_ik_hip_chest_data)[0]
+        spine_follow_reverse_node = create_node('reverse', name='spine_midRibbonFollow_reverse')
+        cmds.connectAttr(f'{spine_ik_ctrl}.followHipAndChest', spine_follow_reverse_node + '.inputX')
+        cmds.connectAttr(f'{spine_ik_ctrl}.followHipAndChest', f'{follow_constraint}.w0')  # Hip
+        cmds.connectAttr(f'{spine_ik_ctrl}.followHipAndChest', f'{follow_constraint}.w1')  # Chest
+        cmds.connectAttr(f'{spine_follow_reverse_node}.outputX', f'{follow_constraint}.w2')  # Offset (No Automation)
 
         # Set Automation Visibility
         cmds.setAttr(f'{spine_automation_grp}.v', 0)
@@ -712,7 +710,7 @@ if __name__ == "__main__":
     a_root = ModuleRoot()
     a_spine = ModuleSpine()
     # a_spine.set_spine_num(0)
-    # a_spine.set_spine_num(6)
+    a_spine.set_spine_num(6)
     a_spine.set_parent_uuid(a_root.root.get_uuid())
     a_project = RigProject()
     a_project.add_to_modules(a_root)
