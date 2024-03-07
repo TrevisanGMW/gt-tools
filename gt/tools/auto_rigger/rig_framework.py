@@ -1707,13 +1707,13 @@ class ModuleGeneric:
             return False
         return True
 
-    def _add_driver_uuid_attr(self, target, driver_type=None, proxy_purpose=None):
+    def _add_driver_uuid_attr(self, target_driver, driver_type=None, proxy_purpose=None):
         """
         Adds an attribute to be used as driver UUID to the object.
         The value of the attribute is created using the module uuid, the driver type and proxy purpose combined.
         Following this pattern: "<module_uuid>-<driver_type>-<proxy_purpose>" e.g. "abcdef123456-fk-shoulder"
         Args:
-            target (str, Node): Path to the object that will receive the driver attributes.
+            target_driver (str, Node): Path to the object that will receive the driver attributes.
             driver_type (str, optional): A string or tag use to identify the control type. e.g. "fk", "ik", "offset"
             proxy_purpose (str, Proxy, optional): This is the proxy purpose. It can be a string,
                     e.g. "shoulder" or the proxy object. If a Proxy object is provided, then the function tries to
@@ -1723,7 +1723,7 @@ class ModuleGeneric:
              Pattern: "<module_uuid>-<driver_type>-<proxy_purpose>" e.g. "abcdef123456-fk-shoulder"
         """
         module_uuid = f'{self.uuid}'
-        return add_driver_uuid_attr(target=target, module_uuid=module_uuid,
+        return add_driver_uuid_attr(target_driver=target_driver, module_uuid=module_uuid,
                                     driver_type=driver_type, proxy_purpose=proxy_purpose)
 
     def _parent_module_children_drivers(self):
