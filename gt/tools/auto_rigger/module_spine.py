@@ -72,8 +72,9 @@ class ModuleSpine(ModuleGeneric):
         self.chest.set_initial_position(xyz=pos_chest)
         self.chest.set_locator_scale(scale=1.5)
         self.chest.set_meta_purpose(value="chest")
-        self.chest.add_driver_type(driver_type=[RiggerDriverTypes.DRIVEN,
+        self.chest.add_driver_type(driver_type=[RiggerDriverTypes.GENERIC,
                                                 RiggerDriverTypes.OFFSET,
+                                                RiggerDriverTypes.IK,
                                                 RiggerDriverTypes.FK])
 
         # Spines (In-between)
@@ -106,7 +107,7 @@ class ModuleSpine(ModuleGeneric):
                 new_spine.set_meta_purpose(value=f'spine{str(num + 1).zfill(2)}')
                 new_spine.add_line_parent(line_parent=_parent_uuid)
                 new_spine.set_parent_uuid(uuid=_parent_uuid)
-                new_spine.add_driver_type(driver_type=[RiggerDriverTypes.FK])
+                new_spine.add_driver_type(driver_type=[RiggerDriverTypes.GENERIC, RiggerDriverTypes.FK])
                 _parent_uuid = new_spine.get_uuid()
                 self.spines.append(new_spine)
         # New number lower than current - Remove unnecessary proxies
@@ -322,7 +323,7 @@ class ModuleSpine(ModuleGeneric):
         cog_ctrl_name = self.get_metadata_value(key=self.META_COG_NAME)
         cog_ctrl = self._assemble_ctrl_name(name=cog_ctrl_name)
         cog_ctrl = create_ctrl_curve(name=cog_ctrl, curve_file_name="_circle_pos_x")
-        self.add_driver_uuid_attr(target=cog_ctrl, driver_type=RiggerDriverTypes.COG, proxy_purpose=self.hip)
+        self._add_driver_uuid_attr(target=cog_ctrl, driver_type=RiggerDriverTypes.COG, proxy_purpose=self.hip)
         cog_offset = add_offset_transform(target_list=cog_ctrl)[0]
         match_transform(source=hip_jnt, target_list=cog_offset)
         _cog_scale = spine_scale * .5
@@ -366,7 +367,7 @@ class ModuleSpine(ModuleGeneric):
         # Hip Control ----------------------------------------------------------------------------------
         hip_ctrl = self._assemble_ctrl_name(name=self.hip.get_name())
         hip_ctrl = create_ctrl_curve(name=hip_ctrl, curve_file_name="_wavy_circle_pos_x")
-        self.add_driver_uuid_attr(target=hip_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.hip)
+        self._add_driver_uuid_attr(target=hip_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.hip)
         hip_offset = add_offset_transform(target_list=hip_ctrl)[0]
         match_transform(source=hip_jnt, target_list=hip_offset)
         scale_shapes(obj_transform=hip_ctrl, offset=spine_scale / 6)
@@ -390,9 +391,9 @@ class ModuleSpine(ModuleGeneric):
         hip_o_data = self._assemble_ctrl_name(name=self.hip.get_name(),
                                               overwrite_suffix=NamingConstants.Control.OFFSET_DATA)
         hip_o_data = create_group(name=hip_o_data)
-        self.add_driver_uuid_attr(target=hip_o_data,
-                                  driver_type=RiggerDriverTypes.OFFSET,
-                                  proxy_purpose=self.hip)
+        self._add_driver_uuid_attr(target=hip_o_data,
+                                   driver_type=RiggerDriverTypes.OFFSET,
+                                   proxy_purpose=self.hip)
         hierarchy_utils.parent(source_objects=hip_o_data, target_parent=hip_ctrl)
         # Connections
         cmds.connectAttr(f'{hip_o_ctrl}.translate', f'{hip_o_data}.translate')
@@ -410,7 +411,7 @@ class ModuleSpine(ModuleGeneric):
         for spine_proxy, fk_jnt in zip(self.spines, mid_fk_list):
             spine_ctrl = self._assemble_ctrl_name(name=spine_proxy.get_name())
             spine_ctrl = create_ctrl_curve(name=spine_ctrl, curve_file_name="_cube")
-            self.add_driver_uuid_attr(target=spine_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=spine_proxy)
+            self._add_driver_uuid_attr(target=spine_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=spine_proxy)
             spine_offset = add_offset_transform(target_list=spine_ctrl)[0]
             # Move Pivot to Base
             translate_shapes(obj_transform=spine_ctrl, offset=(1, 0, 0))
@@ -437,7 +438,7 @@ class ModuleSpine(ModuleGeneric):
         # Chest FK Control --------------------------------------------------------------------------------
         chest_fk_ctrl = self._assemble_ctrl_name(name=self.chest.get_name())
         chest_fk_ctrl = create_ctrl_curve(name=chest_fk_ctrl, curve_file_name="_cube")
-        self.add_driver_uuid_attr(target=chest_fk_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.chest)
+        self._add_driver_uuid_attr(target=chest_fk_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.chest)
         chest_fk_offset = add_offset_transform(target_list=chest_fk_ctrl)[0]
         match_transform(source=chest_jnt, target_list=chest_fk_offset)
         translate_shapes(obj_transform=chest_fk_ctrl, offset=(1, 0, 0))  # Move Pivot to Base
@@ -480,9 +481,9 @@ class ModuleSpine(ModuleGeneric):
         match_transform(source=chest_ik_ctrl, target_list=chest_piv_ik_data)
         scale_shapes(obj_transform=chest_piv_ik_data, offset=spine_scale*0.7)
         set_curve_width(obj_list=chest_piv_ik_data, line_width=3)
-        self.add_driver_uuid_attr(target=chest_piv_ik_data,
-                                  driver_type=RiggerDriverTypes.PIVOT,
-                                  proxy_purpose=self.chest)
+        self._add_driver_uuid_attr(target=chest_piv_ik_data,
+                                   driver_type=RiggerDriverTypes.PIVOT,
+                                   proxy_purpose=self.chest)
         hierarchy_utils.parent(source_objects=chest_piv_ik_data, target_parent=chest_ik_ctrl)
         cmds.connectAttr(f'{chest_piv_ik_data}.translate', f'{chest_ik_ctrl}.rotatePivot')
         hide_lock_default_attrs(obj_list=chest_piv_ik_data, rotate=True, scale=True)
@@ -507,9 +508,9 @@ class ModuleSpine(ModuleGeneric):
         chest_o_ik_data = self._assemble_ctrl_name(name=self.chest.get_name(),
                                                    overwrite_suffix=NamingConstants.Control.OFFSET_DATA)
         chest_o_ik_data = create_group(name=chest_o_ik_data)
-        self.add_driver_uuid_attr(target=chest_o_ik_data,
-                                  driver_type=RiggerDriverTypes.OFFSET,
-                                  proxy_purpose=self.chest)
+        self._add_driver_uuid_attr(target=chest_o_ik_data,
+                                   driver_type=RiggerDriverTypes.OFFSET,
+                                   proxy_purpose=self.chest)
         hierarchy_utils.parent(source_objects=chest_o_ik_data, target_parent=chest_ik_ctrl)
         # Connections
         cmds.connectAttr(f'{chest_o_ik_ctrl}.translate', f'{chest_o_ik_data}.translate')
@@ -661,15 +662,15 @@ class ModuleSpine(ModuleGeneric):
         # Set Initial Chest Pivot to Spine Control ---------------------------------------------------------
         match_translate(source=spine_ik_ctrl, target_list=chest_piv_ik_data)
 
-        # Chest Driven Group (For Parented Controls) -------------------------------------------------------
-        chest_driven = self._assemble_ctrl_name(name=self.chest.get_name(),
-                                                overwrite_suffix=NamingConstants.Suffix.DRIVEN)
-        chest_driven = create_group(name=chest_driven)
-        self.add_driver_uuid_attr(target=chest_driven,
-                                  driver_type=RiggerDriverTypes.DRIVEN,
-                                  proxy_purpose=self.chest)
-        constraint_targets(source_driver=chest_jnt, target_driven=chest_driven, maintain_offset=False)
-        hierarchy_utils.parent(source_objects=chest_driven, target_parent=cog_o_data)
+        # # Chest Driven Group (For Parented Controls) -------------------------------------------------------
+        # chest_driven = self._assemble_ctrl_name(name=self.chest.get_name(),
+        #                                         overwrite_suffix=NamingConstants.Suffix.DRIVEN)
+        # chest_driven = create_group(name=chest_driven)
+        # self.add_driver_uuid_attr(target=chest_driven,
+        #                           driver_type=RiggerDriverTypes.DRIVEN,
+        #                           proxy_purpose=self.chest)
+        # constraint_targets(source_driver=chest_jnt, target_driven=chest_driven, maintain_offset=False)
+        # hierarchy_utils.parent(source_objects=chest_driven, target_parent=cog_o_data)
 
         # Set Children Drivers -----------------------------------------------------------------------------
         self.module_children_drivers = [cog_offset]
@@ -707,6 +708,8 @@ if __name__ == "__main__":
 
     from gt.tools.auto_rigger.rig_framework import RigProject
     from gt.tools.auto_rigger.module_root import ModuleRoot
+    from gt.tools.auto_rigger.module_biped_arm import ModuleBipedArmRight
+    a_arm_rt = ModuleBipedArmRight()
     a_root = ModuleRoot()
     a_spine = ModuleSpine()
     # a_spine.set_spine_num(0)
@@ -715,8 +718,13 @@ if __name__ == "__main__":
     a_project = RigProject()
     a_project.add_to_modules(a_root)
     a_project.add_to_modules(a_spine)
-    a_project.build_proxy()
+    a_project.add_to_modules(a_arm_rt)
 
+    spine_chest_uuid = a_spine.chest.get_uuid()
+    a_arm_rt.set_parent_uuid(spine_chest_uuid)
+
+    a_project.build_proxy()
+    #
     # cmds.setAttr(f'hip.tx', 10)
     # cmds.setAttr(f'spine02.tx', 10)
 

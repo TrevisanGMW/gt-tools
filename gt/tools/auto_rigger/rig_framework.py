@@ -19,7 +19,7 @@ from gt.tools.auto_rigger.rig_utils import parent_proxies, create_proxy_root_cur
 from gt.tools.auto_rigger.rig_utils import find_skeleton_group, create_direction_curve, get_meta_purpose_from_dict
 from gt.tools.auto_rigger.rig_utils import find_driver_from_uuid, find_proxy_from_uuid, create_control_root_curve
 from gt.tools.auto_rigger.rig_utils import create_utility_groups, create_root_group, find_proxy_root_group
-from gt.tools.auto_rigger.rig_utils import find_drivers_from_joint
+from gt.tools.auto_rigger.rig_utils import find_drivers_from_joint, add_driver_uuid_attr
 from gt.utils.attr_utils import add_separator_attr, set_attr, add_attr, list_user_defined_attr, get_attr
 from gt.utils.string_utils import remove_prefix, camel_case_split, remove_suffix, upper_first_char
 from gt.utils.uuid_utils import add_uuid_attr, is_uuid_valid, is_short_uuid_valid, generate_uuid
@@ -39,7 +39,6 @@ from dataclasses import dataclass
 import maya.cmds as cmds
 import logging
 import re
-
 
 # Logging Setup
 logging.basicConfig()
@@ -1708,7 +1707,7 @@ class ModuleGeneric:
             return False
         return True
 
-    def add_driver_uuid_attr(self, target, driver_type=None, proxy_purpose=None):
+    def _add_driver_uuid_attr(self, target, driver_type=None, proxy_purpose=None):
         """
         Adds an attribute to be used as driver UUID to the object.
         The value of the attribute is created using the module uuid, the driver type and proxy purpose combined.
@@ -1717,24 +1716,15 @@ class ModuleGeneric:
             target (str, Node): Path to the object that will receive the driver attributes.
             driver_type (str, optional): A string or tag use to identify the control type. e.g. "fk", "ik", "offset"
             proxy_purpose (str, Proxy, optional): This is the proxy purpose. It can be a string,
-                        e.g. "shoulder" or the proxy object (if a Proxy object is provided, then it tries to extract
+                    e.g. "shoulder" or the proxy object. If a Proxy object is provided, then the function tries to
+                    extract the meta "purpose" value. If not present, this portion of the data is ignored.
+        Returns:
+        str: target UUID value created by the operation.
+             Pattern: "<module_uuid>-<driver_type>-<proxy_purpose>" e.g. "abcdef123456-fk-shoulder"
         """
-        uuid = f'{self.uuid}'
-        if driver_type:
-            uuid = f'{uuid}-{driver_type}'
-        if proxy_purpose and isinstance(proxy_purpose, Proxy):
-            proxy_purpose = proxy_purpose.get_meta_purpose()
-        if proxy_purpose:
-            uuid = f'{uuid}-{proxy_purpose}'
-        if not target or not cmds.objExists(target):
-            logger.debug(f'Unable to add UUID attribute. Target object is missing.')
-            return
-        uuid_attr = add_attr(obj_list=target, attr_type="string", is_keyable=False,
-                             attributes=RiggerConstants.ATTR_DRIVER_UUID, verbose=True)[0]
-        if not uuid:
-            uuid = generate_uuid(remove_dashes=True)
-        set_attr(attribute_path=uuid_attr, value=str(uuid))
-        return target
+        module_uuid = f'{self.uuid}'
+        return add_driver_uuid_attr(target=target, module_uuid=module_uuid,
+                                    driver_type=driver_type, proxy_purpose=proxy_purpose)
 
     def _parent_module_children_drivers(self):
         """
@@ -1748,7 +1738,7 @@ class ModuleGeneric:
         """
         module_parent_jnt = find_joint_from_uuid(self.get_parent_uuid())
         if module_parent_jnt:
-            drivers = find_drivers_from_joint(module_parent_jnt, as_list=True)
+            drivers = find_drivers_from_joint(module_parent_jnt, as_list=True, create_missing_generic=True)
             if drivers:
                 hierarchy_utils.parent(source_objects=self.module_children_drivers, target_parent=drivers[0])
 
@@ -2290,7 +2280,7 @@ if __name__ == "__main__":
     a_root_module = ModuleGeneric()
     a_root_module.add_to_proxies(root)
     test = cmds.polySphere()
-    a_root_module.add_driver_uuid_attr(test[0], "fk", root)
+    a_root_module._add_driver_uuid_attr(test[0], "fk", root)
 
     a_module = ModuleGeneric()
     # print(a_module._assemble_ctrl_name(name="test"))
