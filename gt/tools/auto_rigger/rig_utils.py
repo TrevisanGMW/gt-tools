@@ -7,10 +7,12 @@ from gt.utils.attr_utils import set_attr_state, delete_user_defined_attrs
 from gt.utils.color_utils import set_color_viewport, ColorConstants, set_color_outliner
 from gt.utils.curve_utils import get_curve, set_curve_width, create_connection_line
 from gt.utils.rigging_utils import duplicate_joint_for_automation, RiggingConstants
-from gt.tools.auto_rigger.rig_constants import RiggerConstants
-from gt.utils.uuid_utils import get_object_from_uuid_attr
+from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
+from gt.utils.uuid_utils import get_object_from_uuid_attr, generate_uuid
+from gt.utils.naming_utils import NamingConstants, get_short_name
+from gt.utils.constraint_utils import constraint_targets
+from gt.utils.hierarchy_utils import create_group
 from gt.utils.string_utils import upper_first_char
-from gt.utils.naming_utils import NamingConstants
 from gt.utils import hierarchy_utils
 from gt.utils.node_utils import Node
 import maya.cmds as cmds
@@ -70,7 +72,7 @@ def find_driver_from_uuid(uuid_string):
         return Node(driver)
 
 
-def find_drivers_from_joint(source_joint, as_list=False):
+def find_drivers_from_joint(source_joint, as_list=False, create_missing_generic=False):
     """
     Finds drivers according to the data described in the joint attributes.
     It's expected that the joint has this data available as string attributes.
@@ -78,14 +80,19 @@ def find_drivers_from_joint(source_joint, as_list=False):
         source_joint (str, Node): The path to a joint. It's expected that this joint contains the drivers attribute.
         as_list (bool, optional): If True, it will return a list of Node objects.
                                   If False, a dictionary where the key is the driver name and the value its path (Node)
+        create_missing_generic (bool, optional): If the first driver is of the type generic driver, and the driver
+                                                object was not found, one is generated and constraint to the joint.
     Returns:
         dict or list: A dictionary where the key is the driver name and the value its path (Node)
                       If "as_list" is True, then a list of Nodes containing the path to the drivers is returned.
     """
     driver_uuids = get_driver_uuids_from_joint(source_joint=source_joint, as_list=False)
     found_drivers = {}
-    for driver, uuid in driver_uuids.items():
+    for index, (driver, uuid) in enumerate(driver_uuids.items()):
         _found_driver = find_driver_from_uuid(uuid_string=uuid)
+        # If driver is the first option, is missing and argument is active, generate one
+        if index == 0 and driver == RiggerDriverTypes.GENERIC and create_missing_generic and not _found_driver:
+            _found_driver = get_generic_driver(source_joint=source_joint)
         if _found_driver:
             found_drivers[driver] = _found_driver
     if as_list:
@@ -684,9 +691,78 @@ def get_driver_uuids_from_joint(source_joint, as_list=False):
     return driver_uuids
 
 
+def get_generic_driver(source_joint):
+    """
+    Gets the generic driver if it exists, or creates one if it doesn't exist.
+    Args:
+        source_joint (str, Node): The path to a joint. It's expected that this joint contains the drivers attribute.
+    """
+    driver_uuids = get_driver_uuids_from_joint(source_joint=source_joint, as_list=False)
+    if RiggerDriverTypes.GENERIC in driver_uuids.keys():  # Is Generic Driver available?
+        driver_uuid = driver_uuids.get(RiggerDriverTypes.GENERIC)
+        driver = get_object_from_uuid_attr(uuid_string=driver_uuid,
+                                           attr_name=RiggerConstants.ATTR_DRIVER_UUID,
+                                           obj_type="transform")
+        if driver:
+            return driver
+        # Driver not found, create one
+        purpose = get_attr(obj_name=source_joint, attr_name=RiggerConstants.ATTR_JOINT_PURPOSE)
+        module_uuid = get_attr(obj_name=source_joint, attr_name=RiggerConstants.ATTR_MODULE_UUID)
+        # Driven Group (For Parented Controls)
+        driver = create_group(name=f'{get_short_name(source_joint)}_{NamingConstants.Suffix.DRIVER}')
+        add_driver_uuid_attr(target=driver, module_uuid=module_uuid,
+                             driver_type=RiggerDriverTypes.GENERIC, proxy_purpose=purpose)
+        constraint_targets(source_driver=source_joint, target_driven=driver, maintain_offset=False)
+        direction_ctrl = find_direction_curve()
+        if direction_ctrl:
+            hierarchy_utils.parent(source_objects=driver, target_parent=direction_ctrl)
+        return driver
+
+
+def add_driver_uuid_attr(target, module_uuid, driver_type=None, proxy_purpose=None):
+    """
+    Adds an attributes to be used as driver UUID to the target object. (Target object is the driver/control)
+    The value of the attribute is created using the module uuid, the driver type and proxy purpose combined.
+    Following this pattern: "<module_uuid>-<driver_type>-<proxy_purpose>" e.g. "abcdef123456-fk-shoulder"
+    Args:
+        target (str, Node): Path to the object that will receive the driver attributes. e.g. Driver/Control
+        module_uuid (str): UUID for the module. This is used to determine the driver UUID value.
+        driver_type (str, optional): A string or tag use to identify the control type. e.g. "fk", "ik", "offset"
+        proxy_purpose (str, Proxy, optional): This is the proxy purpose. It can be a string,
+                    e.g. "shoulder" or the proxy object. If a Proxy object is provided, then the function tries to
+                    extract the meta "purpose" value. If not present, this portion of the data is ignored.
+    Returns:
+        str: target UUID value created by the operation.
+             Pattern: "<module_uuid>-<driver_type>-<proxy_purpose>" e.g. "abcdef123456-fk-shoulder"
+    """
+    uuid = f'{module_uuid}'
+    # Add Driver Type
+    if driver_type:
+        uuid = f'{uuid}-{driver_type}'
+    # Add Purpose
+    from gt.tools.auto_rigger.rig_framework import Proxy
+    if proxy_purpose and isinstance(proxy_purpose, Proxy):
+        proxy_purpose = proxy_purpose.get_meta_purpose()
+    if proxy_purpose:
+        uuid = f'{uuid}-{proxy_purpose}'
+    # Add Attribute and Set Value
+    if not target or not cmds.objExists(target):
+        logger.debug(f'Unable to add UUID attribute. Target object is missing.')
+        return
+    uuid_attr = add_attr(obj_list=target, attr_type="string", is_keyable=False,
+                         attributes=RiggerConstants.ATTR_DRIVER_UUID, verbose=True)[0]
+    if not uuid:
+        uuid = generate_uuid(remove_dashes=True)
+    set_attr(attribute_path=uuid_attr, value=str(uuid))
+    return uuid
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     # cmds.file(new=True, force=True)
     # cmds.viewFit(all=True)
     # create_direction_curve()
-    create_proxy_root_curve()
+    # create_proxy_root_curve()
+    # out = get_generic_driver("chest")
+    out = find_drivers_from_joint("chest")
+    # print(out)
