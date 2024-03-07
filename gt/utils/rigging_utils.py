@@ -38,6 +38,7 @@ class RiggingConstants:
     # Separator Attributes
     SEPARATOR_OPTIONS = "options"
     SEPARATOR_CONTROL = "controlOptions"
+    SEPARATOR_SWITCH = "switchOptions"
 
 
 def duplicate_joint_for_automation(joint, suffix=NamingConstants.Suffix.DRIVEN, parent=None, connect_rot_order=True):
@@ -90,7 +91,7 @@ def expose_rotation_order(target, attr_enum='xyz:yzx:zxy:xzy:yxz:zyx'):
     Creates an attribute to control the rotation order of the target object and connects the attribute
     to the hidden "rotationOrder" attribute.
     Args:
-        target (str): Path to the target object (usually a control)
+        target (str, Node): Path to the target object (usually a control)
         attr_enum (str, optional): The ENUM used to create the custom rotation order enum.
                                    Default is "xyz", "yzx", "zxy", "xzy", "yxz", "zyx"  (Separated using ":")
     """
@@ -363,6 +364,7 @@ def create_stretchy_ik_setup(ik_handle, attribute_holder=None, prefix=None):
 
     return stretchy_grp
 
+
 def create_switch_setup(source_a, source_b, target_base, attr_holder, visibility_a=None, visibility_b=None,
                         shape_visibility=True, attr_influence=RiggingConstants.ATTR_INFLUENCE_SWITCH,
                         constraint_type=ConstraintTypes.PARENT, maintain_offset=False, prefix=None):
@@ -377,12 +379,12 @@ def create_switch_setup(source_a, source_b, target_base, attr_holder, visibility
         source_a (list, tuple, str): The objects or attributes representing the first system.
         source_b (list, tuple, str): The objects or attributes representing the second system.
         target_base (list, tuple, str): The target objects affected by the switch setup. (usually a base skeleton)
-        attr_holder (str): The attribute holder object name/path.
-                           This is the switch control, the influence attribute is found under this object.
-                           Output attributes are also found under this object, but are hidden.
-                           These are the source attributes that are plugged on the system objects.
-                           'influenceA', 'influenceB': 0.0 to 1.0 value of the influence. (B is A inverted)
-                           'visibilityA', 'visibilityB': On or Off visibility values according to range.
+        attr_holder (str, Node): The attribute holder object name/path.
+                               This is the switch control, the influence attribute is found under this object.
+                               Output attributes are also found under this object, but are hidden.
+                               These are the source attributes that are plugged on the system objects.
+                               'influenceA', 'influenceB': 0.0 to 1.0 value of the influence. (B is A inverted)
+                               'visibilityA', 'visibilityB': On or Off visibility values according to range.
         visibility_a (list, optional): The objects affected by the visibility of the first system.
         visibility_b (list, optional): The objects affected by the visibility of the second system.
         shape_visibility (bool, optional): Whether to affect the visibility of shapes or the main objects.
@@ -394,7 +396,7 @@ def create_switch_setup(source_a, source_b, target_base, attr_holder, visibility
         prefix (str, optional): Prefix for naming created nodes.
 
     Returns:
-        tuple: A tuple with the switch output attributes. ()
+        tuple: A tuple with the switch output attributes.
     """
     # Check attr holder and convert it to Node
     if not attr_holder or not cmds.objExists(attr_holder):
