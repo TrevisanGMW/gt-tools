@@ -882,6 +882,35 @@ class TestAttributeUtils(unittest.TestCase):
         exists_default = cmds.attributeQuery(attribute, node=cube_one, exists=True)
         self.assertTrue(exists_default)
 
+    def test_add_attributes_string_default_value(self):
+        cube_one = maya_test_tools.create_poly_cube()
+
+        # Test data
+        target_list = cube_one
+        attribute = "attr1"
+        attr_type = "string"
+        default = "mocked_string"
+        is_keyable = True
+        verbose = False
+
+        # Call the function
+        result = attr_utils.add_attr(obj_list=target_list, attributes=attribute, attr_type=attr_type,
+                                     default=default, is_keyable=is_keyable, verbose=verbose)
+
+        # Created Attributes
+        expected_added_attrs = [f"{cube_one}.attr1"]
+        self.assertEqual(result, expected_added_attrs)
+
+        full_attr_name = f"{cube_one}.{attribute}"
+        exists = cmds.objExists(full_attr_name)
+        self.assertTrue(exists)
+        type_result = cmds.getAttr(full_attr_name, type=True)
+        self.assertEqual(attr_type, type_result)
+        exists_default = cmds.attributeQuery(attribute, node=cube_one, exists=True)
+        self.assertTrue(exists_default)
+        string_value = cmds.getAttr(full_attr_name)
+        self.assertEqual(default, string_value)
+
     def test_get_trs_attr_as_python(self):
         cube = maya_test_tools.create_poly_cube()
 

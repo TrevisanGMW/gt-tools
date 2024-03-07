@@ -773,20 +773,22 @@ def add_attr(obj_list, attributes, attr_type="double", minimum=None, maximum=Non
                 attr_args = {'longName': attr_name}
                 if attr_type != "string":
                     attr_args['attributeType'] = attr_type
+                    if default is not None:  # Only works with non-string types
+                        attr_args['defaultValue'] = default
                 else:
                     attr_args['dataType'] = "string"
                 if minimum is not None:
                     attr_args['minValue'] = minimum
                 if maximum is not None:
                     attr_args['maxValue'] = maximum
-                if default is not None:
-                    attr_args['defaultValue'] = default
                 if is_keyable:
                     attr_args['keyable'] = True
                 try:
                     cmds.addAttr(target, **attr_args)
                     if cmds.objExists(full_attr_name):
                         added_attrs.append(full_attr_name)
+                        if attr_type == "string" and default is not None:  # Set String Default Value
+                            cmds.setAttr(full_attr_name, str(default), typ='string')
                 except Exception as e:
                     issues[full_attr_name] = e
     if issues and verbose:
