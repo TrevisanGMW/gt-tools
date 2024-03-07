@@ -4,7 +4,7 @@ github.com/TrevisanGMW/gt-tools
 """
 from gt.tools.auto_rigger.rig_utils import create_ctrl_curve, find_or_create_joint_automation_group, get_proxy_offset
 from gt.tools.auto_rigger.rig_utils import find_direction_curve, find_control_root_curve, find_joint_from_uuid
-from gt.tools.auto_rigger.rig_utils import find_objects_with_attr, find_proxy_from_uuid, get_driven_joint
+from gt.tools.auto_rigger.rig_utils import find_object_with_attr, find_proxy_from_uuid, get_driven_joint
 from gt.utils.attr_utils import add_attr, hide_lock_default_attrs, set_attr_state, set_attr, add_separator_attr
 from gt.utils.color_utils import ColorConstants, set_color_viewport, set_color_outliner, get_directional_color
 from gt.utils.rigging_utils import rescale_joint_radius, expose_rotation_order, duplicate_joint_for_automation
@@ -181,7 +181,7 @@ class ModuleBipedLeg(ModuleGeneric):
         When in a project, this runs after the "build_proxy" is done in all modules.
         """
         # Get Maya Elements
-        root = find_objects_with_attr(RiggerConstants.REF_ATTR_ROOT_PROXY)
+        root = find_object_with_attr(RiggerConstants.REF_ATTR_ROOT_PROXY)
         hip = find_proxy_from_uuid(self.hip.get_uuid())
         knee = find_proxy_from_uuid(self.knee.get_uuid())
         ankle = find_proxy_from_uuid(self.ankle.get_uuid())
@@ -400,7 +400,7 @@ class ModuleBipedLeg(ModuleGeneric):
         # FK Hip Control
         hip_fk_ctrl = self._assemble_ctrl_name(name=self.hip.get_name())
         hip_fk_ctrl = create_ctrl_curve(name=hip_fk_ctrl, curve_file_name="_circle_pos_x")
-        self._add_driver_uuid_attr(target=hip_fk_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.hip)
+        self._add_driver_uuid_attr(target_driver=hip_fk_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.hip)
         hip_fk_offset = add_offset_transform(target_list=hip_fk_ctrl)[0]
         match_transform(source=hip_jnt, target_list=hip_fk_offset)
         scale_shapes(obj_transform=hip_fk_ctrl, offset=leg_scale*.1)
@@ -412,7 +412,7 @@ class ModuleBipedLeg(ModuleGeneric):
         # FK Knee Control
         knee_fk_ctrl = self._assemble_ctrl_name(name=self.knee.get_name())
         knee_fk_ctrl = create_ctrl_curve(name=knee_fk_ctrl, curve_file_name="_circle_pos_x")
-        self._add_driver_uuid_attr(target=knee_fk_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.knee)
+        self._add_driver_uuid_attr(target_driver=knee_fk_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.knee)
         knee_fk_offset = add_offset_transform(target_list=knee_fk_ctrl)[0]
         match_transform(source=knee_jnt, target_list=knee_fk_offset)
         scale_shapes(obj_transform=knee_fk_ctrl, offset=leg_scale * .1)
@@ -422,7 +422,7 @@ class ModuleBipedLeg(ModuleGeneric):
         # FK Ankle Control
         ankle_fk_ctrl = self._assemble_ctrl_name(name=self.ankle.get_name())
         ankle_fk_ctrl = create_ctrl_curve(name=ankle_fk_ctrl, curve_file_name="_circle_pos_x")
-        self._add_driver_uuid_attr(target=ankle_fk_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.ankle)
+        self._add_driver_uuid_attr(target_driver=ankle_fk_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.ankle)
         ankle_fk_offset = add_offset_transform(target_list=ankle_fk_ctrl)[0]
         match_transform(source=ankle_jnt, target_list=ankle_fk_offset)
         scale_shapes(obj_transform=ankle_fk_ctrl, offset=leg_scale * .1)
@@ -440,7 +440,7 @@ class ModuleBipedLeg(ModuleGeneric):
         # FK Ball Control
         ball_fk_ctrl = self._assemble_ctrl_name(name=self.ball.get_name())
         ball_fk_ctrl = create_ctrl_curve(name=ball_fk_ctrl, curve_file_name="_circle_pos_x")
-        self._add_driver_uuid_attr(target=ball_fk_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.ball)
+        self._add_driver_uuid_attr(target_driver=ball_fk_ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=self.ball)
         ball_offset = add_offset_transform(target_list=ball_fk_ctrl)[0]
         match_transform(source=ball_jnt, target_list=ball_offset)
         scale_shapes(obj_transform=ball_fk_ctrl, offset=foot_scale * .3)
@@ -453,7 +453,7 @@ class ModuleBipedLeg(ModuleGeneric):
         knee_ik_ctrl = self._assemble_ctrl_name(name=self.knee.get_name(),
                                                 overwrite_suffix=NamingConstants.Control.IK_CTRL)
         knee_ik_ctrl = create_ctrl_curve(name=knee_ik_ctrl, curve_file_name="_locator")
-        self._add_driver_uuid_attr(target=knee_ik_ctrl, driver_type=RiggerDriverTypes.IK, proxy_purpose=self.knee)
+        self._add_driver_uuid_attr(target_driver=knee_ik_ctrl, driver_type=RiggerDriverTypes.IK, proxy_purpose=self.knee)
         knee_offset = add_offset_transform(target_list=knee_ik_ctrl)[0]
         match_translate(source=knee_jnt, target_list=knee_offset)
         scale_shapes(obj_transform=knee_ik_ctrl, offset=leg_scale * .05)
@@ -464,8 +464,8 @@ class ModuleBipedLeg(ModuleGeneric):
         # Find Pole Vector Position
         knee_proxy = find_proxy_from_uuid(uuid_string=self.knee.get_uuid())
         knee_proxy_children = cmds.listRelatives(knee_proxy, children=True, typ="transform", fullPath=True) or []
-        knee_pv_dir = find_objects_with_attr(attr_name=ModuleBipedLeg.REF_ATTR_KNEE_PROXY_PV,
-                                             lookup_list=knee_proxy_children)
+        knee_pv_dir = find_object_with_attr(attr_name=ModuleBipedLeg.REF_ATTR_KNEE_PROXY_PV,
+                                            lookup_list=knee_proxy_children)
 
         temp_transform = create_group(name=knee_ik_ctrl + '_rotExtraction')
         match_translate(source=knee_jnt, target_list=temp_transform)
@@ -479,7 +479,7 @@ class ModuleBipedLeg(ModuleGeneric):
         foot_ctrl_name = self.get_metadata_value(key=self.META_FOOT_IK_NAME)
         foot_ctrl = self._assemble_ctrl_name(name=foot_ctrl_name, overwrite_suffix=NamingConstants.Control.IK_CTRL)
         foot_ctrl = create_ctrl_curve(name=foot_ctrl, curve_file_name="_cube")
-        self._add_driver_uuid_attr(target=foot_ctrl, driver_type=RiggerDriverTypes.IK, proxy_purpose=self.ankle)
+        self._add_driver_uuid_attr(target_driver=foot_ctrl, driver_type=RiggerDriverTypes.IK, proxy_purpose=self.ankle)
         translate_shapes(obj_transform=foot_ctrl, offset=(0, 1, 0))  # Move Pivot to Base
         foot_offset = add_offset_transform(target_list=foot_ctrl)[0]
         foot_ctrl_scale = (foot_scale*.3, foot_scale*.15, foot_scale*.6)
@@ -525,7 +525,7 @@ class ModuleBipedLeg(ModuleGeneric):
         ik_switch_ctrl = self._assemble_ctrl_name(name=self.get_meta_setup_name(),
                                                   overwrite_suffix=NamingConstants.Control.SWITCH_CTRL)
         ik_switch_ctrl = create_ctrl_curve(name=ik_switch_ctrl, curve_file_name="_fk_ik_switch")
-        self._add_driver_uuid_attr(target=ik_switch_ctrl,
+        self._add_driver_uuid_attr(target_driver=ik_switch_ctrl,
                                    driver_type=RiggerDriverTypes.SWITCH,
                                    proxy_purpose=self.ankle)
         ik_switch_offset = add_offset_transform(target_list=ik_switch_ctrl)[0]
@@ -542,7 +542,7 @@ class ModuleBipedLeg(ModuleGeneric):
         # Toe Roll
         roll_toe_ctrl = self._assemble_ctrl_name(name="toe", overwrite_suffix=NamingConstants.Control.ROLL_CTRL)
         roll_toe_ctrl = create_ctrl_curve(name=roll_toe_ctrl, curve_file_name="_sphere_half_arrow")
-        self._add_driver_uuid_attr(target=roll_toe_ctrl,
+        self._add_driver_uuid_attr(target_driver=roll_toe_ctrl,
                                    driver_type=RiggerDriverTypes.ROLL,
                                    proxy_purpose=self.toe)
         roll_toe_offset = add_offset_transform(target_list=roll_toe_ctrl)[0]
@@ -557,7 +557,7 @@ class ModuleBipedLeg(ModuleGeneric):
         # Toe Up Down
         up_down_toe_ctrl = self._assemble_ctrl_name(name="toe", overwrite_suffix=NamingConstants.Control.UP_DOWN_CTRL)
         up_down_toe_ctrl = create_ctrl_curve(name=up_down_toe_ctrl, curve_file_name="_two_sides_arrow_pos_y")
-        self._add_driver_uuid_attr(target=up_down_toe_ctrl,
+        self._add_driver_uuid_attr(target_driver=up_down_toe_ctrl,
                                    driver_type=RiggerDriverTypes.UP_DOWN,
                                    proxy_purpose=self.ball)
         up_down_toe_offset = add_offset_transform(target_list=up_down_toe_ctrl)[0]
@@ -572,7 +572,7 @@ class ModuleBipedLeg(ModuleGeneric):
         # Ball Roll
         roll_ball_ctrl = self._assemble_ctrl_name(name="ball", overwrite_suffix=NamingConstants.Control.ROLL_CTRL)
         roll_ball_ctrl = create_ctrl_curve(name=roll_ball_ctrl, curve_file_name="_sphere_half_arrow")
-        self._add_driver_uuid_attr(target=roll_ball_ctrl,
+        self._add_driver_uuid_attr(target_driver=roll_ball_ctrl,
                                    driver_type=RiggerDriverTypes.ROLL,
                                    proxy_purpose=self.ball)
         roll_ball_offset = add_offset_transform(target_list=roll_ball_ctrl)[0]
@@ -588,7 +588,7 @@ class ModuleBipedLeg(ModuleGeneric):
         # Heel Roll
         roll_heel_ctrl = self._assemble_ctrl_name(name="heel", overwrite_suffix=NamingConstants.Control.ROLL_CTRL)
         roll_heel_ctrl = create_ctrl_curve(name=roll_heel_ctrl, curve_file_name="_sphere_half_arrow")
-        self._add_driver_uuid_attr(target=roll_heel_ctrl,
+        self._add_driver_uuid_attr(target_driver=roll_heel_ctrl,
                                    driver_type=RiggerDriverTypes.ROLL,
                                    proxy_purpose=self.ankle)
         roll_heel_offset = add_offset_transform(target_list=roll_heel_ctrl)[0]

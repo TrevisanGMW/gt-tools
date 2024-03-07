@@ -58,7 +58,7 @@ class ModuleHead(ModuleGeneric):
         self.head.set_initial_position(xyz=pos_head)
         self.head.set_locator_scale(scale=1.5)
         self.head.set_meta_purpose(value="head")
-        self.head.add_driver_type(driver_type=[RiggerDriverTypes.OFFSET, RiggerDriverTypes.FK])
+        self.head.add_driver_type(driver_type=[RiggerDriverTypes.GENERIC, RiggerDriverTypes.FK])
 
         # Head End
         self.head_end = Proxy(name=f"head{_end_suffix}")
@@ -68,6 +68,7 @@ class ModuleHead(ModuleGeneric):
         self.head_end.set_meta_purpose(value="headEnd")
         self.head_end.set_parent_uuid(self.head.get_uuid())
         self.head_end.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
+        self.head_end.add_driver_type(driver_type=[RiggerDriverTypes.GENERIC])
 
         # Jaw
         self.jaw = Proxy(name="jaw")
@@ -86,6 +87,7 @@ class ModuleHead(ModuleGeneric):
         self.jaw_end.set_meta_purpose(value="jawEnd")
         self.jaw_end.set_parent_uuid(self.jaw.get_uuid())
         self.jaw_end.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
+        self.jaw_end.add_driver_type(driver_type=[RiggerDriverTypes.GENERIC])
 
         # Left Eye
         self.lt_eye = Proxy(name=f'{NamingConstants.Prefix.LEFT}_eye')
@@ -295,7 +297,7 @@ class ModuleHead(ModuleGeneric):
         # Neck Base ------------------------------------------------------------------------------------------
         neck_base_ctrl = self._assemble_ctrl_name(name=self.neck_base.get_name())
         neck_base_ctrl = create_ctrl_curve(name=neck_base_ctrl, curve_file_name="_pin_neg_y")
-        self._add_driver_uuid_attr(target=neck_base_ctrl,
+        self._add_driver_uuid_attr(target_driver=neck_base_ctrl,
                                    driver_type=RiggerDriverTypes.FK,
                                    proxy_purpose=self.neck_base)
         neck_base_offset = add_offset_transform(target_list=neck_base_ctrl)[0]
@@ -315,7 +317,7 @@ class ModuleHead(ModuleGeneric):
         for neck_mid_proxy, mid_jnt in zip(self.neck_mid_list, middle_jnt_list):
             neck_mid_ctrl = self._assemble_ctrl_name(name=neck_mid_proxy.get_name())
             neck_mid_ctrl = create_ctrl_curve(name=neck_mid_ctrl, curve_file_name="_pin_neg_y")
-            self._add_driver_uuid_attr(target=neck_mid_ctrl, driver_type=RiggerDriverTypes.FK,
+            self._add_driver_uuid_attr(target_driver=neck_mid_ctrl, driver_type=RiggerDriverTypes.FK,
                                        proxy_purpose=neck_mid_proxy)
             neck_mid_offset = add_offset_transform(target_list=neck_mid_ctrl)[0]
             _shape_scale_mid = head_scale*.2
@@ -341,7 +343,7 @@ class ModuleHead(ModuleGeneric):
         # Head Ctrl -----------------------------------------------------------------------------------------
         head_ctrl = self._assemble_ctrl_name(name=self.head.get_name())
         head_ctrl = create_ctrl_curve(name=head_ctrl, curve_file_name="_circle_pos_x")
-        self._add_driver_uuid_attr(target=head_ctrl,
+        self._add_driver_uuid_attr(target_driver=head_ctrl,
                                    driver_type=RiggerDriverTypes.FK,
                                    proxy_purpose=self.head)
         head_offset = add_offset_transform(target_list=head_ctrl)[0]
@@ -371,8 +373,8 @@ class ModuleHead(ModuleGeneric):
                                                overwrite_suffix=NamingConstants.Control.OFFSET_DATA)
         head_o_data = create_group(name=head_o_data)
         head_o_data = Node(head_o_data)
-        self._add_driver_uuid_attr(target=head_o_data,
-                                   driver_type=RiggerDriverTypes.OFFSET,
+        self._add_driver_uuid_attr(target_driver=head_o_data,
+                                   driver_type=RiggerDriverTypes.GENERIC,
                                    proxy_purpose=self.head)
         hierarchy_utils.parent(source_objects=head_o_data, target_parent=head_ctrl)
         # Connections
@@ -389,7 +391,7 @@ class ModuleHead(ModuleGeneric):
         # Jaw Ctrl -----------------------------------------------------------------------------------------
         jaw_ctrl = self._assemble_ctrl_name(name=self.jaw.get_name())
         jaw_ctrl = create_ctrl_curve(name=jaw_ctrl, curve_file_name="_concave_crescent_neg_y")
-        self._add_driver_uuid_attr(target=jaw_ctrl,
+        self._add_driver_uuid_attr(target_driver=jaw_ctrl,
                                    driver_type=RiggerDriverTypes.FK,
                                    proxy_purpose=self.jaw)
         jaw_offset = add_offset_transform(target_list=jaw_ctrl)[0]
@@ -411,10 +413,10 @@ class ModuleHead(ModuleGeneric):
         rt_eye_ctrl = self._assemble_ctrl_name(name=self.rt_eye.get_name())
         lt_eye_ctrl = create_ctrl_curve(name=lt_eye_ctrl, curve_file_name="_circle_pos_z")
         rt_eye_ctrl = create_ctrl_curve(name=rt_eye_ctrl, curve_file_name="_circle_pos_z")
-        self._add_driver_uuid_attr(target=lt_eye_ctrl,
+        self._add_driver_uuid_attr(target_driver=lt_eye_ctrl,
                                    driver_type=RiggerDriverTypes.AIM,
                                    proxy_purpose=self.lt_eye)
-        self._add_driver_uuid_attr(target=rt_eye_ctrl,
+        self._add_driver_uuid_attr(target_driver=rt_eye_ctrl,
                                    driver_type=RiggerDriverTypes.AIM,
                                    proxy_purpose=self.rt_eye)
         main_eye_ctrl = create_ctrl_curve(name=self.main_eye_ctrl, curve_file_name="_peanut_pos_z")

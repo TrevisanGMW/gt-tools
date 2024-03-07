@@ -483,7 +483,7 @@ class ModuleBipedFingers(ModuleGeneric):
                     continue  # Skip end joints
                 ctrl = self._assemble_ctrl_name(name=finger_proxy.get_name())
                 ctrl = create_ctrl_curve(name=ctrl, curve_file_name="_pin_pos_y")
-                self._add_driver_uuid_attr(target=ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=finger_proxy)
+                self._add_driver_uuid_attr(target_driver=ctrl, driver_type=RiggerDriverTypes.FK, proxy_purpose=finger_proxy)
                 offset = add_offset_transform(target_list=ctrl)[0]
                 match_transform(source=finger_jnt, target_list=offset)
                 scale_shapes(obj_transform=ctrl, offset=finger_scale*.1)
@@ -575,7 +575,7 @@ class ModuleBipedFingers(ModuleGeneric):
             thumb_curl_ctrl = self._assemble_ctrl_name(name=thumb_name,
                                                        overwrite_suffix=NamingConstants.Control.CURL_CTRL)
             thumb_curl_ctrl = create_ctrl_curve(name=thumb_curl_ctrl, curve_file_name="_sphere_half_arrow")
-            self._add_driver_uuid_attr(target=thumb_curl_ctrl,
+            self._add_driver_uuid_attr(target_driver=thumb_curl_ctrl,
                                        driver_type=RiggerDriverTypes.CURL,
                                        proxy_purpose=self.thumb01)  # TODO @@@ Apply to other finger controls too?
             thumb_curl_offset = add_offset_transform(target_list=thumb_curl_ctrl)[0]
