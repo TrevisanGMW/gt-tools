@@ -82,6 +82,37 @@ class TestStringUtils(unittest.TestCase):
         result = string_utils.remove_digits(input_string=input_string)
         self.assertEqual(expected, result)
 
+    def test_contains_digits(self):
+        # Test with a string containing digits
+        input_string = "Hello123"
+        expected = True
+        result = string_utils.contains_digits(input_string)
+        self.assertEqual(expected, result)
+
+        # Test with a string containing only digits
+        input_string = "12345"
+        expected = True
+        result = string_utils.contains_digits(input_string)
+        self.assertEqual(expected, result)
+
+        # Test with a string containing no digits
+        input_string = "Hello"
+        expected = False
+        result = string_utils.contains_digits(input_string)
+        self.assertEqual(expected, result)
+
+        # Test with an empty string
+        input_string = ""
+        expected = False
+        result = string_utils.contains_digits(input_string)
+        self.assertEqual(expected, result)
+
+        # Test with special characters
+        input_string = "!@#$%^&*()123"
+        expected = True
+        result = string_utils.contains_digits(input_string)
+        self.assertEqual(expected, result)
+
     def test_remove_strings_from_string(self):
         input_string = "1a2b3c"
         to_remove_list = ["a", "c", "3"]

@@ -112,6 +112,19 @@ def remove_digits(input_string):
     return ''.join([i for i in input_string if not i.isdigit()])
 
 
+def contains_digits(input_string):
+    """
+    Check if a string contains digits.
+
+    Args:
+        input_string (str): The input string to check.
+
+    Returns:
+        bool: True if the string contains digits, False otherwise.
+    """
+    return any(char.isdigit() for char in input_string)
+
+
 def remove_strings_from_string(input_string, undesired_string_list, only_prefix=False, only_suffix=False):
     """
     Removes provided strings from input
