@@ -64,6 +64,7 @@ modules_to_test = [
     test_utils.test_naming_utils,
     test_utils.test_node_utils,
     test_utils.test_om_utils,
+    test_utils.test_outliner_utils,
     test_utils.test_playblast_utils,
     test_utils.test_plugin_utils,
     test_utils.test_prefs_utils,

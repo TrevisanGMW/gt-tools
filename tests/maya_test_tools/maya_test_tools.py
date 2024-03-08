@@ -69,6 +69,18 @@ def create_poly_cylinder(*args, **kwargs):
     return None
 
 
+def create_group(name='group', *args, **kwargs):
+    """
+    Creates an empty group parented to the world with an optional predetermined name.
+    "polyCylinder" relevant parameters:
+        name (str): Name of the group
+    Returns:
+        str: Name of the created group
+    """
+    group = cmds.group(*args, **kwargs, name=name, empty=True, world=True)
+    return group
+
+
 def list_obj_types(obj_list):
     """
     Returns a dictionary with the object types
