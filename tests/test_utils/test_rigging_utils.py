@@ -19,6 +19,7 @@ from tests import maya_test_tools
 from gt.utils import rigging_utils
 cmds = maya_test_tools.cmds
 
+
 class TestRiggingUtils(unittest.TestCase):
     def setUp(self):
         maya_test_tools.force_new_scene()
@@ -264,8 +265,6 @@ class TestRiggingUtils(unittest.TestCase):
         expected = True
         self.assertEqual(expected, result)
 
-
-
     def test_create_switch_setup_transform_visibility(self):
         base_list = [cmds.joint(p=(0, 10, 0), name="base_top"),
                      cmds.joint(p=(0, 5, .1), name="base_mid"),
@@ -297,3 +296,74 @@ class TestRiggingUtils(unittest.TestCase):
         expected = False
         result = cmds.getAttr(f'{vis_b}.v')
         self.assertEqual(expected, result)
+
+    def test_add_limit_lock_translate_attr(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        attr = rigging_utils.add_limit_lock_translate_attr(target=cube_one, lock_attr='lockTranslate',
+                                                           attr_holder=None, default_value=True)
+        expected = f'{cube_one}.lockTranslate'
+        self.assertEqual(expected, attr)
+
+        result = cmds.objExists(attr)
+        self.assertTrue(result)
+
+        result = cmds.getAttr(attr)
+        self.assertTrue(result)
+
+        default_dimensions = ['X', 'Y', 'Z']
+        for dimension in default_dimensions:
+            expected = 0
+            min_limit = cmds.getAttr(f"{cube_one}.minTrans{dimension.upper()}Limit")
+            self.assertEqual(expected, min_limit)
+            expected = 0
+            max_limit = cmds.getAttr(f"{cube_one}.maxTrans{dimension.upper()}Limit")
+            self.assertEqual(expected, max_limit)
+            min_limit_en = cmds.getAttr(f"{cube_one}.minTrans{dimension.upper()}LimitEnable")
+            expected = True
+            self.assertEqual(expected, min_limit_en)
+            max_limit_en = cmds.getAttr(f"{cube_one}.maxTrans{dimension.upper()}LimitEnable")
+            expected = True
+            self.assertEqual(expected, max_limit_en)
+
+    def test_add_limit_lock_translate_attr_with_attr_holder(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        attr = rigging_utils.add_limit_lock_translate_attr(target=cube_one, lock_attr='lockTranslate',
+                                                           attr_holder=cube_two, default_value=True)
+        expected = f'{cube_two}.lockTranslate'
+        self.assertEqual(expected, attr)
+
+        result = cmds.objExists(attr)
+        self.assertTrue(result)
+
+        result = cmds.getAttr(attr)
+        self.assertTrue(result)
+
+        default_dimensions = ['X', 'Y', 'Z']
+        for dimension in default_dimensions:
+            expected = 0
+            min_limit = cmds.getAttr(f"{cube_one}.minTrans{dimension.upper()}Limit")
+            self.assertEqual(expected, min_limit)
+            expected = 0
+            max_limit = cmds.getAttr(f"{cube_one}.maxTrans{dimension.upper()}Limit")
+            self.assertEqual(expected, max_limit)
+            min_limit_en = cmds.getAttr(f"{cube_one}.minTrans{dimension.upper()}LimitEnable")
+            expected = True
+            self.assertEqual(expected, min_limit_en)
+            max_limit_en = cmds.getAttr(f"{cube_one}.maxTrans{dimension.upper()}LimitEnable")
+            expected = True
+            self.assertEqual(expected, max_limit_en)
+
+    def test_add_limit_lock_translate_attr_with_default_value(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        attr = rigging_utils.add_limit_lock_translate_attr(target=cube_one, lock_attr='lockTranslate',
+                                                           attr_holder=cube_two, default_value=False)
+        expected = f'{cube_two}.lockTranslate'
+        self.assertEqual(expected, attr)
+
+        result = cmds.objExists(attr)
+        self.assertTrue(result)
+
+        result = cmds.getAttr(attr)
+        self.assertFalse(result)

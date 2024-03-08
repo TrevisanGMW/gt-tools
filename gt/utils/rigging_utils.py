@@ -3,8 +3,7 @@ Rigging Utilities
 github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.transform_utils import get_component_positions_as_dict, set_component_positions_from_dict, match_translate
-from gt.utils.attr_utils import connect_attr, get_attr, add_attr, delete_user_defined_attrs, set_attr_state, set_attr
-from gt.utils.attr_utils import DEFAULT_ATTRS
+from gt.utils.attr_utils import connect_attr, get_attr, add_attr, set_attr, DEFAULT_DIMENSIONS
 from gt.utils.constraint_utils import ConstraintTypes, constraint_targets
 from gt.utils.naming_utils import NamingConstants, get_short_name
 from gt.utils.iterable_utils import sanitize_maya_list
@@ -501,6 +500,37 @@ def create_switch_setup(source_a, source_b, target_base, attr_holder, visibility
             f'{attr_holder}.{attr_vis_a}', f'{attr_holder}.{attr_vis_b}')
 
 
+def add_limit_lock_translate_attr(target, lock_attr='lockTranslate', attr_holder=None, default_value=True):
+    """
+    Creates a translation lock attribute. If active, it sets the limit of the translation
+
+    Args:
+        target (str, Node): Name/Path to the target object. Object that will receive the attribute
+        lock_attr (str, optional) : Name of the lock attribute. Default is "lockTranslate"
+        attr_holder (str, Node, optional): If provided, the target and attribute holder objects can be different.
+                                        The default is "None" which means the "target" is also the attribute holder.
+                                        Target: receives the limit and won't be able to move when attribute is active.
+                                        Attribute Holder (attr_holder): receives the attribute that controls limit.
+        default_value (bool, optional): Determines the initial value of lock attribute. Default is "True"
+    Returns:
+        str: Path to the created attribute.
+    """
+    # Determine Attribute Holder
+    _attr_holder = attr_holder
+    if not _attr_holder:
+        _attr_holder = target
+    # Create Attribute
+    add_attr(obj_list=_attr_holder, attributes=lock_attr, attr_type='bool', default=default_value)
+    # Create Connections
+    for dimension in DEFAULT_DIMENSIONS:  # x, y, z
+        cmds.setAttr(f"{target}.minTrans{dimension.upper()}Limit", 0)
+        cmds.setAttr(f"{target}.maxTrans{dimension.upper()}Limit", 0)
+        cmds.connectAttr(f"{_attr_holder}.lockTranslate", f"{target}.minTrans{dimension.upper()}LimitEnable")
+        cmds.connectAttr(f"{_attr_holder}.lockTranslate", f"{target}.maxTrans{dimension.upper()}LimitEnable")
+    return f'{_attr_holder}.{lock_attr}'
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
+    add_limit_lock_translate_attr("pSphere1", attr_holder="pSphere2")
     cmds.viewFit(all=True)
