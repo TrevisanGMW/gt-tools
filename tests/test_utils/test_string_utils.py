@@ -442,3 +442,34 @@ class TestStringUtils(unittest.TestCase):
     def test_upper_first_char_with_none_input(self):
         with self.assertRaises(ValueError):
             string_utils.upper_first_char(None)
+
+    def test_camel_to_title(self):
+        # Test with a single word camel case string
+        expected = "Camel"
+        result = string_utils.camel_to_title("camel")
+        self.assertEqual(expected, result)
+
+        # Test with a camel case string with two words
+        expected = "Camel Case"
+        result = string_utils.camel_to_title("camelCase")
+        self.assertEqual(expected, result)
+
+        # Test with a camel case string with multiple words
+        expected = "This Is Camel Case String"
+        result = string_utils.camel_to_title("thisIsCamelCaseString")
+        self.assertEqual(expected, result)
+
+        # Test with an empty string
+        expected = ""
+        result = string_utils.camel_to_title("")
+        self.assertEqual(expected, result)
+
+        # Test with a string starting with an uppercase letter
+        expected = "Camel Case String"
+        result = string_utils.camel_to_title("CamelCaseString")
+        self.assertEqual(expected, result)
+
+        # Test with a string containing only uppercase letters
+        expected = "Camelcasestring"
+        result = string_utils.camel_to_title("CAMELCASESTRING")
+        self.assertEqual(expected, result)
