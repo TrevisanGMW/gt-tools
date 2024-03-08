@@ -22,11 +22,13 @@ from gt.utils.math_utils import dist_center_to_center
 from gt.utils.joint_utils import set_joint_radius
 from gt.utils.naming_utils import NamingConstants
 from gt.utils.node_utils import Node, create_node
+from gt.utils.outliner_utils import reorder_front
 from gt.utils import hierarchy_utils
 from gt.ui import resource_library
 import maya.cmds as cmds
 import logging
 import re
+
 
 # Logging Setup
 logging.basicConfig()
@@ -711,9 +713,6 @@ class ModuleSpine(ModuleGeneric):
         cmds.connectAttr(f'{spine_ik_ctrl}.followHipAndChest', f'{follow_constraint}.w1')  # Chest
         cmds.connectAttr(f'{spine_follow_reverse_node}.outputX', f'{follow_constraint}.w2')  # Offset (No Automation)
 
-        # Set Automation Visibility
-        cmds.setAttr(f'{spine_automation_grp}.v', 0)
-
         # Set Initial Chest Pivot to Spine Control ---------------------------------------------------------
         match_translate(source=spine_ik_ctrl, target_list=chest_piv_ik_data)
 
@@ -726,6 +725,12 @@ class ModuleSpine(ModuleGeneric):
                                    proxy_purpose=self.chest)
         constraint_targets(source_driver=chest_jnt, target_driven=chest_driven, maintain_offset=False)
         hierarchy_utils.parent(source_objects=chest_driven, target_parent=cog_o_data)
+
+        # Outliner Clean-up --------------------------------------------------------------------------------
+        reorder_front(target_list=joint_automation_grp)
+        # Set Automation Visibility
+        cmds.setAttr(f'{spine_automation_grp}.v', 0)
+        cmds.setAttr(f'{joint_automation_grp}.v', 0)
 
         # Set Children Drivers -----------------------------------------------------------------------------
         self.module_children_drivers = [cog_offset]
