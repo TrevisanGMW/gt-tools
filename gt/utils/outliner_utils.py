@@ -2,13 +2,11 @@
 Outliner Utilities
 github.com/TrevisanGMW/gt-tools
 """
-import random
-
 from gt.utils.iterable_utils import sanitize_maya_list
+from gt.utils.naming_utils import get_short_name
 import maya.cmds as cmds
 import logging
-
-from utils.naming_utils import get_short_name
+import random
 
 # Logging Setup
 logging.basicConfig()
