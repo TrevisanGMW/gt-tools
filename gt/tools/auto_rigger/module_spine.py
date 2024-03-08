@@ -37,7 +37,7 @@ logger.setLevel(logging.INFO)
 
 
 class ModuleSpine(ModuleGeneric):
-    __version__ = '0.1.2-beta'
+    __version__ = '0.1.3-beta'
     icon = resource_library.Icon.rigger_module_spine
     allow_parenting = True
 
@@ -649,7 +649,9 @@ class ModuleSpine(ModuleGeneric):
         connect_supporting_driver(source_driver=chest_ik_ctrl,
                                   target_support_driver=spine_ik_ctrl)
         spine_ik_offset = add_offset_transform(target_list=spine_ik_ctrl)[0]
-        spine_ik_hip_chest_data = add_offset_transform(target_list=spine_ik_ctrl, transform_suffix="hipChestData")[0]
+        spine_ik_hip_chest_data = add_offset_transform(target_list=spine_ik_ctrl)[0]
+        spine_ik_hip_chest_name = self._assemble_ctrl_name(name=f'{setup_name}_ik', overwrite_suffix="hipChestData")
+        spine_ik_hip_chest_data.rename(spine_ik_hip_chest_name)
         set_equidistant_transforms(start=chest_ik_ctrl, end=cog_ctrl, target_list=spine_ik_offset)
         match_translate(source=temp_fol_trans, target_list=spine_ik_offset)
         cmds.delete(temp_fol_trans)
