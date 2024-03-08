@@ -4,9 +4,9 @@ github.com/TrevisanGMW/gt-tools
 """
 from gt.utils.attr_utils import add_separator_attr, hide_lock_default_attrs, connect_attr, add_attr, set_attr, get_attr
 from gt.utils.attr_utils import set_attr_state, delete_user_defined_attrs
+from gt.utils.rigging_utils import duplicate_joint_for_automation, RiggingConstants, expose_rotation_order
 from gt.utils.color_utils import set_color_viewport, ColorConstants, set_color_outliner
 from gt.utils.curve_utils import get_curve, set_curve_width, create_connection_line
-from gt.utils.rigging_utils import duplicate_joint_for_automation, RiggingConstants
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
 from gt.utils.uuid_utils import get_object_from_uuid_attr, generate_uuid
 from gt.utils.naming_utils import NamingConstants, get_short_name
@@ -471,8 +471,10 @@ def create_direction_curve():
     cmds.rebuildCurve(direction_crv, ch=False, rpo=1, rt=0, end=1, kr=0, kcp=0, kep=1, kt=0, s=20, d=3, tol=0.01)
     add_separator_attr(target_object=direction_crv,
                        attr_name=f'rig{upper_first_char(RiggingConstants.SEPARATOR_CONTROL)}')
+    expose_rotation_order(direction_crv)
     add_attr(obj_list=direction_crv, attr_type="string", is_keyable=False,
              attributes=RiggerConstants.REF_ATTR_DIR_CURVE, verbose=True)
+    hide_lock_default_attrs(direction_crv, scale=True, visibility=True)
     set_color_viewport(obj_list=direction_crv, rgb_color=ColorConstants.RigControl.CENTER)
     return Node(direction_crv)
 
@@ -864,6 +866,6 @@ if __name__ == "__main__":
     # create_proxy_root_curve()
     # out = get_generic_driver("chest")
     # out = find_drivers_from_joint("hip")
-    out = find_drivers_from_module(module_uuid="8b0uv91ugyew")
+    out = find_drivers_from_module(module_uuid="")
     cmds.select(out)
     cmds.viewFit(all=True)

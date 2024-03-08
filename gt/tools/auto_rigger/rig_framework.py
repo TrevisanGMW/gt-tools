@@ -18,8 +18,8 @@ from gt.tools.auto_rigger.rig_utils import find_joint_from_uuid, get_proxy_offse
 from gt.tools.auto_rigger.rig_utils import parent_proxies, create_proxy_root_curve, create_proxy_visualization_lines
 from gt.tools.auto_rigger.rig_utils import find_skeleton_group, create_direction_curve, get_meta_purpose_from_dict
 from gt.tools.auto_rigger.rig_utils import find_driver_from_uuid, find_proxy_from_uuid, create_control_root_curve
+from gt.tools.auto_rigger.rig_utils import find_drivers_from_joint, add_driver_uuid_attr, find_control_root_curve
 from gt.tools.auto_rigger.rig_utils import create_utility_groups, create_root_group, find_proxy_root_group
-from gt.tools.auto_rigger.rig_utils import find_drivers_from_joint, add_driver_uuid_attr
 from gt.utils.attr_utils import add_separator_attr, set_attr, add_attr, list_user_defined_attr, get_attr
 from gt.utils.string_utils import remove_prefix, camel_case_split, remove_suffix, upper_first_char
 from gt.utils.uuid_utils import add_uuid_attr, is_uuid_valid, is_short_uuid_valid, generate_uuid
@@ -2217,9 +2217,15 @@ class RigProject:
                                                     setup=True,
                                                     target_parent=root_group)
             control_grp = category_groups.get(RiggerConstants.REF_ATTR_CONTROL)
+            skeleton_grp = category_groups.get(RiggerConstants.REF_ATTR_SKELETON)
+            setup_grp = category_groups.get(RiggerConstants.REF_ATTR_SETUP)
             hierarchy_utils.parent(source_objects=list(category_groups.values()), target_parent=root_group)
             hierarchy_utils.parent(source_objects=root_ctrl, target_parent=control_grp)
             hierarchy_utils.parent(source_objects=dir_ctrl, target_parent=root_ctrl)
+
+            # Connect Scale
+            cmds.connectAttr(f'{root_ctrl}.scale', f'{skeleton_grp}.scale')
+            cmds.connectAttr(f'{root_ctrl}.scale', f'{setup_grp}.scale')
 
             # ------------------------------------- Build Skeleton
             for module in self.modules:
@@ -2280,7 +2286,6 @@ if __name__ == "__main__":
     a_root_module = ModuleGeneric()
     a_root_module.add_to_proxies(root)
     test = cmds.polySphere()
-    a_root_module._add_driver_uuid_attr(test[0], "fk", root)
 
     a_module = ModuleGeneric()
     # print(a_module._assemble_ctrl_name(name="test"))
