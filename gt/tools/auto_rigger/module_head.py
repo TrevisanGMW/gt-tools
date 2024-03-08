@@ -12,10 +12,10 @@ from gt.utils.rigging_utils import offset_control_orientation, expose_rotation_o
 from gt.utils.constraint_utils import equidistant_constraints, constraint_targets, ConstraintTypes
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
 from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverTypes
+from gt.utils.string_utils import remove_digits, camel_to_title, contains_digits
 from gt.utils.hierarchy_utils import add_offset_transform, create_group
 from gt.utils.color_utils import ColorConstants, set_color_viewport
 from gt.utils.joint_utils import copy_parent_orients, reset_orients
-from gt.utils.string_utils import remove_digits, camel_to_title
 from gt.utils.curve_utils import create_connection_line
 from gt.utils.math_utils import dist_center_to_center
 from gt.utils.naming_utils import NamingConstants
@@ -34,15 +34,23 @@ logger.setLevel(logging.INFO)
 
 
 class ModuleHead(ModuleGeneric):
-    __version__ = '0.0.3-alpha'
+    __version__ = '0.0.4-alpha'
     icon = resource_library.Icon.rigger_module_head
     allow_parenting = True
+
+    # Metadata Keys
+    META_NECK_MID_NAME = "neckMidCtrlName"  # Metadata key for a custom name used for the neckMid proxies/joints
+    # Default Values
+    DEFAULT_NECK_MID_NAME = "neckMid"
 
     def __init__(self, name="Head", prefix=None, suffix=None):
         super().__init__(name=name, prefix=prefix, suffix=suffix)
 
         _orientation = OrientationData(aim_axis=(1, 0, 0), up_axis=(0, 0, 1), up_dir=(1, 0, 0))
         self.set_orientation(orientation_data=_orientation)
+
+        # Extra Module Data
+        self.add_to_metadata(key=self.META_NECK_MID_NAME, value=self.DEFAULT_NECK_MID_NAME)
 
         _end_suffix = NamingConstants.Suffix.END.capitalize()
         self.main_eye_ctrl = f"main_eye_{NamingConstants.Suffix.CTRL}"  # Not yet exposed/editable
@@ -122,6 +130,8 @@ class ModuleHead(ModuleGeneric):
                                 Minimum is zero (0) - No negative numbers.
         """
         neck_mid_len = len(self.neck_mid_list)
+        # Get Custom Name
+        neck_mid_name = self.get_metadata_value(key=self.META_NECK_MID_NAME) or self.DEFAULT_NECK_MID_NAME
         # Same as current, skip
         if neck_mid_len == neck_mid_num:
             return
@@ -134,7 +144,7 @@ class ModuleHead(ModuleGeneric):
                 _parent_uuid = self.neck_base.get_uuid()
             # Create new proxies
             for num in range(neck_mid_len, neck_mid_num):
-                _neck_mid_name = f'neckMid{str(num + 1).zfill(2)}'
+                _neck_mid_name = f'{neck_mid_name}{str(num + 1).zfill(2)}'
                 new_neck_mid = Proxy(name=_neck_mid_name)
                 new_neck_mid.set_locator_scale(scale=1)
                 new_neck_mid.add_color(rgb_color=ColorConstants.RigProxy.FOLLOWER)
@@ -149,6 +159,13 @@ class ModuleHead(ModuleGeneric):
         elif len(self.neck_mid_list) > neck_mid_num:
             self.neck_mid_list = self.neck_mid_list[:neck_mid_num]  # Truncate the list
 
+        # Manage first neckMid name: Remove numbering when using one single neckMid
+        if len(self.neck_mid_list) == 1:
+            self.neck_mid_list[0].set_name(f'{neck_mid_name}')
+        elif len(self.neck_mid_list) > 1:
+            self.neck_mid_list[0].set_name(f'{neck_mid_name}{str(1).zfill(2)}')
+
+        # If no neckMid, then set neckBase as head's parent
         if self.neck_mid_list:
             self.head.add_line_parent(line_parent=self.neck_mid_list[-1].get_uuid())
         else:
@@ -508,9 +525,11 @@ class ModuleHead(ModuleGeneric):
             clean_name = remove_digits(clean_name)
             clean_name = camel_to_title(clean_name)
             attr_name = f'{mid_proxy.get_name()}Influence'
-            nice_name = f'{clean_name} {index+1} Influence'
-            cmds.addAttr(neck_base_ctrl, longName=attr_name, niceName=nice_name,
-                         attributeType='double', defaultValue=1, keyable=True, minValue=0, maxValue=1)
+            nice_name_param = {}
+            if contains_digits(attr_name):
+                nice_name_param["niceName"] = f'{clean_name} {index+1} Influence'
+            cmds.addAttr(neck_base_ctrl, longName=attr_name, attributeType='double',
+                         defaultValue=1, keyable=True, minValue=0, maxValue=1, **nice_name_param)
             # Create Influence Setup
             influence_multiply = create_node(node_type='multiplyDivide',
                                              name=f'{mid_proxy.get_name()}Influence_multiply')
@@ -538,6 +557,16 @@ class ModuleHead(ModuleGeneric):
         # Set Children Drivers -----------------------------------------------------------------------------
         self.module_children_drivers = [neck_base_offset]
 
+    # ------------------------------------------- Extra Module Setters -------------------------------------------
+    def set_neck_mid_name(self, name):
+        """
+        Sets the neckMid control name by editing the metadata value associated with it.
+        Args:
+            name (str): New name for the neckMid control. If empty the default name will be used instead.
+        """
+        self.add_to_metadata(self.META_NECK_MID_NAME, value=name if name else self.DEFAULT_NECK_MID_NAME)
+        self.set_mid_neck_num(neck_mid_num=len(self.neck_mid_list))  # Refresh Names
+
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
@@ -552,7 +581,7 @@ if __name__ == "__main__":
 
     a_spine = ModuleSpine()
     a_head = ModuleHead()
-    a_head.set_mid_neck_num(3)
+    # a_head.set_mid_neck_num(3)
     spine_chest_uuid = a_spine.chest.get_uuid()
     a_head.set_parent_uuid(spine_chest_uuid)
     a_project = RigProject()
