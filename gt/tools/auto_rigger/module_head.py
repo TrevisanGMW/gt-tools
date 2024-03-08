@@ -2,11 +2,12 @@
 Auto Rigger Head Modules
 github.com/TrevisanGMW/gt-tools
 """
+from gt.utils.attr_utils import add_separator_attr, set_attr_state, rescale, hide_lock_default_attrs, set_attr
+from gt.utils.attr_utils import add_attr, connect_attr
 from gt.tools.auto_rigger.rig_utils import find_proxy_from_uuid, find_joint_from_uuid, find_direction_curve
 from gt.tools.auto_rigger.rig_utils import get_proxy_offset, get_automation_group, create_ctrl_curve
 from gt.utils.transform_utils import Vector3, match_transform, scale_shapes, translate_shapes, rotate_shapes
 from gt.utils.transform_utils import set_equidistant_transforms
-from gt.utils.attr_utils import add_separator_attr, set_attr_state, rescale, hide_lock_default_attrs, set_attr
 from gt.utils.rigging_utils import offset_control_orientation, expose_rotation_order, RiggingConstants
 from gt.utils.constraint_utils import equidistant_constraints, constraint_targets, ConstraintTypes
 from gt.tools.auto_rigger.rig_framework import Proxy, ModuleGeneric, OrientationData
@@ -14,15 +15,17 @@ from gt.tools.auto_rigger.rig_constants import RiggerConstants, RiggerDriverType
 from gt.utils.hierarchy_utils import add_offset_transform, create_group
 from gt.utils.color_utils import ColorConstants, set_color_viewport
 from gt.utils.joint_utils import copy_parent_orients, reset_orients
+from gt.utils.string_utils import remove_digits, camel_to_title
 from gt.utils.curve_utils import create_connection_line
 from gt.utils.math_utils import dist_center_to_center
 from gt.utils.naming_utils import NamingConstants
-from gt.utils.node_utils import Node
+from gt.utils.node_utils import Node, create_node
 from gt.utils import hierarchy_utils
 from gt.ui import resource_library
 import maya.cmds as cmds
 import logging
 import re
+
 
 # Logging Setup
 logging.basicConfig()
@@ -31,7 +34,7 @@ logger.setLevel(logging.INFO)
 
 
 class ModuleHead(ModuleGeneric):
-    __version__ = '0.0.2-alpha'
+    __version__ = '0.0.3-alpha'
     icon = resource_library.Icon.rigger_module_head
     allow_parenting = True
 
@@ -138,7 +141,8 @@ class ModuleHead(ModuleGeneric):
                 new_neck_mid.set_meta_purpose(value=_neck_mid_name)
                 new_neck_mid.add_line_parent(line_parent=_parent_uuid)
                 new_neck_mid.set_parent_uuid(uuid=_parent_uuid)
-                new_neck_mid.add_driver_type(driver_type=[RiggerDriverTypes.FK])
+                new_neck_mid.add_driver_type(driver_type=[RiggerDriverTypes.GENERIC,
+                                                          RiggerDriverTypes.FK])
                 _parent_uuid = new_neck_mid.get_uuid()
                 self.neck_mid_list.append(new_neck_mid)
         # New number lower than current - Remove unnecessary proxies
@@ -442,6 +446,9 @@ class ModuleHead(ModuleGeneric):
 
         set_equidistant_transforms(start=rt_eye, end=lt_eye, target_list=main_eye_offset)  # Place in-between eyes
         cmds.move(0, 0, head_scale * 2, main_eye_offset, relative=True)
+        add_separator_attr(target_object=main_eye_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
+        hide_lock_default_attrs(obj_list=main_eye_ctrl, scale=True, visibility=True)
+        expose_rotation_order(main_eye_ctrl)
 
         # Constraints and Vectors
         lt_eye_up_vec = cmds.spaceLocator(name=f'{self.lt_eye.get_name()}_upVec')[0]
@@ -475,7 +482,7 @@ class ModuleHead(ModuleGeneric):
 
         # Setup Lines
         set_attr(obj_list=eye_lines, attr_list='inheritsTransform', value=0)
-        set_attr(obj_list=eye_lines, attr_list=['overrideEnabled', 'overrideDisplayType'], value=1)
+        set_attr(obj_list=eye_lines, attr_list=['overrideEnabled', 'overrideDisplayType', 'hiddenInOutliner'], value=1)
         hierarchy_utils.parent(source_objects=lt_eye_line, target_parent=lt_eye_ctrl)
         hierarchy_utils.parent(source_objects=rt_eye_line, target_parent=rt_eye_ctrl)
 
@@ -488,9 +495,45 @@ class ModuleHead(ModuleGeneric):
         hierarchy_utils.parent(source_objects=eye_line_clusters, target_parent=aim_lines_grp)
 
         hide_lock_default_attrs(obj_list=[lt_eye_ctrl, rt_eye_ctrl], rotate=True, scale=True, visibility=True)
-        hide_lock_default_attrs(obj_list=main_eye_ctrl, scale=True, visibility=True)
-        add_separator_attr(target_object=main_eye_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
-        expose_rotation_order(main_eye_ctrl)
+
+        # Create Base Neck Rotate Automation ---------------------------------------------------------------
+        neck_data_suffix = 'neckBaseData'
+        for index, (mid_ctrl, mid_proxy) in enumerate(zip(neck_mid_ctrls, self.neck_mid_list)):
+            _mid_rot_offset_name = self._assemble_ctrl_name(name=mid_proxy.get_name(),
+                                                            overwrite_suffix=neck_data_suffix)
+            _mid_rot_offset = add_offset_transform(target_list=mid_ctrl)[0]
+            _mid_rot_offset.rename(_mid_rot_offset_name)
+            # Create Attribute Long and Nice Names
+            clean_name = mid_proxy.get_name()
+            clean_name = remove_digits(clean_name)
+            clean_name = camel_to_title(clean_name)
+            attr_name = f'{mid_proxy.get_name()}Influence'
+            nice_name = f'{clean_name} {index+1} Influence'
+            cmds.addAttr(neck_base_ctrl, longName=attr_name, niceName=nice_name,
+                         attributeType='double', defaultValue=1, keyable=True, minValue=0, maxValue=1)
+            # Create Influence Setup
+            influence_multiply = create_node(node_type='multiplyDivide',
+                                             name=f'{mid_proxy.get_name()}Influence_multiply')
+            cmds.connectAttr(f'{neck_base_ctrl}.rotate', f'{influence_multiply}.input1')
+            connect_attr(source_attr=f'{neck_base_ctrl}.{attr_name}',
+                         target_attr_list=[f'{influence_multiply}.input2X',
+                                           f'{influence_multiply}.input2Y',
+                                           f'{influence_multiply}.input2Z'])
+            cmds.connectAttr(f'{influence_multiply}.output', f'{_mid_rot_offset}.rotate')
+
+        head_rot_offset_name = self._assemble_ctrl_name(name=self.head.get_name(), overwrite_suffix=neck_data_suffix)
+        head_rot_offset = add_offset_transform(target_list=head_ctrl)[0]
+        head_rot_offset.rename(head_rot_offset_name)
+        head_rot_attr = add_attr(obj_list=neck_base_ctrl, minimum=0, maximum=1,
+                                 attributes=f'{self.head.get_name()}Influence', default=0)[0]
+        # Create Influence Setup
+        influence_multiply = create_node(node_type='multiplyDivide',
+                                         name=f'{self.head.get_name()}Influence_multiply')
+        cmds.connectAttr(f'{neck_base_ctrl}.rotate', f'{influence_multiply}.input1')
+        connect_attr(source_attr=head_rot_attr, target_attr_list=[f'{influence_multiply}.input2X',
+                                                                  f'{influence_multiply}.input2Y',
+                                                                  f'{influence_multiply}.input2Z'])
+        cmds.connectAttr(f'{influence_multiply}.output', f'{head_rot_offset}.rotate')
 
         # Set Children Drivers -----------------------------------------------------------------------------
         self.module_children_drivers = [neck_base_offset]
@@ -509,6 +552,7 @@ if __name__ == "__main__":
 
     a_spine = ModuleSpine()
     a_head = ModuleHead()
+    a_head.set_mid_neck_num(3)
     spine_chest_uuid = a_spine.chest.get_uuid()
     a_head.set_parent_uuid(spine_chest_uuid)
     a_project = RigProject()
