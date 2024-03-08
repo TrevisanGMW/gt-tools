@@ -8,7 +8,7 @@ from gt.tools.auto_rigger.rig_utils import get_automation_group, get_proxy_offse
 from gt.utils.attr_utils import add_separator_attr, set_attr_state, connect_attr, hide_lock_default_attrs, add_attr
 from gt.utils.rigging_utils import duplicate_joint_for_automation, create_stretchy_ik_setup, duplicate_object
 from gt.utils.rigging_utils import expose_rotation_order, offset_control_orientation, rescale_joint_radius
-from gt.utils.rigging_utils import RiggingConstants, create_switch_setup
+from gt.utils.rigging_utils import RiggingConstants, create_switch_setup, add_limit_lock_translate_setup
 from gt.utils.transform_utils import Vector3, scale_shapes, match_transform, translate_shapes, rotate_shapes
 from gt.utils.transform_utils import match_translate, set_equidistant_transforms
 from gt.utils.surface_utils import create_surface_from_object_list, create_follicle, get_closest_uv_point
@@ -37,7 +37,7 @@ logger.setLevel(logging.INFO)
 
 
 class ModuleSpine(ModuleGeneric):
-    __version__ = '0.1.3-beta'
+    __version__ = '0.1.4-beta'
     icon = resource_library.Icon.rigger_module_spine
     allow_parenting = True
 
@@ -418,6 +418,7 @@ class ModuleSpine(ModuleGeneric):
         add_separator_attr(target_object=hip_ctrl, attr_name=RiggingConstants.SEPARATOR_CONTROL)
         hide_lock_default_attrs(obj_list=hip_ctrl, scale=True)
         expose_rotation_order(hip_ctrl)
+        add_limit_lock_translate_setup(target=hip_ctrl)
 
         # Hip Offset Ctrl
         hip_o_ctrl = self._assemble_ctrl_name(name=self.hip.get_name(),
