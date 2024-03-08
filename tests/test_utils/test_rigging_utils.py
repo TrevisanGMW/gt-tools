@@ -144,8 +144,8 @@ class TestRiggingUtils(unittest.TestCase):
 
     def test_offset_control_orientation(self):
         ctrl = cmds.curve(point=[[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
-                                                [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]],
-                                          degree=3, name='mocked_ctrl')
+                                 [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]],
+                          degree=3, name='mocked_ctrl')
         control_offset = cmds.group(name="offset", empty=True, world=True)
         cmds.parent(ctrl, control_offset)
         # Before Offset
@@ -184,8 +184,8 @@ class TestRiggingUtils(unittest.TestCase):
                        cmds.joint(p=(0, 5, .1)),
                        cmds.joint(p=(0, 0, 0))]
         an_ik_handle = cmds.ikHandle(n='spineConstraint_SC_ikHandle',
-                                                     sj=test_joints[0], ee=test_joints[-1],
-                                                     sol='ikRPsolver')[0]
+                                     sj=test_joints[0], ee=test_joints[-1],
+                                     sol='ikRPsolver')[0]
 
         cube = cmds.polyCube(ch=False)[0]  # Control in this case
         cmds.delete(cmds.pointConstraint(test_joints[-1], cube))
@@ -297,10 +297,10 @@ class TestRiggingUtils(unittest.TestCase):
         result = cmds.getAttr(f'{vis_b}.v')
         self.assertEqual(expected, result)
 
-    def test_add_limit_lock_translate_attr(self):
+    def test_add_limit_lock_translate_setup(self):
         cube_one = maya_test_tools.create_poly_cube(name="cube_one")
-        attr = rigging_utils.add_limit_lock_translate_attr(target=cube_one, lock_attr='lockTranslate',
-                                                           attr_holder=None, default_value=True)
+        attr = rigging_utils.add_limit_lock_translate_setup(target=cube_one, lock_attr='lockTranslate',
+                                                            attr_holder=None, default_value=True)
         expected = f'{cube_one}.lockTranslate'
         self.assertEqual(expected, attr)
 
@@ -325,11 +325,11 @@ class TestRiggingUtils(unittest.TestCase):
             expected = True
             self.assertEqual(expected, max_limit_en)
 
-    def test_add_limit_lock_translate_attr_with_attr_holder(self):
+    def test_add_limit_lock_translate_setup_with_attr_holder(self):
         cube_one = maya_test_tools.create_poly_cube(name="cube_one")
         cube_two = maya_test_tools.create_poly_cube(name="cube_two")
-        attr = rigging_utils.add_limit_lock_translate_attr(target=cube_one, lock_attr='lockTranslate',
-                                                           attr_holder=cube_two, default_value=True)
+        attr = rigging_utils.add_limit_lock_translate_setup(target=cube_one, lock_attr='lockTranslate',
+                                                            attr_holder=cube_two, default_value=True)
         expected = f'{cube_two}.lockTranslate'
         self.assertEqual(expected, attr)
 
@@ -354,11 +354,41 @@ class TestRiggingUtils(unittest.TestCase):
             expected = True
             self.assertEqual(expected, max_limit_en)
 
-    def test_add_limit_lock_translate_attr_with_default_value(self):
+    def test_add_limit_lock_translate_setup_with_attr_limit_value(self):
         cube_one = maya_test_tools.create_poly_cube(name="cube_one")
         cube_two = maya_test_tools.create_poly_cube(name="cube_two")
-        attr = rigging_utils.add_limit_lock_translate_attr(target=cube_one, lock_attr='lockTranslate',
-                                                           attr_holder=cube_two, default_value=False)
+        attr = rigging_utils.add_limit_lock_translate_setup(target=cube_one, lock_attr='lockTranslate',
+                                                            attr_holder=cube_two, default_value=True,
+                                                            limit_value=2)
+        expected = f'{cube_two}.lockTranslate'
+        self.assertEqual(expected, attr)
+
+        result = cmds.objExists(attr)
+        self.assertTrue(result)
+
+        result = cmds.getAttr(attr)
+        self.assertTrue(result)
+
+        default_dimensions = ['X', 'Y', 'Z']
+        for dimension in default_dimensions:
+            expected = 2
+            min_limit = cmds.getAttr(f"{cube_one}.minTrans{dimension.upper()}Limit")
+            self.assertEqual(expected, min_limit)
+            expected = 2
+            max_limit = cmds.getAttr(f"{cube_one}.maxTrans{dimension.upper()}Limit")
+            self.assertEqual(expected, max_limit)
+            min_limit_en = cmds.getAttr(f"{cube_one}.minTrans{dimension.upper()}LimitEnable")
+            expected = True
+            self.assertEqual(expected, min_limit_en)
+            max_limit_en = cmds.getAttr(f"{cube_one}.maxTrans{dimension.upper()}LimitEnable")
+            expected = True
+            self.assertEqual(expected, max_limit_en)
+
+    def test_add_limit_lock_translate_setup_with_default_value(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        attr = rigging_utils.add_limit_lock_translate_setup(target=cube_one, lock_attr='lockTranslate',
+                                                            attr_holder=cube_two, default_value=False)
         expected = f'{cube_two}.lockTranslate'
         self.assertEqual(expected, attr)
 
@@ -367,3 +397,468 @@ class TestRiggingUtils(unittest.TestCase):
 
         result = cmds.getAttr(attr)
         self.assertFalse(result)
+
+    def test_add_limit_lock_translate_setup_with_custom_attr(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        attr = rigging_utils.add_limit_lock_translate_setup(target=cube_one, lock_attr='lockT',
+                                                            attr_holder=cube_two, default_value=False)
+        expected = f'{cube_two}.lockT'
+        self.assertEqual(expected, attr)
+
+        result = cmds.objExists(attr)
+        self.assertTrue(result)
+
+        result = cmds.getAttr(attr)
+        self.assertFalse(result)
+
+    def test_add_limit_lock_translate_setup_with_dimensions(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        dimension_tuple = ('x', 'z')
+        unlisted_dimensions = 'y'
+        attr = rigging_utils.add_limit_lock_translate_setup(target=cube_one, lock_attr='lockTranslate',
+                                                            dimensions=dimension_tuple, attr_holder=cube_two,
+                                                            default_value=True)
+        expected = f'{cube_two}.lockTranslate'
+        self.assertEqual(expected, attr)
+
+        result = cmds.objExists(attr)
+        self.assertTrue(result)
+
+        result = cmds.getAttr(attr)
+        self.assertTrue(result)
+
+        for dimension in dimension_tuple:  # X, Z
+            expected = 0
+            min_limit = cmds.getAttr(f"{cube_one}.minTrans{dimension.upper()}Limit")
+            self.assertEqual(expected, min_limit)
+            expected = 0
+            max_limit = cmds.getAttr(f"{cube_one}.maxTrans{dimension.upper()}Limit")
+            self.assertEqual(expected, max_limit)
+            min_limit_en = cmds.getAttr(f"{cube_one}.minTrans{dimension.upper()}LimitEnable")
+            expected = True
+            self.assertEqual(expected, min_limit_en)
+            max_limit_en = cmds.getAttr(f"{cube_one}.maxTrans{dimension.upper()}LimitEnable")
+            expected = True
+            self.assertEqual(expected, max_limit_en)
+
+        for dimension in unlisted_dimensions:  # Y
+            expected = -1
+            min_limit = cmds.getAttr(f"{cube_one}.minTrans{dimension.upper()}Limit")
+            self.assertEqual(expected, min_limit)
+            expected = 1
+            max_limit = cmds.getAttr(f"{cube_one}.maxTrans{dimension.upper()}Limit")
+            self.assertEqual(expected, max_limit)
+            min_limit_en = cmds.getAttr(f"{cube_one}.minTrans{dimension.upper()}LimitEnable")
+            expected = False
+            self.assertEqual(expected, min_limit_en)
+            max_limit_en = cmds.getAttr(f"{cube_one}.maxTrans{dimension.upper()}LimitEnable")
+            expected = False
+            self.assertEqual(expected, max_limit_en)
+
+    def test_add_limit_lock_rotate_setup(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        attr = rigging_utils.add_limit_lock_rotate_setup(target=cube_one, lock_attr='lockRotate',
+                                                         attr_holder=None, default_value=True)
+        expected = f'{cube_one}.lockRotate'
+        self.assertEqual(expected, attr)
+
+        result = cmds.objExists(attr)
+        self.assertTrue(result)
+
+        result = cmds.getAttr(attr)
+        self.assertTrue(result)
+
+        default_dimensions = ['X', 'Y', 'Z']
+        for dimension in default_dimensions:
+            expected = 0
+            min_limit = cmds.getAttr(f"{cube_one}.minRot{dimension.upper()}Limit")
+            self.assertEqual(expected, min_limit)
+            expected = 0
+            max_limit = cmds.getAttr(f"{cube_one}.maxRot{dimension.upper()}Limit")
+            self.assertEqual(expected, max_limit)
+            min_limit_en = cmds.getAttr(f"{cube_one}.minRot{dimension.upper()}LimitEnable")
+            expected = True
+            self.assertEqual(expected, min_limit_en)
+            max_limit_en = cmds.getAttr(f"{cube_one}.maxRot{dimension.upper()}LimitEnable")
+            expected = True
+            self.assertEqual(expected, max_limit_en)
+
+    def test_add_limit_lock_rotate_setup_with_attr_holder(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        attr = rigging_utils.add_limit_lock_rotate_setup(target=cube_one, lock_attr='lockRotate',
+                                                         attr_holder=cube_two, default_value=True)
+        expected = f'{cube_two}.lockRotate'
+        self.assertEqual(expected, attr)
+
+        result = cmds.objExists(attr)
+        self.assertTrue(result)
+
+        result = cmds.getAttr(attr)
+        self.assertTrue(result)
+
+        default_dimensions = ['X', 'Y', 'Z']
+        for dimension in default_dimensions:
+            expected = 0
+            min_limit = cmds.getAttr(f"{cube_one}.minRot{dimension.upper()}Limit")
+            self.assertEqual(expected, min_limit)
+            expected = 0
+            max_limit = cmds.getAttr(f"{cube_one}.maxRot{dimension.upper()}Limit")
+            self.assertEqual(expected, max_limit)
+            min_limit_en = cmds.getAttr(f"{cube_one}.minRot{dimension.upper()}LimitEnable")
+            expected = True
+            self.assertEqual(expected, min_limit_en)
+            max_limit_en = cmds.getAttr(f"{cube_one}.maxRot{dimension.upper()}LimitEnable")
+            expected = True
+            self.assertEqual(expected, max_limit_en)
+
+    def test_add_limit_lock_rotate_setup_with_attr_limit_value(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        attr = rigging_utils.add_limit_lock_rotate_setup(target=cube_one, lock_attr='lockRotate',
+                                                         attr_holder=cube_two, default_value=True,
+                                                         limit_value=2)
+        expected = f'{cube_two}.lockRotate'
+        self.assertEqual(expected, attr)
+
+        result = cmds.objExists(attr)
+        self.assertTrue(result)
+
+        result = cmds.getAttr(attr)
+        self.assertTrue(result)
+
+        default_dimensions = ['X', 'Y', 'Z']
+        for dimension in default_dimensions:
+            expected = 2
+            min_limit = cmds.getAttr(f"{cube_one}.minRot{dimension.upper()}Limit")
+            self.assertEqual(expected, min_limit)
+            expected = 2
+            max_limit = cmds.getAttr(f"{cube_one}.maxRot{dimension.upper()}Limit")
+            self.assertEqual(expected, max_limit)
+            min_limit_en = cmds.getAttr(f"{cube_one}.minRot{dimension.upper()}LimitEnable")
+            expected = True
+            self.assertEqual(expected, min_limit_en)
+            max_limit_en = cmds.getAttr(f"{cube_one}.maxRot{dimension.upper()}LimitEnable")
+            expected = True
+            self.assertEqual(expected, max_limit_en)
+
+    def test_add_limit_lock_rotate_setup_with_default_value(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        attr = rigging_utils.add_limit_lock_rotate_setup(target=cube_one, lock_attr='lockRotate',
+                                                         attr_holder=cube_two, default_value=False)
+        expected = f'{cube_two}.lockRotate'
+        self.assertEqual(expected, attr)
+
+        result = cmds.objExists(attr)
+        self.assertTrue(result)
+
+        result = cmds.getAttr(attr)
+        self.assertFalse(result)
+
+    def test_add_limit_lock_rotate_setup_with_custom_attr(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        attr = rigging_utils.add_limit_lock_rotate_setup(target=cube_one, lock_attr='lockR',
+                                                         attr_holder=cube_two, default_value=False)
+        expected = f'{cube_two}.lockR'
+        self.assertEqual(expected, attr)
+
+        result = cmds.objExists(attr)
+        self.assertTrue(result)
+
+        result = cmds.getAttr(attr)
+        self.assertFalse(result)
+
+    def test_add_limit_lock_rotate_setup_with_dimensions(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        dimension_tuple = ('x', 'z')
+        unlisted_dimensions = 'y'
+        attr = rigging_utils.add_limit_lock_rotate_setup(target=cube_one, lock_attr='lockRotate',
+                                                         dimensions=dimension_tuple, attr_holder=cube_two,
+                                                         default_value=True)
+        expected = f'{cube_two}.lockRotate'
+        self.assertEqual(expected, attr)
+
+        result = cmds.objExists(attr)
+        self.assertTrue(result)
+
+        result = cmds.getAttr(attr)
+        self.assertTrue(result)
+
+        for dimension in dimension_tuple:  # X, Z
+            expected = 0
+            min_limit = cmds.getAttr(f"{cube_one}.minRot{dimension.upper()}Limit")
+            self.assertEqual(expected, min_limit)
+            expected = 0
+            max_limit = cmds.getAttr(f"{cube_one}.maxRot{dimension.upper()}Limit")
+            self.assertEqual(expected, max_limit)
+            min_limit_en = cmds.getAttr(f"{cube_one}.minRot{dimension.upper()}LimitEnable")
+            expected = True
+            self.assertEqual(expected, min_limit_en)
+            max_limit_en = cmds.getAttr(f"{cube_one}.maxRot{dimension.upper()}LimitEnable")
+            expected = True
+            self.assertEqual(expected, max_limit_en)
+
+        for dimension in unlisted_dimensions:  # Y
+            expected = -45
+            min_limit = cmds.getAttr(f"{cube_one}.minRot{dimension.upper()}Limit")
+            self.assertEqual(expected, min_limit)
+            expected = 45
+            max_limit = cmds.getAttr(f"{cube_one}.maxRot{dimension.upper()}Limit")
+            self.assertEqual(expected, max_limit)
+            min_limit_en = cmds.getAttr(f"{cube_one}.minRot{dimension.upper()}LimitEnable")
+            expected = False
+            self.assertEqual(expected, min_limit_en)
+            max_limit_en = cmds.getAttr(f"{cube_one}.maxRot{dimension.upper()}LimitEnable")
+            expected = False
+            self.assertEqual(expected, max_limit_en)
+
+    def test_add_limit_lock_scale_setup(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        attr = rigging_utils.add_limit_lock_scale_setup(target=cube_one, lock_attr='lockScale',
+                                                        attr_holder=None, default_value=True)
+        expected = f'{cube_one}.lockScale'
+        self.assertEqual(expected, attr)
+
+        result = cmds.objExists(attr)
+        self.assertTrue(result)
+
+        result = cmds.getAttr(attr)
+        self.assertTrue(result)
+
+        default_dimensions = ['X', 'Y', 'Z']
+        for dimension in default_dimensions:
+            expected = 1
+            min_limit = cmds.getAttr(f"{cube_one}.minScale{dimension.upper()}Limit")
+            self.assertEqual(expected, min_limit)
+            expected = 1
+            max_limit = cmds.getAttr(f"{cube_one}.maxScale{dimension.upper()}Limit")
+            self.assertEqual(expected, max_limit)
+            min_limit_en = cmds.getAttr(f"{cube_one}.minScale{dimension.upper()}LimitEnable")
+            expected = True
+            self.assertEqual(expected, min_limit_en)
+            max_limit_en = cmds.getAttr(f"{cube_one}.maxScale{dimension.upper()}LimitEnable")
+            expected = True
+            self.assertEqual(expected, max_limit_en)
+
+    def test_add_limit_lock_scale_setup_with_attr_holder(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        attr = rigging_utils.add_limit_lock_scale_setup(target=cube_one, lock_attr='lockScale',
+                                                        attr_holder=cube_two, default_value=True)
+        expected = f'{cube_two}.lockScale'
+        self.assertEqual(expected, attr)
+
+        result = cmds.objExists(attr)
+        self.assertTrue(result)
+
+        result = cmds.getAttr(attr)
+        self.assertTrue(result)
+
+        default_dimensions = ['X', 'Y', 'Z']
+        for dimension in default_dimensions:
+            expected = 1
+            min_limit = cmds.getAttr(f"{cube_one}.minScale{dimension.upper()}Limit")
+            self.assertEqual(expected, min_limit)
+            expected = 1
+            max_limit = cmds.getAttr(f"{cube_one}.maxScale{dimension.upper()}Limit")
+            self.assertEqual(expected, max_limit)
+            min_limit_en = cmds.getAttr(f"{cube_one}.minScale{dimension.upper()}LimitEnable")
+            expected = True
+            self.assertEqual(expected, min_limit_en)
+            max_limit_en = cmds.getAttr(f"{cube_one}.maxScale{dimension.upper()}LimitEnable")
+            expected = True
+            self.assertEqual(expected, max_limit_en)
+
+    def test_add_limit_lock_scale_setup_with_limit_value(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        attr = rigging_utils.add_limit_lock_scale_setup(target=cube_one, lock_attr='lockScale',
+                                                        attr_holder=cube_two, default_value=True,
+                                                        limit_value=2)
+        expected = f'{cube_two}.lockScale'
+        self.assertEqual(expected, attr)
+
+        result = cmds.objExists(attr)
+        self.assertTrue(result)
+
+        result = cmds.getAttr(attr)
+        self.assertTrue(result)
+
+        default_dimensions = ['X', 'Y', 'Z']
+        for dimension in default_dimensions:
+            expected = 2
+            min_limit = cmds.getAttr(f"{cube_one}.minScale{dimension.upper()}Limit")
+            self.assertEqual(expected, min_limit)
+            expected = 2
+            max_limit = cmds.getAttr(f"{cube_one}.maxScale{dimension.upper()}Limit")
+            self.assertEqual(expected, max_limit)
+            min_limit_en = cmds.getAttr(f"{cube_one}.minScale{dimension.upper()}LimitEnable")
+            expected = True
+            self.assertEqual(expected, min_limit_en)
+            max_limit_en = cmds.getAttr(f"{cube_one}.maxScale{dimension.upper()}LimitEnable")
+            expected = True
+            self.assertEqual(expected, max_limit_en)
+
+    def test_add_limit_lock_scale_setup_with_default_value(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        attr = rigging_utils.add_limit_lock_scale_setup(target=cube_one, lock_attr='lockScale',
+                                                        attr_holder=cube_two, default_value=False)
+        expected = f'{cube_two}.lockScale'
+        self.assertEqual(expected, attr)
+
+        result = cmds.objExists(attr)
+        self.assertTrue(result)
+
+        result = cmds.getAttr(attr)
+        self.assertFalse(result)
+
+    def test_add_limit_lock_scale_setup_with_custom_attr(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        attr = rigging_utils.add_limit_lock_scale_setup(target=cube_one, lock_attr='lockR',
+                                                        attr_holder=cube_two, default_value=False)
+        expected = f'{cube_two}.lockR'
+        self.assertEqual(expected, attr)
+
+        result = cmds.objExists(attr)
+        self.assertTrue(result)
+
+        result = cmds.getAttr(attr)
+        self.assertFalse(result)
+
+    def test_add_limit_lock_scale_setup_with_dimensions(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        dimension_tuple = ('x', 'z')
+        unlisted_dimensions = 'y'
+        attr = rigging_utils.add_limit_lock_scale_setup(target=cube_one, lock_attr='lockScale',
+                                                        dimensions=dimension_tuple, attr_holder=cube_two,
+                                                        default_value=True)
+        expected = f'{cube_two}.lockScale'
+        self.assertEqual(expected, attr)
+
+        result = cmds.objExists(attr)
+        self.assertTrue(result)
+
+        result = cmds.getAttr(attr)
+        self.assertTrue(result)
+
+        for dimension in dimension_tuple:  # X, Z
+            expected = 1
+            min_limit = cmds.getAttr(f"{cube_one}.minScale{dimension.upper()}Limit")
+            self.assertEqual(expected, min_limit)
+            expected = 1
+            max_limit = cmds.getAttr(f"{cube_one}.maxScale{dimension.upper()}Limit")
+            self.assertEqual(expected, max_limit)
+            min_limit_en = cmds.getAttr(f"{cube_one}.minScale{dimension.upper()}LimitEnable")
+            expected = True
+            self.assertEqual(expected, min_limit_en)
+            max_limit_en = cmds.getAttr(f"{cube_one}.maxScale{dimension.upper()}LimitEnable")
+            expected = True
+            self.assertEqual(expected, max_limit_en)
+
+        for dimension in unlisted_dimensions:  # Y
+            expected = -1
+            min_limit = cmds.getAttr(f"{cube_one}.minScale{dimension.upper()}Limit")
+            self.assertEqual(expected, min_limit)
+            expected = 1
+            max_limit = cmds.getAttr(f"{cube_one}.maxScale{dimension.upper()}Limit")
+            self.assertEqual(expected, max_limit)
+            min_limit_en = cmds.getAttr(f"{cube_one}.minScale{dimension.upper()}LimitEnable")
+            expected = False
+            self.assertEqual(expected, min_limit_en)
+            max_limit_en = cmds.getAttr(f"{cube_one}.maxScale{dimension.upper()}LimitEnable")
+            expected = False
+            self.assertEqual(expected, max_limit_en)
+
+    def test_add_limit_lock_rotate_with_exception_z(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        attr = rigging_utils.add_limit_lock_rotate_with_exception(target=cube_one, exception='z')
+
+        expected = f'{cube_one}.lockXY'
+        self.assertEqual(expected, attr)
+
+        result = cmds.objExists(attr)
+        self.assertTrue(result)
+
+        result = cmds.getAttr(attr)
+        self.assertTrue(result)
+
+        dimension_tuple = ('x', 'y')
+        for dimension in dimension_tuple:  # X, Y
+            expected = 0
+            min_limit = cmds.getAttr(f"{cube_one}.minRot{dimension.upper()}Limit")
+            self.assertEqual(expected, min_limit)
+            expected = 0
+            max_limit = cmds.getAttr(f"{cube_one}.maxRot{dimension.upper()}Limit")
+            self.assertEqual(expected, max_limit)
+            min_limit_en = cmds.getAttr(f"{cube_one}.minRot{dimension.upper()}LimitEnable")
+            expected = True
+            self.assertEqual(expected, min_limit_en)
+            max_limit_en = cmds.getAttr(f"{cube_one}.maxRot{dimension.upper()}LimitEnable")
+            expected = True
+            self.assertEqual(expected, max_limit_en)
+
+        unlisted_dimensions = 'z'
+        for dimension in unlisted_dimensions:  # Z
+            expected = -45
+            min_limit = cmds.getAttr(f"{cube_one}.minRot{dimension.upper()}Limit")
+            self.assertEqual(expected, min_limit)
+            expected = 45
+            max_limit = cmds.getAttr(f"{cube_one}.maxRot{dimension.upper()}Limit")
+            self.assertEqual(expected, max_limit)
+            min_limit_en = cmds.getAttr(f"{cube_one}.minRot{dimension.upper()}LimitEnable")
+            expected = False
+            self.assertEqual(expected, min_limit_en)
+            max_limit_en = cmds.getAttr(f"{cube_one}.maxRot{dimension.upper()}LimitEnable")
+            expected = False
+            self.assertEqual(expected, max_limit_en)
+
+    def test_add_limit_lock_rotate_with_exception_xy(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        attr = rigging_utils.add_limit_lock_rotate_with_exception(target=cube_one, exception=('x', 'y'))
+
+        expected = f'{cube_one}.lockZ'
+        self.assertEqual(expected, attr)
+
+        result = cmds.objExists(attr)
+        self.assertTrue(result)
+
+        result = cmds.getAttr(attr)
+        self.assertTrue(result)
+
+        dimension_tuple = 'z'
+        for dimension in dimension_tuple:
+            expected = 0
+            min_limit = cmds.getAttr(f"{cube_one}.minRot{dimension.upper()}Limit")
+            self.assertEqual(expected, min_limit)
+            expected = 0
+            max_limit = cmds.getAttr(f"{cube_one}.maxRot{dimension.upper()}Limit")
+            self.assertEqual(expected, max_limit)
+            min_limit_en = cmds.getAttr(f"{cube_one}.minRot{dimension.upper()}LimitEnable")
+            expected = True
+            self.assertEqual(expected, min_limit_en)
+            max_limit_en = cmds.getAttr(f"{cube_one}.maxRot{dimension.upper()}LimitEnable")
+            expected = True
+            self.assertEqual(expected, max_limit_en)
+
+        unlisted_dimensions = ('x', 'y')
+        for dimension in unlisted_dimensions:
+            expected = -45
+            min_limit = cmds.getAttr(f"{cube_one}.minRot{dimension.upper()}Limit")
+            self.assertEqual(expected, min_limit)
+            expected = 45
+            max_limit = cmds.getAttr(f"{cube_one}.maxRot{dimension.upper()}Limit")
+            self.assertEqual(expected, max_limit)
+            min_limit_en = cmds.getAttr(f"{cube_one}.minRot{dimension.upper()}LimitEnable")
+            expected = False
+            self.assertEqual(expected, min_limit_en)
+            max_limit_en = cmds.getAttr(f"{cube_one}.maxRot{dimension.upper()}LimitEnable")
+            expected = False
+            self.assertEqual(expected, max_limit_en)
