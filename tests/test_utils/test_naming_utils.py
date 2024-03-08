@@ -91,7 +91,7 @@ class TestNamingUtils(unittest.TestCase):
         cmds.parent(sphere_one, group_one)
         sphere_two = maya_test_tools.create_poly_cube(name="cube")
         cmds.parent(sphere_two, group_two)
-        non_unique_cubes = maya_test_tools.list_objects(type="mesh")
+        non_unique_cubes = cmds.ls(type="mesh")
         expected = ['group_two|cube|cubeShape', 'group_one|cube|cubeShape']
         self.assertEqual(expected, non_unique_cubes)
         for cube in non_unique_cubes:

@@ -198,9 +198,9 @@ class TestConstraintUtils(unittest.TestCase):
 
         targets = [cube_one, cube_two, cube_three]
 
-        maya_test_tools.set_attribute(obj_name=cube_end, attr_name="ty", value=10)
-        maya_test_tools.set_attribute(obj_name=cube_end, attr_name="tz", value=10)
-        maya_test_tools.set_attribute(obj_name=cube_end, attr_name="rx", value=90)
+        cmds.setAttr(f"{cube_end}.ty", 10)
+        cmds.setAttr(f"{cube_end}.tz", 10)
+        cmds.setAttr(f"{cube_end}.rx", 90)
 
         constraints = constraint_utils.equidistant_constraints(start=cube_start,
                                                                end=cube_end,
@@ -227,12 +227,12 @@ class TestConstraintUtils(unittest.TestCase):
                            cube_three: [0, 7.5, 7.5,
                                         68.4, 0, 0]}
         for cube, expected in expected_values.items():
-            tx = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
-            ty = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
-            tz = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
-            rx = maya_test_tools.get_attribute(obj_name=cube, attr_name="rx")
-            ry = maya_test_tools.get_attribute(obj_name=cube, attr_name="ry")
-            rz = maya_test_tools.get_attribute(obj_name=cube, attr_name="rz")
+            tx = cmds.getAttr(f"{cube}.tx")
+            ty = cmds.getAttr(f"{cube}.ty")
+            tz = cmds.getAttr(f"{cube}.tz")
+            rx = cmds.getAttr(f"{cube}.rx")
+            ry = cmds.getAttr(f"{cube}.ry")
+            rz = cmds.getAttr(f"{cube}.rz")
             self.assertAlmostEqualSigFig(tx, expected[0])
             self.assertAlmostEqualSigFig(ty, expected[1])
             self.assertAlmostEqualSigFig(tz, expected[2])
@@ -250,9 +250,9 @@ class TestConstraintUtils(unittest.TestCase):
 
         targets = [cube_one, cube_two, cube_three]
 
-        maya_test_tools.set_attribute(obj_name=cube_end, attr_name="ty", value=10)
-        maya_test_tools.set_attribute(obj_name=cube_end, attr_name="tz", value=10)
-        maya_test_tools.set_attribute(obj_name=cube_end, attr_name="rx", value=90)
+        cmds.setAttr(f"{cube_end}.ty", 10)
+        cmds.setAttr(f"{cube_end}.tz", 10)
+        cmds.setAttr(f"{cube_end}.rx", 90)
 
         constraints = constraint_utils.equidistant_constraints(start=cube_start,
                                                                end=cube_end,
@@ -280,12 +280,12 @@ class TestConstraintUtils(unittest.TestCase):
                            cube_three: [0, 10, 10,
                                         90, 0, 0]}
         for cube, expected_constraints in expected_values.items():
-            tx = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
-            ty = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
-            tz = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
-            rx = maya_test_tools.get_attribute(obj_name=cube, attr_name="rx")
-            ry = maya_test_tools.get_attribute(obj_name=cube, attr_name="ry")
-            rz = maya_test_tools.get_attribute(obj_name=cube, attr_name="rz")
+            tx = cmds.getAttr(f"{cube}.tx")
+            ty = cmds.getAttr(f"{cube}.ty")
+            tz = cmds.getAttr(f"{cube}.tz")
+            rx = cmds.getAttr(f"{cube}.rx")
+            ry = cmds.getAttr(f"{cube}.ry")
+            rz = cmds.getAttr(f"{cube}.rz")
             self.assertAlmostEqualSigFig(tx, expected_constraints[0])
             self.assertAlmostEqualSigFig(ty, expected_constraints[1])
             self.assertAlmostEqualSigFig(tz, expected_constraints[2])
@@ -305,9 +305,9 @@ class TestConstraintUtils(unittest.TestCase):
 
             targets = [cube_one, cube_two, cube_three]
 
-            maya_test_tools.set_attribute(obj_name=cube_end, attr_name="ty", value=10)
-            maya_test_tools.set_attribute(obj_name=cube_end, attr_name="tz", value=10)
-            maya_test_tools.set_attribute(obj_name=cube_end, attr_name="rx", value=90)
+            cmds.setAttr(f"{cube_end}.ty", 10)
+            cmds.setAttr(f"{cube_end}.tz", 10)
+            cmds.setAttr(f"{cube_end}.rx", 90)
 
             constraints = constraint_utils.equidistant_constraints(start=cube_start,
                                                                    end=cube_end,
@@ -327,9 +327,9 @@ class TestConstraintUtils(unittest.TestCase):
         cube_end = maya_test_tools.create_poly_cube()
         cube_target = maya_test_tools.create_poly_cube()
 
-        maya_test_tools.set_attribute(obj_name=cube_end, attr_name="ty", value=10)
-        maya_test_tools.set_attribute(obj_name=cube_end, attr_name="tz", value=10)
-        maya_test_tools.set_attribute(obj_name=cube_end, attr_name="rx", value=90)
+        cmds.setAttr(f"{cube_end}.ty", 10)
+        cmds.setAttr(f"{cube_end}.tz", 10)
+        cmds.setAttr(f"{cube_end}.rx", 90)
 
         constraints = constraint_utils.equidistant_constraints(start=cube_start,
                                                                end=cube_end,
@@ -343,9 +343,9 @@ class TestConstraintUtils(unittest.TestCase):
         cube_source = maya_test_tools.create_poly_cube(name="cube_source")
         cube_target = maya_test_tools.create_poly_cube(name="cube_target")
 
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="tx", value=10)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="tz", value=10)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="rx", value=90)
+        cmds.setAttr(f"{cube_source}.tx", 10)
+        cmds.setAttr(f"{cube_source}.tz", 10)
+        cmds.setAttr(f"{cube_source}.rx", 90)
 
         constraint_type = constraint_utils.ConstraintTypes.PARENT
         constraints = constraint_utils.constraint_targets(source_driver=cube_source,
@@ -373,7 +373,7 @@ class TestConstraintUtils(unittest.TestCase):
         cube_target_one = maya_test_tools.create_poly_cube(name="cube_target_one")
         cube_target_two = maya_test_tools.create_poly_cube(name="cube_target_two")
 
-        maya_test_tools.set_attribute(obj_name=cube_source_one, attr_name="tx", value=5)
+        cmds.setAttr(f"{cube_source_one}.tx", 5)
 
         constraint_type = constraint_utils.ConstraintTypes.PARENT
         constraints = constraint_utils.constraint_targets(source_driver=[cube_source_one, cube_source_two],
@@ -397,7 +397,7 @@ class TestConstraintUtils(unittest.TestCase):
         cube_source_one = maya_test_tools.create_poly_cube(name="cube_source")
         cube_target_one = maya_test_tools.create_poly_cube(name="cube_target")
 
-        maya_test_tools.set_attribute(obj_name=cube_source_one, attr_name="tx", value=5)
+        cmds.setAttr(f"{cube_source_one}.tx", 5)
 
         constraint_type = constraint_utils.ConstraintTypes.POINT
         constraints = constraint_utils.constraint_targets(source_driver=cube_source_one,

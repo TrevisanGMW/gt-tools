@@ -17,6 +17,7 @@ for to_append in [package_root_dir, tests_dir]:
         sys.path.append(to_append)
 from tests import maya_test_tools
 from gt.utils import camera_utils
+cmds = maya_test_tools.cmds
 
 
 class TestCameraUtils(unittest.TestCase):
@@ -29,22 +30,22 @@ class TestCameraUtils(unittest.TestCase):
 
     def test_reset_camera_transform_attributes(self):
         camera_transform = 'persp'
-        maya_test_tools.set_attribute(obj_name=camera_transform, attr_name="sx", value=2)
-        maya_test_tools.set_attribute(obj_name=camera_transform, attr_name="sy", value=2)
-        maya_test_tools.set_attribute(obj_name=camera_transform, attr_name="sz", value=2)
+        cmds.setAttr(f"{camera_transform}.sx", 2)
+        cmds.setAttr(f"{camera_transform}.sy", 2)
+        cmds.setAttr(f"{camera_transform}.sz", 2)
         logging.disable(logging.WARNING)
         camera_utils.reset_persp_shape_attributes()
         logging.disable(logging.NOTSET)
-        result = maya_test_tools.get_attribute(obj_name=camera_transform, attr_name='sx')
+        result = cmds.getAttr(f'{camera_transform}.sx')
         expected = 1
         self.assertEqual(expected, result)
 
     def test_reset_camera_shape_attributes_focal_length(self):
         camera_shape = 'perspShape'
-        maya_test_tools.set_attribute(obj_name=camera_shape, attr_name="focalLength", value=2)
+        cmds.setAttr(f"{camera_shape}.focalLength", 2)
         logging.disable(logging.WARNING)
         camera_utils.reset_persp_shape_attributes()
         logging.disable(logging.NOTSET)
-        result = maya_test_tools.get_attribute(obj_name=camera_shape, attr_name='focalLength')
+        result = cmds.getAttr(f'{camera_shape}.focalLength')
         expected = 35
         self.assertEqual(expected, result)

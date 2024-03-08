@@ -109,25 +109,25 @@ class TestAttributeUtils(unittest.TestCase):
 
     def test_freeze_channels_default(self):
         cube = maya_test_tools.create_poly_cube()
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="tx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="ty", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="tz", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="rx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="ry", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="rz", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="sx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="sy", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="sz", value=5)
+        cmds.setAttr(f"{cube}.tx", 5)
+        cmds.setAttr(f"{cube}.ty", 5)
+        cmds.setAttr(f"{cube}.tz", 5)
+        cmds.setAttr(f"{cube}.rx", 5)
+        cmds.setAttr(f"{cube}.ry", 5)
+        cmds.setAttr(f"{cube}.rz", 5)
+        cmds.setAttr(f"{cube}.sx", 5)
+        cmds.setAttr(f"{cube}.sy", 5)
+        cmds.setAttr(f"{cube}.sz", 5)
         attr_utils.freeze_channels(obj_list=cube)
-        result_tx = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
-        result_ty = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
-        result_tz = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
-        result_rx = maya_test_tools.get_attribute(obj_name=cube, attr_name="rx")
-        result_ry = maya_test_tools.get_attribute(obj_name=cube, attr_name="ry")
-        result_rz = maya_test_tools.get_attribute(obj_name=cube, attr_name="rz")
-        result_sx = maya_test_tools.get_attribute(obj_name=cube, attr_name="sx")
-        result_sy = maya_test_tools.get_attribute(obj_name=cube, attr_name="sy")
-        result_sz = maya_test_tools.get_attribute(obj_name=cube, attr_name="sz")
+        result_tx = cmds.getAttr(f"{cube}.tx")
+        result_ty = cmds.getAttr(f"{cube}.ty")
+        result_tz = cmds.getAttr(f"{cube}.tz")
+        result_rx = cmds.getAttr(f"{cube}.rx")
+        result_ry = cmds.getAttr(f"{cube}.ry")
+        result_rz = cmds.getAttr(f"{cube}.rz")
+        result_sx = cmds.getAttr(f"{cube}.sx")
+        result_sy = cmds.getAttr(f"{cube}.sy")
+        result_sz = cmds.getAttr(f"{cube}.sz")
         expected_translate_rotate = 0
         expected_scale = 1
         self.assertEqual(expected_translate_rotate, result_tx)
@@ -142,25 +142,25 @@ class TestAttributeUtils(unittest.TestCase):
 
     def test_freeze_channels_translate_off(self):
         cube = maya_test_tools.create_poly_cube()
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="tx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="ty", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="tz", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="rx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="ry", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="rz", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="sx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="sy", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="sz", value=5)
+        cmds.setAttr(f"{cube}.tx", 5)
+        cmds.setAttr(f"{cube}.ty", 5)
+        cmds.setAttr(f"{cube}.tz", 5)
+        cmds.setAttr(f"{cube}.rx", 5)
+        cmds.setAttr(f"{cube}.ry", 5)
+        cmds.setAttr(f"{cube}.rz", 5)
+        cmds.setAttr(f"{cube}.sx", 5)
+        cmds.setAttr(f"{cube}.sy", 5)
+        cmds.setAttr(f"{cube}.sz", 5)
         attr_utils.freeze_channels(obj_list=cube, freeze_translate=False)
-        result_tx = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
-        result_ty = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
-        result_tz = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
-        result_rx = maya_test_tools.get_attribute(obj_name=cube, attr_name="rx")
-        result_ry = maya_test_tools.get_attribute(obj_name=cube, attr_name="ry")
-        result_rz = maya_test_tools.get_attribute(obj_name=cube, attr_name="rz")
-        result_sx = maya_test_tools.get_attribute(obj_name=cube, attr_name="sx")
-        result_sy = maya_test_tools.get_attribute(obj_name=cube, attr_name="sy")
-        result_sz = maya_test_tools.get_attribute(obj_name=cube, attr_name="sz")
+        result_tx = cmds.getAttr(f"{cube}.tx")
+        result_ty = cmds.getAttr(f"{cube}.ty")
+        result_tz = cmds.getAttr(f"{cube}.tz")
+        result_rx = cmds.getAttr(f"{cube}.rx")
+        result_ry = cmds.getAttr(f"{cube}.ry")
+        result_rz = cmds.getAttr(f"{cube}.rz")
+        result_sx = cmds.getAttr(f"{cube}.sx")
+        result_sy = cmds.getAttr(f"{cube}.sy")
+        result_sz = cmds.getAttr(f"{cube}.sz")
         expected_translate = 5
         expected_rotate = 0
         expected_scale = 1
@@ -176,25 +176,25 @@ class TestAttributeUtils(unittest.TestCase):
 
     def test_freeze_channels_rotate_off(self):
         cube = maya_test_tools.create_poly_cube()
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="tx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="ty", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="tz", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="rx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="ry", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="rz", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="sx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="sy", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="sz", value=5)
+        cmds.setAttr(f"{cube}.tx", 5)
+        cmds.setAttr(f"{cube}.ty", 5)
+        cmds.setAttr(f"{cube}.tz", 5)
+        cmds.setAttr(f"{cube}.rx", 5)
+        cmds.setAttr(f"{cube}.ry", 5)
+        cmds.setAttr(f"{cube}.rz", 5)
+        cmds.setAttr(f"{cube}.sx", 5)
+        cmds.setAttr(f"{cube}.sy", 5)
+        cmds.setAttr(f"{cube}.sz", 5)
         attr_utils.freeze_channels(obj_list=cube, freeze_rotate=False)
-        result_tx = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
-        result_ty = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
-        result_tz = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
-        result_rx = maya_test_tools.get_attribute(obj_name=cube, attr_name="rx")
-        result_ry = maya_test_tools.get_attribute(obj_name=cube, attr_name="ry")
-        result_rz = maya_test_tools.get_attribute(obj_name=cube, attr_name="rz")
-        result_sx = maya_test_tools.get_attribute(obj_name=cube, attr_name="sx")
-        result_sy = maya_test_tools.get_attribute(obj_name=cube, attr_name="sy")
-        result_sz = maya_test_tools.get_attribute(obj_name=cube, attr_name="sz")
+        result_tx = cmds.getAttr(f"{cube}.tx")
+        result_ty = cmds.getAttr(f"{cube}.ty")
+        result_tz = cmds.getAttr(f"{cube}.tz")
+        result_rx = cmds.getAttr(f"{cube}.rx")
+        result_ry = cmds.getAttr(f"{cube}.ry")
+        result_rz = cmds.getAttr(f"{cube}.rz")
+        result_sx = cmds.getAttr(f"{cube}.sx")
+        result_sy = cmds.getAttr(f"{cube}.sy")
+        result_sz = cmds.getAttr(f"{cube}.sz")
         expected_translate = 0
         expected_rotate = 5
         expected_scale = 1
@@ -210,25 +210,25 @@ class TestAttributeUtils(unittest.TestCase):
 
     def test_freeze_channels_scale_off(self):
         cube = maya_test_tools.create_poly_cube()
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="tx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="ty", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="tz", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="rx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="ry", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="rz", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="sx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="sy", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="sz", value=5)
+        cmds.setAttr(f"{cube}.tx", 5)
+        cmds.setAttr(f"{cube}.ty", 5)
+        cmds.setAttr(f"{cube}.tz", 5)
+        cmds.setAttr(f"{cube}.rx", 5)
+        cmds.setAttr(f"{cube}.ry", 5)
+        cmds.setAttr(f"{cube}.rz", 5)
+        cmds.setAttr(f"{cube}.sx", 5)
+        cmds.setAttr(f"{cube}.sy", 5)
+        cmds.setAttr(f"{cube}.sz", 5)
         attr_utils.freeze_channels(obj_list=cube, freeze_scale=False)
-        result_tx = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
-        result_ty = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
-        result_tz = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
-        result_rx = maya_test_tools.get_attribute(obj_name=cube, attr_name="rx")
-        result_ry = maya_test_tools.get_attribute(obj_name=cube, attr_name="ry")
-        result_rz = maya_test_tools.get_attribute(obj_name=cube, attr_name="rz")
-        result_sx = maya_test_tools.get_attribute(obj_name=cube, attr_name="sx")
-        result_sy = maya_test_tools.get_attribute(obj_name=cube, attr_name="sy")
-        result_sz = maya_test_tools.get_attribute(obj_name=cube, attr_name="sz")
+        result_tx = cmds.getAttr(f"{cube}.tx")
+        result_ty = cmds.getAttr(f"{cube}.ty")
+        result_tz = cmds.getAttr(f"{cube}.tz")
+        result_rx = cmds.getAttr(f"{cube}.rx")
+        result_ry = cmds.getAttr(f"{cube}.ry")
+        result_rz = cmds.getAttr(f"{cube}.rz")
+        result_sx = cmds.getAttr(f"{cube}.sx")
+        result_sy = cmds.getAttr(f"{cube}.sy")
+        result_sz = cmds.getAttr(f"{cube}.sz")
         expected_translate = 0
         expected_rotate = 0
         expected_scale = 5
@@ -245,20 +245,20 @@ class TestAttributeUtils(unittest.TestCase):
     def test_freeze_channels_multiple_objects(self):
         cube_one = maya_test_tools.create_poly_cube()
         cube_two = maya_test_tools.create_poly_cube()
-        maya_test_tools.set_attribute(obj_name=cube_one, attr_name="tx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_two, attr_name="tx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_one, attr_name="rx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_two, attr_name="rx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_one, attr_name="sx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_two, attr_name="sx", value=5)
+        cmds.setAttr(f"{cube_one}.tx", 5)
+        cmds.setAttr(f"{cube_one}.tx", 5)
+        cmds.setAttr(f"{cube_one}.rx", 5)
+        cmds.setAttr(f"{cube_one}.rx", 5)
+        cmds.setAttr(f"{cube_one}.sx", 5)
+        cmds.setAttr(f"{cube_one}.sx", 5)
         object_list = [cube_one, cube_two]
         attr_utils.freeze_channels(obj_list=object_list)
-        result_tx_one = maya_test_tools.get_attribute(obj_name=cube_one, attr_name="tx")
-        result_rx_one = maya_test_tools.get_attribute(obj_name=cube_one, attr_name="rx")
-        result_sx_one = maya_test_tools.get_attribute(obj_name=cube_one, attr_name="sx")
-        result_tx_two = maya_test_tools.get_attribute(obj_name=cube_two, attr_name="tx")
-        result_rx_two = maya_test_tools.get_attribute(obj_name=cube_two, attr_name="rx")
-        result_sx_two = maya_test_tools.get_attribute(obj_name=cube_two, attr_name="sx")
+        result_tx_one = cmds.getAttr(f"{cube_one}.tx")
+        result_rx_one = cmds.getAttr(f"{cube_one}.rx")
+        result_sx_one = cmds.getAttr(f"{cube_one}.sx")
+        result_tx_two = cmds.getAttr(f"{cube_two}.tx")
+        result_rx_two = cmds.getAttr(f"{cube_two}.rx")
+        result_sx_two = cmds.getAttr(f"{cube_two}.sx")
         expected_translate = 0
         expected_rotate = 0
         expected_scale = 1
@@ -283,9 +283,9 @@ class TestAttributeUtils(unittest.TestCase):
         cube = maya_test_tools.create_poly_cube()
         expected = 5
         attr_utils.rescale(obj=cube, scale=expected, freeze=False)
-        result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="sx")
-        result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="sy")
-        result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="sz")
+        result_x = cmds.getAttr(f"{cube}.sx")
+        result_y = cmds.getAttr(f"{cube}.sy")
+        result_z = cmds.getAttr(f"{cube}.sz")
         self.assertEqual(expected, result_x)
         self.assertEqual(expected, result_y)
         self.assertEqual(expected, result_z)
@@ -293,7 +293,7 @@ class TestAttributeUtils(unittest.TestCase):
     def test_set_attr(self):
         cube = maya_test_tools.create_poly_cube()
         out = attr_utils.set_attr(f'{cube}.tx', 5)
-        result = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
+        result = cmds.getAttr(f"{cube}.tx")
         expected = 5
         self.assertEqual(expected, result)
 
@@ -301,7 +301,7 @@ class TestAttributeUtils(unittest.TestCase):
         cube = maya_test_tools.create_poly_cube()
         cmds.addAttr(cube, ln="custom_attr", k=True, dataType="string")
         attr_utils.set_attr(f'{cube}.custom_attr', "string_value")
-        result = maya_test_tools.get_attribute(obj_name=cube, attr_name="custom_attr")
+        result = cmds.getAttr(f"{cube}.custom_attr")
         expected = "string_value"
         self.assertEqual(expected, result)
 
@@ -309,7 +309,7 @@ class TestAttributeUtils(unittest.TestCase):
         cube = maya_test_tools.create_poly_cube()
         attr_utils.set_attr(obj_list=cube, attr_list="translate", value=[1, 0, 0])
         expected = [(1.0, 0.0, 0.0)]
-        result = maya_test_tools.get_attribute(obj_name=cube, attr_name="translate")
+        result = cmds.getAttr(f"{cube}.translate")
         self.assertEqual(expected, result)
 
     def test_set_attr_multiple_objects(self):
@@ -319,7 +319,7 @@ class TestAttributeUtils(unittest.TestCase):
         attr_utils.set_attr(value=5, obj_list=cube_list, attr_list=["tx"])
 
         for cube in cube_list:
-            result = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
+            result = cmds.getAttr(f"{cube}.tx")
             expected = 5
             self.assertEqual(expected, result)
 
@@ -330,9 +330,9 @@ class TestAttributeUtils(unittest.TestCase):
         attr_utils.set_attr(value=5, obj_list=cube_list, attr_list=["tx", "ty", "tz"])
 
         for cube in cube_list:
-            result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
-            result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
-            result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
+            result_x = cmds.getAttr(f"{cube}.tx")
+            result_y = cmds.getAttr(f"{cube}.ty")
+            result_z = cmds.getAttr(f"{cube}.tz")
             expected = 5
             self.assertEqual(expected, result_x)
             self.assertEqual(expected, result_y)
@@ -343,7 +343,7 @@ class TestAttributeUtils(unittest.TestCase):
         cmds.addAttr(cube, ln="custom_attr", k=True, at="float")
         cmds.setAttr(f'{cube}.custom_attr', lock=True)
         attr_utils.set_attr(f'{cube}.custom_attr', value=5, force_unlock=True)
-        result = maya_test_tools.get_attribute(obj_name=cube, attr_name="custom_attr")
+        result = cmds.getAttr(f"{cube}.custom_attr")
         expected = 5
         self.assertEqual(expected, result)
 
@@ -354,7 +354,7 @@ class TestAttributeUtils(unittest.TestCase):
         logging.disable(logging.WARNING)
         attr_utils.set_attr(f'{cube}.custom_attr', value=5, force_unlock=False)
         logging.disable(logging.NOTSET)
-        result = maya_test_tools.get_attribute(obj_name=cube, attr_name="custom_attr")
+        result = cmds.getAttr(f"{cube}.custom_attr")
         expected = 0
         self.assertEqual(expected, result)
 
@@ -365,7 +365,7 @@ class TestAttributeUtils(unittest.TestCase):
             cmds.setAttr(f'{cube}.custom_attr', lock=True)
             attr_utils.set_attr(f'{cube}.custom_attr', value=5, force_unlock=False,
                                 raise_exceptions=True, verbose=False)
-            result = maya_test_tools.get_attribute(obj_name=cube, attr_name="custom_attr")
+            result = cmds.getAttr(f"{cube}.custom_attr")
             expected = 0
             self.assertEqual(expected, result)
 
@@ -453,9 +453,9 @@ class TestAttributeUtils(unittest.TestCase):
 
         attr_utils.set_trs_attr(target_obj=cube, value_tuple=(1, 2, 3), translate=True)
 
-        result_tx = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
-        result_ty = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
-        result_tz = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
+        result_tx = cmds.getAttr(f"{cube}.tx")
+        result_ty = cmds.getAttr(f"{cube}.ty")
+        result_tz = cmds.getAttr(f"{cube}.tz")
         expected_tx = -4  # was 1, but -5 comes from parent
         expected_ty = 2
         expected_tz = 3
@@ -469,15 +469,15 @@ class TestAttributeUtils(unittest.TestCase):
         attr_utils.set_trs_attr(target_obj=cube, value_tuple=(1, 2, 3),
                                 translate=True, rotate=True, scale=True)
 
-        result_tx = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
-        result_ty = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
-        result_tz = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
-        result_rx = maya_test_tools.get_attribute(obj_name=cube, attr_name="rx")
-        result_ry = maya_test_tools.get_attribute(obj_name=cube, attr_name="ry")
-        result_rz = maya_test_tools.get_attribute(obj_name=cube, attr_name="rz")
-        result_sx = maya_test_tools.get_attribute(obj_name=cube, attr_name="sx")
-        result_sy = maya_test_tools.get_attribute(obj_name=cube, attr_name="sy")
-        result_sz = maya_test_tools.get_attribute(obj_name=cube, attr_name="sz")
+        result_tx = cmds.getAttr(f"{cube}.tx")
+        result_ty = cmds.getAttr(f"{cube}.ty")
+        result_tz = cmds.getAttr(f"{cube}.tz")
+        result_rx = cmds.getAttr(f"{cube}.rx")
+        result_ry = cmds.getAttr(f"{cube}.ry")
+        result_rz = cmds.getAttr(f"{cube}.rz")
+        result_sx = cmds.getAttr(f"{cube}.sx")
+        result_sy = cmds.getAttr(f"{cube}.sy")
+        result_sz = cmds.getAttr(f"{cube}.sz")
         expected_x = 1
         for attr in [result_tx, result_rx, result_sx]:
             self.assertAlmostEqualSigFig(expected_x, attr)
@@ -492,9 +492,9 @@ class TestAttributeUtils(unittest.TestCase):
         cube = maya_test_tools.create_poly_cube()
         attr_utils.set_trs_attr(target_obj=cube, value_tuple=(1, 2, 3), translate=True)
 
-        result_tx = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
-        result_ty = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
-        result_tz = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
+        result_tx = cmds.getAttr(f"{cube}.tx")
+        result_ty = cmds.getAttr(f"{cube}.ty")
+        result_tz = cmds.getAttr(f"{cube}.tz")
         expected_tx = 1
         expected_ty = 2
         expected_tz = 3
@@ -510,9 +510,9 @@ class TestAttributeUtils(unittest.TestCase):
         attr_utils.set_trs_attr(target_obj=cube, value_tuple=(1, 2, 3),
                                 translate=False, rotate=True, scale=False)
 
-        result_rx = maya_test_tools.get_attribute(obj_name=cube, attr_name="rx")
-        result_ry = maya_test_tools.get_attribute(obj_name=cube, attr_name="ry")
-        result_rz = maya_test_tools.get_attribute(obj_name=cube, attr_name="rz")
+        result_rx = cmds.getAttr(f"{cube}.rx")
+        result_ry = cmds.getAttr(f"{cube}.ry")
+        result_rz = cmds.getAttr(f"{cube}.rz")
         expected_rx = 1
         expected_ry = 2
         expected_rz = 3
@@ -528,9 +528,9 @@ class TestAttributeUtils(unittest.TestCase):
         attr_utils.set_trs_attr(target_obj=cube, value_tuple=(1, 2, 3),
                                 translate=False, rotate=False, scale=True)
 
-        result_sx = maya_test_tools.get_attribute(obj_name=cube, attr_name="sx")
-        result_sy = maya_test_tools.get_attribute(obj_name=cube, attr_name="sy")
-        result_sz = maya_test_tools.get_attribute(obj_name=cube, attr_name="sz")
+        result_sx = cmds.getAttr(f"{cube}.sx")
+        result_sy = cmds.getAttr(f"{cube}.sy")
+        result_sz = cmds.getAttr(f"{cube}.sz")
         expected_sx = 1
         expected_sy = 2
         expected_sz = 3
@@ -546,9 +546,9 @@ class TestAttributeUtils(unittest.TestCase):
         attr_utils.set_trs_attr(target_obj=cube, value_tuple=(1, 2, 3),
                                 translate=True, rotate=False, scale=False, space="object")
 
-        result_tx = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
-        result_ty = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
-        result_tz = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
+        result_tx = cmds.getAttr(f"{cube}.tx")
+        result_ty = cmds.getAttr(f"{cube}.ty")
+        result_tz = cmds.getAttr(f"{cube}.tz")
         expected_ty = 2
         expected_tx = 1
         expected_tz = 3
@@ -564,9 +564,9 @@ class TestAttributeUtils(unittest.TestCase):
         attr_utils.set_trs_attr(target_obj=cube, value_tuple=(1, 2, 3),
                                 translate=False, rotate=True, scale=False, space="object")
 
-        result_rx = maya_test_tools.get_attribute(obj_name=cube, attr_name="rx")
-        result_ry = maya_test_tools.get_attribute(obj_name=cube, attr_name="ry")
-        result_rz = maya_test_tools.get_attribute(obj_name=cube, attr_name="rz")
+        result_rx = cmds.getAttr(f"{cube}.rx")
+        result_ry = cmds.getAttr(f"{cube}.ry")
+        result_rz = cmds.getAttr(f"{cube}.rz")
         expected_rx = 1
         expected_ry = 2
         expected_rz = 3
@@ -582,9 +582,9 @@ class TestAttributeUtils(unittest.TestCase):
         attr_utils.set_trs_attr(target_obj=cube, value_tuple=(1, 2, 3),
                                 translate=False, rotate=False, scale=True, space="object")
 
-        result_sx = maya_test_tools.get_attribute(obj_name=cube, attr_name="sx")
-        result_sy = maya_test_tools.get_attribute(obj_name=cube, attr_name="sy")
-        result_sz = maya_test_tools.get_attribute(obj_name=cube, attr_name="sz")
+        result_sx = cmds.getAttr(f"{cube}.sx")
+        result_sy = cmds.getAttr(f"{cube}.sy")
+        result_sz = cmds.getAttr(f"{cube}.sz")
         expected_sx = 1
         expected_sy = 2
         expected_sz = 3
@@ -754,9 +754,9 @@ class TestAttributeUtils(unittest.TestCase):
     def test_get_trs_attr_as_list(self):
         cube = maya_test_tools.create_poly_cube()
 
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="tx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="rx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="sx", value=5)
+        cmds.setAttr(f"{cube}.tx", 5)
+        cmds.setAttr(f"{cube}.rx", 5)
+        cmds.setAttr(f"{cube}.sx", 5)
 
         result = attr_utils.get_trs_attr_as_list(cube)
         expected = [5, 0, 0, 5, 0, 0, 5, 1, 1]
@@ -765,9 +765,9 @@ class TestAttributeUtils(unittest.TestCase):
     def test_get_trs_attr_as_formatted_string(self):
         cube = maya_test_tools.create_poly_cube()
 
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="tx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="rx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="sx", value=5)
+        cmds.setAttr(f"{cube}.tx", 5)
+        cmds.setAttr(f"{cube}.rx", 5)
+        cmds.setAttr(f"{cube}.sx", 5)
 
         result = attr_utils.get_trs_attr_as_formatted_string(cube)
         expected = 'source_obj = "pCube1"\ntrs_attr_list = [5, 0, 0, 5, 0, 0, 5, 1, 1]'
@@ -776,9 +776,9 @@ class TestAttributeUtils(unittest.TestCase):
     def test_get_trs_attr_as_formatted_string_description(self):
         cube = maya_test_tools.create_poly_cube()
 
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="tx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="rx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="sx", value=5)
+        cmds.setAttr(f"{cube}.tx", 5)
+        cmds.setAttr(f"{cube}.rx", 5)
+        cmds.setAttr(f"{cube}.sx", 5)
 
         result = attr_utils.get_trs_attr_as_formatted_string(cube, add_description=True)
         expected = '# Transform Data for "pCube1":\nsource_obj = "pCube1"\ntrs_attr_list = [5, 0, 0, 5, 0, 0, 5, 1, 1]'
@@ -787,9 +787,9 @@ class TestAttributeUtils(unittest.TestCase):
     def test_get_trs_attr_as_formatted_string_no_object(self):
         cube = maya_test_tools.create_poly_cube()
 
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="tx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="rx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="sx", value=5)
+        cmds.setAttr(f"{cube}.tx", 5)
+        cmds.setAttr(f"{cube}.rx", 5)
+        cmds.setAttr(f"{cube}.sx", 5)
 
         result = attr_utils.get_trs_attr_as_formatted_string(cube, add_object=False)
         expected = 'trs_attr_list = [5, 0, 0, 5, 0, 0, 5, 1, 1]'
@@ -798,9 +798,9 @@ class TestAttributeUtils(unittest.TestCase):
     def test_get_trs_attr_as_formatted_string_separated_channels(self):
         cube = maya_test_tools.create_poly_cube()
 
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="tx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="rx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="sx", value=5)
+        cmds.setAttr(f"{cube}.tx", 5)
+        cmds.setAttr(f"{cube}.rx", 5)
+        cmds.setAttr(f"{cube}.sx", 5)
 
         result = attr_utils.get_trs_attr_as_formatted_string(cube, separate_channels=True, add_object=False)
         expected = 't_attr_list = [5, 0, 0]\nr_attr_list = [5, 0, 0]\ns_attr_list = [5, 1, 1]'

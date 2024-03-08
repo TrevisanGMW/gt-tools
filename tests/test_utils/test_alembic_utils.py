@@ -17,6 +17,7 @@ for to_append in [package_root_dir, tests_dir]:
         sys.path.append(to_append)
 from tests import maya_test_tools
 from gt.utils import alembic_utils
+cmds = maya_test_tools.cmds
 
 
 def import_alembic_test_file():
@@ -27,7 +28,7 @@ def import_alembic_test_file():
         str: Name of the test alembic node: "cube_move_z_AlembicNode"
     """
     maya_test_tools.import_data_file("cube_move_z.abc")
-    alembic_nodes = maya_test_tools.list_objects(typ='AlembicNode') or []
+    alembic_nodes = cmds.ls(typ='AlembicNode') or []
     if alembic_nodes:
         return alembic_nodes[0]
 
@@ -64,38 +65,38 @@ class TestAlembicUtils(unittest.TestCase):
 
     def test_get_alembic_nodes(self):
         alembic_utils.load_alembic_plugin()  # Make sure alembic nodes can be created
-        alembic_node = maya_test_tools.create_node(node_type="AlembicNode")
+        alembic_node = cmds.createNode("AlembicNode")
         result = alembic_utils.get_alembic_nodes()
         expected = [alembic_node]
         self.assertEqual(expected, result)
 
     def test_get_alembic_nodes_two(self):
         alembic_utils.load_alembic_plugin()  # Make sure alembic nodes can be created
-        alembic_node_a = maya_test_tools.create_node(node_type="AlembicNode")
-        alembic_node_b = maya_test_tools.create_node(node_type="AlembicNode")
+        alembic_node_a = cmds.createNode("AlembicNode")
+        alembic_node_b = cmds.createNode("AlembicNode")
         result = alembic_utils.get_alembic_nodes()
         expected = [alembic_node_a, alembic_node_b]
         self.assertEqual(expected, result)
 
     def test_get_alembic_cycle_as_string(self):
         alembic_utils.load_alembic_plugin()  # Make sure alembic nodes can be created
-        alembic_node = maya_test_tools.create_node("AlembicNode")  # Default 0 = Hold
+        alembic_node = cmds.createNode("AlembicNode")  # Default 0 = Hold
         result = alembic_utils.get_alembic_cycle_as_string(alembic_node)  # Make sure alembic nodes can be created
         expected = 'Hold'
         self.assertEqual(expected, result)
 
     def test_get_alembic_cycle_as_string_reverse(self):
         alembic_utils.load_alembic_plugin()  # Make sure alembic nodes can be created
-        alembic_node = maya_test_tools.create_node(node_type="AlembicNode")  # Default 0 = Hold
-        maya_test_tools.set_attribute(obj_name=alembic_node, attr_name="cycleType", value=2)  # Change to 2 = Reverse
+        alembic_node = cmds.createNode("AlembicNode")  # Default 0 = Hold
+        cmds.setAttr(f"{alembic_node}.cycleType", 2)  # Change to 2 = Reverse
         result = alembic_utils.get_alembic_cycle_as_string(alembic_node)  # Make sure alembic nodes can be created
         expected = 'Reverse'
         self.assertEqual(expected, result)
 
     def test_alembic_node(self):
         alembic_utils.load_alembic_plugin()  # Make sure alembic nodes can be created
-        alembic_node = maya_test_tools.create_node(node_type="AlembicNode")  # Default 0 = Hold
-        maya_test_tools.set_attribute(obj_name=alembic_node, attr_name="cycleType", value=2)  # Change to 2 = Reverse
+        alembic_node = cmds.createNode("AlembicNode")  # Default 0 = Hold
+        cmds.setAttr(f"{alembic_node}.cycleType", 2)  # Change to 2 = Reverse
         result = alembic_utils.get_alembic_cycle_as_string(alembic_node)  # Make sure alembic nodes can be created
         expected = 'Reverse'
         self.assertEqual(expected, result)
@@ -139,7 +140,7 @@ class TestAlembicUtils(unittest.TestCase):
     def test_alembic_node_class_mesh_cache(self):
         alembic_node = import_alembic_test_file()
         result = alembic_utils.AlembicNode(alembic_node)
-        expected = maya_test_tools.get_attribute(obj_name=alembic_node, attr_name="abc_File")
+        expected = cmds.getAttr(f"{alembic_node}.abc_File")
         self.assertEqual(expected, result.mesh_cache)
 
     def test_alembic_node_class_transform(self):

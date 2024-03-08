@@ -69,65 +69,6 @@ def create_poly_cylinder(*args, **kwargs):
     return None
 
 
-def create_node(node_type, *args, **kwargs):
-    """
-    Creates poly cube
-    Args:
-        node_type (str): Node type to create (must exist) - When using 3rd party plugins, make sure to load them first.
-    "createNode" relevant parameters:
-        name (str): Name of the node
-    """
-    return cmds.createNode(node_type, *args, **kwargs)
-
-
-def set_attribute(obj_name, attr_name, value, *args, **kwargs):
-    """
-    Sets an attribute to the provided value in case it's not locked (Uses "cmds.setAttr" function so object space)
-
-    Args:
-        obj_name (str): Name of the target object (object that will receive new values)
-        attr_name (str): Name of the attribute to apply (no need to add ".", e.g. "rx" would be enough)
-        value (any): Value used to set attribute. e.g. 1.5, 2, 5...
-    """
-    cmds.setAttr(f"{obj_name}.{attr_name}", value, *args, **kwargs)
-
-
-def get_attribute(obj_name, attr_name, *args, **kwargs):
-    """
-    This command returns the value of the named object's attribute.
-    Args:
-        obj_name (str): Name of the object with the attribute (No need to add a ".")
-        attr_name (str): Name of the attribute (must already exist)
-    Returns:
-        any: value found in the queried attribute
-    """
-    return cmds.getAttr(f"{obj_name}.{attr_name}", *args, **kwargs)
-
-
-def list_objects(*args, **kwargs):
-    """
-    Same as "cmds.ls()"
-    "ls" relevant parameters:
-        selection (bool): List objects that are currently selected.
-        long (bool): Return full path names for Dag objects. By default the shortest unique name is returned.
-    Returns:
-        list: A list of objects found in the scene (according to provided parameters)
-    """
-    return cmds.ls(*args, **kwargs)
-
-
-def list_relatives(*args, **kwargs):
-    """
-    Same as "cmds.listRelatives()"
-    "listRelatives" relevant parameters:
-        children (bool): List object children
-        shapes (bool): List object shapes
-    Returns:
-        list: A list of relative objects
-    """
-    return cmds.listRelatives(*args, **kwargs)
-
-
 def list_obj_types(obj_list):
     """
     Returns a dictionary with the object types

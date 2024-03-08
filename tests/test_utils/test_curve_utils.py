@@ -79,21 +79,21 @@ class TestCurveUtils(unittest.TestCase):
     def test_combine_curves_list_two(self):
         import_curve_test_file()
         combined_crv = curve_utils.combine_curves_list(["curve_01", "curve_02"])
-        result = maya_test_tools.list_relatives(combined_crv, shapes=True)
+        result = cmds.listRelatives(combined_crv, shapes=True)
         expected = ['curve_Shape1', 'curve_Shape2']
         self.assertEqual(expected, result)
 
     def test_combine_curves_list_multiple(self):
         import_curve_test_file()
         combined_crv = curve_utils.combine_curves_list(["curve_01", "curve_02", "bezier_01", "bezier_02"])
-        result = maya_test_tools.list_relatives(combined_crv, shapes=True)
+        result = cmds.listRelatives(combined_crv, shapes=True)
         expected = ['curve_Shape1', 'curve_Shape2', 'bezier_Shape1', 'bezier_Shape2']
         self.assertEqual(expected, result)
 
     def test_combine_curves_list_bezier_to_nurbs(self):
         import_curve_test_file()
         combined_crv = curve_utils.combine_curves_list(["bezier_01", "bezier_02"], convert_bezier_to_nurbs=True)
-        shapes = maya_test_tools.list_relatives(combined_crv, shapes=True)
+        shapes = cmds.listRelatives(combined_crv, shapes=True)
         result = maya_test_tools.list_obj_types(shapes)
         expected = {'bezier_Shape1': 'nurbsCurve', 'bezier_Shape2': 'nurbsCurve'}
         self.assertEqual(expected, result)
@@ -101,7 +101,7 @@ class TestCurveUtils(unittest.TestCase):
     def test_combine_curves_list_no_bezier_to_nurbs(self):
         import_curve_test_file()
         combined_crv = curve_utils.combine_curves_list(["bezier_01", "bezier_02"], convert_bezier_to_nurbs=False)
-        shapes = maya_test_tools.list_relatives(combined_crv, shapes=True)
+        shapes = cmds.listRelatives(combined_crv, shapes=True)
         result = maya_test_tools.list_obj_types(shapes)
         expected = {'bezier_Shape1': 'bezierCurve', 'bezier_Shape2': 'bezierCurve'}
         self.assertEqual(expected, result)
@@ -126,7 +126,7 @@ class TestCurveUtils(unittest.TestCase):
         result = curve_utils.selected_curves_combine(show_bezier_conversion_dialog=False)
         expected = 'curve_01'
         self.assertEqual(expected, result)
-        children = maya_test_tools.list_relatives(result, children=True)
+        children = cmds.listRelatives(result, children=True)
         expected = ['curve_Shape1', 'curve_Shape2']
         self.assertEqual(expected, children)
 
@@ -237,7 +237,7 @@ class TestCurveUtils(unittest.TestCase):
                                              degree=1,
                                              is_bezier=False)
         created_crv = curve_shape.build()
-        shapes = maya_test_tools.list_relatives(created_crv, shapes=True)
+        shapes = cmds.listRelatives(created_crv, shapes=True)
         new_curve_shape = curve_utils.CurveShape(read_existing_shape=shapes[0])
         result = new_curve_shape.get_data_as_dict()
         expected = {'degree': 1,
@@ -424,31 +424,31 @@ class TestCurveUtils(unittest.TestCase):
         trans = Transform(pos, rot, sca)
         curve = curve_utils.Curve(name="my_curve", shapes=[curve_shape], transform=trans)
         curve_name = curve.build()
-        result = maya_test_tools.get_attribute(obj_name=curve_name, attr_name="tx")
+        result = cmds.getAttr(f"{curve_name}.tx")
         expected = 1
         self.assertAlmostEqualSigFig(expected, result)
-        result = maya_test_tools.get_attribute(obj_name=curve_name, attr_name="ty")
+        result = cmds.getAttr(f"{curve_name}.ty")
         expected = 2
         self.assertAlmostEqualSigFig(expected, result)
-        result = maya_test_tools.get_attribute(obj_name=curve_name, attr_name="tz")
+        result = cmds.getAttr(f"{curve_name}.tz")
         expected = 3
         self.assertAlmostEqualSigFig(expected, result)
-        result = maya_test_tools.get_attribute(obj_name=curve_name, attr_name="rx")
+        result = cmds.getAttr(f"{curve_name}.rx")
         expected = 4
         self.assertAlmostEqualSigFig(expected, result)
-        result = maya_test_tools.get_attribute(obj_name=curve_name, attr_name="ry")
+        result = cmds.getAttr(f"{curve_name}.ry")
         expected = 5
         self.assertAlmostEqualSigFig(expected, result)
-        result = maya_test_tools.get_attribute(obj_name=curve_name, attr_name="rz")
+        result = cmds.getAttr(f"{curve_name}.rz")
         expected = 6
         self.assertAlmostEqualSigFig(expected, result)
-        result = maya_test_tools.get_attribute(obj_name=curve_name, attr_name="sx")
+        result = cmds.getAttr(f"{curve_name}.sx")
         expected = 7
         self.assertAlmostEqualSigFig(expected, result)
-        result = maya_test_tools.get_attribute(obj_name=curve_name, attr_name="sy")
+        result = cmds.getAttr(f"{curve_name}.sy")
         expected = 8
         self.assertAlmostEqualSigFig(expected, result)
-        result = maya_test_tools.get_attribute(obj_name=curve_name, attr_name="sz")
+        result = cmds.getAttr(f"{curve_name}.sz")
         expected = 9
         self.assertAlmostEqualSigFig(expected, result)
 
@@ -587,9 +587,7 @@ class TestCurveUtils(unittest.TestCase):
         curves_to_test = ["curve_01", "curve_02"]
         cmds.select(curves_to_test)
         curve_utils.add_thumbnail_metadata_attr_to_selection()
-        maya_test_tools.set_attribute(obj_name="curve_01",
-                                      attr_name=curve_utils.PROJECTION_AXIS_KEY,
-                                      value=0)
+        cmds.setAttr(f'curve_01.{curve_utils.PROJECTION_AXIS_KEY}', 0)
         curve_utils.write_curve_files_from_selection(target_dir=temp_folder)
         expected = ['curve_01.crv', 'curve_02.crv']
         result = sorted(os.listdir(temp_folder))  # Sorted because MacOS might change the order
@@ -703,14 +701,14 @@ class TestCurveUtils(unittest.TestCase):
 
     def test_create_text_shapes(self):
         curve = curve_utils.create_text("curve", font="Arial")
-        result = maya_test_tools.list_relatives(curve, shapes=True)
+        result = cmds.listRelatives(curve, shapes=True)
         expected = ['curve_crv_01Shape', 'curve_crv_02Shape', 'curve_crv_03Shape',
                     'curve_crv_04Shape', 'curve_crv_05Shape', 'curve_crv_06Shape']
         self.assertEqual(expected, result)
 
     def test_create_text_shape_types(self):
         curve = curve_utils.create_text("curve")
-        shapes = maya_test_tools.list_relatives(curve, shapes=True)
+        shapes = cmds.listRelatives(curve, shapes=True)
         type_dict = maya_test_tools.list_obj_types(shapes)
         expected = "nurbsCurve"
         for obj, obj_type in type_dict.items():

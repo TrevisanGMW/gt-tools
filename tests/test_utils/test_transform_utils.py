@@ -556,14 +556,14 @@ class TestTransformUtils(unittest.TestCase):
 
     def test_move_to_origin(self):
         cube = maya_test_tools.create_poly_cube()
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="tx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="ty", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="tz", value=5)
+        cmds.setAttr(f"{cube}.tx", 5)
+        cmds.setAttr(f"{cube}.ty", 5)
+        cmds.setAttr(f"{cube}.tz", 5)
         transform_utils.move_to_origin(cube)
         expected = 0
-        result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
-        result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
-        result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
+        result_x = cmds.getAttr(f"{cube}.tx")
+        result_y = cmds.getAttr(f"{cube}.ty")
+        result_z = cmds.getAttr(f"{cube}.tz")
         self.assertEqual(expected, result_x)
         self.assertEqual(expected, result_y)
         self.assertEqual(expected, result_z)
@@ -571,15 +571,15 @@ class TestTransformUtils(unittest.TestCase):
     @patch('sys.stdout', new_callable=StringIO)
     def test_move_selection_to_origin(self, mocked_stdout):
         cube = maya_test_tools.create_poly_cube()
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="tx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="ty", value=5)
-        maya_test_tools.set_attribute(obj_name=cube, attr_name="tz", value=5)
+        cmds.setAttr(f"{cube}.tx", 5)
+        cmds.setAttr(f"{cube}.ty", 5)
+        cmds.setAttr(f"{cube}.tz", 5)
         cmds.select(cube)
         transform_utils.move_selection_to_origin()
         expected = 0
-        result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
-        result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
-        result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
+        result_x = cmds.getAttr(f"{cube}.tx")
+        result_y = cmds.getAttr(f"{cube}.ty")
+        result_z = cmds.getAttr(f"{cube}.tz")
         self.assertEqual(expected, result_x)
         self.assertEqual(expected, result_y)
         self.assertEqual(expected, result_z)
@@ -640,15 +640,15 @@ class TestTransformUtils(unittest.TestCase):
         cube_target_one = maya_test_tools.create_poly_cube()
         cube_target_two = maya_test_tools.create_poly_cube()
         targets = [cube_target_one, cube_target_two]
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="tx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="ty", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="tz", value=5)
+        cmds.setAttr(f"{cube_source}.tx", 5)
+        cmds.setAttr(f"{cube_source}.ty", 5)
+        cmds.setAttr(f"{cube_source}.tz", 5)
         transform_utils.match_translate(source=cube_source, target_list=targets)
         expected = 5
         for cube in targets:
-            result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
-            result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
-            result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
+            result_x = cmds.getAttr(f"{cube}.tx")
+            result_y = cmds.getAttr(f"{cube}.ty")
+            result_z = cmds.getAttr(f"{cube}.tz")
             self.assertEqual(expected, result_x)
             self.assertEqual(expected, result_y)
             self.assertEqual(expected, result_z)
@@ -658,17 +658,17 @@ class TestTransformUtils(unittest.TestCase):
         cube_target_one = maya_test_tools.create_poly_cube()
         cube_target_two = maya_test_tools.create_poly_cube()
         targets = [cube_target_one, cube_target_two]
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="tx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="ty", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="tz", value=5)
+        cmds.setAttr(f"{cube_source}.tx", 5)
+        cmds.setAttr(f"{cube_source}.ty", 5)
+        cmds.setAttr(f"{cube_source}.tz", 5)
         transform_utils.match_translate(source=cube_source, target_list=targets, skip="x")
         expected_x = 0
         expected_y = 5
         expected_z = 5
         for cube in targets:
-            result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
-            result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
-            result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
+            result_x = cmds.getAttr(f"{cube}.tx")
+            result_y = cmds.getAttr(f"{cube}.ty")
+            result_z = cmds.getAttr(f"{cube}.tz")
             self.assertEqual(expected_x, result_x)
             self.assertEqual(expected_y, result_y)
             self.assertEqual(expected_z, result_z)
@@ -678,17 +678,17 @@ class TestTransformUtils(unittest.TestCase):
         cube_target_one = maya_test_tools.create_poly_cube()
         cube_target_two = maya_test_tools.create_poly_cube()
         targets = [cube_target_one, cube_target_two]
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="tx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="ty", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="tz", value=5)
+        cmds.setAttr(f"{cube_source}.tx", 5)
+        cmds.setAttr(f"{cube_source}.ty", 5)
+        cmds.setAttr(f"{cube_source}.tz", 5)
         transform_utils.match_translate(source=cube_source, target_list=targets, skip="y")
         expected_x = 5
         expected_y = 0
         expected_z = 5
         for cube in targets:
-            result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
-            result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
-            result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
+            result_x = cmds.getAttr(f"{cube}.tx")
+            result_y = cmds.getAttr(f"{cube}.ty")
+            result_z = cmds.getAttr(f"{cube}.tz")
             self.assertEqual(expected_x, result_x)
             self.assertEqual(expected_y, result_y)
             self.assertEqual(expected_z, result_z)
@@ -698,17 +698,17 @@ class TestTransformUtils(unittest.TestCase):
         cube_target_one = maya_test_tools.create_poly_cube()
         cube_target_two = maya_test_tools.create_poly_cube()
         targets = [cube_target_one, cube_target_two]
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="tx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="ty", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="tz", value=5)
+        cmds.setAttr(f"{cube_source}.tx", 5)
+        cmds.setAttr(f"{cube_source}.ty", 5)
+        cmds.setAttr(f"{cube_source}.tz", 5)
         transform_utils.match_translate(source=cube_source, target_list=targets, skip="z")
         expected_x = 5
         expected_y = 5
         expected_z = 0
         for cube in targets:
-            result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
-            result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
-            result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
+            result_x = cmds.getAttr(f"{cube}.tx")
+            result_y = cmds.getAttr(f"{cube}.ty")
+            result_z = cmds.getAttr(f"{cube}.tz")
             self.assertEqual(expected_x, result_x)
             self.assertEqual(expected_y, result_y)
             self.assertEqual(expected_z, result_z)
@@ -718,17 +718,17 @@ class TestTransformUtils(unittest.TestCase):
         cube_target_one = maya_test_tools.create_poly_cube()
         cube_target_two = maya_test_tools.create_poly_cube()
         targets = [cube_target_one, cube_target_two]
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="tx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="ty", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="tz", value=5)
+        cmds.setAttr(f"{cube_source}.tx", 5)
+        cmds.setAttr(f"{cube_source}.ty", 5)
+        cmds.setAttr(f"{cube_source}.tz", 5)
         transform_utils.match_translate(source=cube_source, target_list=targets, skip="xyz")
         expected_x = 0
         expected_y = 0
         expected_z = 0
         for cube in targets:
-            result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
-            result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
-            result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
+            result_x = cmds.getAttr(f"{cube}.tx")
+            result_y = cmds.getAttr(f"{cube}.ty")
+            result_z = cmds.getAttr(f"{cube}.tz")
             self.assertEqual(expected_x, result_x)
             self.assertEqual(expected_y, result_y)
             self.assertEqual(expected_z, result_z)
@@ -738,17 +738,17 @@ class TestTransformUtils(unittest.TestCase):
         cube_target_one = maya_test_tools.create_poly_cube()
         cube_target_two = maya_test_tools.create_poly_cube()
         targets = [cube_target_one, cube_target_two]
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="tx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="ty", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="tz", value=5)
+        cmds.setAttr(f"{cube_source}.tx", 5)
+        cmds.setAttr(f"{cube_source}.ty", 5)
+        cmds.setAttr(f"{cube_source}.tz", 5)
         transform_utils.match_translate(source=cube_source, target_list=targets, skip=("x", "y", "z"))
         expected_x = 0
         expected_y = 0
         expected_z = 0
         for cube in targets:
-            result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
-            result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
-            result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
+            result_x = cmds.getAttr(f"{cube}.tx")
+            result_y = cmds.getAttr(f"{cube}.ty")
+            result_z = cmds.getAttr(f"{cube}.tz")
             self.assertEqual(expected_x, result_x)
             self.assertEqual(expected_y, result_y)
             self.assertEqual(expected_z, result_z)
@@ -758,15 +758,15 @@ class TestTransformUtils(unittest.TestCase):
         cube_target_one = maya_test_tools.create_poly_cube()
         cube_target_two = maya_test_tools.create_poly_cube()
         targets = [cube_target_one, cube_target_two]
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="rx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="ry", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="rz", value=5)
+        cmds.setAttr(f"{cube_source}.rx", 5)
+        cmds.setAttr(f"{cube_source}.ry", 5)
+        cmds.setAttr(f"{cube_source}.rz", 5)
         transform_utils.match_rotate(source=cube_source, target_list=targets)
         expected = 5
         for cube in targets:
-            result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="rx")
-            result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="ry")
-            result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="rz")
+            result_x = cmds.getAttr(f"{cube}.rx")
+            result_y = cmds.getAttr(f"{cube}.ry")
+            result_z = cmds.getAttr(f"{cube}.rz")
             self.assertAlmostEqualSigFig(expected, result_x)
             self.assertAlmostEqualSigFig(expected, result_y)
             self.assertAlmostEqualSigFig(expected, result_z)
@@ -776,17 +776,17 @@ class TestTransformUtils(unittest.TestCase):
         cube_target_one = maya_test_tools.create_poly_cube()
         cube_target_two = maya_test_tools.create_poly_cube()
         targets = [cube_target_one, cube_target_two]
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="rx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="ry", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="rz", value=5)
+        cmds.setAttr(f"{cube_source}.rx", 5)
+        cmds.setAttr(f"{cube_source}.ry", 5)
+        cmds.setAttr(f"{cube_source}.rz", 5)
         transform_utils.match_rotate(source=cube_source, target_list=targets, skip="x")
         expected_x = 0
         expected_y = 5
         expected_z = 5
         for cube in targets:
-            result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="rx")
-            result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="ry")
-            result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="rz")
+            result_x = cmds.getAttr(f"{cube}.rx")
+            result_y = cmds.getAttr(f"{cube}.ry")
+            result_z = cmds.getAttr(f"{cube}.rz")
             self.assertAlmostEqualSigFig(expected_x, result_x)
             self.assertAlmostEqualSigFig(expected_y, result_y)
             self.assertAlmostEqualSigFig(expected_z, result_z)
@@ -796,17 +796,17 @@ class TestTransformUtils(unittest.TestCase):
         cube_target_one = maya_test_tools.create_poly_cube()
         cube_target_two = maya_test_tools.create_poly_cube()
         targets = [cube_target_one, cube_target_two]
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="rx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="ry", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="rz", value=5)
+        cmds.setAttr(f"{cube_source}.rx", 5)
+        cmds.setAttr(f"{cube_source}.ry", 5)
+        cmds.setAttr(f"{cube_source}.rz", 5)
         transform_utils.match_rotate(source=cube_source, target_list=targets, skip="y")
         expected_x = 5
         expected_y = 0
         expected_z = 5
         for cube in targets:
-            result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="rx")
-            result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="ry")
-            result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="rz")
+            result_x = cmds.getAttr(f"{cube}.rx")
+            result_y = cmds.getAttr(f"{cube}.ry")
+            result_z = cmds.getAttr(f"{cube}.rz")
             self.assertAlmostEqualSigFig(expected_x, result_x)
             self.assertAlmostEqualSigFig(expected_y, result_y)
             self.assertAlmostEqualSigFig(expected_z, result_z)
@@ -816,17 +816,17 @@ class TestTransformUtils(unittest.TestCase):
         cube_target_one = maya_test_tools.create_poly_cube()
         cube_target_two = maya_test_tools.create_poly_cube()
         targets = [cube_target_one, cube_target_two]
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="rx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="ry", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="rz", value=5)
+        cmds.setAttr(f"{cube_source}.rx", 5)
+        cmds.setAttr(f"{cube_source}.ry", 5)
+        cmds.setAttr(f"{cube_source}.rz", 5)
         transform_utils.match_rotate(source=cube_source, target_list=targets, skip="z")
         expected_x = 5
         expected_y = 5
         expected_z = 0
         for cube in targets:
-            result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="rx")
-            result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="ry")
-            result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="rz")
+            result_x = cmds.getAttr(f"{cube}.rx")
+            result_y = cmds.getAttr(f"{cube}.ry")
+            result_z = cmds.getAttr(f"{cube}.rz")
             self.assertAlmostEqualSigFig(expected_x, result_x)
             self.assertAlmostEqualSigFig(expected_y, result_y)
             self.assertAlmostEqualSigFig(expected_z, result_z)
@@ -836,17 +836,17 @@ class TestTransformUtils(unittest.TestCase):
         cube_target_one = maya_test_tools.create_poly_cube()
         cube_target_two = maya_test_tools.create_poly_cube()
         targets = [cube_target_one, cube_target_two]
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="rx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="ry", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="rz", value=5)
+        cmds.setAttr(f"{cube_source}.rx", 5)
+        cmds.setAttr(f"{cube_source}.ry", 5)
+        cmds.setAttr(f"{cube_source}.rz", 5)
         transform_utils.match_rotate(source=cube_source, target_list=targets, skip="xyz")
         expected_x = 0
         expected_y = 0
         expected_z = 0
         for cube in targets:
-            result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="rx")
-            result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="ry")
-            result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="rz")
+            result_x = cmds.getAttr(f"{cube}.rx")
+            result_y = cmds.getAttr(f"{cube}.ry")
+            result_z = cmds.getAttr(f"{cube}.rz")
             self.assertAlmostEqualSigFig(expected_x, result_x)
             self.assertAlmostEqualSigFig(expected_y, result_y)
             self.assertAlmostEqualSigFig(expected_z, result_z)
@@ -856,17 +856,17 @@ class TestTransformUtils(unittest.TestCase):
         cube_target_one = maya_test_tools.create_poly_cube()
         cube_target_two = maya_test_tools.create_poly_cube()
         targets = [cube_target_one, cube_target_two]
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="rx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="ry", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="rz", value=5)
+        cmds.setAttr(f"{cube_source}.rx", 5)
+        cmds.setAttr(f"{cube_source}.ry", 5)
+        cmds.setAttr(f"{cube_source}.rz", 5)
         transform_utils.match_rotate(source=cube_source, target_list=targets, skip=("x", "y", "z"))
         expected_x = 0
         expected_y = 0
         expected_z = 0
         for cube in targets:
-            result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="rx")
-            result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="ry")
-            result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="rz")
+            result_x = cmds.getAttr(f"{cube}.rx")
+            result_y = cmds.getAttr(f"{cube}.ry")
+            result_z = cmds.getAttr(f"{cube}.rz")
             self.assertAlmostEqualSigFig(expected_x, result_x)
             self.assertAlmostEqualSigFig(expected_y, result_y)
             self.assertAlmostEqualSigFig(expected_z, result_z)
@@ -876,15 +876,15 @@ class TestTransformUtils(unittest.TestCase):
         cube_target_one = maya_test_tools.create_poly_cube()
         cube_target_two = maya_test_tools.create_poly_cube()
         targets = [cube_target_one, cube_target_two]
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="sx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="sy", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="sz", value=5)
+        cmds.setAttr(f"{cube_source}.sx", 5)
+        cmds.setAttr(f"{cube_source}.sy", 5)
+        cmds.setAttr(f"{cube_source}.sz", 5)
         transform_utils.match_scale(source=cube_source, target_list=targets)
         expected = 5
         for cube in targets:
-            result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="sx")
-            result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="sy")
-            result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="sz")
+            result_x = cmds.getAttr(f"{cube}.sx")
+            result_y = cmds.getAttr(f"{cube}.sy")
+            result_z = cmds.getAttr(f"{cube}.sz")
             self.assertEqual(expected, result_x)
             self.assertEqual(expected, result_y)
             self.assertEqual(expected, result_z)
@@ -894,17 +894,17 @@ class TestTransformUtils(unittest.TestCase):
         cube_target_one = maya_test_tools.create_poly_cube()
         cube_target_two = maya_test_tools.create_poly_cube()
         targets = [cube_target_one, cube_target_two]
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="sx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="sy", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="sz", value=5)
+        cmds.setAttr(f"{cube_source}.sx", 5)
+        cmds.setAttr(f"{cube_source}.sy", 5)
+        cmds.setAttr(f"{cube_source}.sz", 5)
         transform_utils.match_scale(source=cube_source, target_list=targets, skip="x")
         expected_x = 1
         expected_y = 5
         expected_z = 5
         for cube in targets:
-            result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="sx")
-            result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="sy")
-            result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="sz")
+            result_x = cmds.getAttr(f"{cube}.sx")
+            result_y = cmds.getAttr(f"{cube}.sy")
+            result_z = cmds.getAttr(f"{cube}.sz")
             self.assertEqual(expected_x, result_x)
             self.assertEqual(expected_y, result_y)
             self.assertEqual(expected_z, result_z)
@@ -914,17 +914,17 @@ class TestTransformUtils(unittest.TestCase):
         cube_target_one = maya_test_tools.create_poly_cube()
         cube_target_two = maya_test_tools.create_poly_cube()
         targets = [cube_target_one, cube_target_two]
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="sx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="sy", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="sz", value=5)
+        cmds.setAttr(f"{cube_source}.sx", 5)
+        cmds.setAttr(f"{cube_source}.sy", 5)
+        cmds.setAttr(f"{cube_source}.sz", 5)
         transform_utils.match_scale(source=cube_source, target_list=targets, skip="y")
         expected_x = 5
         expected_y = 1
         expected_z = 5
         for cube in targets:
-            result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="sx")
-            result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="sy")
-            result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="sz")
+            result_x = cmds.getAttr(f"{cube}.sx")
+            result_y = cmds.getAttr(f"{cube}.sy")
+            result_z = cmds.getAttr(f"{cube}.sz")
             self.assertEqual(expected_x, result_x)
             self.assertEqual(expected_y, result_y)
             self.assertEqual(expected_z, result_z)
@@ -934,17 +934,17 @@ class TestTransformUtils(unittest.TestCase):
         cube_target_one = maya_test_tools.create_poly_cube()
         cube_target_two = maya_test_tools.create_poly_cube()
         targets = [cube_target_one, cube_target_two]
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="sx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="sy", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="sz", value=5)
+        cmds.setAttr(f"{cube_source}.sx", 5)
+        cmds.setAttr(f"{cube_source}.sy", 5)
+        cmds.setAttr(f"{cube_source}.sz", 5)
         transform_utils.match_scale(source=cube_source, target_list=targets, skip="z")
         expected_x = 5
         expected_y = 5
         expected_z = 1
         for cube in targets:
-            result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="sx")
-            result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="sy")
-            result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="sz")
+            result_x = cmds.getAttr(f"{cube}.sx")
+            result_y = cmds.getAttr(f"{cube}.sy")
+            result_z = cmds.getAttr(f"{cube}.sz")
             self.assertEqual(expected_x, result_x)
             self.assertEqual(expected_y, result_y)
             self.assertEqual(expected_z, result_z)
@@ -954,17 +954,17 @@ class TestTransformUtils(unittest.TestCase):
         cube_target_one = maya_test_tools.create_poly_cube()
         cube_target_two = maya_test_tools.create_poly_cube()
         targets = [cube_target_one, cube_target_two]
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="sx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="sy", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="sz", value=5)
+        cmds.setAttr(f"{cube_source}.sx", 5)
+        cmds.setAttr(f"{cube_source}.sy", 5)
+        cmds.setAttr(f"{cube_source}.sz", 5)
         transform_utils.match_scale(source=cube_source, target_list=targets, skip="xyz")
         expected_x = 1
         expected_y = 1
         expected_z = 1
         for cube in targets:
-            result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="sx")
-            result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="sy")
-            result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="sz")
+            result_x = cmds.getAttr(f"{cube}.sx")
+            result_y = cmds.getAttr(f"{cube}.sy")
+            result_z = cmds.getAttr(f"{cube}.sz")
             self.assertEqual(expected_x, result_x)
             self.assertEqual(expected_y, result_y)
             self.assertEqual(expected_z, result_z)
@@ -974,17 +974,17 @@ class TestTransformUtils(unittest.TestCase):
         cube_target_one = maya_test_tools.create_poly_cube()
         cube_target_two = maya_test_tools.create_poly_cube()
         targets = [cube_target_one, cube_target_two]
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="sx", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="sy", value=5)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="sz", value=5)
+        cmds.setAttr(f"{cube_source}.sx", 5)
+        cmds.setAttr(f"{cube_source}.sy", 5)
+        cmds.setAttr(f"{cube_source}.sz", 5)
         transform_utils.match_scale(source=cube_source, target_list=targets, skip=('x', 'y', 'z'))
         expected_x = 1
         expected_y = 1
         expected_z = 1
         for cube in targets:
-            result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="sx")
-            result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="sy")
-            result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="sz")
+            result_x = cmds.getAttr(f"{cube}.sx")
+            result_y = cmds.getAttr(f"{cube}.sy")
+            result_z = cmds.getAttr(f"{cube}.sz")
             self.assertEqual(expected_x, result_x)
             self.assertEqual(expected_y, result_y)
             self.assertEqual(expected_z, result_z)
@@ -995,17 +995,17 @@ class TestTransformUtils(unittest.TestCase):
         cube_target_two = maya_test_tools.create_poly_cube()
         targets = [cube_target_one, cube_target_two]
 
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="tx", value=1)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="ty", value=2)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="tz", value=3)
+        cmds.setAttr(f"{cube_source}.tx", 1)
+        cmds.setAttr(f"{cube_source}.ty", 2)
+        cmds.setAttr(f"{cube_source}.tz", 3)
 
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="rx", value=1)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="ry", value=2)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="rz", value=3)
+        cmds.setAttr(f"{cube_source}.rx", 1)
+        cmds.setAttr(f"{cube_source}.ry", 2)
+        cmds.setAttr(f"{cube_source}.rz", 3)
 
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="sx", value=1)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="sy", value=2)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="sz", value=3)
+        cmds.setAttr(f"{cube_source}.sx", 1)
+        cmds.setAttr(f"{cube_source}.sy", 2)
+        cmds.setAttr(f"{cube_source}.sz", 3)
 
         transform_utils.match_transform(source=cube_source, target_list=targets)
 
@@ -1013,21 +1013,21 @@ class TestTransformUtils(unittest.TestCase):
         expected_y = 2
         expected_z = 3
         for cube in targets:
-            result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
-            result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
-            result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
+            result_x = cmds.getAttr(f"{cube}.tx")
+            result_y = cmds.getAttr(f"{cube}.ty")
+            result_z = cmds.getAttr(f"{cube}.tz")
             self.assertEqual(expected_x, result_x)
             self.assertEqual(expected_y, result_y)
             self.assertEqual(expected_z, result_z)
-            result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="rx")
-            result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="ry")
-            result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="rz")
+            result_x = cmds.getAttr(f"{cube}.rx")
+            result_y = cmds.getAttr(f"{cube}.ry")
+            result_z = cmds.getAttr(f"{cube}.rz")
             self.assertAlmostEqualSigFig(expected_x, result_x)
             self.assertAlmostEqualSigFig(expected_y, result_y)
             self.assertAlmostEqualSigFig(expected_z, result_z)
-            result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="sx")
-            result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="sy")
-            result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="sz")
+            result_x = cmds.getAttr(f"{cube}.sx")
+            result_y = cmds.getAttr(f"{cube}.sy")
+            result_z = cmds.getAttr(f"{cube}.sz")
             self.assertAlmostEqualSigFig(expected_x, result_x)
             self.assertAlmostEqualSigFig(expected_y, result_y)
             self.assertAlmostEqualSigFig(expected_z, result_z)
@@ -1038,17 +1038,17 @@ class TestTransformUtils(unittest.TestCase):
         cube_target_two = maya_test_tools.create_poly_cube()
         targets = [cube_target_one, cube_target_two]
 
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="tx", value=1)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="ty", value=2)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="tz", value=3)
+        cmds.setAttr(f"{cube_source}.tx", 1)
+        cmds.setAttr(f"{cube_source}.ty", 2)
+        cmds.setAttr(f"{cube_source}.tz", 3)
 
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="rx", value=1)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="ry", value=2)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="rz", value=3)
+        cmds.setAttr(f"{cube_source}.rx", 1)
+        cmds.setAttr(f"{cube_source}.ry", 2)
+        cmds.setAttr(f"{cube_source}.rz", 3)
 
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="sx", value=1)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="sy", value=2)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="sz", value=3)
+        cmds.setAttr(f"{cube_source}.sx", 1)
+        cmds.setAttr(f"{cube_source}.sy", 2)
+        cmds.setAttr(f"{cube_source}.sz", 3)
 
         transform_utils.match_transform(source=cube_source, target_list=targets,
                                         skip_translate="xy",  skip_rotate="xy",  skip_scale="xy")
@@ -1062,21 +1062,21 @@ class TestTransformUtils(unittest.TestCase):
         expected_sca_z = 3
 
         for cube in targets:
-            result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
-            result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
-            result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
+            result_x = cmds.getAttr(f"{cube}.tx")
+            result_y = cmds.getAttr(f"{cube}.ty")
+            result_z = cmds.getAttr(f"{cube}.tz")
             self.assertEqual(expected_x, result_x)
             self.assertEqual(expected_y, result_y)
             self.assertEqual(expected_z, result_z)
-            result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="rx")
-            result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="ry")
-            result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="rz")
+            result_x = cmds.getAttr(f"{cube}.rx")
+            result_y = cmds.getAttr(f"{cube}.ry")
+            result_z = cmds.getAttr(f"{cube}.rz")
             self.assertAlmostEqualSigFig(expected_x, result_x)
             self.assertAlmostEqualSigFig(expected_y, result_y)
             self.assertAlmostEqualSigFig(expected_z, result_z)
-            result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="sx")
-            result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="sy")
-            result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="sz")
+            result_x = cmds.getAttr(f"{cube}.sx")
+            result_y = cmds.getAttr(f"{cube}.sy")
+            result_z = cmds.getAttr(f"{cube}.sz")
             self.assertAlmostEqualSigFig(expected_sca_x, result_x)
             self.assertAlmostEqualSigFig(expected_sca_y, result_y)
             self.assertAlmostEqualSigFig(expected_sca_z, result_z)
@@ -1087,17 +1087,17 @@ class TestTransformUtils(unittest.TestCase):
         cube_target_two = maya_test_tools.create_poly_cube()
         targets = [cube_target_one, cube_target_two]
 
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="tx", value=1)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="ty", value=2)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="tz", value=3)
+        cmds.setAttr(f"{cube_source}.tx", 1)
+        cmds.setAttr(f"{cube_source}.ty", 2)
+        cmds.setAttr(f"{cube_source}.tz", 3)
 
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="rx", value=1)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="ry", value=2)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="rz", value=3)
+        cmds.setAttr(f"{cube_source}.rx", 1)
+        cmds.setAttr(f"{cube_source}.ry", 2)
+        cmds.setAttr(f"{cube_source}.rz", 3)
 
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="sx", value=1)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="sy", value=2)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="sz", value=3)
+        cmds.setAttr(f"{cube_source}.sx", 1)
+        cmds.setAttr(f"{cube_source}.sy", 2)
+        cmds.setAttr(f"{cube_source}.sz", 3)
 
         transform_utils.match_transform(source=cube_source, target_list=targets, translate=False)
 
@@ -1113,21 +1113,21 @@ class TestTransformUtils(unittest.TestCase):
         expected_sca_y = 2
         expected_sca_z = 3
         for cube in targets:
-            result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
-            result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
-            result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
+            result_x = cmds.getAttr(f"{cube}.tx")
+            result_y = cmds.getAttr(f"{cube}.ty")
+            result_z = cmds.getAttr(f"{cube}.tz")
             self.assertEqual(expected_pos_x, result_x)
             self.assertEqual(expected_pos_y, result_y)
             self.assertEqual(expected_pos_z, result_z)
-            result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="rx")
-            result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="ry")
-            result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="rz")
+            result_x = cmds.getAttr(f"{cube}.rx")
+            result_y = cmds.getAttr(f"{cube}.ry")
+            result_z = cmds.getAttr(f"{cube}.rz")
             self.assertAlmostEqualSigFig(expected_rot_x, result_x)
             self.assertAlmostEqualSigFig(expected_rot_y, result_y)
             self.assertAlmostEqualSigFig(expected_rot_z, result_z)
-            result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="sx")
-            result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="sy")
-            result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="sz")
+            result_x = cmds.getAttr(f"{cube}.sx")
+            result_y = cmds.getAttr(f"{cube}.sy")
+            result_z = cmds.getAttr(f"{cube}.sz")
             self.assertAlmostEqualSigFig(expected_sca_x, result_x)
             self.assertAlmostEqualSigFig(expected_sca_y, result_y)
             self.assertAlmostEqualSigFig(expected_sca_z, result_z)
@@ -1138,17 +1138,17 @@ class TestTransformUtils(unittest.TestCase):
         cube_target_two = maya_test_tools.create_poly_cube()
         targets = [cube_target_one, cube_target_two]
 
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="tx", value=1)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="ty", value=2)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="tz", value=3)
+        cmds.setAttr(f"{cube_source}.tx", 1)
+        cmds.setAttr(f"{cube_source}.ty", 2)
+        cmds.setAttr(f"{cube_source}.tz", 3)
 
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="rx", value=1)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="ry", value=2)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="rz", value=3)
+        cmds.setAttr(f"{cube_source}.rx", 1)
+        cmds.setAttr(f"{cube_source}.ry", 2)
+        cmds.setAttr(f"{cube_source}.rz", 3)
 
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="sx", value=1)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="sy", value=2)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="sz", value=3)
+        cmds.setAttr(f"{cube_source}.sx", 1)
+        cmds.setAttr(f"{cube_source}.sy", 2)
+        cmds.setAttr(f"{cube_source}.sz", 3)
 
         transform_utils.match_transform(source=cube_source, target_list=targets, rotate=False)
 
@@ -1164,21 +1164,21 @@ class TestTransformUtils(unittest.TestCase):
         expected_sca_y = 2
         expected_sca_z = 3
         for cube in targets:
-            result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
-            result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
-            result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
+            result_x = cmds.getAttr(f"{cube}.tx")
+            result_y = cmds.getAttr(f"{cube}.ty")
+            result_z = cmds.getAttr(f"{cube}.tz")
             self.assertEqual(expected_pos_x, result_x)
             self.assertEqual(expected_pos_y, result_y)
             self.assertEqual(expected_pos_z, result_z)
-            result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="rx")
-            result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="ry")
-            result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="rz")
+            result_x = cmds.getAttr(f"{cube}.rx")
+            result_y = cmds.getAttr(f"{cube}.ry")
+            result_z = cmds.getAttr(f"{cube}.rz")
             self.assertAlmostEqualSigFig(expected_rot_x, result_x)
             self.assertAlmostEqualSigFig(expected_rot_y, result_y)
             self.assertAlmostEqualSigFig(expected_rot_z, result_z)
-            result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="sx")
-            result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="sy")
-            result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="sz")
+            result_x = cmds.getAttr(f"{cube}.sx")
+            result_y = cmds.getAttr(f"{cube}.sy")
+            result_z = cmds.getAttr(f"{cube}.sz")
             self.assertAlmostEqualSigFig(expected_sca_x, result_x)
             self.assertAlmostEqualSigFig(expected_sca_y, result_y)
             self.assertAlmostEqualSigFig(expected_sca_z, result_z)
@@ -1189,17 +1189,17 @@ class TestTransformUtils(unittest.TestCase):
         cube_target_two = maya_test_tools.create_poly_cube()
         targets = [cube_target_one, cube_target_two]
 
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="tx", value=1)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="ty", value=2)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="tz", value=3)
+        cmds.setAttr(f"{cube_source}.tx", 1)
+        cmds.setAttr(f"{cube_source}.ty", 2)
+        cmds.setAttr(f"{cube_source}.tz", 3)
 
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="rx", value=1)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="ry", value=2)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="rz", value=3)
+        cmds.setAttr(f"{cube_source}.rx", 1)
+        cmds.setAttr(f"{cube_source}.ry", 2)
+        cmds.setAttr(f"{cube_source}.rz", 3)
 
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="sx", value=1)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="sy", value=2)
-        maya_test_tools.set_attribute(obj_name=cube_source, attr_name="sz", value=3)
+        cmds.setAttr(f"{cube_source}.sx", 1)
+        cmds.setAttr(f"{cube_source}.sy", 2)
+        cmds.setAttr(f"{cube_source}.sz", 3)
 
         transform_utils.match_transform(source=cube_source, target_list=targets, scale=False)
 
@@ -1215,21 +1215,21 @@ class TestTransformUtils(unittest.TestCase):
         expected_sca_y = 1
         expected_sca_z = 1
         for cube in targets:
-            result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
-            result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
-            result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
+            result_x = cmds.getAttr(f"{cube}.tx")
+            result_y = cmds.getAttr(f"{cube}.ty")
+            result_z = cmds.getAttr(f"{cube}.tz")
             self.assertEqual(expected_pos_x, result_x)
             self.assertEqual(expected_pos_y, result_y)
             self.assertEqual(expected_pos_z, result_z)
-            result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="rx")
-            result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="ry")
-            result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="rz")
+            result_x = cmds.getAttr(f"{cube}.rx")
+            result_y = cmds.getAttr(f"{cube}.ry")
+            result_z = cmds.getAttr(f"{cube}.rz")
             self.assertAlmostEqualSigFig(expected_rot_x, result_x)
             self.assertAlmostEqualSigFig(expected_rot_y, result_y)
             self.assertAlmostEqualSigFig(expected_rot_z, result_z)
-            result_x = maya_test_tools.get_attribute(obj_name=cube, attr_name="sx")
-            result_y = maya_test_tools.get_attribute(obj_name=cube, attr_name="sy")
-            result_z = maya_test_tools.get_attribute(obj_name=cube, attr_name="sz")
+            result_x = cmds.getAttr(f"{cube}.sx")
+            result_y = cmds.getAttr(f"{cube}.sy")
+            result_z = cmds.getAttr(f"{cube}.sz")
             self.assertAlmostEqualSigFig(expected_sca_x, result_x)
             self.assertAlmostEqualSigFig(expected_sca_y, result_y)
             self.assertAlmostEqualSigFig(expected_sca_z, result_z)
@@ -1244,9 +1244,9 @@ class TestTransformUtils(unittest.TestCase):
 
         targets = [cube_one, cube_two, cube_three]
 
-        maya_test_tools.set_attribute(obj_name=cube_end, attr_name="ty", value=10)
-        maya_test_tools.set_attribute(obj_name=cube_end, attr_name="tz", value=10)
-        maya_test_tools.set_attribute(obj_name=cube_end, attr_name="rx", value=90)
+        cmds.setAttr(f"{cube_end}.ty", 10)
+        cmds.setAttr(f"{cube_end}.tz", 10)
+        cmds.setAttr(f"{cube_end}.rx", 90)
 
         transform_utils.set_equidistant_transforms(start=cube_start,
                                                    end=cube_end,
@@ -1261,12 +1261,12 @@ class TestTransformUtils(unittest.TestCase):
                            cube_three: [0, 7.5, 7.5,
                                         68.4, 0, 0]}
         for cube, expected in expected_values.items():
-            tx = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
-            ty = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
-            tz = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
-            rx = maya_test_tools.get_attribute(obj_name=cube, attr_name="rx")
-            ry = maya_test_tools.get_attribute(obj_name=cube, attr_name="ry")
-            rz = maya_test_tools.get_attribute(obj_name=cube, attr_name="rz")
+            tx = cmds.getAttr(f"{cube}.tx")
+            ty = cmds.getAttr(f"{cube}.ty")
+            tz = cmds.getAttr(f"{cube}.tz")
+            rx = cmds.getAttr(f"{cube}.rx")
+            ry = cmds.getAttr(f"{cube}.ry")
+            rz = cmds.getAttr(f"{cube}.rz")
             self.assertAlmostEqualSigFig(tx, expected[0])
             self.assertAlmostEqualSigFig(ty, expected[1])
             self.assertAlmostEqualSigFig(tz, expected[2])
@@ -1284,9 +1284,9 @@ class TestTransformUtils(unittest.TestCase):
 
         targets = [cube_one, cube_two, cube_three]
 
-        maya_test_tools.set_attribute(obj_name=cube_end, attr_name="ty", value=10)
-        maya_test_tools.set_attribute(obj_name=cube_end, attr_name="tz", value=10)
-        maya_test_tools.set_attribute(obj_name=cube_end, attr_name="rx", value=90)
+        cmds.setAttr(f"{cube_end}.ty", 10)
+        cmds.setAttr(f"{cube_end}.tz", 10)
+        cmds.setAttr(f"{cube_end}.rx", 90)
 
         transform_utils.set_equidistant_transforms(start=cube_start,
                                                    end=cube_end,
@@ -1301,12 +1301,12 @@ class TestTransformUtils(unittest.TestCase):
                            cube_three: [0, 10, 10,
                                         90, 0, 0]}
         for cube, expected in expected_values.items():
-            tx = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
-            ty = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
-            tz = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
-            rx = maya_test_tools.get_attribute(obj_name=cube, attr_name="rx")
-            ry = maya_test_tools.get_attribute(obj_name=cube, attr_name="ry")
-            rz = maya_test_tools.get_attribute(obj_name=cube, attr_name="rz")
+            tx = cmds.getAttr(f"{cube}.tx")
+            ty = cmds.getAttr(f"{cube}.ty")
+            tz = cmds.getAttr(f"{cube}.tz")
+            rx = cmds.getAttr(f"{cube}.rx")
+            ry = cmds.getAttr(f"{cube}.ry")
+            rz = cmds.getAttr(f"{cube}.rz")
             self.assertAlmostEqualSigFig(tx, expected[0])
             self.assertAlmostEqualSigFig(ty, expected[1])
             self.assertAlmostEqualSigFig(tz, expected[2])
@@ -1324,9 +1324,9 @@ class TestTransformUtils(unittest.TestCase):
 
         targets = [cube_one, cube_two, cube_three]
 
-        maya_test_tools.set_attribute(obj_name=cube_end, attr_name="ty", value=10)
-        maya_test_tools.set_attribute(obj_name=cube_end, attr_name="tz", value=10)
-        maya_test_tools.set_attribute(obj_name=cube_end, attr_name="rx", value=90)
+        cmds.setAttr(f"{cube_end}.ty", 10)
+        cmds.setAttr(f"{cube_end}.tz", 10)
+        cmds.setAttr(f"{cube_end}.rx", 90)
 
         transform_utils.set_equidistant_transforms(start=cube_start,
                                                    end=cube_end,
@@ -1341,12 +1341,12 @@ class TestTransformUtils(unittest.TestCase):
                            cube_three: [0, 10, 10,
                                         0, 0, 0]}
         for cube, expected in expected_values.items():
-            tx = maya_test_tools.get_attribute(obj_name=cube, attr_name="tx")
-            ty = maya_test_tools.get_attribute(obj_name=cube, attr_name="ty")
-            tz = maya_test_tools.get_attribute(obj_name=cube, attr_name="tz")
-            rx = maya_test_tools.get_attribute(obj_name=cube, attr_name="rx")
-            ry = maya_test_tools.get_attribute(obj_name=cube, attr_name="ry")
-            rz = maya_test_tools.get_attribute(obj_name=cube, attr_name="rz")
+            tx = cmds.getAttr(f"{cube}.tx")
+            ty = cmds.getAttr(f"{cube}.ty")
+            tz = cmds.getAttr(f"{cube}.tz")
+            rx = cmds.getAttr(f"{cube}.rx")
+            ry = cmds.getAttr(f"{cube}.ry")
+            rz = cmds.getAttr(f"{cube}.rz")
             self.assertAlmostEqualSigFig(tx, expected[0])
             self.assertAlmostEqualSigFig(ty, expected[1])
             self.assertAlmostEqualSigFig(tz, expected[2])

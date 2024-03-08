@@ -17,6 +17,7 @@ for to_append in [package_root_dir, tests_dir]:
         sys.path.append(to_append)
 from tests import maya_test_tools
 from gt.utils import namespace_utils
+cmds = maya_test_tools.cmds
 
 
 def import_namespace_test_scene():
@@ -78,7 +79,7 @@ class TestNamespaceUtils(unittest.TestCase):
     def test_strip_namespace(self):
         import_namespace_test_scene()
         with namespace_utils.StripNamespace('parentNS:childNS:grandChildNS:') as stripped_nodes:
-            result = maya_test_tools.list_objects(stripped_nodes)
+            result = cmds.ls(stripped_nodes)
             expected = ['pCube1']
             self.assertEqual(expected, result)
 
@@ -87,6 +88,6 @@ class TestNamespaceUtils(unittest.TestCase):
         object_to_test = "parentNS:childNS:grandChildNS:pCube1"
         namespace = namespace_utils.get_namespace(node=object_to_test)
         with namespace_utils.StripNamespace(namespace) as stripped_nodes:
-            result = maya_test_tools.list_objects(stripped_nodes)
+            result = cmds.ls(stripped_nodes)
             expected = ['pCube1']
             self.assertEqual(expected, result)
