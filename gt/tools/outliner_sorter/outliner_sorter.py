@@ -2,6 +2,9 @@
  GT Outliner Manager - General Outliner organization script
  github.com/TrevisanGMW/gt-tools - 2022-08-18
 """
+from gt.utils.outliner_utils import reorder_up, reorder_down, reorder_front, reorder_back, outliner_sort
+from gt.utils.outliner_utils import OutlinerSortOptions
+from gt.utils.request_utils import open_package_docs_url_in_browser
 from maya import OpenMayaUI as OpenMayaUI
 from PySide2.QtWidgets import QWidget
 from gt.ui import resource_library
@@ -9,7 +12,6 @@ from shiboken2 import wrapInstance
 from PySide2.QtGui import QIcon
 import maya.cmds as cmds
 import logging
-import random
 
 # Logging Setup
 logging.basicConfig()
@@ -21,166 +23,6 @@ script_name = "GT - Outliner Sorter"
 
 # Version:
 script_version = "?.?.?"  # Module version (init)
-
-
-def reorder_up(obj_list):
-    """
-    Reorder objects in the outliner relative to their siblings (move them up)
-    Args:
-        obj_list: List of objects to be reordered (not existing objects are ignored)
-
-    Returns:
-        operation_result: True = at least one object was updated, False = unable to find valid objects
-    """
-    valid_obj_list = []
-    for obj in obj_list:
-        if cmds.objExists(obj):
-            valid_obj_list.append(obj)
-    cmds.reorder(valid_obj_list, relative=-1)
-    if valid_obj_list:
-        return True
-    else:
-        return False
-
-
-def reorder_down(obj_list):
-    """
-    Reorder objects in the outliner relative to their siblings (move them down)
-    Args:
-        obj_list: List of objects to be reordered (not existing objects are ignored)
-
-    Returns:
-        operation_result: True = at least one object was updated, False = unable to find valid objects
-    """
-    valid_obj_list = []
-    for obj in obj_list:
-        if cmds.objExists(obj):
-            valid_obj_list.append(obj)
-    cmds.reorder(valid_obj_list, relative=1)
-    if valid_obj_list:
-        return True
-    else:
-        return False
-
-
-def reorder_front(obj_list):
-    """
-    Reorder objects in the outliner relative to their siblings (move them to the top)
-    Args:
-        obj_list: List of objects to be reordered (not existing objects are ignored)
-
-    Returns:
-        operation_result: True = at least one object was updated, False = unable to find valid objects
-    """
-    valid_obj_list = []
-    for obj in obj_list:
-        if cmds.objExists(obj):
-            valid_obj_list.append(obj)
-    cmds.reorder(valid_obj_list, front=True)
-    if valid_obj_list:
-        return True
-    else:
-        return False
-
-
-def reorder_back(obj_list):
-    """
-    Reorder objects in the outliner relative to their siblings (move them to the bottom)
-    Args:
-        obj_list: List of objects to be reordered (not existing objects are ignored)
-
-    Returns:
-        operation_result: True = at least one object was updated, False = unable to find valid objects
-    """
-    valid_obj_list = []
-    for obj in obj_list:
-        if cmds.objExists(obj):
-            valid_obj_list.append(obj)
-    cmds.reorder(valid_obj_list, back=True)
-    if valid_obj_list:
-        return True
-    else:
-        return False
-
-
-def get_short_name(obj):
-    """
-    Get the name of the objects without its path (Maya returns full path if name is not unique)
-
-    Args:
-        obj (string) : object to extract short name
-
-    Returns:
-        short_name (string) : Name of the object without its full path
-    """
-    short_name = ''
-    if obj == '':
-        return ''
-    split_path = obj.split('|')
-    if len(split_path) >= 1:
-        short_name = split_path[len(split_path) - 1]
-    return short_name
-
-
-def outliner_sort(obj_list, sort_operation='name', is_ascending=True, attr='ty'):
-    """
-    Outliner Sorting function: Moves objects up/down to arrange them in a certain order
-    Args:
-        obj_list (list): List of affected objects (strings)
-        sort_operation (string, optional): Name of the sorting operation: "name", "shuffle", "attribute"
-        is_ascending (bool, optional): If active, operation will be ascending, if not descending
-        attr (string, optional): attribute used to extract a value for when sorting by attribute
-
-    """
-    logger.debug('obj_list: ' + str(obj_list))
-    issues = ''
-
-    target_objects = {}
-
-    for target_obj in obj_list:
-        short_name = get_short_name(target_obj)
-        target_objects[short_name] = target_obj
-
-    sorted_target = sorted(target_objects, reverse=is_ascending)
-
-    if sort_operation == 'name':
-        for target_key in sorted_target:
-            try:
-                reorder_front([target_objects.get(target_key)])
-            except Exception as e:
-                issues += str(e) + '\n'
-            logger.debug('target_value: ' + str([target_objects.get(target_key)]))
-
-    if sort_operation == 'shuffle':
-        random.shuffle(obj_list)
-        for target_obj in obj_list:
-            try:
-                reorder_front([target_obj])
-            except Exception as e:
-                issues += str(e) + '\n'
-            logger.debug('target_value: ' + str([target_obj]))
-
-    if sort_operation == 'attribute':
-        value_dict = {}
-        for target_obj in obj_list:
-            try:
-                value = cmds.getAttr(target_obj + '.' + attr)
-            except Exception as e:
-                logger.debug(str(e))
-                value = 0
-            logger.debug(target_obj + ' ' + str(value))
-            value_dict[target_obj] = value
-
-        sorted_dict = dict(sorted(value_dict.items(), key=lambda item: item[1], reverse=not is_ascending))
-        for key in sorted_dict:
-            try:
-                reorder_front([key])
-            except Exception as e:
-                issues += str(e) + '\n'
-            logger.debug('target_value: ' + str([key]))
-
-    if issues:
-        print(issues)
 
 
 def build_gui_outliner_sorter():
@@ -213,12 +55,12 @@ def build_gui_outliner_sorter():
                 current_attr = cmds.textField(custom_attr_textfield, q=True, text=True) or ''
                 if current_attr.startswith('.'):
                     current_attr = current_attr[1:]
-                outliner_sort(current_selection, sort_operation='attribute',
+                outliner_sort(current_selection, operation=OutlinerSortOptions.ATTRIBUTE,
                               attr=current_attr, is_ascending=is_ascending)
             elif operation == 'sort_name':
-                outliner_sort(current_selection, sort_operation='name', is_ascending=is_ascending)
+                outliner_sort(current_selection, operation=OutlinerSortOptions.NAME, is_ascending=is_ascending)
             elif operation == 'shuffle':
-                outliner_sort(current_selection, sort_operation='shuffle')
+                outliner_sort(current_selection, operation=OutlinerSortOptions.SHUFFLE)
 
         except Exception as e:
             logger.debug(str(e))
@@ -246,7 +88,7 @@ def build_gui_outliner_sorter():
                          p=content_main)  # Title Column
     cmds.text(" ", bgc=title_bgc_color)  # Tiny Empty Green Space
     cmds.text(script_name, bgc=title_bgc_color, fn="boldLabelFont", align="left")
-    cmds.button(l="Help", bgc=title_bgc_color, c=lambda x: _open_gt_tools_documentation())
+    cmds.button(l="Help", bgc=title_bgc_color, c=lambda x: open_package_docs_url_in_browser())
     cmds.separator(h=5, style='none')  # Empty Space
 
     # 1. Deformed Mesh (Source) ------------------------------------------
@@ -332,11 +174,6 @@ def build_gui_outliner_sorter():
 
     # Remove the focus from the textfield and give it to the window
     cmds.setFocus(window_name)
-
-
-def _open_gt_tools_documentation():
-    """ Opens a web browser with GT Tools docs  """
-    cmds.showHelp('https://github.com/TrevisanGMW/gt-tools/tree/release/docs', absolute=True)
 
 
 if __name__ == '__main__':
