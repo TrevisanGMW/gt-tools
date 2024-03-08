@@ -438,16 +438,18 @@ def create_control_root_curve():
     add_attr(obj_list=root_transform, attr_type="string", is_keyable=False,
              attributes=RiggerConstants.REF_ATTR_ROOT_CONTROL, verbose=True)
     set_curve_width(obj_list=root_transform, line_width=3)
+    set_color_outliner(root_transform, rgb_color=ColorConstants.RigOutliner.CTRL)
     set_color_viewport(obj_list=root_transform, rgb_color=ColorConstants.RigControl.ROOT)
     return Node(root_transform)
 
 
-def create_ctrl_curve(name, curve_file_name=None):
+def create_ctrl_curve(name, curve_file_name=None, outliner_color=ColorConstants.RigOutliner.CTRL):
     """
     Creates a curve to be used as control within the auto rigger context.
     Args:
         name (str): Control name.
         curve_file_name (str, optional): Curve file name (from inside "gt/utils/data/curves") e.g. "circle"
+        outliner_color (str, None, optional): Outliner color used for the created control. Set to None to skip it.
     Returns:
         Node or None: Node with the generated control, otherwise None
     """
@@ -457,6 +459,8 @@ def create_ctrl_curve(name, curve_file_name=None):
     crv_obj.set_name(name)
     crv = crv_obj.build()
     if crv:
+        if outliner_color:
+            set_color_outliner(crv, rgb_color=ColorConstants.RigOutliner.CTRL)
         return Node(crv)
 
 
@@ -475,6 +479,7 @@ def create_direction_curve():
     add_attr(obj_list=direction_crv, attr_type="string", is_keyable=False,
              attributes=RiggerConstants.REF_ATTR_DIR_CURVE, verbose=True)
     hide_lock_default_attrs(direction_crv, scale=True, visibility=True)
+    set_color_outliner(direction_crv, rgb_color=ColorConstants.RigOutliner.CTRL)
     set_color_viewport(obj_list=direction_crv, rgb_color=ColorConstants.RigControl.CENTER)
     return Node(direction_crv)
 
