@@ -462,18 +462,30 @@ class ModuleHead(ModuleGeneric):
                            upVector=(0, 1, 0), worldUpType="object", worldUpObject=rt_eye_up_vec)
 
         # Attributes and Colors
-        lt_lines = create_connection_line(object_a=lt_eye_ctrl,
-                                          object_b=lt_eye)
-        rt_lines = create_connection_line(object_a=rt_eye_ctrl,
-                                          object_b=rt_eye)
+        lt_eye_line_data = create_connection_line(object_a=lt_eye_ctrl,
+                                                  object_b=lt_eye, line_width=2)
+        rt_eye_line_data = create_connection_line(object_a=rt_eye_ctrl,
+                                                  object_b=rt_eye, line_width=2)
+        lt_eye_line, lt_eye_cluster_a, lt_eye_cluster_b = lt_eye_line_data
+        rt_eye_line, rt_eye_cluster_a, rt_eye_cluster_b = rt_eye_line_data
+        eye_line_clusters = [lt_eye_cluster_a, lt_eye_cluster_b, rt_eye_cluster_a, rt_eye_cluster_b]  # Clusters
+        lt_eye_line = Node(lt_eye_line)
+        rt_eye_line = Node(rt_eye_line)
+        eye_lines = [lt_eye_line, rt_eye_line]
+
+        # Setup Lines
+        set_attr(obj_list=eye_lines, attr_list='inheritsTransform', value=0)
+        set_attr(obj_list=eye_lines, attr_list=['overrideEnabled', 'overrideDisplayType'], value=1)
+        hierarchy_utils.parent(source_objects=lt_eye_line, target_parent=lt_eye_ctrl)
+        hierarchy_utils.parent(source_objects=rt_eye_line, target_parent=rt_eye_ctrl)
 
         set_color_viewport(obj_list=lt_eye_ctrl, rgb_color=ColorConstants.RigProxy.LEFT)
         set_color_viewport(obj_list=lt_eye_up_vec, rgb_color=ColorConstants.RigProxy.LEFT)
         set_color_viewport(obj_list=rt_eye_ctrl, rgb_color=ColorConstants.RigProxy.RIGHT)
         set_color_viewport(obj_list=rt_eye_up_vec, rgb_color=ColorConstants.RigProxy.RIGHT)
         aim_lines_grp = get_automation_group(name=f"headAutomation_{NamingConstants.Suffix.GRP}",
-                                             subgroup=f"aimLines_{NamingConstants.Suffix.GRP}")
-        hierarchy_utils.parent(source_objects=lt_lines + rt_lines, target_parent=aim_lines_grp)
+                                             subgroup=f"head_lines_{NamingConstants.Suffix.GRP}")
+        hierarchy_utils.parent(source_objects=eye_line_clusters, target_parent=aim_lines_grp)
 
         hide_lock_default_attrs(obj_list=[lt_eye_ctrl, rt_eye_ctrl], rotate=True, scale=True, visibility=True)
         hide_lock_default_attrs(obj_list=main_eye_ctrl, scale=True, visibility=True)
