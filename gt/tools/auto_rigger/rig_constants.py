@@ -36,12 +36,12 @@ class RiggerConstants:
     META_PROXY_DRIVERS = "proxyDrivers"  # Metadata key, used to find drivers (aka controls) driving the created joint
     META_PROXY_CLR = "color"  # Metadata key, describes color to be used instead of side setup
     # Group Names
-    GRP_RIG_NAME = f'rig_{NamingConstants.Suffix.GRP}'
-    GRP_PROXY_NAME = f'rig_proxy_{NamingConstants.Suffix.GRP}'
-    GRP_GEOMETRY_NAME = f'geometry_{NamingConstants.Suffix.GRP}'
-    GRP_SKELETON_NAME = f'skeleton_{NamingConstants.Suffix.GRP}'
-    GRP_CONTROL_NAME = f'control_{NamingConstants.Suffix.GRP}'
-    GRP_SETUP_NAME = f'setup_{NamingConstants.Suffix.GRP}'
+    GRP_RIG_NAME = f'rig'
+    GRP_PROXY_NAME = f'rig_proxy'
+    GRP_GEOMETRY_NAME = f'geometry'
+    GRP_SKELETON_NAME = f'skeleton'
+    GRP_CONTROL_NAME = f'controls'
+    GRP_SETUP_NAME = f'setup'
     GRP_LINE_NAME = f'visualization_lines'
     # Reference Attributes
     REF_ATTR_ROOT_RIG = "rootRigLookupAttr"

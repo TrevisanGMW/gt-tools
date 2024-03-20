@@ -18,7 +18,11 @@ class NamingConstants:
         Naming Constants. Must be a string.
         These are expected naming strings, such as prefixes, suffixes or anything that will help describe an object.
         Default naming convention:
-            <side>_<position>_<description><sequence>_<type>
+            Simple:
+                <side>_<description>_<type>
+            Complete:
+                <side>_<position><description><sequence>_<type>
+
             <side> : Initial side of the element. e.g. "left", "right", "center" (usually X+ vs X-)
             <position> : Position of the element. e.g. "mid", "upper", "lower"...
             <description> : camelCase description of the object. e.g. "circleDirection"
@@ -40,9 +44,9 @@ class NamingConstants:
         RIBBON = "ribbon"
 
     class Prefix:
-        LEFT = 'lf'
-        RIGHT = 'rt'
-        CENTER = 'cn'
+        LEFT = 'L'
+        RIGHT = 'R'
+        CENTER = 'C'
 
     class Suffix:
         CTRL = 'ctrl'  # Control
