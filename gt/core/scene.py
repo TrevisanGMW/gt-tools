@@ -1,13 +1,14 @@
 """
-Scene Module
+Scene Utilities
 
-Code Namespace:
-    core_scene  # import gt.core.scene as core_scene
+Import Line:
+    import gt.core.scene as core_scene
 """
 
 import maya.cmds as cmds
 import subprocess
 import logging
+import math
 import sys
 import os
 
@@ -192,10 +193,224 @@ def open_file_dir():
         cmds.warning("Unable to open directory. File was never saved.")
 
 
+def set_scene_from_dict(scene_dict):
+    """
+    Sets various scene options in Maya based on key-value pairs from the input dictionary.
+
+    Args:
+    scene_dict (dict):
+        A dictionary containing scene settings. The following keys are supported:
+
+        "linear_unit" (str): Sets the scene's linear unit (e.g., 'cm', 'm').
+        "angular_unit" (str): Sets the scene's angular unit (e.g., 'deg', 'rad').
+        "frame_rate" (str, int): Sets the scene's frame rate (e.g., 30, 'pal'). Calls `set_frame_rate` function.
+        "multi_sample" (bool): Enables or disables multi-sample antialiasing.
+        "multi_sample_count" (int): Sets the level of multi-sample antialiasing.
+        "persp_clip_plane_near" (float): Sets the near clipping plane of the perspective camera.
+        "persp_clip_plane_far" (float): Sets the far clipping plane of the perspective camera.
+        "display_textures" (bool): Enables texture visibility across all viewports if set to True.
+        "playback_frame_start" (float): Sets the start frame of the playback timeline. (range)
+        "playback_frame_end" (float): Sets the end frame of the playback timeline. (range)
+        "animation_frame_start" (float): Sets the start frame of the animation timeline.
+        "animation_frame_end" (float): Sets the end frame of the animation timeline.
+        "animation_frame_start_rounding" (bool): Rounds the start frame to the nearest integer.
+        "animation_frame_end_rounding" (bool): Rounds the end frame to the nearest integer.
+        "playback_frame_start_rounding" (bool): Rounds playback start frame to the nearest integer. (range)
+        "playback_frame_end_rounding" (bool): Rounds playback end frame to the nearest integer. (range)
+        "animation_frame_start_floor": (bool): Floors (rounds down) the start frame to the nearest integer.
+        "animation_frame_end_ceil": (bool): Floors the end frame to the nearest integer.
+        "playback_frame_start_floor" (bool): Ceils (rounds up) playback start frame to the nearest integer. (range)
+        "playback_frame_end_ceil" (bool): Ceils (rounds up) playback end frame to the nearest integer. (range)
+        "current_time" (float): Sets the current time on the timeline.
+        "use_default_material" (bool): Sets the state of the "Use default material" panel preference.
+        "grid_size" (float): Sets the grid size.
+        "grid_spacing" (float): Sets the grid spacing.
+        "grid_divisions" (int): Sets the grid division.
+
+    This function adjusts the scene's units, frame rate, multi-sample settings, clipping planes,
+    texture visibility, playback options, animation options, time rounding and more based on values
+    provided in the dictionary. Each option is set only if its corresponding key exists in the dictionary.
+    Unrecognized keys are ignored.
+    """
+    # Set Scene Linear Unit (Scale)
+    option_key = "linear_unit"
+    if option_key in scene_dict:
+        cmds.currentUnit(linear=scene_dict.get(option_key))
+
+    # Set Scene Angular Unit
+    option_key = "angular_unit"
+    if option_key in scene_dict:
+        cmds.currentUnit(angle=scene_dict.get(option_key))
+
+    # Set scene frame-rate
+    option_key = "frame_rate"
+    if option_key in scene_dict:
+        set_frame_rate(scene_dict.get(option_key))
+
+    # Set the multi-sample count (multisampling anti-aliasing level)
+    option_key = "multi_sample"
+    if option_key in scene_dict:
+        _value = scene_dict.get(option_key)
+        cmds.setAttr("hardwareRenderingGlobals.multiSampleEnable", _value)
+    option_key = "multi_sample_count"
+    if option_key in scene_dict:
+        _value = scene_dict.get(option_key)
+        cmds.setAttr("hardwareRenderingGlobals.multiSampleCount", _value)
+
+    # Persp Camera Setup
+    option_key = "persp_clip_plane_near"
+    if option_key in scene_dict:
+        _value = scene_dict.get(option_key)
+        cmds.setAttr("perspShape.nearClipPlane", _value)
+    option_key = "persp_clip_plane_far"
+    if option_key in scene_dict:
+        _value = scene_dict.get(option_key)
+        cmds.setAttr("perspShape.farClipPlane", _value)
+
+    # Enable texture visibility
+    option_key = "display_textures"
+    if option_key in scene_dict and scene_dict.get(option_key) is True:
+        all_viewports = cmds.getPanel(type="modelPanel") or []
+        # Iterate through each viewport and enable texture display
+        for viewport in all_viewports:
+            cmds.modelEditor(viewport, edit=True, displayTextures=True)
+
+    # ----------------------------------------- Timeline management -----------------------------------------
+    # Playback Start and End
+    option_key = "playback_frame_start"
+    if option_key in scene_dict:
+        cmds.playbackOptions(min=scene_dict.get(option_key))
+    option_key = "playback_frame_end"
+    if option_key in scene_dict:
+        cmds.playbackOptions(max=scene_dict.get(option_key))
+
+    # Animation Start and End
+    option_key = "animation_frame_start"
+    if option_key in scene_dict:
+        cmds.playbackOptions(animationStartTime=scene_dict.get(option_key))
+    option_key = "animation_frame_end"
+    if option_key in scene_dict:
+        cmds.playbackOptions(animationEndTime=scene_dict.get(option_key))
+
+    # Playback Start End Rounding
+    current_frame = cmds.currentTime(q=True)
+    option_key = "playback_frame_start_rounding"
+    if option_key in scene_dict:
+        start_frame = cmds.playbackOptions(q=True, minTime=True)
+        rounded_current_frame = math.floor(current_frame)
+        rounded_start_frame = math.floor(start_frame)
+        cmds.currentTime(rounded_current_frame)
+        cmds.playbackOptions(min=rounded_start_frame)
+    option_key = "animation_frame_end_rounding"
+    if option_key in scene_dict:
+        end_frame = cmds.playbackOptions(q=True, maxTime=True)
+        rounded_current_frame = math.ceil(current_frame)
+        rounded_end_frame = math.ceil(end_frame)
+        cmds.currentTime(rounded_current_frame)
+        cmds.playbackOptions(max=rounded_end_frame)
+
+    # Animation Start End Rounding
+    option_key = "animation_frame_start_rounding"
+    if option_key in scene_dict:
+        start_frame = cmds.playbackOptions(q=True, animationStartTime=True)
+        rounded_current_frame = round(current_frame)
+        rounded_start_frame = round(start_frame)
+        cmds.currentTime(rounded_current_frame)
+        cmds.playbackOptions(animationStartTime=rounded_start_frame)
+    option_key = "playback_frame_end_rounding"
+    if option_key in scene_dict:
+        end_frame = cmds.playbackOptions(q=True, animationEndTime=True)
+        rounded_current_frame = round(current_frame)
+        rounded_end_frame = round(end_frame)
+        cmds.currentTime(rounded_current_frame)
+        cmds.playbackOptions(animationEndTime=rounded_end_frame)
+
+    # Playback Start End Flooring/Ceiling
+    option_key = "playback_frame_start_floor"
+    if option_key in scene_dict:
+        start_frame = cmds.playbackOptions(q=True, minTime=True)
+        rounded_current_frame = math.floor(current_frame)
+        rounded_start_frame = math.floor(start_frame)
+        cmds.currentTime(rounded_current_frame)
+        cmds.playbackOptions(min=rounded_start_frame)
+    option_key = "playback_frame_end_ceil"
+    if option_key in scene_dict:
+        end_frame = cmds.playbackOptions(q=True, maxTime=True)
+        rounded_current_frame = math.ceil(current_frame)
+        rounded_end_frame = math.ceil(end_frame)
+        cmds.currentTime(rounded_current_frame)
+        cmds.playbackOptions(max=rounded_end_frame)
+
+    # Animation Start End Flooring/Ceiling
+    option_key = "animation_frame_start_floor"
+    if option_key in scene_dict:
+        start_frame = cmds.playbackOptions(q=True, animationStartTime=True)
+        rounded_current_frame = math.floor(current_frame)
+        rounded_start_frame = math.floor(start_frame)
+        cmds.currentTime(rounded_current_frame)
+        cmds.playbackOptions(animationStartTime=rounded_start_frame)
+    option_key = "animation_frame_end_ceil"
+    if option_key in scene_dict:
+        end_frame = cmds.playbackOptions(q=True, animationEndTime=True)
+        rounded_current_frame = math.ceil(current_frame)
+        rounded_end_frame = math.ceil(end_frame)
+        cmds.currentTime(rounded_current_frame)
+        cmds.playbackOptions(animationEndTime=rounded_end_frame)
+
+    # Current Time
+    option_key = "current_time"
+    if option_key in scene_dict:
+        cmds.currentTime(scene_dict.get(option_key))
+
+    # Use Default Material
+    option_key = "use_default_material"
+    if option_key in scene_dict:
+        _panel = None
+        try:  # Get the active model panel
+            _panel = cmds.getPanel(withFocus=True)
+            if not cmds.getPanel(typeOf=_panel) == "modelPanel":
+                # Try to find a visible model panel if focus is not on one
+                for p in cmds.getPanel(type="modelPanel"):
+                    if cmds.modelEditor(p, query=True, visible=True):
+                        _panel = p
+                        break
+                else:
+                    logger.debug("No active model panel found.")
+            if _panel:
+                cmds.modelEditor(_panel, edit=True, useDefaultMaterial=scene_dict.get(option_key))
+        except Exception as e:
+            logger.debug(f"Unable to find a model panel. Issue: {e}")
+
+    # Grid Settings
+    grid_size_key = "grid_size"
+    grid_spacing_key = "grid_spacing"
+    grid_divisions_key = "grid_divisions"
+    grid_keys = [grid_size_key, grid_spacing_key, grid_divisions_key]
+    if any(key in scene_dict for key in grid_keys):
+        import gt.core.display as core_display
+
+        # Grid Size
+        if grid_size_key in scene_dict:
+            core_display.set_grid_divisions(
+                grid_size=scene_dict.get(grid_size_key) or None, grid_spacing=None, grid_divisions=None
+            )
+        # Grid Spacing
+        if grid_spacing_key in scene_dict:
+            core_display.set_grid_divisions(
+                grid_size=None, grid_spacing=scene_dict.get(grid_spacing_key) or None, grid_divisions=None
+            )
+        # Grid Divisions
+        if grid_divisions_key in scene_dict:
+            core_display.set_grid_divisions(
+                grid_size=None, grid_spacing=None, grid_divisions=scene_dict.get(grid_divisions_key) or None
+            )
+
+
 if __name__ == "__main__":
     from pprint import pprint
 
-    set_frame_rate("2fps")
+    # set_frame_rate("2fps")
     out = None
     # out = get_distance_in_meters()
+    set_scene_from_dict({"use_default_material": False})
     pprint(out)

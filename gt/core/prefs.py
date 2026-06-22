@@ -1,9 +1,9 @@
 """
-Preferences Module - Settings and Getting persistent settings using JSONs
+Preferences Utilities - Settings and Getting persistent settings using JSONs
 This script should not directly import "maya.cmds" as it's also intended to be used outside of Maya.
 
-Code Namespace:
-    core_prefs  # import gt.core.prefs as core_prefs
+Import Line:
+    import gt.core.prefs as core_prefs
 """
 
 from gt.utils.system import get_maya_preferences_dir, get_system, get_temp_dir
@@ -20,14 +20,14 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 # Constants
-PACKAGE_GLOBAL_PREFS = "package_prefs"
+PACKAGE_GLOBAL_PREFS = "gt"
 PACKAGE_PREFS_DIR = "prefs"
 PACKAGE_PREFS_EXT = "json"
 
 
 def get_prefs_dir():
     """
-    Gets the path to the package prefs (preferences) directory. e.g. ".../Documents/maya/gt-tools/prefs"
+    Gets the path to the package prefs (preferences) directory. e.g. ".../Documents/maya/gt_tools/prefs"
     Returns:
         str: Path to package prefs dir. e.g. ".../Documents/maya/gt-tools/prefs"
     """
@@ -47,7 +47,7 @@ class Prefs:
                               This name should ideally end with the suffix "_prefs" to clarify its use.
             location_dir (str, optional): Path to a folder where it should save the JSON file.
                                           By default, preferences are saved in the package installation path.
-                                          e.g. "Documents/maya/gt-tools/prefs"
+                                          e.g. "Documents/maya/gt_tools/prefs"
         """
         self.prefs_name = prefs_name
         self.sub_folder = prefs_name
@@ -224,6 +224,14 @@ class Prefs:
         write_json(path=self.file_name, data=self.preferences)
 
     # ------------------------------------ Utilities ------------------------------------
+    def get_dir_path(self):
+        """
+        Returns the directory path where the preference file is stored.
+
+        Returns:
+            str: The path to the directory containing the preferences file.
+        """
+        return os.path.dirname(self.file_name)
 
     def delete_all(self):
         """
@@ -282,6 +290,8 @@ class Prefs:
 
     def set_user_files_sub_folder(self, sub_folder_name):
         """
+        Sets the user files sub folder name.
+        Args:
         sub_folder_name (str): Name of the sub-folder created for the user file.
                                If not provided, it will use the preferences name as the name of the sub-folder.
                                This variable will also be stored in "self.user_files_sub_folders" used to later
@@ -295,6 +305,9 @@ class Prefs:
     def get_user_files_dir_path(self, create_if_missing=True):
         """
         Returns the full path to the user files directory
+        Args:
+            create_if_missing (bool, optional): Whether to create the directory if it does not exist.
+                                                Defaults to True.
 
         Returns:
             str: Path to the user files directory
@@ -362,6 +375,8 @@ class Prefs:
     def get_all_user_files(self, verbose=False):
         """
         Returns a list of all user files (custom files stored in prefs/sub_folder)
+        Args:
+            verbose (bool, optional): If true, the function will log warnings when failing to find the user files.
         Returns:
             dict: A dictionary of files in the preferences sub-folder. Dictionary pattern: {"file_name.ext": "path"}
         """
@@ -431,6 +446,13 @@ class PackagePrefs(Prefs):
 
 class PackageCache:
     def __init__(self, custom_cache_dir=None):
+        """
+        Initialize the PackageCache.
+
+        Args:
+            custom_cache_dir (str or None): Optional custom directory to use for caching.
+                If provided and exists, it overrides the default cache location.
+        """
         _package_installation_dir = os.path.dirname(get_prefs_dir())
         if os.path.exists(_package_installation_dir):
             _cache_dir = os.path.join(_package_installation_dir, "cache")

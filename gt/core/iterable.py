@@ -1,13 +1,14 @@
 """
-Iterable Module - used for dealing with iterable elements, such as lists, sets and dictionaries
+Iterable Utilities - used for dealing with iterable elements, such as lists, sets and dictionaries
 This script should not globally import "maya.cmds" as it's also intended to be used outside of Maya.
 
-Code Namespace:
-    core_iter  # import gt.core.iterable as core_iter
+Import Line:
+    import gt.core.iterable as core_iter
 """
 
 import numbers
 import logging
+import fnmatch
 import pprint
 import re
 
@@ -283,6 +284,7 @@ def sanitize_maya_list(
     hierarchy=False,
     convert_to_nodes=True,
     short_names=False,
+    consider_shape_type=False,
 ):
     """
     Sanitizes a list of Maya objects based on various criteria.
@@ -300,6 +302,7 @@ def sanitize_maya_list(
         hierarchy (bool, optional): Include all descendants in the output.
         convert_to_nodes (bool, optional): Convert the final list to Node objects.
         short_names (bool, optional): Return only the short names of objects.
+        consider_shape_type (bool, optional): If True, considers the shape type instead of the object type.
 
     Returns:
         list: The sanitized list of Maya objects based on the specified criteria.
@@ -329,7 +332,17 @@ def sanitize_maya_list(
         _output = [item for item in _output if not (item in seen or seen.add(item))]
 
     if filter_type:
-        _output = [item for item in _output if cmds.objectType(item) == filter_type]
+        if consider_shape_type:  # Consider Shape Type
+            temp_output = []
+            for obj in _output:
+                shapes = cmds.listRelatives(obj, shapes=True, fullPath=True) or []
+                if any(cmds.objectType(shape) == filter_type for shape in shapes):
+                    temp_output.append(obj)
+                elif cmds.objectType(obj) == filter_type:
+                    temp_output.append(obj)
+            _output = temp_output  # Filter objects with desired shape type
+        else:
+            _output = [item for item in _output if cmds.objectType(item) == filter_type]
 
     if filter_regex:
         regex_pattern = re.compile(filter_regex)
@@ -404,6 +417,95 @@ def multiply_collection_by_number(collection, number):
     return type(collection)(multiply_element(item) for item in collection)
 
 
+def get_unique_name_list(string_list, non_unique_separator=""):
+    """
+    Generates a list of unique strings from the given input list. If a string appears
+    multiple times, a separator followed by a unique index will be appended to ensure uniqueness.
+
+    Args:
+        string_list (list of str): List of strings, where some names may not be unique.
+        non_unique_separator (str, optional): String to separate the base name from its unique index.
+                                              Defaults to an empty string.
+
+    Returns:
+        List[str]: A list of strings where each element is unique.
+    """
+    unique_list = []
+    name_count = {}
+
+    for name in string_list:
+        # Initialize a base name for counting
+        base_name = name
+        if base_name in name_count:
+            name_count[base_name] += 1
+            new_name = f"{base_name}{non_unique_separator}{name_count[base_name]}"
+        else:
+            # If the name already exists in the list, we need to find the next available index
+            if name in unique_list:
+                count = 1
+                while f"{base_name}{non_unique_separator}{count}" in unique_list:
+                    count += 1
+                new_name = f"{base_name}{non_unique_separator}{count}"
+            else:
+                new_name = base_name
+            name_count[base_name] = 0  # Initialize counter for this base name
+
+        unique_list.append(new_name)
+
+    return unique_list
+
+
+def add_unique_dict_key(input_dict, new_key, new_value):
+    """
+    Adds a key-value pair to the dictionary, ensuring that the key is unique by
+    appending an incrementing number if the key already exists.
+
+    Args:
+        input_dict (dict): The dictionary to which the new key-value pair is added.
+        new_key (str): The key to add to the dictionary.
+        new_value (Any): The value associated with the key.
+
+    Returns:
+        dict: The updated dictionary with the new key-value pair added.
+    """
+    original_key = new_key
+    count = 1
+    while new_key in input_dict:
+        new_key = f"{original_key}{count}"
+        count += 1
+    input_dict[new_key] = new_value
+    return input_dict
+
+
+def filter_elements(elements, include_filter="*", exclude_filter=""):
+    """
+    Filters the given list of elements based on the include and exclude patterns.
+
+    Args:
+        elements (list): A list of element names to be filtered.
+        include_filter (str): A comma-separated string of patterns to include elements (default is "*", which includes all).
+        exclude_filter (str): A pattern to exclude elements (default is "*", which excludes all).
+
+    Returns:
+        list: A filtered list of elements that match any of the include filters and do not match the exclude filter.
+
+    Example:
+        elements = ["cube1", "sphere1", "cube2", "sphere2", "pyramid"]
+        result = filter_elements(elements, include_filter="cube*, sphere*", exclude_filter="*1")
+        print(result)  # Output: ['sphere2', 'cube2']
+    """
+    # Split include_filter into a list if it contains commas
+    include_patterns = [pattern.strip() for pattern in include_filter.split(",")]
+
+    # Include elements that match any of the include_filter patterns
+    included_elements = [e for e in elements if any(fnmatch.fnmatch(e, pattern) for pattern in include_patterns)]
+
+    # Exclude elements that match the exclude_filter pattern
+    filtered_elements = [e for e in included_elements if not fnmatch.fnmatch(e, exclude_filter)]
+
+    return filtered_elements
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     a_list = [
@@ -420,4 +522,20 @@ if __name__ == "__main__":
         2,
         "abc_end",
     ]
-    print(sanitize_maya_list(a_list))
+    # print(sanitize_maya_list(a_list))
+    skinned_meshes = ["|plane_instance", "|surface_instance"]
+    skinned_surfaces = sanitize_maya_list(
+        input_list=skinned_meshes,
+        filter_existing=True,
+        filter_unique=True,
+        filter_string=None,
+        filter_func=None,
+        filter_type="nurbsSurface",
+        sort_list=False,
+        reverse_list=False,
+        hierarchy=False,
+        convert_to_nodes=False,
+        short_names=False,
+        consider_shape_type=True,
+    )
+    print(f"output: {skinned_surfaces}")

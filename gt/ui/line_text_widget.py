@@ -20,6 +20,14 @@ class LineTextWidget(ui_qt.QtWidgets.QFrame):
         """
 
         def __init__(self, *args):
+            """
+            Initializes the NumberBar widget.
+
+            Sets default colors, font, and initial state for line numbering.
+
+            Args:
+                *args: Variable length argument list to pass to QWidget initializer.
+            """
             super().__init__(*args)
             self.text_edit = None
             self.highest_line = 0  # This is used to update the width of the control.
@@ -34,7 +42,13 @@ class LineTextWidget(ui_qt.QtWidgets.QFrame):
 
         def set_text_edit(self, edit):
             """
-            Set the QTextEdit instance to be associated with this NumberBar.
+            Associates a QTextEdit widget with this NumberBar.
+
+            This allows the NumberBar to track and display line numbers
+            corresponding to the provided QTextEdit instance.
+
+            Args:
+                edit (QTextEdit): The QTextEdit widget to associate.
             """
             self.text_edit = edit
 
@@ -51,7 +65,15 @@ class LineTextWidget(ui_qt.QtWidgets.QFrame):
 
         def paintEvent(self, event):
             """
-            Paint the line numbers.
+            Paints the line numbers next to the associated text edit widget.
+
+            This method draws the line numbers for each visible text block in the
+            document, highlighting the line number of the current cursor position in bold.
+            It takes into account the scrolling offset and viewport height to only
+            paint visible lines, optimizing performance.
+
+            Args:
+                event (QPaintEvent): The paint event triggering this repaint.
             """
             contents_y = self.text_edit.verticalScrollBar().value()
             page_bottom = contents_y + self.text_edit.viewport().height()
@@ -111,6 +133,17 @@ class LineTextWidget(ui_qt.QtWidgets.QFrame):
             super().paintEvent(event)
 
     def __init__(self, *args):
+        """
+        Initialize the widget containing a QTextEdit with a line number bar.
+
+        Sets up the QTextEdit with no frame and no line wrapping, applies custom
+        font and styles, creates a NumberBar for line numbering, and arranges
+        them side by side in a horizontal layout. Also installs event filters on
+        the text edit and its viewport to update the line numbers as needed.
+
+        Args:
+            *args: Variable length argument list passed to the base QWidget initializer.
+        """
         super().__init__(*args)
 
         self.setFrameStyle(ui_qt.QtLib.FrameStyle.StyledPanel | ui_qt.QtLib.FrameStyle.Sunken)
@@ -159,7 +192,16 @@ class LineTextWidget(ui_qt.QtWidgets.QFrame):
 
     def eventFilter(self, obj, event):
         """
-        Filter events to update line numbers.
+        Filters events to update the line numbers when the associated text edit
+        or its viewport receives an event.
+
+        Args:
+            obj (QObject): The object that received the event.
+            event (QEvent): The event to be filtered.
+
+        Returns:
+            bool: False to allow normal event processing to continue, True to
+            stop further processing.
         """
         if obj in (self.edit, self.edit.viewport()):
             self.number_bar.update()

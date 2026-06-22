@@ -1,5 +1,12 @@
-import gt.utils.system as utils_system
+"""
+Qt Utilities
+
+Import Line:
+    import gt.ui.qt_utils as ui_qt_utils
+"""
+
 import gt.core.session as core_session
+import gt.utils.system as utils_sys
 import gt.ui.qt_import as ui_qt
 import logging
 import sys
@@ -54,7 +61,7 @@ class MayaWindowMeta(type):
             dockable = False
         if not base_inheritance:
             base_inheritance = (ui_qt.QtWidgets.QDialog,)
-            if utils_system.is_system_macos():
+            if utils_sys.is_system_macos():
                 base_inheritance = (ui_qt.QtWidgets.QDialog,)
         if not isinstance(base_inheritance, tuple):
             base_inheritance = (base_inheritance,)
@@ -118,8 +125,8 @@ class MayaWindowMeta(type):
                 original_init(self, *args, **kwargs)
                 # Stay On Top macOS Tool Modality
                 try:
-                    if utils_system.is_system_macos() and not dockable:
-                        self.setWindowFlag(ui_qt.QtLib.WindowFlag.Tool, True)
+                    if utils_sys.is_system_macos() and not dockable:
+                        self.setWindowFlag(ui_qt.QtCore.Qt.Tool, True)
                 except Exception as e:
                     logger.debug(f'Unable to set MacOS Tool Modality. Issue: "{str(e)}".')
 
@@ -129,13 +136,13 @@ class MayaWindowMeta(type):
 
 def get_maya_main_window_qt_elements(class_object):
     """
-    Get QtWidgets.QWidget elements of a specific class from the main Maya window.
+    Get PySide2.QtWidgets.QWidget elements of a specific class from the main Maya window.
 
     Args:
         class_object (type or str): The class type or fully qualified string name of the class.
 
     Returns:
-        list: A list of QtWidgets.QWidget elements matching the given class in the Maya window.
+        list: A list of PySide2.QtWidgets.QWidget elements matching the given class in the Maya window.
     """
     if isinstance(class_object, str):
         from gt.utils.system import import_from_path
@@ -215,7 +222,7 @@ def load_custom_font(font_path, point_size=-1, weight=-1, italic=False):
     if ui_qt.QtWidgets.QApplication.instance():
         # Open the font file using QFile
         file = ui_qt.QtCore.QFile(font_path)
-        if file.open(ui_qt.QtLib.OpenModeFlag.ReadOnly):
+        if file.open(ui_qt.QtCore.QIODevice.ReadOnly):
             data = file.readAll()
             file.close()
 
@@ -273,26 +280,81 @@ def get_maya_main_window():
     Returns:
         QWidget: The main maya widget
     """
+    try:
+        from shiboken2 import wrapInstance
+    except ImportError:
+        from shiboken6 import wrapInstance
     from maya import OpenMayaUI as OpenMayaUI
 
     ptr = OpenMayaUI.MQtUtil.mainWindow()
-    maya_window = ui_qt.shiboken.wrapInstance(int(ptr), ui_qt.QtWidgets.QWidget)
+    maya_window = wrapInstance(int(ptr), ui_qt.QtWidgets.QWidget)
     return maya_window
 
 
 def get_qt_color(color):
+    """
+    Converts various input formats to a QColor instance.
+
+    Args:
+        color (str or QColor or None): The input color, which can be:
+            - A hex color string (e.g., "#FF0000" or "#F00").
+            - A color name string recognized by QColor (e.g., "red").
+            - An existing QColor instance.
+            - None or other types (which will be logged as errors).
+
+    Returns:
+        QColor or None: A valid QColor instance if conversion succeeds;
+        otherwise, None.
+    """
     if isinstance(color, str):
-        if re.match(r"^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$", color):  # Hex pattern (e.g. "#FF0000"):
-            return ui_qt.QtGui.QColor(color)
-        else:
-            try:
-                return ui_qt.QtGui.QColor(color)
-            except Exception as e:
-                logger.error(f"Unable to create QColor. Issue: {e}")
+
+        rgb_pattern = re.compile(
+            r"^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$"
+        )
+
+        rgba_pattern = re.compile(
+            r"^rgba\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$"
+        )
+
+        # rgb(...)
+        rgb_match = rgb_pattern.match(color)
+        if rgb_match:
+            r, g, b = map(int, rgb_match.groups())
+
+            if all(0 <= value <= 255 for value in (r, g, b)):
+                return ui_qt.QtGui.QColor(r, g, b)
+
+        # rgba(...)
+        rgba_match = rgba_pattern.match(color)
+        if rgba_match:
+            r, g, b, a = map(int, rgba_match.groups())
+
+            if all(0 <= value <= 255 for value in (r, g, b, a)):
+                return ui_qt.QtGui.QColor(r, g, b, a)
+
+        # Standard Qt parsing
+        qt_color = ui_qt.QtGui.QColor(color)
+
+        if qt_color.isValid():
+            return qt_color
+
+        logger.error(f'Unable to create QColor from string: "{color}"')
+
     elif isinstance(color, ui_qt.QtGui.QColor):
-        return color
+
+        if color.isValid():
+            return color
+
+        logger.error("Received an invalid QColor instance.")
+
     elif color is not None:
-        logger.error(f'Unable to create QColor. Unrecognized object type received: "{type(color)}"')
+
+        logger.error(
+            f'Unable to create QColor. '
+            f'Unrecognized object type received: "{type(color)}"'
+        )
+
+    return None
 
 
 def resize_to_screen(
@@ -513,13 +575,13 @@ def load_and_scale_pixmap(image_path, scale_percentage=100, exact_height=None, e
     if exact_width and isinstance(exact_width, int):
         scaled_width = exact_width
 
-    scaled_pixmap = pixmap.scaled(scaled_width, scaled_height, mode=ui_qt.QtLib.TransformationMode.SmoothTransformation)
+    scaled_pixmap = pixmap.scaled(scaled_width, scaled_height, mode=ui_qt.QtCore.Qt.SmoothTransformation)
     return scaled_pixmap
 
 
 class QtApplicationContext:
     """
-    A context manager for managing a QtWidgets.QApplication.
+    A context manager for managing a PySide2 QtWidgets.QApplication.
 
     Usage:
     with QtContext() as context:
@@ -528,7 +590,7 @@ class QtApplicationContext:
     When the context is exited, the Qt application will be properly closed.
 
     Attributes:
-        app (QtWidgets.QApplication): The QApplication instance.
+        app (QtWidgets.QApplication): The PySide2 QApplication instance.
     """
 
     def __init__(self):
@@ -743,6 +805,12 @@ class ConfirmableQLineEdit(ui_qt.QtWidgets.QLineEdit):
     """
 
     def keyPressEvent(self, event: ui_qt.QtGui.QKeyEvent):
+        """
+        Handles key press events, specifically intercepting Enter and Return keys.
+
+        Args:
+            event (QKeyEvent): The key press event to handle.
+        """
         if event.key() == ui_qt.QtLib.Key.Key_Enter or event.key() == ui_qt.QtLib.Key.Key_Return:
             event.accept()  # Prevent the default behavior of the Enter key
             self.editingFinished.emit()
@@ -976,6 +1044,447 @@ class QDoubleSlider(ui_qt.QtWidgets.QSlider):
             self.linked_spin_box.setValue(self.double_value())
 
 
+class TablePlaceholderDelegate(ui_qt.QtWidgets.QStyledItemDelegate):
+    """
+    A delegate for QTableWidget that displays placeholder text in specific columns.
+
+    Attributes:
+        placeholder_text (str): The placeholder text to display in empty cells.
+        target_columns (list[int]): List of column indices to apply the placeholder.
+        placeholder_color (QColor): Color of the placeholder text.
+        placeholder_alignment (Qt.AlignmentFlag): Alignment of the placeholder text.
+    """
+
+    def __init__(
+        self,
+        placeholder_text,
+        target_columns=None,
+        placeholder_color=None,
+        placeholder_alignment=None,
+        parent=None,
+    ):
+        """
+        Initializes the TablePlaceholderDelegate.
+
+        Args:
+            placeholder_text (str): The placeholder text to display.
+            target_columns (list[int], optional): List of column indices to apply the placeholder.
+            placeholder_color (QColor, optional): Color of the placeholder text.
+            placeholder_alignment (Qt.AlignmentFlag, optional): Alignment of the placeholder text.
+            parent (QObject, optional): Parent object.
+        """
+        super().__init__(parent)
+        self.placeholder_text = placeholder_text
+        self.target_columns = target_columns if target_columns is not None else []
+        self.placeholder_color = placeholder_color or ui_qt.QtGui.QColor(150, 150, 150)
+        self.placeholder_alignment = placeholder_alignment or (
+            ui_qt.QtLib.AlignmentFlag.AlignLeft | ui_qt.QtLib.AlignmentFlag.AlignVCenter
+        )
+
+    def set_placeholder_color(self, color):
+        """
+        Sets the color of the placeholder text.
+
+        Args:
+            color (QColor): The color to set for the placeholder text.
+        """
+        self.placeholder_color = color
+
+    def set_placeholder_alignment(self, alignment):
+        """
+        Sets the alignment of the placeholder text.
+
+        Args:
+            alignment (Qt.AlignmentFlag): The alignment to set for the placeholder text.
+        """
+        self.placeholder_alignment = alignment
+
+    def paint(self, painter, option, index):
+        """
+        Paints the placeholder text in the specified columns if cells are empty.
+
+        Args:
+            painter (QPainter): The painter used for rendering.
+            option (QStyleOptionViewItem): Options for rendering.
+            index (QModelIndex): Index of the cell being painted.
+        """
+        if index.column() in self.target_columns:
+            value = index.data(ui_qt.QtCore.Qt.DisplayRole)
+            if not value:
+                painter.save()
+                painter.setPen(self.placeholder_color)
+                painter.drawText(option.rect, self.placeholder_alignment, self.placeholder_text)
+                painter.restore()
+                return
+
+        super().paint(painter, option, index)
+
+
+def set_table_column_width_by_text(table, column_index, header_text, padding_factor=2):
+    """
+    Sets the column width based on the width of the header text.
+
+    Args:
+        table (QTableWidget): The QTableWidget instance.
+        column_index (int): The index of the column to adjust.
+        header_text (str): The text of the column header.
+        padding_factor (int, optional): Multiplier for padding around the text. Defaults to 2.
+    """
+    font_metrics = ui_qt.QtGui.QFontMetrics(table.font())
+    text_width = font_metrics.horizontalAdvance(header_text)
+    padding = font_metrics.height() // 2  # Approximate padding
+    table.setColumnWidth(column_index, text_width + padding * padding_factor)
+
+
+def add_labeled_separator(
+    menu,
+    text=None,
+    alignment="center",
+    text_alignment="center",
+    font_size=12,
+    color=None,
+    spacing=5,
+    margins=(2, 2, 2, 2),
+):
+    """
+    Adds a horizontal separator to a QMenu, optionally with a label.
+
+    Args:
+        menu (QMenu): The menu to which the separator will be added.
+        text (str, optional): The text label to display within the separator. Defaults to None.
+        alignment (str, optional): Position of the text relative to the lines.
+            - 'left': Text appears before the line.
+            - 'center': Text appears between the lines (default).
+            - 'right': Text appears after the line.
+        text_alignment (str, optional): Alignment of the text label itself within the separator.
+            - 'left': Text aligned to the left.
+            - 'center': Text centered (default).
+            - 'right': Text aligned to the right.
+        font_size (int, optional): Font size of the label text. Defaults to 12.
+        color (str, optional): Color of the label text (e.g., 'red', '#123456'). Defaults to None (inherits theme).
+        spacing (int, optional): Space between the text and the lines. Defaults to 5.
+        margins (tuple, optional): Margins around the separator (left, top, right, bottom). Defaults to (2, 2, 2, 2).
+
+    Returns:
+        QWidgetAction: The separator action added to the menu.
+    """
+    widget = ui_qt.QtWidgets.QWidget()
+    layout = ui_qt.QtWidgets.QHBoxLayout(widget)
+    layout.setContentsMargins(*margins)
+    layout.setSpacing(spacing)
+
+    # Create separator lines and label
+    left_line = ui_qt.QtWidgets.QFrame()
+    left_line.setFrameShape(ui_qt.QtWidgets.QFrame.HLine)
+    left_line.setFrameShadow(ui_qt.QtWidgets.QFrame.Sunken)
+
+    label = None
+    if text:
+        label = ui_qt.QtWidgets.QLabel(text)
+        label.setStyleSheet(f"font-size: {font_size}px;" + (f" color: {color};" if color else ""))
+        label.setAlignment(
+            {
+                "left": ui_qt.QtLib.AlignmentFlag.AlignLeft,
+                "center": ui_qt.QtLib.AlignmentFlag.AlignCenter,
+                "right": ui_qt.QtLib.AlignmentFlag.AlignRight,
+            }.get(text_alignment, ui_qt.QtLib.AlignmentFlag.AlignCenter)
+        )  # Default to center alignment
+
+    right_line = ui_qt.QtWidgets.QFrame()
+    right_line.setFrameShape(ui_qt.QtWidgets.QFrame.HLine)
+    right_line.setFrameShadow(ui_qt.QtWidgets.QFrame.Sunken)
+
+    # Arrange based on alignment
+    if text:
+        if alignment == "left":
+            layout.addWidget(label)
+            layout.addWidget(right_line)
+        elif alignment == "right":
+            layout.addWidget(left_line)
+            layout.addWidget(label)
+        else:  # Default to center
+            layout.addWidget(left_line)
+            layout.addWidget(label)
+            layout.addWidget(right_line)
+    else:
+        # Plain separator
+        layout.addWidget(left_line)
+
+    # Create a QWidgetAction to insert into the menu
+    separator_action = ui_qt.QtWidgets.QWidgetAction(menu)
+    separator_action.setDefaultWidget(widget)
+    menu.addAction(separator_action)
+
+    return separator_action
+
+
+class ColorSquareDelegate(ui_qt.QtWidgets.QStyledItemDelegate):
+    """
+    Custom delegate to paint color squares next to combobox items.
+
+    This delegate is responsible for rendering the color square next to the text
+    in each item of the combobox dropdown list.
+    """
+
+    COLOR_DATA_IDX = ui_qt.QtLib.ItemDataRole.UserRole + 1
+
+    def paint(self, painter, option, index):
+        """Override paint method to draw the color square next to the item text.
+
+        Args:
+            painter (QPainter): The painter used to draw the item.
+            option (QStyleOptionViewItem): Contains the visual options for the item.
+            index (QModelIndex): The model index of the item being painted.
+        """
+        super().paint(painter, option, index)
+
+        # Get the color data from the combobox item
+        color = index.data(ColorSquareDelegate.COLOR_DATA_IDX)
+
+        if isinstance(color, ui_qt.QtGui.QColor):
+            rect = option.rect
+            square_size = rect.height() * 0.6  # Set square size based on item height (60% of height)
+            square_x = rect.right() - square_size - 5  # Position square to the right with a 5px margin
+            square_y = rect.top() + (rect.height() - square_size) / 2  # Center the square vertically
+
+            color_square_rect = ui_qt.QtCore.QRect(square_x, square_y, square_size, square_size)
+
+            painter.save()
+            painter.setBrush(color)
+            painter.setPen(ui_qt.QtCore.Qt.NoPen)
+            painter.drawRect(color_square_rect)  # Draw the color square
+            painter.restore()
+
+
+class ColorSquareComboBox(ui_qt.QtWidgets.QComboBox):
+    """Custom combobox that displays a color square next to the selected item.
+
+    This combobox uses a custom delegate to paint a color square next to the text
+    of each item in the dropdown list. The selected item's color square is also shown
+    at the top of the combobox when it is collapsed.
+    """
+
+    def __init__(self):
+        """Initialize the combobox and populate it with color items.
+
+        Sets up the combobox with a custom delegate for drawing color squares and
+        adds items with specific RGB color values.
+        """
+        super().__init__()
+        self.setItemDelegate(ColorSquareDelegate(self))  # Set custom delegate
+
+    def paintEvent(self, event):
+        """Override paintEvent to draw the color square on top of the combobox.
+
+        Args:
+            event (QPaintEvent): The event that triggers the painting of the combobox.
+        """
+        super().paintEvent(event)
+
+        # Paint the color square on top of the combobox (not expanded)
+        color = self.itemData(self.currentIndex(), ColorSquareDelegate.COLOR_DATA_IDX)  # Get color of selected item
+
+        if isinstance(color, ui_qt.QtGui.QColor):
+            rect = self.rect()
+            square_size = rect.height() * 0.6  # Set square size based on combobox height (60% of height)
+            square_x = rect.right() - square_size - 5  # Position square to the right with a 5px margin
+            square_y = rect.top() + (rect.height() - square_size) / 2  # Center the square vertically
+
+            color_square_rect = ui_qt.QtCore.QRect(square_x, square_y, square_size, square_size)
+
+            painter = ui_qt.QtGui.QPainter(self)
+            painter.setBrush(color)
+            painter.setPen(ui_qt.QtCore.Qt.NoPen)
+            painter.drawRect(color_square_rect)  # Draw the color square
+            painter.end()
+
+
+class ColorTextDelegate(ui_qt.QtWidgets.QStyledItemDelegate):
+    """
+    Custom delegate to change the text color of combobox items.
+
+    This delegate sets the text color of each item based on a provided QColor.
+    """
+
+    COLOR_DATA_IDX = ui_qt.QtCore.Qt.UserRole + 1
+
+    def paint(self, painter, option, index):
+        """
+        Paints the item text with a custom color.
+
+        Args:
+            painter (QtGui.QPainter): The painter used to draw the item.
+            option (QtWidgets.QStyleOptionViewItem): The visual options for the item.
+            index (QtCore.QModelIndex): The model index of the item being painted.
+        """
+        color = index.data(ColorTextDelegate.COLOR_DATA_IDX)
+
+        if isinstance(color, ui_qt.QtGui.QColor):
+            option.palette.setColor(ui_qt.QtGui.QPalette.Text, color)
+
+        super().paint(painter, option, index)
+
+
+class ColorTextComboBox(ui_qt.QtWidgets.QComboBox):
+    """
+    A custom QComboBox that allows modifying text colors for items.
+
+    The selected item's text color is also applied when the combobox is closed.
+    """
+
+    def __init__(self):
+        """Initializes the ColorTextComboBox with a custom item delegate."""
+        super().__init__()
+        self.setItemDelegate(ColorTextDelegate())
+
+        self.tooltip_condition = None  # Condition for displaying the tooltip
+        self.tooltip_text = ""  # The tooltip text
+
+        # Connect the index change signal to update the tooltip dynamically
+        self.currentIndexChanged.connect(self.update_tooltip)
+
+    def set_item_color(self, index, color):
+        """
+        Sets the text color of an existing item.
+
+        Args:
+            index (int): The index of the item to modify.
+            color (QtGui.QColor): The color to apply to the item's text.
+        """
+        if 0 <= index < self.count():
+            self.setItemData(index, color, ColorTextDelegate.COLOR_DATA_IDX)
+
+    def set_tooltip(self, text, condition):
+        """
+        Sets the tooltip text and condition for when to show the tooltip.
+
+        Args:
+            text (str): The tooltip text to display when the condition is met.
+            condition (callable): A function that takes the current text and returns a boolean.
+                This function will determine whether the tooltip is displayed.
+        """
+        self.tooltip_text = text
+        self.tooltip_condition = condition
+        self.update_tooltip()  # Ensure the tooltip is updated immediately
+
+    def update_tooltip(self):
+        """
+        Updates the tooltip based on the selected item and condition.
+        If the current item meets the condition, the tooltip text is shown.
+        Otherwise, the tooltip is cleared.
+        """
+        current_text = self.currentText()
+        if self.tooltip_condition and self.tooltip_condition(current_text):
+            self.setToolTip(self.tooltip_text)
+        else:
+            self.setToolTip("")  # Clear the tooltip if the condition is not met
+
+    def paintEvent(self, event):
+        """
+        Overrides the paint event to apply the selected item's color when closed.
+
+        This ensures that the selected text appears in the correct color even
+        when the combobox is not expanded.
+
+        Args:
+            event (QtGui.QPaintEvent): The paint event object.
+        """
+        painter = ui_qt.QtGui.QPainter(self)
+        option = ui_qt.QtWidgets.QStyleOptionComboBox()
+        self.initStyleOption(option)
+
+        # Retrieve the color of the currently selected item
+        color = self.currentData(ColorTextDelegate.COLOR_DATA_IDX)
+
+        # Draw the combo box normally
+        self.style().drawComplexControl(ui_qt.QtWidgets.QStyle.CC_ComboBox, option, painter, self)
+
+        # Manually draw the text with the correct color
+        if isinstance(color, ui_qt.QtGui.QColor):
+            painter.setPen(color)
+        else:
+            painter.setPen(option.palette.color(ui_qt.QtGui.QPalette.Text))
+
+        text_rect = option.rect.adjusted(5, 0, -20, 0)  # Adjust text position
+        font_metrics = painter.fontMetrics()
+        elided_text = font_metrics.elidedText(self.currentText(), ui_qt.QtCore.Qt.ElideRight, text_rect.width())
+
+        painter.drawText(text_rect, ui_qt.QtCore.Qt.AlignVCenter | ui_qt.QtCore.Qt.TextSingleLine, elided_text)
+
+    def showEvent(self, event):
+        """
+        Override the show event to update the tooltip when the combo box is shown.
+
+        Args:
+            event (QEvent): The show event.
+        """
+        super().showEvent(event)
+        self.update_tooltip()
+
+
+def populate_line_edit_with_selection(
+    target_text_field, selection_limit=1, require_exact_count=True, separator=", ", verbose=True
+):
+    """
+    Populates a QLineEdit with the names of selected Maya objects.
+
+    Args:
+        target_text_field (QLineEdit): A QLineEdit object to be populated.
+        selection_limit (int, None, optional): Maximum number of objects allowed. Defaults to 1. (None = no limit)
+        require_exact_count (bool, optional): Requires exactly selection_limit if True. Defaults to True.
+        separator (str, optional): The string used to join the names of
+            multiple selected objects. If set to None, a list converted to string is used instead.
+        verbose (bool, optional): Logs errors and warnings if True. Defaults to True.
+
+    Returns:
+        list: List of selected objects, or empty list if validation fails.
+    """
+    import gt.core.selection as core_sel
+
+    selection = core_sel.ensure_selection_count(
+        selection_limit=selection_limit,
+        require_exact_count=require_exact_count,
+        verbose=verbose,
+    )
+    if not selection:
+        return
+    selection_str = separator.join(selection) if separator else str(selection)
+    target_text_field.setText(selection_str)
+    return selection
+
+
+def get_all_tree_item_children(tree_item):
+    """
+    Recursively collects all child items of the given QTreeWidgetItem.
+
+    Args:
+        tree_item (QTreeWidgetItem): The parent item.
+
+    Returns:
+        list[QTreeWidgetItem]: A list of all child items under the given item.
+    """
+    children = []
+
+    def collect_children(item):
+        """
+        Recursively collects all children of the given item into a global list.
+
+        Traverses all descendants of `item` by recursively visiting each child
+        and appending them to the global `children` list.
+
+        Args:
+            item: The parent item whose children are to be collected. Must have
+                  `childCount()` and `child(index)` methods.
+        """
+        for i in range(item.childCount()):
+            child = item.child(i)
+            children.append(child)
+            collect_children(child)
+
+    collect_children(tree_item)
+    return children
+
+
 if __name__ == "__main__":
     with QtApplicationContext():
         a_window = ui_qt.QtWidgets.QMainWindow()
@@ -983,5 +1492,6 @@ if __name__ == "__main__":
         center_window(a_window)
         print(get_main_window_screen_number())
         print(get_screen_center())
+
         a_window.show()
         # close_ui_elements([a_window])  # Working, as it closes

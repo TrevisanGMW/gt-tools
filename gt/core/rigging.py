@@ -1,23 +1,29 @@
 """
-Rigging Module
+Rigging Utilities
 
-Code Namespace:
-    core_rigging  # import gt.core.rigging as core_rigging
+Import Line:
+    import gt.core.rigging as core_rigging
 """
 
 import gt.core.constraint as core_cnstr
 import gt.core.transform as core_trans
 import gt.core.hierarchy as core_hrchy
+import gt.core.feedback as core_fback
 import gt.core.naming as core_naming
 import gt.core.iterable as core_iter
 import gt.core.color as core_color
 import gt.core.attr as core_attr
 import gt.core.node as core_node
 import gt.core.math as core_math
+import gt.core.undo as core_undo
 import gt.core.str as core_str
 import maya.cmds as cmds
+import functools
 import logging
 import random
+import math
+import uuid
+import os
 
 # Logging Setup
 logging.basicConfig()
@@ -36,6 +42,7 @@ class RiggingConstants:
     ATTR_SHOW_OFFSET = "showOffsetCtrl"
     ATTR_SHOW_PIVOT = "showPivotCtrl"
     ATTR_INFLUENCE_SWITCH = "influenceSwitch"
+    ATTR_IMPORT_OFFSET_REF = "isImportOffsetGrp"
     # Separator Attributes
     SEPARATOR_OPTIONS = "options"
     SEPARATOR_CONTROL = "controlOptions"
@@ -755,7 +762,808 @@ def add_limit_lock_rotate_with_exception(
     )
 
 
+def create_enum_switch(
+    attribute_holder,
+    targets,
+    display_names=None,
+    attr_name="modeSwitch",
+    controlled_attrs="visibility",
+    default_index=0,
+    none_label="None",
+):
+    """
+    Adds an enum attribute to `attribute_holder` that controls one or more attributes
+    (e.g., visibility, translateX) across different target objects or groups of objects.
+
+    Args:
+        attribute_holder (str): Node to receive the enum attribute.
+        targets (list): List of strings, None, or lists of strings/None. Each entry defines one enum state.
+        display_names (list of str or None, optional): Friendly names for the enum values.
+                                        Must match `targets` in length.
+                                        None entries will use the first object name in the group or `none_label`.
+        attr_name (str): Name of the enum attribute to add.
+        controlled_attrs (str or list of str): Attribute(s) to control (e.g., "visibility", "translateX").
+                                               Can be a string or a list of strings.
+        default_index (int): Index of the enum value that should be active after setup. Default is 0.
+        none_label (str): Label to use for enum items corresponding to None targets. Default is "None".
+    """
+    if not cmds.objExists(attribute_holder):
+        raise ValueError(f"Attribute holder '{attribute_holder}' does not exist.")
+
+    # Normalize controlled attributes
+    if isinstance(controlled_attrs, str):
+        controlled_attrs = [controlled_attrs]
+
+    # Normalize targets to list of lists
+    normalized_targets = []
+    all_objects = set()
+    for entry in targets:
+        if entry is None:
+            group = []
+        elif isinstance(entry, str):
+            group = [entry]
+        elif isinstance(entry, list):
+            group = [obj for obj in entry if obj is not None]
+        else:
+            raise TypeError("Each target must be a string, list of strings, or None.")
+        normalized_targets.append(group)
+        all_objects.update(group)
+
+    # Validate objects exist (skip empty groups)
+    for obj in all_objects:
+        if not cmds.objExists(obj):
+            raise ValueError(f"Target object '{obj}' does not exist.")
+
+    # Resolve display names
+    if display_names:
+        if len(display_names) != len(normalized_targets):
+            raise ValueError("Length of display_names must match number of targets.")
+        enum_labels = []
+        for i, (group, name) in enumerate(zip(normalized_targets, display_names)):
+            if name is None:
+                label = group[0].split("|")[-1] if group else none_label
+            else:
+                label = name
+            enum_labels.append(label)
+    else:
+        enum_labels = [group[0].split("|")[-1] if group else none_label for group in normalized_targets]
+
+    enum_string = ":".join(enum_labels)
+
+    # Add the enum attribute
+    if cmds.attributeQuery(attr_name, node=attribute_holder, exists=True):
+        raise ValueError(f"Attribute '{attr_name}' already exists on '{attribute_holder}'.")
+
+    cmds.addAttr(attribute_holder, longName=attr_name, attributeType="enum", enumName=enum_string, keyable=True)
+    driver_attr = f"{attribute_holder}.{attr_name}"
+
+    # Set driven keys
+    for enum_index, group in enumerate(normalized_targets):
+        for obj in group:  # only iterate real objects, skip None
+            for attr in controlled_attrs:
+                driven_attr = f"{obj}.{attr}"
+                if not cmds.objExists(driven_attr):
+                    raise ValueError(f"Driven attribute '{driven_attr}' does not exist.")
+                cmds.setAttr(driver_attr, enum_index)
+                cmds.setAttr(driven_attr, True)
+                cmds.setDrivenKeyframe(driven_attr, currentDriver=driver_attr)
+
+        # Ensure other objects are turned off for this enum
+        inactive_objects = all_objects - set(group)
+        for obj in inactive_objects:
+            for attr in controlled_attrs:
+                driven_attr = f"{obj}.{attr}"
+                cmds.setAttr(driver_attr, enum_index)
+                cmds.setAttr(driven_attr, False)
+                cmds.setDrivenKeyframe(driven_attr, currentDriver=driver_attr)
+
+    # Set to default value
+    if not (0 <= default_index < len(normalized_targets)):
+        logging.warning(f"Default index {default_index} is out of range for {len(normalized_targets)} targets.")
+
+    cmds.setAttr(driver_attr, default_index)
+
+
+def duplicate_and_offset_mesh(
+    source_mesh,
+    offset,
+    parent=None,
+    block_selection_attr=None,
+    driver_joint=None,
+    hide_original=True,
+    suffix="_preview",
+    condition=None,
+):
+    """
+    Duplicate (or reuse) a preview mesh, create (or reuse) a carrier joint constrained
+    to the driver joint, and apply conditional offsets on translation, rotation, and scale
+    that stack across multiple calls.
+
+    Args:
+        source_mesh (str): Name of the mesh to duplicate.
+        offset (Transform, Vector3, tuple/list of 3,6, or 9 elements, optional): Position/rotation/scale offsets.
+            - 3 elements = translation only
+            - 6 elements = translation + rotation
+            - 9 elements = translation + rotation + scale
+        parent (str, optional): Node under which the duplicate mesh and carrier joint will be parented.
+        block_selection_attr (str, optional): Attribute to connect to the duplicate's overrideEnabled.
+        driver_joint (str, optional): Joint to duplicate as the carrier joint for the duplicate mesh.
+        hide_original (bool): Whether to hide the original mesh (default True).
+        suffix (str, optional): Suffix to be added to the duplicated mesh.
+        condition (str, optional): Maya attribute (e.g., "ctrl.visibility") that drives whether
+            the offset is applied.
+
+    Returns:
+        tuple[str, str]: (duplicated mesh, carrier joint)
+    """
+    # --- Parse offset ---
+    rot_x = rot_y = rot_z = scl_x = scl_y = scl_z = None
+
+    if isinstance(offset, core_trans.Transform):
+        pos_x, pos_y, pos_z = offset.position.get_as_tuple()
+        rot_x, rot_y, rot_z = offset.rotation.get_as_tuple()
+        scl_x, scl_y, scl_z = offset.scale.get_as_tuple()
+    elif isinstance(offset, core_trans.Vector3):
+        pos_x, pos_y, pos_z = offset.get_as_tuple()
+    elif isinstance(offset, (tuple, list)):
+        if len(offset) == 3:
+            pos_x, pos_y, pos_z = offset
+        elif len(offset) == 6:
+            pos_x, pos_y, pos_z = offset[:3]
+            rot_x, rot_y, rot_z = offset[3:]
+        elif len(offset) == 9:
+            pos_x, pos_y, pos_z = offset[:3]
+            rot_x, rot_y, rot_z = offset[3:6]
+            scl_x, scl_y, scl_z = offset[6:]
+        else:
+            raise ValueError("Offset tuple/list must have 3, 6, or 9 elements.")
+    else:
+        raise ValueError("Offset must be Transform, Vector3, or a 3/6/9-element tuple/list.")
+
+    dup_mesh = f"{source_mesh}{suffix}"
+
+    # --- Duplicate mesh if needed ---
+    if not cmds.objExists(dup_mesh):
+        dup_mesh = cmds.duplicate(source_mesh, name=dup_mesh)[0]
+        core_attr.set_attr(attribute_path=f"{dup_mesh}.v", value=1)
+        if hide_original and cmds.objExists(source_mesh):
+            core_attr.set_attr(attribute_path=f"{source_mesh}.v", value=0)
+
+    # --- Carrier joint setup ---
+    carrier_joint = None
+    pcon = None
+    scon = None
+    if driver_joint:
+        driver_short = core_naming.get_short_name(driver_joint)
+        dupe_short = core_naming.get_short_name(dup_mesh)
+        carrier_joint = f"{driver_short}_{dupe_short}_offsetJnt"
+
+        if not cmds.objExists(carrier_joint):
+            carrier_joint = cmds.duplicate(driver_joint, parentOnly=True, name=carrier_joint)[0]
+            cmds.setAttr(f"{carrier_joint}.v", 0)
+            pcon = cmds.parentConstraint(driver_joint, carrier_joint, maintainOffset=False)[0]
+            scon = cmds.scaleConstraint(driver_joint, carrier_joint, maintainOffset=False)
+            if cmds.objExists(dup_mesh):
+                cmds.skinCluster(
+                    carrier_joint, dup_mesh, toSelectedBones=True, bindMethod=0, skinMethod=0, normalizeWeights=1
+                )
+        else:
+            existing_pcons = cmds.listRelatives(carrier_joint, type="parentConstraint") or []
+            pcon = (
+                existing_pcons[0]
+                if existing_pcons
+                else cmds.parentConstraint(driver_joint, carrier_joint, maintainOffset=False)[0]
+            )
+            existing_scons = cmds.listRelatives(carrier_joint, type="scaleConstraint") or []
+            scon = (
+                existing_scons[0]
+                if existing_scons
+                else cmds.scaleConstraint(driver_joint, carrier_joint, maintainOffset=False)[0]
+            )
+
+        # --- Determine target index for pcon ---
+        targets = cmds.parentConstraint(pcon, q=True, tl=True) or []
+        t_index = targets.index(driver_joint) if driver_joint in targets else 0
+
+        # --- Helper to create/reuse PMA ---
+        def get_pma(name):
+            """
+            Get an existing plusMinusAverage node by name, or create one if it doesn't exist.
+
+            Args:
+                name (str): The desired name of the plusMinusAverage node.
+
+            Returns:
+                str: The name of the existing or newly created plusMinusAverage node.
+            """
+            if not cmds.objExists(name):
+                pma = cmds.createNode("plusMinusAverage", name=name)
+                cmds.setAttr(f"{pma}.operation", 1)  # Sum
+                return pma
+            return name
+
+        # --- Translation PMA (start at 0,0,0) ---
+        pma_trans = get_pma(f"{dup_mesh}_offsetSum_trans")
+        for axis, child in (("X", "output3Dx"), ("Y", "output3Dy"), ("Z", "output3Dz")):
+            attr = f"{pcon}.target[{t_index}].targetOffsetTranslate{axis}"
+            if cmds.getAttr(attr, lock=True):
+                core_attr.set_attr_state(attr, locked=False)
+            if not cmds.listConnections(f"{pma_trans}.output3D.{child}", plugs=True):
+                cmds.connectAttr(f"{pma_trans}.output3D.{child}", attr, force=True)
+
+        # --- Rotation PMA (start at 0,0,0) ---
+        if rot_x is not None:
+            pma_rot = get_pma(f"{dup_mesh}_offsetSum_rot")
+            for axis, child in (("X", "output3Dx"), ("Y", "output3Dy"), ("Z", "output3Dz")):
+                attr = f"{pcon}.target[{t_index}].targetOffsetRotate{axis}"
+                if cmds.getAttr(attr, lock=True):
+                    core_attr.set_attr_state(attribute_path=attr, locked=False)
+                if not cmds.listConnections(f"{pma_rot}.output3D.{child}", plugs=True):
+                    cmds.connectAttr(f"{pma_rot}.output3D.{child}", attr, force=True)
+
+        # --- Scale PMA (start at 1, 1, 1) ---
+        if scl_x is not None:
+            pma_scl = get_pma(f"{dup_mesh}_offsetSum_scl")
+            if not cmds.getAttr(f"{pma_scl}.input3D[0]", multiIndices=True):
+                cmds.setAttr(f"{pma_scl}.input3D[0].input3Dx", 1)
+                cmds.setAttr(f"{pma_scl}.input3D[0].input3Dy", 1)
+                cmds.setAttr(f"{pma_scl}.input3D[0].input3Dz", 1)
+            for axis, child, attr_name in zip(
+                ("X", "Y", "Z"), ("output3Dx", "output3Dy", "output3Dz"), ("offsetX", "offsetY", "offsetZ")
+            ):
+                attr = f"{scon[0]}.{attr_name}"
+                if cmds.getAttr(attr, lock=True):
+                    core_attr.set_attr_state(attribute_path=attr, locked=False)
+                if not cmds.listConnections(f"{pma_scl}.output3D.{child}", plugs=True):
+                    cmds.connectAttr(f"{pma_scl}.output3D.{child}", attr, force=True)
+
+        # --- Connect new condition to PMAs separately ---
+        if condition:
+            # Translation
+            if pos_x is not None or pos_y is not None or pos_z is not None:
+                cond_trans = cmds.createNode("condition", name=f"{dup_mesh}_offsetCond_trans")
+                cmds.setAttr(f"{cond_trans}.operation", 0)  # Equal
+                cmds.setAttr(f"{cond_trans}.secondTerm", 1)
+                cmds.connectAttr(condition, f"{cond_trans}.firstTerm", force=True)
+                for ch, val in (("R", pos_x or 0), ("G", pos_y or 0), ("B", pos_z or 0)):
+                    cmds.setAttr(f"{cond_trans}.colorIfTrue{ch}", val)
+                    cmds.setAttr(f"{cond_trans}.colorIfFalse{ch}", 0)
+                used = cmds.getAttr(f"{pma_trans}.input3D", multiIndices=True) or []
+                next_idx = (max(used) + 1) if used else 0
+                cmds.connectAttr(f"{cond_trans}.outColor", f"{pma_trans}.input3D[{next_idx}]", force=True)
+
+            # Rotation (If available)
+            if rot_x is not None:
+                cond_rot = cmds.createNode("condition", name=f"{dup_mesh}_offsetCond_rot")
+                cmds.setAttr(f"{cond_rot}.operation", 0)  # Equal
+                cmds.setAttr(f"{cond_rot}.secondTerm", 1)
+                cmds.connectAttr(condition, f"{cond_rot}.firstTerm", force=True)
+                for ch, val in (("R", rot_x), ("G", rot_y), ("B", rot_z)):
+                    cmds.setAttr(f"{cond_rot}.colorIfTrue{ch}", val)
+                    cmds.setAttr(f"{cond_rot}.colorIfFalse{ch}", 0)
+                used = cmds.getAttr(f"{pma_rot}.input3D", multiIndices=True) or []
+                next_idx = (max(used) + 1) if used else 0
+                cmds.connectAttr(f"{cond_rot}.outColor", f"{pma_rot}.input3D[{next_idx}]", force=True)
+
+            # Scale (If available)
+            if scl_x is not None:
+                cond_scl = cmds.createNode("condition", name=f"{dup_mesh}_offsetCond_scl")
+                cmds.setAttr(f"{cond_scl}.operation", 0)  # Equal
+                cmds.setAttr(f"{cond_scl}.secondTerm", 1)
+                cmds.connectAttr(condition, f"{cond_scl}.firstTerm", force=True)
+                for ch, val in (("R", scl_x), ("G", scl_y), ("B", scl_z)):
+                    cmds.setAttr(f"{cond_scl}.colorIfTrue{ch}", val)
+                    cmds.setAttr(f"{cond_scl}.colorIfFalse{ch}", 0)
+                used = cmds.getAttr(f"{pma_scl}.input3D", multiIndices=True) or []
+                next_idx = (max(used) + 1) if used else 0
+                cmds.connectAttr(f"{cond_scl}.outColor", f"{pma_scl}.input3D[{next_idx}]", force=True)
+
+    # --- Parent carrier joint and mesh only if not already parented ---
+    if parent and cmds.objExists(parent):
+        if carrier_joint and cmds.objExists(carrier_joint):
+            if cmds.listRelatives(carrier_joint, parent=True) != [parent]:
+                core_hrchy.parent(source_objects=carrier_joint, target_parent=parent)
+        if cmds.objExists(dup_mesh):
+            if cmds.listRelatives(dup_mesh, parent=True) != [parent]:
+                core_hrchy.parent(source_objects=dup_mesh, target_parent=parent)
+
+    # --- Display controls ---
+    if block_selection_attr and cmds.objExists(dup_mesh):
+        connections = cmds.listConnections(f"{dup_mesh}.overrideEnabled", plugs=True) or []
+        if block_selection_attr not in connections:
+            try:
+                cmds.connectAttr(block_selection_attr, f"{dup_mesh}.overrideEnabled", force=True)
+            except Exception as e:
+                logger.debug(f"Failed to connect block_selection_attr: {e}")
+        else:
+            logger.debug(f"{dup_mesh}.overrideEnabled already connected; skipping.")
+
+    if cmds.objExists(dup_mesh):
+        core_attr.set_attr(attribute_path=f"{dup_mesh}.overrideDisplayType", value=2)
+        core_attr.set_attr(attribute_path=f"{dup_mesh}.v", value=True)
+
+    return dup_mesh, carrier_joint
+
+
+def create_fk_wave_setup(
+    controls,
+    driven_axis="rotateZ",
+    setup_name=None,
+    separator_name="sineWave",
+    default_amplitude=5.0,
+    default_wavelength=2.0,
+    default_envelope=1.0,
+):
+    """
+    Rigs a sine wave deformer onto a sequence of FK controls.
+
+    This function first adds the necessary control attributes to the lead control.
+    It then creates a node network using an expression to generate the wave
+    motion, which is applied to newly created offset groups above each control.
+
+    Args:
+        controls (list[str]): A list of control names in sequential order. (Base first)
+        driven_axis (str, optional): The rotation axis to drive. Defaults to 'rotateZ'.
+        setup_name (str, optional): A name to add to create attributes and elements. Default None (no extra name)
+        separator_name (str, optional): The name for the separator attribute that
+                                        groups the wave controls. Defaults to 'waveControls'.
+        default_amplitude (float, optional): The default value for the amplitude attribute.
+        default_wavelength (float, optional): The default value for the waveLength attribute.
+        default_envelope (float, optional): The default value for the default_envelope attribute.
+    """
+    if not controls or not all(cmds.objExists(c) for c in controls):
+        logger.warning("Input is not a valid list of existing controls. Aborting.")
+        return
+
+    driver_control = controls[0]
+    num_controls = len(controls)
+
+    # --- Add Wave Attributes to Driver Control ---
+    core_attr.add_separator_attr(target_object=driver_control, attr_name=separator_name)
+
+    attributes_to_add = {
+        "envelope": {
+            "longName": "envelope",
+            "attributeType": "float",
+            "minValue": 0,
+            "maxValue": 1,
+            "defaultValue": default_envelope,
+        },
+        "amplitude": {
+            "longName": "amplitude",
+            "attributeType": "float",
+            "defaultValue": default_amplitude,
+        },
+        "waveLength": {
+            "longName": "waveLength",
+            "attributeType": "float",
+            "minValue": 0.01,
+            "defaultValue": default_wavelength,
+        },
+        "offset": {
+            "longName": "offset",
+            "attributeType": "float",
+            "defaultValue": 0,
+        },
+        "dropoff": {
+            "longName": "dropoff",
+            "attributeType": "float",
+            "minValue": 0,
+            "maxValue": 1,
+            "defaultValue": 0,
+        },
+    }
+
+    if setup_name is None:
+        setup_name = ""
+
+    attr_paths = {}
+    for attr, properties in attributes_to_add.items():
+        long_name = properties["longName"]
+        if setup_name:
+            long_name = f"{setup_name}{long_name.upper()}"
+
+        if not cmds.attributeQuery(long_name, node=driver_control, exists=True):
+            # Create a copy of the properties to avoid modifying the base dictionary
+            new_properties = properties.copy()
+            new_properties["longName"] = long_name
+            cmds.addAttr(driver_control, keyable=True, **new_properties)
+        attr_paths[attr] = f"{driver_control}.{long_name}"
+
+    # --- Build Node Network ---
+    time_node = cmds.createNode("time", name=f"{driver_control}_wave_time")
+
+    for index, control in enumerate(controls):
+        offset_group = core_hrchy.add_offset_transform(control, transform_suffix="wave")[0]
+
+        wave_output_node = cmds.createNode("unitConversion", name=f"{control}_waveOutput")
+
+        phase_offset_node = cmds.createNode("plusMinusAverage", name=f"{control}_phaseOffset")
+        cmds.setAttr(f"{phase_offset_node}.input1D[0]", index)
+        cmds.connectAttr(attr_paths["offset"], f"{phase_offset_node}.input1D[1]")
+
+        wavelength_inv_node = cmds.createNode("multiplyDivide", name=f"{control}_wavelengthInv")
+        cmds.setAttr(f"{wavelength_inv_node}.operation", 2)  # Divide
+        cmds.setAttr(f"{wavelength_inv_node}.input1X", 1.0)
+        cmds.connectAttr(attr_paths["waveLength"], f"{wavelength_inv_node}.input2X")
+
+        expression_string = (
+            f"float $twoPi = {2 * math.pi};\n"
+            f"float $time = {time_node}.outTime;\n"
+            f"float $phase = {phase_offset_node}.output1D;\n"
+            f'float $amp = {attr_paths["amplitude"]};\n'
+            f"float $freq = {wavelength_inv_node}.outputX;\n"
+            f"{wave_output_node}.input = $amp * sin(($time + $phase) * $freq * $twoPi);"
+        )
+
+        cmds.expression(string=expression_string, name=f"{control}_wave_expr")
+
+        dropoff_ramp_node = cmds.createNode("multiplyDivide", name=f"{control}_dropoffRamp")
+        cmds.setAttr(f"{dropoff_ramp_node}.operation", 2)  # Divide
+        cmds.setAttr(f"{dropoff_ramp_node}.input1X", float(index))
+        denominator = float(num_controls - 1) if num_controls > 1 else 1.0
+        cmds.setAttr(f"{dropoff_ramp_node}.input2X", denominator)
+
+        dropoff_amount_node = cmds.createNode("multiplyDivide", name=f"{control}_dropoffAmount")
+        cmds.connectAttr(attr_paths["dropoff"], f"{dropoff_amount_node}.input1X")
+        cmds.connectAttr(f"{dropoff_ramp_node}.outputX", f"{dropoff_amount_node}.input2X")
+
+        dropoff_scale_node = cmds.createNode("plusMinusAverage", name=f"{control}_dropoffScale")
+        cmds.setAttr(f"{dropoff_scale_node}.operation", 2)  # Subtract
+        cmds.setAttr(f"{dropoff_scale_node}.input1D[0]", 1.0)
+        cmds.connectAttr(f"{dropoff_amount_node}.outputX", f"{dropoff_scale_node}.input1D[1]")
+
+        wave_and_dropoff_node = cmds.createNode("multiplyDivide", name=f"{control}_mult_wave_dropoff")
+        cmds.connectAttr(f"{wave_output_node}.output", f"{wave_and_dropoff_node}.input1X")
+        cmds.connectAttr(f"{dropoff_scale_node}.output1D", f"{wave_and_dropoff_node}.input2X")
+
+        final_value_node = cmds.createNode("multiplyDivide", name=f"{control}_mult_envelope")
+        cmds.connectAttr(attr_paths["envelope"], f"{final_value_node}.input1X")
+        cmds.connectAttr(f"{wave_and_dropoff_node}.outputX", f"{final_value_node}.input2X")
+
+        cmds.connectAttr(f"{final_value_node}.outputX", f"{offset_group}.{driven_axis}")
+
+
+@core_undo.undo_chunk
+def import_with_offset(
+    file_paths,
+    group_name="imported",
+    tracking_attribute=RiggingConstants.ATTR_IMPORT_OFFSET_REF,
+    translate_offset=(0.0, 0.0, 0.0),
+    rotate_offset=(0.0, 0.0, 0.0),
+):
+    """Imports 3D models, applies a baked transform offset, and organizes them.
+
+    This function finds or creates a main, trackable container group. It uses the
+    FbxImporter class for FBX files, importing them into a temporary namespace to
+    prevent name clashes. A world-space transformation is applied to the new
+    top-level objects before they are parented.
+
+    Args:
+        file_paths (list[str] or str): A single file path or a list of paths to import.
+        group_name (str, optional): The name of the main container group to find or create.
+        tracking_attribute (str, optional): The name of the boolean attribute used to identify.
+        translate_offset (tuple[float], optional): The translation offset (X, Y, Z) to apply.
+        rotate_offset (tuple[float], optional): The rotation offset (X, Y, Z) in degrees to apply.
+
+    Returns:
+        str or None: The name of the main container group if new nodes were successfully imported,
+                     otherwise None.
+    """
+    # --- Ensure necessary importer plugins are loaded ---
+    cmds.loadPlugin("fbxmaya.mll", quiet=True)
+    cmds.loadPlugin("objExport.mll", quiet=True)
+
+    # --- Import files and identify new nodes ---
+    if not isinstance(file_paths, list):
+        file_paths = [file_paths]
+
+    imported_nodes_this_run = []
+    temp_namespaces_created = set()
+
+    file_type_map = {
+        ".ma": "mayaAscii",
+        ".mb": "mayaBinary",
+        ".obj": "OBJ",
+    }
+
+    for file_path in file_paths:
+        if not os.path.exists(file_path):
+            cmds.warning(f'File path does not exist, skipping: "{file_path}"')
+            continue
+
+        file_extension = os.path.splitext(file_path)[1].lower()
+
+        try:
+            new_nodes = []
+            if file_extension == ".fbx":
+                # Use the specified FbxImporter class pattern
+                temp_namespace = f"fbx_import_{uuid.uuid4().hex[:8]}"
+                temp_namespaces_created.add(temp_namespace)
+
+                import gt.utils.fbx as utils_fbx
+
+                fbx_importer = utils_fbx.FbxImporter()
+                with fbx_importer as fbx:
+                    fbx.set_preferences_animation()
+                    new_nodes = fbx.import_file(path=file_path, namespace=temp_namespace)
+            else:
+                # Use the original logic for other file types
+                file_type = file_type_map.get(file_extension)
+                if not file_type:
+                    cmds.warning(f'Unsupported file type "{file_extension}" for file: {file_path}. Skipping.')
+                    continue
+
+                nodes_before = set(cmds.ls(assemblies=True))
+                cmds.file(
+                    file_path, i=True, type=file_type, ignoreVersion=True, mergeNamespacesOnClash=False, namespace=":"
+                )
+                nodes_after = set(cmds.ls(assemblies=True))
+                new_nodes = list(nodes_after - nodes_before)
+
+            if new_nodes:
+                imported_nodes_this_run.extend(new_nodes)
+
+        except Exception as error:
+            cmds.warning(f'Failed to import "{file_path}". Error: {error}')
+            continue
+
+    if not imported_nodes_this_run:
+        cmds.warning("Import operation completed, but no new top-level nodes were found in the scene.")
+        return None
+
+    # --- Filter for transform nodes only ---
+    transform_nodes_to_modify = [node for node in imported_nodes_this_run if cmds.nodeType(node) == "transform"]
+
+    if not transform_nodes_to_modify:
+        cmds.warning("Import operation did not result in any new top-level transform nodes.")
+        return None
+
+    # --- Find or create the main container group (DEFERRED to this point) ---
+    main_container_group = None
+    all_transforms = cmds.ls(type="transform")
+    for transform_node in all_transforms:
+        if cmds.attributeQuery(tracking_attribute, node=transform_node, exists=True):
+            main_container_group = transform_node
+            break
+
+    if main_container_group is None:
+        main_container_group = cmds.group(empty=True, name=group_name, world=True)
+        cmds.addAttr(main_container_group, longName=tracking_attribute, attributeType="bool")
+        cmds.setAttr(f"{main_container_group}.{tracking_attribute}", True)
+        cmds.setAttr(f"{main_container_group}.{tracking_attribute}", lock=True)
+        _grp_color = core_color.ColorConstants.RGB.WHITE_LAVENDER
+        core_color.set_color_outliner(obj_list=main_container_group, rgb_color=_grp_color)
+
+    # --- Apply offset directly to imported objects, pivoting from the world origin ---
+    if any(val != 0 for val in rotate_offset):
+        cmds.rotate(
+            rotate_offset[0],
+            rotate_offset[1],
+            rotate_offset[2],
+            transform_nodes_to_modify,
+            pivot=(0, 0, 0),
+            relative=True,
+            worldSpace=True,
+        )
+
+    if any(val != 0 for val in translate_offset):
+        cmds.move(
+            translate_offset[0],
+            translate_offset[1],
+            translate_offset[2],
+            transform_nodes_to_modify,
+            relative=True,
+            worldSpace=True,
+        )
+
+    # --- Parent the transformed nodes to the main group ---
+    cmds.parent(transform_nodes_to_modify, main_container_group)
+
+    # --- Merge namespaces without adding to undo history ---
+    is_undo_enabled = cmds.undoInfo(query=True, state=True)
+    if is_undo_enabled:
+        cmds.undoInfo(stateWithoutFlush=False)
+    try:
+        for namespace in temp_namespaces_created:
+            if cmds.namespace(exists=namespace):
+                cmds.namespace(moveNamespace=(namespace, ":"), force=True)
+                cmds.namespace(removeNamespace=namespace)
+    finally:
+        if is_undo_enabled:
+            cmds.undoInfo(stateWithoutFlush=True)
+
+    return main_container_group
+
+
+def open_import_with_offset_dialog(
+    group_name="imported",
+    tracking_attribute=RiggingConstants.ATTR_IMPORT_OFFSET_REF,
+    translate_offset=(0.0, 0.0, 0.0),
+    rotate_offset=(0.0, 0.0, 0.0),
+):
+    """Opens a dialog to select files and imports them using import_with_offset.
+
+    This function provides a user interface for the import_with_offset operation.
+    It prompts the user to select multiple files, sanitizes the selection to
+    ensure only valid file types are used, then calls the core import function.
+    Finally, it provides in-view feedback on the result.
+
+    Args:
+        group_name (str, optional): The name of the main container group to find or create.
+        tracking_attribute (str, optional): The name of the boolean attribute used to identify.
+        translate_offset (tuple[float], optional): The translation offset (X, Y, Z) to apply.
+        rotate_offset (tuple[float], optional): The rotation offset (X, Y, Z) in degrees to apply.
+
+    Returns:
+        int: The number of valid files that were successfully imported.
+    """
+    _ALLOWED_EXTENSIONS = (".ma", ".mb", ".fbx", ".obj")
+
+    # Determine dialog captions based on whether an offset is being applied
+    is_translate_zero = all(v == 0.0 for v in translate_offset)
+    is_rotate_zero = all(v == 0.0 for v in rotate_offset)
+
+    if is_translate_zero and is_rotate_zero:
+        dialog_caption = "Select File(s) to Import"
+        dialog_ok_caption = "Import"
+    else:
+        dialog_caption = "Select File(s) to Import with Offset"
+        dialog_ok_caption = "Import With Offset"
+
+    # Create a file filter string from the list of allowed extensions
+    extension_wildcards = " ".join([f"*{ext}" for ext in _ALLOWED_EXTENSIONS])
+    file_filter = f"Supported Files ({extension_wildcards})"
+
+    # Assume the file dialog utility returns a list of paths or None
+    import gt.ui.file_dialog as ui_file_dialog
+
+    selected_paths = ui_file_dialog.file_dialog(
+        caption=dialog_caption,
+        write_mode=False,
+        dir_only=False,
+        file_filter=file_filter,
+        ok_caption=dialog_ok_caption,
+        cancel_caption="Cancel",
+        multiple_files=True,
+    )
+
+    if not selected_paths:
+        logger.debug("Import cancelled by user.")
+        return 0
+
+    # Filter the selected paths to ensure they have a valid extension
+    sanitized_paths = [path for path in selected_paths if os.path.splitext(path)[1].lower() in _ALLOWED_EXTENSIONS]
+
+    if not sanitized_paths:
+        cmds.warning("No files with valid extensions (.ma, .mb, .fbx, .obj) were selected.")
+        return 0
+
+    # Call the core import function with the sanitized list and provided arguments
+    result_group = import_with_offset(
+        file_paths=sanitized_paths,
+        group_name=group_name,
+        tracking_attribute=tracking_attribute,
+        translate_offset=translate_offset,
+        rotate_offset=rotate_offset,
+    )
+
+    # Provide feedback to the user if the import function succeeded
+    if result_group:
+        num_imported = len(sanitized_paths)
+        feedback = core_fback.FeedbackMessage(
+            quantity=num_imported,
+            singular="file was",
+            plural="files were",
+            conclusion=f"imported into group '{result_group}'.",
+        )
+        feedback.print_inview_message()
+        return num_imported
+
+    # The underlying import_with_offset function will provide its own warnings on failure
+    return 0
+
+
+def find_control(target_suffix, ignore_namespace="source"):
+    """
+    Finds a control in the scene matching the suffix, filtering out specific namespaces.
+
+    Args:
+        target_suffix (str): The suffix of the control to find.
+        ignore_namespace (str): A namespace to exclude from the search.
+
+    Returns:
+        str or None: The full path to the control if found, else None.
+    """
+    matches = cmds.ls(f"*:{target_suffix}", long=True) or []
+    matches = [m for m in matches if f"|{ignore_namespace}:" not in m]
+
+    if not matches and cmds.objExists(target_suffix):
+        return target_suffix
+
+    return matches[0] if matches else None
+
+
+def find_joint(suffix, rig_namespace):
+    """
+    Finds a specific joint given the rig namespace.
+
+    Args:
+        suffix (str): The joint name suffix.
+        rig_namespace (str): The namespace of the rig.
+
+    Returns:
+        str or None: The found joint name or None.
+    """
+    candidate = f"{rig_namespace}:{suffix}"
+    if cmds.objExists(candidate):
+        return candidate
+
+    matches = cmds.ls(f"{rig_namespace}:*{suffix}", long=True)
+    return matches[0] if matches else None
+
+
+def find_node_by_suffix(node_name):
+    """
+    Tries to find a node by name, falling back to a global suffix search.
+
+    Args:
+        node_name (str): The name or suffix to search for.
+
+    Returns:
+        str or None: The found node full name.
+    """
+    if cmds.objExists(node_name):
+        return node_name
+
+    bare_name = node_name.split(":")[-1]
+    matches = cmds.ls(f"*:{bare_name}", long=True) or []
+
+    return matches[0] if matches else None
+
+
+def snap_node(source_node, target_node, mode="position"):
+    """
+    Snaps a source node to a target node based on the specified mode.
+
+    Args:
+        source_node (str): The object to move.
+        target_node (str): The target location.
+        mode (str): 'position', 'rotation', or 'world y only'.
+    """
+    try:
+        target_pos = cmds.xform(target_node, query=True, worldSpace=True, translation=True)
+        source_pos = cmds.xform(source_node, query=True, worldSpace=True, translation=True)
+
+        final_pos = target_pos
+        if "world y only" in mode.lower():
+            final_pos = [source_pos[0], target_pos[1], source_pos[2]]
+
+        cmds.xform(source_node, worldSpace=True, translation=final_pos)
+
+    except Exception as e:
+        logger.error(f"Error snapping {source_node} to {target_node}: {e}")
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    add_limit_lock_rotate_with_exception("pSphere1")
-    cmds.viewFit(all=True)
+
+    open_import_with_offset_dialog()
+
+    # for idx in range(1, 17):
+    #     index_str = str(idx).zfill(2)
+    #     mouth_controls = [
+    #         f"mouth_A_{index_str}_CTRL",
+    #         f"mouth_B_{index_str}_CTRL",
+    #         f"mouth_C_{index_str}_CTRL",
+    #         f"mouth_D_{index_str}_CTRL",
+    #         f"mouth_E_{index_str}_CTRL",
+    #     ]
+    #
+    #     create_fk_wave_setup(
+    #         controls=mouth_controls,
+    #         driven_axis="rotateZ",
+    #         default_amplitude=15,
+    #         default_wavelength=7,
+    #         default_envelope=0,
+    #     )
