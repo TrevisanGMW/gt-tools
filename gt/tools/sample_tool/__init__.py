@@ -1,6 +1,6 @@
 """
  Sample Tool - To be used as starting point or example for when creating new tools.
- github.com/TrevisanGMW/gt-tools - 2023-07-17
+ 2023-07-17
 """
 from gt.tools.sample_tool import sample_controller
 from gt.tools.sample_tool import sample_model

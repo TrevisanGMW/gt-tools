@@ -345,17 +345,17 @@ class TestSystemUtils(unittest.TestCase):
 
     def test_process_launch_options_value_error(self):
         with self.assertRaises(ValueError):
-            utils_system.process_launch_options([])
+            utils_system.process_launch_args([])
 
     @patch("sys.stdout.write", MagicMock)
     def test_process_launch_options_value_unrecognized(self):
-        result = utils_system.process_launch_options(["mocked_script_name", "-unrecognized_test"])
+        result = utils_system.process_launch_args(["mocked_script_name", "-unrecognized_test"])
         expected = False
         self.assertEqual(expected, result)
 
     @patch("gt.core.setup.install_package")
     def test_process_launch_options_install(self, mock_install_package):
-        utils_system.process_launch_options(["mocked_script_name", "-install"])
+        utils_system.process_launch_args(["mocked_script_name", "-install"])
         mock_install_package.assert_called_once()
         result = str(mock_install_package.call_args)
         expected = "call(clean_install=False)"
@@ -363,7 +363,7 @@ class TestSystemUtils(unittest.TestCase):
 
     @patch("gt.core.setup.install_package")
     def test_process_launch_options_install_clean(self, mock_install_package):
-        utils_system.process_launch_options(["mocked_script_name", "-install", "-clean"])
+        utils_system.process_launch_args(["mocked_script_name", "-install", "-clean"])
         mock_install_package.assert_called_once()
         result = str(mock_install_package.call_args)
         expected = "call(clean_install=True)"
@@ -371,26 +371,26 @@ class TestSystemUtils(unittest.TestCase):
 
     @patch("gt.tools.package_setup.launcher_entry_point")
     def test_process_launch_options_install_gui(self, mock_launcher_entry_point):
-        utils_system.process_launch_options(["mocked_script_name", "-install", "-gui"])
+        utils_system.process_launch_args(["mocked_script_name", "-install", "-gui"])
         mock_launcher_entry_point.assert_called_once()
 
     @patch("gt.core.setup.uninstall_package")
     def test_process_launch_options_uninstall(self, mock_uninstall_package):
-        result = utils_system.process_launch_options(["mocked_script_name", "-uninstall"])
+        result = utils_system.process_launch_args(["mocked_script_name", "-uninstall"])
         mock_uninstall_package.assert_called_once()
         expected = True
         self.assertEqual(expected, result)
 
     @patch("gt.utils.system.load_package_menu")
     def test_process_launch_options_launch(self, mock_launch):
-        result = utils_system.process_launch_options(["mocked_script_name", "-launch"])
+        result = utils_system.process_launch_args(["mocked_script_name", "-launch"])
         mock_launch.assert_called_once()
         expected = True
         self.assertEqual(expected, result)
 
     @patch("tests.run_all_tests_with_summary")
     def test_process_launch_options_test(self, mock_tests):
-        result = utils_system.process_launch_options(["mocked_script_name", "-test", "-all"])
+        result = utils_system.process_launch_args(["mocked_script_name", "-test", "-all"])
         mock_tests.assert_called_once()
         expected = True
         self.assertEqual(expected, result)

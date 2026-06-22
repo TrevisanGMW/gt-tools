@@ -9,13 +9,13 @@ send signals.
 It should be able to work independently of the view.
 One should be able to import it and run the tool without its GUI.
 """
-
-import gt.ui.resource_library as ui_res_lib
-import gt.ui.qt_utils as ui_qt_utils
+import gt.ui.resource_library as resource_library
+from gt.ui.qt_utils import MayaWindowMeta
+import gt.ui.qt_utils as qt_utils
 import gt.ui.qt_import as ui_qt
 
 
-class SampleToolWindow(metaclass=ui_qt_utils.MayaWindowMeta, base_inheritance=ui_qt.QtWidgets.QMainWindow):
+class SampleToolWindow(metaclass=MayaWindowMeta, base_inheritance=ui_qt.QtWidgets.QMainWindow):
     def __init__(self, parent=None, controller=None):
         """
         Initialize the SampleToolWindow.
@@ -52,16 +52,14 @@ class SampleToolWindow(metaclass=ui_qt_utils.MayaWindowMeta, base_inheritance=ui
         self.remove_button = ui_qt.QtWidgets.QPushButton("Remove Item")
         self.layout.addWidget(self.remove_button)
 
-        self.setWindowFlags(
-            self.windowFlags()
-            | ui_qt.QtLib.WindowFlag.WindowMaximizeButtonHint
-            | ui_qt.QtLib.WindowFlag.WindowMinimizeButtonHint
-        )
-        self.setWindowIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.dev_screwdriver))
+        self.setWindowFlags(self.windowFlags() |
+                            ui_qt.QtLib.WindowFlag.WindowMaximizeButtonHint |
+                            ui_qt.QtLib.WindowFlag.WindowMinimizeButtonHint)
+        self.setWindowIcon(ui_qt.QtGui.QIcon(resource_library.Icon.dev_screwdriver))
 
-        sample_stylesheet = ui_res_lib.Stylesheet.scroll_bar_base
-        sample_stylesheet += ui_res_lib.Stylesheet.maya_dialog_base
-        sample_stylesheet += ui_res_lib.Stylesheet.list_widget_base
+        sample_stylesheet = resource_library.Stylesheet.scroll_bar_base
+        sample_stylesheet += resource_library.Stylesheet.maya_dialog_base
+        sample_stylesheet += resource_library.Stylesheet.list_widget_base
         self.setStyleSheet(sample_stylesheet)
 
     def update_view(self, items):
@@ -76,14 +74,14 @@ class SampleToolWindow(metaclass=ui_qt_utils.MayaWindowMeta, base_inheritance=ui
             self.item_list.addItem(item)
 
     def center(self):
-        """Moves window to the center of the screen"""
+        """ Moves window to the center of the screen """
         rect = self.frameGeometry()
-        center_position = ui_qt_utils.get_screen_center()
+        center_position = qt_utils.get_screen_center()
         rect.moveCenter(center_position)
         self.move(rect.topLeft())
 
 
 if __name__ == "__main__":
-    with ui_qt_utils.QtApplicationContext():
+    with qt_utils.QtApplicationContext():
         window = SampleToolWindow()  # View
         window.show()  # Open Window

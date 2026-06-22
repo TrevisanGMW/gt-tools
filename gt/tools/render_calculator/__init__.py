@@ -11,9 +11,12 @@
 
  1.0.1 - 2022-07-21
  Updated help link
+
+ 1.0.2 - 2026-06-18
+ Minor label updates
 """
 # Tool Version
-__version_tuple__ = (1, 0, 1)
+__version_tuple__ = (1, 0, 2)
 __version_suffix__ = ''
 __version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 

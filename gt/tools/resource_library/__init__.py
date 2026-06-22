@@ -1,6 +1,10 @@
 """
  Resource Library
  github.com/TrevisanGMW/gt-tools - 2023-08-29
+
+ 1.1.1 - 2026-06-18
+ Updated PySide imports to support newer Maya versions
+
 """
 from gt.tools.resource_library import resource_library_controller
 from gt.tools.resource_library import resource_library_model
@@ -14,7 +18,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 # Tool Version
-__version_tuple__ = (1, 0, 1)
+__version_tuple__ = (1, 1, 1)
 __version_suffix__ = ''
 __version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 

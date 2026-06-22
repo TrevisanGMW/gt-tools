@@ -174,7 +174,7 @@ def build_gui_render_calculator():
     cmds.rowColumnLayout(nc=2, cw=[(1, 190), (2, 90)], cs=[(1, 55)], p=content_main)
     num_of_frames = cmds.intSliderGrp(
         field=True,
-        label="Total Number of Frames: ",
+        label="Number of Frames: ",
         cw=[(1, 130), (2, 50), (3, 15)],
         minValue=1,
         fieldMinValue=1,
@@ -187,7 +187,7 @@ def build_gui_render_calculator():
     cmds.rowColumnLayout(nc=2, cw=[(1, 190), (2, 90)], cs=[(1, 55)], p=content_main)
     num_of_machines = cmds.intSliderGrp(
         field=True,
-        label="Total Number of Machines: ",
+        label="Number of Machines: ",
         cw=[(1, 130), (2, 50), (3, 15)],
         minValue=1,
         fieldMinValue=1,

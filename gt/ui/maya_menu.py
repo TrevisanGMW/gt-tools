@@ -1,6 +1,7 @@
 """
 Maya Menu UI - Utilities for creating a maya menu
 """
+
 from collections import namedtuple
 import logging
 
@@ -17,9 +18,24 @@ except Exception as e:
 
 
 # MenuItem namedtuple - Used to store menuItem parameters before creating them
-MenuItem = namedtuple("MenuItem", ['label', 'command', 'tooltip', 'icon', 'enable', 'parent', 'divider',
-                                   'divider_label', 'sub_menu', 'tear_off', 'enable_command_repeat',
-                                   'option_box', 'option_box_icon'])
+MenuItem = namedtuple(
+    "MenuItem",
+    [
+        "label",
+        "command",
+        "tooltip",
+        "icon",
+        "enable",
+        "parent",
+        "divider",
+        "divider_label",
+        "sub_menu",
+        "tear_off",
+        "enable_command_repeat",
+        "option_box",
+        "option_box_icon",
+    ],
+)
 MENU_ROOT_PLACEHOLDER = "TempMayaMenuPlaceholderRoot"
 
 
@@ -28,16 +44,17 @@ class MayaMenu:
     Helper class used to create a Maya drop-down menu
     Attributes:
         initialized (bool): If the menu was created (initialized)
-        menu_path (string): Output received from an initialized menu (it's path)
-        menu_name (string): Menu name (a.k.a. Label)
+        menu_path (str): Output received from an initialized menu (it's path)
+        menu_name (str): Menu name (a.k.a. Label)
         menu_items (list): A list of menu items to be used when building the menu
         sub_menus (list): A list of sub_menus added to the menu
-        menu_parent (string): Parent of the menu (e.g. Maya or a window)
+        menu_parent (str): Parent of the menu (e.g. Maya or a window)
 
     Methods:
         create_menu(): Creates the menu and populates it with objects that were previously added to it (aka initialize)
         add_menu_item():
     """
+
     def __init__(self, name, parent=""):
         """
         Initializes Maya Menu Object
@@ -89,8 +106,8 @@ class MayaMenu:
         for item in self.menu_items:
             params = self.get_item_parameters(item)
             # Populate root values
-            if params.get('parent') is not None and params.get('parent') == MENU_ROOT_PLACEHOLDER:
-                params['parent'] = self.menu_path
+            if params.get("parent") is not None and params.get("parent") == MENU_ROOT_PLACEHOLDER:
+                params["parent"] = self.menu_path
             cmds.menuItem(item.label, **params)
 
     def delete_menu(self):
@@ -101,17 +118,20 @@ class MayaMenu:
             cmds.menu(self.menu_name, e=True, deleteAllItems=True)
             cmds.deleteUI(self.menu_name)
 
-    def add_menu_item(self, label,
-                      command=None,
-                      tooltip='',
-                      icon='',
-                      enable=True,
-                      parent=None,
-                      enable_command_repeat=True,
-                      option_box=False,
-                      option_box_command=None,
-                      option_box_icon='',
-                      parent_to_root=False):
+    def add_menu_item(
+        self,
+        label,
+        command=None,
+        tooltip="",
+        icon="",
+        enable=True,
+        parent=None,
+        enable_command_repeat=True,
+        option_box=False,
+        option_box_command=None,
+        option_box_icon="",
+        parent_to_root=False,
+    ):
         """
         Adds a menu item to the menu.
 
@@ -132,29 +152,48 @@ class MayaMenu:
         if parent_to_root:
             parent = MENU_ROOT_PLACEHOLDER
         elif parent is not None and parent not in self.sub_menus:
-            logger.debug(f'Provided parent not in the list of sub-menus. '
-                         f'Parenting for the Menu item "{label}" will be ignored.')
+            logger.debug(
+                f"Provided parent not in the list of sub-menus. "
+                f'Parenting for the Menu item "{label}" will be ignored.'
+            )
             parent = None
         # Create MenuItem - While ignoring irrelevant parameters
-        menu_item = MenuItem(label, command=command, tooltip=tooltip, icon=icon, enable=enable, parent=parent,
-                             divider=False, divider_label='', sub_menu=False, tear_off=True,
-                             enable_command_repeat=enable_command_repeat, option_box=False,
-                             option_box_icon='')
+        menu_item = MenuItem(
+            label,
+            command=command,
+            tooltip=tooltip,
+            icon=icon,
+            enable=enable,
+            parent=parent,
+            divider=False,
+            divider_label="",
+            sub_menu=False,
+            tear_off=True,
+            enable_command_repeat=enable_command_repeat,
+            option_box=False,
+            option_box_icon="",
+        )
         self.menu_items.append(menu_item)
         if option_box:
             label_btn = label + " Options"
-            menu_item = MenuItem(label=label_btn, command=option_box_command, tooltip=tooltip, icon=icon, enable=enable,
-                                 parent=None, divider=False, divider_label='', sub_menu=False, tear_off=True,
-                                 enable_command_repeat=enable_command_repeat, option_box=True,
-                                 option_box_icon=option_box_icon)
+            menu_item = MenuItem(
+                label=label_btn,
+                command=option_box_command,
+                tooltip=tooltip,
+                icon=icon,
+                enable=enable,
+                parent=None,
+                divider=False,
+                divider_label="",
+                sub_menu=False,
+                tear_off=True,
+                enable_command_repeat=enable_command_repeat,
+                option_box=True,
+                option_box_icon=option_box_icon,
+            )
             self.menu_items.append(menu_item)
 
-    def add_sub_menu(self, label,
-                     enable=True,
-                     icon='',
-                     tear_off=True,
-                     parent=None,
-                     parent_to_root=True):
+    def add_sub_menu(self, label, enable=True, icon="", tear_off=True, parent=None, parent_to_root=True):
         """
         Adds a sub-menu to the menu.
         Args:
@@ -169,27 +208,67 @@ class MayaMenu:
         if parent_to_root:
             parent = MENU_ROOT_PLACEHOLDER
         elif parent is not None and parent not in self.sub_menus:
-            logger.debug(f'Provided parent not in the list of sub-menus. '
-                         f'Menu item {label} will be added to the menu root menu "{self.menu_path}" instead.')
+            logger.debug(
+                f"Provided parent not in the list of sub-menus. "
+                f'Menu item {label} will be added to the menu root menu "{self.menu_path}" instead.'
+            )
             parent = self.menu_path
         # Create MenuItem - While ignoring irrelevant parameters
-        menu_item = MenuItem(label, command='', tooltip='', icon=icon, enable=enable, parent=parent, divider=False,
-                             divider_label='', sub_menu=True, tear_off=tear_off, enable_command_repeat=False,
-                             option_box=False, option_box_icon='')
+        menu_item = MenuItem(
+            label,
+            command="",
+            tooltip="",
+            icon=icon,
+            enable=enable,
+            parent=parent,
+            divider=False,
+            divider_label="",
+            sub_menu=True,
+            tear_off=tear_off,
+            enable_command_repeat=False,
+            option_box=False,
+            option_box_icon="",
+        )
         self.menu_items.append(menu_item)
         self.sub_menus.append(label)
 
-    def add_divider(self, label=None, parent=None, divider_label='', parent_to_root=False):
+    def add_divider(self, label=None, parent=None, divider_label="", parent_to_root=False):
+        """
+        Adds a divider item to the menu, optionally with a label, under a specified parent or root.
+
+        The divider visually separates groups of menu items. If the specified parent is not
+        recognized or `parent_to_root` is True, the divider is added to the menu root.
+
+        Args:
+            label (str, optional): The label or identifier for the divider menu item. Defaults to None.
+            parent (str or None, optional): The parent menu under which to add the divider. Defaults to None.
+            divider_label (str, optional): A label specifically for the divider visual. Defaults to ''.
+            parent_to_root (bool, optional): If True, forces the divider to be added to the root regardless of parent.
+        """
         # Determine Parent
         if parent_to_root:
             parent = MENU_ROOT_PLACEHOLDER
         elif parent is not None and parent not in self.sub_menus:
-            logger.debug(f'Provided parent not in the list of sub-menus. '
-                         f'Divider {label} will be added to the menu root menu "{self.menu_path}" instead.')
+            logger.debug(
+                f"Provided parent not in the list of sub-menus. "
+                f'Divider {label} will be added to the menu root menu "{self.menu_path}" instead.'
+            )
             parent = self.menu_path
-        menu_item = MenuItem(label, command='', tooltip='', icon='', enable=True, parent=parent, divider=True,
-                             divider_label=divider_label, sub_menu=False, tear_off=True, enable_command_repeat=False,
-                             option_box=False, option_box_icon='')
+        menu_item = MenuItem(
+            label,
+            command="",
+            tooltip="",
+            icon="",
+            enable=True,
+            parent=parent,
+            divider=True,
+            divider_label=divider_label,
+            sub_menu=False,
+            tear_off=True,
+            enable_command_repeat=False,
+            option_box=False,
+            option_box_icon="",
+        )
         self.menu_items.append(menu_item)
 
     @staticmethod
@@ -242,6 +321,7 @@ class MayaMenu:
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint
+
     out = None
     print("Loading menu...")
     # load_menu()

@@ -3,15 +3,14 @@ Curve Library Model
 
 This module contains the CurveLibraryModel class, which manages a library of curves. It allows adding, retrieving,
 and building curves based on their names. The curves are represented as instances of the Curve class from
-"gt.core.curve_utils".
+"gt.core.curve".
 
 Classes:
     CurveLibraryModel: A class for managing a library of curves.
 """
-
 from gt.core.control import Controls, get_control_preview_image_path, Control
 from gt.core.curve import Curves, get_curve_preview_image_path, Curve
-import gt.ui.resource_library as ui_res_lib
+from gt.ui import resource_library
 import logging
 import os
 
@@ -57,10 +56,10 @@ class CurveLibraryModel:
             logger.debug(f'Invalid Curve detected. "None" or empty element')
             return False
         if not curve.is_curve_valid():
-            logger.debug(f"Invalid Curve. Missing required elements for a curve: {curve}")
+            logger.debug(f'Invalid Curve. Missing required elements for a curve: {curve}')
             return False
         if self.is_conflicting_name(curve.get_name()):
-            logger.debug(f"Invalid Name. This curve name is already in the list. No duplicates allowed.")
+            logger.debug(f'Invalid Name. This curve name is already in the list. No duplicates allowed.')
             return False
         return True
 
@@ -71,7 +70,7 @@ class CurveLibraryModel:
             curve (Curve): The curve to be added
         """
         if not self.validate_curve(curve):
-            logger.debug(f"Unable to add Curve to base curves. Curve failed validation.")
+            logger.debug(f'Unable to add Curve to base curves. Curve failed validation.')
             return
         self.base_curves.append(curve)
 
@@ -82,7 +81,7 @@ class CurveLibraryModel:
             user_curve (Curve): The curve to be added
         """
         if not self.validate_curve(user_curve):
-            logger.debug(f"Unable to add Curve to user-defined curves. Curve failed validation.")
+            logger.debug(f'Unable to add Curve to user-defined curves. Curve failed validation.')
             return
         self.user_curves.append(user_curve)
 
@@ -93,7 +92,7 @@ class CurveLibraryModel:
             control (Control): The curve to be added
         """
         if not self.validate_curve(control):
-            logger.debug(f"Unable to add Control to control curves. Curve failed validation.")
+            logger.debug(f'Unable to add Control to control curves. Curve failed validation.')
             return
         self.controls.append(control)
 
@@ -192,10 +191,10 @@ class CurveLibraryModel:
 
     def import_default_library(self):
         """
-        Imports all curves found in "curve_utils.Curves" to the CurveLibraryModel curves list
+        Imports all curves found in "curve.Curves" to the CurveLibraryModel curves list
         """
         curve_attributes = vars(Curves)
-        curve_keys = [attr for attr in curve_attributes if not (attr.startswith("__") and attr.endswith("__"))]
+        curve_keys = [attr for attr in curve_attributes if not (attr.startswith('__') and attr.endswith('__'))]
         for curve_key in curve_keys:
             curve_obj = getattr(Curves, curve_key)
             self.add_base_curve(curve_obj)
@@ -210,7 +209,7 @@ class CurveLibraryModel:
         if reset_user_curves:
             self.user_curves = []
         if not source_dir:
-            logger.debug("Invalid user curves directory")
+            logger.debug('Invalid user curves directory')
             return
         if not os.path.exists(source_dir):
             logger.debug("User curves directory is missing.")
@@ -222,14 +221,14 @@ class CurveLibraryModel:
                     if user_curve.is_curve_valid():
                         self.add_user_curve(user_curve)
                 except Exception as e:
-                    logger.debug(f"Failed to read user curve. Issue: {e}")
+                    logger.debug(f'Failed to read user curve. Issue: {e}')
 
     def import_controls_library(self):
         """
-        Imports all control curves found in "control_utils.Controls" to the CurveLibraryModel controls list
+        Imports all control curves found in "control.Controls" to the CurveLibraryModel controls list
         """
         control_attributes = vars(Controls)
-        control_keys = [attr for attr in control_attributes if not (attr.startswith("__") and attr.endswith("__"))]
+        control_keys = [attr for attr in control_attributes if not (attr.startswith('__') and attr.endswith('__'))]
         for ctrl_key in control_keys:
             control_obj = getattr(Controls, ctrl_key)
             self.add_control(control_obj)
@@ -295,7 +294,7 @@ class CurveLibraryModel:
         if preview_image:
             return preview_image
         else:
-            return ui_res_lib.Icon.library_missing_file
+            return resource_library.Icon.library_missing_file
 
     @staticmethod
     def build_control_with_custom_parameters(parameters, target_control):
@@ -326,7 +325,6 @@ class CurveLibraryModel:
             Curve or None: The custom curve if the curve was valid. None if it failed.
         """
         import maya.cmds as cmds
-
         selection = cmds.ls(selection=True) or []
         if not selection:
             cmds.warning("Nothing selected. Select an existing curve in your scene and try again.")
