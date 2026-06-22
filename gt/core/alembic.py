@@ -1,8 +1,8 @@
 """
-Alembic Module
+Alembic Utilities
 
-Code Namespace:
-    core_alembic  # import gt.core.alembic as core_alembic
+Import Line:
+    import gt.core.alembic as core_alembic
 """
 
 from gt.core.transform import Transform, Vector3

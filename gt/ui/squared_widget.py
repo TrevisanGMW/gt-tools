@@ -8,10 +8,15 @@ import gt.ui.qt_import as ui_qt
 class SquaredWidget(ui_qt.QtWidgets.QWidget):
     def __init__(self, parent=None, center_x=True, center_y=True):
         """
-        A custom QWidget that displays a square image.
+        A custom QWidget that displays a square image pixmap.
+
+        This widget maintains a square aspect ratio and allows
+        centering the image horizontally and/or vertically.
 
         Args:
             parent (QWidget, optional): The parent widget. Defaults to None.
+            center_x (bool, optional): Whether to center the pixmap horizontally. Defaults to True.
+            center_y (bool, optional): Whether to center the pixmap vertically. Defaults to True.
         """
         super().__init__(parent=parent)
         self.pixmap = ui_qt.QtGui.QPixmap()

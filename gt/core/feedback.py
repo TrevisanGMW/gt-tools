@@ -1,11 +1,11 @@
 """
-Feedback Module
+Feedback module
 
-Code Namespace:
-    core_fback  # import gt.core.feedback as core_fback
+Import Line:
+    import gt.core.feedback as core_fback
 """
 
-from gt.utils.system import callback
+import gt.utils.system as utils_sys
 from dataclasses import dataclass, field
 import maya.cmds as cmds
 from io import StringIO
@@ -234,7 +234,7 @@ def print_when_true(input_string, do_print=True, use_system_write=False, callbac
     Args:
         input_string (str): String to print
         do_print (bool, optional): If it should print or not (if active, it prints) - Default is active/True
-        use_system_write (bool, optional): If active, it will uses "sys.stdout.write()" to print instead of
+        use_system_write (bool, optional): If active, it will use "sys.stdout.write()" to print instead of
                                            the standard "print()" function. Default is inactive/False
         callbacks (list, callable, optional): A list of callable functions that will be called with the
                                               input string as their first argument.
@@ -244,7 +244,7 @@ def print_when_true(input_string, do_print=True, use_system_write=False, callbac
     if do_print:
         sys.stdout.write(f"{input_string}\n") if use_system_write else print(input_string)
     if callbacks:
-        callback(callbacks, input_string)
+        utils_sys.callback(callbacks, input_string)
 
 
 def redirect_output_to_function(process_func, logger_level=logging.INFO):

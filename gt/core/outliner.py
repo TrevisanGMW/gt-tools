@@ -1,8 +1,8 @@
 """
-Outliner Module
+Outliner module
 
-Code Namespace:
-    core_outlnr  # import gt.core.outliner as core_outlnr
+Import Line:
+    import gt.core.outliner as core_outlnr
 """
 
 import gt.core.naming as core_naming
@@ -109,9 +109,9 @@ def outliner_sort(target_list, operation=OutlinerSortOptions.NAME, is_ascending=
     Outliner Sorting function: Moves objects up/down to arrange them in a certain order
     Args:
         target_list (list, str, Node): List of objects to be reordered (not existing objects are ignored)
-        operation (string, optional): Name of the sorting operation: "name", "shuffle", "attribute"
+        operation (str, optional): Name of the sorting operation: "name", "shuffle", "attribute"
         is_ascending (bool, optional): If active, operation will be ascending, if not descending
-        attr (string, optional): attribute used to extract a value for when sorting by attribute
+        attr (str, optional): attribute used to extract a value for when sorting by attribute
         verbose (bool, optional): If True, it will log issues as warnings instead of debug.
     """
     target_objects = {}

@@ -1,8 +1,8 @@
 """
-Surface Module
+Surface Utilities
 
-Code Namespace:
-    core_sur  # import gt.core.sur as core_sur
+Import Line:
+    import gt.core.surface as core_sur
 """
 
 from gt.core.curve import get_curve, get_positions_from_curve, rescale_curve
@@ -27,14 +27,14 @@ logger.setLevel(logging.INFO)
 SURFACE_TYPE = "nurbsSurface"
 
 
-def is_surface(surface, accept_transform_parent=True):
+def is_surface(surface, consider_shape=True):
     """
     Check if the provided object is a NURBS surface or transform parent of a surface.
 
     Args:
         surface (str): Object to check.
-        accept_transform_parent (bool, optional): If True, accepts transform parent as surface
-                                                  in case it has a surface shapes as its child.
+        consider_shape (bool, optional): If True, accepts the transform shape in case it's a nurbsSurface type.
+
     Returns:
         bool: True if the object is a NURBS surface or transform parent of a surface, False otherwise.
     """
@@ -42,7 +42,7 @@ def is_surface(surface, accept_transform_parent=True):
         return False
 
     # Check shape
-    if cmds.objectType(surface) == "transform" and accept_transform_parent:
+    if cmds.objectType(surface) == "transform" and consider_shape:
         surface = cmds.listRelatives(surface, shapes=True, noIntermediate=True, fullPath=True)[0]
 
     return cmds.objectType(surface) == SURFACE_TYPE
@@ -212,7 +212,7 @@ def create_follicle(input_surface, uv_position=(0.5, 0.5), name=None):
     """
     Creates a follicle and attaches it to a surface.
     Args:
-        input_surface (str): A path to a surface transform or shape.
+        input_surface (str, Node): A path to a surface transform or shape.
         uv_position (tuple, optional): A UV values to determine where to initially position the follicle.
                                       Default is (0.5, 0.5), which is the center of the surface.
         name (str, optional): Follicle name. If not provided it will be named "follicle"
@@ -256,7 +256,7 @@ def get_closest_uv_point(surface, xyz_pos=(0, 0, 0)):
 
     Args:
         surface (str): Surface to get the closest point.
-        xyz_pos (optional, tuple, list): World Position to check against surface. Defaults is origin (0,0,0)
+        xyz_pos (tuple, list, optional): World Position to check against surface. Defaults is origin (0,0,0)
     Returns:
         tuple: The (u, v) coordinates of the closest point on the surface.
     """
@@ -382,7 +382,7 @@ class Ribbon:
         """
         Determines if the system will create FK controls when building or not.
         Args:
-            state (bool) If True, forward kinematics system will be added to the ribbon, otherwise it will be skipped.
+            state (bool): If True, forward kinematics system will be added to the ribbon, otherwise it will be skipped.
         """
         if not isinstance(state, bool):
             logger.debug(f"Unable to set FK creation state. Input must be a boolean.")

@@ -1,8 +1,8 @@
 """
 Setup Module - install/uninstall package from system
 
-Code Namespace:
-    core_setup  # import gt.core.setup as core_setup
+Import Line:
+    import gt.core.setup as core_setup
 """
 
 from gt.core.session import is_script_in_py_maya, filter_loaded_modules_path_containing
@@ -94,7 +94,7 @@ def copy_package_requirements(target_folder, package_requirements):
                 src=requirement_path,
                 dst=os.path.join(target_folder, requirement),
                 # dirs_exist_ok=True,  # Not needed + Only available on Python 3.8+
-                ignore=shutil.ignore_patterns("*.pyc", "__pycache__", "tests"),
+                ignore=shutil.ignore_patterns("*.pyc", "__pycache__"),
             )
         elif os.path.isfile(requirement_path):  # Files
             shutil.copy(requirement_path, target_folder)

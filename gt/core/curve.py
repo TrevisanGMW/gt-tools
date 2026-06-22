@@ -1,15 +1,15 @@
 """
-Curve Module
+Curve Utilities
 
-Code Namespace:
-    core_curve  # import gt.core.curve as core_curve
+Import Line:
+    import gt.core.curve as core_curve
 """
 
 from gt.core.naming import get_short_name, NamingConstants
 from gt.core.attr import add_separator_attr, set_attr
 from gt.core.io import read_json_dict, write_json
 from gt.core.transform import Transform, Vector3
-from gt.core.io import DataDirConstants
+from gt.utils.system import DataDirConstants
 from gt.core.math import remap_value
 from gt.core import attr as core_attr
 import maya.OpenMaya as OpenMaya
@@ -599,7 +599,7 @@ class Curve:
             x (float, int, optional): X value for the position. If provided, you must provide Y and Z too.
             y (float, int, optional): Y value for the position. If provided, you must provide X and Z too.
             z (float, int, optional): Z value for the position. If provided, you must provide X and Y too.
-            xyz (Vector3, list, tuple) A Vector3 with the new position or a tuple/list with X, Y and Z values.
+            xyz (Vector3, list, tuple): A Vector3 with the new position or a tuple/list with X, Y and Z values.
         """
         if not self.transform:
             self.transform = Transform()
@@ -612,7 +612,7 @@ class Curve:
             x (float, int, optional): X value for the rotation. If provided, you must provide Y and Z too.
             y (float, int, optional): Y value for the rotation. If provided, you must provide X and Z too.
             z (float, int, optional): Z value for the rotation. If provided, you must provide X and Y too.
-            xyz (Vector3, list, tuple) A Vector3 with the new position or a tuple/list with X, Y and Z values.
+            xyz (Vector3, list, tuple): A Vector3 with the new position or a tuple/list with X, Y and Z values.
         """
         if not self.transform:
             self.transform = Transform()
@@ -625,7 +625,7 @@ class Curve:
             x (float, int, optional): X value for the scale. If provided, you must provide Y and Z too.
             y (float, int, optional): Y value for the scale. If provided, you must provide X and Z too.
             z (float, int, optional): Z value for the scale. If provided, you must provide X and Y too.
-            xyz (Vector3, list, tuple) A Vector3 with the new position or a tuple/list with X, Y and Z values.
+            xyz (Vector3, list, tuple): A Vector3 with the new position or a tuple/list with X, Y and Z values.
         """
         if not self.transform:
             self.transform = Transform()
@@ -718,7 +718,7 @@ class CurveShape:
                                    There must be (numberOfPoints + degree - 1) knots and
                                    the knot vector must be non-decreasing.
             periodic (bool, optional):  If on, creates a curve that is periodic. Default is (None) off.
-            is_bezier= (bool, optional): Determines the curve type. If active, the curve is bezier, off (default) nurbs.
+            is_bezier (bool, optional): Determines the curve type. If active, the curve is bezier, off (default) nurbs.
             read_curve_shape_data (dict, optional): A dictionary describing the curve shape.
                                                        It populates the properties according to the values found in it.
             read_existing_shape (str, optional): Uses an existing shape in the scene to initialize the CurveShape.
@@ -796,9 +796,11 @@ class CurveShape:
         # Extract Data
         crv_info_node = None
         try:
-            periodic = cmds.getAttr(crv_shape + ".form")
+            curve_form = cmds.getAttr(crv_shape + ".form")
+            periodic = False  # cmds.curve periodic flag is a boolean
             knot = None
-            if is_bezier or periodic == 2:  # 0: Open, 1: Closed: 2: Periodic
+            if is_bezier or curve_form == 2:  # 0: Open, 1: Closed, 2: Periodic
+                periodic = True
                 crv_info_node = cmds.arclen(crv_shape, ch=True)
                 knot = cmds.getAttr(crv_info_node + ".knots[*]")
                 cmds.delete(crv_info_node)
@@ -811,7 +813,7 @@ class CurveShape:
                 cvs_list.append(data)
 
             periodic_end_cvs = []
-            if periodic == 2 and len(cvs) > 2:
+            if curve_form == 2 and len(cvs) > 2:
                 for i in range(3):
                     periodic_end_cvs += [cvs_list[i]]
 
@@ -889,12 +891,12 @@ class CurveShape:
             return
         if replace_crv:
             curve_output = cmds.curve(replace_crv, replace=True, **parameters)
-            for shape in cmds.listRelatives(curve_output, shapes=True) or []:
+            for shape in cmds.listRelatives(curve_output, shapes=True, fullPath=True) or []:
                 cmds.rename(shape, self.name)
             return curve_output
         else:
             curve_output = cmds.curve(**parameters)
-            for shape in cmds.listRelatives(curve_output, shapes=True) or []:
+            for shape in cmds.listRelatives(curve_output, shapes=True, fullPath=True) or []:
                 cmds.rename(shape, self.name)
             return curve_output
 
@@ -1214,6 +1216,9 @@ class Curves:
     primitive_tube = get_curve(file_name="primitive_tube")
     primitive_tube_half = get_curve(file_name="primitive_tube_half")
     primitive_tube_ring = get_curve(file_name="primitive_tube_ring")
+    quad_paw_back = get_curve(file_name="quad_paw_back")
+    quad_paw_front = get_curve(file_name="quad_paw_front")
+    quad_shell = get_curve(file_name="quad_shell")
     revolve_profile_bottle_a = get_curve(file_name="revolve_profile_bottle_a")
     revolve_profile_bowl_a = get_curve(file_name="revolve_profile_bowl_a")
     revolve_profile_bowl_b = get_curve(file_name="revolve_profile_bowl_b")
@@ -1737,12 +1742,12 @@ def add_shape_scale_cluster(obj, scale_driver_attr, reset_pivot=True):
     """
     Creates a cluster to control the scale of the provided curve.
 
-    Parameters:
-    curve (str): Name of the curve.
-    scale_driver_attr (str): The object name and attribute used to drive the scale.
-                             Example: "curveName.locatorScale"
-                             This attribute will control the scale of the curve shape.
-    create_driver (bool, optional): If active, it will create a group and snap to the object instead of using
+    Args:
+        obj (str): Object path
+        scale_driver_attr (str): The object name and attribute used to drive the scale.
+                                 Example: "curveName.locatorScale"
+                                 This attribute will control the scale of the curve shape.
+        reset_pivot (bool, optional): If active, it will reset the pivot.
 
     Returns:
         str or None: Cluster handle if successful, None if it failed.
@@ -1976,7 +1981,7 @@ def rescale_curve(curve_transform, scale):
     Rescales the control points of the specified curve transform.
 
     Args:
-        curve_transform (str): The name of the curve transform to be rescaled.
+        curve_transform (str, Node): The name of the curve transform to be rescaled.
         scale (float, tuple): The scaling factor to be applied uniformly to the control points.
                               It can also be a tuple, e.g. (1, 2, 1)
     Example:
