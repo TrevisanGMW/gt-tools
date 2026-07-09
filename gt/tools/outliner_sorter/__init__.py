@@ -52,9 +52,25 @@ def launch_tool():
     Launch user interface and create any necessary connections for the tool to function.
     Entry point for when using the tool GT Outliner Sorter.
     """
-    from gt.tools.outliner_sorter import outliner_sorter
-    outliner_sorter.script_version = __version__
-    outliner_sorter.build_gui_outliner_sorter()
+    return build_gui_outliner_sorter()
+
+
+def build_gui_outliner_sorter():
+    """Builds the Outliner Sorter user interface.
+
+    Returns:
+        OutlinerSorterController: Controller for the launched tool.
+    """
+    from gt.tools.outliner_sorter import outliner_sorter_controller
+    from gt.tools.outliner_sorter import outliner_sorter_model
+    from gt.tools.outliner_sorter import outliner_sorter_view
+    from gt.ui import qt_utils
+
+    with qt_utils.QtApplicationContext() as context:
+        view = outliner_sorter_view.OutlinerSorterView(parent=context.get_parent(), version=__version__)
+        model = outliner_sorter_model.OutlinerSorterModel()
+        controller = outliner_sorter_controller.OutlinerSorterController(model=model, view=view)
+        return controller
 
 
 if __name__ == "__main__":
