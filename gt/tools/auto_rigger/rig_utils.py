@@ -21,7 +21,7 @@ import gt.core.attr as core_attr
 import gt.core.node as core_node
 import gt.core.uuid as core_uuid
 import gt.core.str as core_str
-import gt.core.poses as core_poses
+import gt.core.pose as core_pose
 import maya.api.OpenMaya as OpenMayaApi
 import maya.OpenMaya as OpenMaya
 import maya.cmds as cmds
@@ -1185,7 +1185,7 @@ def extract_twist_rotation(twist_jnt_list):
         twist_jnt_list (list[str]): List of twist joint names to process.
     """
     cmds.refresh(suspend=True)
-    core_poses.set_apose()
+    core_pose.set_apose()
     rest_mat = OpenMayaApi.MMatrix()
     for jnt in twist_jnt_list:
         twist_node = f"{jnt}_twistNode"
@@ -1193,7 +1193,7 @@ def extract_twist_rotation(twist_jnt_list):
         twist_offset_parent_mat = cmds.getAttr(f"{jnt}.offsetParentMatrix")
         inverse_twist_offset_parent_mat = OpenMayaApi.MMatrix(twist_offset_parent_mat).inverse()
         cmds.setAttr(f"{twist_node}.targetRestMatrix", inverse_twist_offset_parent_mat, type="matrix")
-    core_poses.set_tpose()
+    core_pose.set_tpose()
     cmds.refresh(suspend=False)
 
 
@@ -1515,7 +1515,7 @@ def get_control_rig_tpose_and_apose_as_dict():
 
     # Set Skeleton A-pose
     cmds.refresh(suspend=True)
-    core_poses.set_apose()
+    core_pose.set_apose()
 
     # Get A-pose rotations
     controls_rotations_dict = {}
@@ -1547,7 +1547,7 @@ def get_control_rig_tpose_and_apose_as_dict():
             pos_attr = f"{joint_control_map[hips_jnts[0]]}.{p_axis}"
             a_pose_controls_attrs_dict[pos_attr] = hips_delta_pos[ip]
 
-    core_poses.set_tpose()
+    core_pose.set_tpose()
 
     return t_pose_controls_attrs_dict, a_pose_controls_attrs_dict
 

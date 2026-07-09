@@ -321,7 +321,7 @@ class TaskRetargetHumanIK(task_base.BatchTask):
             return source_character
 
         import gt.core.io as core_io
-        import gt.core.poses as core_poses
+        import gt.core.pose as core_pose
         import gt.utils.hik as utils_hik
 
         source_character = self.get_or_create_hik_character(requested_character)
@@ -331,12 +331,12 @@ class TaskRetargetHumanIK(task_base.BatchTask):
         current_pose = None
         joints = self.get_source_joints()
         if joints:
-            current_pose = core_poses.get_pose_as_dict(joints)
+            current_pose = core_pose.get_pose_as_dict(joints)
         tpose_path = self.get_resolved_path(project, "source_tpose_path")
         if tpose_path:
             tpose_dict = core_io.read_json_dict(tpose_path)
             if tpose_dict:
-                core_poses.set_pose_from_dict(tpose_dict)
+                core_pose.set_pose_from_dict(tpose_dict)
                 self.force_joint_evaluation(joints)
         definition_path = self.get_resolved_path(project, "source_definition_path")
         if definition_path:
@@ -346,7 +346,7 @@ class TaskRetargetHumanIK(task_base.BatchTask):
         utils_hik.set_definition_lock(source_character, True)
         self.evaluate_hik_character(source_character)
         if current_pose:
-            core_poses.set_pose_from_dict(current_pose)
+            core_pose.set_pose_from_dict(current_pose)
             self.force_joint_evaluation(joints)
         self.evaluate_hik_character(source_character)
         return source_character
@@ -1218,7 +1218,7 @@ class TaskRetargetHumanIK(task_base.BatchTask):
             str: Written file path.
         """
         import gt.core.io as core_io
-        import gt.core.poses as core_poses
+        import gt.core.pose as core_pose
 
         cmds = batch_processor_maya.get_maya_cmds()
         if not source_root or not cmds.objExists(source_root):
@@ -1227,7 +1227,7 @@ class TaskRetargetHumanIK(task_base.BatchTask):
         try:
             cmds.select(source_root, hierarchy=True)
             joints = cmds.ls(selection=True, type="joint") or []
-            pose_data = core_poses.get_pose_as_dict(joints)
+            pose_data = core_pose.get_pose_as_dict(joints)
             core_io.write_json(path=file_path, data=pose_data)
             return file_path
         finally:

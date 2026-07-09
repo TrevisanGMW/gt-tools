@@ -9,7 +9,7 @@ import gt.core.transform as core_trans
 import gt.tools.auto_rigger.rig_utils as tools_rig_utils
 import gt.tools.auto_rigger.rig_framework as tools_rig_frm
 import gt.tools.auto_rigger.rig_constants as tools_rig_const
-import gt.core.poses as core_poses
+import gt.core.pose as core_pose
 import gt.core.constraint as core_cnstr
 import gt.core.math as core_math
 import gt.core.node as core_node
@@ -868,7 +868,7 @@ class ModuleBipedArm(tools_rig_frm.ModuleGeneric):
         """
         Builds the rig pose on a biped arm.
         """
-        import gt.core.poses as core_poses
+        import gt.core.pose as core_pose
 
         # get joints
         clavicle_jnt = tools_rig_utils.find_joint_from_uuid(self.clavicle_proxy.get_uuid())
@@ -877,7 +877,7 @@ class ModuleBipedArm(tools_rig_frm.ModuleGeneric):
         hand_jnt = tools_rig_utils.find_joint_from_uuid(self.hand_proxy.get_uuid())
 
         # clavicle
-        core_poses.straighten_objs_by_side(
+        core_pose.straighten_objs_by_side(
             [clavicle_jnt],
             skip_axis=["z"],
             forward_rot=-90,
@@ -899,12 +899,12 @@ class ModuleBipedArm(tools_rig_frm.ModuleGeneric):
             )
 
         # shoulder and elbow
-        core_poses.straighten_objs_by_side(
+        core_pose.straighten_objs_by_side(
             [upperarm_jnt],
             forward_rot=-90,
             mirror_prefix=core_naming.NamingConstants.Prefix.RIGHT,
         )
-        core_poses.straighten_objs_by_side(
+        core_pose.straighten_objs_by_side(
             [lowerarm_jnt],
             forward_rot=-90,
             mirror_prefix=core_naming.NamingConstants.Prefix.RIGHT,
@@ -919,7 +919,7 @@ class ModuleBipedArm(tools_rig_frm.ModuleGeneric):
             cmds.setAttr(f"{lowerarm_jnt}.rotateZ", self.rig_pose_elbow_rot)
 
         # hand
-        core_poses.straighten_objs_by_side(
+        core_pose.straighten_objs_by_side(
             [hand_jnt],
             forward_rot=-90,
             mirror_prefix=core_naming.NamingConstants.Prefix.RIGHT,

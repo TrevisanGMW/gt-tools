@@ -812,7 +812,7 @@ if __name__ == "__main__":
     """
 
     # SKELETAL-MESH EXPORT
-    # -- TO TEST: open Body_M_average_rig, delete "setup" and "controls" and set the a_pose (core_poses.set_apose()).
+    # -- TO TEST: open average rig, delete "setup" and "controls" and set the a_pose (core_pose.set_apose()).
     # -- export selection is active by default, make sure to select the skeleton and the meshes
     # fbx_exp = FbxExporter()
     # --export all

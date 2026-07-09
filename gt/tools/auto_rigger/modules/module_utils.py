@@ -14,7 +14,7 @@ import gt.core.naming as core_naming
 import gt.core.iterable as core_iter
 import gt.core.surface as core_sur
 import gt.core.curve as core_curve
-import gt.core.poses as core_poses
+import gt.core.pose as core_pose
 import gt.core.scene as core_scene
 import gt.core.logger as core_log
 import gt.core.skin as core_skin
@@ -863,7 +863,7 @@ class ModuleExportSkeletalMesh(tools_rig_frm.ModuleGeneric):
         # Set the export pose if required.
         export_pose_used = False
         if cmds.objExists(self.export_pose):
-            core_poses.set_dagpose(pose_name=self.export_pose, namespace="")
+            core_pose.set_dagpose(pose_name=self.export_pose, namespace="")
             export_pose_used = True
 
         # Get skeleton joints
@@ -911,7 +911,7 @@ class ModuleExportSkeletalMesh(tools_rig_frm.ModuleGeneric):
         # Restore rig pose if needed
         tpose = core_naming.NamingConstants.Poses.TPOSE  # default rig pose
         if export_pose_used and cmds.objExists(tpose):
-            core_poses.set_tpose(namespace="")
+            core_pose.set_tpose(namespace="")
         core_cnstr.evaluate_constraints()
 
     def _get_export_meshes(self):

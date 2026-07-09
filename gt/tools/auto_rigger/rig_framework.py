@@ -29,7 +29,7 @@ import gt.utils.system as utils_sys
 import gt.core.control as core_ctrl
 import gt.core.curve as core_curve
 import gt.core.joint as core_joint
-import gt.core.poses as core_poses
+import gt.core.pose as core_pose
 import gt.core.color as core_color
 import gt.core.logger as core_log
 import gt.core.attr as core_attr
@@ -3891,8 +3891,8 @@ class RigProject:
 
             # create the default dag pose (a.k.a. A-pose in relation to bipeds)
             root_joint = tools_rig_utils.get_single_skeleton_root_joint()
-            core_poses.delete_dagpose()
-            core_poses.create_apose(root=root_joint)
+            core_pose.delete_dagpose()
+            core_pose.create_apose(root=root_joint)
 
             # apply the automatic control rig pose
             for module in self.modules:
@@ -3901,16 +3901,16 @@ class RigProject:
                 module.build_control_rig_pose()
 
             # create the control rig dag pose (a.k.a. T-pose in relation to bipeds)
-            core_poses.create_dagpose(root=root_joint, pose_name=self.get_control_rig_pose_name())
+            core_pose.create_dagpose(root=root_joint, pose_name=self.get_control_rig_pose_name())
             # freeze rig pose and put values in a-pose
-            core_poses.zero_out_pose(root=root_joint)
+            core_pose.zero_out_pose(root=root_joint)
 
             # update all the proxies in order to match the joints transformations (rig pose)
             self.align_module_proxies_to_joints()
 
-            core_poses.set_apose()
+            core_pose.set_apose()
             self.execute_modules_code(CodeData.Order.pre_control_pose)  # Try to run any pre-control-pose code.
-            core_poses.set_tpose()
+            core_pose.set_tpose()
             self.execute_modules_code(CodeData.Order.post_control_pose)  # Try to run any post-control-pose code.
 
     def build_rig(self):

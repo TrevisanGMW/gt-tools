@@ -632,7 +632,7 @@ class ModuleBipedFingers(tools_rig_frm.ModuleGeneric):
         """
         Builds the rig pose on a biped leg.
         """
-        import gt.core.poses as core_poses
+        import gt.core.pose as core_pose
 
         # get joints
         (
@@ -656,7 +656,7 @@ class ModuleBipedFingers(tools_rig_frm.ModuleGeneric):
                 cmds.setAttr(jnt + ".rotate", 0, 0, 0)
                 cmds.setAttr(jnt + ".jointOrient", 0, 0, 0)
             # straighten thumb
-            core_poses.straighten_objs_by_side(
+            core_pose.straighten_objs_by_side(
                 thumb_joints,
                 forward_rot=90,
                 mirror_prefix=core_naming.NamingConstants.Prefix.RIGHT,
@@ -667,8 +667,8 @@ class ModuleBipedFingers(tools_rig_frm.ModuleGeneric):
 
         # skip the metas if they don't inherit the parent orientation
         # meta_joints = [mj.get_short_name() for mj in meta_joints]
-        # core_poses.straighten_objs_by_side(meta_joints, mirror_prefix=core_naming.NamingConstants.Prefix.RIGHT,)
-        core_poses.straighten_objs_by_side(not_thumb_joints, mirror_prefix=core_naming.NamingConstants.Prefix.RIGHT)
+        # core_pose.straighten_objs_by_side(meta_joints, mirror_prefix=core_naming.NamingConstants.Prefix.RIGHT,)
+        core_pose.straighten_objs_by_side(not_thumb_joints, mirror_prefix=core_naming.NamingConstants.Prefix.RIGHT)
 
     def build_rig(self, project_prefix=None, **kwargs):
         """

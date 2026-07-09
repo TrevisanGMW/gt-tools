@@ -1459,7 +1459,7 @@ class ModuleBipedLeg(tools_rig_frm.ModuleGeneric):
         """
         Builds the rig pose on a biped leg.
         """
-        import gt.core.poses as core_poses
+        import gt.core.pose as core_pose
 
         # get joints
         upperleg_jnt = tools_rig_utils.find_joint_from_uuid(self.upperleg_proxy.get_uuid()).get_short_name()
@@ -1468,13 +1468,13 @@ class ModuleBipedLeg(tools_rig_frm.ModuleGeneric):
         self._ankle_init_ty = cmds.xform(foot_jnt, q=1, ws=1, t=1)[1]
 
         # straighten
-        core_poses.straighten_objs_by_side(
+        core_pose.straighten_objs_by_side(
             [upperleg_jnt],
             forward_rot=90,
             point_down_rot=-90,
             mirror_prefix=core_naming.NamingConstants.Prefix.RIGHT,
         )
-        core_poses.straighten_objs_by_side(
+        core_pose.straighten_objs_by_side(
             [lowerleg_jnt],
             forward_rot=90,
             point_down_rot=-90,
@@ -1491,7 +1491,7 @@ class ModuleBipedLeg(tools_rig_frm.ModuleGeneric):
             cmds.setAttr(lowerleg_jnt + ".rotateZ", self.rig_pose_knee_rot)
 
         # set the foot
-        core_poses.straighten_objs_by_side(
+        core_pose.straighten_objs_by_side(
             [foot_jnt],
             forward_rot=90,
             point_down_rot=-90,

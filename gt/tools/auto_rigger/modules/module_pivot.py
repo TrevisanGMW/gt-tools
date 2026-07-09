@@ -7,7 +7,7 @@ import gt.tools.auto_rigger.rig_framework as tools_rig_frm
 import gt.tools.auto_rigger.rig_utils as tools_rig_utils
 import gt.ui.resource_library as ui_res_lib
 import gt.core.naming as core_naming
-import gt.core.poses as core_poses
+import gt.core.pose as core_pose
 import gt.core.node as core_node
 import maya.cmds as cmds
 import logging
@@ -87,7 +87,7 @@ class ModulePivot(tools_generic_fk.ModuleGenericFK):
         if self._project.get_preferences_dict_value(key="apply_control_rig_pose", default=True):
             apose_name = core_naming.NamingConstants.Poses.APOSE
             tpose_name = core_naming.NamingConstants.Poses.TPOSE
-            if core_poses.check_main_poses():
+            if core_pose.check_main_poses():
                 cmds.dagPose(jnt_list, remove=True, n=apose_name)
                 cmds.dagPose(jnt_list, remove=True, n=tpose_name)
             else:

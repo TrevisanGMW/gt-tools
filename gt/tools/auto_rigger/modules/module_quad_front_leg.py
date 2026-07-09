@@ -11,7 +11,7 @@ import gt.core.hierarchy as core_hrchy
 import gt.core.transform as core_trans
 import gt.core.rigging as core_rigging
 import gt.core.naming as core_naming
-import gt.core.poses as core_poses
+import gt.core.pose as core_pose
 import gt.core.curve as core_curve
 import gt.core.color as core_color
 import gt.core.attr as core_attr

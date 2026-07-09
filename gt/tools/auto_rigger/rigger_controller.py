@@ -344,20 +344,20 @@ class RiggerController:
             parent_menu=menu_utils, submenu_name="Poses", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_templates)
         )
 
-        import gt.core.poses as core_poses
+        import gt.core.pose as core_pose
 
         # A-Pose Skeleton ---
         action_sk_a_pose = ui_qt.QtLib.QtGui.QAction(
             "A-Pose (Skeleton)", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.root_animation)
         )
-        action_sk_a_pose.triggered.connect(core_poses.set_apose)
+        action_sk_a_pose.triggered.connect(core_pose.set_apose)
         self.view.add_menu_action(parent_menu=menu_templates, action=action_sk_a_pose)
 
         # T-Pose Skeleton ---
         action_sk_t_pose = ui_qt.QtLib.QtGui.QAction(
             "T-Pose (Skeleton)", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.root_rigging)
         )
-        action_sk_t_pose.triggered.connect(core_poses.set_tpose)
+        action_sk_t_pose.triggered.connect(core_pose.set_tpose)
         self.view.add_menu_action(parent_menu=menu_templates, action=action_sk_t_pose)
 
         # A-Pose Control Rig ---
