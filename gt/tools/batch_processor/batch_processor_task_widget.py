@@ -1,0 +1,35 @@
+"""
+Batch Processor Task Widget Compatibility
+
+Attribute widgets are split into `attr_widget_*` modules. This file keeps
+the previous import surface available.
+"""
+
+from gt.tools.batch_processor.widgets.attr_widget_base import AttrWidgetBase
+from gt.tools.batch_processor.widgets.attr_widget_base import get_icon_path
+from gt.tools.batch_processor.widgets.attr_widget_input import AttrWidgetInputTask
+from gt.tools.batch_processor.widgets.attr_widget_maya_import import AttrWidgetMayaImportTask
+from gt.tools.batch_processor.widgets.attr_widget_maya_save import AttrWidgetMayaSaveTask
+from gt.tools.batch_processor.widgets.attr_widget_new_tasks import AttrWidgetAutoRigBuildTask
+from gt.tools.batch_processor.widgets.attr_widget_new_tasks import AttrWidgetClipSnapshotTask
+from gt.tools.batch_processor.widgets.attr_widget_new_tasks import AttrWidgetClipSplitTask
+from gt.tools.batch_processor.widgets.attr_widget_new_tasks import AttrWidgetDeleteProjectFilesTask
+from gt.tools.batch_processor.widgets.attr_widget_new_tasks import AttrWidgetFbxExportTask
+from gt.tools.batch_processor.widgets.attr_widget_new_tasks import AttrWidgetFileIntegrityValidationTask
+from gt.tools.batch_processor.widgets.attr_widget_new_tasks import AttrWidgetFolderCompareValidationTask
+from gt.tools.batch_processor.widgets.attr_widget_new_tasks import AttrWidgetMapRenameTask
+from gt.tools.batch_processor.widgets.attr_widget_new_tasks import AttrWidgetMayaSceneValidationTask
+from gt.tools.batch_processor.widgets.attr_widget_new_tasks import AttrWidgetPlayblastCaptureTask
+from gt.tools.batch_processor.widgets.attr_widget_new_tasks import AttrWidgetThumbnailCaptureTask
+from gt.tools.batch_processor.widgets.attr_widget_new_tasks import AttrWidgetZipCompressTask
+from gt.tools.batch_processor.widgets.attr_widget_project import AttrWidgetProject
+from gt.tools.batch_processor.widgets.attr_widget_motionbuilder_script import AttrWidgetMotionBuilderScriptTask
+from gt.tools.batch_processor.widgets.attr_widget_blender_script import AttrWidgetBlenderScriptTask
+from gt.tools.batch_processor.widgets.attr_widget_python_script import AttrWidgetPythonScriptTask
+from gt.tools.batch_processor.widgets.attr_widget_python_script import AttrWidgetPythonScriptsFolderTask
+from gt.tools.batch_processor.widgets.attr_widget_rename import AttrWidgetRenameTask
+from gt.tools.batch_processor.widgets.attr_widget_retarget import AttrWidgetRetargetTask
+from gt.tools.batch_processor.widgets.attr_widget_hik_retarget import AttrWidgetRetargetHumanIK
+from gt.tools.batch_processor.widgets.attr_widget_task import AttrWidgetTask
+from gt.tools.batch_processor.widgets.attr_widget_task import get_task_widget_class
+from gt.tools.batch_processor.widgets.attr_widget_usd_export import AttrWidgetUsdExportTask
