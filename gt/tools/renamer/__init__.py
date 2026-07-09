@@ -54,10 +54,34 @@ def launch_tool():
     Launch user interface and create any necessary connections for the tool to function.
     Entry point for when using the tool GT Renamer.
     """
-    from gt.tools.renamer import renamer
-    renamer.script_version = __version__
-    renamer.get_persistent_settings_renamer()
-    renamer.build_gui_renamer()
+    return build_gui_renamer()
+
+
+def build_gui_renamer():
+    """Builds the Renamer user interface.
+
+    Returns:
+        RenamerController: Controller for the launched tool.
+    """
+    from gt.tools.renamer import renamer_controller
+    from gt.tools.renamer import renamer_model
+    from gt.tools.renamer import renamer_view
+    from gt.ui import qt_utils
+
+    with qt_utils.QtApplicationContext() as context:
+        view = renamer_view.RenamerView(parent=context.get_parent(), version=__version__)
+        model = renamer_model.RenamerModel()
+        controller = renamer_controller.RenamerController(model=model, view=view)
+        return controller
+
+
+def build_gui_help_renamer():
+    """Compatibility wrapper for the removed help window.
+
+    Returns:
+        RenamerController: Controller for the launched tool.
+    """
+    return build_gui_renamer()
 
 
 if __name__ == "__main__":
