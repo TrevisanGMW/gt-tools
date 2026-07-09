@@ -302,7 +302,6 @@ class Icon:
     tool_pose_wrangler = get_icon_path(r"tool_pose_wrangler.svg")
     tool_dna_viewer = get_icon_path(r"tool_dna_viewer.svg")
     tool_facial_rig = get_icon_path(r"tool_facial_rig.svg")
-    tool_vfx_maker = get_icon_path(r"tool_vfx_maker.svg")
     tool_validator = get_icon_path(r"tool_validator.svg")
     # Utils
     util_reload_file = get_icon_path(r"util_reload_file.svg")
@@ -498,20 +497,6 @@ class Icon:
     ui_branch_root_closed = get_icon_path(r"ui_branch_root_closed.svg")
     ui_branch_root_open = get_icon_path(r"ui_branch_root_open.svg")
     ui_branch_single = get_icon_path(r"ui_branch_single.svg")
-    # Vfx Maker
-    vfx_maker_line = get_icon_path(r"vfx_maker_line.svg")
-    vfx_maker_semicircle = get_icon_path(r"vfx_maker_semicircle.svg")
-    vfx_maker_circle = get_icon_path(r"vfx_maker_circle.svg")
-    vfx_maker_duplicate = get_icon_path(r"vfx_maker_duplicate.svg")
-    vfx_maker_rebuild_curve = get_icon_path(r"vfx_maker_rebuild_curve.svg")
-    vfx_maker_reverse_curve = get_icon_path(r"vfx_maker_reverse_curve.svg")
-    vfx_maker_edit_curve = get_icon_path(r"vfx_maker_edit_curve.svg")
-    vfx_maker_exit_edit_curve = get_icon_path(r"vfx_maker_exit_edit_curve.svg")
-    vfx_maker_edit_mesh_curve = get_icon_path(r"vfx_maker_edit_mesh_curve.svg")
-    vfx_maker_edit_anim_curve = get_icon_path(r"vfx_maker_edit_anim_curve.svg")
-    vfx_maker_default = get_icon_path(r"vfx_maker_default.svg")
-    vfx_maker_reset = get_icon_path(r"vfx_maker_reset.svg")
-    vfx_maker_edit_color = get_icon_path(r"vfx_maker_edit_color.svg")
     # Validator
     validator_not_run = get_icon_path(r"validator_not_run.svg")
     validator_pass = get_icon_path(r"validator_pass.svg")
