@@ -1,11 +1,7 @@
 """
  Sample Tool - To be used as starting point or example for when creating new tools.
- 2023-07-17
+ 2026-07-08
 """
-from gt.tools.sample_tool import sample_controller
-from gt.tools.sample_tool import sample_model
-from gt.tools.sample_tool import sample_view
-from gt.ui import qt_utils
 import logging
 
 # Logging Setup
@@ -25,8 +21,13 @@ def launch_tool():
     Entry point for when using this tool.
     Creates Model, View and Controller
     """
+    from gt.tools.sample_tool import sample_controller
+    from gt.tools.sample_tool import sample_model
+    from gt.tools.sample_tool import sample_view
+    from gt.ui import qt_utils
+
     with qt_utils.QtApplicationContext() as context:
-        _view = sample_view.SampleToolWindow(parent=context.get_parent())
+        _view = sample_view.SampleToolWindow(parent=context.get_parent(), version=__version__)
         _model = sample_model.SampleToolModel()
         _controller = sample_controller.SampleToolController(model=_model, view=_view)
 

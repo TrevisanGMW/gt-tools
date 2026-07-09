@@ -1,63 +1,53 @@
 """
-Sample Tool Controller. (Connections - Model and View)
-The Controller acts as an intermediary between the Model and the View. When the user interacts with the
-View, like clicking a button or filling out a form, the Controller receives and processes these actions.
-It then instructs the Model to update the data accordingly. After the Model updates, the Controller also
-communicates with the View to refresh the display and show any changes.
-Think of it as the glue between model and view.
+Sample Tool Controller
 
-A view should contain only logic related to generating the user interface.
-A controller should only contain the bare minimum of logic required to return the right view or redirect the user to
-another action (flow control). Everything else should be contained in the model.
-
-In general, you should strive for fat models and skinny controllers.
-Your controller methods should contain only a few lines of code.
-If a controller action gets too fat, then you should consider moving the logic out to the model.
+Connects the sample text saver view and model.
 """
 
 import gt.ui.qt_import as ui_qt
+import logging
+import os
+
+# Logging Setup
+logging.basicConfig()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 class SampleToolController:
+    """Controller for the sample text saver tool."""
+
     def __init__(self, model, view):
-        """
-        Initialize the SampleToolController object.
+        """Initializes the SampleToolController object.
 
         Args:
-            model: The SampleToolModel object used for data manipulation.
-            view: The view object to interact with the user interface.
+            model (SampleToolModel): Model used for file writing.
+            view (SampleToolWindow): View object to connect.
         """
         self.model = model
         self.view = view
-        self.view.add_button.clicked.connect(self.add_item_view)
-        self.view.remove_button.clicked.connect(self.remove_item_view)
         self.view.controller = self
+        self.view.save_button.clicked.connect(self.handle_save)
         self.view.show()
-        self.update_view()
 
-    def add_item_view(self):
-        """
-        Prompt the user for an item name and add it to the model.
-        """
-        item_text, ok = ui_qt.QtWidgets.QInputDialog.getText(self.view, "Enter item name", "Item name:")
-        if ok:
-            self.model.add_item(item_text)
-            self.update_view()
-
-    def remove_item_view(self):
-        """
-        Remove the selected item from the model based on the user's selection in the view.
-        """
-        selected_item = self.view.item_list.currentRow()
-        if selected_item >= 0:
-            self.model.remove_item(selected_item)
-            self.update_view()
-
-    def update_view(self):
-        """
-        Update the view with the current list of items from the model.
-        """
-        self.view.update_view(self.model.get_items())
+    def handle_save(self):
+        """Handles the save button click event."""
+        text_to_save = self.view.get_text()
+        if not text_to_save:
+            logger.warning("No text entered. Skipping save.")
+            return
+        file_path, _ = ui_qt.QtWidgets.QFileDialog.getSaveFileName(
+            self.view,
+            "Save Text File",
+            os.path.expanduser("~"),
+            "Text Files (*.txt);;All Files (*)",
+        )
+        if not file_path:
+            return
+        success = self.model.save_text_to_file(text=text_to_save, file_path=file_path)
+        if success:
+            self.view.text_field.clear()
+            logger.info("Text field cleared after successful save.")
 
 
 if __name__ == "__main__":
