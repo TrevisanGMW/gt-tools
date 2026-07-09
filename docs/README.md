@@ -1,4 +1,4 @@
-<!-- GT Tools Docs -->
+﻿<!-- GT Tools Docs -->
 
 <body>
 
@@ -15,56 +15,56 @@
 </ul>
 <h3><b>Tools:</b></h3>
 <ul>
-  <li><a href="#gt-renamer">GT Renamer</a></li>
-  <li><a href="#gt-outliner-sorter">GT Outliner Sorter</a></li>
-  <li><a href="#gt-selection-manager">GT Selection Manager</a></li>
-  <li><a href="#gt-path-manager">GT Path Manager</a></li>
-  <li><a href="#gt-color-manager">GT Color Manager</a></li>
-  <li><a href="#gt-transfer-transforms">GT Transfer Transforms</a></li>
-  <li><a href="#gt-world-space-baker">GT World Space Baker</a></li>
-  <li><a href="#gt-render-checklist">GT Render Checklist</a></li>
+  <li><a href="#renamer">Renamer</a></li>
+  <li><a href="#outliner-sorter">Outliner Sorter</a></li>
+  <li><a href="#selection-manager">Selection Manager</a></li>
+  <li><a href="#path-manager">Path Manager</a></li>
+  <li><a href="#color-manager">Color Manager</a></li>
+  <li><a href="#transfer-transforms">Transfer Transforms</a></li>
+  <li><a href="#world-space-baker">World Space Baker</a></li>
+  <li><a href="#render-checklist">Render Checklist</a></li>
 </ul>
 <h3><b>Curves:</b></h3>
 <ul>
-  <li><a href="#gt-extract-python-curve">GT Extract Python Curve</a></li>
-  <li><a href="#gt-generate-text-curve">GT Generate Text Curve</a></li>
-  <li><a href="#gt-extract-curve-state">GT Extract Curve State</a></li>
+  <li><a href="#extract-python-curve">Extract Python Curve</a></li>
+  <li><a href="#generate-text-curve">Generate Text Curve</a></li>
+  <li><a href="#extract-curve-state">Extract Curve State</a></li>
 </ul>
 <h3><b>Modeling:</b></h3>
 <ul>
-  <li><a href="#gt-transfer-uvs">GT Transfer UVs</a></li>
-  <li><a href="#gt-sphere-types">GT Sphere Types</a></li>
+  <li><a href="#transfer-uvs">Transfer UVs</a></li>
+  <li><a href="#sphere-types">Sphere Types</a></li>
 </ul>
 
 <div>
 <h3><b>Rigging:</b></h3>
 <ul>
-  <li><a href="#gt-biped-auto-rigger">GT Biped Auto Rigger</a></li>
-  <li><a href="#gt-biped-rig-interface">GT Biped Rig Interface</a></li>
-  <li><a href="#gt-retarget-assistant">GT Retarget Assistant</a></li>
-  <li><a href="#gt-game-fbx-exporter">GT Game FBX Exporter</a></li>
-  <li><a href="#gt-extract-bound-joints">GT Extract Bound Joints</a></li>
-  <li><a href="#gt-connect-attributes">GT Connect Attributes</a></li>
-  <li><a href="#gt-morphing-utilities">GT Morphing Utilities</a></li>
-  <li><a href="#gt-morphing-attributes">GT Morphing Attributes</a></li>
-  <li><a href="#gt-mirror-cluster-tool">GT Mirror Cluster Tool</a></li>
-  <li><a href="#gt-generate-in-between">GT Generate In-Between</a></li>
-  <li><a href="#gt-create-auto-fk">GT Create Auto FK</a></li>
-  <li><a href="#gt-create-testing-keys">GT Create Testing Keys</a></li>
-  <li><a href="#gt-make-ik-stretchy">GT Make IK Stretchy</a></li>
-  <li><a href="#gt-add-sine-attributes">GT Add Sine Attributes</a></li>
-  <li><a href="#gt-ribbon-tool">GT Ribbon Tool</a></li>
+  <li><a href="#biped-auto-rigger">Biped Auto Rigger</a></li>
+  <li><a href="#biped-rig-interface">Biped Rig Interface</a></li>
+  <li><a href="#retarget-assistant">Retarget Assistant</a></li>
+  <li><a href="#game-fbx-exporter">Game FBX Exporter</a></li>
+  <li><a href="#extract-bound-joints">Extract Bound Joints</a></li>
+  <li><a href="#connect-attributes">Connect Attributes</a></li>
+  <li><a href="#morphing-utilities">Morphing Utilities</a></li>
+  <li><a href="#morphing-attributes">Morphing Attributes</a></li>
+  <li><a href="#mirror-cluster-tool">Mirror Cluster Tool</a></li>
+  <li><a href="#generate-in-between">Generate In-Between</a></li>
+  <li><a href="#create-auto-fk">Create Auto FK</a></li>
+  <li><a href="#create-testing-keys">Create Testing Keys</a></li>
+  <li><a href="#make-ik-stretchy">Make IK Stretchy</a></li>
+  <li><a href="#add-sine-attributes">Add Sine Attributes</a></li>
+  <li><a href="#ribbon-tool">Ribbon Tool</a></li>
 </ul>
 <h3><b>Utilities:</b></h3>
 <ul>
-  <li><a href="#gt-utilities">GT Utilities</a></li>
+  <li><a href="#utilities">Utilities</a></li>
 </ul>
 <h3><b>Miscellaneous:</b></h3>
 <ul>
-  <li><a href="#gt-startup-booster">GT Startup Booster</a></li>
-  <li><a href="#gt-fspy-importer">GT fSpy Importer</a></li>
-  <li><a href="#gt-maya-to-discord">GT Maya to Discord</a></li>
-  <li><a href="#gt-render-calculator">GT Render Calculator</a></li>
+  <li><a href="#startup-booster">Startup Booster</a></li>
+  <li><a href="#fspy-importer">fSpy Importer</a></li>
+  <li><a href="#maya-to-discord">Maya to Discord</a></li>
+  <li><a href="#render-calculator">Render Calculator</a></li>
 </ul>
 </div>
 </div>
@@ -193,9 +193,9 @@ After installing, you can delete the downloaded/extracted files (as they have al
 <br>
 </div>
 
-<!-- GT Renamer -->
+<!-- Renamer -->
 <div>
-<h1>GT Renamer</h1>
+<h1>Renamer</h1>
 <img src="./media/gt_renamer.jpg" align="right"
      alt="GT Renamer GUI">
 <img src="./media/gt_renamer_sample.gif" align="right"
@@ -220,9 +220,9 @@ After installing, you can delete the downloaded/extracted files (as they have al
 <br>
 </div>
 
-<!-- GT Outliner Sorter -->
+<!-- Outliner Sorter -->
 <div>
-<h1>GT Outliner Sorter</h1>
+<h1>Outliner Sorter</h1>
 <img src="./media/gt_outliner_sorter.jpg" align="right"
      alt="GT Renamer GUI">
 
@@ -257,7 +257,7 @@ After installing, you can delete the downloaded/extracted files (as they have al
 
 <!-- GT Selection Manager-->
 <div>
-<h1>GT Selection Manager</h1>
+<h1>Selection Manager</h1>
 <img src="./media/gt_selection_manager.jpg" align="right"
      alt="GT Selection Manager GUI">
 
@@ -278,9 +278,9 @@ After installing, you can delete the downloaded/extracted files (as they have al
 <br>
 </div>
 
-<!-- GT Path Manager -->
+<!-- Path Manager -->
 <div>
-<h1>GT Path Manager</h1>
+<h1>Path Manager</h1>
 <img src="./media/gt_path_manager.gif" align="right"
      alt="GT Path Manager GUI">
 	 
@@ -303,9 +303,9 @@ The icon on the left describes the validity of the path. If the file or director
 
 </div>
 
-<!-- GT Color Manager -->
+<!-- Color Manager -->
 <div>
-<h1>GT Color Manager</h1>
+<h1>Color Manager</h1>
 
 <img src="./media/gt_color_manager.jpg" align="right"
      alt="GT Color Manager GUI">
@@ -332,9 +332,9 @@ The icon on the left describes the validity of the path. If the file or director
 
 </div>
 
-<!-- GT Transfer Transforms -->
+<!-- Transfer Transforms -->
 <div>
-<h1>GT Transfer Transforms</h1>
+<h1>Transfer Transforms</h1>
 
 <img src="./media/gt_transfer_transforms.jpg" align="right"
      alt="GT Transfer Transforms GUI">
@@ -364,9 +364,9 @@ with the provided prefix "Left Side Tag".</p>
 
 </div>
 
-<!-- GT World Space Baker -->
+<!-- World Space Baker -->
 <div>
-<h1>GT World Space Baker</h1>
+<h1>World Space Baker</h1>
 
 <img src="./media/gt_world_space_baker.jpg" align="right"
      alt="GT World Space Baker GUI">
@@ -389,9 +389,9 @@ with the provided prefix "Left Side Tag".</p>
 
 </div>
 
-<!-- GT Render Checklist -->
+<!-- Render Checklist -->
 <div>
-<h1>GT Render Checklist</h1>
+<h1>Render Checklist</h1>
 
 <img src="./media/gt_render_checklist.gif" align="right"
      alt="GT Render Checklist GUI">
@@ -483,9 +483,9 @@ with the provided prefix "Left Side Tag".</p>
 <br>
 </div>
 
-<!-- GT Extract Python Curve -->
+<!-- Extract Python Curve -->
 <div>
-<h1>GT Extract Python Curve</h1>
+<h1>Extract Python Curve</h1>
 
 <img src="./media/gt_extract_python_curve.jpg" align="right"
      alt="GT Generate Python Curve GUI">
@@ -510,9 +510,9 @@ with the provided prefix "Left Side Tag".</p>
 
 </div>
 
-<!-- GT Generate Text Curve -->
+<!-- Generate Text Curve -->
 <div>
-<h1>GT Generate Text Curve</h1>
+<h1>Generate Text Curve</h1>
 
 <img src="./media/gt_generate_text_curve.jpg" align="right"
      alt="GT Generate Text Curve GUI">
@@ -532,9 +532,9 @@ with the provided prefix "Left Side Tag".</p>
 
 </div>
 
-<!-- GT Extract Curve State -->
+<!-- Extract Curve State -->
 <div>
-<h1>GT Extract Curve State</h1>
+<h1>Extract Curve State</h1>
 
 <img src="./media/gt_extract_shape_state.jpg" align="right"
      alt="GT Extract Curve State GUI">
@@ -556,7 +556,7 @@ with the provided prefix "Left Side Tag".</p>
 
 <!-- Transfer UVs -->
 <div>
-<h1>GT Transfer UVs</h1>
+<h1>Transfer UVs</h1>
 
 <img src="./media/gt_transfer_uvs.jpg" align="right"
      alt="GT Transfer UVs GUI">
@@ -571,9 +571,9 @@ with the provided prefix "Left Side Tag".</p>
 
 </div>
 
-<!-- GT Sphere Types -->
+<!-- Sphere Types -->
 <div>
-<h1>GT Sphere Types</h1>
+<h1>Sphere Types</h1>
 
 <img src="./media/gt_create_sphere_types.jpg" align="right"
      alt="GT Sphere Types GUI">
@@ -589,9 +589,9 @@ with the provided prefix "Left Side Tag".</p>
 
 </div>
 
-<!-- GT Biped Auto Rigger -->
+<!-- Biped Auto Rigger -->
 <div>
-<h1>GT Biped Auto Rigger</h1>
+<h1>Biped Auto Rigger</h1>
 
 <img src="./media/gt_auto_biped_rigger.jpg" align="right"
      alt="GT Biped Auto Rigger GUI">
@@ -811,9 +811,9 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 </div>
 
-<!-- GT Biped Rig Interface -->
+<!-- Biped Rig Interface -->
 <div>
-<h1>GT Biped Rig Interface</h1>
+<h1>Biped Rig Interface</h1>
 
 <img src="./media/gt_custom_rig_interface.jpg" align="right"
      alt="GT Biped Rig Interface GUI">
@@ -880,9 +880,9 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 <br>
 </div>
 
-<!-- GT Retarget Assistant -->
+<!-- Retarget Assistant -->
 <div>
-<h1>GT Retarget Assistant</h1>
+<h1>Retarget Assistant</h1>
 
 <img src="./media/gt_retarget_assistant.jpg" align="right"
      alt="GT Retarget Assistant GUI">
@@ -926,9 +926,9 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 </div>
 
-<!-- GT Game FBX Exporter -->
+<!-- Game FBX Exporter -->
 <div>
-<h1>GT Game FBX Exporter</h1>
+<h1>Game FBX Exporter</h1>
 
 <img src="./media/gt_game_fbx_exporter.jpg" align="right"
      alt="GT Game FBX Exporter GUI">
@@ -946,9 +946,9 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 </div>
 
-<!-- GT Extract Bound Joints -->
+<!-- Extract Bound Joints -->
 <div>
-<h1>GT Extract Bound Joints</h1>
+<h1>Extract Bound Joints</h1>
 
 <img src="./media/gt_extract_bound_joints.jpg" align="right"
      alt="GT Extract Bound Joints GUI">
@@ -969,9 +969,9 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 </div>
 
-<!-- GT Connect Attributes -->
+<!-- Connect Attributes -->
 <div>
-<h1>GT Connect Attributes</h1>
+<h1>Connect Attributes</h1>
 
 <img src="./media/gt_connect_attributes.jpg" align="right"
      alt="GT Connect Attributes GUI">
@@ -1003,9 +1003,9 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 </div>
 
-<!-- GT Morphing Utilities -->
+<!-- Morphing Utilities -->
 <div>
-<h1>GT Morphing Utilities</h1>
+<h1>Morphing Utilities</h1>
 
 <img src="./media/gt_morphing_utilities.jpg" align="right"
      alt="GT Morphing Attributes GUI">
@@ -1037,9 +1037,9 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 <br>
 
-<!-- GT Morphing Attributes -->
+<!-- Morphing Attributes -->
 <div>
-<h1>GT Morphing Attributes</h1>
+<h1>Morphing Attributes</h1>
 
 <img src="./media/gt_morphing_attributes.jpg" align="right"
      alt="GT Morphing Attributes GUI">
@@ -1097,9 +1097,9 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 <br>
 
 </div>
-<!-- GT Mirror Cluster Tool -->
+<!-- Mirror Cluster Tool -->
 <div>
-<h1>GT Mirror Cluster Tool</h1>
+<h1>Mirror Cluster Tool</h1>
 
 <img src="./media/gt_mirror_cluster_tool.jpg" align="right"
      alt="GT Mirror Cluster Tool GUI">
@@ -1125,9 +1125,9 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 </div>
 
-<!-- GT Generate In-Between -->
+<!-- Generate In-Between -->
 <div>
-<h1>GT Generate In-Between</h1>
+<h1>Generate In-Between</h1>
 
 <img src="./media/gt_generate_inbetween.jpg" align="right"
      alt="GT Generate In-Between GUI">
@@ -1150,9 +1150,9 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 </div>
 
-<!-- GT Create Auto FK -->
+<!-- Create Auto FK -->
 <div>
-<h1>GT Create Auto FK</h1>
+<h1>Create Auto FK</h1>
 
 <img src="./media/gt_create_auto_fk.jpg" align="right"
      alt="GT GT Create Auto FK GUI">
@@ -1186,9 +1186,9 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 </div>
 
-<!-- GT Create Testing Keys -->
+<!-- Create Testing Keys -->
 <div>
-<h1>GT Create Testing Keys</h1>
+<h1>Create Testing Keys</h1>
 
 <img src="./media/gt_create_testing_keys.jpg" align="right"
      alt="GT Create Testing Keys GUI">
@@ -1229,7 +1229,7 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 <!-- GT Make Stretchy Legs -->
 <div>
-<h1>GT Make IK Stretchy</h1>
+<h1>Make IK Stretchy</h1>
 
 <img src="./media/gt_make_ik_stretchy.jpg" align="right"
      alt="GT Make IK Stretchy GUI">
@@ -1266,9 +1266,9 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 </div>
 
-<!-- GT Add Sine Attributes -->
+<!-- Add Sine Attributes -->
 <div>
-<h1>GT Add Sine Attributes</h1>
+<h1>Add Sine Attributes</h1>
 
 <img src="./media/gt_add_sine_attributes.jpg" align="right"
      alt="GT Add Sine Attributes GUI">
@@ -1294,9 +1294,9 @@ Added attributes don't affect your attribute holder in any way, it's up to you d
 
 <br><br>
 
-<!-- GT Ribbon Tool -->
+<!-- Ribbon Tool -->
 <div>
-<h1>GT Ribbon Tool</h1>
+<h1>Ribbon Tool</h1>
 
 <img src="./media/gt_ribbon_tool.jpg" align="right"
      alt="GT Ribbon Tool GUI">
@@ -1337,9 +1337,9 @@ Ribbon rigging is particularly useful for creating smooth and natural-looking de
 
 </div>
 
-<!-- GT Utilities -->
+<!-- Utilities -->
 <div>
-<h1>GT Utilities</h1>
+<h1>Utilities</h1>
 
 <img src="./media/gt_utilities.jpg" align="right"
      alt="GT Utilities Menu">
@@ -1456,9 +1456,9 @@ Ribbon rigging is particularly useful for creating smooth and natural-looking de
 
 </div>
 
-<!-- GT Startup Booster -->
+<!-- Startup Booster -->
 <div>
-<h1>GT Startup Booster</h1>
+<h1>Startup Booster</h1>
 
 <img src="./media/gt_startup_booster.jpg" align="right"
      alt="GT Startup Booster GUI">
@@ -1493,9 +1493,9 @@ Ribbon rigging is particularly useful for creating smooth and natural-looking de
 
 </div>
 
-<!-- GT fSpy Importer -->
+<!-- fSpy Importer -->
 <div>
-<h1>GT fSpy Importer</h1>
+<h1>fSpy Importer</h1>
 
 <img src="./media/gt_fspy_importer.jpg" align="right"
      alt="GT fSpy Importer GUI">
@@ -1538,9 +1538,9 @@ Do not change the resolution of the image file or crop the image or it might not
 
 </div>
 
-<!-- GT Maya to Discord -->
+<!-- Maya to Discord -->
 <div>
-<h1>GT Maya to Discord</h1>
+<h1>Maya to Discord</h1>
 
 <img src="./media/gt_maya_to_discord.jpg" align="right"
      alt="GT Maya to Discord GUI">
@@ -1602,9 +1602,9 @@ Do not change the resolution of the image file or crop the image or it might not
 
 </div>
 
-<!-- GT Render Calculator -->
+<!-- Render Calculator -->
 <div>
-<h1>GT Render Calculator</h1>
+<h1>Render Calculator</h1>
 
 <img src="./media/gt_render_calculator.jpg" align="right"
      alt="GT Render Calculator GUI">
