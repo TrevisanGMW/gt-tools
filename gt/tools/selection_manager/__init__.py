@@ -57,9 +57,34 @@ def launch_tool():
     Launch user interface and create any necessary connections for the tool to function.
     Entry point for when using the tool GT Selection Manager.
     """
-    from gt.tools.selection_manager import selection_manager
-    selection_manager.script_version = __version__
-    selection_manager.build_gui_selection_manager()
+    return build_gui_selection_manager()
+
+
+def build_gui_selection_manager():
+    """Builds the Selection Manager user interface.
+
+    Returns:
+        SelectionManagerController: Controller for the launched tool.
+    """
+    from gt.tools.selection_manager import selection_manager_controller
+    from gt.tools.selection_manager import selection_manager_model
+    from gt.tools.selection_manager import selection_manager_view
+    from gt.ui import qt_utils
+
+    with qt_utils.QtApplicationContext() as context:
+        view = selection_manager_view.SelectionManagerView(parent=context.get_parent(), version=__version__)
+        model = selection_manager_model.SelectionManagerModel()
+        controller = selection_manager_controller.SelectionManagerController(model=model, view=view)
+        return controller
+
+
+def build_gui_help_selection_manager():
+    """Compatibility wrapper for the removed help action.
+
+    Returns:
+        SelectionManagerController: Controller for the launched tool.
+    """
+    return build_gui_selection_manager()
 
 
 if __name__ == "__main__":
