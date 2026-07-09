@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:svg="http://www.w3.org/2000/svg" viewBox="0 0 150 150">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #5bba47;
+      }
+
+      .cls-1, .cls-2 {
+        stroke-width: 2px;
+      }
+
+      .cls-1, .cls-2, .cls-3 {
+        stroke: #2b2b2b;
+        stroke-miterlimit: 10;
+      }
+
+      .cls-2 {
+        fill: #2b2b2b;
+      }
+
+      .cls-4, .cls-3 {
+        fill: #bdbdbd;
+      }
+
+      .cls-3 {
+        stroke-width: 4px;
+      }
+    </style>
+  </defs>
+  <!-- Generator: Adobe Illustrator 28.7.5, SVG Export Plug-In . SVG Version: 1.2.0 Build 176)  -->
+  <g>
+    <g id="svg5">
+      <sodipodi:namedview id="namedview5" bordercolor="#000000" borderopacity="0.25" inkscape:current-layer="svg5" inkscape:cx="83.129153" inkscape:cy="57.781059" inkscape:deskcolor="#d1d1d1" inkscape:pagecheckerboard="0" inkscape:pageopacity="0.0" inkscape:showpageshadow="2" inkscape:window-height="1009" inkscape:window-maximized="1" inkscape:window-width="1920" inkscape:window-x="-8" inkscape:window-y="-8" inkscape:zoom="3.1757812" pagecolor="#ffffff"/>
+      <path class="cls-1" d="M140.6,22.6H10.4c-.5,0-.9,0-1.3.3-1.2.5-2.1,1.7-2.1,3.1s.8,2.6,2.1,3.1c.4.2.9.3,1.3.3h9.3c.1,0,.3,0,.4,0,0,0,.1,0,.2.1,0,0,.1,0,.1.1,0,0,0,0,.1.1,0,0,0,.1.1.2,0,.1,0,.2,0,.4v88.1c0,7.6,6.1,13.7,13.7,13.7h82.2c7.6,0,13.7-6.1,13.7-13.7V30.4c0-.1,0-.3,0-.4,0,0,0-.1.1-.2,0,0,0-.1.1-.1,0,0,0,0,.1-.1,0,0,.1,0,.2-.1.1,0,.2,0,.4,0h9.3c1.9,0,3.4-1.5,3.4-3.4s-1.5-3.4-3.4-3.4Z"/>
+      <path class="cls-2" d="M94.8,71.3l-16.5-13.2c-1.7-1.3-4-1.3-5.6,0l-16.5,13.2c-1.4,1.2-1.7,3.3-.5,4.8,1.2,1.4,3.3,1.7,4.8.5l11.6-9.3v34.1c0,1.9,1.5,3.4,3.4,3.4s3.4-1.5,3.4-3.4v-34.1l11.6,9.3c.6.6,1.3.8,2.1.8s2-.5,2.7-1.3c1.2-1.5,1-3.6-.5-4.8Z"/>
+      <path class="cls-3" d="M140.6,29.5H10.4c-1.9,0-3.4-1.5-3.4-3.4s1.5-3.4,3.4-3.4h130.2c1.9,0,3.4,1.5,3.4,3.4s-1.5,3.4-3.4,3.4h0Z"/>
+      <path class="cls-4" d="M140.6,29.5H10.4c-1.9,0-3.4-1.5-3.4-3.4s1.5-3.4,3.4-3.4h130.2c1.9,0,3.4,1.5,3.4,3.4s-1.5,3.4-3.4,3.4h0Z"/>
+    </g>
+  </g>
+</svg>

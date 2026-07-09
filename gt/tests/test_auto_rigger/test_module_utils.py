@@ -16,10 +16,10 @@ package_root_dir = os.path.dirname(tests_dir)
 for to_append in [package_root_dir, tests_dir]:
     if to_append not in sys.path:
         sys.path.append(to_append)
-import gt.tools.auto_rigger.module_utils as tools_mod_utils
+import gt.tools.auto_rigger.modules.module_utils as tools_mod_utils
 import gt.tools.auto_rigger.rig_framework as tools_rig_frm
 import gt.tools.auto_rigger.rig_constants as tools_rig_const
-import gt.tools.auto_rigger.module_biped_leg as module_leg
+import gt.tools.auto_rigger.modules.module_biped_leg as module_leg
 from gt.tests import maya_test_tools
 import inspect
 
@@ -87,7 +87,7 @@ class TestModuleUtils(unittest.TestCase):
 
     def test_module_import_file_basic_functionality(self):
         an_import_file_module = tools_mod_utils.ModuleImportFile()
-        an_import_file_module.set_file_path(file_path=r"$TESTS_DATA_DIR\cylinder_project\geo\cylinder.obj")
+        an_import_file_module.set_file_path(file_path=r"{tests-data-dir}\cylinder_project\geo\cylinder.obj")
         a_generic_module = tools_rig_frm.ModuleGeneric()
         a_generic_module.add_new_proxy()  # Add a proxy so something is created
         a_project = tools_rig_frm.RigProject()
@@ -103,7 +103,7 @@ class TestModuleUtils(unittest.TestCase):
 
     def test_module_save_scene_basic_functionality(self):
         a_save_scene_module = tools_mod_utils.ModuleSaveScene()
-        _scene_path = r"$TESTS_DATA_DIR\Rig\cylinder_rig.ma"
+        _scene_path = r"{tests-data-dir}\Rig\cylinder_rig.ma"
         a_save_scene_module.set_file_path(file_path=_scene_path)
         a_generic_module = tools_rig_frm.ModuleGeneric()
         a_generic_module.add_new_proxy()  # Add a proxy so something is created
@@ -114,8 +114,27 @@ class TestModuleUtils(unittest.TestCase):
         a_project.build_proxy()
         a_project.build_rig()
 
-        _parsed_path = a_save_scene_module._parse_path(path=_scene_path)
+        _parsed_path = a_save_scene_module.parse_path(path=_scene_path)
         self.assertTrue(os.path.isfile(_parsed_path))
 
         if os.path.isfile(_parsed_path):
             os.remove(_parsed_path)
+
+    def test_module_parent_switching_functionality(self):
+        leg_module_instance = module_leg.ModuleBipedLeg(prefix="C")
+        a_project = tools_rig_frm.RigProject()
+        a_project.add_to_modules(leg_module_instance)
+        a_project.build_proxy()
+        a_project.build_rig()
+        cmds.setAttr("C_leg_CTRL.influenceSwitch", 1)
+        expected = [0.0, 46.9966, 37.5034]
+        pos = cmds.xform("C_lowerLeg_IK_CTRL", t=True, ws=True, q=True)
+        result = [round(pos[0], 4), round(pos[1], 4), round(pos[2], 4)]
+        self.assertEqual(expected, result)
+        cmds.setAttr("C_foot_IK_CTRL.ty", 21)
+        cmds.setAttr("C_foot_IK_CTRL.ry", 50)
+        cmds.setAttr("C_lowerLeg_IK_CTRL.space", 1)
+        pos = cmds.xform("C_lowerLeg_IK_CTRL", t=True, ws=True, q=True)
+        result = [round(pos[0], 4), round(pos[1], 4), round(pos[2], 4)]
+        expected = [30.2328, 67.9966, 23.4056]
+        self.assertEqual(expected, result)

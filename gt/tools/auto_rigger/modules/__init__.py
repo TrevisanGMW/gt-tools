@@ -1,0 +1,1 @@
+﻿"""Auto Rigger module implementations."""
