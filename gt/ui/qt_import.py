@@ -1,8 +1,8 @@
 """
 Script used to determine which version of PySide is being imported
 
-Code Namespace:
-    ui_qt  # import gt.ui.qt_import as ui_qt
+Import Line:
+    import gt.ui.qt_import as ui_qt
 
 Use Example:
     ui_qt.QtWidgets.QLabel("My Label")
@@ -121,16 +121,22 @@ class QtLib:
     # ----------------------------------------- Alignment Flags ----------------------------------------
     class AlignmentFlag:
         AlignCenter = None
+        AlignLeft = None
+        AlignRight = None
         AlignHCenter = None
         AlignVCenter = None
         AlignTop = None
         if IS_PYSIDE6:  # PySide6
             AlignCenter = QtCore.Qt.AlignmentFlag.AlignCenter
+            AlignLeft = QtCore.Qt.AlignmentFlag.AlignLeft
+            AlignRight = QtCore.Qt.AlignmentFlag.AlignRight
             AlignHCenter = QtCore.Qt.AlignmentFlag.AlignHCenter
             AlignVCenter = QtCore.Qt.AlignmentFlag.AlignVCenter
             AlignTop = QtCore.Qt.AlignmentFlag.AlignTop
         else:  # PySide2
             AlignCenter = QtCore.Qt.AlignCenter
+            AlignLeft = QtCore.Qt.AlignLeft
+            AlignRight = QtCore.Qt.AlignRight
             AlignHCenter = QtCore.Qt.AlignHCenter
             AlignVCenter = QtCore.Qt.AlignVCenter
             AlignTop = QtCore.Qt.AlignTop
@@ -146,10 +152,15 @@ class QtLib:
     # ------------------------------------------- ItemDataRoles ----------------------------------------
     class ItemDataRole:
         UserRole = None
+        DisplayRole = None
+        ForegroundRole = None
         if IS_PYSIDE6:  # PySide6
             UserRole = QtCore.Qt.ItemDataRole.UserRole
+            ForegroundRole = QtCore.Qt.ItemDataRole.ForegroundRole
         else:  # PySide2
             UserRole = QtCore.Qt.UserRole
+            DisplayRole = QtCore.Qt.DisplayRole
+            ForegroundRole = QtCore.Qt.ForegroundRole
 
     # ------------------------------------------- ItemDataRoles ----------------------------------------
     class StandardButton:
@@ -204,10 +215,19 @@ class QtLib:
     # -------------------------------------------- Size Policy -----------------------------------------
     class SizePolicy:
         Expanding = None
+        Fixed = None
+        Preferred = None
+        Minimum = None
         if IS_PYSIDE6:  # PySide6
             Expanding = QtWidgets.QSizePolicy.Policy.Expanding
+            Fixed = QtWidgets.QSizePolicy.Policy.Fixed
+            Preferred = QtWidgets.QSizePolicy.Policy.Preferred
+            Minimum = QtWidgets.QSizePolicy.Policy.Minimum
         else:  # PySide2
             Expanding = QtWidgets.QSizePolicy.Expanding
+            Fixed = QtWidgets.QSizePolicy.Fixed
+            Preferred = QtWidgets.QSizePolicy.Preferred
+            Minimum = QtWidgets.QSizePolicy.Minimum
 
     # -------------------------------------------- Size Policy -----------------------------------------
     class FocusPolicy:
@@ -263,6 +283,14 @@ class QtLib:
             ReadOnly = QtCore.QIODevice.OpenModeFlag.ReadOnly
         else:  # PySide2
             ReadOnly = QtCore.QIODevice.ReadOnly
+
+    # ------------------------------------------- FormLayout ----------------------------------------
+    class FormLayout:
+        AllNonFixedFieldsGrow = None
+        if IS_PYSIDE6:  # PySide6
+            AllNonFixedFieldsGrow = QtWidgets.QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow
+        else:  # PySide2
+            AllNonFixedFieldsGrow = QtWidgets.QFormLayout.AllNonFixedFieldsGrow
 
     # ------------------------------------------- FrameStyle ----------------------------------------
     class FrameStyle:
@@ -375,6 +403,16 @@ class QtLib:
             ResizeToContents = QtWidgets.QHeaderView.ResizeToContents
             Interactive = QtWidgets.QHeaderView.Interactive
             Stretch = QtWidgets.QHeaderView.Stretch
+
+    class CheckState:
+        Checked = None
+        Unchecked = None
+        if IS_PYSIDE6:  # PySide6
+            Checked = QtCore.Qt.CheckState.Checked
+            Unchecked = QtCore.Qt.CheckState.Unchecked
+        else:  # PySide2
+            Checked = QtCore.Qt.Checked
+            Unchecked = QtCore.Qt.Unchecked
 
 
 if __name__ == "__main__":

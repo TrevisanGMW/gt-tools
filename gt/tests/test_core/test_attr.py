@@ -1514,3 +1514,499 @@ class TestAttributeCore(unittest.TestCase):
         result = cmds.getAttr(f"{cube_one}.stringAttr")
         expected = "mocked_content_two"
         self.assertEqual(expected, result)
+
+    def test_get_attrs_as_dict(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        core_attr.add_attr(cube_one, attr_type="double", attributes="doubleAttr")
+        core_attr.add_attr(cube_one, attr_type="long", attributes="intAttr")
+        core_attr.add_attr(cube_one, attr_type="enum", attributes="enumAttr", enum="Option1:Option2:Option3")
+        core_attr.add_attr(cube_one, attr_type="bool", attributes="boolAttr")
+        core_attr.add_attr(cube_one, attr_type="string", attributes="stringAttr")
+
+        cmds.setAttr(f"{cube_one}.doubleAttr", 2.5)
+        cmds.setAttr(f"{cube_one}.intAttr", 3)
+        cmds.setAttr(f"{cube_one}.enumAttr", 2)
+        cmds.setAttr(f"{cube_one}.boolAttr", True)
+        cmds.setAttr(f"{cube_one}.stringAttr", "mocked_content", type="string")
+
+        expected_attr = [
+            "cube_one.tx",
+            "cube_one.ty",
+            "cube_one.tz",
+            "cube_one.rx",
+            "cube_one.ry",
+            "cube_one.rz",
+            "cube_one.sx",
+            "cube_one.sy",
+            "cube_one.sz",
+            "cube_one.v",
+            "cube_one.doubleAttr",
+            "cube_one.intAttr",
+            "cube_one.enumAttr",
+            "cube_one.boolAttr",
+            "cube_one.stringAttr",
+        ]
+
+        result_dict = core_attr.get_attrs_as_dict(obj=cube_one)
+        result_keys_list = list(result_dict.keys())
+
+        self.assertEqual(expected_attr, result_keys_list)
+
+        expected_dict = {
+            "cube_one.boolAttr": True,
+            "cube_one.doubleAttr": 2.5,
+            "cube_one.enumAttr": 2,
+            "cube_one.intAttr": 3,
+            "cube_one.rx": 0.0,
+            "cube_one.ry": 0.0,
+            "cube_one.rz": 0.0,
+            "cube_one.stringAttr": "mocked_content",
+            "cube_one.sx": 1.0,
+            "cube_one.sy": 1.0,
+            "cube_one.sz": 1.0,
+            "cube_one.tx": 0.0,
+            "cube_one.ty": 0.0,
+            "cube_one.tz": 0.0,
+            "cube_one.v": True,
+        }
+        self.assertEqual(expected_dict, result_dict)
+
+        # Change Values
+        cmds.setAttr(f"{cube_one}.tx", 1)
+        cmds.setAttr(f"{cube_one}.ty", 2)
+        cmds.setAttr(f"{cube_one}.tz", 3)
+        cmds.setAttr(f"{cube_one}.doubleAttr", 3.5)
+        cmds.setAttr(f"{cube_one}.intAttr", 4)
+        cmds.setAttr(f"{cube_one}.enumAttr", 1)
+        cmds.setAttr(f"{cube_one}.boolAttr", False)
+        cmds.setAttr(f"{cube_one}.stringAttr", "mocked_content_two", type="string")
+
+        result_dict = core_attr.get_attrs_as_dict(obj=cube_one)
+        expected_dict = {
+            "cube_one.boolAttr": False,
+            "cube_one.doubleAttr": 3.5,
+            "cube_one.enumAttr": 1,
+            "cube_one.intAttr": 4,
+            "cube_one.rx": 0.0,
+            "cube_one.ry": 0.0,
+            "cube_one.rz": 0.0,
+            "cube_one.stringAttr": "mocked_content_two",
+            "cube_one.sx": 1.0,
+            "cube_one.sy": 1.0,
+            "cube_one.sz": 1.0,
+            "cube_one.tx": 1.0,
+            "cube_one.ty": 2.0,
+            "cube_one.tz": 3.0,
+            "cube_one.v": True,
+        }
+        self.assertEqual(expected_dict, result_dict)
+
+    def test_get_attrs_as_dict_filter_locked(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        core_attr.add_attr(cube_one, attr_type="double", attributes="doubleAttr")
+        core_attr.add_attr(cube_one, attr_type="long", attributes="intAttr")
+        core_attr.add_attr(cube_one, attr_type="enum", attributes="enumAttr", enum="Option1:Option2:Option3")
+        core_attr.add_attr(cube_one, attr_type="bool", attributes="boolAttr")
+        core_attr.add_attr(cube_one, attr_type="string", attributes="stringAttr")
+
+        cmds.setAttr(f"{cube_one}.doubleAttr", 2.5)
+        cmds.setAttr(f"{cube_one}.intAttr", 3)
+        cmds.setAttr(f"{cube_one}.enumAttr", 2)
+        cmds.setAttr(f"{cube_one}.boolAttr", True)
+        cmds.setAttr(f"{cube_one}.stringAttr", "mocked_content", type="string")
+
+        # Lock TRS
+        cmds.setAttr(f"{cube_one}.tx", lock=True)
+        cmds.setAttr(f"{cube_one}.ry", lock=True)
+        cmds.setAttr(f"{cube_one}.sz", lock=True)
+
+        expected_attr = [
+            # "cube_one.tx",
+            "cube_one.ty",
+            "cube_one.tz",
+            "cube_one.rx",
+            # "cube_one.ry",
+            "cube_one.rz",
+            "cube_one.sx",
+            "cube_one.sy",
+            # "cube_one.sz",
+            "cube_one.v",
+            "cube_one.doubleAttr",
+            "cube_one.intAttr",
+            "cube_one.enumAttr",
+            "cube_one.boolAttr",
+            "cube_one.stringAttr",
+        ]
+
+        result_dict = core_attr.get_attrs_as_dict(obj=cube_one, filter_locked=True, filter_connected=False)
+        result_keys_list = list(result_dict.keys())
+
+        self.assertEqual(expected_attr, result_keys_list)
+
+        # Lock User-defined
+        cmds.setAttr(f"{cube_one}.doubleAttr", lock=True)
+        cmds.setAttr(f"{cube_one}.intAttr", lock=True)
+
+        expected_attr = [
+            # "cube_one.tx",
+            "cube_one.ty",
+            "cube_one.tz",
+            "cube_one.rx",
+            # "cube_one.ry",
+            "cube_one.rz",
+            "cube_one.sx",
+            "cube_one.sy",
+            # "cube_one.sz",
+            "cube_one.v",
+            # "cube_one.doubleAttr",
+            # "cube_one.intAttr",
+            "cube_one.enumAttr",
+            "cube_one.boolAttr",
+            "cube_one.stringAttr",
+        ]
+
+        result_dict = core_attr.get_attrs_as_dict(obj=cube_one, full_attr_path=True)
+        result_keys_list = list(result_dict.keys())
+
+        self.assertEqual(expected_attr, result_keys_list)
+
+    def test_get_attrs_as_dict_filter_connected(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        core_attr.add_attr(cube_one, attr_type="double", attributes="doubleAttr")
+        core_attr.add_attr(cube_one, attr_type="long", attributes="intAttr")
+        core_attr.add_attr(cube_one, attr_type="enum", attributes="enumAttr", enum="Option1:Option2:Option3")
+        core_attr.add_attr(cube_one, attr_type="bool", attributes="boolAttr")
+        core_attr.add_attr(cube_one, attr_type="string", attributes="stringAttr")
+
+        cmds.setAttr(f"{cube_one}.doubleAttr", 2.5)
+        cmds.setAttr(f"{cube_one}.intAttr", 3)
+        cmds.setAttr(f"{cube_one}.enumAttr", 2)
+        cmds.setAttr(f"{cube_one}.boolAttr", True)
+        cmds.setAttr(f"{cube_one}.stringAttr", "mocked_content", type="string")
+
+        # Lock and Connect TRS
+        cmds.setAttr(f"{cube_one}.tx", lock=True)
+        cmds.setAttr(f"{cube_one}.ry", lock=True)
+        cmds.setAttr(f"{cube_one}.sz", lock=True)
+        cmds.connectAttr(f"{cube_two}.ty", f"{cube_one}.ty")
+        cmds.connectAttr(f"{cube_two}.rx", f"{cube_one}.rx")
+        cmds.connectAttr(f"{cube_two}.sx", f"{cube_one}.sx")
+
+        expected_attr = [
+            "cube_one.tx",
+            # "cube_one.ty",
+            "cube_one.tz",
+            # "cube_one.rx",
+            "cube_one.ry",
+            "cube_one.rz",
+            # "cube_one.sx",
+            "cube_one.sy",
+            "cube_one.sz",
+            "cube_one.v",
+            "cube_one.doubleAttr",
+            "cube_one.intAttr",
+            "cube_one.enumAttr",
+            "cube_one.boolAttr",
+            "cube_one.stringAttr",
+        ]
+
+        result_dict = core_attr.get_attrs_as_dict(obj=cube_one, filter_locked=False, filter_connected=True)
+        result_keys_list = list(result_dict.keys())
+
+        self.assertEqual(expected_attr, result_keys_list)
+
+        # Lock and Connect User-defined
+        cmds.setAttr(f"{cube_one}.doubleAttr", lock=True)
+        cmds.setAttr(f"{cube_one}.intAttr", lock=True)
+        cmds.connectAttr(f"{cube_two}.v", f"{cube_one}.boolAttr")
+        cmds.connectAttr(f"{cube_two}.tz", f"{cube_one}.enumAttr")
+
+        expected_attr = [
+            "cube_one.tx",
+            # "cube_one.ty",
+            "cube_one.tz",
+            # "cube_one.rx",
+            "cube_one.ry",
+            "cube_one.rz",
+            # "cube_one.sx",
+            "cube_one.sy",
+            "cube_one.sz",
+            "cube_one.v",
+            "cube_one.doubleAttr",
+            "cube_one.intAttr",
+            # "cube_one.enumAttr",
+            # "cube_one.boolAttr",
+            "cube_one.stringAttr",
+        ]
+
+        result_dict = core_attr.get_attrs_as_dict(obj=cube_one, filter_locked=False, filter_connected=True)
+        result_keys_list = list(result_dict.keys())
+
+        self.assertEqual(expected_attr, result_keys_list)
+
+    def test_get_attrs_as_dict_full_attr_path(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        core_attr.add_attr(cube_one, attr_type="double", attributes="doubleAttr")
+        core_attr.add_attr(cube_one, attr_type="long", attributes="intAttr")
+        core_attr.add_attr(cube_one, attr_type="enum", attributes="enumAttr", enum="Option1:Option2:Option3")
+        core_attr.add_attr(cube_one, attr_type="bool", attributes="boolAttr")
+        core_attr.add_attr(cube_one, attr_type="string", attributes="stringAttr")
+
+        cmds.setAttr(f"{cube_one}.doubleAttr", 2.5)
+        cmds.setAttr(f"{cube_one}.intAttr", 3)
+        cmds.setAttr(f"{cube_one}.enumAttr", 2)
+        cmds.setAttr(f"{cube_one}.boolAttr", True)
+        cmds.setAttr(f"{cube_one}.stringAttr", "mocked_content", type="string")
+
+        result_dict = core_attr.get_attrs_as_dict(obj=cube_one, full_attr_path=True)
+
+        expected_dict = {
+            "cube_one.boolAttr": True,
+            "cube_one.doubleAttr": 2.5,
+            "cube_one.enumAttr": 2,
+            "cube_one.intAttr": 3,
+            "cube_one.rx": 0.0,
+            "cube_one.ry": 0.0,
+            "cube_one.rz": 0.0,
+            "cube_one.stringAttr": "mocked_content",
+            "cube_one.sx": 1.0,
+            "cube_one.sy": 1.0,
+            "cube_one.sz": 1.0,
+            "cube_one.tx": 0.0,
+            "cube_one.ty": 0.0,
+            "cube_one.tz": 0.0,
+            "cube_one.v": True,
+        }
+        self.assertEqual(expected_dict, result_dict)
+        result_dict = core_attr.get_attrs_as_dict(obj=cube_one, full_attr_path=False)
+
+        expected_dict = {
+            "boolAttr": True,
+            "doubleAttr": 2.5,
+            "enumAttr": 2,
+            "intAttr": 3,
+            "rx": 0.0,
+            "ry": 0.0,
+            "rz": 0.0,
+            "stringAttr": "mocked_content",
+            "sx": 1.0,
+            "sy": 1.0,
+            "sz": 1.0,
+            "tx": 0.0,
+            "ty": 0.0,
+            "tz": 0.0,
+            "v": True,
+        }
+        self.assertEqual(expected_dict, result_dict)
+
+    def test_get_attrs_as_dict_no_trs(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        core_attr.add_attr(cube_one, attr_type="double", attributes="doubleAttr")
+        core_attr.add_attr(cube_one, attr_type="long", attributes="intAttr")
+        core_attr.add_attr(cube_one, attr_type="enum", attributes="enumAttr", enum="Option1:Option2:Option3")
+        core_attr.add_attr(cube_one, attr_type="bool", attributes="boolAttr")
+        core_attr.add_attr(cube_one, attr_type="string", attributes="stringAttr")
+
+        cmds.setAttr(f"{cube_one}.doubleAttr", 2.5)
+        cmds.setAttr(f"{cube_one}.intAttr", 3)
+        cmds.setAttr(f"{cube_one}.enumAttr", 2)
+        cmds.setAttr(f"{cube_one}.boolAttr", True)
+        cmds.setAttr(f"{cube_one}.stringAttr", "mocked_content", type="string")
+
+        expected_attr = [
+            # "cube_one.tx",
+            # "cube_one.ty",
+            # "cube_one.tz",
+            # "cube_one.rx",
+            # "cube_one.ry",
+            # "cube_one.rz",
+            # "cube_one.sx",
+            # "cube_one.sy",
+            # "cube_one.sz",
+            # "cube_one.v",
+            "cube_one.doubleAttr",
+            "cube_one.intAttr",
+            "cube_one.enumAttr",
+            "cube_one.boolAttr",
+            "cube_one.stringAttr",
+        ]
+
+        result_dict = core_attr.get_attrs_as_dict(obj=cube_one, get_default=False)
+        result_keys_list = list(result_dict.keys())
+
+        self.assertEqual(expected_attr, result_keys_list)
+
+        expected_dict = {
+            "cube_one.boolAttr": True,
+            "cube_one.doubleAttr": 2.5,
+            "cube_one.enumAttr": 2,
+            "cube_one.intAttr": 3,
+            "cube_one.stringAttr": "mocked_content",
+            # "cube_one.rx": 0.0,
+            # "cube_one.ry": 0.0,
+            # "cube_one.rz": 0.0,
+            # "cube_one.sx": 1.0,
+            # "cube_one.sy": 1.0,
+            # "cube_one.sz": 1.0,
+            # "cube_one.tx": 0.0,
+            # "cube_one.ty": 0.0,
+            # "cube_one.tz": 0.0,
+            # "cube_one.v": True,
+        }
+        self.assertEqual(expected_dict, result_dict)
+
+    def test_get_attrs_as_dict_no_user_defined(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        core_attr.add_attr(cube_one, attr_type="double", attributes="doubleAttr")
+        core_attr.add_attr(cube_one, attr_type="long", attributes="intAttr")
+        core_attr.add_attr(cube_one, attr_type="enum", attributes="enumAttr", enum="Option1:Option2:Option3")
+        core_attr.add_attr(cube_one, attr_type="bool", attributes="boolAttr")
+        core_attr.add_attr(cube_one, attr_type="string", attributes="stringAttr")
+
+        cmds.setAttr(f"{cube_one}.doubleAttr", 2.5)
+        cmds.setAttr(f"{cube_one}.intAttr", 3)
+        cmds.setAttr(f"{cube_one}.enumAttr", 2)
+        cmds.setAttr(f"{cube_one}.boolAttr", True)
+        cmds.setAttr(f"{cube_one}.stringAttr", "mocked_content", type="string")
+
+        expected_attr = [
+            "cube_one.tx",
+            "cube_one.ty",
+            "cube_one.tz",
+            "cube_one.rx",
+            "cube_one.ry",
+            "cube_one.rz",
+            "cube_one.sx",
+            "cube_one.sy",
+            "cube_one.sz",
+            "cube_one.v",
+            # "cube_one.doubleAttr",
+            # "cube_one.intAttr",
+            # "cube_one.enumAttr",
+            # "cube_one.boolAttr",
+            # "cube_one.stringAttr",
+        ]
+
+        result_dict = core_attr.get_attrs_as_dict(obj=cube_one, get_user_defined=False)
+        result_keys_list = list(result_dict.keys())
+
+        self.assertEqual(expected_attr, result_keys_list)
+
+        expected_dict = {
+            # "cube_one.boolAttr": True,
+            # "cube_one.doubleAttr": 2.5,
+            # "cube_one.enumAttr": 2,
+            # "cube_one.intAttr": 3,
+            # "cube_one.stringAttr": "mocked_content",
+            "cube_one.rx": 0.0,
+            "cube_one.ry": 0.0,
+            "cube_one.rz": 0.0,
+            "cube_one.sx": 1.0,
+            "cube_one.sy": 1.0,
+            "cube_one.sz": 1.0,
+            "cube_one.tx": 0.0,
+            "cube_one.ty": 0.0,
+            "cube_one.tz": 0.0,
+            "cube_one.v": True,
+        }
+        self.assertEqual(expected_dict, result_dict)
+
+    def test_get_attrs_as_dict_ignore_non_keyable(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        core_attr.add_attr(cube_one, attr_type="double", attributes="doubleAttr")
+        core_attr.add_attr(cube_one, attr_type="long", attributes="intAttr")
+        core_attr.add_attr(cube_one, attr_type="enum", attributes="enumAttr", enum="Option1:Option2:Option3")
+        core_attr.add_attr(cube_one, attr_type="bool", attributes="boolAttr")
+        core_attr.add_attr(cube_one, attr_type="string", attributes="stringAttr")
+
+        cmds.setAttr(f"{cube_one}.doubleAttr", 2.5)
+        cmds.setAttr(f"{cube_one}.intAttr", 3)
+        cmds.setAttr(f"{cube_one}.intAttr", keyable=False)
+        cmds.setAttr(f"{cube_one}.enumAttr", 2)
+        cmds.setAttr(f"{cube_one}.boolAttr", True)
+        cmds.setAttr(f"{cube_one}.stringAttr", "mocked_content", type="string")
+
+        expected_attr = [
+            "cube_one.tx",
+            "cube_one.ty",
+            "cube_one.tz",
+            "cube_one.rx",
+            "cube_one.ry",
+            "cube_one.rz",
+            "cube_one.sx",
+            "cube_one.sy",
+            "cube_one.sz",
+            "cube_one.v",
+            "cube_one.doubleAttr",
+            # "cube_one.intAttr",
+            "cube_one.enumAttr",
+            "cube_one.boolAttr",
+            "cube_one.stringAttr",
+        ]
+
+        result_dict = core_attr.get_attrs_as_dict(obj=cube_one, filter_non_keyable=True)
+        result_keys_list = list(result_dict.keys())
+
+        self.assertEqual(expected_attr, result_keys_list)
+
+        expected_dict = {
+            "cube_one.boolAttr": True,
+            "cube_one.doubleAttr": 2.5,
+            "cube_one.enumAttr": 2,
+            # "cube_one.intAttr": 3,
+            "cube_one.rx": 0.0,
+            "cube_one.ry": 0.0,
+            "cube_one.rz": 0.0,
+            "cube_one.stringAttr": "mocked_content",
+            "cube_one.sx": 1.0,
+            "cube_one.sy": 1.0,
+            "cube_one.sz": 1.0,
+            "cube_one.tx": 0.0,
+            "cube_one.ty": 0.0,
+            "cube_one.tz": 0.0,
+            "cube_one.v": True,
+        }
+        self.assertEqual(expected_dict, result_dict)
+
+        # Change Values
+        cmds.setAttr(f"{cube_one}.intAttr", keyable=True)
+
+        result_dict = core_attr.get_attrs_as_dict(obj=cube_one, filter_non_keyable=True)
+        expected_dict = {
+            "cube_one.boolAttr": True,
+            "cube_one.doubleAttr": 2.5,
+            "cube_one.enumAttr": 2,
+            "cube_one.intAttr": 3,
+            "cube_one.rx": 0.0,
+            "cube_one.ry": 0.0,
+            "cube_one.rz": 0.0,
+            "cube_one.stringAttr": "mocked_content",
+            "cube_one.sx": 1.0,
+            "cube_one.sy": 1.0,
+            "cube_one.sz": 1.0,
+            "cube_one.tx": 0.0,
+            "cube_one.ty": 0.0,
+            "cube_one.tz": 0.0,
+            "cube_one.v": True,
+        }
+        self.assertEqual(expected_dict, result_dict)
+
+    def test_disconnect_attr(self):
+        cube_one = maya_test_tools.create_poly_cube(name="cube_one")
+        cube_two = maya_test_tools.create_poly_cube(name="cube_two")
+        cmds.connectAttr("cube_two.rx", "cube_one.rx")
+        cmds.connectAttr("cube_two.ry", "cube_one.ry")
+        cmds.connectAttr("cube_two.rz", "cube_one.rz")
+        cmds.setAttr("cube_one.rx", lock=True, edit=True)
+        cmds.setAttr("cube_one.ry", lock=True, edit=True)
+        cmds.setAttr("cube_one.rz", lock=True, edit=True)
+        core_attr.disconnect_attr(obj_list="cube_one", attr_list=["rx", "ry", "rz"], keep_unlocked=True)
+
+        expected = None
+        result = cmds.listConnections("cube_one.rx", plugs=True, connections=True, source=True, destination=False)
+        self.assertEqual(expected, result)
+        result = cmds.listConnections("cube_one.ry", plugs=True, connections=True, source=True, destination=False)
+        self.assertEqual(expected, result)
+        result = cmds.listConnections("cube_one.rz", plugs=True, connections=True, source=True, destination=False)
+        self.assertEqual(expected, result)

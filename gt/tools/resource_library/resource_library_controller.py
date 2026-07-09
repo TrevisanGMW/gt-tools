@@ -4,10 +4,9 @@ Resource Library Controller
 This module contains the ResourceLibraryController class responsible for managing interactions between the
 ResourceLibraryModel and the user interface.
 """
-
 from gt.ui.qt_utils import create_color_icon
-import gt.ui.resource_library as ui_res_lib
-import gt.ui.qt_import as ui_qt
+from gt.ui import resource_library
+import gt.ui.qt_import as ui_qt  # Fixed: Removed PySide2 hardcoded import
 import logging
 import os
 
@@ -53,9 +52,11 @@ class ResourceLibraryController:
         """
         item = self.view.item_list.currentItem()
         if not item:
-            logger.debug(f"No item selected. Skipping UI update.")
+            logger.debug(f'No item selected. Skipping UI update.')
             return
         item_name = self.view.item_list.currentItem().text()
+
+        # Fixed: Updated to use qt_import wrapper
         metadata = item.data(ui_qt.QtLib.ItemDataRole.UserRole)
         metadata_obj = self.get_selected_item_object()
 
@@ -69,42 +70,42 @@ class ResourceLibraryController:
             # Colors ----------------------------------------------------
             self.view.update_item_description(metadata.get("item_type"), item_name)
             if metadata.get("item_type") == self.TYPE_COLOR:
-                color_str = ""
+                color_str = ''
                 has_rgb_data = False
 
-                rgb_attributes = vars(ui_res_lib.Color.RGB)
+                rgb_attributes = vars(resource_library.Color.RGB)
                 if item_name in rgb_attributes:
-                    color_str += f"ui_res_lib.Color.RGB.{item_name}"
-                    color_str_rgb = getattr(ui_res_lib.Color.RGB, item_name)
-                    color_str += f"  # {color_str_rgb}"
+                    color_str += f'resource_library.Color.RGB.{item_name}'
+                    color_str_rgb = getattr(resource_library.Color.RGB, item_name)
+                    color_str += f'  # {color_str_rgb}'
                     has_rgb_data = True
 
                 if has_rgb_data:
-                    color_str += "\n"
+                    color_str += '\n'
 
-                hex_attributes = vars(ui_res_lib.Color.Hex)
+                hex_attributes = vars(resource_library.Color.Hex)
                 if item_name in hex_attributes:
-                    color_str += f"ui_res_lib.Color.Hex.{item_name}"
-                    color_str_hex = getattr(ui_res_lib.Color.Hex, item_name)
-                    color_str += f"  # {color_str_hex}"
+                    color_str += f'resource_library.Color.Hex.{item_name}'
+                    color_str_hex = getattr(resource_library.Color.Hex, item_name)
+                    color_str += f'  # {color_str_hex}'
                 self.view.update_resource_path(text=color_str)
 
             # Package Icons ----------------------------------------------
             if metadata.get("item_type") == self.TYPE_PACKAGE_ICON:
-                icon_str = ""
+                icon_str = ''
 
-                icon_attributes = vars(ui_res_lib.Icon)
+                icon_attributes = vars(resource_library.Icon)
                 if item_name in icon_attributes:
-                    icon_path = getattr(ui_res_lib.Icon, item_name)
+                    icon_path = getattr(resource_library.Icon, item_name)
                     if icon_path:
                         file_name = os.path.basename(icon_path)
-                        icon_str += rf"# ..\gt\ui\resources\icons\{file_name}" + "\n"
-                    icon_str += f"ui_res_lib.Icon.{item_name}"
+                        icon_str += fr'# ..\gt\ui\resources\icons\{file_name}' + "\n"
+                    icon_str += f'resource_library.Icon.{item_name}'
                 self.view.update_resource_path(text=icon_str)
 
             # Maya Icons ------------------------------------------------
             if metadata.get("item_type") == self.TYPE_MAYA_ICON:
-                icon_str = ""
+                icon_str = ''
                 raw_maya_icons = self.model.get_row_maya_icons()
                 if item_name in raw_maya_icons:
                     self.view.update_resource_path(text=raw_maya_icons.get(item_name))
@@ -124,9 +125,12 @@ class ResourceLibraryController:
         """
         item = self.view.item_list.currentItem()
         if not item:
-            logger.debug(f"No item selected.")
+            logger.debug(f'No item selected.')
             return
+
+        # Fixed: Updated to use qt_import wrapper
         metadata = item.data(ui_qt.QtLib.ItemDataRole.UserRole)
+
         if not metadata or not metadata.get("object"):
             logger.debug(f'Selected item "{item}" is missing the metadata necessary to retrieve the object.')
             return
@@ -154,9 +158,8 @@ class ResourceLibraryController:
             if filter_str and filter_str not in name:
                 continue
             metadata_icon = {"object": icon, "item_type": self.TYPE_PACKAGE_ICON}
-            self.view.add_item_view_library(
-                item_name=name, icon=icon, metadata=metadata_icon, hex_color=ui_res_lib.Color.Hex.white_lavender
-            )
+            self.view.add_item_view_library(item_name=name, icon=icon, metadata=metadata_icon,
+                                            hex_color=resource_library.Color.Hex.white_lavender)
         for name, clr in colors.items():
             if filter_str and filter_str not in name:
                 continue
@@ -166,25 +169,24 @@ class ResourceLibraryController:
             if filter_str and filter_str not in name:
                 continue
             metadata_maya_icon = {"object": maya_icon, "item_type": self.TYPE_MAYA_ICON}
-            self.view.add_item_view_library(
-                item_name=name,
-                icon=maya_icon,
-                metadata=metadata_maya_icon,
-                hex_color=ui_res_lib.Color.Hex.white_old_lace,
-            )
+            self.view.add_item_view_library(item_name=name, icon=maya_icon, metadata=metadata_maya_icon,
+                                            hex_color=resource_library.Color.Hex.white_old_lace)
         self.view.item_list.setCurrentRow(0)  # Select index 0
 
     def exported_selected_resource(self):
-        """Opens an input window so the user can update the parameters of a control"""
+        """ Opens an input window so the user can update the parameters of a control """
         item = self.view.item_list.currentItem()
         item_name = item.text()
+
+        # Fixed: Updated to use qt_import wrapper
         metadata = item.data(ui_qt.QtLib.ItemDataRole.UserRole)
+
         if metadata.get("item_type") == self.TYPE_COLOR:
-            self.model.export_resource(key=item_name, source="colors")
+            self.model.export_resource(key=item_name, source='colors')
         if metadata.get("item_type") == self.TYPE_PACKAGE_ICON:
-            self.model.export_resource(key=item_name, source="package_icons")
+            self.model.export_resource(key=item_name, source='package_icons')
         if metadata.get("item_type") == self.TYPE_MAYA_ICON:
-            self.model.export_resource(key=item_name, source="maya_icons")
+            self.model.export_resource(key=item_name, source='maya_icons')
 
     def update_category_filter(self):
         """

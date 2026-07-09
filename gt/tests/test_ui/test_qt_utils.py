@@ -17,7 +17,7 @@ package_root_dir = os.path.dirname(tests_dir)
 for to_append in [package_root_dir, tests_dir]:
     if to_append not in sys.path:
         sys.path.append(to_append)
-import gt.ui.qt_utils as ui_qt_utils
+from gt.ui.qt_utils import MayaWindowMeta
 from gt.ui import qt_utils
 
 
@@ -33,7 +33,7 @@ class TestQtUtilities(unittest.TestCase):
         """
         Test that MayaWindowMeta sets 'base_inheritance' to QDialog by default.
         """
-        new_class = ui_qt_utils.MayaWindowMeta("TestBaseInheritanceDefault", (object,), {})
+        new_class = MayaWindowMeta("TestBaseInheritanceDefault", (object,), {})
         from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
         self.assertEqual(new_class.__bases__, (MayaQWidgetDockableMixin, ui_qt.QtWidgets.QDialog))
@@ -41,21 +41,19 @@ class TestQtUtilities(unittest.TestCase):
     @patch("gt.core.session.is_script_in_interactive_maya", MagicMock(return_value=True))
     @patch("gt.utils.system.is_system_macos", MagicMock(return_value=False))
     def test_base_inheritance_non_macos(self):
-        new_class = ui_qt_utils.MayaWindowMeta(name="TestBaseInheritanceNonMacOS", bases=(object,), attrs={})
+        new_class = MayaWindowMeta(name="TestBaseInheritanceNonMacOS", bases=(object,), attrs={})
         from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
         self.assertEqual(new_class.__bases__, (MayaQWidgetDockableMixin, ui_qt.QtWidgets.QDialog))
 
     @patch("gt.core.session.is_script_in_interactive_maya", MagicMock(return_value=True))
     def test_base_inheritance_widget(self):
-        import gt.ui.qt_import as ui_qt
+        from PySide2.QtWidgets import QWidget
 
-        new_class = ui_qt_utils.MayaWindowMeta(
-            name="TestBaseInheritance", bases=(object,), attrs={}, base_inheritance=(ui_qt.QtWidgets.QWidget,)
-        )
+        new_class = MayaWindowMeta(name="TestBaseInheritance", bases=(object,), attrs={}, base_inheritance=(QWidget,))
         from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
-        self.assertEqual(new_class.__bases__, (MayaQWidgetDockableMixin, ui_qt.QtWidgets.QWidget))
+        self.assertEqual(new_class.__bases__, (MayaQWidgetDockableMixin, QWidget))
 
     @patch("gt.utils.system.import_from_path")
     @patch("gt.ui.qt_utils.get_maya_main_window")
@@ -91,7 +89,7 @@ class TestQtUtilities(unittest.TestCase):
 
     @patch.object(ui_qt.QtGui.QCursor, "pos", return_value=ui_qt.QtCore.QPoint(100, 200))
     def test_get_cursor_position_no_offset(self, mock_cursor):
-        expected = ui_qt.QtCore.QPoint(100, 200)
+        expected = ui_qt.QtGui.QPoint(100, 200)
         result = qt_utils.get_cursor_position()
         self.assertEqual(expected, result)
 
@@ -123,9 +121,7 @@ class TestQtUtilities(unittest.TestCase):
     @patch("gt.ui.qt_import.QtGui.QFontDatabase.addApplicationFontFromData", return_value=0)
     @patch("gt.ui.qt_import.QtGui.QFontDatabase.applicationFontFamilies", return_value=["CustomFont"])
     def test_load_custom_font_success(self, mock_font_from_data, mock_app_font_families, mock_app, mock_font):
-        custom_font = qt_utils.load_custom_font(
-            "custom_font.ttf", point_size=12, weight=ui_qt.QtLib.Font.Bold, italic=True
-        )
+        custom_font = qt_utils.load_custom_font("custom_font.ttf", point_size=12, weight=ui_qt.QtLib.Font.Bold, italic=True)
         expected_font = "mocked_font"
         self.assertEqual(expected_font, custom_font)
 
@@ -160,9 +156,9 @@ class TestQtUtilities(unittest.TestCase):
     @patch("gt.ui.qt_import.QtWidgets.QApplication.instance")
     def test_get_font_with_font_path(self, mock_instance, mock_load_custom_font, mock_is_font_available):
         mock_instance.return_value = MagicMock()
-        import gt.ui.resource_library as ui_res_lib
+        from gt.ui import resource_library
 
-        result = qt_utils.get_font(ui_res_lib.Font.roboto)
+        result = qt_utils.get_font(resource_library.Font.roboto)
         expected_font = ui_qt.QtGui.QFont("CustomFont")
         self.assertEqual(expected_font, result)
 
@@ -210,10 +206,10 @@ class TestQtUtilities(unittest.TestCase):
 
     def test_get_qt_color_library(self):
         # Test with None as input
-        import gt.ui.resource_library as ui_res_lib
+        from gt.ui import resource_library
 
-        expected = ui_qt.QtGui.QColor(ui_res_lib.Color.RGB.red)
-        result = qt_utils.get_qt_color(ui_res_lib.Color.RGB.red)
+        expected = ui_qt.QtGui.QColor(255, 0, 0)
+        result = qt_utils.get_qt_color(resource_library.Color.RGB.red)
         self.assertEqual(expected, result)
 
     @patch("gt.ui.qt_import.QtWidgets.QDesktopWidget")
@@ -291,9 +287,9 @@ class TestQtUtilities(unittest.TestCase):
 
     def test_load_and_scale_pixmap_scale_by_percentage(self):
         # Test scaling by percentage
-        import gt.ui.resource_library as ui_res_lib
+        from gt.ui import resource_library
 
-        input_path = ui_res_lib.Icon.dev_code
+        input_path = resource_library.Icon.dev_code
 
         scale_percentage = 50
         scaled_pixmap = qt_utils.load_and_scale_pixmap(image_path=input_path, scale_percentage=scale_percentage)
@@ -306,9 +302,9 @@ class TestQtUtilities(unittest.TestCase):
 
     def test_load_and_scale_pixmap_scale_by_exact_height(self):
         # Test scaling by exact height
-        import gt.ui.resource_library as ui_res_lib
+        from gt.ui import resource_library
 
-        input_path = ui_res_lib.Icon.dev_code
+        input_path = resource_library.Icon.dev_code
         exact_height = 200
         scaled_pixmap = qt_utils.load_and_scale_pixmap(
             image_path=input_path, scale_percentage=100, exact_height=exact_height
@@ -320,9 +316,9 @@ class TestQtUtilities(unittest.TestCase):
 
     def test_load_and_scale_pixmap_scale_by_exact_width(self):
         # Test scaling by exact width
-        import gt.ui.resource_library as ui_res_lib
+        from gt.ui import resource_library
 
-        input_path = ui_res_lib.Icon.dev_code
+        input_path = resource_library.Icon.dev_code
         exact_width = 300
         scaled_pixmap = qt_utils.load_and_scale_pixmap(
             image_path=input_path, scale_percentage=100, exact_width=exact_width
@@ -334,9 +330,9 @@ class TestQtUtilities(unittest.TestCase):
 
     def test_load_and_scale_pixmap_scale_with_both_exact_dimensions(self):
         # Test scaling with both exact dimensions specified
-        import gt.ui.resource_library as ui_res_lib
+        from gt.ui import resource_library
 
-        input_path = ui_res_lib.Icon.dev_code
+        input_path = resource_library.Icon.dev_code
         exact_width = 300
         exact_height = 200
         scaled_pixmap = qt_utils.load_and_scale_pixmap(

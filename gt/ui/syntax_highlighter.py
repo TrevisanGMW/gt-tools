@@ -1,5 +1,4 @@
 import gt.ui.qt_import as ui_qt
-import sys
 
 
 def get_text_format(color, style=None):
@@ -156,6 +155,28 @@ class PythonSyntaxHighlighter(ui_qt.QtGui.QSyntaxHighlighter):
         number_rgb=None,
         dunder_rgb=None,
     ):
+        """
+        Initializes the syntax highlighter with customizable color styles for Python code elements.
+
+        Defines default text formats for keywords, operators, braces, definitions, strings,
+        comments, numbers, and special identifiers (e.g., 'self', dunder methods).
+        Allows overriding these default colors by providing RGB tuples for each category.
+
+        Args:
+            document: The QTextDocument instance to apply highlighting to.
+            keyword_rgb (list or tuple, optional): RGB color for keywords.
+            operator_rgb (list or tuple, optional): RGB color for operators.
+            braces_rgb (list or tuple, optional): RGB color for braces.
+            def_class_rgb (list or tuple, optional): RGB color for 'def' and 'class' keywords.
+            quotation_single_rgb (list or tuple, optional): RGB color for single-quoted strings.
+            quotation_double_rgb (list or tuple, optional): RGB color for double-quoted strings.
+            string_rgb (list or tuple, optional): RGB color for string literals.
+            function_call_rgb (list or tuple, optional): RGB color for function calls.
+            comment_rgb (list or tuple, optional): RGB color for comments.
+            self_rgb (list or tuple, optional): RGB color for the 'self' keyword.
+            number_rgb (list or tuple, optional): RGB color for numeric literals.
+            dunder_rgb (list or tuple, optional): RGB color for dunder methods (e.g., __init__).
+        """
         super().__init__(document)
 
         style_keyword = get_text_format([213, 95, 222], "bold")  # Purple
@@ -366,19 +387,146 @@ class PythonSyntaxHighlighter(ui_qt.QtGui.QSyntaxHighlighter):
             return self.currentBlockState() == in_state
 
 
+class LogSyntaxHighlighter(ui_qt.QtGui.QSyntaxHighlighter):
+    """Custom highlighter for log messages."""
+
+    def __init__(self, document):
+        """
+        Initializes the syntax highlighter with predefined text formats.
+
+        Sets up text formats for timestamps, log levels, messages, and
+        initializes a list for additional custom regex patterns and formats.
+
+        Args:
+            document: A QTextDocument instance that this highlighter will be applied to.
+        """
+        super().__init__(document)
+
+        self.date_format = get_text_format([160, 160, 160])  # Light Grey
+        self.level_formats = {
+            "SUCCESS": get_text_format([0, 255, 0]),  # Green - Custom Level
+            "OPERATION": get_text_format([173, 216, 230]),  # Light Blue - Custom Level
+            "DEBUG": get_text_format([128, 128, 128]),  # Grey
+            "INFO": get_text_format([255, 255, 235]),  # Light Yellow
+            "WARNING": get_text_format([255, 255, 0]),  # Yellow
+            "ERROR": get_text_format([255, 127, 127]),  # Light Red
+            "CRITICAL": get_text_format([255, 0, 0], style="bold"),  # Solid Red
+        }
+        self.message_format = get_text_format([255, 255, 255])  # White - Message after the severity level
+
+        # Dictionary to store additional patterns and formats
+        self.custom_patterns = []
+
+    def add_pattern(self, pattern, text_format, capture_group=0):
+        """
+        Add a custom pattern and its format to the highlighter.
+
+        Args:
+            pattern (str): The regular expression pattern to match.
+            text_format (QTextCharFormat): The format to apply to matches.
+            capture_group (int, optional): Captured group index to format. Defaults to the full match.
+        """
+        regex = ui_qt.QtCore.QRegularExpression(pattern)
+        self.custom_patterns.append((regex, text_format, int(capture_group)))
+
+    def highlightBlock(self, text):
+        """
+        Applies syntax highlighting to a block of log text.
+
+        Highlights specific parts of the text, including:
+          - A timestamp at the beginning of the line (format HH:MM:SS).
+          - Log levels enclosed in square brackets (e.g., [INFO], [ERROR]).
+          - Custom regex patterns defined in `self.custom_patterns`.
+
+        Uses predefined text formats such as `self.date_format`, `self.level_formats`,
+        and `self.message_format` to style the matched text portions.
+
+        Args:
+            text (str): A single line of text to be highlighted.
+        """
+        # Match the date (e.g., 12:34:56)
+        date_pattern = r"^\d{2}:\d{2}:\d{2}"
+        date_match = ui_qt.QtCore.QRegularExpression(date_pattern).match(text)
+        if date_match.hasMatch():
+            start = date_match.capturedStart()
+            length = date_match.capturedLength()
+            self.setFormat(start, length, self.date_format)
+
+        # Match the log level (e.g., [INFO])
+        levels = "|".join(self.level_formats.keys())  # Formats levels for regex. e.g. "level1|level2|level3"
+        level_pattern = rf"\[({levels})\]"
+        level_match = ui_qt.QtCore.QRegularExpression(level_pattern).match(text)
+        if level_match.hasMatch():
+            start = level_match.capturedStart()
+            length = level_match.capturedLength()
+            level = level_match.captured(1)
+            self.setFormat(start, length, self.level_formats.get(level, self.message_format))
+
+        # Apply custom patterns
+        for regex, text_format, capture_group in self.custom_patterns:
+            match_iter = regex.globalMatch(text)  # Get all matches for the pattern
+            while match_iter.hasNext():
+                match = match_iter.next()
+                start = match.capturedStart(capture_group)
+                length = match.capturedLength(capture_group)
+                if start < 0 or length < 1:
+                    continue
+                self.setFormat(start, length, text_format)
+
+
 if __name__ == "__main__":
     from gt.ui import qt_utils
-    import inspect
 
-    with qt_utils.QtApplicationContext():
-        main_window = ui_qt.QtWidgets.QMainWindow()
+    # Python Syntax Highlighter Test --------------------------------------------------------
+    def test_python_highlighter():
+        import inspect
+        import sys
 
-        qt_utils.resize_to_screen(main_window, percentage=40)
-        qt_utils.center_window(main_window)
-        main_window.setStyleSheet("QTextEdit { background-color: #1D1D1D; color: #ffffff; }")
-        text_edit = ui_qt.QtWidgets.QTextEdit(main_window)
-        highlighter = PythonSyntaxHighlighter(text_edit.document())
-        main_window.setCentralWidget(text_edit)
-        mocked_text = '# Transform Data for "pSphere1":\n' + inspect.getsource(sys.modules[__name__])
-        text_edit.setText(mocked_text)
-        main_window.show()
+        with qt_utils.QtApplicationContext():
+            main_window = ui_qt.QtWidgets.QMainWindow()
+
+            qt_utils.resize_to_screen(main_window, percentage=40)
+            qt_utils.center_window(main_window)
+            main_window.setStyleSheet("QTextEdit { background-color: #1D1D1D; color: #ffffff; }")
+            text_edit = ui_qt.QtWidgets.QTextEdit(main_window)
+            highlighter = PythonSyntaxHighlighter(text_edit.document())
+            main_window.setCentralWidget(text_edit)
+            mocked_text = '# Transform Data for "pSphere1":\n' + inspect.getsource(sys.modules[__name__])
+            text_edit.setText(mocked_text)
+            main_window.show()
+
+    # Log Syntax Highlighter Test ----------------------------------------------------------
+    def test_log_highlighter():
+        with qt_utils.QtApplicationContext():
+            main_window = ui_qt.QtWidgets.QMainWindow()
+
+            qt_utils.resize_to_screen(main_window, percentage=40)
+            qt_utils.center_window(main_window)
+            main_window.setStyleSheet("QTextEdit { background-color: #1D1D1D; color: #ffffff; }")
+            text_edit = ui_qt.QtWidgets.QTextEdit(main_window)
+            highlighter = LogSyntaxHighlighter(text_edit.document())
+            # Add Custom Formats
+            ip_format = get_text_format([0, 191, 255])  # Deep Sky Blue
+            highlighter.add_pattern(r"\b\d{1,3}(\.\d{1,3}){3}\b", ip_format)
+            url_format = get_text_format([255, 140, 0])  # Dark Orange
+            highlighter.add_pattern(r"https?://[^\s]+", url_format)
+            # Make it not editable
+            text_edit.setReadOnly(True)
+            main_window.setCentralWidget(text_edit)
+            mocked_logs = [
+                "12:00:00 - [DEBUG] - This is a debug message.",
+                "12:01:00 - [SUCCESS] - This is a custom success message.",
+                "12:02:00 - [INFO] - This is an info message.",
+                "12:03:00 - [WARNING] - This is a warning message.",
+                "12:04:00 - [ERROR] - This is an error message.",
+                "12:05:00 - [CRITICAL] - This is a critical message.",
+                "12:05:00 - [CRITICAL] - Test 192.168.0.1 as a highlighted IP.",
+                "12:05:00 - [CRITICAL] - Test https://www.github.com/ as a highlighted website.",
+                "A test message that don't match the regex set for the log syntax.",
+            ]
+            text_edit.append("\n".join(mocked_logs))
+            main_window.show()
+
+    # Tests: ----------------------------------------------------------------------------------
+    # test_python_highlighter()
+    test_log_highlighter()

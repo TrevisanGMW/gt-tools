@@ -15,7 +15,7 @@ package_root_dir = os.path.dirname(tests_dir)
 for to_append in [package_root_dir, tests_dir]:
     if to_append not in sys.path:
         sys.path.append(to_append)
-import gt.tools.auto_rigger.module_root as tools_mod_root
+import gt.tools.auto_rigger.modules.module_root as tools_mod_root
 import gt.tools.auto_rigger.rig_framework as tools_rig_frm
 import gt.tools.auto_rigger.rig_constants as tools_rig_const
 import gt.tools.auto_rigger.rig_utils as tools_rig_utils
@@ -542,7 +542,7 @@ class TestRigUtils(unittest.TestCase):
         a_project.build_rig()  # Required for drivers to be created
 
         expected = ["|rig|controls|C_global_CTRL|C_globalOffset_CTRL|C_root_offset|C_root_parentOffset|C_root_CTRL"]
-        result = tools_rig_utils.find_drivers_from_module(module_uuid=a_1st_root_module.get_uuid())
+        result = tools_rig_utils.find_drivers_from_module(source_uuid=a_1st_root_module.get_uuid())
         self.assertEqual(expected, result)
 
     def test_find_drivers_from_module_manual_extra_drivers(self):
@@ -602,20 +602,20 @@ class TestRigUtils(unittest.TestCase):
             "|a_5th_group",
             "|a_6th_group",
         ]
-        result = tools_rig_utils.find_drivers_from_module(module_uuid=a_1st_root_module_uuid)
+        result = tools_rig_utils.find_drivers_from_module(source_uuid=a_1st_root_module_uuid)
         self.assertEqual(expected, result)
 
         # Only Generic drivers (a_1st_extra_driver)
         expected = ["|a_1st_group"]
         result = tools_rig_utils.find_drivers_from_module(
-            module_uuid=a_1st_root_module_uuid, filter_driver_type=a_1st_extra_driver
+            source_uuid=a_1st_root_module_uuid, filter_driver_type=a_1st_extra_driver
         )
         self.assertEqual(expected, result)
 
         # Only Default Purposes (a_1st_proxy_purpose)
         expected = ["|a_4th_group"]
         result = tools_rig_utils.find_drivers_from_module(
-            module_uuid=a_1st_root_module_uuid, filter_driver_purpose=a_custom_purpose
+            source_uuid=a_1st_root_module_uuid, filter_driver_purpose=a_custom_purpose
         )
         self.assertEqual(expected, result)
 
@@ -656,20 +656,20 @@ class TestRigUtils(unittest.TestCase):
             "|a_1st_group",
             "|a_2nd_group",
         ]
-        result = tools_rig_utils.find_drivers_from_module(module_uuid=a_1st_root_module_uuid)
+        result = tools_rig_utils.find_drivers_from_module(source_uuid=a_1st_root_module_uuid)
         self.assertEqual(expected, result)
 
         # Only Generic drivers (a_1st_extra_driver)
         expected = ["|a_1st_group"]
         result = tools_rig_utils.find_drivers_from_module(
-            module_uuid=a_1st_root_module_uuid, filter_driver_type=a_1st_extra_driver
+            source_uuid=a_1st_root_module_uuid, filter_driver_type=a_1st_extra_driver
         )
         self.assertEqual(expected, result)
 
         # Only Mocked drivers (a_2nd_extra_driver)
         expected = ["|a_2nd_group"]
         result = tools_rig_utils.find_drivers_from_module(
-            module_uuid=a_1st_root_module_uuid, filter_driver_type=a_2nd_extra_driver
+            source_uuid=a_1st_root_module_uuid, filter_driver_type=a_2nd_extra_driver
         )
         self.assertEqual(expected, result)
 
@@ -717,7 +717,7 @@ class TestRigUtils(unittest.TestCase):
             "|a_2nd_group",
             "|a_3rd_group",
         ]
-        result = tools_rig_utils.find_drivers_from_module(module_uuid=a_1st_root_module_uuid)
+        result = tools_rig_utils.find_drivers_from_module(source_uuid=a_1st_root_module_uuid)
         self.assertEqual(expected, result)
 
         # Only Root Purpose drivers (a_1st_proxy_purpose)
@@ -726,28 +726,28 @@ class TestRigUtils(unittest.TestCase):
             "|a_3rd_group",
         ]
         result = tools_rig_utils.find_drivers_from_module(
-            module_uuid=a_1st_root_module_uuid, filter_driver_purpose=a_1st_proxy_purpose
+            source_uuid=a_1st_root_module_uuid, filter_driver_purpose=a_1st_proxy_purpose
         )
         self.assertEqual(expected, result)
 
         # Only 1st Custom Purpose drivers (a_1st_custom_purpose)
         expected = ["|a_1st_group"]
         result = tools_rig_utils.find_drivers_from_module(
-            module_uuid=a_1st_root_module_uuid, filter_driver_purpose=a_1st_custom_purpose
+            source_uuid=a_1st_root_module_uuid, filter_driver_purpose=a_1st_custom_purpose
         )
         self.assertEqual(expected, result)
 
         # Only 2nd Custom Purpose drivers (a_2nd_custom_purpose)
         expected = ["|a_2nd_group"]
         result = tools_rig_utils.find_drivers_from_module(
-            module_uuid=a_1st_root_module_uuid, filter_driver_purpose=a_2nd_custom_purpose
+            source_uuid=a_1st_root_module_uuid, filter_driver_purpose=a_2nd_custom_purpose
         )
         self.assertEqual(expected, result)
 
         # Only Mocked drivers with 2nd custom driver (The only one matching this is the "a_2nd_group")
         expected = ["|a_2nd_group"]
         result = tools_rig_utils.find_drivers_from_module(
-            module_uuid=a_1st_root_module_uuid,
+            source_uuid=a_1st_root_module_uuid,
             filter_driver_type=a_2nd_extra_driver,
             filter_driver_purpose=a_2nd_custom_purpose,
         )
@@ -1247,3 +1247,31 @@ class TestRigUtils(unittest.TestCase):
         expected = ["|a_2nd_child_driver", "|a_1st_child_driver"]
         result = tools_rig_utils.get_supporting_drivers(source_driver=parent_driver)
         self.assertEqual(expected, result)
+
+    def test_update_uuids_in_dict_with_nested_structure(self):
+        data = {
+            "object1": {
+                "uuid": "123",
+                "children": [{"uuid": "456", "name": "Child1"}, {"uuid": "789", "name": "Child2"}],
+            }
+        }
+        uuid_mapping = {"123": "abc", "456": "def", "789": "ghi"}
+        expected = {
+            "object1": {
+                "uuid": "abc",
+                "children": [{"uuid": "def", "name": "Child1"}, {"uuid": "ghi", "name": "Child2"}],
+            }
+        }
+        result = tools_rig_utils.update_uuids_in_dict(data, uuid_mapping)
+        self.assertEqual(expected, result)
+
+    def test_update_uuids_in_dict_with_non_uuid_values(self):
+        data = ["123", "456", "not-a-uuid"]
+        uuid_mapping = {"123": "abc", "456": "def"}
+        expected = ["abc", "def", "not-a-uuid"]
+        result = tools_rig_utils.update_uuids_in_dict(data, uuid_mapping)
+        self.assertEqual(expected, result)
+
+    # TODO Modify and test: "create_control_visualization_line", "get_single_skeleton_root_joint", "get_world_ref_loc"
+
+    # TODO Unittests: "create_twist_joints", "create_twist_setup", "create_follow_setup"

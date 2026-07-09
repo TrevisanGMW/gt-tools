@@ -19,6 +19,7 @@ for to_append in [package_root_dir, tests_dir]:
         sys.path.append(to_append)
 from gt.tests import maya_test_tools
 from gt.core import transform as core_transform
+
 cmds = maya_test_tools.cmds
 
 
@@ -56,12 +57,12 @@ class TestTransformCore(unittest.TestCase):
         if tolerance > 1:
             tolerance = tolerance - 1
 
-        str_formatter = '{0:.' + str(tolerance) + 'e}'
-        significand_1 = float(str_formatter.format(arg1).split('e')[0])
-        significand_2 = float(str_formatter.format(arg2).split('e')[0])
+        str_formatter = "{0:." + str(tolerance) + "e}"
+        significand_1 = float(str_formatter.format(arg1).split("e")[0])
+        significand_2 = float(str_formatter.format(arg2).split("e")[0])
 
-        exponent_1 = int(str_formatter.format(arg1).split('e')[1])
-        exponent_2 = int(str_formatter.format(arg2).split('e')[1])
+        exponent_1 = int(str_formatter.format(arg1).split("e")[1])
+        exponent_2 = int(str_formatter.format(arg2).split("e")[1])
 
         self.assertEqual(significand_1, significand_2)
         self.assertEqual(exponent_1, exponent_2)
@@ -228,50 +229,48 @@ class TestTransformCore(unittest.TestCase):
     # ------------------------------------------------- Transform Start -----------------------------------------------
     def test_transform_class_as_string(self):
         vector3_object = core_transform.Vector3(x=1.2, y=3.4, z=5.6)
-        transform_object = core_transform.Transform(position=vector3_object,
-                                                    rotation=vector3_object,
-                                                    scale=vector3_object)
+        transform_object = core_transform.Transform(
+            position=vector3_object, rotation=vector3_object, scale=vector3_object
+        )
         result = str(transform_object)
-        expected = "position=(x=1.2, y=3.4, z=5.6), " \
-                   "rotation=(x=1.2, y=3.4, z=5.6), " \
-                   "scale=(x=1.2, y=3.4, z=5.6)"
+        expected = "position=(x=1.2, y=3.4, z=5.6), " "rotation=(x=1.2, y=3.4, z=5.6), " "scale=(x=1.2, y=3.4, z=5.6)"
         self.assertEqual(expected, result)
 
     def test_transform_class_position_as_list(self):
         vector3_object = core_transform.Vector3(x=1.2, y=3.4, z=5.6)
-        transform_object = core_transform.Transform(position=vector3_object,
-                                                    rotation=vector3_object,
-                                                    scale=vector3_object)
+        transform_object = core_transform.Transform(
+            position=vector3_object, rotation=vector3_object, scale=vector3_object
+        )
         result = [transform_object.position.x, transform_object.position.y, transform_object.position.z]
         expected = [1.2, 3.4, 5.6]
         self.assertEqual(expected, result)
 
     def test_transform_class_rotation_as_list(self):
         vector3_object = core_transform.Vector3(x=30, y=-45, z=90)
-        transform_object = core_transform.Transform(position=vector3_object,
-                                                    rotation=vector3_object,
-                                                    scale=vector3_object)
+        transform_object = core_transform.Transform(
+            position=vector3_object, rotation=vector3_object, scale=vector3_object
+        )
         result = [transform_object.rotation.x, transform_object.rotation.y, transform_object.rotation.z]
         expected = [30, -45, 90]
         self.assertEqual(expected, result)
 
     def test_transform_class_scale_as_list(self):
         vector3_object = core_transform.Vector3(x=1, y=2, z=3)
-        transform_object = core_transform.Transform(position=vector3_object,
-                                                    rotation=vector3_object,
-                                                    scale=vector3_object)
+        transform_object = core_transform.Transform(
+            position=vector3_object, rotation=vector3_object, scale=vector3_object
+        )
         result = [transform_object.scale.x, transform_object.scale.y, transform_object.scale.z]
         expected = [1, 2, 3]
         self.assertEqual(expected, result)
 
     def test_transform_class_equality_one(self):
         vector3_object = core_transform.Vector3(x=1, y=2, z=3)
-        transform_object_one = core_transform.Transform(position=vector3_object,
-                                                        rotation=vector3_object,
-                                                        scale=vector3_object)
-        transform_object_two = core_transform.Transform(position=vector3_object,
-                                                        rotation=vector3_object,
-                                                        scale=vector3_object)
+        transform_object_one = core_transform.Transform(
+            position=vector3_object, rotation=vector3_object, scale=vector3_object
+        )
+        transform_object_two = core_transform.Transform(
+            position=vector3_object, rotation=vector3_object, scale=vector3_object
+        )
         result = transform_object_one == transform_object_two
         expected = True
         self.assertEqual(expected, result)
@@ -279,12 +278,12 @@ class TestTransformCore(unittest.TestCase):
     def test_transform_class_equality_two(self):
         vector3_object_one = core_transform.Vector3(x=1, y=2, z=3)
         vector3_object_two = core_transform.Vector3(x=4, y=5, z=6)
-        transform_object_one = core_transform.Transform(position=vector3_object_one,
-                                                        rotation=vector3_object_one,
-                                                        scale=vector3_object_one)
-        transform_object_two = core_transform.Transform(position=vector3_object_two,
-                                                        rotation=vector3_object_two,
-                                                        scale=vector3_object_two)
+        transform_object_one = core_transform.Transform(
+            position=vector3_object_one, rotation=vector3_object_one, scale=vector3_object_one
+        )
+        transform_object_two = core_transform.Transform(
+            position=vector3_object_two, rotation=vector3_object_two, scale=vector3_object_two
+        )
         result = transform_object_one == transform_object_two
         expected = False
         self.assertEqual(expected, result)
@@ -453,7 +452,7 @@ class TestTransformCore(unittest.TestCase):
         transform = core_transform.Transform()
 
         invalid_input = "not_a_vector"
-        with self.assertLogs(level='WARNING'):
+        with self.assertLogs(level="WARNING"):
             transform.set_position(invalid_input)
             transform.set_rotation(invalid_input)
             transform.set_scale(invalid_input)
@@ -485,9 +484,9 @@ class TestTransformCore(unittest.TestCase):
 
     def test_set_transform_from_object(self):
         cube = maya_test_tools.create_poly_cube()
-        cmds.setAttr(f'{cube}.ty', 5)
-        cmds.setAttr(f'{cube}.ry', 35)
-        cmds.setAttr(f'{cube}.sy', 2)
+        cmds.setAttr(f"{cube}.ty", 5)
+        cmds.setAttr(f"{cube}.ry", 35)
+        cmds.setAttr(f"{cube}.sy", 2)
         transform = core_transform.Transform()
         transform.set_transform_from_object(obj_name=cube)
         expected_position = core_transform.Vector3(0, 5, 0)
@@ -533,10 +532,11 @@ class TestTransformCore(unittest.TestCase):
         new_sca_vector3 = core_transform.Vector3(*new_sca)
         transform.set_scale(xyz=new_sca_vector3)
         result = transform.get_transform_as_dict()
-        expected = {"position": new_pos,
-                    "rotation": new_rot,
-                    "scale": new_sca,
-                    }
+        expected = {
+            "position": new_pos,
+            "rotation": new_rot,
+            "scale": new_sca,
+        }
         self.assertEqual(expected, result)
 
     def test_set_transform_from_dict(self):
@@ -544,13 +544,40 @@ class TestTransformCore(unittest.TestCase):
         new_pos = (1, 1, 1)
         new_rot = (2, 2, 2)
         new_sca = (3, 3, 3)
-        expected = {"position": new_pos,
-                    "rotation": new_rot,
-                    "scale": new_sca,
-                    }
+        expected = {
+            "position": new_pos,
+            "rotation": new_rot,
+            "scale": new_sca,
+        }
         transform.set_transform_from_dict(transform_dict=expected)
         result = transform.get_transform_as_dict()
         self.assertEqual(expected, result)
+
+    def test_transform_to_matrix(self):
+        transform = core_transform.Transform()
+        transform.set_position(xyz=[-6.0, 10.0, 2.0])
+        transform.set_rotation(xyz=[-175.0, -45.0, -30.0])
+        transform.set_scale(xyz=[1.2, 1.6, 1.4])
+        matrix = transform.to_matrix()
+        expected = [
+            0.73484692,
+            -0.42426407,
+            0.84852814,
+            0.0,
+            -0.71156092,
+            -1.4296706,
+            -0.09860547,
+            0.0,
+            0.91506806,
+            -0.3874205,
+            -0.98618244,
+            0.0,
+            -6.0,
+            10.0,
+            2.0,
+            1.0,
+        ]
+        self.assertEqual(expected, matrix)
 
     # -------------------------------------------------- Transform End ------------------------------------------------
 
@@ -568,7 +595,7 @@ class TestTransformCore(unittest.TestCase):
         self.assertEqual(expected, result_y)
         self.assertEqual(expected, result_z)
 
-    @patch('sys.stdout', new_callable=StringIO)
+    @patch("sys.stdout", new_callable=StringIO)
     def test_move_selection_to_origin(self, mocked_stdout):
         cube = maya_test_tools.create_poly_cube()
         cmds.setAttr(f"{cube}.tx", 5)
@@ -589,49 +616,49 @@ class TestTransformCore(unittest.TestCase):
 
     def test_overwrite_xyz_values(self):
 
-        result = core_transform.overwrite_xyz_values(passthrough_xyz=[1, 2, 3],
-                                                     overwrite_xyz=[4, 5, 6],
-                                                     overwrite_dimensions=None)
+        result = core_transform.overwrite_xyz_values(
+            passthrough_xyz=[1, 2, 3], overwrite_xyz=[4, 5, 6], overwrite_dimensions=None
+        )
         expected = [1, 2, 3]
         self.assertEqual(expected, result)
 
     def test_overwrite_xyz_values_overwrite_x(self):
 
-        result = core_transform.overwrite_xyz_values(passthrough_xyz=[1, 2, 3],
-                                                     overwrite_xyz=[4, 5, 6],
-                                                     overwrite_dimensions="x")
+        result = core_transform.overwrite_xyz_values(
+            passthrough_xyz=[1, 2, 3], overwrite_xyz=[4, 5, 6], overwrite_dimensions="x"
+        )
         expected = [4, 2, 3]
         self.assertEqual(expected, result)
 
     def test_overwrite_xyz_values_overwrite_y(self):
 
-        result = core_transform.overwrite_xyz_values(passthrough_xyz=[1, 2, 3],
-                                                     overwrite_xyz=[4, 5, 6],
-                                                     overwrite_dimensions="y")
+        result = core_transform.overwrite_xyz_values(
+            passthrough_xyz=[1, 2, 3], overwrite_xyz=[4, 5, 6], overwrite_dimensions="y"
+        )
         expected = [1, 5, 3]
         self.assertEqual(expected, result)
 
     def test_overwrite_xyz_values_overwrite_z(self):
 
-        result = core_transform.overwrite_xyz_values(passthrough_xyz=[1, 2, 3],
-                                                     overwrite_xyz=[4, 5, 6],
-                                                     overwrite_dimensions="z")
+        result = core_transform.overwrite_xyz_values(
+            passthrough_xyz=[1, 2, 3], overwrite_xyz=[4, 5, 6], overwrite_dimensions="z"
+        )
         expected = [1, 2, 6]
         self.assertEqual(expected, result)
 
     def test_overwrite_xyz_values_overwrite_xyz(self):
 
-        result = core_transform.overwrite_xyz_values(passthrough_xyz=[1, 2, 3],
-                                                     overwrite_xyz=[4, 5, 6],
-                                                     overwrite_dimensions="xyz")
+        result = core_transform.overwrite_xyz_values(
+            passthrough_xyz=[1, 2, 3], overwrite_xyz=[4, 5, 6], overwrite_dimensions="xyz"
+        )
         expected = [4, 5, 6]
         self.assertEqual(expected, result)
 
     def test_overwrite_xyz_values_overwrite_xyz_tuple(self):
 
-        result = core_transform.overwrite_xyz_values(passthrough_xyz=[1, 2, 3],
-                                                     overwrite_xyz=[4, 5, 6],
-                                                     overwrite_dimensions=('x', 'y', 'z'))
+        result = core_transform.overwrite_xyz_values(
+            passthrough_xyz=[1, 2, 3], overwrite_xyz=[4, 5, 6], overwrite_dimensions=("x", "y", "z")
+        )
         expected = [4, 5, 6]
         self.assertEqual(expected, result)
 
@@ -977,7 +1004,7 @@ class TestTransformCore(unittest.TestCase):
         cmds.setAttr(f"{cube_source}.sx", 5)
         cmds.setAttr(f"{cube_source}.sy", 5)
         cmds.setAttr(f"{cube_source}.sz", 5)
-        core_transform.match_scale(source=cube_source, target_list=targets, skip=('x', 'y', 'z'))
+        core_transform.match_scale(source=cube_source, target_list=targets, skip=("x", "y", "z"))
         expected_x = 1
         expected_y = 1
         expected_z = 1
@@ -1050,8 +1077,9 @@ class TestTransformCore(unittest.TestCase):
         cmds.setAttr(f"{cube_source}.sy", 2)
         cmds.setAttr(f"{cube_source}.sz", 3)
 
-        core_transform.match_transform(source=cube_source, target_list=targets,
-                                       skip_translate="xy", skip_rotate="xy", skip_scale="xy")
+        core_transform.match_transform(
+            source=cube_source, target_list=targets, skip_translate="xy", skip_rotate="xy", skip_scale="xy"
+        )
 
         expected_x = 0
         expected_y = 0
@@ -1248,18 +1276,15 @@ class TestTransformCore(unittest.TestCase):
         cmds.setAttr(f"{cube_end}.tz", 10)
         cmds.setAttr(f"{cube_end}.rx", 90)
 
-        core_transform.set_equidistant_transforms(start=cube_start,
-                                                  end=cube_end,
-                                                  target_list=targets,
-                                                  skip_start_end=True,
-                                                  constraint='parent')
+        core_transform.set_equidistant_transforms(
+            start=cube_start, end=cube_end, target_list=targets, skip_start_end=True, constraint="parent"
+        )
 
-        expected_values = {cube_one: [0, 2.5, 2.5,
-                                      21.59, 0, 0],
-                           cube_two: [0, 5, 5,
-                                      45, 0, 0],
-                           cube_three: [0, 7.5, 7.5,
-                                        68.4, 0, 0]}
+        expected_values = {
+            cube_one: [0, 2.5, 2.5, 21.59, 0, 0],
+            cube_two: [0, 5, 5, 45, 0, 0],
+            cube_three: [0, 7.5, 7.5, 68.4, 0, 0],
+        }
         for cube, expected in expected_values.items():
             tx = cmds.getAttr(f"{cube}.tx")
             ty = cmds.getAttr(f"{cube}.ty")
@@ -1288,18 +1313,15 @@ class TestTransformCore(unittest.TestCase):
         cmds.setAttr(f"{cube_end}.tz", 10)
         cmds.setAttr(f"{cube_end}.rx", 90)
 
-        core_transform.set_equidistant_transforms(start=cube_start,
-                                                  end=cube_end,
-                                                  target_list=targets,
-                                                  skip_start_end=False,
-                                                  constraint='parent')
+        core_transform.set_equidistant_transforms(
+            start=cube_start, end=cube_end, target_list=targets, skip_start_end=False, constraint="parent"
+        )
 
-        expected_values = {cube_one: [0, 0, 0,
-                                      0, 0, 0],
-                           cube_two: [0, 5, 5,
-                                      45, 0, 0],
-                           cube_three: [0, 10, 10,
-                                        90, 0, 0]}
+        expected_values = {
+            cube_one: [0, 0, 0, 0, 0, 0],
+            cube_two: [0, 5, 5, 45, 0, 0],
+            cube_three: [0, 10, 10, 90, 0, 0],
+        }
         for cube, expected in expected_values.items():
             tx = cmds.getAttr(f"{cube}.tx")
             ty = cmds.getAttr(f"{cube}.ty")
@@ -1328,18 +1350,11 @@ class TestTransformCore(unittest.TestCase):
         cmds.setAttr(f"{cube_end}.tz", 10)
         cmds.setAttr(f"{cube_end}.rx", 90)
 
-        core_transform.set_equidistant_transforms(start=cube_start,
-                                                  end=cube_end,
-                                                  target_list=targets,
-                                                  skip_start_end=False,
-                                                  constraint='point')
+        core_transform.set_equidistant_transforms(
+            start=cube_start, end=cube_end, target_list=targets, skip_start_end=False, constraint="point"
+        )
 
-        expected_values = {cube_one: [0, 0, 0,
-                                      0, 0, 0],
-                           cube_two: [0, 5, 5,
-                                      0, 0, 0],
-                           cube_three: [0, 10, 10,
-                                        0, 0, 0]}
+        expected_values = {cube_one: [0, 0, 0, 0, 0, 0], cube_two: [0, 5, 5, 0, 0, 0], cube_three: [0, 10, 10, 0, 0, 0]}
         for cube, expected in expected_values.items():
             tx = cmds.getAttr(f"{cube}.tx")
             ty = cmds.getAttr(f"{cube}.ty")
@@ -1355,9 +1370,18 @@ class TestTransformCore(unittest.TestCase):
             self.assertAlmostEqualSigFig(rz, expected[5])
 
     def test_translate_shapes(self):
-        crv = cmds.curve(point=[[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
-                                                [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]],
-                                         degree=3, name='mocked_curve')
+        crv = cmds.curve(
+            point=[
+                [0.0, 0.0, 1.0],
+                [0.0, 0.0, 0.667],
+                [0.0, 0.0, 0.0],
+                [0.0, 0.0, -1.0],
+                [0.0, 0.0, -1.667],
+                [0.0, 0.0, -2.0],
+            ],
+            degree=3,
+            name="mocked_curve",
+        )
 
         num_cvs = cmds.getAttr(f"{crv}.spans")
         num_cvs += cmds.getAttr(f"{crv}.degree")
@@ -1366,8 +1390,14 @@ class TestTransformCore(unittest.TestCase):
             cv_position = cmds.pointPosition(f"{crv}.cv[{i}]", world=True)
             cv_positions.append(cv_position)
 
-        expected = [[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
-                    [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]]
+        expected = [
+            [0.0, 0.0, 1.0],
+            [0.0, 0.0, 0.667],
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, -1.0],
+            [0.0, 0.0, -1.667],
+            [0.0, 0.0, -2.0],
+        ]
         self.assertEqual(expected, cv_positions)
 
         core_transform.translate_shapes(obj_transform=crv, offset=(1, 0, 0))
@@ -1377,14 +1407,29 @@ class TestTransformCore(unittest.TestCase):
             cv_position = cmds.pointPosition(f"{crv}.cv[{i}]", world=True)
             cv_positions.append(cv_position)
 
-        expected = [[1.0, 0.0, 1.0], [1.0, 0.0, 0.667], [1.0, 0.0, 0.0],
-                    [1.0, 0.0, -1.0], [1.0, 0.0, -1.667], [1.0, 0.0, -2.0]]
+        expected = [
+            [1.0, 0.0, 1.0],
+            [1.0, 0.0, 0.667],
+            [1.0, 0.0, 0.0],
+            [1.0, 0.0, -1.0],
+            [1.0, 0.0, -1.667],
+            [1.0, 0.0, -2.0],
+        ]
         self.assertEqual(expected, cv_positions)
 
     def test_rotate_shapes(self):
-        crv = cmds.curve(point=[[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
-                                                [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]],
-                                         degree=3, name='mocked_curve')
+        crv = cmds.curve(
+            point=[
+                [0.0, 0.0, 1.0],
+                [0.0, 0.0, 0.667],
+                [0.0, 0.0, 0.0],
+                [0.0, 0.0, -1.0],
+                [0.0, 0.0, -1.667],
+                [0.0, 0.0, -2.0],
+            ],
+            degree=3,
+            name="mocked_curve",
+        )
 
         num_cvs = cmds.getAttr(f"{crv}.spans")
         num_cvs += cmds.getAttr(f"{crv}.degree")
@@ -1393,8 +1438,14 @@ class TestTransformCore(unittest.TestCase):
             cv_position = cmds.pointPosition(f"{crv}.cv[{i}]", world=True)
             cv_positions.append(cv_position)
 
-        expected = [[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
-                    [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]]
+        expected = [
+            [0.0, 0.0, 1.0],
+            [0.0, 0.0, 0.667],
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, -1.0],
+            [0.0, 0.0, -1.667],
+            [0.0, 0.0, -2.0],
+        ]
         self.assertEqual(expected, cv_positions)
 
         core_transform.rotate_shapes(obj_transform=crv, offset=(90, 0, 0), pivot=None)
@@ -1404,14 +1455,29 @@ class TestTransformCore(unittest.TestCase):
             cv_position = cmds.pointPosition(f"{crv}.cv[{i}]", world=True)
             cv_positions.append(cv_position)
 
-        expected = [[0.0, -1.0, 0.0], [0.0, -0.667, 0.0], [0.0, 0.0, 0.0],
-                    [0.0, 1.0, 0.0], [0.0, 1.667, 0.0], [0.0, 2.0, 0.0]]
+        expected = [
+            [0.0, -1.0, 0.0],
+            [0.0, -0.667, 0.0],
+            [0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 1.667, 0.0],
+            [0.0, 2.0, 0.0],
+        ]
         self.assertEqual(expected, cv_positions)
 
     def test_rotate_shapes_pivot(self):
-        crv = cmds.curve(point=[[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
-                                                [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]],
-                                         degree=3, name='mocked_curve')
+        crv = cmds.curve(
+            point=[
+                [0.0, 0.0, 1.0],
+                [0.0, 0.0, 0.667],
+                [0.0, 0.0, 0.0],
+                [0.0, 0.0, -1.0],
+                [0.0, 0.0, -1.667],
+                [0.0, 0.0, -2.0],
+            ],
+            degree=3,
+            name="mocked_curve",
+        )
 
         num_cvs = cmds.getAttr(f"{crv}.spans")
         num_cvs += cmds.getAttr(f"{crv}.degree")
@@ -1420,8 +1486,14 @@ class TestTransformCore(unittest.TestCase):
             cv_position = cmds.pointPosition(f"{crv}.cv[{i}]", world=True)
             cv_positions.append(cv_position)
 
-        expected = [[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
-                    [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]]
+        expected = [
+            [0.0, 0.0, 1.0],
+            [0.0, 0.0, 0.667],
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, -1.0],
+            [0.0, 0.0, -1.667],
+            [0.0, 0.0, -2.0],
+        ]
         self.assertEqual(expected, cv_positions)
 
         core_transform.rotate_shapes(obj_transform=crv, offset=(0, 90, 0), pivot=(5, 0, 0))
@@ -1431,14 +1503,29 @@ class TestTransformCore(unittest.TestCase):
             cv_position = cmds.pointPosition(f"{crv}.cv[{i}]", world=True)
             cv_positions.append(cv_position)
 
-        expected = [[6.0, 0.0, 5.0], [5.667, 0.0, 5.0], [5.0, 0.0, 5.0],
-                    [4.0, 0.0, 5.0], [3.333, 0.0, 5.0], [3.0, 0.0, 5.0]]
+        expected = [
+            [6.0, 0.0, 5.0],
+            [5.667, 0.0, 5.0],
+            [5.0, 0.0, 5.0],
+            [4.0, 0.0, 5.0],
+            [3.333, 0.0, 5.0],
+            [3.0, 0.0, 5.0],
+        ]
         self.assertEqual(expected, cv_positions)
 
     def test_scale_shapes_integer(self):
-        crv = cmds.curve(point=[[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
-                                                [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]],
-                                         degree=3, name='mocked_curve')
+        crv = cmds.curve(
+            point=[
+                [0.0, 0.0, 1.0],
+                [0.0, 0.0, 0.667],
+                [0.0, 0.0, 0.0],
+                [0.0, 0.0, -1.0],
+                [0.0, 0.0, -1.667],
+                [0.0, 0.0, -2.0],
+            ],
+            degree=3,
+            name="mocked_curve",
+        )
 
         num_cvs = cmds.getAttr(f"{crv}.spans")
         num_cvs += cmds.getAttr(f"{crv}.degree")
@@ -1447,8 +1534,14 @@ class TestTransformCore(unittest.TestCase):
             cv_position = cmds.pointPosition(f"{crv}.cv[{i}]", world=True)
             cv_positions.append(cv_position)
 
-        expected = [[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
-                    [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]]
+        expected = [
+            [0.0, 0.0, 1.0],
+            [0.0, 0.0, 0.667],
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, -1.0],
+            [0.0, 0.0, -1.667],
+            [0.0, 0.0, -2.0],
+        ]
         self.assertEqual(expected, cv_positions)
 
         core_transform.scale_shapes(obj_transform=crv, offset=2, pivot=None)
@@ -1458,14 +1551,29 @@ class TestTransformCore(unittest.TestCase):
             cv_position = cmds.pointPosition(f"{crv}.cv[{i}]", world=True)
             cv_positions.append(cv_position)
 
-        expected = [[0.0, 0.0, 2.0], [0.0, 0.0, 1.334], [0.0, 0.0, 0.0],
-                    [0.0, 0.0, -2.0], [0.0, 0.0, -3.334], [0.0, 0.0, -4.0]]
+        expected = [
+            [0.0, 0.0, 2.0],
+            [0.0, 0.0, 1.334],
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, -2.0],
+            [0.0, 0.0, -3.334],
+            [0.0, 0.0, -4.0],
+        ]
         self.assertEqual(expected, cv_positions)
 
     def test_scale_shapes_tuple(self):
-        crv = cmds.curve(point=[[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
-                                                [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]],
-                                         degree=3, name='mocked_curve')
+        crv = cmds.curve(
+            point=[
+                [0.0, 0.0, 1.0],
+                [0.0, 0.0, 0.667],
+                [0.0, 0.0, 0.0],
+                [0.0, 0.0, -1.0],
+                [0.0, 0.0, -1.667],
+                [0.0, 0.0, -2.0],
+            ],
+            degree=3,
+            name="mocked_curve",
+        )
 
         num_cvs = cmds.getAttr(f"{crv}.spans")
         num_cvs += cmds.getAttr(f"{crv}.degree")
@@ -1474,8 +1582,14 @@ class TestTransformCore(unittest.TestCase):
             cv_position = cmds.pointPosition(f"{crv}.cv[{i}]", world=True)
             cv_positions.append(cv_position)
 
-        expected = [[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
-                    [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]]
+        expected = [
+            [0.0, 0.0, 1.0],
+            [0.0, 0.0, 0.667],
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, -1.0],
+            [0.0, 0.0, -1.667],
+            [0.0, 0.0, -2.0],
+        ]
         self.assertEqual(expected, cv_positions)
 
         core_transform.scale_shapes(obj_transform=crv, offset=(2, 1, 1), pivot=None)
@@ -1485,14 +1599,29 @@ class TestTransformCore(unittest.TestCase):
             cv_position = cmds.pointPosition(f"{crv}.cv[{i}]", world=True)
             cv_positions.append(cv_position)
 
-        expected = [[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
-                    [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]]
+        expected = [
+            [0.0, 0.0, 1.0],
+            [0.0, 0.0, 0.667],
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, -1.0],
+            [0.0, 0.0, -1.667],
+            [0.0, 0.0, -2.0],
+        ]
         self.assertEqual(expected, cv_positions)
 
     def test_scale_shapes_pivot(self):
-        crv = cmds.curve(point=[[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
-                                                [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]],
-                                         degree=3, name='mocked_curve')
+        crv = cmds.curve(
+            point=[
+                [0.0, 0.0, 1.0],
+                [0.0, 0.0, 0.667],
+                [0.0, 0.0, 0.0],
+                [0.0, 0.0, -1.0],
+                [0.0, 0.0, -1.667],
+                [0.0, 0.0, -2.0],
+            ],
+            degree=3,
+            name="mocked_curve",
+        )
 
         num_cvs = cmds.getAttr(f"{crv}.spans")
         num_cvs += cmds.getAttr(f"{crv}.degree")
@@ -1501,8 +1630,14 @@ class TestTransformCore(unittest.TestCase):
             cv_position = cmds.pointPosition(f"{crv}.cv[{i}]", world=True)
             cv_positions.append(cv_position)
 
-        expected = [[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
-                    [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]]
+        expected = [
+            [0.0, 0.0, 1.0],
+            [0.0, 0.0, 0.667],
+            [0.0, 0.0, 0.0],
+            [0.0, 0.0, -1.0],
+            [0.0, 0.0, -1.667],
+            [0.0, 0.0, -2.0],
+        ]
         self.assertEqual(expected, cv_positions)
 
         core_transform.scale_shapes(obj_transform=crv, offset=(2, 1, 1), pivot=(1, 2, 1))
@@ -1512,145 +1647,193 @@ class TestTransformCore(unittest.TestCase):
             cv_position = cmds.pointPosition(f"{crv}.cv[{i}]", world=True)
             cv_positions.append(cv_position)
 
-        expected = [[-1.0, 0.0, 1.0], [-1.0, 0.0, 0.667], [-1.0, 0.0, 0.0],
-                    [-1.0, 0.0, -1.0], [-1.0, 0.0, -1.667], [-1.0, 0.0, -2.0]]
+        expected = [
+            [-1.0, 0.0, 1.0],
+            [-1.0, 0.0, 0.667],
+            [-1.0, 0.0, 0.0],
+            [-1.0, 0.0, -1.0],
+            [-1.0, 0.0, -1.667],
+            [-1.0, 0.0, -2.0],
+        ]
         self.assertEqual(expected, cv_positions)
 
     def test_get_component_positions_as_dict_world_space(self):
-        crv = cmds.curve(point=[[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
-                                                [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]],
-                                         degree=3, name='mocked_curve')
+        crv = cmds.curve(
+            point=[
+                [0.0, 0.0, 1.0],
+                [0.0, 0.0, 0.667],
+                [0.0, 0.0, 0.0],
+                [0.0, 0.0, -1.0],
+                [0.0, 0.0, -1.667],
+                [0.0, 0.0, -2.0],
+            ],
+            degree=3,
+            name="mocked_curve",
+        )
         cmds.move(0, 1, 0, crv)
-        result = core_transform.get_component_positions_as_dict(obj_transform=crv,
-                                                                full_path=True,
-                                                                world_space=True)
+        result = core_transform.get_component_positions_as_dict(obj_transform=crv, full_path=True, world_space=True)
 
-        expected = {'|mocked_curve.cv[0]': [0.0, 1.0, 1.0],
-                    '|mocked_curve.cv[1]': [0.0, 1.0, 0.667],
-                    '|mocked_curve.cv[2]': [0.0, 1.0, 0.0],
-                    '|mocked_curve.cv[3]': [0.0, 1.0, -1.0],
-                    '|mocked_curve.cv[4]': [0.0, 1.0, -1.667],
-                    '|mocked_curve.cv[5]': [0.0, 1.0, -2.0]}
+        expected = {
+            "|mocked_curve.cv[0]": [0.0, 1.0, 1.0],
+            "|mocked_curve.cv[1]": [0.0, 1.0, 0.667],
+            "|mocked_curve.cv[2]": [0.0, 1.0, 0.0],
+            "|mocked_curve.cv[3]": [0.0, 1.0, -1.0],
+            "|mocked_curve.cv[4]": [0.0, 1.0, -1.667],
+            "|mocked_curve.cv[5]": [0.0, 1.0, -2.0],
+        }
         self.assertEqual(expected, result)
 
-        result = core_transform.get_component_positions_as_dict(obj_transform=crv,
-                                                                full_path=False,
-                                                                world_space=True)
+        result = core_transform.get_component_positions_as_dict(obj_transform=crv, full_path=False, world_space=True)
 
-        expected = {'mocked_curve.cv[0]': [0.0, 1.0, 1.0],
-                    'mocked_curve.cv[1]': [0.0, 1.0, 0.667],
-                    'mocked_curve.cv[2]': [0.0, 1.0, 0.0],
-                    'mocked_curve.cv[3]': [0.0, 1.0, -1.0],
-                    'mocked_curve.cv[4]': [0.0, 1.0, -1.667],
-                    'mocked_curve.cv[5]': [0.0, 1.0, -2.0]}
+        expected = {
+            "mocked_curve.cv[0]": [0.0, 1.0, 1.0],
+            "mocked_curve.cv[1]": [0.0, 1.0, 0.667],
+            "mocked_curve.cv[2]": [0.0, 1.0, 0.0],
+            "mocked_curve.cv[3]": [0.0, 1.0, -1.0],
+            "mocked_curve.cv[4]": [0.0, 1.0, -1.667],
+            "mocked_curve.cv[5]": [0.0, 1.0, -2.0],
+        }
         self.assertEqual(expected, result)
 
     def test_get_component_positions_as_dict_object_space(self):
-        crv = cmds.curve(point=[[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
-                                                [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]],
-                                         degree=3, name='mocked_curve')
+        crv = cmds.curve(
+            point=[
+                [0.0, 0.0, 1.0],
+                [0.0, 0.0, 0.667],
+                [0.0, 0.0, 0.0],
+                [0.0, 0.0, -1.0],
+                [0.0, 0.0, -1.667],
+                [0.0, 0.0, -2.0],
+            ],
+            degree=3,
+            name="mocked_curve",
+        )
         cmds.move(0, 1, 0, crv)
-        result = core_transform.get_component_positions_as_dict(obj_transform=crv,
-                                                                full_path=True,
-                                                                world_space=False) # False = Object Space
+        result = core_transform.get_component_positions_as_dict(
+            obj_transform=crv, full_path=True, world_space=False
+        )  # False = Object Space
 
-        expected = {'|mocked_curve.cv[0]': [0.0, 0.0, 1.0],
-                    '|mocked_curve.cv[1]': [0.0, 0.0, 0.667],
-                    '|mocked_curve.cv[2]': [0.0, 0.0, 0.0],
-                    '|mocked_curve.cv[3]': [0.0, 0.0, -1.0],
-                    '|mocked_curve.cv[4]': [0.0, 0.0, -1.667],
-                    '|mocked_curve.cv[5]': [0.0, 0.0, -2.0]}
+        expected = {
+            "|mocked_curve.cv[0]": [0.0, 0.0, 1.0],
+            "|mocked_curve.cv[1]": [0.0, 0.0, 0.667],
+            "|mocked_curve.cv[2]": [0.0, 0.0, 0.0],
+            "|mocked_curve.cv[3]": [0.0, 0.0, -1.0],
+            "|mocked_curve.cv[4]": [0.0, 0.0, -1.667],
+            "|mocked_curve.cv[5]": [0.0, 0.0, -2.0],
+        }
         self.assertEqual(expected, result)
 
-        result = core_transform.get_component_positions_as_dict(obj_transform=crv,
-                                                                full_path=False,
-                                                                world_space=False)  # False = Object Space
+        result = core_transform.get_component_positions_as_dict(
+            obj_transform=crv, full_path=False, world_space=False
+        )  # False = Object Space
 
-        expected = {'mocked_curve.cv[0]': [0.0, 0.0, 1.0],
-                    'mocked_curve.cv[1]': [0.0, 0.0, 0.667],
-                    'mocked_curve.cv[2]': [0.0, 0.0, 0.0],
-                    'mocked_curve.cv[3]': [0.0, 0.0, -1.0],
-                    'mocked_curve.cv[4]': [0.0, 0.0, -1.667],
-                    'mocked_curve.cv[5]': [0.0, 0.0, -2.0]}
+        expected = {
+            "mocked_curve.cv[0]": [0.0, 0.0, 1.0],
+            "mocked_curve.cv[1]": [0.0, 0.0, 0.667],
+            "mocked_curve.cv[2]": [0.0, 0.0, 0.0],
+            "mocked_curve.cv[3]": [0.0, 0.0, -1.0],
+            "mocked_curve.cv[4]": [0.0, 0.0, -1.667],
+            "mocked_curve.cv[5]": [0.0, 0.0, -2.0],
+        }
         self.assertEqual(expected, result)
 
     def test_get_component_positions_as_dict_cube(self):
         cube = maya_test_tools.create_poly_cube(name="mocked_cube")
         cmds.move(0, 1, 0, cube)
-        result = core_transform.get_component_positions_as_dict(obj_transform=cube,
-                                                                full_path=True,
-                                                                world_space=True)
+        result = core_transform.get_component_positions_as_dict(obj_transform=cube, full_path=True, world_space=True)
 
-        expected = {'|mocked_cube.vtx[0]': [-0.5, 0.5, 0.5],
-                    '|mocked_cube.vtx[1]': [0.5, 0.5, 0.5],
-                    '|mocked_cube.vtx[2]': [-0.5, 1.5, 0.5],
-                    '|mocked_cube.vtx[3]': [0.5, 1.5, 0.5],
-                    '|mocked_cube.vtx[4]': [-0.5, 1.5, -0.5],
-                    '|mocked_cube.vtx[5]': [0.5, 1.5, -0.5],
-                    '|mocked_cube.vtx[6]': [-0.5, 0.5, -0.5],
-                    '|mocked_cube.vtx[7]': [0.5, 0.5, -0.5]}
+        expected = {
+            "|mocked_cube.vtx[0]": [-0.5, 0.5, 0.5],
+            "|mocked_cube.vtx[1]": [0.5, 0.5, 0.5],
+            "|mocked_cube.vtx[2]": [-0.5, 1.5, 0.5],
+            "|mocked_cube.vtx[3]": [0.5, 1.5, 0.5],
+            "|mocked_cube.vtx[4]": [-0.5, 1.5, -0.5],
+            "|mocked_cube.vtx[5]": [0.5, 1.5, -0.5],
+            "|mocked_cube.vtx[6]": [-0.5, 0.5, -0.5],
+            "|mocked_cube.vtx[7]": [0.5, 0.5, -0.5],
+        }
         self.assertEqual(expected, result)
 
-        result = core_transform.get_component_positions_as_dict(obj_transform=cube,
-                                                                full_path=False,
-                                                                world_space=True)
+        result = core_transform.get_component_positions_as_dict(obj_transform=cube, full_path=False, world_space=True)
 
-        expected = {'mocked_cube.vtx[0]': [-0.5, 0.5, 0.5],
-                    'mocked_cube.vtx[1]': [0.5, 0.5, 0.5],
-                    'mocked_cube.vtx[2]': [-0.5, 1.5, 0.5],
-                    'mocked_cube.vtx[3]': [0.5, 1.5, 0.5],
-                    'mocked_cube.vtx[4]': [-0.5, 1.5, -0.5],
-                    'mocked_cube.vtx[5]': [0.5, 1.5, -0.5],
-                    'mocked_cube.vtx[6]': [-0.5, 0.5, -0.5],
-                    'mocked_cube.vtx[7]': [0.5, 0.5, -0.5]}
+        expected = {
+            "mocked_cube.vtx[0]": [-0.5, 0.5, 0.5],
+            "mocked_cube.vtx[1]": [0.5, 0.5, 0.5],
+            "mocked_cube.vtx[2]": [-0.5, 1.5, 0.5],
+            "mocked_cube.vtx[3]": [0.5, 1.5, 0.5],
+            "mocked_cube.vtx[4]": [-0.5, 1.5, -0.5],
+            "mocked_cube.vtx[5]": [0.5, 1.5, -0.5],
+            "mocked_cube.vtx[6]": [-0.5, 0.5, -0.5],
+            "mocked_cube.vtx[7]": [0.5, 0.5, -0.5],
+        }
         self.assertEqual(expected, result)
 
     def test_set_component_positions_from_dict_world_space(self):
-        crv = cmds.curve(point=[[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
-                                                [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]],
-                                         degree=3, name='mocked_curve')
+        crv = cmds.curve(
+            point=[
+                [0.0, 0.0, 1.0],
+                [0.0, 0.0, 0.667],
+                [0.0, 0.0, 0.0],
+                [0.0, 0.0, -1.0],
+                [0.0, 0.0, -1.667],
+                [0.0, 0.0, -2.0],
+            ],
+            degree=3,
+            name="mocked_curve",
+        )
         cmds.move(0, 1, 0, crv)
 
-        component_dict = {'|mocked_curve.cv[0]': [0.0, 0.0, 2.0]}
+        component_dict = {"|mocked_curve.cv[0]": [0.0, 0.0, 2.0]}
 
         core_transform.set_component_positions_from_dict(component_pos_dict=component_dict, world_space=True)
 
-        result = cmds.xform('|mocked_curve.cv[0]', worldSpace=True, query=True, translation=True)
+        result = cmds.xform("|mocked_curve.cv[0]", worldSpace=True, query=True, translation=True)
 
         expected = [0.0, 0.0, 2.0]
         self.assertEqual(expected, result)
 
-        component_dict = {'|mocked_curve.cv[0]': [0.0, 0.0, 3.0]}
+        component_dict = {"|mocked_curve.cv[0]": [0.0, 0.0, 3.0]}
 
         core_transform.set_component_positions_from_dict(component_pos_dict=component_dict, world_space=True)
 
-        result = cmds.xform('|mocked_curve.cv[0]', worldSpace=True, query=True, translation=True)
+        result = cmds.xform("|mocked_curve.cv[0]", worldSpace=True, query=True, translation=True)
 
         expected = [0.0, 0.0, 3.0]
         self.assertEqual(expected, result)
 
     def test_set_component_positions_from_dict_object_space(self):
-        crv = cmds.curve(point=[[0.0, 0.0, 1.0], [0.0, 0.0, 0.667], [0.0, 0.0, 0.0],
-                                                [0.0, 0.0, -1.0], [0.0, 0.0, -1.667], [0.0, 0.0, -2.0]],
-                                         degree=3, name='mocked_curve')
+        crv = cmds.curve(
+            point=[
+                [0.0, 0.0, 1.0],
+                [0.0, 0.0, 0.667],
+                [0.0, 0.0, 0.0],
+                [0.0, 0.0, -1.0],
+                [0.0, 0.0, -1.667],
+                [0.0, 0.0, -2.0],
+            ],
+            degree=3,
+            name="mocked_curve",
+        )
         cmds.move(0, 1, 0, crv)
 
-        component_dict = {'|mocked_curve.cv[0]': [0.0, 0.0, 2.0]}
+        component_dict = {"|mocked_curve.cv[0]": [0.0, 0.0, 2.0]}
 
-        core_transform.set_component_positions_from_dict(component_pos_dict=component_dict,
-                                                         world_space=False)  # False = Object Space
+        core_transform.set_component_positions_from_dict(
+            component_pos_dict=component_dict, world_space=False
+        )  # False = Object Space
 
-        result = cmds.xform('|mocked_curve.cv[0]', worldSpace=True, query=True, translation=True)
+        result = cmds.xform("|mocked_curve.cv[0]", worldSpace=True, query=True, translation=True)
 
         expected = [0.0, 1.0, 2.0]
         self.assertEqual(expected, result)
 
-        component_dict = {'|mocked_curve.cv[0]': [0.0, 0.0, 3.0]}
+        component_dict = {"|mocked_curve.cv[0]": [0.0, 0.0, 3.0]}
 
-        core_transform.set_component_positions_from_dict(component_pos_dict=component_dict,
-                                                         world_space=False)  # False = Object Space
+        core_transform.set_component_positions_from_dict(
+            component_pos_dict=component_dict, world_space=False
+        )  # False = Object Space
 
-        result = cmds.xform('|mocked_curve.cv[0]', worldSpace=True, query=True, translation=True)
+        result = cmds.xform("|mocked_curve.cv[0]", worldSpace=True, query=True, translation=True)
 
         expected = [0.0, 1.0, 3.0]
         self.assertEqual(expected, result)
@@ -1674,14 +1857,14 @@ class TestTransformCore(unittest.TestCase):
 
     def test_get_directional_position_negative(self):
         cube = maya_test_tools.create_poly_cube(name="cube_one")
-        cmds.setAttr(f'{cube}.tx', -10)
+        cmds.setAttr(f"{cube}.tx", -10)
         result = core_transform.get_directional_position(object_name=cube, axis="X", tolerance=0.001)
         expected = -1
         self.assertEqual(expected, result)
 
     def test_get_directional_position_positive(self):
         cube = maya_test_tools.create_poly_cube(name="cube_one")
-        cmds.setAttr(f'{cube}.tx', 10)
+        cmds.setAttr(f"{cube}.tx", 10)
         result = core_transform.get_directional_position(object_name=cube, axis="X", tolerance=0.001)
         expected = 1
         self.assertEqual(expected, result)
@@ -1695,7 +1878,7 @@ class TestTransformCore(unittest.TestCase):
     def test_get_directional_position_tolerance(self):
         cube_one = maya_test_tools.create_poly_cube(name="cube_one")
         cube_two = maya_test_tools.create_poly_cube(name="cube_two")
-        cmds.setAttr(f'{cube_one}.tx', 0.05)
+        cmds.setAttr(f"{cube_one}.tx", 0.05)
         result = core_transform.get_directional_position(object_name=cube_one, axis="X", tolerance=0.001)
         expected = 1
         self.assertEqual(expected, result)
@@ -1705,13 +1888,95 @@ class TestTransformCore(unittest.TestCase):
         result = core_transform.get_directional_position(object_name=cube_two, axis="X", tolerance=0.1)
         expected = 0
         self.assertEqual(expected, result)
-        result = core_transform.get_directional_position(object_name=cube_two, axis="X", tolerance=0) # No Center
+        result = core_transform.get_directional_position(object_name=cube_two, axis="X", tolerance=0)  # No Center
         expected = 1
         self.assertEqual(expected, result)
-        result = core_transform.get_directional_position(object_name=cube_one, axis="X", tolerance=0) # No Center
+        result = core_transform.get_directional_position(object_name=cube_one, axis="X", tolerance=0)  # No Center
         expected = 1
         self.assertEqual(expected, result)
-        cmds.setAttr(f'{cube_one}.tx', -0.05)
-        result = core_transform.get_directional_position(object_name=cube_one, axis="X", tolerance=0) # No Center
+        cmds.setAttr(f"{cube_one}.tx", -0.05)
+        result = core_transform.get_directional_position(object_name=cube_one, axis="X", tolerance=0)  # No Center
         expected = -1
         self.assertEqual(expected, result)
+
+    def test_mirror_transform_matrix(self):
+        cube_source = maya_test_tools.create_poly_cube(name="cube_source")
+        cube_mirrored = maya_test_tools.create_poly_cube(name="cube_mirrored")
+        cmds.setAttr(f"{cube_source}.tx", 6)
+        cmds.setAttr(f"{cube_source}.ty", 10)
+        cmds.setAttr(f"{cube_source}.rz", 30)
+        cmds.setAttr(f"{cube_source}.rx", 5)
+        cmds.setAttr(f"{cube_source}.ry", 45)
+        cmds.setAttr(f"{cube_source}.tz", 2)
+        cmds.setAttr(f"{cube_source}.sx", 1.2)
+        cmds.setAttr(f"{cube_source}.sy", 1.6)
+        cmds.setAttr(f"{cube_source}.sz", 1.4)
+        cube_matrix = cmds.xform(cube_source, q=True, m=True)
+        mirrored_matrix = core_transform.mirror_transform_matrix(cube_matrix)
+        cmds.xform(cube_mirrored, m=mirrored_matrix)
+        matrix_from_scene = cmds.xform(cube_mirrored, q=True, m=True)
+        matrix_from_scene = [round(comp, 8) for comp in matrix_from_scene]
+        # mirrored matrix is also calculated with 8 decimals precision
+        expected = [
+            0.73484692,
+            -0.42426407,
+            0.84852814,
+            0.0,
+            -0.71156092,
+            -1.4296706,
+            -0.09860547,
+            0.0,
+            0.91506806,
+            -0.3874205,
+            -0.98618244,
+            0.0,
+            -6.0,
+            10.0,
+            2.0,
+            1.0,
+        ]
+        self.assertEqual(expected, matrix_from_scene)
+
+    def test_get_transform_from_matrix(self):
+        matrix = [
+            0.73484692,
+            -0.42426407,
+            0.84852814,
+            0.0,
+            -0.71156092,
+            -1.4296706,
+            -0.09860547,
+            0.0,
+            0.91506806,
+            -0.3874205,
+            -0.98618244,
+            0.0,
+            -6.0,
+            10.0,
+            2.0,
+            1.0,
+        ]
+        transform = core_transform.get_transform_from_matrix(matrix)
+        position = [transform.position.x, transform.position.y, transform.position.z]
+        self.assertEqual([-6.0, 10.0, 2.0], position)
+        rotation = [transform.rotation.x, transform.rotation.y, transform.rotation.z]
+        self.assertEqual([-175.0, -45.0, -30.0], rotation)
+        scale = [transform.scale.x, transform.scale.y, transform.scale.z]
+        self.assertEqual([1.2, 1.6, 1.4], scale)
+
+    def test_align_object_to_vector(self):
+        start_obj = cmds.spaceLocator(name="start_loc")[0]
+        end_obj = cmds.spaceLocator(name="end_loc")[0]
+        target_obj = cmds.spaceLocator(name="target_loc")[0]
+        cmds.xform(start_obj, ws=True, t=(0, 0, 0))
+        cmds.xform(end_obj, ws=True, t=(10, 0, 0))
+        cmds.xform(target_obj, ws=True, t=(5, 0, 0))
+
+        core_transform.align_object_to_vector(start_obj, end_obj, target_obj, aim_axis="y")
+
+        # Target should now point up in world space
+        rotation = cmds.xform(target_obj, q=True, ws=True, ro=True)
+
+        # Allow some tolerance due to Maya's internal rotation handling
+        expected_pitch = -90.0
+        self.assertAlmostEqual(rotation[2], expected_pitch, delta=0.1)

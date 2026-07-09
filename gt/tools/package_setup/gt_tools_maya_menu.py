@@ -56,6 +56,13 @@ def load_menu(*args):
     # ------------------------------------ General / Tools ------------------------------------
     menu.add_sub_menu("General", icon=ui_res_lib.Icon.root_general, parent_to_root=True)
     menu.add_menu_item(
+        label="Batch Processor",
+        command=IMPORT_TOOL + 'initialize_tool("batch_processor")',
+        tooltip="Opens the batch processor.",
+        icon=ui_res_lib.Icon.ui_progress,
+    )
+    menu.add_divider(parent="General")
+    menu.add_menu_item(
         label="Attributes to Python",
         command=IMPORT_TOOL + 'initialize_tool("attributes_to_python")',
         tooltip="Converts attributes into Python code. TRS Channels or User-defined.",
@@ -191,28 +198,10 @@ def load_menu(*args):
     # ------------------------------------ Rigging ------------------------------------
     menu.add_sub_menu("Rigging", icon=ui_res_lib.Icon.root_rigging, parent_to_root=True)
     menu.add_menu_item(
-        label="Biped Auto Rigger",
-        command=IMPORT_TOOL + 'initialize_tool("biped_rigger_legacy")',
-        tooltip="Automated solution for creating a biped rig.",
-        icon=ui_res_lib.Icon.tool_auto_rigger_legacy,
-    )
-    menu.add_menu_item(
-        label="Biped Rig Interface",
-        command=IMPORT_TOOL + 'initialize_tool("biped_rigger_legacy", "launch_biped_rig_interface")',
-        tooltip="Custom Rig Interface for GT Biped Auto Rigger.",
-        icon=ui_res_lib.Icon.tool_rig_interface,
-    )
-    menu.add_menu_item(
-        label="Retarget Assistant",
-        command=IMPORT_TOOL + 'initialize_tool("biped_rigger_legacy", "launch_retarget_assistant")',
-        tooltip="Script with HumanIK patches.",
-        icon=ui_res_lib.Icon.tool_retarget_assistant,
-    )
-    menu.add_menu_item(
-        label="Game FBX Exporter",
-        command=IMPORT_TOOL + 'initialize_tool("biped_rigger_legacy", "launch_game_exporter")',
-        tooltip="Automated solution for exporting real-time FBX files.",
-        icon=ui_res_lib.Icon.tool_game_fbx_exporter,
+        label="Auto Rigger",
+        command=IMPORT_TOOL + 'initialize_tool("auto_rigger")',
+        tooltip="Opens auto rigger.",
+        icon=ui_res_lib.Icon.tool_auto_rigger,
     )
 
     menu.add_divider()  # General Rigging Tools +++++++++++++++++++++++++++++++++
@@ -294,6 +283,21 @@ def load_menu(*args):
         command=IMPORT_UTIL + 'initialize_utility("constraint", "create_rivet")',
         tooltip="Creates a rivet between two polygon edges or on a surface point",
         icon=ui_res_lib.Icon.util_rivet,
+    )
+
+    # ------------------------------------ Animation ------------------------------------
+    menu.add_sub_menu("Animation", icon=ui_res_lib.Icon.root_animation, parent_to_root=True)
+    menu.add_menu_item(
+        label="Retargeter",
+        command=IMPORT_TOOL + 'initialize_tool("retargeter")',
+        tooltip="Opens retargeter.",
+        icon=ui_res_lib.Icon.tool_retargeter,
+    )
+    menu.add_menu_item(
+        label="Animation Clip Tracker",
+        command=IMPORT_TOOL + 'initialize_tool("clip_tracker")',
+        tooltip="Opens the animation clip tracker.",
+        icon=ui_res_lib.Icon.root_animation,
     )
 
     # ------------------------------------ Utilities ------------------------------------
@@ -510,11 +514,30 @@ def load_menu(*args):
             tooltip="Opens sample tool.",
             icon=ui_res_lib.Icon.dev_screwdriver,
         )
+        menu.add_divider(divider_label="Legacy Tools")  # Legacy Tools ++++++++++++++++++++++++++++++++++++++
         menu.add_menu_item(
-            label="Auto Rigger",
-            command=IMPORT_TOOL + 'initialize_tool("auto_rigger")',
-            tooltip="Opens auto rigger.",
-            icon=ui_res_lib.Icon.tool_auto_rigger,
+            label="Biped Auto Rigger",
+            command=IMPORT_TOOL + 'initialize_tool("biped_rigger_legacy")',
+            tooltip="Automated solution for creating a biped rig.",
+            icon=ui_res_lib.Icon.tool_auto_rigger_legacy,
+        )
+        menu.add_menu_item(
+            label="Biped Rig Interface",
+            command=IMPORT_TOOL + 'initialize_tool("biped_rigger_legacy", "launch_biped_rig_interface")',
+            tooltip="Custom Rig Interface for GT Biped Auto Rigger.",
+            icon=ui_res_lib.Icon.tool_rig_interface,
+        )
+        menu.add_menu_item(
+            label="Retarget Assistant",
+            command=IMPORT_TOOL + 'initialize_tool("biped_rigger_legacy", "launch_retarget_assistant")',
+            tooltip="Script with HumanIK patches.",
+            icon=ui_res_lib.Icon.tool_retarget_assistant,
+        )
+        menu.add_menu_item(
+            label="Game FBX Exporter",
+            command=IMPORT_TOOL + 'initialize_tool("biped_rigger_legacy", "launch_game_exporter")',
+            tooltip="Automated solution for exporting real-time FBX files.",
+            icon=ui_res_lib.Icon.tool_game_fbx_exporter,
         )
         menu.add_divider(divider_label="Curves")  # Curve Thumbnails Section +++++++++++++++++++++++++++++++++
         menu.add_menu_item(

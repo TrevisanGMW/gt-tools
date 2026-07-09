@@ -19,6 +19,36 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
+class StatusLine:
+    """Shared status-line color values."""
+
+    INFO = "info"
+    SUCCESS = "success"
+    WARNING = "warning"
+    ERROR = "error"
+
+
+def set_status_line_text(line_edit, text, status=StatusLine.INFO):
+    """Sets text and color for a QLineEdit used as a compact status line.
+
+    Args:
+        line_edit (QLineEdit): Line edit to update.
+        text (str): Status text.
+        status (str, optional): Status level. Supported: info, success, warning, error.
+    """
+    if not line_edit:
+        return
+    status_colors = {
+        StatusLine.INFO: "#8f8f8f",
+        StatusLine.SUCCESS: "#7cae7a",
+        StatusLine.WARNING: "#d6b656",
+        StatusLine.ERROR: "#d66a6a",
+    }
+    color = status_colors.get(str(status or StatusLine.INFO).lower(), status_colors.get(StatusLine.INFO))
+    line_edit.setStyleSheet("QLineEdit { color: " + color + "; }")
+    line_edit.setText(str(text or ""))
+
+
 class MayaWindowMeta(type):
     """
     Maya Window Metaclass. Used to make a QT Windows in Maya with extra functionalities such as docking and overwrites.

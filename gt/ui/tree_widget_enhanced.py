@@ -1,8 +1,8 @@
 """
 Tree widget enhanced
 
-Code Namespace:
-    ui_tree_enhanced # import gt.ui.tree_widget_enhanced as ui_tree_enhanced
+Import Line:
+    import gt.ui.tree_widget_enhanced as ui_tree_enhanced
 """
 
 import gt.ui.qt_import as ui_qt
@@ -59,6 +59,9 @@ def reorder_tree_item(item, new_index):
 
 class QTreeEnhanced(ui_qt.QtWidgets.QTreeWidget):
     def __init__(self):
+        """
+        Initializes a QTreeEnhanced object.
+        """
         super().__init__()
         self.setDragDropMode(ui_qt.QtLib.DragDropMode.InternalMove)  # Drag and Drop enabled
         self.drop_callback = None
@@ -113,6 +116,17 @@ class QTreeEnhanced(ui_qt.QtWidgets.QTreeWidget):
         all_items = []
 
         def traverse_items(item):
+            """
+            Recursively traverses a tree of items and appends each to a global list.
+
+            This function assumes the provided `item` has a `childCount()` method and
+            a `child(index)` method to access its children. Each item is added to the
+            global `all_items` list.
+
+            Args:
+                item: The root item to start traversal from. It must support childCount()
+                      and child(index) methods, such as a QTreeWidgetItem.
+            """
             all_items.append(item)
             for index in range(item.childCount()):
                 traverse_items(item.child(index))
@@ -168,7 +182,14 @@ class QTreeEnhanced(ui_qt.QtWidgets.QTreeWidget):
 
     def one_root_mode_drop_event(self, event):
         """
-        Event called when running one root mode. It
+        Handles the drop event when operating in one-root mode.
+
+        Ensures that only one top-level root item exists in the tree. If an item
+        is dropped outside the current root, it is re-parented back under the
+        single root item.
+
+        Args:
+            event: The QDropEvent instance triggered by the drop operation.
         """
         dragged_item = self.currentItem()
         root_item = None
@@ -191,7 +212,7 @@ class QTreeEnhanced(ui_qt.QtWidgets.QTreeWidget):
             *args: Variable-length positional arguments.
             **kwargs: Variable-length keyword arguments.
         Returns:
-            any: The output of the drop callback function.
+            Any: The output of the drop callback function.
         """
         if self.drop_callback:
             return self.drop_callback(*args, **kwargs)
@@ -199,6 +220,11 @@ class QTreeEnhanced(ui_qt.QtWidgets.QTreeWidget):
 
 class QTreeItemEnhanced(ui_qt.QtWidgets.QTreeWidgetItem):
     def __init__(self, parent=None):
+        """
+        Initialize a QTreeItemEnhanced object.
+        Args:
+            parent: A parent for the QTreeItemEnhanced object.
+        """
         super().__init__(parent)
 
         self.drop_callback = None

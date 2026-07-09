@@ -51,14 +51,14 @@ class TestSessionCore(unittest.TestCase):
         result = core_session.is_maya_standalone_initialized()
         self.assertEqual(expected, result)
 
-    @patch('importlib.import_module')
-    @patch('inspect.getfile')
-    @patch('gt.core.session.print_when_true')
+    @patch("importlib.import_module")
+    @patch("inspect.getfile")
+    @patch("gt.core.session.print_when_true")
     def test_successful_import(self, mock_print_when_true, mock_getfile, mock_import_module):
         # Arrange
-        module_name = 'example_module'
+        module_name = "example_module"
         mock_import_module.return_value = MagicMock()
-        mock_getfile.return_value = '/path/to/module.py'
+        mock_getfile.return_value = "/path/to/module.py"
 
         # Act
         result = core_session.get_module_path(module_name, verbose=True)
@@ -66,14 +66,14 @@ class TestSessionCore(unittest.TestCase):
         # Assert
         mock_import_module.assert_called_once_with(module_name)
         mock_getfile.assert_called_once_with(mock_import_module.return_value)
-        mock_print_when_true.assert_called_once_with('/path/to/module.py', use_system_write=True, do_print=True)
-        self.assertEqual(result, '/path/to/module.py')
+        mock_print_when_true.assert_called_once_with("/path/to/module.py", use_system_write=True, do_print=True)
+        self.assertEqual(result, "/path/to/module.py")
 
-    @patch('importlib.import_module', side_effect=ImportError)
-    @patch('gt.core.feedback.print_when_true')
+    @patch("importlib.import_module", side_effect=ImportError)
+    @patch("gt.core.feedback.print_when_true")
     def test_import_error(self, mock_print_when_true, mock_import_module):
         # Arrange
-        module_name = 'non_existent_module'
+        module_name = "non_existent_module"
 
         # Act
         result = core_session.get_module_path(module_name, verbose=False)
@@ -82,12 +82,3 @@ class TestSessionCore(unittest.TestCase):
         mock_import_module.assert_called_once_with(module_name)
         mock_print_when_true.assert_not_called()
         self.assertIsNone(result)
-
-    # @patch('os.path.exists')
-    # @patch('gt.core.session.get_module_path')
-    # def test_get_loaded_package_module_paths(self, mocked_module_path, mocked_exists):
-    #     mocked_module_path.return_value = "Documents/gt-tools/gt/__init__.py"
-    #     mocked_exists.return_value = True
-    #     result = core_session.get_loaded_package_module_paths()
-    #     expected = ['Documents/gt-tools/gt/__init__.py', 'Documents/gt-tools/gt']
-    #     self.assertEqual(expected, result)

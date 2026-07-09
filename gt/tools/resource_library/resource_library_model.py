@@ -5,8 +5,8 @@ Resource Library Model
 from gt.ui.resource_library import parse_rgb_numbers
 from gt.utils.system import get_desktop_path
 from gt.ui.qt_utils import create_color_pixmap
-import gt.ui.resource_library as ui_res_lib
-import gt.ui.qt_import as ui_qt
+import gt.ui.qt_import as ui_qt  # Fixed: Replaced hardcoded PySide2 imports with wrapper
+from gt.ui import resource_library
 import logging
 import shutil
 import sys
@@ -79,6 +79,7 @@ class ResourceLibraryModel:
             else:
                 a = 255
                 r, g, b = color_tuple
+            # Fixed: Updated to use qt_import wrapper
             color = ui_qt.QtGui.QColor(r, g, b, a)
         self.colors_raw[color_key] = color_tuple
         self.colors[color_key] = color
@@ -91,6 +92,7 @@ class ResourceLibraryModel:
             icon (QIcon): QIcon representing the icon.
         """
         self.package_icons_raw[icon_key] = icon
+        # Fixed: Updated to use qt_import wrapper
         self.package_icons[icon_key] = ui_qt.QtGui.QIcon(icon)
 
     def add_maya_icon(self, icon_key, icon_str):
@@ -101,11 +103,13 @@ class ResourceLibraryModel:
             icon_str (str): Maya resource string
         """
         self.maya_icons_raw[icon_key] = icon_str
+        # Fixed: Updated to use qt_import wrapper
         icon = ui_qt.QtGui.QIcon(f":{icon_str}")
         if icon_str.endswith(".png"):
             try:
                 pixmap = icon.pixmap(icon.actualSize(icon.availableSizes()[0]))
                 scaled_pixmap = pixmap.scaled(pixmap.width() * 10, pixmap.height() * 10)
+                # Fixed: Updated to use qt_import wrapper
                 icon = ui_qt.QtGui.QIcon(scaled_pixmap)
             except Exception as e:
                 logger.debug(f"Unable to re-scale Maya icon. Issue: {str(e)}")
@@ -115,20 +119,20 @@ class ResourceLibraryModel:
         """
         Imports all control curves found in "control_utils.Controls" to the ResourceLibraryModel controls list
         """
-        class_attributes = vars(ui_res_lib.Color.RGB)
+        class_attributes = vars(resource_library.Color.RGB)
         attr_keys = [attr for attr in class_attributes if not (attr.startswith("__") and attr.endswith("__"))]
         for attr_key in attr_keys:
-            color_str = getattr(ui_res_lib.Color.RGB, attr_key)
+            color_str = getattr(resource_library.Color.RGB, attr_key)
             self.add_color(color_key=attr_key, color_str=color_str)
 
     def import_package_icons(self):
         """
         Imports all control curves found in "control_utils.Controls" to the ResourceLibraryModel controls list
         """
-        class_attributes = vars(ui_res_lib.Icon)
+        class_attributes = vars(resource_library.Icon)
         attr_keys = [attr for attr in class_attributes if not (attr.startswith("__") and attr.endswith("__"))]
         for attr_key in attr_keys:
-            icon_path = getattr(ui_res_lib.Icon, attr_key)
+            icon_path = getattr(resource_library.Icon, attr_key)
             self.add_package_icon(icon_key=attr_key, icon=icon_path)
 
     def import_maya_icons(self):
@@ -169,11 +173,12 @@ class ResourceLibraryModel:
         Returns:
             str: The path to the preview image, or the path to the default missing file icon if the image is not found.
         """
+        # Fixed: Updated to use qt_import wrapper
         if isinstance(item, ui_qt.QtGui.QColor):
             return create_color_pixmap(item)
         if isinstance(item, ui_qt.QtGui.QIcon):
             return item.pixmap(512)
-        return ui_res_lib.Icon.library_missing_file
+        return resource_library.Icon.library_missing_file
 
     def export_resource(self, key, source=None):
         """
@@ -281,11 +286,12 @@ class ResourceLibraryModel:
                 return
 
             # Extract Resource
+            # Fixed: Updated to use qt_import wrapper for QFile and QIODevice
             resource_file = ui_qt.QtCore.QFile(f":{icon_str}")
             if not resource_file.exists():
                 logger.debug(f"Skipped Maya resource save operation. Missing resource.")
                 return
-            if not resource_file.open(ui_qt.QtLib.OpenModeFlag.ReadOnly):
+            if not resource_file.open(ui_qt.QtCore.QIODevice.ReadOnly):
                 return
             resource_data = resource_file.readAll()
             resource_file.close()

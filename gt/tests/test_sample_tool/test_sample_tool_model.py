@@ -1,7 +1,9 @@
-import unittest
 import logging
-import sys
 import os
+import shutil
+import sys
+import tempfile
+import unittest
 
 # Logging Setup
 logging.basicConfig()
@@ -20,35 +22,33 @@ from gt.tools.sample_tool import sample_model
 
 class TestSampleToolModel(unittest.TestCase):
     def setUp(self):
+        self.temp_dir = tempfile.mkdtemp(prefix="gt_sample_tool_test_")
         self.model = sample_model.SampleToolModel()
 
-    def test_add_item(self):
-        # Test if an item is added correctly
-        self.model.add_item("Item 1")
-        self.assertEqual(["Item 1"], self.model.get_items())
+    def tearDown(self):
+        if os.path.isdir(self.temp_dir):
+            shutil.rmtree(self.temp_dir)
 
-        # Test if multiple items are added correctly
-        self.model.add_item("Item 2")
-        self.model.add_item("Item 3")
-        self.assertEqual(["Item 1", "Item 2", "Item 3"], self.model.get_items())
+    def test_save_text_to_file(self):
+        file_path = os.path.join(self.temp_dir, "sample.txt")
 
-    def test_remove_item(self):
-        # Test if removing an item at a valid index works correctly
-        self.model.add_item("Item 1")
-        self.model.add_item("Item 2")
-        self.model.add_item("Item 3")
+        result = self.model.save_text_to_file("Hello Sample Tool", file_path)
 
-        self.model.remove_item(1)
-        self.assertEqual(["Item 1", "Item 3"], self.model.get_items())
+        expected = True
+        self.assertEqual(expected, result)
+        with open(file_path, "r", encoding="utf-8") as saved_file:
+            result = saved_file.read()
+        expected = "Hello Sample Tool"
+        self.assertEqual(expected, result)
 
-    def test_get_items(self):
-        # Test if the get_items method returns an empty list initially
-        self.assertEqual([], self.model.get_items())
+    def test_save_text_to_file_fails_for_missing_directory(self):
+        file_path = os.path.join(self.temp_dir, "missing", "sample.txt")
 
-        # Test if the get_items method returns the correct list of items
-        self.model.add_item("Item 1")
-        self.model.add_item("Item 2")
-        self.model.add_item("Item 3")
+        result = self.model.save_text_to_file("Hello Sample Tool", file_path)
 
-        self.assertEqual(["Item 1", "Item 2", "Item 3"], self.model.get_items())
+        expected = False
+        self.assertEqual(expected, result)
 
+
+if __name__ == "__main__":
+    unittest.main()

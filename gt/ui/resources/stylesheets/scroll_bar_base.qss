@@ -1,7 +1,10 @@
 QScrollBar:vertical {
 	background-color: @scrollbar_background;
 	width: @scrollbar_size;
+	height: @scrollbar_size;
 	margin: 0px;
+	border: none;
+    padding: 0px;
 }
 
 QScrollBar::handle:vertical {
@@ -10,14 +13,20 @@ QScrollBar::handle:vertical {
 	min-height: 20;
 	margin-top: @sub_control_size;
     margin-bottom: @sub_control_size;
+	border: none;
+    padding: 0px;
 }
 
 QScrollBar::handle:vertical:hover {
 	background-color: @scrollbar_handle;
+	border: none;
+    padding: 0px;
 }
 
 QScrollBar::handle:vertical:pressed {
 	background-color: @scrollbar_handle_pressed;
+	border: none;
+    padding: 0px;
 }
 
 QScrollBar::add-line:vertical,
@@ -25,6 +34,7 @@ QScrollBar::sub-line:vertical {
 	background-color: @scrollbar_line_background;
 	subcontrol-origin: margin;
 	subcontrol-position: top;
+	width: @sub_control_size;
 	height: @sub_control_size;
 	border-radius: 7px;
 }
@@ -63,6 +73,8 @@ QScrollBar::add-page:vertical,
 QScrollBar::sub-page:vertical {
 	background-color: transparent;
 }
+
+
 
 /* Horizontal Scrollbar */
 

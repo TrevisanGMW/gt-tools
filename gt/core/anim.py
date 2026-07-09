@@ -534,28 +534,97 @@ def import_double_keys_from_directory(
     return counter
 
 
+def ripple_delete_keyframes(start_frame, end_frame, nodes=None, tolerance=0.5, snap_keys=False):
+    """
+    Deletes keyframes within a specified time range and shifts subsequent keyframes
+    backward to close the gap. Includes sub-frame handling for baked/mocap data.
+
+    Args:
+        start_frame (int or float): The exact whole frame where deletion should begin.
+        end_frame (int or float): The exact whole frame where deletion should end.
+        nodes (list of str, optional): The Maya elements to process. Defaults to selection.
+        tolerance (float, optional): A decimal buffer to catch sub-frames. Defaults to 0.5.
+            For example, a tolerance of 0.5 expands the range to catch anything from
+            0.5 frames before the start to 0.5 frames after the end.
+        snap_keys (bool, optional): If True, forces all keyframes on the nodes to snap
+            to exact whole numbers before processing. Defaults to False.
+
+    Returns:
+        bool: True if the operation was successful, False if no nodes were processed.
+
+    Raises:
+        ValueError: If start_frame is greater than or equal to end_frame.
+    """
+    if start_frame >= end_frame:
+        raise ValueError("start_frame must be strictly less than end_frame.")
+
+    # Default to current selection if no specific nodes are provided
+    if nodes is None:
+        nodes = cmds.ls(selection=True)
+
+    if not nodes:
+        cmds.warning("No elements selected or provided to ripple delete keyframes.")
+        return False
+
+    # OPTION 1: Clean up the data first by snapping everything to whole frames
+    if snap_keys:
+        # The ":" syntax means "all time" in Maya's time range formatting
+        cmds.snapKey(nodes, time=(":", ":"))
+
+    # OPTION 2: Calculate safe bounds using the tolerance variable to catch sub-frames
+    # If start_frame is 1 and tolerance is 0.5, it grabs from 0.5 onward (protecting 0.0)
+    # If end_frame is 256 and tolerance is 0.5, it grabs up to 256.5 (catching 256's sub-frames)
+    safe_start = start_frame - tolerance
+    safe_end = end_frame + tolerance
+
+    # 1. Delete all keyframes within the buffered range
+    cmds.cutKey(nodes, time=(safe_start, safe_end), clear=True)
+
+    # 2. Calculate the shift amount using the exact whole frames (to keep timing clean)
+    shift_amount = start_frame - end_frame
+
+    # 3. Shift all keyframes that come AFTER the buffered range
+    upper_bound = 99999999
+
+    cmds.keyframe(
+        nodes,
+        edit=True,
+        relative=True,
+        timeChange=shift_amount,
+        time=(safe_end + 0.001, upper_bound)
+    )
+
+    print(
+        f"Successfully removed frames {safe_start} to {safe_end} and shifted subsequent keys by {shift_amount} frames.")
+    return True
+
+
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint
 
-    out = None
-    # out = delete_time_keyframes()
-    print("#" * 80)
-    out = get_double_keyframes()
-    import gt.utils.system as utils_sys
-
-    test_path = os.path.join(utils_sys.get_desktop_path(), f"test_dir")
-    exported_count = export_double_keys_to_directory(["pSphere1"], test_path)
-    print(exported_count)
-    delete_double_keyframes()
-    import_double_keys_from_directory(test_path)
-    # print(out)
-    # dkey1 = DoubleKeyframe("animCurveUA1")
-    # dkey2 = DoubleKeyframe("pSphere1_rotateX")
+    # out = None
+    # # out = delete_time_keyframes()
+    # print("#" * 80)
+    # out = get_double_keyframes()
+    # import gt.utils.system as utils_sys
+    #
+    # test_path = os.path.join(utils_sys.get_desktop_path(), f"test_dir")
+    # exported_count = export_double_keys_to_directory(["pSphere1"], test_path)
+    # print(exported_count)
     # delete_double_keyframes()
-    # dkey1.apply()
-    # dkey2.apply()
-    # pprint(dkey.get_keyframe_data())
-    # extract_driven_key_data(out)
+    # import_double_keys_from_directory(test_path)
+    # # print(out)
+    # # dkey1 = DoubleKeyframe("animCurveUA1")
+    # # dkey2 = DoubleKeyframe("pSphere1_rotateX")
+    # # delete_double_keyframes()
+    # # dkey1.apply()
+    # # dkey2.apply()
+    # # pprint(dkey.get_keyframe_data())
+    # # extract_driven_key_data(out)
+    #
+    # # pprint(out)
 
-    # pprint(out)
+    ripple_delete_keyframes(0.2, 256, tolerance=0.1)

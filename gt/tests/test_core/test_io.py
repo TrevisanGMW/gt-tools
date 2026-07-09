@@ -224,7 +224,7 @@ class TestDataIOCore(unittest.TestCase):
         zip_file_path = os.path.join(maya_test_tools.get_data_dir_path(), "zip_file.zip")
         core_io.unzip_zip_file(zip_file_path, extract_path, progress_callback)
 
-    def test_delete_files(self):
+    def test_delete_paths(self):
         # Create temporary files
         file1 = os.path.join(self.temp_dir, "test_file1.txt")
         file2 = os.path.join(self.temp_dir, "test_file2.txt")
@@ -238,6 +238,36 @@ class TestDataIOCore(unittest.TestCase):
 
         self.assertTrue(result)
         self.assertFalse(os.path.exists(file1))
+        self.assertFalse(os.path.exists(file2))
+
+    def test_delete_dir_files(self):
+        # Create temporary files
+        file1 = os.path.join(self.temp_dir, "test_file1.txt")
+        file2 = os.path.join(self.temp_dir, "test_file2.txt")
+        with open(file1, "w") as f1, open(file2, "w") as f2:
+            f1.write("Test content")
+            f2.write("Test content")
+
+        result = core_io.delete_dir_files(self.temp_dir)
+        expected = [file1, file2]
+
+        self.assertEqual(expected, result)
+        self.assertFalse(os.path.exists(file1))
+        self.assertFalse(os.path.exists(file2))
+
+    def test_delete_dir_files_filter(self):
+        # Create temporary files
+        file1 = os.path.join(self.temp_dir, "test_file1.txt")
+        file2 = os.path.join(self.temp_dir, "test_file2.json")
+        with open(file1, "w") as f1, open(file2, "w") as f2:
+            f1.write("Test content")
+            f2.write("Test content")
+
+        result = core_io.delete_dir_files(self.temp_dir, file_extension=".json")
+        expected = [file2]
+
+        self.assertEqual(expected, result)
+        self.assertTrue(os.path.exists(file1))
         self.assertFalse(os.path.exists(file2))
 
     def test_delete_files_string(self):
@@ -373,3 +403,117 @@ class TestDataIOCore(unittest.TestCase):
         expected = True
         result = core_io.is_json_serializable(["list", {"key": "value"}])
         self.assertEqual(expected, result)
+
+    @patch("sys.stdout.write")
+    @patch("pathlib.Path.exists")
+    @patch("pathlib.Path.is_dir")
+    @patch("pathlib.Path.rglob")
+    @patch("shutil.copy2")
+    def test_copy_directory_source_does_not_exist(self, mock_copy2, mock_rglob, mock_is_dir, mock_exists, mock_write):
+        # Setup
+        mock_exists.return_value = False  # Source does not exist
+        mock_is_dir.return_value = False
+        source_path = "/mocked_source"
+        target_path = "/mocked_target"
+
+        # Call the function
+        core_io.copy_directory(source_path, target_path, verbose=True)
+
+        # Test that the appropriate message is printed when the source directory doesn't exist
+        mock_write.assert_called_with(f"Source path '{source_path}' does not exist or is not a directory.")
+        mock_copy2.assert_not_called()  # No copying should happen
+
+    def test_copy_directory_successful_copy_files(self):
+
+        source_path = os.path.join(self.temp_dir, "source_copy_dir")
+        target_path = os.path.join(self.temp_dir, "target_copy_dir")
+
+        file_list = sorted(["one", "two", "three", "four", "five"])
+
+        if not os.path.exists(source_path):
+            os.makedirs(source_path)
+        if not os.path.exists(target_path):
+            os.makedirs(target_path)
+
+        for file_name in file_list:
+            open(os.path.join(source_path, file_name), "w").close()
+
+        self.assertEqual(file_list, sorted(os.listdir(source_path)))
+
+        core_io.copy_directory(source_path, target_path, verbose=False)
+
+        self.assertEqual(file_list, sorted(os.listdir(target_path)))
+
+        target_content_long = [os.path.join(target_path, item) for item in os.listdir(target_path)]
+        for target in target_content_long:
+            self.assertTrue(os.path.exists(target), f"Missing target file: {target}")
+
+    def test_copy_directory_successful_copy_files_and_folders(self):
+
+        source_path = os.path.join(self.temp_dir, "source_copy_dir")
+        target_path = os.path.join(self.temp_dir, "target_copy_dir")
+
+        file_list = sorted(["file_one", "file_two", "file_three", "file_four", "file_five"])
+        dir_list = sorted(["folder_one", "folder_two", "folder_three", "folder_four", "folder_five"])
+        content_list = file_list + dir_list
+
+        if not os.path.exists(source_path):
+            os.makedirs(source_path)
+        if not os.path.exists(target_path):
+            os.makedirs(target_path)
+
+        for file_name in file_list:
+            open(os.path.join(source_path, file_name), "w").close()
+        for dir_name in dir_list:
+            _dir_path = os.path.join(source_path, dir_name)
+            if not os.path.exists(_dir_path):
+                os.makedirs(_dir_path)
+
+        self.assertEqual(content_list, sorted(os.listdir(source_path)))
+
+        core_io.copy_directory(source_path, target_path, verbose=False)
+
+        self.assertEqual(content_list, sorted(os.listdir(target_path)))
+
+        target_content_long = [os.path.join(target_path, item) for item in os.listdir(target_path)]
+        for target in target_content_long:
+            self.assertTrue(os.path.exists(target), f"Missing target file: {target}")
+
+    def test_copy_directory_successful_copy_sub_folder(self):
+
+        source_path = os.path.join(self.temp_dir, "source_copy_dir")
+        target_path = os.path.join(self.temp_dir, "target_copy_dir")
+
+        file_list = sorted(["file_one", "file_two", "file_three", "file_four", "file_five"])
+        dir_list = sorted(["folder_one", "folder_two", "folder_three", "folder_four", "folder_five"])
+
+        if not os.path.exists(source_path):
+            os.makedirs(source_path)
+        if not os.path.exists(target_path):
+            os.makedirs(target_path)
+        for dir_name in dir_list:
+            _dir_path = os.path.join(source_path, dir_name)
+            if not os.path.exists(_dir_path):
+                os.makedirs(_dir_path)
+        # Create Sub-folder
+        source_sub_path = os.path.join(source_path, dir_list[0])
+        source_sub_path = os.path.join(source_sub_path, "sub_one")
+        target_sub_path = os.path.join(target_path, dir_list[0])
+        target_sub_path = os.path.join(target_sub_path, "sub_one")
+        if not os.path.exists(source_sub_path):
+            os.makedirs(source_sub_path)
+        # Add files to sub-folder one
+        for file_name in file_list:
+            open(os.path.join(source_sub_path, file_name), "w").close()
+
+        self.assertEqual(dir_list, sorted(os.listdir(source_path)))
+        self.assertEqual(file_list, sorted(os.listdir(source_sub_path)))
+
+        core_io.copy_directory(source_path, target_path, verbose=False)
+
+        self.assertEqual(dir_list, sorted(os.listdir(target_path)))
+        self.assertEqual(file_list, sorted(os.listdir(target_sub_path)))
+
+        target_content_long = [os.path.join(target_sub_path, item) for item in os.listdir(target_sub_path)]
+        for target in target_content_long:
+            self.assertTrue(os.path.exists(target), f"Missing target file: {target}")

@@ -1,4 +1,5 @@
-import gt.ui.qt_import as ui_qt
+import gt.ui.qt_import as QApplication
+
 import unittest
 import logging
 import sys
@@ -22,9 +23,9 @@ from gt.ui.input_window_text import InputWindowText
 class TestInputWindowText(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        app = ui_qt.QtWidgets.QApplication.instance()
+        app = QApplication.instance()
         if not app:
-            cls.app = ui_qt.QtWidgets.QApplication(sys.argv)
+            cls.app = QApplication(sys.argv)
 
     def setUp(self):
         self.window = InputWindowText()
