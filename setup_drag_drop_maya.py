@@ -52,6 +52,6 @@ if len(sys.argv) > 1:
     try:
         from gt.utils import system
 
-        system.process_launch_options(sys.argv)
+        system.process_launch_args(sys.argv)
     except Exception as e:
         sys.stdout.write("Failed to process launch option. Issue: " + str(e))
