@@ -4,13 +4,12 @@ Curve Library Controller
 This module contains the CurveLibraryController class responsible for managing interactions between the
 CurveLibraryModel and the user interface.
 """
-
-import gt.ui.input_window_text as ui_input_window_text
-import gt.ui.resource_library as ui_res_lib
-import gt.core.iterable as core_iter
+from gt.ui.input_window_text import InputWindowText
 import gt.core.prefs as core_prefs
+from gt.ui import resource_library
 import gt.ui.qt_import as ui_qt
 from functools import partial
+from gt.core import iterable
 import logging
 import sys
 import os
@@ -39,7 +38,7 @@ class CurveLibraryController:
         self.view.controller = self
         # Preferences
         self.preferences = core_prefs.Prefs("curve_library")
-        self.preferences.set_user_files_sub_folder("user_curves")
+        self.preferences.set_user_files_sub_folder("curve_library_user")
         user_curves_dir = self.preferences.get_user_files_dir_path(create_if_missing=False)
         self.model.import_user_curve_library(source_dir=user_curves_dir)
         # Connections
@@ -128,7 +127,9 @@ class CurveLibraryController:
 
     def select_item_by_name(self, item_name):
         """
-        Selects item based on its name
+        Selects an item in the list by its name.
+        Args:
+            item_name (str): The name of the item to select.
         Returns:
             bool: True if item was found and selected. False if item with given name was not found.
         """
@@ -137,7 +138,7 @@ class CurveLibraryController:
             item = list_widget.item(index)
             if item.text() == item_name:
                 item.setSelected(True)
-                list_widget.scrollToItem(item, ui_qt.QtLib.ScrollHint.PositionAtCenter)
+                list_widget.scrollToItem(item, ui_qt.QtWidgets.QAbstractItemView.PositionAtCenter)
                 self.view.item_list.setCurrentItem(item)
                 self.on_item_selection_changed()
                 return True
@@ -153,9 +154,9 @@ class CurveLibraryController:
         base_curves = self.model.get_base_curves()
         control_curves = self.model.get_controls()
         user_curves = self.model.get_user_curves()
-        icon_base_crv = ui_qt.QtGui.QIcon(ui_res_lib.Icon.curve_library_base_curve)
-        icon_control = ui_qt.QtGui.QIcon(ui_res_lib.Icon.curve_library_control)
-        icon_user_crv = ui_qt.QtGui.QIcon(ui_res_lib.Icon.curve_library_user_curve)
+        icon_base_crv = ui_qt.QtGui.QIcon(resource_library.Icon.curve_library_base_curve)
+        icon_control = ui_qt.QtGui.QIcon(resource_library.Icon.curve_library_control)
+        icon_user_crv = ui_qt.QtGui.QIcon(resource_library.Icon.curve_library_user_curve)
         for crv in base_curves:
             if filter_str and filter_str not in crv.get_name():
                 continue
@@ -190,18 +191,18 @@ class CurveLibraryController:
         if not isinstance(control, Control):
             logger.warning(f'Unable to edit parameters. Selected item is not of the type "Control."')
             return
-        param_win = ui_input_window_text.InputWindowText(
+        param_win = InputWindowText(
             parent=self.view,
             message=control.get_docstrings(),
             window_title=f'Parameters for "{item_name}"',
-            image=ui_res_lib.Icon.curve_library_control,
-            window_icon=ui_res_lib.Icon.library_parameters,
+            image=resource_library.Icon.curve_library_control,
+            window_icon=resource_library.Icon.library_parameters,
             image_scale_pct=10,
             is_python_code=True,
         )
         param_win.set_confirm_button_text("Build")
         if isinstance(parameters, dict):
-            formatted_dict = core_iter.dict_as_formatted_str(parameters, one_key_per_line=True)
+            formatted_dict = iterable.dict_as_formatted_str(parameters, one_key_per_line=True)
         elif isinstance(parameters, str):
             formatted_dict = parameters
         param_win.set_text_field_text(formatted_dict)
@@ -242,11 +243,11 @@ class CurveLibraryController:
             None,
             f'Curve: "{curve.get_name()}"',
             f'Are you sure you want to delete curve "{curve_name}"?',
-            ui_qt.QtLib.StandardButton.Yes | ui_qt.QtLib.StandardButton.No,
-            ui_qt.QtLib.StandardButton.No,
+            ui_qt.QtWidgets.QMessageBox.Yes | ui_qt.QtWidgets.QMessageBox.No,
+            ui_qt.QtWidgets.QMessageBox.No,
         )
 
-        if user_choice == ui_qt.QtLib.StandardButton.Yes:
+        if user_choice == ui_qt.QtWidgets.QMessageBox.Yes:
             path_dir = self.preferences.get_user_files_dir_path()
             path_file = os.path.join(path_dir, f"{curve_name}.crv")
             path_preview_image = os.path.join(path_dir, f"{curve_name}.jpg")
@@ -292,7 +293,7 @@ class CurveLibraryController:
         if os.path.exists(preview_image):
             return preview_image
         else:
-            return ui_res_lib.Icon.library_missing_file
+            return resource_library.Icon.library_missing_file
 
 
 if __name__ == "__main__":
