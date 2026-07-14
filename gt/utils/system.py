@@ -1092,8 +1092,8 @@ def resolve_path(primary_path=None, parent_depth=0, append_path="", append_to_pr
         str: The resolved path, either the valid primary path or a relative fallback.
 
     Examples:
-        resolve_path("R:/DccTools/maya/external")
-        'R:/DccTools/maya/external'  # if exists
+        resolve_path("Z:/Tools/maya/external")
+        'Z:/Tools/maya/external'  # if exists
 
         resolve_path(None, parent_depth=1, append_path="maya/external")
         '.../<parent_of_current_folder>/maya/external'
