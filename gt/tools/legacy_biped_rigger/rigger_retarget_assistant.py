@@ -50,7 +50,7 @@ Added unnecessary finger control connections to deletion step (after baking)
 
 """
 
-import gt.tools.biped_rigger_legacy.biped_rig_interface as tools_biped_rigger_switcher
+import gt.tools.legacy_biped_rigger.biped_rig_interface as tools_biped_rigger_switcher
 from maya import OpenMayaUI as OpenMayaUI
 from maya.api.OpenMaya import MVector
 from collections import namedtuple

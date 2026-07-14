@@ -51,11 +51,11 @@
 
 import gt.ui.qt_import as ui_qt
 from maya import OpenMayaUI
-from gt.tools.biped_rigger_legacy.rigger_biped_logic import *
-from gt.tools.biped_rigger_legacy.rigger_data import *
+from gt.tools.legacy_biped_rigger.rigger_biped_logic import *
+from gt.tools.legacy_biped_rigger.rigger_data import *
 import gt.ui.resource_library as ui_res_lib
-from gt.tools.biped_rigger_legacy import rigger_corrective_logic
-from gt.tools.biped_rigger_legacy import rigger_facial_logic
+from gt.tools.legacy_biped_rigger import rigger_corrective_logic
+from gt.tools.legacy_biped_rigger import rigger_facial_logic
 import maya.cmds as cmds
 import maya.mel as mel
 import logging
@@ -2904,7 +2904,7 @@ def rebuild_rig():
     """
     A button call for rig rebuild (Temporary)
     """
-    from tools.biped_rigger_legacy import rigger_rebuild
+    from gt.tools.legacy_biped_rigger import rigger_rebuild
 
     rigger_rebuild.validate_rebuild()
 

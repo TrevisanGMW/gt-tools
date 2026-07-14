@@ -60,8 +60,8 @@
 
 """
 from collections import namedtuple
-from gt.tools.biped_rigger_legacy.rigger_utilities import *
-from gt.tools.biped_rigger_legacy.rigger_data import *
+from gt.tools.legacy_biped_rigger.rigger_utilities import *
+from gt.tools.legacy_biped_rigger.rigger_data import *
 import maya.cmds as cmds
 
 
