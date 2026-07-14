@@ -70,6 +70,30 @@ HIK_CHARACTERIZE_KEYS = (
     "LeafLeftArmRoll5", "LeafLeftForeArmRoll5", "LeafRightArmRoll5", "LeafRightForeArmRoll5"
 )
 
+HIK_PROPERTY_NODE_TYPE = "HIKProperty2State"
+HIK_PROPERTY_EXCLUDED_ATTRIBUTES = {
+    "message",
+    "caching",
+    "frozen",
+    "isHistoricallyInteresting",
+    "nodeState",
+    "binMembership",
+    "OutputPropertySetState",
+}
+HIK_PROPERTY_SUPPORTED_TYPES = {
+    "bool",
+    "byte",
+    "char",
+    "short",
+    "long",
+    "enum",
+    "float",
+    "double",
+    "doubleAngle",
+    "doubleLinear",
+    "string",
+}
+
 
 def _source_mel_procedure(proc_name):
     """
@@ -128,6 +152,124 @@ def get_hik_characters():
         list: A list of HIKCharacterNode names.
     """
     return cmds.ls(type="HIKCharacterNode") or []
+
+
+def get_hik_property_node(character_node, create_if_missing=False):
+    """Gets the property-state node associated with a HumanIK character.
+
+    Args:
+        character_node (str): HumanIK character node.
+        create_if_missing (bool, optional): Create and connect a property node
+            when the character does not already have one.
+
+    Returns:
+        str: HIKProperty2State node, or an empty string when unavailable.
+    """
+    if not cmds.objExists(character_node) or cmds.nodeType(character_node) != "HIKCharacterNode":
+        logger.warning(f'Invalid HumanIK character node: "{character_node}".')
+        return ""
+    property_plug = f"{character_node}.propertyState"
+    property_nodes = cmds.listConnections(
+        property_plug,
+        source=True,
+        destination=False,
+        type=HIK_PROPERTY_NODE_TYPE,
+    ) or []
+    if not property_nodes:
+        property_nodes = cmds.listConnections(
+            character_node,
+            source=True,
+            destination=True,
+            type=HIK_PROPERTY_NODE_TYPE,
+        ) or []
+    if property_nodes:
+        return property_nodes[0]
+    if not create_if_missing:
+        return ""
+
+    property_name = f"{character_node.rpartition(':')[-1]}_properties"
+    property_node = cmds.createNode(HIK_PROPERTY_NODE_TYPE, name=property_name)
+    cmds.connectAttr(f"{property_node}.OutputPropertySetState", property_plug, force=True)
+    logger.info(f'Created HumanIK property node "{property_node}" for "{character_node}".')
+    return property_node
+
+
+def get_hik_properties(character_node):
+    """Gets serializable retarget properties for a HumanIK character.
+
+    Args:
+        character_node (str): HumanIK character node.
+
+    Returns:
+        dict: Writable HumanIK property names and values.
+    """
+    property_node = get_hik_property_node(character_node)
+    if not property_node:
+        logger.warning(f'No HumanIK property node found for "{character_node}".')
+        return {}
+    properties = {}
+    for attribute_name in cmds.listAttr(property_node, settable=True) or []:
+        if attribute_name in HIK_PROPERTY_EXCLUDED_ATTRIBUTES:
+            continue
+        plug = f"{property_node}.{attribute_name}"
+        try:
+            attribute_type = cmds.getAttr(plug, type=True)
+            if attribute_type not in HIK_PROPERTY_SUPPORTED_TYPES:
+                continue
+            value = cmds.getAttr(plug)
+            if value is not None:
+                properties[attribute_name] = value
+        except Exception as exception:
+            logger.debug(f'Unable to read HumanIK property "{plug}". Issue: {exception}')
+    return properties
+
+
+def set_hik_properties(character_node, properties, create_if_missing=False):
+    """Sets retarget properties on a HumanIK character.
+
+    Unknown, locked, connected, and unsupported properties are skipped so data
+    exported by a different Maya version can still be applied safely.
+
+    Args:
+        character_node (str): HumanIK character node.
+        properties (dict): Property names mapped to JSON-compatible values.
+        create_if_missing (bool, optional): Create the HIK property node when absent.
+
+    Returns:
+        dict: Property names and values successfully applied.
+    """
+    if not isinstance(properties, dict):
+        logger.warning("HumanIK properties must be provided as a dictionary.")
+        return {}
+    property_node = get_hik_property_node(character_node, create_if_missing=create_if_missing)
+    if not property_node:
+        logger.warning(f'No HumanIK property node found for "{character_node}".')
+        return {}
+    applied_properties = {}
+    for attribute_name, value in properties.items():
+        if attribute_name in HIK_PROPERTY_EXCLUDED_ATTRIBUTES:
+            continue
+        if not cmds.attributeQuery(attribute_name, node=property_node, exists=True):
+            logger.debug(f'Unknown HumanIK property skipped: "{attribute_name}".')
+            continue
+        plug = f"{property_node}.{attribute_name}"
+        try:
+            attribute_type = cmds.getAttr(plug, type=True)
+            if attribute_type not in HIK_PROPERTY_SUPPORTED_TYPES or not cmds.getAttr(plug, settable=True):
+                continue
+            if attribute_type == "string":
+                cmds.setAttr(plug, "" if value is None else str(value), type="string")
+            else:
+                cmds.setAttr(plug, value)
+            applied_properties[attribute_name] = cmds.getAttr(plug)
+        except Exception as exception:
+            logger.warning(f'Unable to set HumanIK property "{plug}". Issue: {exception}')
+    try:
+        cmds.dgdirty(property_node)
+        cmds.refresh(force=True)
+    except Exception:
+        pass
+    return applied_properties
 
 
 def create_definition(character_name="Character"):
@@ -651,4 +793,3 @@ def bake_to_control_rig(character_node):
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    
