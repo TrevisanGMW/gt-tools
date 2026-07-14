@@ -365,7 +365,7 @@ def rom_create_biped_definition_with_long_skin_tester(target_path, add_fingers=T
     """
     biped_definition = create_biped_definition(add_fingers=add_fingers)
     # Define Source File
-    source_file = r"R:\DccTools\maya\external\assets\retargeter_references\rom_skin_tester_01.fbx"
+    source_file = r"Z:\maya\external\assets\retargeter_references\rom_skin_tester_01.fbx"
     biped_definition.set_source_path(source_file)
     # Define Target File
     biped_definition.set_target_path(target_path)

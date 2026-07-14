@@ -35,7 +35,7 @@ class ModulePickerData(tools_rig_frm.ModuleGeneric):
         super().__init__(name=name, prefix=prefix, suffix=suffix)
         self.set_extra_callable_function(self.add_picker_data, order=tools_rig_frm.CodeData.Order.post_build)
 
-        self.pickers = [r"{pipeline-assets-dir}\control_pickers\standard_humanoid_body.json"]
+        self.pickers = [r"{project-dir}\control_pickers\standard_humanoid_body.json"]
 
     def add_picker_data(self):
         """Adds control picker data to the rig"""

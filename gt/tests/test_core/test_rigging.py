@@ -8,10 +8,6 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-# Import External Sdks
-fbx_sdk_directory = os.path.join("R:/DccTools/maya/external/sdks/fbx")
-sys.path.append(fbx_sdk_directory)
-
 # Import Utility and Maya Test Tools
 test_utils_dir = os.path.dirname(__file__)
 tests_dir = os.path.dirname(test_utils_dir)
