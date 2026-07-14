@@ -4079,30 +4079,6 @@ class RigProject:
             cmds.select(clear=True)
 
 
-def build_environment_key(variable_name):
-    """Builds a brace-style environment variable key.
-
-    Args:
-        variable_name (str): Uppercase or snake-case variable name.
-
-    Returns:
-        str: Brace-style environment variable key.
-    """
-    return "{{{0}}}".format(str(variable_name).lower().replace("_", "-"))
-
-
-def get_pipeline_environment_variables():
-    """Gets pipeline path variables using brace-style keys.
-
-    Returns:
-        dict: Pipeline environment variables.
-    """
-    variables = {}
-    for key, value in tools_rig_const.RiggerPipelinePaths.get_variables_dict().items():
-        variables[build_environment_key(key)] = value
-    return variables
-
-
 def get_environment_variables(rig_project=None):
     """
     Gets a dictionary where the keys are the variables and the values are the run-time determined paths.
@@ -4125,9 +4101,6 @@ def get_environment_variables(rig_project=None):
         "{hostname}": Name of the machine/host. (e.g. "My-PC")
         "{module-name}": Name of the module (Only available when called from a module, not this function)
         "{module-sanitized-name}": Sanitized name of module.
-        "{pipeline-assets-dir}": Path to the global "assets" directory.
-        "{pipeline-male-dir}": Path to the male character directory.
-        "{pipeline-female-dir}": Path to the female character directory.
     Args:
         rig_project (RigProject, optional): If a rig project is provided, user-defined variables will be available.
         For example, the "{project-dir}" is always empty when no project is available.
@@ -4172,7 +4145,6 @@ def get_environment_variables(rig_project=None):
     _test_module_path = inspect.getfile(test_auto_rigger)
     _tests_dir = os.path.dirname(_test_module_path)
     environment_vars_dict["{tests-data-dir}"] = os.path.join(_tests_dir, "data")
-    environment_vars_dict.update(get_pipeline_environment_variables())
     # Check Project Availability
     if rig_project is not None and isinstance(rig_project, RigProject):
         _project_dir_path = rig_project.get_project_dir_path()

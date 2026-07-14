@@ -5,11 +5,6 @@ Import Line:
     import gt.tools.auto_rigger.rig_constants as tools_rig_const
 """
 
-import gt.utils.system as utils_sys
-import pathlib
-import types
-
-
 class RiggerConstants:
     def __init__(self):
         """
@@ -125,58 +120,3 @@ class RiggerDriverTypes:
     AIM = "aim"  # e.g. eyes
     TWIST = "twist"  # Twist Joints
     LINE = "line"  # connection lines for the controls
-
-
-class RiggerPipelinePaths:
-    def __init__(self):
-        """
-        Constant global environment variables used by the auto rigging system.
-        """
-
-    # Assets Dir
-    _tools_dir = next((x for x in pathlib.Path(__file__).parents if x.stem.lower() == "dcctools"), "R:/DccTools")
-    _maya_dir = pathlib.Path(_tools_dir) / "maya"
-    PIPELINE_ASSETS_DIR = utils_sys.resolve_path(
-        primary_path=_maya_dir,
-        parent_depth=1,
-        append_path="external/assets",
-    )
-    # Playable Character Dirs
-    _shared_drive = r"R:/"
-    PIPELINE_MALE_DIR = utils_sys.resolve_path(
-        primary_path=_shared_drive,
-        parent_depth=1,
-        append_path="Rubicon/Plugins/GameFeatures/Game/Character/Common/Human/Bodies/Male",
-    )
-    PIPELINE_FEMALE_DIR = utils_sys.resolve_path(
-        primary_path=_shared_drive,
-        parent_depth=3,
-        append_path="Rubicon/Plugins/GameFeatures/Game/Character/Common/Human/Bodies/Female",
-    )
-
-    @classmethod
-    def get_variables_dict(cls, key_suffix=None):
-        """
-        Return all non-private class variables as a dictionary, ignoring functions.
-
-        Args:
-            key_suffix (str | None): Optional string to prepend to each key.
-
-        Returns:
-            dict: A dictionary where the keys are the variable names and the values are the variable values.
-        """
-        ignore_types = (
-            types.FunctionType,
-            types.MethodType,
-            classmethod,
-            staticmethod,
-        )
-        return {
-            (f"{key_suffix}{name}" if key_suffix else name): value
-            for name, value in cls.__dict__.items()
-            if not name.startswith("_") and not isinstance(value, ignore_types)
-        }
-
-
-if __name__ == "__main__":
-    print(RiggerPipelinePaths.get_variables_dict("$"))
