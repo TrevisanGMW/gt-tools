@@ -39,6 +39,7 @@ class TaskCompressZip(task_base.BatchTask):
             "archive_version_auto": False,
             "archive_version_padding": 2,
             "compression": "Deflated",
+            "run_once_after_multi_instance": False,
             "use_source_path_as_relative_root": True,
             "preserve_relative_paths": True,
             "relative_root": "",

@@ -45,9 +45,18 @@ def parse_args():
     parser.add_argument("--source-file", required=True, help="Source file assigned to this worker.")
     parser.add_argument("--run-from-task-id", default="", help="Optional task id to start from.")
     parser.add_argument("--run-to-task-id", default="", help="Optional task id to stop after.")
+    parser.add_argument(
+        "--skip-task-id",
+        action="append",
+        default=[],
+        help="Task id deferred to the tracker final phase.",
+    )
+    parser.add_argument("--final-task-id", default="", help="Run only this task using its discovered source path.")
     parser.add_argument("--worker-id", default="", help="Worker identifier for logs.")
     parser.add_argument("--total-jobs", default="1", help="Total job count for tracker messages.")
     parser.add_argument("--log-file", default="", help="Optional log file used while stdout remains visible.")
+    parser.add_argument("--task-time-log-file", default="", help="Optional separate task timing log file.")
+    parser.add_argument("--flag-running-tasks", action="store_true", help="Print concise running-task updates.")
     parser.add_argument("--flag-skipped-tasks", action="store_true", help="Print explicit skipped-task warnings.")
     parser.add_argument("--hold-open-seconds", type=float, default=0, help="Seconds to keep a worker console open.")
     return parser.parse_args()
@@ -68,28 +77,62 @@ def main():
     print("[INFO] - (worker) - Source file: {0}".format(args.source_file))
     project = batch_processor_model.BatchProcessorModel.from_file(args.project_file)
     runner = batch_processor_worker.SingleInstanceBatchRunner()
-    process_tasks = runner._trim_tasks(
-        project.get_enabled_tasks(),
-        args.run_from_task_id or None,
-        args.run_to_task_id or None,
-    )
+    if args.final_task_id:
+        final_task = project.get_task(args.final_task_id)
+        if not final_task or final_task.is_input_task or not final_task.enabled:
+            raise RuntimeError(f"Unable to resolve enabled final task: {args.final_task_id}")
+        process_tasks = [final_task]
+    else:
+        process_tasks = runner._trim_tasks(
+            project.get_enabled_tasks(),
+            args.run_from_task_id or None,
+            args.run_to_task_id or None,
+        )
+        skipped_task_ids = set(args.skip_task_id or [])
+        process_tasks = [task for task in process_tasks if task.id not in skipped_task_ids]
     executable_tasks = [task for task in process_tasks if not task.is_input_task]
     total_task_count = len(executable_tasks)
-    current_items = [
-        batch_processor_worker.create_initial_work_item(
+    if args.final_task_id:
+        current_items = discover_final_task_work_items(
             project=project,
-            source_file=args.source_file,
-            run_from_task_id=args.run_from_task_id or None,
+            task=executable_tasks[0],
+            batch_processor_worker=batch_processor_worker,
+            tasks=tasks,
         )
-    ]
+        tracker_file_name = executable_tasks[0].display_name
+        print(f"[INFO] - (worker) - Final task discovered {len(current_items)} source item(s).")
+    else:
+        current_items = [
+            batch_processor_worker.create_initial_work_item(
+                project=project,
+                source_file=args.source_file,
+                run_from_task_id=args.run_from_task_id or None,
+            )
+        ]
+        tracker_file_name = os.path.basename(args.source_file)
     failed = False
     skipped = 0
     succeeded = 0
     global_item_index = get_global_item_index(args.worker_id)
+    active_task = None
+    active_task_index = 0
+    active_task_started = None
+    task_timing_recorded = True
 
     try:
         for task_index, task in enumerate(executable_tasks, 1):
+            active_task = task
+            active_task_index = task_index
+            active_task_started = time.perf_counter()
+            task_timing_recorded = False
             remaining_tasks = max(0, total_task_count - task_index)
+            args.current_task_index = task_index
+            args.total_tasks = total_task_count
+            print_running_task_flag(
+                args=args,
+                task=task,
+                file_name=tracker_file_name,
+            )
             task_environment_index = project.get_task_environment_index(task)
             step_output_dir = task.resolve_task_path(project, task_index=task_environment_index)
             print(
@@ -171,7 +214,12 @@ def main():
                             work_item=work_item,
                         )
                         print("[SKIPPED] - ({0}) - {1}".format(task.task_type, exception))
-                        print_skipped_task_flag(args, task, exception, file_name=os.path.basename(work_item.current_path))
+                        print_skipped_task_flag(
+                            args,
+                            task,
+                            exception,
+                            file_name=os.path.basename(work_item.current_path),
+                        )
             print(
                 "[INFO] - ({0}) - Task {1}/{2} finished. Processed: {3}. Skipped: {4}.".format(
                     task.task_type,
@@ -181,12 +229,35 @@ def main():
                     task_skipped,
                 )
             )
+            task_status = "succeeded"
+            if task_skipped and task_succeeded:
+                task_status = "warning"
+            elif task_skipped:
+                task_status = "skipped"
+            batch_processor_worker.append_task_timing_log(
+                log_file_path=args.task_time_log_file,
+                task=task,
+                task_index=task_index,
+                total_tasks=total_task_count,
+                duration_seconds=time.perf_counter() - active_task_started,
+                status=task_status,
+            )
+            task_timing_recorded = True
             current_items = output_items
             if not current_items:
                 print("[SKIPPED] - ({0}) - No output items remained after this task.".format(task.task_type))
                 break
     except Exception as exception:
         failed = True
+        if active_task and active_task_started is not None and not task_timing_recorded:
+            batch_processor_worker.append_task_timing_log(
+                log_file_path=args.task_time_log_file,
+                task=active_task,
+                task_index=active_task_index,
+                total_tasks=total_task_count,
+                duration_seconds=time.perf_counter() - active_task_started,
+                status="failed",
+            )
         print("[ERROR] - (worker) - {0}".format(exception))
         print(traceback.format_exc())
 
@@ -290,6 +361,34 @@ def close_tee_log(tee_context):
         log_handle.close()
 
 
+def print_running_task_flag(args, task, file_name=""):
+    """Prints a concise running-task tracker update when requested.
+
+    Args:
+        args (argparse.Namespace): Worker command-line arguments.
+        task (BatchTask): Task beginning execution.
+        file_name (str, optional): File name assigned to the job.
+    """
+    if not getattr(args, "flag_running_tasks", False):
+        return
+    task_index = get_positive_tracker_index(getattr(args, "current_task_index", 1))
+    total_tasks = get_positive_tracker_index(getattr(args, "total_tasks", 1))
+    job_index = get_positive_tracker_index(getattr(args, "worker_id", 1))
+    total_jobs = get_positive_tracker_index(getattr(args, "total_jobs", 1))
+    print(
+        "     ∟ ⚙️ RUNNING: ({0}) '{1}' "
+        "(Task {2}/{3} | Job {4}/{5})".format(
+            task.display_name,
+            file_name or os.path.basename(args.source_file),
+            task_index,
+            total_tasks,
+            job_index,
+            total_jobs,
+        ),
+        flush=True,
+    )
+
+
 def print_skipped_task_flag(args, task, exception, file_name=""):
     """Prints an explicit skipped-task warning when requested.
 
@@ -301,23 +400,38 @@ def print_skipped_task_flag(args, task, exception, file_name=""):
     """
     if not getattr(args, "flag_skipped_tasks", False):
         return
-    try:
-        job_index = max(1, int(args.worker_id or 1))
-    except (TypeError, ValueError):
-        job_index = 1
-    try:
-        total_jobs = max(1, int(args.total_jobs or 1))
-    except (TypeError, ValueError):
-        total_jobs = 1
+    job_index = get_positive_tracker_index(getattr(args, "worker_id", 1))
+    total_jobs = get_positive_tracker_index(getattr(args, "total_jobs", 1))
+    task_index = get_positive_tracker_index(getattr(args, "current_task_index", 1))
+    total_tasks = get_positive_tracker_index(getattr(args, "total_tasks", 1))
     print(
-        "--- ⏩ SKIPPING: ({0}) '{1}' (Job {2}/{3}) ---".format(
+        "     ∟ ⏩ SKIPPING: ({0}) '{1}' "
+        "(Task {2}/{3} | Job {4}/{5})".format(
             task.display_name,
             file_name or os.path.basename(args.source_file),
+            task_index,
+            total_tasks,
             job_index,
             total_jobs,
         ),
         flush=True,
     )
+
+
+def get_positive_tracker_index(value, fallback=1):
+    """Gets a positive numeric tracker index with a safe fallback.
+
+    Args:
+        value (object): Requested tracker index.
+        fallback (int, optional): Value used when conversion fails.
+
+    Returns:
+        int: Positive tracker index.
+    """
+    try:
+        return max(1, int(value or fallback))
+    except (TypeError, ValueError):
+        return max(1, int(fallback or 1))
 
 
 def append_skipped_output_items(output_items, exception, work_item=None):
@@ -378,6 +492,28 @@ def ensure_directory(directory_path):
     except OSError:
         if not os.path.isdir(directory_path):
             raise
+
+
+def discover_final_task_work_items(project, task, batch_processor_worker, tasks):
+    """Discovers complete source-folder work items for a deferred final task.
+
+    Args:
+        project (BatchProcessorModel): Active project model.
+        task (BatchTask): Deferred task to execute.
+        batch_processor_worker (module): Worker helpers used to resolve the source root.
+        tasks (module): Batch task module providing WorkItem.
+
+    Returns:
+        list: Work items discovered from the task's configured source path.
+    """
+    task_index = project.get_task_environment_index(task)
+    source_files = task.discover_source_files(project=project, task_index=task_index)
+    source_root = batch_processor_worker.get_task_source_root(
+        project=project,
+        task=task,
+        task_index=task_index,
+    )
+    return [tasks.WorkItem(source_path=source_file, source_root=source_root) for source_file in source_files]
 
 
 def get_global_item_index(worker_id):

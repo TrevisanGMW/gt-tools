@@ -48,12 +48,36 @@ def parse_args():
     parser.add_argument("--mayapy", required=True, help="Path to mayapy executable.")
     parser.add_argument("--run-from-task-id", default="", help="Optional task id to start from.")
     parser.add_argument("--run-to-task-id", default="", help="Optional task id to stop after.")
+    parser.add_argument(
+        "--final-task-id",
+        action="append",
+        default=[],
+        help="Task id to run once after every regular job succeeds.",
+    )
     parser.add_argument("--worker-count", type=int, default=1, help="Requested worker count.")
     parser.add_argument("--logs-dir", default="", help="Directory used for worker logs.")
     parser.add_argument("--maya-version-warning", default="", help="Optional Maya version fallback warning.")
     parser.add_argument("--no-log", action="store_true", help="Disable worker log files.")
-    parser.add_argument("--verbose-worker-updates", action="store_true", help="Print worker details in this tracker.")
-    parser.add_argument("--flag-skipped-tasks", action="store_true", help="Print skipped-task warnings in this tracker.")
+    parser.add_argument(
+        "--task-time-logs",
+        action="store_true",
+        help="Write separate per-job task timing logs.",
+    )
+    parser.add_argument(
+        "--verbose-worker-updates",
+        action="store_true",
+        help="Print worker details in this tracker.",
+    )
+    parser.add_argument(
+        "--flag-running-tasks",
+        action="store_true",
+        help="Print running-task updates in this tracker.",
+    )
+    parser.add_argument(
+        "--flag-skipped-tasks",
+        action="store_true",
+        help="Print skipped-task warnings in this tracker.",
+    )
     parser.add_argument("--show-worker-windows", action="store_true", help=argparse.SUPPRESS)
     return parser.parse_args()
 
@@ -76,11 +100,14 @@ def main():
     verbose_worker_updates = bool(args.verbose_worker_updates or args.show_worker_windows)
     args.verbose_worker_updates = verbose_worker_updates
     print("Verbose worker updates: {0}".format("enabled" if verbose_worker_updates else "disabled"))
+    print("Running task updates: {0}".format("enabled" if args.flag_running_tasks else "disabled"))
     print("Skipped task warnings: {0}".format("enabled" if args.flag_skipped_tasks else "disabled"))
     if args.run_from_task_id:
         print("Run from task id: {0}".format(args.run_from_task_id))
     if args.run_to_task_id:
         print("Run to task id: {0}".format(args.run_to_task_id))
+    if args.final_task_id:
+        print(f"Final run-once tasks: {len(args.final_task_id)}")
     print("Logging: {0}".format("disabled" if args.no_log else "enabled"))
     print("--------------------------------------------")
 
@@ -152,9 +179,11 @@ def run_tracker(job_queue, args):
     jobs_done = 0
     jobs_failed = 0
     running_processes = []
+    feedback_offsets = {}
+    final_task_ids = list(getattr(args, "final_task_id", None) or [])
     worker_script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "batch_processor_multi_worker.py")
     logs_dir = args.logs_dir
-    if logs_dir and not args.no_log and not os.path.isdir(logs_dir):
+    if logs_dir and (not args.no_log or args.task_time_logs) and not os.path.isdir(logs_dir):
         os.makedirs(logs_dir)
 
     startupinfo = None
@@ -169,10 +198,19 @@ def run_tracker(job_queue, args):
         print("Worker task/file details will be printed in this tracker window.")
     if args.flag_skipped_tasks:
         print("Skipped tasks will be flagged in this tracker window.")
+    if args.flag_running_tasks:
+        print("Running tasks will be flagged with task and job progress.")
     print("--------------------------------------------")
     while job_queue or running_processes:
         for process_data in list(running_processes):
             process, source_file, log_handle, log_path = process_data
+            if log_path and not args.verbose_worker_updates:
+                feedback_offsets[process.pid] = print_task_feedback_from_log(
+                    log_path=log_path,
+                    start_offset=feedback_offsets.get(process.pid, 0),
+                    include_running=args.flag_running_tasks,
+                    include_skipped=args.flag_skipped_tasks,
+                )
             return_code = process.poll()
             if return_code is None:
                 continue
@@ -180,14 +218,13 @@ def run_tracker(job_queue, args):
                 log_handle.close()
             jobs_done += 1
             file_name = os.path.basename(source_file)
-            if args.flag_skipped_tasks and log_path and not args.verbose_worker_updates:
-                print_skipped_task_flags_from_log(log_path=log_path, file_name=file_name)
             if return_code == 0:
                 print("--- ✅ DONE: '{0}' (Job {1}/{2}) ---".format(file_name, jobs_done, total_jobs))
             else:
                 jobs_failed += 1
                 print("--- ❌ FAILED: '{0}' (Job {1}/{2}) ---".format(file_name, jobs_done, total_jobs))
             running_processes.remove(process_data)
+            feedback_offsets.pop(process.pid, None)
 
         while len(running_processes) < worker_count and job_queue:
             source_file = job_queue.pop(0)
@@ -210,14 +247,25 @@ def run_tracker(job_queue, args):
                 command.extend(["--run-from-task-id", args.run_from_task_id])
             if args.run_to_task_id:
                 command.extend(["--run-to-task-id", args.run_to_task_id])
+            for final_task_id in final_task_ids:
+                command.extend(["--skip-task-id", final_task_id])
             log_handle = None
             log_path = None
             stdout_target = None
             stderr_target = None
             if args.flag_skipped_tasks:
                 command.append("--flag-skipped-tasks")
+            if args.flag_running_tasks:
+                command.append("--flag-running-tasks")
+            if args.task_time_logs and logs_dir:
+                timing_file_name = "{0}_job_{1:04d}_task_times.log".format(
+                    os.path.splitext(file_name)[0],
+                    jobs_started,
+                )
+                command.extend(["--task-time-log-file", os.path.join(logs_dir, timing_file_name)])
             if not args.no_log and logs_dir:
-                log_path = os.path.join(logs_dir, "{0}.log".format(os.path.splitext(file_name)[0]))
+                log_name = "{0}_job_{1:04d}.log".format(os.path.splitext(file_name)[0], jobs_started)
+                log_path = os.path.join(logs_dir, log_name)
                 if args.verbose_worker_updates:
                     command.extend(["--log-file", log_path])
                 else:
@@ -237,6 +285,17 @@ def run_tracker(job_queue, args):
             running_processes.append((process, source_file, log_handle, log_path))
         time.sleep(1)
 
+    if final_task_ids and jobs_failed:
+        print("[WARNING] - Final run-once tasks were skipped because one or more regular jobs failed.")
+    elif final_task_ids:
+        jobs_failed += run_final_tasks(
+            args=args,
+            task_ids=final_task_ids,
+            worker_script_path=worker_script_path,
+            logs_dir=logs_dir,
+            startupinfo=startupinfo,
+        )
+
     print("--------------------------------------------")
     print("All jobs complete.")
     print("Total jobs: {0}".format(total_jobs))
@@ -244,27 +303,130 @@ def run_tracker(job_queue, args):
     return jobs_failed
 
 
-def print_skipped_task_flags_from_log(log_path, file_name):
-    """Prints skipped-task warnings collected from a worker log.
+def run_final_tasks(args, task_ids, worker_script_path, logs_dir, startupinfo=None):
+    """Runs deferred tasks sequentially after all regular jobs succeed.
+
+    Args:
+        args (argparse.Namespace): Tracker command-line arguments.
+        task_ids (list): Task ids to execute in the final phase.
+        worker_script_path (str): Multi-instance worker script path.
+        logs_dir (str): Worker log directory.
+        startupinfo (subprocess.STARTUPINFO, optional): Windows process startup configuration.
+
+    Returns:
+        int: Number of failed final tasks.
+    """
+    failed_tasks = 0
+    total_tasks = len(task_ids)
+    for task_index, task_id in enumerate(task_ids, 1):
+        print(f"--- 📦 FINALIZING: Task {task_index}/{total_tasks} ---")
+        command = [
+            args.mayapy,
+            worker_script_path,
+            "--project-file",
+            args.project_file,
+            "--source-file",
+            args.project_file,
+            "--final-task-id",
+            task_id,
+            "--worker-id",
+            "Final",
+            "--total-jobs",
+            "1",
+        ]
+        if args.flag_skipped_tasks:
+            command.append("--flag-skipped-tasks")
+        if args.flag_running_tasks:
+            command.append("--flag-running-tasks")
+
+        log_handle = None
+        log_path = None
+        stdout_target = None
+        stderr_target = None
+        if args.task_time_logs and logs_dir:
+            timing_name = f"final_task_{task_index:02d}_task_times.log"
+            command.extend(["--task-time-log-file", os.path.join(logs_dir, timing_name)])
+        if not args.no_log and logs_dir:
+            log_path = os.path.join(logs_dir, f"final_task_{task_index:02d}.log")
+            if args.verbose_worker_updates:
+                command.extend(["--log-file", log_path])
+            else:
+                log_handle = open(log_path, "w", encoding="utf-8")
+                stdout_target = log_handle
+                stderr_target = subprocess.STDOUT
+
+        env = dict(os.environ)
+        env["PYTHONIOENCODING"] = "utf-8"
+        process = subprocess.Popen(
+            command,
+            stdout=stdout_target,
+            stderr=stderr_target,
+            startupinfo=startupinfo,
+            shell=False,
+            env=env,
+        )
+        feedback_offset = 0
+        while process.poll() is None:
+            if log_path and not args.verbose_worker_updates:
+                feedback_offset = print_task_feedback_from_log(
+                    log_path=log_path,
+                    start_offset=feedback_offset,
+                    include_running=args.flag_running_tasks,
+                    include_skipped=args.flag_skipped_tasks,
+                )
+            time.sleep(1)
+        if log_path and not args.verbose_worker_updates:
+            print_task_feedback_from_log(
+                log_path=log_path,
+                start_offset=feedback_offset,
+                include_running=args.flag_running_tasks,
+                include_skipped=args.flag_skipped_tasks,
+            )
+        if log_handle:
+            log_handle.close()
+        if process.returncode:
+            failed_tasks += 1
+            print(f"--- ❌ FINAL TASK FAILED: Task {task_index}/{total_tasks} ---")
+        else:
+            print(f"--- ✅ FINAL TASK DONE: Task {task_index}/{total_tasks} ---")
+    return failed_tasks
+
+
+def print_task_feedback_from_log(
+    log_path,
+    start_offset=0,
+    include_running=True,
+    include_skipped=True,
+):
+    """Prints new concise task feedback collected from a worker log.
 
     Args:
         log_path (str): Worker log path.
-        file_name (str): Display file name.
+        start_offset (int, optional): Stream offset previously consumed from the log.
+        include_running (bool, optional): Whether running-task markers should print.
+        include_skipped (bool, optional): Whether skipped-task markers should print.
+
+    Returns:
+        int: Updated stream offset for the next read.
     """
     if not log_path or not os.path.isfile(log_path):
-        return
+        return int(start_offset or 0)
     messages = []
+    end_offset = int(start_offset or 0)
     try:
         with open(log_path, "r", encoding="utf-8") as log_file:
+            log_file.seek(end_offset)
             for line in log_file:
-                if "SKIPPING:" in line:
-                    messages.append(line.strip())
+                is_running = include_running and "⚙️ RUNNING:" in line
+                is_skipped = include_skipped and "⏩ SKIPPING:" in line
+                if is_running or is_skipped:
+                    messages.append(line.rstrip("\r\n"))
+            end_offset = log_file.tell()
     except Exception:
-        return
-    if not messages:
-        return
+        return int(start_offset or 0)
     for message in messages:
         print(message)
+    return end_offset
 
 
 if __name__ == "__main__":

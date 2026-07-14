@@ -28,6 +28,7 @@ from gt.tools.batch_processor import batch_processor_maya
 from gt.tools.batch_processor import batch_processor_model
 from gt.tools.batch_processor import batch_processor_modules as modules
 from gt.tools.batch_processor import batch_processor_templates
+from gt.tools.batch_processor import batch_processor_multi_tracker
 from gt.tools.batch_processor import batch_processor_multi_worker
 from gt.tools.batch_processor import batch_processor_tracker
 from gt.tools.batch_processor import batch_processor_worker
@@ -46,6 +47,7 @@ class TestBatchProcessorModel(unittest.TestCase):
     def test_project_save_load_round_trip(self):
         model = batch_processor_model.BatchProcessorModel()
         model.project_name = "Unit Test Batch"
+        model.run_settings["create_task_time_log"] = False
         model.add_module(modules.RenameModule(settings={"pattern": "asset_{index}", "padding": 2}))
         project_path = os.path.join(self.temp_dir, "test_project.batch")
 
@@ -60,6 +62,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertEqual(expected, loaded_model.modules[1].module_type)
         expected = "asset_{index}"
         self.assertEqual(expected, loaded_model.modules[1].settings.get("pattern"))
+        self.assertFalse(loaded_model.run_settings.get("create_task_time_log"))
 
     def test_project_save_uses_tasks_key(self):
         model = batch_processor_model.BatchProcessorModel()
@@ -108,6 +111,7 @@ class TestBatchProcessorModel(unittest.TestCase):
 
         self.assertNotIn("force_recook", model.run_settings)
         self.assertIn("create_log", model.run_settings)
+        self.assertTrue(model.run_settings.get("create_task_time_log"))
 
     def test_batch_processor_templates_load_file_templates(self):
         template_dir = os.path.join(self.temp_dir, "batch_processor_templates")
@@ -185,43 +189,13 @@ class TestBatchProcessorModel(unittest.TestCase):
         expected = ["hero.ma", "walk.ma", "source.fbx"]
         self.assertEqual(expected, result)
 
-    def test_input_module_explicit_ignore_patterns_remove_matching_files(self):
-        input_dir = os.path.join(self.temp_dir, "input")
-        nested_dir = os.path.join(input_dir, "nested")
-        os.makedirs(nested_dir)
-        self._write_file(os.path.join(input_dir, "hero.ma"), "maya")
-        self._write_file(os.path.join(input_dir, "skip.ma"), "maya")
-        self._write_file(os.path.join(nested_dir, "walk.ma"), "maya")
-        self._write_file(os.path.join(nested_dir, "walk_preview.ma"), "maya")
+    def test_input_module_drops_retired_explicit_ignore_setting(self):
+        input_module = modules.InputModule(
+            settings={"explicit_ignore_patterns": ["*_preview.ma"]},
+        )
 
-        model = batch_processor_model.BatchProcessorModel()
-        input_module = model.get_input_module()
-        input_module.settings["input_dir"] = input_dir
-        input_module.settings["extensions"] = [".ma"]
-        input_module.settings["explicit_files"] = ["*.ma", "nested/*.ma"]
-        input_module.settings["explicit_ignore_patterns"] = ["skip.ma", "nested/*_preview.ma"]
-
-        result = [os.path.relpath(path, input_dir).replace("\\", "/") for path in input_module.discover_files(model)]
-
-        expected = ["hero.ma", "nested/walk.ma"]
-        self.assertEqual(expected, result)
-
-    def test_input_module_explicit_ignore_patterns_apply_to_folder_mode(self):
-        input_dir = os.path.join(self.temp_dir, "input")
-        os.makedirs(input_dir)
-        self._write_file(os.path.join(input_dir, "KeepFile.fbx"), "fbx")
-        self._write_file(os.path.join(input_dir, "TestFile.fbx"), "fbx")
-
-        model = batch_processor_model.BatchProcessorModel()
-        input_module = model.get_input_module()
-        input_module.settings["input_dir"] = input_dir
-        input_module.settings["extensions"] = [".fbx"]
-        input_module.settings["explicit_ignore_patterns"] = ["testfile.fbx"]
-
-        result = [os.path.basename(path) for path in input_module.discover_files(model)]
-
-        expected = ["KeepFile.fbx"]
-        self.assertEqual(expected, result)
+        self.assertNotIn("explicit_ignore_patterns", input_module.settings)
+        self.assertNotIn("explicit_ignore_patterns", input_module.to_dict().get("parameters"))
 
     def test_input_module_reports_folder_statistics(self):
         input_dir = os.path.join(self.temp_dir, "input")
@@ -748,10 +722,96 @@ class TestBatchProcessorModel(unittest.TestCase):
 
         with mock.patch.object(batch_processor_worker, "find_mayapy_executable", return_value=sys.executable):
             with mock.patch.object(batch_processor_worker.subprocess, "Popen", side_effect=fake_popen):
-                runner = batch_processor_worker.MultiInstanceBatchRunner(verbose_tracker_updates=True)
+                runner = batch_processor_worker.MultiInstanceBatchRunner(
+                    verbose_tracker_updates=True,
+                    flag_running_tasks=True,
+                )
                 runner.run(model)
 
         self.assertIn("--verbose-worker-updates", captured_data.get("command"))
+        self.assertIn("--flag-running-tasks", captured_data.get("command"))
+        self.assertIn("--task-time-logs", captured_data.get("command"))
+
+        model.run_settings["create_task_time_log"] = False
+        captured_data.clear()
+        with mock.patch.object(batch_processor_worker, "find_mayapy_executable", return_value=sys.executable):
+            with mock.patch.object(batch_processor_worker.subprocess, "Popen", side_effect=fake_popen):
+                runner = batch_processor_worker.MultiInstanceBatchRunner(flag_running_tasks=False)
+                runner.run(model)
+
+        self.assertNotIn("--flag-running-tasks", captured_data.get("command"))
+        self.assertNotIn("--task-time-logs", captured_data.get("command"))
+
+    def test_multi_instance_runner_defers_run_once_zip_task(self):
+        project_path = os.path.join(self.temp_dir, "project.batch")
+        input_dir = os.path.join(self.temp_dir, "01_input")
+        os.makedirs(input_dir)
+        self._write_file(os.path.join(input_dir, "clip.ma"), "maya scene")
+        model = batch_processor_model.BatchProcessorModel()
+        model.project_file_path = project_path
+        zip_task = model.add_module(modules.create_task(constants.TaskType.ZIP_COMPRESS))
+        zip_task.settings["run_once_after_multi_instance"] = True
+        captured_data = {}
+
+        def fake_popen(command, *args, **kwargs):
+            """Captures the tracker command without launching it.
+
+            Args:
+                command (list): Command passed to Popen.
+                *args: Positional arguments.
+                **kwargs: Keyword arguments.
+
+            Returns:
+                object: Dummy process object.
+            """
+            captured_data["command"] = command
+            return object()
+
+        with mock.patch.object(batch_processor_worker, "find_mayapy_executable", return_value=sys.executable):
+            with mock.patch.object(batch_processor_worker.subprocess, "Popen", side_effect=fake_popen):
+                batch_processor_worker.MultiInstanceBatchRunner().run(model)
+
+        command = captured_data.get("command")
+        final_task_arg_index = command.index("--final-task-id")
+        expected = zip_task.id
+        self.assertEqual(expected, command[final_task_arg_index + 1])
+
+    def test_multi_instance_runner_requires_run_once_zip_task_to_be_last(self):
+        project_path = os.path.join(self.temp_dir, "project.batch")
+        input_dir = os.path.join(self.temp_dir, "01_input")
+        os.makedirs(input_dir)
+        self._write_file(os.path.join(input_dir, "clip.ma"), "maya scene")
+        model = batch_processor_model.BatchProcessorModel()
+        model.project_file_path = project_path
+        zip_task = model.add_module(modules.create_task(constants.TaskType.ZIP_COMPRESS))
+        zip_task.settings["run_once_after_multi_instance"] = True
+        model.add_module(modules.create_task(constants.TaskType.RENAME))
+
+        runner = batch_processor_worker.MultiInstanceBatchRunner()
+        with self.assertRaisesRegex(RuntimeError, "must be the last enabled processing task"):
+            runner.run(model)
+
+    def test_single_instance_runner_writes_separate_task_timing_log(self):
+        project_path = os.path.join(self.temp_dir, "project.batch")
+        input_dir = os.path.join(self.temp_dir, "01_input")
+        os.makedirs(input_dir)
+        self._write_file(os.path.join(input_dir, "clip.ma"), "maya scene")
+        model = batch_processor_model.BatchProcessorModel()
+        model.project_file_path = project_path
+        model.add_module(modules.RenameModule(settings={"pattern": "timed_{index}"}))
+        timing_log_path = os.path.join(self.temp_dir, "logs", "task_times.log")
+        runner = batch_processor_worker.SingleInstanceBatchRunner(
+            task_time_log_path=timing_log_path,
+        )
+
+        runner.run(model)
+
+        with open(timing_log_path, "r", encoding="utf-8") as timing_log:
+            result = timing_log.read()
+        self.assertIn("Batch Processor Task Timing Log", result)
+        self.assertIn("Input Files", result)
+        self.assertIn("Rename", result)
+        self.assertIn("seconds", result)
 
     def test_run_selected_uses_task_source_path(self):
         project_path = os.path.join(self.temp_dir, "project.batch")
@@ -2008,6 +2068,8 @@ class TestBatchProcessorModel(unittest.TestCase):
         args.flag_skipped_tasks = True
         args.worker_id = "1"
         args.total_jobs = "2"
+        args.current_task_index = 2
+        args.total_tasks = 5
         args.source_file = os.path.join(self.temp_dir, "guilherme-001.fbx")
         hik_task = modules.create_task(constants.TaskType.HIK_RETARGET)
         stream = io.StringIO()
@@ -2020,9 +2082,56 @@ class TestBatchProcessorModel(unittest.TestCase):
             )
         result = stream.getvalue().strip()
 
-        expected = "--- ⏩ SKIPPING: (HumanIK) 'guilherme-001.fbx' (Job 1/2) ---"
+        self.assertTrue(stream.getvalue().startswith("     ∟"))
+        expected = (
+            "∟ ⏩ SKIPPING: (HumanIK) 'guilherme-001.fbx' "
+            "(Task 2/5 | Job 1/2)"
+        )
         self.assertEqual(expected, result)
         self.assertNotIn("long warning", result)
+
+    def test_running_task_feedback_reports_task_and_job_progress(self):
+        args = mock.Mock()
+        args.flag_running_tasks = True
+        args.worker_id = "2"
+        args.total_jobs = "4"
+        args.current_task_index = 3
+        args.total_tasks = 5
+        args.source_file = os.path.join(self.temp_dir, "walk.fbx")
+        rename_task = modules.create_task(constants.TaskType.RENAME)
+        stream = io.StringIO()
+
+        with contextlib.redirect_stdout(stream):
+            batch_processor_multi_worker.print_running_task_flag(
+                args=args,
+                task=rename_task,
+                file_name="walk.fbx",
+            )
+
+        result = stream.getvalue()
+        self.assertTrue(result.startswith("     ∟ ⚙️ RUNNING:"))
+        self.assertIn("(Task 3/5 | Job 2/4)", result)
+
+    def test_final_running_task_feedback_accepts_named_worker_id(self):
+        args = mock.Mock()
+        args.flag_running_tasks = True
+        args.worker_id = "Final"
+        args.total_jobs = "1"
+        args.current_task_index = 1
+        args.total_tasks = 1
+        args.source_file = os.path.join(self.temp_dir, "project.batch")
+        zip_task = modules.create_task(constants.TaskType.ZIP_COMPRESS)
+        stream = io.StringIO()
+
+        with contextlib.redirect_stdout(stream):
+            batch_processor_multi_worker.print_running_task_flag(
+                args=args,
+                task=zip_task,
+                file_name="Zip Compress",
+            )
+
+        expected = "(Task 1/1 | Job 1/1)"
+        self.assertIn(expected, stream.getvalue())
 
     def test_multi_worker_skip_marker_flushes_immediately(self):
         class FlushStream(io.StringIO):
@@ -2042,6 +2151,8 @@ class TestBatchProcessorModel(unittest.TestCase):
         args.flag_skipped_tasks = True
         args.worker_id = "1"
         args.total_jobs = "1"
+        args.current_task_index = 1
+        args.total_tasks = 1
         args.source_file = os.path.join(self.temp_dir, "source.fbx")
         rename_task = modules.create_task(constants.TaskType.RENAME)
         stream = FlushStream()
@@ -2104,22 +2215,26 @@ class TestBatchProcessorModel(unittest.TestCase):
         done_counter_index = tracker.events.index("DONE_COUNTER")
         self.assertLess(skip_index, done_counter_index)
 
-    def test_multi_tracker_replays_skip_marker_before_job_status(self):
-        tracker_path = os.path.join(
-            package_root_dir,
-            "tools",
-            "batch_processor",
-            "batch_processor_multi_tracker.py",
-        )
-        with open(tracker_path, "r", encoding="utf-8") as tracker_file:
-            tracker_source = tracker_file.read()
+    def test_multi_tracker_replays_only_new_task_feedback(self):
+        log_path = os.path.join(self.temp_dir, "worker.log")
+        with open(log_path, "w", encoding="utf-8") as log_file:
+            log_file.write("[INFO] ignored\n")
+            log_file.write("     ∟ ⚙️ RUNNING: Rename\n")
+        stream = io.StringIO()
 
-        skip_index = tracker_source.index("print_skipped_task_flags_from_log(log_path=log_path, file_name=file_name)")
-        done_index = tracker_source.index('print("--- ✅ DONE:')
-        failed_index = tracker_source.index('print("--- ❌ FAILED:')
+        with contextlib.redirect_stdout(stream):
+            offset = batch_processor_multi_tracker.print_task_feedback_from_log(log_path)
+        first_result = stream.getvalue()
+        with open(log_path, "a", encoding="utf-8") as log_file:
+            log_file.write("     ∟ ⏩ SKIPPING: Rename\n")
+        stream = io.StringIO()
+        with contextlib.redirect_stdout(stream):
+            batch_processor_multi_tracker.print_task_feedback_from_log(log_path, start_offset=offset)
 
-        self.assertLess(skip_index, done_index)
-        self.assertLess(skip_index, failed_index)
+        self.assertTrue(first_result.startswith("     ∟ ⚙️ RUNNING:"))
+        self.assertNotIn("ignored", first_result)
+        self.assertIn("⏩ SKIPPING:", stream.getvalue())
+        self.assertNotIn("⚙️ RUNNING:", stream.getvalue())
 
     def test_hik_export_buttons_do_not_update_task_path_settings(self):
         widget_path = os.path.join(
@@ -2585,6 +2700,37 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertTrue(result.endswith(os.path.normpath("Project_07.zip")))
         expected = "{version}"
         self.assertEqual(expected, model.resolve_template("{version}", task=zip_task))
+
+    def test_zip_archive_run_once_setting_defaults_to_false(self):
+        zip_task = modules.create_task(constants.TaskType.ZIP_COMPRESS)
+
+        self.assertFalse(zip_task.settings.get("run_once_after_multi_instance"))
+        self.assertFalse(zip_task.to_dict().get("parameters").get("run_once_after_multi_instance"))
+
+    def test_final_zip_task_discovers_complete_source_folder(self):
+        source_dir = os.path.join(self.temp_dir, "zip_source")
+        nested_dir = os.path.join(source_dir, "nested")
+        os.makedirs(nested_dir)
+        first_path = os.path.join(source_dir, "first.fbx")
+        second_path = os.path.join(nested_dir, "second.fbx")
+        self._write_file(first_path, "first")
+        self._write_file(second_path, "second")
+        model = batch_processor_model.BatchProcessorModel()
+        zip_task = model.add_module(modules.create_task(constants.TaskType.ZIP_COMPRESS))
+        zip_task.settings["source_path"] = source_dir
+        zip_task.settings["source_include_subdirectories"] = True
+
+        result = batch_processor_multi_worker.discover_final_task_work_items(
+            project=model,
+            task=zip_task,
+            batch_processor_worker=batch_processor_worker,
+            tasks=modules,
+        )
+
+        result_paths = [item.current_path for item in result]
+        self.assertIn(os.path.normpath(source_dir), result_paths)
+        self.assertIn(os.path.normpath(first_path), result_paths)
+        self.assertIn(os.path.normpath(second_path), result_paths)
 
     def test_zip_archive_auto_detects_next_version(self):
         model = batch_processor_model.BatchProcessorModel()

@@ -22,6 +22,7 @@ class Project:
         "worker_count": 30,
         "preferred_maya_version": "",
         "create_log": True,
+        "create_task_time_log": True,
         "log_path": "logs",
         "purge_logs_on_run": True,
         "ignore_disabled_tasks_for_task_index": False,
@@ -32,6 +33,7 @@ class Project:
     PREFS_KEY_CONVERT_ABS_PATHS_TO_RELATIVE = "convert_abs_paths_to_relative"
     PREFS_KEY_CONFIRM_DELETE_TASK = "confirm_delete_task"
     PREFS_KEY_FLAG_SKIPPED_TASKS = "flag_skipped_tasks"
+    PREFS_KEY_FLAG_RUNNING_TASKS = "flag_running_tasks"
     PREFS_KEY_IGNORE_DISABLED_TASKS_FOR_TASK_INDEX = "ignore_disabled_tasks_for_task_index"
 
 

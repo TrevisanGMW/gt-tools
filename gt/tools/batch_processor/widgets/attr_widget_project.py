@@ -28,6 +28,7 @@ class AttrWidgetProject(attr_widget_base.AttrWidgetBase):
         super().__init__(parent=parent, project=project, refresh_parent_func=refresh_parent_func, *args, **kwargs)
         self.project_name_field = None
         self.create_log_checkbox = None
+        self.create_task_time_log_checkbox = None
         self.purge_logs_checkbox = None
         self.log_path_widgets = None
         self.add_widget_project_header()
@@ -108,6 +109,13 @@ class AttrWidgetProject(attr_widget_base.AttrWidgetBase):
             self.set_create_log,
             layout=logging_layout,
             tooltip="Write run logs to the batch project folder.",
+        )
+        self.create_task_time_log_checkbox = self.add_checkbox(
+            "Task Times",
+            self.project.run_settings.get("create_task_time_log", True),
+            self.set_create_task_time_log,
+            layout=logging_layout,
+            tooltip="Write task durations to separate timing log files in the log folder.",
         )
         self.purge_logs_checkbox = self.add_checkbox(
             "Purge On Run",
@@ -254,6 +262,9 @@ class AttrWidgetProject(attr_widget_base.AttrWidgetBase):
         elif key == "create_log":
             state_name = "enabled" if value else "disabled"
             self.emit_status_message("Run log creation {0}.".format(state_name), status="warning")
+        elif key == "create_task_time_log":
+            state_name = "enabled" if value else "disabled"
+            self.emit_status_message("Task timing log creation {0}.".format(state_name), status="warning")
         elif key == "purge_logs_on_run":
             if value:
                 self.emit_status_message("Existing log files will be purged before each run.", status="warning")
@@ -269,14 +280,24 @@ class AttrWidgetProject(attr_widget_base.AttrWidgetBase):
         self.set_run_setting(value=value, key="create_log")
         self.refresh_log_preferences_enabled_state()
 
+    def set_create_task_time_log(self, value):
+        """Sets the task-time-log run setting and refreshes dependent controls.
+
+        Args:
+            value (bool): Whether task timing logs should be written.
+        """
+        self.set_run_setting(value=value, key="create_task_time_log")
+        self.refresh_log_preferences_enabled_state()
+
     def refresh_log_preferences_enabled_state(self):
-        """Enables or disables log preferences based on Create Log."""
-        is_enabled = bool(self.project.run_settings.get("create_log", True))
+        """Enables log folder controls when either project log type is active."""
+        create_log = bool(self.project.run_settings.get("create_log", True))
+        create_task_time_log = bool(self.project.run_settings.get("create_task_time_log", True))
         if self.purge_logs_checkbox:
-            self.purge_logs_checkbox.setEnabled(is_enabled)
+            self.purge_logs_checkbox.setEnabled(create_log or create_task_time_log)
         if self.log_path_widgets:
             for key in ["field", "info_button", "open_button", "browse_button"]:
-                self.log_path_widgets[key].setEnabled(is_enabled)
+                self.log_path_widgets[key].setEnabled(create_log or create_task_time_log)
 
     def show_project_json(self):
         """Shows the current project data as JSON."""

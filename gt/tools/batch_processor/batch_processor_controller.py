@@ -69,6 +69,10 @@ class BatchProcessorController:
             key=constants.Project.PREFS_KEY_FLAG_SKIPPED_TASKS,
             default=True,
         )
+        self._flag_running_tasks = self._prefs.get_bool(
+            key=constants.Project.PREFS_KEY_FLAG_RUNNING_TASKS,
+            default=True,
+        )
         self._ignore_disabled_tasks_for_task_index = self._prefs.get_bool(
             key=constants.Project.PREFS_KEY_IGNORE_DISABLED_TASKS_FOR_TASK_INDEX,
             default=False,
@@ -259,6 +263,14 @@ class BatchProcessorController:
 
         self.create_menu_checkbox_action(
             parent_menu=menu_automations,
+            text="Flag Running Tasks",
+            checked=self._flag_running_tasks,
+            tooltip="Print concise task progress and remaining-task counts in the batch tracker.",
+            callback=self.toggle_flag_running_tasks,
+        )
+
+        self.create_menu_checkbox_action(
+            parent_menu=menu_automations,
             text="Flag Skipped Tasks",
             checked=self._flag_skipped_tasks,
             tooltip="Print explicit tracker warnings when a task skips work.",
@@ -412,6 +424,21 @@ class BatchProcessorController:
         self._prefs.save()
         state_name = "enabled" if self._flag_skipped_tasks else "disabled"
         self.log_status("Skipped task tracker warnings {0}.".format(state_name))
+
+    def toggle_flag_running_tasks(self, checked):
+        """Stores whether running tasks should emit explicit tracker updates.
+
+        Args:
+            checked (bool): New preference state.
+        """
+        self._flag_running_tasks = bool(checked)
+        self._prefs.set_bool(
+            key=constants.Project.PREFS_KEY_FLAG_RUNNING_TASKS,
+            value=self._flag_running_tasks,
+        )
+        self._prefs.save()
+        state_name = "enabled" if self._flag_running_tasks else "disabled"
+        self.log_status("Running task tracker updates {0}.".format(state_name))
 
     def toggle_ignore_disabled_tasks_for_task_index(self, checked):
         """Stores whether disabled tasks should be excluded from task indexes.
@@ -1019,14 +1046,19 @@ class BatchProcessorController:
             force_single_instance (bool, optional): Whether to bypass multi-instance execution for this run.
         """
         self._active_log_file_path = None
+        creates_any_log = bool(
+            self.model.run_settings.get("create_log", True)
+            or self.model.run_settings.get("create_task_time_log", True)
+        )
+        if creates_any_log and self.model.run_settings.get("purge_logs_on_run", True):
+            self.purge_logs_for_run()
         if self.model.run_settings.get("create_log", True):
-            if self.model.run_settings.get("purge_logs_on_run", True):
-                self.purge_logs_for_run()
             self._active_log_file_path = self.create_run_log_file()
         if self.model.run_settings.get("multi_instance") and not force_single_instance:
             runner = batch_processor_worker.MultiInstanceBatchRunner(
                 verbose_tracker_updates=self._verbose_tracker_updates,
                 flag_skipped_tasks=self._flag_skipped_tasks,
+                flag_running_tasks=self._flag_running_tasks,
             )
         else:
             if force_single_instance and self.model.run_settings.get("multi_instance"):
@@ -1035,6 +1067,7 @@ class BatchProcessorController:
             runner = batch_processor_worker.SingleInstanceBatchRunner(
                 tracker=tracker,
                 flag_skipped_tasks=self._flag_skipped_tasks,
+                task_time_log_path=self.create_task_time_log_file(),
             )
         try:
             tracker = runner.run(
@@ -1116,6 +1149,23 @@ class BatchProcessorController:
         with open(log_file_path, "w", encoding="utf-8") as log_file:
             log_file.write("Batch Processor Log\n")
         return log_file_path
+
+    def create_task_time_log_file(self):
+        """Creates a timestamped task timing log when enabled for the project.
+
+        Returns:
+            str or None: Task timing log path, or None when disabled or unresolved.
+        """
+        if not self.model.run_settings.get("create_task_time_log", True):
+            return None
+        logs_dir = self.model.get_logs_dir()
+        if not logs_dir:
+            self.append_log("[WARNING] - (logs) - Log directory is unresolved. Task timing disabled for this run.")
+            return None
+        if not os.path.isdir(logs_dir):
+            os.makedirs(logs_dir)
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        return os.path.join(logs_dir, "batch_processor_task_times_{0}.log".format(timestamp))
 
     def purge_logs_for_run(self):
         """Deletes existing files from the configured log folder before a run."""

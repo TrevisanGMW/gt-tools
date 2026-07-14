@@ -509,6 +509,15 @@ class AttrWidgetZipCompressTask(AttrWidgetTask):
             partial(self.set_task_setting, key="compression"),
             tooltip="Compression method used by the zip archive.",
         )
+        self.add_checkbox(
+            "Run Once After All Jobs",
+            self.task.settings.get("run_once_after_multi_instance", False),
+            partial(self.set_task_setting, key="run_once_after_multi_instance"),
+            tooltip=(
+                "In multi-instance mode, wait for every regular job to succeed, then create this archive once "
+                "from the resolved Source Path. This Zip Compress task must be the last enabled processing task."
+            ),
+        )
         self.source_path_relative_root_checkbox = self.add_checkbox(
             "Use Source Path Root",
             self.task.settings.get("use_source_path_as_relative_root", True),

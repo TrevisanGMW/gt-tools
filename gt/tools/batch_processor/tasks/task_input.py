@@ -19,6 +19,15 @@ class TaskInput(task_base.BatchTask):
     category_icon = "rigger_module_import_file"
     is_input_task = True
 
+    def _normalize_common_settings(self, incoming_settings=None):
+        """Normalizes input settings and removes the retired explicit-ignore option.
+
+        Args:
+            incoming_settings (dict, optional): Raw settings supplied to the task.
+        """
+        super()._normalize_common_settings(incoming_settings=incoming_settings)
+        self.settings.pop("explicit_ignore_patterns", None)
+
     def get_default_settings(self):
         """Gets default input settings.
 
@@ -32,7 +41,6 @@ class TaskInput(task_base.BatchTask):
             "extensions": [".ma", ".mb", ".fbx"],
             "exclude_patterns": [],
             "explicit_files": [],
-            "explicit_ignore_patterns": [],
         }
 
     def get_source_path_template(self):
@@ -113,11 +121,7 @@ class TaskInput(task_base.BatchTask):
         for root, _, file_names in walker:
             for file_name in file_names:
                 file_path = os.path.join(root, file_name)
-                if (
-                    os.path.isfile(file_path)
-                    and self._is_file_allowed(file_path)
-                    and not self.is_explicit_file_ignored(file_path=file_path, project=project)
-                ):
+                if os.path.isfile(file_path) and self._is_file_allowed(file_path):
                     discovered.append(task_base.normalize_path(file_path))
         return sorted(set(discovered))
 
@@ -144,37 +148,7 @@ class TaskInput(task_base.BatchTask):
                     folder_files=folder_files,
                 )
             )
-        return sorted(
-            set(
-                file_path
-                for file_path in discovered
-                if not self.is_explicit_file_ignored(file_path=file_path, project=project)
-            )
-        )
-
-    def is_explicit_file_ignored(self, file_path, project):
-        """Checks whether an input file matches an explicit ignore pattern.
-
-        Args:
-            file_path (str): Resolved explicit file path.
-            project (BatchProcessorModel): Active project model.
-
-        Returns:
-            bool: True when the file should be removed from input results.
-        """
-        ignore_patterns = []
-        for ignore_entry in self.settings.get("explicit_ignore_patterns") or []:
-            ignore_patterns.extend(self._get_explicit_match_patterns(ignore_entry, project))
-        if not ignore_patterns:
-            return False
-        input_dir = self.get_input_dir(project)
-        project_dir = project.get_project_dir() if project and hasattr(project, "get_project_dir") else ""
-        return self._explicit_entry_matches_file(
-            file_path=file_path,
-            patterns=ignore_patterns,
-            input_dir=input_dir,
-            project_dir=project_dir,
-        )
+        return sorted(set(discovered))
 
     def get_unresolved_explicit_file_entries(self, project):
         """Gets explicit entries that do not resolve to any accepted file.

@@ -13,6 +13,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 
 # Logging Setup
 logging.basicConfig()
@@ -23,15 +24,17 @@ logger.setLevel(logging.INFO)
 class SingleInstanceBatchRunner:
     """Runs enabled tasks in one Python process."""
 
-    def __init__(self, tracker=None, flag_skipped_tasks=False):
+    def __init__(self, tracker=None, flag_skipped_tasks=False, task_time_log_path=None):
         """Initializes a single-instance runner.
 
         Args:
             tracker (BatchProgressTracker, optional): Tracker to update during the run.
             flag_skipped_tasks (bool, optional): Whether skipped tasks should emit tracker warnings.
+            task_time_log_path (str, optional): Separate file used to record task durations.
         """
         self.tracker = tracker or batch_processor_tracker.BatchProgressTracker()
         self.flag_skipped_tasks = bool(flag_skipped_tasks)
+        self.task_time_log_path = task_time_log_path
 
     def run(self, project, run_from_task_id=None, run_from_module_id=None, run_to_task_id=None):
         """Runs a project through enabled tasks.
@@ -61,9 +64,19 @@ class SingleInstanceBatchRunner:
             active_workers=worker_count,
             run_mode="single-instance",
         )
+        active_task = None
+        active_task_index = 0
+        active_task_started = None
+        task_timing_recorded = True
         try:
             current_items = []
             for step_index, task in enumerate(process_tasks, 1):
+                active_task = task
+                active_task_index = step_index
+                active_task_started = time.perf_counter()
+                task_timing_recorded = False
+                failures_before = self.tracker.failed
+                skipped_before = self.tracker.skipped
                 task_environment_index = project.get_task_environment_index(task)
                 self.tracker.start_step(step_index, task.display_name)
                 self._record_operation(task)
@@ -73,6 +86,14 @@ class SingleInstanceBatchRunner:
                     self.tracker.record_message(
                         'Input task "{0}" discovered {1} file(s).'.format(task.display_name, len(new_items))
                     )
+                    self._record_task_timing(
+                        task=task,
+                        task_index=step_index,
+                        total_tasks=len(process_tasks),
+                        started_at=active_task_started,
+                        status=constants.RunStatus.SUCCEEDED,
+                    )
+                    task_timing_recorded = True
                     continue
 
                 current_items = self._get_task_source_items(
@@ -96,11 +117,54 @@ class SingleInstanceBatchRunner:
                     self.tracker.record_warning()
                     self.tracker.record_message("[WARNING] - ({0}) - {1}".format(task.task_type, warning))
                 current_items = self._run_task(project, task, current_items, step_output_dir)
+                task_status = constants.RunStatus.SUCCEEDED
+                if self.tracker.failed > failures_before:
+                    task_status = constants.RunStatus.FAILED
+                elif self.tracker.skipped > skipped_before:
+                    task_status = constants.RunStatus.SKIPPED
+                self._record_task_timing(
+                    task=task,
+                    task_index=step_index,
+                    total_tasks=len(process_tasks),
+                    started_at=active_task_started,
+                    status=task_status,
+                )
+                task_timing_recorded = True
             self.tracker.finish(failed=self.tracker.failed > 0)
             return self.tracker
         except Exception:
+            if active_task and active_task_started is not None and not task_timing_recorded:
+                self._record_task_timing(
+                    task=active_task,
+                    task_index=active_task_index,
+                    total_tasks=len(process_tasks),
+                    started_at=active_task_started,
+                    status=constants.RunStatus.FAILED,
+                )
             self.tracker.finish(failed=True)
             raise
+
+    def _record_task_timing(self, task, task_index, total_tasks, started_at, status):
+        """Appends timing information for one task when timing logs are enabled.
+
+        Args:
+            task (BatchTask): Task that finished executing.
+            task_index (int): One-based task index.
+            total_tasks (int): Total tasks in this run.
+            started_at (float): Performance-counter value captured before execution.
+            status (str): Task completion status.
+        """
+        if not self.task_time_log_path:
+            return
+        duration_seconds = max(0.0, time.perf_counter() - started_at)
+        append_task_timing_log(
+            log_file_path=self.task_time_log_path,
+            task=task,
+            task_index=task_index,
+            total_tasks=total_tasks,
+            duration_seconds=duration_seconds,
+            status=status,
+        )
 
     def _trim_tasks(self, process_tasks, run_from_task_id, run_to_task_id=None):
         """Trims tasks when running from a selected step.
@@ -330,7 +394,7 @@ class SingleInstanceBatchRunner:
         if not self.flag_skipped_tasks:
             return
         self.tracker.record_message(
-            "--- ⏩ SKIPPING: ({0}) '{1}' (Job {2}/{3}) ---".format(
+            "    --- ⏩ SKIPPING TASK: ({0}) '{1}' (Job {2}/{3}) ---".format(
                 task.display_name,
                 file_name or task.display_name,
                 int(job_index or 1),
@@ -342,7 +406,14 @@ class SingleInstanceBatchRunner:
 class MultiInstanceBatchRunner:
     """Launches a separate tracker console for batch processing."""
 
-    def __init__(self, tracker=None, verbose_tracker_updates=False, show_worker_windows=False, flag_skipped_tasks=False):
+    def __init__(
+        self,
+        tracker=None,
+        verbose_tracker_updates=False,
+        show_worker_windows=False,
+        flag_skipped_tasks=False,
+        flag_running_tasks=True,
+    ):
         """Initializes a multi-instance launcher.
 
         Args:
@@ -350,10 +421,12 @@ class MultiInstanceBatchRunner:
             verbose_tracker_updates (bool, optional): Whether workers should print details to the tracker.
             show_worker_windows (bool, optional): Legacy alias for verbose tracker updates.
             flag_skipped_tasks (bool, optional): Whether skipped tasks should be printed in the tracker.
+            flag_running_tasks (bool, optional): Whether running tasks should be printed in the tracker.
         """
         self.tracker = tracker or batch_processor_tracker.BatchProgressTracker()
         self.verbose_tracker_updates = bool(verbose_tracker_updates or show_worker_windows)
         self.flag_skipped_tasks = bool(flag_skipped_tasks)
+        self.flag_running_tasks = bool(flag_running_tasks)
 
     def run(self, project, run_from_task_id=None, run_from_module_id=None, run_to_task_id=None):
         """Launches the tracker console for a project.
@@ -374,6 +447,14 @@ class MultiInstanceBatchRunner:
         validation = project.validate_project(task_list=process_tasks)
         if validation.errors:
             raise RuntimeError("Project validation failed: {0}".format("; ".join(validation.errors)))
+        final_tasks = self._get_final_multi_instance_tasks(process_tasks)
+        if final_tasks:
+            last_processing_task = next((task for task in reversed(process_tasks) if not task.is_input_task), None)
+            if len(final_tasks) > 1 or final_tasks[0] is not last_processing_task:
+                raise RuntimeError(
+                    f'Zip Compress task "{final_tasks[0].display_name}" must be the last enabled processing task '
+                    f'when "Run Once After All Jobs" is enabled.'
+                )
 
         project_snapshot_path = self._write_project_snapshot(project)
         source_files = self._get_source_files_for_multi_run(project, run_from_task_id)
@@ -405,12 +486,18 @@ class MultiInstanceBatchRunner:
             command.extend(["--run-from-task-id", run_from_task_id])
         if run_to_task_id:
             command.extend(["--run-to-task-id", run_to_task_id])
+        for final_task in final_tasks:
+            command.extend(["--final-task-id", final_task.id])
         if not project.run_settings.get("create_log", True):
             command.append("--no-log")
         if self.verbose_tracker_updates:
             command.append("--verbose-worker-updates")
         if self.flag_skipped_tasks:
             command.append("--flag-skipped-tasks")
+        if self.flag_running_tasks:
+            command.append("--flag-running-tasks")
+        if project.run_settings.get("create_task_time_log", True):
+            command.append("--task-time-logs")
 
         creation_flags = 0
         if sys.platform == "win32":
@@ -430,6 +517,23 @@ class MultiInstanceBatchRunner:
         if maya_version_warning:
             self.tracker.record_message("[WARNING] - (maya) - {0}".format(maya_version_warning))
         return self.tracker
+
+    @staticmethod
+    def _get_final_multi_instance_tasks(process_tasks):
+        """Gets Zip Compress tasks configured to run after regular multi-instance jobs.
+
+        Args:
+            process_tasks (list): Enabled tasks selected for the run.
+
+        Returns:
+            list: Zip Compress tasks deferred to the final phase.
+        """
+        return [
+            task
+            for task in process_tasks
+            if task.task_type == constants.TaskType.ZIP_COMPRESS
+            and task.settings.get("run_once_after_multi_instance", False)
+        ]
 
     @staticmethod
     def _get_source_files_for_multi_run(project, run_from_task_id=None):
@@ -506,6 +610,33 @@ def resolve_mayapy_executable(preferred_version=None):
         "Falling back to: {1}"
     ).format(preferred_version, fallback_path)
     return fallback_path, warning
+
+
+def append_task_timing_log(log_file_path, task, task_index, total_tasks, duration_seconds, status):
+    """Appends one readable task-duration entry to a dedicated timing log.
+
+    Args:
+        log_file_path (str): Timing log file path.
+        task (BatchTask): Task represented by the timing entry.
+        task_index (int): One-based task index.
+        total_tasks (int): Total tasks executed for the job.
+        duration_seconds (float): Elapsed task execution time in seconds.
+        status (str): Task completion status.
+    """
+    if not log_file_path:
+        return
+    log_dir = os.path.dirname(log_file_path)
+    if log_dir and not os.path.isdir(log_dir):
+        os.makedirs(log_dir, exist_ok=True)
+    create_header = not os.path.isfile(log_file_path)
+    with open(log_file_path, "a", encoding="utf-8") as log_file:
+        if create_header:
+            log_file.write("Batch Processor Task Timing Log\n")
+            log_file.write("Task | Status | Duration\n")
+        log_file.write(
+            f"{int(task_index)}/{int(total_tasks)} | {task.display_name} | "
+            f"{status} | {float(duration_seconds):.3f} seconds\n"
+        )
 
 
 def create_initial_work_item(project, source_file, run_from_task_id=None):
