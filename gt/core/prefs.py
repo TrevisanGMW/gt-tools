@@ -424,6 +424,41 @@ class PackagePrefs(Prefs):
         """
         return self.get_bool("dev_menu_visible", default=False)
 
+    def set_legacy_menu_visibility(self, legacy_menu_state):
+        """Sets the visibility state of the legacy tools menu.
+
+        Args:
+            legacy_menu_state (bool): New visibility state for the legacy menu.
+        """
+        self.set_bool("legacy_menu_visible", legacy_menu_state)
+
+    def is_legacy_menu_visible(self):
+        """Gets the visibility state of the legacy tools menu.
+
+        Returns:
+            bool: Stored legacy menu visibility. Defaults to False.
+        """
+        return self.get_bool("legacy_menu_visible", default=False)
+
+    def set_dependency_auto_install(self, auto_install_state):
+        """Sets whether missing Python dependencies install automatically.
+
+        Args:
+            auto_install_state (bool): New automatic installation state.
+        """
+        self.set_bool("dependency_auto_install", auto_install_state)
+
+    def is_dependency_auto_install_enabled(self, default=True):
+        """Gets whether missing Python dependencies install automatically.
+
+        Args:
+            default (bool, optional): State returned when no preference exists.
+
+        Returns:
+            bool: Stored automatic installation state.
+        """
+        return self.get_bool("dependency_auto_install", default=default)
+
     def set_skip_menu_creation(self, skip_menu_creation):
         """
         Sets preference that determines if menu will be created when initializing package.
@@ -524,6 +559,37 @@ def toggle_dev_sub_menu():
     prefs.save()
     feedback = FeedbackMessage(
         intro="Development Menu Visibility set to:",
+        conclusion=str(inverted_state),
+        style_conclusion="color:#FF0000;text-decoration:underline;",
+    )
+    feedback.print_inview_message()
+
+
+def toggle_legacy_sub_menu():
+    """Toggles the legacy tools menu preference."""
+    prefs = PackagePrefs()
+    inverted_state = not prefs.is_legacy_menu_visible()
+    prefs.set_legacy_menu_visibility(inverted_state)
+    prefs.save()
+    feedback = FeedbackMessage(
+        intro="Legacy Menu Visibility set to:",
+        conclusion=str(inverted_state),
+        style_conclusion="color:#FF0000;text-decoration:underline;",
+    )
+    feedback.print_inview_message()
+
+
+def toggle_dependency_auto_install():
+    """Toggles automatic installation of missing Python dependencies."""
+    from gt.utils.dependency import DEFAULT_AUTO_INSTALL
+
+    prefs = PackagePrefs()
+    current_state = prefs.is_dependency_auto_install_enabled(default=DEFAULT_AUTO_INSTALL)
+    inverted_state = not current_state
+    prefs.set_dependency_auto_install(inverted_state)
+    prefs.save()
+    feedback = FeedbackMessage(
+        intro="Automatic Dependency Installation set to:",
         conclusion=str(inverted_state),
         style_conclusion="color:#FF0000;text-decoration:underline;",
     )

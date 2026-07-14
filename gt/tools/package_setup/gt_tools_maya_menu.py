@@ -7,6 +7,7 @@ from gt.core.version import get_package_version
 import gt.ui.resource_library as ui_res_lib
 from gt.core.prefs import PackagePrefs
 from gt.ui.maya_menu import MayaMenu
+from gt.utils.dependency import is_auto_install_enabled
 import logging
 import sys
 
@@ -224,9 +225,9 @@ def load_menu(*args):
         icon=ui_res_lib.Icon.tool_connect_attributes,
     )
     menu.add_menu_item(
-        label="Create Auto FK",
-        command=IMPORT_TOOL + 'initialize_tool("create_auto_fk")',
-        tooltip="Automated solution for created an FK control curve.",
+        label="Create FK Driver",
+        command=IMPORT_TOOL + 'initialize_tool("create_fk_driver")',
+        tooltip="Creates FK controls and driver groups for selected joints.",
         icon=ui_res_lib.Icon.tool_create_fk,
     )
     menu.add_menu_item(
@@ -499,8 +500,36 @@ def load_menu(*args):
         tooltip="Helps calculate how long it's going to take to render an image sequence.",
         icon=ui_res_lib.Icon.tool_render_calculator,
     )
+    # ------------------------------------ Legacy ------------------------------------
+    package_prefs = PackagePrefs()
+    if package_prefs.is_legacy_menu_visible():
+        menu.add_sub_menu("Legacy", icon=ui_res_lib.Icon.root_rigging, parent_to_root=True)
+        menu.add_menu_item(
+            label="Biped Auto Rigger",
+            command=IMPORT_TOOL + 'initialize_tool("legacy_biped_rigger")',
+            tooltip="Automated solution for creating a legacy biped rig.",
+            icon=ui_res_lib.Icon.tool_auto_rigger_legacy,
+        )
+        menu.add_menu_item(
+            label="Biped Rig Interface",
+            command=IMPORT_TOOL + 'initialize_tool("legacy_biped_rigger", "launch_biped_rig_interface")',
+            tooltip="Rig interface for the legacy Biped Auto Rigger.",
+            icon=ui_res_lib.Icon.tool_rig_interface,
+        )
+        menu.add_menu_item(
+            label="Retarget Assistant",
+            command=IMPORT_TOOL + 'initialize_tool("legacy_biped_rigger", "launch_retarget_assistant")',
+            tooltip="HumanIK retargeting assistant for legacy biped rigs.",
+            icon=ui_res_lib.Icon.tool_retarget_assistant,
+        )
+        menu.add_menu_item(
+            label="Game FBX Exporter",
+            command=IMPORT_TOOL + 'initialize_tool("legacy_biped_rigger", "launch_game_exporter")',
+            tooltip="Exports legacy biped rigs for real-time use as FBX files.",
+            icon=ui_res_lib.Icon.tool_game_fbx_exporter,
+        )
     # ------------------------------------ Development ------------------------------------
-    if PackagePrefs().is_dev_menu_visible():
+    if package_prefs.is_dev_menu_visible():
         menu.add_sub_menu("Develop", icon=ui_res_lib.Icon.root_dev, parent_to_root=True)
         menu.add_menu_item(
             label="Resource Library",
@@ -513,31 +542,6 @@ def load_menu(*args):
             command=IMPORT_TOOL + 'initialize_tool("sample_tool")',
             tooltip="Opens sample tool.",
             icon=ui_res_lib.Icon.dev_screwdriver,
-        )
-        menu.add_divider(divider_label="Legacy Tools")  # Legacy Tools ++++++++++++++++++++++++++++++++++++++
-        menu.add_menu_item(
-            label="Biped Auto Rigger",
-            command=IMPORT_TOOL + 'initialize_tool("biped_rigger_legacy")',
-            tooltip="Automated solution for creating a biped rig.",
-            icon=ui_res_lib.Icon.tool_auto_rigger_legacy,
-        )
-        menu.add_menu_item(
-            label="Biped Rig Interface",
-            command=IMPORT_TOOL + 'initialize_tool("biped_rigger_legacy", "launch_biped_rig_interface")',
-            tooltip="Custom Rig Interface for GT Biped Auto Rigger.",
-            icon=ui_res_lib.Icon.tool_rig_interface,
-        )
-        menu.add_menu_item(
-            label="Retarget Assistant",
-            command=IMPORT_TOOL + 'initialize_tool("biped_rigger_legacy", "launch_retarget_assistant")',
-            tooltip="Script with HumanIK patches.",
-            icon=ui_res_lib.Icon.tool_retarget_assistant,
-        )
-        menu.add_menu_item(
-            label="Game FBX Exporter",
-            command=IMPORT_TOOL + 'initialize_tool("biped_rigger_legacy", "launch_game_exporter")',
-            tooltip="Automated solution for exporting real-time FBX files.",
-            icon=ui_res_lib.Icon.tool_game_fbx_exporter,
         )
         menu.add_divider(divider_label="Curves")  # Curve Thumbnails Section +++++++++++++++++++++++++++++++++
         menu.add_menu_item(
@@ -628,11 +632,34 @@ def load_menu(*args):
         tooltip="Check for updates by comparing current version with latest release.",
         icon=ui_res_lib.Icon.tool_package_updater,
     )
+    menu.add_sub_menu("Toggle", icon=ui_res_lib.Icon.root_dev, parent="Help", parent_to_root=False)
     menu.add_menu_item(
-        label="Develop Menu Toggle",
+        label="Toggle Develop Menu",
         command="from gt.core.prefs import toggle_dev_sub_menu\n" "toggle_dev_sub_menu()\n" + _rebuild_menu_command,
-        tooltip="Check for updates by comparing current version with latest release.",
+        tooltip="Shows or hides the development tools menu.",
         icon=ui_res_lib.Icon.root_dev,
+        check_box=package_prefs.is_dev_menu_visible(),
+        parent="Toggle",
+    )
+    menu.add_menu_item(
+        label="Toggle Legacy Menu",
+        command="from gt.core.prefs import toggle_legacy_sub_menu\n"
+        "toggle_legacy_sub_menu()\n"
+        + _rebuild_menu_command,
+        tooltip="Shows or hides the legacy tools menu.",
+        icon=ui_res_lib.Icon.root_rigging,
+        check_box=package_prefs.is_legacy_menu_visible(),
+        parent="Toggle",
+    )
+    menu.add_menu_item(
+        label="Toggle Automatic Dependency Installation",
+        command="from gt.core.prefs import toggle_dependency_auto_install\n"
+        "toggle_dependency_auto_install()\n"
+        + _rebuild_menu_command,
+        tooltip="Automatically installs missing Python packages for tools that request them.",
+        icon=ui_res_lib.Icon.ui_progress,
+        check_box=is_auto_install_enabled(),
+        parent="Toggle",
     )
     menu.add_menu_item(
         label=f"Installed Version: {str(package_version)}",

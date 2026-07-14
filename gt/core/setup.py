@@ -383,15 +383,25 @@ def reload_package_loaded_modules():
     Reloads modules containing the package fragment path in it.
     For example, if a module contains "package-name//requirement" it gets reloaded.
     e.g. "gt-tools/tools" is the fragment, if the module is "gt-tools/tools/package_setup/script.py" then it reloads.
+
+    Returns:
+        list: Names of modules successfully reloaded in dependency-first order.
     """
     filtered_modules = get_package_loaded_modules()
     import importlib
 
-    try:
-        for module in filtered_modules:
+    reloaded_modules = []
+    sorted_modules = sorted(
+        filtered_modules,
+        key=lambda module: (module.__name__.count("."), module.__name__),
+    )
+    for module in sorted_modules:
+        try:
             importlib.reload(module)
-    except Exception as e:
-        logger.debug(e)
+            reloaded_modules.append(module.__name__)
+        except Exception as e:
+            logger.debug(f'Unable to reload package module "{module.__name__}". Issue: {e}')
+    return reloaded_modules
 
 
 def remove_package_loaded_modules():
