@@ -49,15 +49,275 @@ def set_status_line_text(line_edit, text, status=StatusLine.INFO):
     line_edit.setText(str(text or ""))
 
 
+def is_qt_object_valid(qt_object):
+    """Checks whether a Qt wrapper still owns a live C++ object.
+
+    Args:
+        qt_object (QObject): Qt wrapper to inspect.
+
+    Returns:
+        bool: True when the wrapper can be used safely.
+    """
+    if qt_object is None:
+        return False
+    try:
+        is_valid = getattr(ui_qt.shiboken, "isValid", None)
+        if callable(is_valid):
+            return bool(is_valid(qt_object))
+        qt_object.objectName()
+        return True
+    except (AttributeError, RuntimeError, TypeError):
+        return False
+
+
 class MayaWindowMeta(type):
     """
     Maya Window Metaclass. Used to make a QT Windows in Maya with extra functionalities such as docking and overwrites.
-    It also handles the Singleton and Mac focus behaviour of the window (when in Maya)
+    It also handles the Singleton and Mac focus behavior of the window (when in Maya)
 
     This metaclass modifies the base class of a QT object class to enable the dock ability in Maya.
     It dynamically adjusts the class inheritance to include "MayaQWidgetDockableMixin" based on the context
     (interactive Maya session or not).
     """
+
+    _pending_restores = {}
+    _restored_windows = {}
+
+    @classmethod
+    def _get_restore_key(mcs, module_name, class_name):
+        """Builds the key used to track a window while Maya restores it.
+
+        Args:
+            module_name (str): Module containing the window class.
+            class_name (str): Name of the window class.
+
+        Returns:
+            str: Unique key for the window class.
+        """
+        return f"{module_name}.{class_name}"
+
+    @classmethod
+    def _get_stable_object_name(mcs, module_name, class_name):
+        """Builds a stable Maya-safe object name for a window class.
+
+        Args:
+            module_name (str): Module containing the window class.
+            class_name (str): Name of the window class.
+
+        Returns:
+            str: Stable object name used by Maya's workspace control.
+        """
+        raw_name = f"{module_name}_{class_name}"
+        return re.sub(r"[^a-zA-Z0-9_]", "_", raw_name)
+
+    @classmethod
+    def _get_restore_script(mcs, module_name, class_name, workspace_control_name):
+        """Builds the Python script stored in Maya's workspace control.
+
+        Args:
+            module_name (str): Module containing the window class.
+            class_name (str): Name of the window class.
+            workspace_control_name (str): Name of the workspace control Maya will restore.
+
+        Returns:
+            str: Deferred Python script Maya can execute while restoring its workspace.
+        """
+        restore_command = (
+            f"from gt.ui.qt_utils import MayaWindowMeta; "
+            f"MayaWindowMeta.restore_window("
+            f"{module_name!r}, {class_name!r}, {workspace_control_name!r})"
+        )
+        return f"import maya.cmds as cmds\ncmds.evalDeferred({restore_command!r}, lowestPriority=True)"
+
+    @classmethod
+    def _attach_restored_window(mcs, window, restore_parent):
+        """Attaches a recreated Qt window to Maya's current workspace control.
+
+        Args:
+            window (QWidget): Recreated window to attach.
+            restore_parent (int): Pointer to Maya's restoring workspace control.
+
+        Returns:
+            bool: True when the window was successfully attached.
+        """
+        try:
+            from maya import OpenMayaUI as OpenMayaUI
+
+            if restore_parent is None:
+                return False
+            mcs._remove_retained_workspace_windows(window, restore_parent)
+            window_pointer = ui_qt.shiboken.getCppPointer(window)[0]
+            if window_pointer is None:
+                return False
+            OpenMayaUI.MQtUtil.addWidgetToMayaLayout(int(window_pointer), int(restore_parent))
+            ui_qt.QtWidgets.QWidget.setVisible(window, True)
+            return True
+        except Exception as e:
+            logger.warning(
+                f'Unable to restore Maya window "{type(window).__name__}". Issue: "{e}".'
+            )
+            return False
+
+    @classmethod
+    def _remove_retained_workspace_windows(mcs, window, restore_parent):
+        """Detaches old window instances from a retained Maya workspace control.
+
+        Maya can retain the contents of a closed workspace control. Attaching a
+        replacement without first detaching those contents causes every reopen
+        to add another copy of the window's widgets.
+
+        Args:
+            window (QWidget): New window that will replace retained instances.
+            restore_parent (int): Pointer to the Maya workspace control.
+        """
+        if restore_parent is None:
+            return
+        try:
+            workspace_widget = ui_qt.shiboken.wrapInstance(
+                int(restore_parent),
+                ui_qt.QtWidgets.QWidget,
+            )
+            retained_windows = workspace_widget.findChildren(ui_qt.QtWidgets.QWidget)
+            for retained_window in retained_windows:
+                if retained_window is window:
+                    continue
+                if not mcs._widgets_share_identity(retained_window, window):
+                    continue
+                mcs._prepare_window_for_replacement(retained_window)
+                retained_window.setParent(None)
+                retained_window.close()
+                retained_window.deleteLater()
+        except Exception as e:
+            logger.debug(
+                f'Unable to clear retained "{type(window).__name__}" windows. Issue: "{e}".'
+            )
+
+    @classmethod
+    def _prepare_window_for_replacement(mcs, window):
+        """Disables callbacks that should not run during automatic UI replacement.
+
+        Args:
+            window (QWidget): Existing tool window being replaced.
+        """
+        try:
+            if hasattr(window, "close_func"):
+                window.close_func = None
+        except RuntimeError as exception:
+            logger.debug(f'Unable to prepare stale window for replacement. Issue: "{exception}".')
+
+    @classmethod
+    def _widgets_share_identity(mcs, first_widget, second_widget):
+        """Checks whether two widgets represent the same reloadable window class.
+
+        Python module reloads create a new class object, so ``isinstance`` alone
+        cannot identify a retained instance created before a package reinstall.
+
+        Args:
+            first_widget (QWidget): First widget to compare.
+            second_widget (QWidget): Second widget to compare.
+
+        Returns:
+            bool: True when the widgets have the same stable window identity.
+        """
+        first_name = first_widget.objectName()
+        second_name = second_widget.objectName()
+        if first_name and second_name and first_name == second_name:
+            return True
+        first_type = type(first_widget)
+        second_type = type(second_widget)
+        return (
+            first_type.__name__ == second_type.__name__
+            and first_type.__module__ == second_type.__module__
+        )
+
+    @classmethod
+    def _reuse_workspace_control(mcs, window, restore_script):
+        """Reuses a retained Maya workspace control when reopening a tool.
+
+        Args:
+            window (QWidget): Newly created window to attach.
+            restore_script (str): Script stored for future Maya workspace restores.
+
+        Returns:
+            bool: True when an existing workspace control was reused.
+        """
+        try:
+            from maya import cmds
+            from maya import OpenMayaUI as OpenMayaUI
+
+            control_name = f"{window.objectName()}WorkspaceControl"
+            if not cmds.workspaceControl(control_name, query=True, exists=True):
+                return False
+            restore_parent = OpenMayaUI.MQtUtil.findControl(control_name)
+            if not mcs._attach_restored_window(window, restore_parent):
+                return False
+            cmds.workspaceControl(control_name, edit=True, uiScript=restore_script)
+            if cmds.workspaceControl(control_name, query=True, visible=True):
+                cmds.workspaceControl(control_name, edit=True, restore=True)
+            else:
+                cmds.workspaceControl(control_name, edit=True, visible=True)
+            return True
+        except Exception as e:
+            logger.debug(
+                f'Unable to reuse Maya workspace control for "{type(window).__name__}". Issue: "{e}".'
+            )
+            return False
+
+    @classmethod
+    def restore_window(mcs, module_name, class_name, workspace_control_name=None):
+        """Recreates a window inside Maya's restoring workspace control.
+
+        The tool package launcher is preferred so its model and controller are
+        reconstructed along with the view. If no launcher creates the requested
+        class, the view is instantiated directly as a compatibility fallback.
+
+        Args:
+            module_name (str): Module containing the window class.
+            class_name (str): Name of the window class.
+            workspace_control_name (str, optional): Maya workspace control receiving the recreated window.
+        """
+        import importlib
+
+        try:
+            from maya import OpenMayaUI as OpenMayaUI
+
+            restore_parent = None
+            if workspace_control_name:
+                restore_parent = OpenMayaUI.MQtUtil.findControl(workspace_control_name)
+            if restore_parent is None:
+                restore_parent = OpenMayaUI.MQtUtil.getCurrentParent()
+            restore_key = mcs._get_restore_key(module_name, class_name)
+            mcs._pending_restores[restore_key] = restore_parent
+
+            window_module = importlib.import_module(module_name)
+            package_name = module_name.rpartition(".")[0]
+            package_module = importlib.import_module(package_name) if package_name else None
+            launch_tool = getattr(package_module, "launch_tool", None)
+            if callable(launch_tool):
+                try:
+                    launch_tool()
+                except Exception as e:
+                    logger.warning(
+                        f'Unable to launch package "{package_name}" while restoring '
+                        f'"{class_name}". Issue: "{e}".'
+                    )
+
+            if restore_key in mcs._pending_restores:
+                window_class = getattr(window_module, class_name)
+                window = window_class()
+                window.show()
+
+            if restore_key in mcs._pending_restores:
+                mcs._pending_restores.pop(restore_key, None)
+                logger.warning(
+                    f'Maya window "{class_name}" could not be attached during workspace restore.'
+                )
+        except Exception as e:
+            restore_key = mcs._get_restore_key(module_name, class_name)
+            mcs._pending_restores.pop(restore_key, None)
+            logger.warning(
+                f'Unable to restore Maya window "{class_name}". Issue: "{e}".'
+            )
 
     def __new__(mcs, name, bases, attrs, base_inheritance=None, dockable=True):
         """
@@ -107,6 +367,9 @@ class MayaWindowMeta(type):
         base_class_vars = vars(new_class)
         if "__init__" in base_class_vars:
             original_init = base_class_vars["__init__"]
+            module_name = attrs.get("__module__", "")
+            restore_key = mcs._get_restore_key(module_name, name)
+            stable_object_name = mcs._get_stable_object_name(module_name, name)
 
             def custom_init(self, *args, **kwargs):
                 """
@@ -115,7 +378,10 @@ class MayaWindowMeta(type):
                 It also overwrites the "show" function when using the dockable version of this metaclass.
                 """
                 try:
-                    found_elements = get_maya_main_window_qt_elements(type(self))
+                    found_elements = get_maya_main_window_qt_elements(
+                        type(self),
+                        object_name=stable_object_name,
+                    )
                     close_ui_elements(found_elements)
                 except Exception as e:
                     logger.debug(f'Unable to close previous QT elements. Issue: "{str(e)}".')
@@ -133,13 +399,30 @@ class MayaWindowMeta(type):
                             *args_show: Additional positional arguments for the "show" method.
                             **kwargs_show: Additional keyword arguments for the "show" method.
                         """
+                        workspace_control_name = f"{self.objectName()}WorkspaceControl"
+                        restore_script = mcs._get_restore_script(
+                            module_name, name, workspace_control_name
+                        )
+                        restore_parent = mcs._pending_restores.pop(restore_key, None)
+                        if restore_parent is not None:
+                            if mcs._attach_restored_window(self, restore_parent):
+                                mcs._restored_windows[restore_key] = self
+                            return
+                        if not args_show and not kwargs_show:
+                            if mcs._reuse_workspace_control(self, restore_script):
+                                mcs._restored_windows[restore_key] = self
+                                return
                         if not hasattr(self, "_original_geometry"):
                             width = self.geometry().width()
                             height = self.geometry().height()
                             pos_x = self.pos().x()
                             pos_y = self.pos().y()
                             self._original_geometry = [pos_x, pos_y, width, height]
-                        original_show(*args_show, **kwargs_show, dockable=True)
+                        if not args_show and "dockable" not in kwargs_show:
+                            kwargs_show["dockable"] = True
+                        kwargs_show.setdefault("retain", True)
+                        kwargs_show.setdefault("uiScript", restore_script)
+                        original_show(*args_show, **kwargs_show)
                         try:
                             window_parent = self.parent().parent().parent().parent().parent()
                             ui_qt.QtWidgets.QWidget.setWindowIcon(window_parent, self.windowIcon())
@@ -153,6 +436,11 @@ class MayaWindowMeta(type):
                     self.show = custom_show
                 # Call Original Init
                 original_init(self, *args, **kwargs)
+                if dockable:
+                    current_object_name = self.objectName()
+                    generated_name_prefix = f"{name}_"
+                    if current_object_name.startswith(generated_name_prefix):
+                        self.setObjectName(stable_object_name)
                 # Stay On Top macOS Tool Modality
                 try:
                     if utils_sys.is_system_macos() and not dockable:
@@ -164,12 +452,13 @@ class MayaWindowMeta(type):
         return new_class
 
 
-def get_maya_main_window_qt_elements(class_object):
+def get_maya_main_window_qt_elements(class_object, object_name=None):
     """
     Get PySide2.QtWidgets.QWidget elements of a specific class from the main Maya window.
 
     Args:
         class_object (type or str): The class type or fully qualified string name of the class.
+        object_name (str, optional): Stable object name used to match instances created before a module reload.
 
     Returns:
         list: A list of PySide2.QtWidgets.QWidget elements matching the given class in the Maya window.
@@ -185,7 +474,24 @@ def get_maya_main_window_qt_elements(class_object):
     if not maya_win:
         logger.debug(f"Maya window was not found.")
         return []
-    return maya_win.findChildren(class_object)
+    found_elements = list(maya_win.findChildren(class_object))
+    target_module = getattr(class_object, "__module__", "")
+    target_name = getattr(class_object, "__name__", "")
+    for child in maya_win.findChildren(ui_qt.QtWidgets.QWidget):
+        try:
+            child_type = type(child)
+            matches_class_identity = (
+                target_module
+                and target_name
+                and child_type.__module__ == target_module
+                and child_type.__name__ == target_name
+            )
+            matches_object_name = bool(object_name and child.objectName() == object_name)
+        except (AttributeError, RuntimeError):
+            continue
+        if (matches_class_identity or matches_object_name) and child not in found_elements:
+            found_elements.append(child)
+    return found_elements
 
 
 def close_ui_elements(obj_list):
@@ -197,6 +503,7 @@ def close_ui_elements(obj_list):
     """
     for obj in obj_list:
         try:
+            MayaWindowMeta._prepare_window_for_replacement(obj)
             obj.close()
             obj.deleteLater()
         except Exception as e:

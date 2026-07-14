@@ -19,6 +19,8 @@ for to_append in [package_root_dir, tests_dir]:
         sys.path.append(to_append)
 from gt.ui.qt_utils import MayaWindowMeta
 from gt.ui import qt_utils
+from gt.tools.batch_processor.batch_processor_view import BatchProcessorView
+from gt.tools.batch_processor.batch_processor_controller import BatchProcessorController
 
 
 class TestQtUtilities(unittest.TestCase):
@@ -86,6 +88,98 @@ class TestQtUtilities(unittest.TestCase):
         ui_element1.deleteLater.assert_called_once()
         ui_element2.close.assert_called_once()
         ui_element2.deleteLater.assert_called_once()
+
+    def test_is_qt_object_valid_rejects_deleted_wrapper(self):
+        widget = ui_qt.QtWidgets.QWidget()
+        self.assertTrue(qt_utils.is_qt_object_valid(widget))
+
+        ui_qt.shiboken.delete(widget)
+
+        self.assertFalse(qt_utils.is_qt_object_valid(widget))
+
+    def test_batch_processor_skips_unsaved_dialog_for_deleted_view(self):
+        controller = Mock()
+        controller.has_unsaved_changes.return_value = True
+        widget = ui_qt.QtWidgets.QWidget()
+        ui_qt.shiboken.delete(widget)
+
+        result = BatchProcessorController.show_unsaved_changes_warning_dialog(controller, widget)
+
+        expected = False
+        self.assertEqual(expected, result)
+
+    def test_batch_processor_close_callback_ignores_deleted_cpp_wrapper(self):
+        stale_view = Mock()
+        stale_view.close_func = Mock(
+            side_effect=RuntimeError("Internal C++ object (BatchProcessorView) already deleted.")
+        )
+
+        BatchProcessorView._run_close_callback(stale_view)
+
+        stale_view.close_func.assert_called_once()
+
+    def test_batch_processor_close_callback_preserves_other_runtime_errors(self):
+        stale_view = Mock()
+        stale_view.close_func = Mock(side_effect=RuntimeError("Unexpected close failure"))
+
+        with self.assertRaises(RuntimeError):
+            BatchProcessorView._run_close_callback(stale_view)
+
+    def test_remove_retained_workspace_windows(self):
+        workspace_widget = ui_qt.QtWidgets.QWidget()
+        retained_window_one = ui_qt.QtWidgets.QDialog(workspace_widget)
+        retained_window_two = ui_qt.QtWidgets.QDialog(workspace_widget)
+        replacement_window = ui_qt.QtWidgets.QDialog()
+        workspace_pointer = ui_qt.shiboken.getCppPointer(workspace_widget)[0]
+
+        MayaWindowMeta._remove_retained_workspace_windows(
+            replacement_window,
+            workspace_pointer,
+        )
+
+        expected = None
+        result_one = retained_window_one.parent()
+        result_two = retained_window_two.parent()
+        self.assertEqual(expected, result_one)
+        self.assertEqual(expected, result_two)
+
+    def test_remove_retained_workspace_windows_preserves_replacement(self):
+        workspace_widget = ui_qt.QtWidgets.QWidget()
+        replacement_window = ui_qt.QtWidgets.QDialog(workspace_widget)
+        workspace_pointer = ui_qt.shiboken.getCppPointer(workspace_widget)[0]
+
+        MayaWindowMeta._remove_retained_workspace_windows(
+            replacement_window,
+            workspace_pointer,
+        )
+
+        expected = workspace_widget
+        result = replacement_window.parent()
+        self.assertEqual(expected, result)
+
+    def test_remove_retained_workspace_windows_matches_reloaded_class_identity(self):
+        workspace_widget = ui_qt.QtWidgets.QWidget()
+        old_window_class = type(
+            "ReloadedToolWindow",
+            (ui_qt.QtWidgets.QDialog,),
+            {"__module__": "gt.tools.reloaded_tool.reloaded_tool_view"},
+        )
+        new_window_class = type(
+            "ReloadedToolWindow",
+            (ui_qt.QtWidgets.QDialog,),
+            {"__module__": "gt.tools.reloaded_tool.reloaded_tool_view"},
+        )
+        retained_window = old_window_class(workspace_widget)
+        replacement_window = new_window_class()
+        workspace_pointer = ui_qt.shiboken.getCppPointer(workspace_widget)[0]
+
+        MayaWindowMeta._remove_retained_workspace_windows(
+            replacement_window,
+            workspace_pointer,
+        )
+
+        expected = None
+        self.assertEqual(expected, retained_window.parent())
 
     @patch.object(ui_qt.QtGui.QCursor, "pos", return_value=ui_qt.QtCore.QPoint(100, 200))
     def test_get_cursor_position_no_offset(self, mock_cursor):
