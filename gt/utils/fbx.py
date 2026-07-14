@@ -16,18 +16,42 @@ https://docs.unity3d.com/560/Documentation/Manual/HOWTO-exportFBX.html
 
 """
 
-import maya.cmds as cmds
-try:
-    import FbxCommon
-except ImportError as e:
-    print(f'Missing "FbxCommon"')
 import os
 import logging
+import maya.cmds as cmds
 
 # Logging Setup
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+_fbx_common_module = None
+
+
+def get_fbx_common_module():
+    """Gets the optional Autodesk FBX SDK helper module.
+
+    Returns:
+        module: Imported FbxCommon module.
+
+    Raises:
+        ImportError: If FbxCommon cannot be imported.
+    """
+    global _fbx_common_module
+    if _fbx_common_module:
+        return _fbx_common_module
+
+    try:
+        import FbxCommon as imported_fbx_common
+    except ImportError as exception:
+        raise ImportError(
+            'Optional FBX SDK helper "FbxCommon" is not available. '
+            "Maya FBX import and export can still use FbxImporter and FbxExporter, "
+            "but SDK-level FBX file edits require the Autodesk FBX SDK."
+        ) from exception
+
+    _fbx_common_module = imported_fbx_common
+    return _fbx_common_module
 
 
 class FileDialogStyles:
@@ -524,16 +548,19 @@ class FbxExporter:
         edits = [self._strip_namespace, self._remove_parent_groups, self._fbx_nodes_visilibity]
 
         if any(edits):
-            fbx_obj = FbxScene(path=path)
-            with fbx_obj as fbx_file:
-                if self._strip_namespace:
-                    fbx_file.remove_namespace()
-                if self._remove_parent_groups:
-                    fbx_file.remove_nodes_by_names(name_list=self._parent_groups)
-                if self._fbx_nodes_visilibity:
-                    fbx_file.set_nodes_visibility(self._fbx_nodes_visilibity)
+            try:
+                fbx_obj = FbxScene(path=path)
+                with fbx_obj as fbx_file:
+                    if self._strip_namespace:
+                        fbx_file.remove_namespace()
+                    if self._remove_parent_groups:
+                        fbx_file.remove_nodes_by_names(name_list=self._parent_groups)
+                    if self._fbx_nodes_visilibity:
+                        fbx_file.set_nodes_visibility(self._fbx_nodes_visilibity)
 
-                fbx_file.save(path=path)
+                    fbx_file.save(path=path)
+            except ImportError as exception:
+                logger.warning(f"Skipped optional FBX SDK post edits. Issue: {exception}")
 
 
 class FBXImportMode:
@@ -674,6 +701,7 @@ class FbxScene:
         self.path = path
         self.scene = None
         self.sdk_manager = None
+        self.fbx_common = None
         self.scene_nodes = None
         self.root_node = None
 
@@ -681,8 +709,9 @@ class FbxScene:
         """
         Loads the fbx file and its content.
         """
-        self.sdk_manager, self.scene = FbxCommon.InitializeSdkObjects()
-        FbxCommon.LoadScene(self.sdk_manager, self.scene, self.path)
+        self.fbx_common = get_fbx_common_module()
+        self.sdk_manager, self.scene = self.fbx_common.InitializeSdkObjects()
+        self.fbx_common.LoadScene(self.sdk_manager, self.scene, self.path)
         self.root_node = self.scene.GetRootNode()
         self.scene_nodes = self.get_scene_nodes()
         return self
@@ -692,7 +721,8 @@ class FbxScene:
         Closes the FBX scene safely.
         """
         # destroy objects created by the sdk
-        self.sdk_manager.Destroy()
+        if self.sdk_manager:
+            self.sdk_manager.Destroy()
 
     def _get_scene_nodes_recursive(self, node):
         """
@@ -781,10 +811,12 @@ class FbxScene:
         """
 
         try:
+            if not self.fbx_common:
+                self.fbx_common = get_fbx_common_module()
             if path is not None:
-                FbxCommon.SaveScene(self.sdk_manager, self.scene, path)
+                self.fbx_common.SaveScene(self.sdk_manager, self.scene, path)
             else:
-                FbxCommon.SaveScene(self.sdk_manager, self.scene, self.path)
+                self.fbx_common.SaveScene(self.sdk_manager, self.scene, self.path)
         except Exception as e:
             logger.error(f"Failed to save the fbx file. Issue: {e}")
 
