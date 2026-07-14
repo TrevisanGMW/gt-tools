@@ -103,6 +103,7 @@ modules_to_test = [
     test_utils.test_request,
     test_utils.test_system,
     test_utils.test_hypertext,
+    test_utils.test_dependency,
 ]
 
 
