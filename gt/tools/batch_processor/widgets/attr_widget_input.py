@@ -86,6 +86,16 @@ class AttrWidgetInputTask(AttrWidgetTask):
                 "templates, the project, and the input folder."
             ),
         )
+        self.add_text_field(
+            "Explicit Ignores",
+            ", ".join(self.task.settings.get("explicit_ignore_patterns") or []),
+            partial(self.set_task_setting_list_from_text, key="explicit_ignore_patterns"),
+            placeholder="hero_preview.ma, nested/*_old.fbx",
+            tooltip=(
+                "Comma-separated file name or path patterns removed from input results. "
+                "Applies to both folder discovery and Explicit Files."
+            ),
+        )
         count_layout = ui_qt.QtWidgets.QHBoxLayout()
         self.input_count_label = ui_qt.QtWidgets.QLabel()
         self.input_count_label.setWordWrap(True)

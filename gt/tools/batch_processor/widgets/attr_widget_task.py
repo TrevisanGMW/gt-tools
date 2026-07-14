@@ -35,6 +35,12 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         self.target_path_widgets = None
         self.incoming_files_button = None
         self.modify_targets_button = None
+        self.modify_checkbox = None
+        self.passthrough_checkbox = None
+        self.overwrite_checkbox = None
+        self.scene_load_mode_combo = None
+        self.output_extension_combo = None
+        self._updating_output_mode = False
         self.task_io_section = None
         self.add_widget_task_header()
 
@@ -98,6 +104,7 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         include_overwrite=True,
         scene_io_settings=None,
         collapsible=True,
+        passthrough_label=None,
     ):
         """Adds settings shared by most processing tasks.
 
@@ -107,6 +114,7 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
             include_overwrite (bool, optional): Whether to include overwrite controls.
             scene_io_settings (dict, optional): Scene loading and output options to add to the I/O section.
             collapsible (bool, optional): Whether the section should be collapsible.
+            passthrough_label (str, optional): Label for a task-specific no-write output mode.
         """
         self.task.settings.setdefault("task_io_collapsed", False)
         if collapsible:
@@ -155,6 +163,19 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
             modify_checkbox.stateChanged.connect(lambda *args: self.set_output_mode_from_checkbox(modify_checkbox))
             self.add_option_group(options_layout, modify_checkbox, modify_button)
             self.modify_targets_button = modify_button
+            self.modify_checkbox = modify_checkbox
+        if include_target and passthrough_label:
+            passthrough_checkbox = ui_qt.QtWidgets.QCheckBox(passthrough_label)
+            passthrough_checkbox.setMinimumHeight(passthrough_checkbox.sizeHint().height() + 2)
+            passthrough_checkbox.setChecked(self.task.passes_through())
+            passthrough_checkbox.setToolTip(
+                "Process incoming files without creating, replacing, or modifying an output file."
+            )
+            passthrough_checkbox.stateChanged.connect(
+                lambda *args: self.set_passthrough_mode_from_checkbox(passthrough_checkbox)
+            )
+            self.add_option_group(options_layout, passthrough_checkbox)
+            self.passthrough_checkbox = passthrough_checkbox
         if include_target:
             self.add_target_path_controls(parent_layout=section_layout)
         if include_overwrite:
@@ -164,6 +185,7 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
             overwrite_checkbox.setToolTip("Allow this task to overwrite existing files at its target path.")
             overwrite_checkbox.stateChanged.connect(lambda *args: self.set_overwrite_from_checkbox(overwrite_checkbox))
             self.add_option_group(options_layout, overwrite_checkbox)
+            self.overwrite_checkbox = overwrite_checkbox
         self.add_task_index_checkbox(options_layout)
         if scene_io_settings:
             self.add_scene_io_settings(parent_layout=section_layout, **scene_io_settings)
@@ -381,6 +403,7 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         )
         load_mode_combo.currentTextChanged.connect(partial(self.set_task_setting, key=load_mode_key))
         load_mode_layout.addWidget(load_mode_combo)
+        self.scene_load_mode_combo = load_mode_combo
 
         output_extension_layout = self.add_row_option_group(
             parent_layout=layout,
@@ -399,6 +422,7 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
                 partial(self.set_task_setting, key=output_extension_key)
             )
         output_extension_layout.addWidget(output_extension_combo)
+        self.output_extension_combo = output_extension_combo
 
         if include_load_plugins:
             load_plugins_layout = self.add_row_option_group(
@@ -513,9 +537,19 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         Args:
             checkbox (QCheckBox): Output mode checkbox.
         """
+        if self._updating_output_mode:
+            return
         previous_mode = self.task.settings.get("output_mode")
         if checkbox.isChecked():
+            if getattr(self, "passthrough_checkbox", None):
+                self._updating_output_mode = True
+                try:
+                    self.passthrough_checkbox.setChecked(False)
+                finally:
+                    self._updating_output_mode = False
             self.task.settings["output_mode"] = tasks.OUTPUT_MODE_MODIFY
+        elif getattr(self, "passthrough_checkbox", None) and self.passthrough_checkbox.isChecked():
+            self.task.settings["output_mode"] = tasks.OUTPUT_MODE_PASSTHROUGH
         else:
             self.task.settings["output_mode"] = tasks.OUTPUT_MODE_TARGET
         if previous_mode != self.task.settings.get("output_mode"):
@@ -526,6 +560,35 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
                 message = 'Task "{0}" output mode changed to Target Path.'
                 status = "info"
             self.emit_status_message(message.format(self.task.display_name), status=status)
+        self.refresh_target_path_enabled_state()
+
+    def set_passthrough_mode_from_checkbox(self, checkbox):
+        """Sets the task-specific no-write output mode from a checkbox.
+
+        Args:
+            checkbox (QCheckBox): Pass-through mode checkbox.
+        """
+        if self._updating_output_mode:
+            return
+        previous_mode = self.task.settings.get("output_mode")
+        if checkbox.isChecked():
+            if getattr(self, "modify_checkbox", None):
+                self._updating_output_mode = True
+                try:
+                    self.modify_checkbox.setChecked(False)
+                finally:
+                    self._updating_output_mode = False
+            self.task.settings["output_mode"] = tasks.OUTPUT_MODE_PASSTHROUGH
+        elif getattr(self, "modify_checkbox", None) and self.modify_checkbox.isChecked():
+            self.task.settings["output_mode"] = tasks.OUTPUT_MODE_MODIFY
+        else:
+            self.task.settings["output_mode"] = tasks.OUTPUT_MODE_TARGET
+        if previous_mode != self.task.settings.get("output_mode"):
+            if self.task.passes_through():
+                message = f'Task "{self.task.display_name}" output mode changed to {checkbox.text()}.'
+            else:
+                message = f'Task "{self.task.display_name}" output mode changed to Target Path.'
+            self.emit_status_message(message, status="info")
         self.refresh_target_path_enabled_state()
 
     def set_overwrite_from_checkbox(self, checkbox):
@@ -576,11 +639,17 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         """Refreshes target path widgets based on output mode."""
         if not self.target_path_widgets:
             return
-        is_target_path_enabled = not self.task.modifies_in_place()
+        is_target_path_enabled = self.task.writes_to_target_path()
         for key in ["field", "info_button", "open_button", "browse_button"]:
             self.target_path_widgets[key].setEnabled(is_target_path_enabled)
         if self.modify_targets_button:
             self.modify_targets_button.setEnabled(self.task.modifies_in_place())
+        if getattr(self, "overwrite_checkbox", None):
+            self.overwrite_checkbox.setEnabled(not self.task.passes_through())
+        if self.scene_load_mode_combo:
+            self.scene_load_mode_combo.setEnabled(not self.task.passes_through())
+        if self.output_extension_combo:
+            self.output_extension_combo.setEnabled(not self.task.passes_through())
 
     def show_incoming_files(self):
         """Shows incoming files discovered by enabled input tasks."""

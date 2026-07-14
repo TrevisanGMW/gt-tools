@@ -64,7 +64,7 @@ class SingleInstanceBatchRunner:
         try:
             current_items = []
             for step_index, task in enumerate(process_tasks, 1):
-                task_environment_index = project.get_task_environment_index(task, enabled_only=True)
+                task_environment_index = project.get_task_environment_index(task)
                 self.tracker.start_step(step_index, task.display_name)
                 self._record_operation(task)
                 if task.is_input_task:
@@ -152,7 +152,7 @@ class SingleInstanceBatchRunner:
                 return project.discover_input_files()
             if task.source_uses_previous_task_path():
                 return project.discover_input_files()
-            task_index = project.get_task_environment_index(task, enabled_only=True)
+            task_index = project.get_task_environment_index(task)
             return task.discover_source_files(project=project, task_index=task_index)
         return project.discover_input_files()
 
@@ -218,7 +218,7 @@ class SingleInstanceBatchRunner:
             list: Work items that completed this task.
         """
         output_items = []
-        if not task.modifies_in_place() and not os.path.isdir(step_output_dir):
+        if task.writes_to_target_path() and not os.path.isdir(step_output_dir):
             os.makedirs(step_output_dir)
         if getattr(task, "is_aggregate_task", False):
             context = {
@@ -445,7 +445,7 @@ class MultiInstanceBatchRunner:
         if run_from_task_id:
             task = project.get_task(run_from_task_id)
             if task and not task.is_input_task and not task.uses_incoming_files():
-                task_index = project.get_task_environment_index(task, enabled_only=True)
+                task_index = project.get_task_environment_index(task)
                 return task.discover_source_files(project=project, task_index=task_index)
         return project.discover_input_files()
 
@@ -541,7 +541,7 @@ def get_initial_source_root(project, source_file, run_from_task_id=None):
     if project and run_from_task_id:
         task = project.get_task(run_from_task_id)
         if task and not task.is_input_task and not task.uses_incoming_files():
-            task_index = project.get_task_environment_index(task, enabled_only=True)
+            task_index = project.get_task_environment_index(task)
             return get_task_source_root(project=project, task=task, task_index=task_index)
     input_root = get_input_source_root_for_file(project=project, source_file=source_file)
     if input_root:

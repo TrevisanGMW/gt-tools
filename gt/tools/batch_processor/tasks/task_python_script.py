@@ -41,6 +41,7 @@ Short aliases are also available: args and env.
 """
 
 import pprint
+import maya.cmds as cmds
 
 print("Batch Python arguments:")
 pprint.pprint(arguments)
@@ -550,7 +551,7 @@ class TaskPythonScript(task_base.BatchTask):
         if project and self.settings.get("pass_environment_arguments", True):
             task_index = None
             if hasattr(project, "get_task_environment_index"):
-                task_index = project.get_task_environment_index(self, enabled_only=True)
+                task_index = project.get_task_environment_index(self)
             environment_variables = project.get_environment_variables(
                 task=self,
                 task_index=task_index,

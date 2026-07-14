@@ -164,7 +164,7 @@ def build_python_script_runtime_context(
     if project and task and pass_environment_arguments:
         task_index = None
         if hasattr(project, "get_task_environment_index"):
-            task_index = project.get_task_environment_index(task, enabled_only=True)
+            task_index = project.get_task_environment_index(task)
         environment_variables = project.get_environment_variables(
             task=task,
             task_index=task_index,

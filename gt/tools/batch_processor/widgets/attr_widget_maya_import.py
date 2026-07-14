@@ -41,6 +41,7 @@ class AttrWidgetMayaImportTask(AttrWidgetTask):
                 "output_extension_values": [".ma", ".mb"],
             },
             collapsible=False,
+            passthrough_label="Open Only",
         )
         self.add_widget_separator_line(label_text="Maya Import Preferences")
         self.add_text_field(

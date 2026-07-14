@@ -7,6 +7,7 @@ Registry and factory functions for all available batch processor tasks.
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor.batch_processor_task_base import BatchTask
 from gt.tools.batch_processor.batch_processor_task_base import OUTPUT_MODE_MODIFY
+from gt.tools.batch_processor.batch_processor_task_base import OUTPUT_MODE_PASSTHROUGH
 from gt.tools.batch_processor.batch_processor_task_base import OUTPUT_MODE_TARGET
 from gt.tools.batch_processor.batch_processor_task_base import SOURCE_MODE_INCOMING
 from gt.tools.batch_processor.batch_processor_task_base import SOURCE_MODE_PATH

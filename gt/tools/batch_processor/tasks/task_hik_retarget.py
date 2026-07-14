@@ -20,6 +20,25 @@ HIK_BAKE_TARGETS = [
     HIK_BAKE_TARGET_CONTROL_RIG,
     HIK_BAKE_TARGET_CUSTOM_CONTROL_RIG,
 ]
+DEFAULT_PRE_BAKE_SCRIPT_TEXT = """# Optional HumanIK pre-bake pass.
+# Available values:
+#   context / batch_context: Full runtime dictionary.
+#   arguments / args: input, output, project, project_dir, task, task_id, etc.
+#   environment_variables / env: Project environment variables.
+#   project, task, work_item, output_path, source_character, target_character,
+#   imported_source_nodes, imported_target_nodes.
+import pprint
+import sys
+import maya.cmds as cmds
+
+sys.stdout.write("HumanIK pre-bake script\\n")
+sys.stdout.write("Input: {0}\\n".format(args.get("input") or context.get("source_path")))
+sys.stdout.write("Output: {0}\\n".format(args.get("output") or output_path))
+sys.stdout.write("Arguments:\\n")
+pprint.pprint(arguments)
+sys.stdout.write("Environment Variables:\\n")
+pprint.pprint(environment_variables)
+"""
 DEFAULT_POST_SCRIPT_TEXT = """# Optional HumanIK cleanup pass.
 # Available values:
 #   context / batch_context: Full runtime dictionary.
@@ -29,6 +48,7 @@ DEFAULT_POST_SCRIPT_TEXT = """# Optional HumanIK cleanup pass.
 #   imported_source_nodes, imported_target_nodes.
 import pprint
 import sys
+import maya.cmds as cmds
 
 sys.stdout.write("HumanIK post script\\n")
 sys.stdout.write("Input: {0}\\n".format(args.get("input") or context.get("source_path")))
@@ -61,7 +81,7 @@ class TaskRetargetHumanIK(task_base.BatchTask):
             "target_path": self.default_target_path_template,
             "source_load_mode": "Open",
             "load_relevant_plugins": True,
-            "source_namespace": "",
+            "source_namespace": "source",
             "target_namespace": "target",
             "source_root": "",
             "source_character_name": "source",
@@ -70,11 +90,19 @@ class TaskRetargetHumanIK(task_base.BatchTask):
             "source_tpose_path": "{project-dir}/data/source_tpose.pose",
             "target_rig_path": "",
             "target_character_name": "",
+            "load_target_properties": False,
+            "target_properties_path": "",
             "set_framerate": True,
             "framerate": 30,
             "bake_animation": True,
             "bake_target": HIK_BAKE_TARGET_SKELETON,
             "force_proxy_bake": False,
+            "run_pre_bake_script": False,
+            "pre_bake_script_text": DEFAULT_PRE_BAKE_SCRIPT_TEXT,
+            "pre_bake_script_collapsed": True,
+            "pre_bake_script_font_size": 14,
+            "pre_bake_script_pass_standard_arguments": True,
+            "pre_bake_script_pass_environment_arguments": True,
             "delete_source_elements": True,
             "delete_source_namespace": True,
             "run_post_script": False,
@@ -107,6 +135,11 @@ class TaskRetargetHumanIK(task_base.BatchTask):
                 result.add_error("HumanIK retarget framerate must be numeric.")
         if self.settings.get("bake_target") not in HIK_BAKE_TARGETS:
             result.add_error("HumanIK retarget bake target is invalid.")
+        pre_bake_script_text = self.settings.get("pre_bake_script_text")
+        if pre_bake_script_text is None:
+            pre_bake_script_text = DEFAULT_PRE_BAKE_SCRIPT_TEXT
+        if self.settings.get("run_pre_bake_script") and not pre_bake_script_text:
+            result.add_error("HumanIK pre-bake script is enabled but no inline script is set.")
         source_path_checks = []
         if not self.uses_pre_existing_source_character():
             source_path_checks = [
@@ -117,6 +150,12 @@ class TaskRetargetHumanIK(task_base.BatchTask):
             path = self.get_resolved_path(project, key)
             if path and not os.path.isfile(path):
                 result.add_error("{0} does not exist: {1}".format(label, path))
+        if self.settings.get("load_target_properties"):
+            properties_path = self.get_resolved_path(project, "target_properties_path")
+            if not properties_path:
+                result.add_error("HumanIK target properties are enabled but no properties file is configured.")
+            elif not os.path.isfile(properties_path):
+                result.add_error("Target HumanIK properties do not exist: {0}".format(properties_path))
         post_script_text = self.settings.get("post_script_text")
         if post_script_text is None:
             post_script_text = DEFAULT_POST_SCRIPT_TEXT
@@ -200,7 +239,26 @@ class TaskRetargetHumanIK(task_base.BatchTask):
             raise RuntimeError("Unable to create or find a HumanIK source character.")
         if not target_character:
             raise RuntimeError("Unable to find a HumanIK target character.")
-        self.retarget_and_bake(source_character=source_character, target_character=target_character)
+        self.load_target_hik_properties(project, target_character)
+
+        def run_pre_bake_script():
+            """Runs the configured pre-bake script with the active task context."""
+            self.run_pre_bake_script_if_needed(
+                project=project,
+                work_item=work_item,
+                output_path=output_path,
+                source_character=source_character,
+                target_character=target_character,
+                imported_source_nodes=imported_source_nodes,
+                imported_target_nodes=imported_target_nodes,
+                context=context,
+            )
+
+        self.retarget_and_bake(
+            source_character=source_character,
+            target_character=target_character,
+            pre_bake_callback=run_pre_bake_script,
+        )
         self.run_post_script_if_needed(
             project=project,
             work_item=work_item,
@@ -306,6 +364,7 @@ class TaskRetargetHumanIK(task_base.BatchTask):
             str: Source HIK character node.
         """
         requested_character = self.settings.get("source_character_name") or "source"
+        source_namespace = self.get_runtime_source_namespace()
         if self.uses_pre_existing_source_character():
             source_character = self.get_pre_existing_source_character(requested_character)
             self._runtime_source_character = source_character
@@ -324,10 +383,12 @@ class TaskRetargetHumanIK(task_base.BatchTask):
         import gt.core.pose as core_pose
         import gt.utils.hik as utils_hik
 
+        requested_character = self.get_namespaced_name(requested_character, source_namespace)
         source_character = self.get_or_create_hik_character(requested_character)
         self._runtime_source_character = source_character
         if not source_character:
             return ""
+        utils_hik.set_definition_lock(source_character, False)
         current_pose = None
         joints = self.get_source_joints()
         if joints:
@@ -336,7 +397,14 @@ class TaskRetargetHumanIK(task_base.BatchTask):
         if tpose_path:
             tpose_dict = core_io.read_json_dict(tpose_path)
             if tpose_dict:
-                core_pose.set_pose_from_dict(tpose_dict)
+                applied_tpose_joints = core_pose.set_pose_from_dict(tpose_dict, namespace=source_namespace)
+                if not applied_tpose_joints:
+                    raise RuntimeError(
+                        "Source T-pose did not match any joints using namespace '{0}': {1}".format(
+                            source_namespace or "<root>",
+                            tpose_path,
+                        )
+                    )
                 self.force_joint_evaluation(joints)
         definition_path = self.get_resolved_path(project, "source_definition_path")
         if definition_path:
@@ -346,7 +414,7 @@ class TaskRetargetHumanIK(task_base.BatchTask):
         utils_hik.set_definition_lock(source_character, True)
         self.evaluate_hik_character(source_character)
         if current_pose:
-            core_pose.set_pose_from_dict(current_pose)
+            core_pose.set_pose_from_dict(current_pose, namespace=source_namespace)
             self.force_joint_evaluation(joints)
         self.evaluate_hik_character(source_character)
         return source_character
@@ -377,12 +445,13 @@ class TaskRetargetHumanIK(task_base.BatchTask):
             return resolved_character
         return ""
 
-    def retarget_and_bake(self, source_character, target_character):
+    def retarget_and_bake(self, source_character, target_character, pre_bake_callback=None):
         """Assigns the source character to the target and optionally bakes.
 
         Args:
             source_character (str): Source HIK character.
             target_character (str): Target HIK character.
+            pre_bake_callback (callable, optional): Function run after source assignment and before optional baking.
         """
         import gt.utils.hik as utils_hik
 
@@ -400,6 +469,8 @@ class TaskRetargetHumanIK(task_base.BatchTask):
                         ", ".join(self.get_hik_characters()) or "None",
                     )
                 )
+        if callable(pre_bake_callback):
+            pre_bake_callback()
         if not self.settings.get("bake_animation", True):
             return
         bake_target = self.settings.get("bake_target") or HIK_BAKE_TARGET_SKELETON
@@ -414,6 +485,97 @@ class TaskRetargetHumanIK(task_base.BatchTask):
             success = utils_hik.bake_to_control_rig(target_character)
         if not success:
             raise RuntimeError("HumanIK bake failed for target: {0}".format(target_character))
+
+    def load_target_hik_properties(self, project, target_character):
+        """Loads optional HumanIK properties onto the resolved target character.
+
+        Args:
+            project (BatchProcessorModel): Active project.
+            target_character (str): Resolved target HumanIK character node.
+
+        Returns:
+            dict: Properties successfully applied.
+        """
+        if not self.settings.get("load_target_properties", False):
+            return {}
+        import gt.core.io as core_io
+        import gt.utils.hik as utils_hik
+
+        properties_path = self.get_resolved_path(project, "target_properties_path")
+        properties = core_io.read_json_dict(properties_path)
+        if not isinstance(properties, dict) or not properties:
+            raise RuntimeError("Target HumanIK properties file is empty or invalid: {0}".format(properties_path))
+        applied_properties = utils_hik.set_hik_properties(target_character, properties)
+        if not applied_properties:
+            raise RuntimeError(
+                "No HumanIK properties could be applied to target character '{0}' from: {1}".format(
+                    target_character,
+                    properties_path,
+                )
+            )
+        sys.stdout.write(
+            "[HumanIK] Applied {0} target properties from: {1}\n".format(
+                len(applied_properties),
+                properties_path,
+            )
+        )
+        self.evaluate_hik_character(target_character)
+        return applied_properties
+
+    def run_pre_bake_script_if_needed(
+        self,
+        project,
+        work_item,
+        output_path,
+        source_character,
+        target_character,
+        imported_source_nodes,
+        imported_target_nodes,
+        context=None,
+    ):
+        """Runs the optional script after source assignment and before optional baking.
+
+        Args:
+            project (BatchProcessorModel): Active project.
+            work_item (WorkItem): Source work item.
+            output_path (str): Output path.
+            source_character (str): Source HIK character.
+            target_character (str): Target HIK character.
+            imported_source_nodes (list): Imported source nodes.
+            imported_target_nodes (list): Imported target nodes.
+            context (dict, optional): Runner context.
+        """
+        if not self.settings.get("run_pre_bake_script"):
+            return
+        script_text = self.settings.get("pre_bake_script_text")
+        if script_text is None:
+            script_text = DEFAULT_PRE_BAKE_SCRIPT_TEXT
+        if not script_text.strip():
+            return
+        runtime_context = task_utils.build_python_script_runtime_context(
+            project=project,
+            task=self,
+            work_item=work_item,
+            output_path=output_path,
+            context=context,
+            extra_values={
+                "project": project,
+                "task": self,
+                "work_item": work_item,
+                "output_path": output_path,
+                "source_character": source_character,
+                "target_character": target_character,
+                "imported_source_nodes": list(imported_source_nodes or []),
+                "imported_target_nodes": list(imported_target_nodes or []),
+            },
+            pass_standard_arguments=self.settings.get("pre_bake_script_pass_standard_arguments", True),
+            pass_environment_arguments=self.settings.get("pre_bake_script_pass_environment_arguments", True),
+        )
+        run_inline_python_script(
+            script_text=script_text,
+            context=runtime_context,
+            script_name="<humanik_pre_bake_script>",
+        )
 
     def run_post_script_if_needed(
         self,
@@ -464,7 +626,11 @@ class TaskRetargetHumanIK(task_base.BatchTask):
             pass_standard_arguments=self.settings.get("post_script_pass_standard_arguments", True),
             pass_environment_arguments=self.settings.get("post_script_pass_environment_arguments", True),
         )
-        run_inline_python_script(script_text=script_text, context=runtime_context)
+        run_inline_python_script(
+            script_text=script_text,
+            context=runtime_context,
+            script_name="<humanik_post_script>",
+        )
 
     def cleanup_source(self, project, imported_source_nodes, source_character):
         """Deletes source elements and merges namespaces when requested.
@@ -632,8 +798,14 @@ class TaskRetargetHumanIK(task_base.BatchTask):
         after_characters = set(self.get_hik_characters())
         new_characters = list(after_characters.difference(before_characters))
         if new_characters:
-            new_characters.sort(key=lambda node: (not self.hik_name_matches(node, requested_name), node))
-            return new_characters[0]
+            requested_short_name = requested_name.rpartition(":")[-1]
+            new_characters.sort(key=lambda node: (not self.hik_name_matches(node, requested_short_name), node))
+            new_character = new_characters[0]
+            if ":" in requested_name and new_character != requested_name:
+                renamed_character = utils_hik.rename_definition(new_character, requested_name)
+                if self.is_hik_character(renamed_character):
+                    return renamed_character
+            return new_character
         resolved_character = self.resolve_hik_character(requested_name)
         if resolved_character:
             return resolved_character
@@ -1252,18 +1424,39 @@ class TaskRetargetHumanIK(task_base.BatchTask):
 
         return utils_hik.export_definition_to_xml(character_node, file_path, prefix=prefix)
 
+    @staticmethod
+    def export_properties_from_current_scene(character_node, file_path):
+        """Exports HumanIK properties from the current Maya scene.
 
-def run_inline_python_script(script_text, context):
+        Args:
+            character_node (str): HIK character node.
+            file_path (str): Output JSON file.
+
+        Returns:
+            str: Written JSON file path.
+        """
+        import gt.core.io as core_io
+        import gt.utils.hik as utils_hik
+
+        properties = utils_hik.get_hik_properties(character_node)
+        if not properties:
+            raise RuntimeError("No HumanIK properties found for target: {0}".format(character_node))
+        core_io.write_json(path=file_path, data=properties)
+        return file_path
+
+
+def run_inline_python_script(script_text, context, script_name="<humanik_post_script>"):
     """Runs inline Python post-retarget code.
 
     Args:
         script_text (str): Python script text.
         context (dict): Runtime context.
+        script_name (str, optional): Name reported for compiled script errors.
     """
     task_utils.run_inline_python_script(
         script_text=script_text,
         context=context,
-        script_name="<humanik_post_script>",
+        script_name=script_name,
     )
 
 

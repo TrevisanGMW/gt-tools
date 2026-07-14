@@ -69,6 +69,11 @@ class BatchProcessorController:
             key=constants.Project.PREFS_KEY_FLAG_SKIPPED_TASKS,
             default=True,
         )
+        self._ignore_disabled_tasks_for_task_index = self._prefs.get_bool(
+            key=constants.Project.PREFS_KEY_IGNORE_DISABLED_TASKS_FOR_TASK_INDEX,
+            default=False,
+        )
+        self.apply_task_index_automation()
         self.add_menu_file()
         self.add_menu_tasks()
         self.add_menu_utils()
@@ -262,6 +267,17 @@ class BatchProcessorController:
 
         self.create_menu_checkbox_action(
             parent_menu=menu_automations,
+            text="Ignore Disabled Tasks for Index",
+            checked=self._ignore_disabled_tasks_for_task_index,
+            tooltip=(
+                "Exclude disabled tasks when resolving index variables such as {task-idx}. "
+                "When unchecked, disabled tasks keep their place in the task index."
+            ),
+            callback=self.toggle_ignore_disabled_tasks_for_task_index,
+        )
+
+        self.create_menu_checkbox_action(
+            parent_menu=menu_automations,
             text="Confirm Task Delete",
             checked=self._confirm_delete_task,
             tooltip="Ask for confirmation before deleting a task from the right-click menu or task panel.",
@@ -397,6 +413,29 @@ class BatchProcessorController:
         state_name = "enabled" if self._flag_skipped_tasks else "disabled"
         self.log_status("Skipped task tracker warnings {0}.".format(state_name))
 
+    def toggle_ignore_disabled_tasks_for_task_index(self, checked):
+        """Stores whether disabled tasks should be excluded from task indexes.
+
+        Args:
+            checked (bool): New preference state.
+        """
+        self._ignore_disabled_tasks_for_task_index = bool(checked)
+        self._prefs.set_bool(
+            key=constants.Project.PREFS_KEY_IGNORE_DISABLED_TASKS_FOR_TASK_INDEX,
+            value=self._ignore_disabled_tasks_for_task_index,
+        )
+        self._prefs.save()
+        self.apply_task_index_automation()
+        self.refresh_widgets()
+        state_name = "ignored" if self._ignore_disabled_tasks_for_task_index else "included"
+        self.log_status(f"Disabled tasks are now {state_name} when resolving task indexes.")
+
+    def apply_task_index_automation(self):
+        """Applies the global disabled-task indexing preference to the active project."""
+        self.model.run_settings["ignore_disabled_tasks_for_task_index"] = bool(
+            self._ignore_disabled_tasks_for_task_index
+        )
+
     def get_convert_abs_paths_to_relative(self):
         """Gets the global project-relative path conversion preference.
 
@@ -418,6 +457,7 @@ class BatchProcessorController:
         if self.show_unsaved_changes_warning_dialog(window=self.view, is_close_event=False):
             return
         self.model.reset_project()
+        self.apply_task_index_automation()
         self.view.set_window_title(prefix=None)
         self.refresh_widgets()
         self.mark_project_clean()
@@ -433,6 +473,7 @@ class BatchProcessorController:
             return
         template_project = template_func()
         self.model = template_project
+        self.apply_task_index_automation()
         self.refresh_widgets()
         self.view.set_window_title(prefix=None)
         self.mark_project_clean()
@@ -452,6 +493,7 @@ class BatchProcessorController:
         )
         if file_path:
             self.model.load_from_file(file_path)
+            self.apply_task_index_automation()
             self.refresh_widgets()
             self.view.set_window_title(prefix=os.path.basename(file_path))
             self.mark_project_clean()
@@ -561,16 +603,25 @@ class BatchProcessorController:
         Returns:
             bool: True if the pending operation was cancelled.
         """
+        if not ui_qt_utils.is_qt_object_valid(window):
+            logger.debug("Skipped unsaved-changes dialog for a deleted Batch Processor view.")
+            return False
         if not self.has_unsaved_changes():
             return False
-        message_box = ui_qt.QtWidgets.QMessageBox(window)
-        message_box.setWindowTitle("Warning: Unsaved changes!")
-        message_box.setText("You have unsaved changes. What do you want to do?")
-        save_button = message_box.addButton("Save", ui_qt.QtWidgets.QMessageBox.AcceptRole)
-        dont_save_button = message_box.addButton("Don't Save", ui_qt.QtWidgets.QMessageBox.DestructiveRole)
-        cancel_button = message_box.addButton("Cancel", ui_qt.QtWidgets.QMessageBox.DestructiveRole)
-        message_box.exec_()
-        clicked_button = message_box.clickedButton()
+        try:
+            message_box = ui_qt.QtWidgets.QMessageBox(window)
+            message_box.setWindowTitle("Warning: Unsaved changes!")
+            message_box.setText("You have unsaved changes. What do you want to do?")
+            save_button = message_box.addButton("Save", ui_qt.QtWidgets.QMessageBox.AcceptRole)
+            dont_save_button = message_box.addButton("Don't Save", ui_qt.QtWidgets.QMessageBox.DestructiveRole)
+            cancel_button = message_box.addButton("Cancel", ui_qt.QtWidgets.QMessageBox.DestructiveRole)
+            message_box.exec_()
+            clicked_button = message_box.clickedButton()
+        except RuntimeError as exception:
+            if "Internal C++ object" not in str(exception) or "already deleted" not in str(exception):
+                raise
+            logger.debug(f"Skipped stale Batch Processor dialog parent. Issue: {exception}")
+            return False
         if clicked_button == save_button:
             if not self.save_project():
                 self.cancel_pending_close(window=window, is_close_event=is_close_event, close_args=args)

@@ -18,6 +18,7 @@ SOURCE_MODE_INCOMING = "incoming"
 SOURCE_MODE_PATH = "source_path"
 OUTPUT_MODE_TARGET = "target_path"
 OUTPUT_MODE_MODIFY = "modify_in_place"
+OUTPUT_MODE_PASSTHROUGH = "pass_through"
 METADATA_SOURCE_ROOT = "source_root"
 METADATA_SOURCE_RELATIVE_PATH = "source_relative_path"
 METADATA_SOURCE_RELATIVE_DIR = "source_relative_dir"
@@ -611,6 +612,22 @@ class BatchTask:
         """
         return self.settings.get("output_mode") == OUTPUT_MODE_MODIFY
 
+    def passes_through(self):
+        """Checks whether this task should pass work items through without writing.
+
+        Returns:
+            bool: True when the task should not create or modify an output file.
+        """
+        return self.settings.get("output_mode") == OUTPUT_MODE_PASSTHROUGH
+
+    def writes_to_target_path(self):
+        """Checks whether this task writes files to its configured target path.
+
+        Returns:
+            bool: True when a target directory is required for task output.
+        """
+        return not self.modifies_in_place() and not self.passes_through()
+
     def get_source_path_template(self):
         """Gets this task's source path template.
 
@@ -727,7 +744,7 @@ class BatchTask:
                 result.add_error('Task "{0}" source path is empty.'.format(self.display_name))
             elif not os.path.exists(source_path):
                 result.add_warning('Task "{0}" source path does not exist: {1}'.format(self.display_name, source_path))
-        if not self.modifies_in_place():
+        if self.writes_to_target_path():
             target_path = self.resolve_task_path(project)
             if not target_path:
                 result.add_error('Task "{0}" target path is empty.'.format(self.display_name))

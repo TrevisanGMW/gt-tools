@@ -511,7 +511,7 @@ class TaskMotionBuilderScript(TaskPythonScript):
             return []
         task_index = None
         if hasattr(project, "get_task_environment_index"):
-            task_index = project.get_task_environment_index(self, enabled_only=True)
+            task_index = project.get_task_environment_index(self)
         environment_variables = project.get_environment_variables(
             task=self,
             task_index=task_index,

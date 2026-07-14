@@ -90,7 +90,7 @@ def main():
     try:
         for task_index, task in enumerate(executable_tasks, 1):
             remaining_tasks = max(0, total_task_count - task_index)
-            task_environment_index = project.get_task_environment_index(task, enabled_only=True)
+            task_environment_index = project.get_task_environment_index(task)
             step_output_dir = task.resolve_task_path(project, task_index=task_environment_index)
             print(
                 "[OPERATION] - (worker {0}) - Task {1}/{2}: {3} ({4} left for this job)".format(
@@ -110,7 +110,7 @@ def main():
             output_items = []
             task_succeeded = 0
             task_skipped = 0
-            if not task.modifies_in_place():
+            if task.writes_to_target_path():
                 ensure_directory(step_output_dir)
             if getattr(task, "is_aggregate_task", False):
                 context = {

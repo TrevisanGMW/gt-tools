@@ -356,18 +356,21 @@ class BatchProcessorModel:
             input_tasks = [task for task in input_tasks if task.enabled]
         return input_tasks
 
-    def get_task_environment_index(self, task, enabled_only=False):
+    def get_task_environment_index(self, task, enabled_only=None):
         """Gets the one-based task index used by path environment variables.
 
         Args:
             task (BatchTask): Task to index.
-            enabled_only (bool, optional): Whether disabled tasks should be ignored.
+            enabled_only (bool, optional): Whether disabled tasks should be ignored. When
+                omitted, the project automation setting determines the behavior.
 
         Returns:
             int: One-based task index. Tasks excluded from index variables return 0.
         """
         if not task:
             return 0
+        if enabled_only is None:
+            enabled_only = bool(self.run_settings.get("ignore_disabled_tasks_for_task_index", False))
         task_list = self.get_enabled_tasks() if enabled_only else list(self.tasks)
         task_index = 0
         for current_task in task_list:
@@ -434,7 +437,7 @@ class BatchProcessorModel:
         previous_task = self.get_previous_task(task=task, enabled_only=enabled_only)
         if not previous_task:
             return ""
-        previous_index = self.get_task_environment_index(previous_task, enabled_only=enabled_only)
+        previous_index = self.get_task_environment_index(previous_task)
         return self.resolve_task_path_without_neighbor_paths(previous_task, previous_index)
 
     def get_previous_previous_task_path(self, task, enabled_only=True):
@@ -451,7 +454,7 @@ class BatchProcessorModel:
         before_previous_task = self.get_previous_task(task=previous_task, enabled_only=enabled_only)
         if not before_previous_task:
             return ""
-        task_index = self.get_task_environment_index(before_previous_task, enabled_only=enabled_only)
+        task_index = self.get_task_environment_index(before_previous_task)
         return self.resolve_task_path_without_neighbor_paths(before_previous_task, task_index)
 
     def get_next_task_path(self, task, enabled_only=True):
@@ -467,7 +470,7 @@ class BatchProcessorModel:
         next_task = self.get_next_task(task=task, enabled_only=enabled_only)
         if not next_task:
             return ""
-        next_index = self.get_task_environment_index(next_task, enabled_only=enabled_only)
+        next_index = self.get_task_environment_index(next_task)
         return self.resolve_task_path_without_neighbor_paths(next_task, next_index)
 
     def resolve_task_path_without_neighbor_paths(self, task, task_index=None):
@@ -706,7 +709,7 @@ class BatchProcessorModel:
             next_task_index = 0
             if previous_task:
                 previous_task_name = previous_task.display_name or previous_task.default_display_name
-                previous_task_index = self.get_task_environment_index(previous_task, enabled_only=True)
+                previous_task_index = self.get_task_environment_index(previous_task)
                 previous_previous_task = self.get_previous_task(task=previous_task, enabled_only=True)
                 if include_neighbor_paths:
                     previous_task_path = self.get_previous_task_path(task=task, enabled_only=True)
@@ -715,13 +718,10 @@ class BatchProcessorModel:
                 previous_previous_task_name = (
                     previous_previous_task.display_name or previous_previous_task.default_display_name
                 )
-                previous_previous_task_index = self.get_task_environment_index(
-                    previous_previous_task,
-                    enabled_only=True,
-                )
+                previous_previous_task_index = self.get_task_environment_index(previous_previous_task)
             if next_task:
                 next_task_name = next_task.display_name or next_task.default_display_name
-                next_task_index = self.get_task_environment_index(next_task, enabled_only=True)
+                next_task_index = self.get_task_environment_index(next_task)
                 if include_neighbor_paths:
                     next_task_path = self.get_next_task_path(task=task, enabled_only=True)
             environment_variables.update(

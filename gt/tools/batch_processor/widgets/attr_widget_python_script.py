@@ -540,7 +540,7 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
         if self.project:
             try:
                 if hasattr(self.project, "get_task_environment_index"):
-                    task_index = self.project.get_task_environment_index(self.task, enabled_only=True)
+                    task_index = self.project.get_task_environment_index(self.task)
                 step_output_dir = self.task.resolve_task_path(self.project, task_index=task_index)
             except Exception:
                 step_output_dir = self.project.get_project_dir() or tempfile.gettempdir()

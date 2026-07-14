@@ -2,6 +2,8 @@
 Batch Processor View
 """
 
+import logging
+
 from gt.tools.batch_processor import batch_processor_task_widget
 import gt.ui.tree_widget_enhanced as ui_tree_enhanced
 import gt.ui.resource_library as ui_res_lib
@@ -9,6 +11,9 @@ import gt.core.session as core_session
 from gt.ui.qt_utils import MayaWindowMeta
 import gt.ui.qt_utils as qt_utils
 import gt.ui.qt_import as ui_qt
+
+
+logger = logging.getLogger(__name__)
 
 
 class BatchProcessorView(metaclass=MayaWindowMeta):
@@ -195,13 +200,31 @@ class BatchProcessorView(metaclass=MayaWindowMeta):
         Args:
             event (QCloseEvent): Close event.
         """
-        if self.close_func and callable(self.close_func):
-            self.close_func(self, event)
+        self._run_close_callback(self, event)
 
     def dockCloseEventTriggered(self):
         """Runs a custom function when closing the dockable Maya window."""
-        if self.close_func and callable(self.close_func):
-            self.close_func(window=self)
+        self._run_close_callback(window=self)
+
+    def _run_close_callback(self, *args, **kwargs):
+        """Runs the close callback while ignoring stale Maya Qt wrappers.
+
+        Args:
+            *args: Positional arguments forwarded to the close callback.
+            **kwargs: Keyword arguments forwarded to the close callback.
+        """
+        if not qt_utils.is_qt_object_valid(self):
+            logger.debug("Ignored close callback for a deleted Batch Processor view.")
+            return
+        try:
+            close_callback = self.close_func
+            if not close_callback or not callable(close_callback):
+                return
+            close_callback(*args, **kwargs)
+        except RuntimeError as exception:
+            if "Internal C++ object" not in str(exception) or "already deleted" not in str(exception):
+                raise
+            logger.debug(f"Ignored stale Batch Processor close callback. Issue: {exception}")
 
     def clear_task_widget(self):
         """Clears the task attribute area."""

@@ -26,6 +26,9 @@ class AttrWidgetRetargetHumanIK(AttrWidgetTask):
             *args: Additional positional arguments.
             **kwargs: Additional keyword arguments.
         """
+        self.pre_bake_script_section = None
+        self.pre_bake_warning_label = None
+        self.bake_checkbox = None
         super().__init__(
             parent=parent,
             task=task,
@@ -107,6 +110,7 @@ class AttrWidgetRetargetHumanIK(AttrWidgetTask):
             placeholder="target",
             tooltip="Namespace used when importing or resolving the target rig.",
         )
+        self.add_target_properties_controls()
         self.add_combo_box(
             "Bake Target",
             self.task.settings.get("bake_target"),
@@ -119,8 +123,50 @@ class AttrWidgetRetargetHumanIK(AttrWidgetTask):
         self.add_scene_and_bake_options()
         self.add_cleanup_options()
         self.add_action_buttons()
+        self.add_pre_bake_script_section()
         self.add_post_script_section()
         self.content_layout.addStretch()
+
+    def add_target_properties_controls(self):
+        """Adds the optional target HumanIK properties file controls."""
+        tooltip = (
+            "Load HumanIK retarget properties onto the target character before assigning the source and baking. "
+            "The JSON file can be created with Export Target Properties below."
+        )
+        self.target_properties_widgets = self.add_path_template_field(
+            "Target Properties",
+            self.task.settings.get("target_properties_path"),
+            partial(self.set_task_setting, key="target_properties_path"),
+            placeholder="Optional target HumanIK properties JSON.",
+            tooltip=tooltip,
+            file_filter="JSON Files (*.json);;All Files (*);;",
+            return_widgets=True,
+        )
+        self.target_properties_checkbox = ui_qt.QtWidgets.QCheckBox("Load")
+        self.target_properties_checkbox.setChecked(bool(self.task.settings.get("load_target_properties", False)))
+        self.target_properties_checkbox.setToolTip(tooltip)
+        self.target_properties_checkbox.stateChanged.connect(
+            lambda *args: self.set_load_target_properties(self.target_properties_checkbox.isChecked())
+        )
+        self.target_properties_widgets.get("layout").insertWidget(1, self.target_properties_checkbox)
+        self.refresh_target_properties_controls()
+
+    def set_load_target_properties(self, value):
+        """Sets whether target HumanIK properties are loaded.
+
+        Args:
+            value (bool): Whether to load the configured properties file.
+        """
+        self.set_task_setting(bool(value), key="load_target_properties")
+        self.refresh_target_properties_controls()
+
+    def refresh_target_properties_controls(self):
+        """Refreshes controls governed by the target-properties checkbox."""
+        is_enabled = bool(self.task.settings.get("load_target_properties", False))
+        for key in ["field", "info_button", "open_button", "browse_button"]:
+            widget = self.target_properties_widgets.get(key)
+            if widget:
+                widget.setEnabled(is_enabled)
 
     def add_source_character_controls(self):
         """Adds source character name and pre-existing HIK controls."""
@@ -206,19 +252,31 @@ class AttrWidgetRetargetHumanIK(AttrWidgetTask):
 
         bake_layout = ui_qt.QtWidgets.QHBoxLayout()
         bake_layout.setContentsMargins(0, 0, 0, 5)
-        for label_text, key, tooltip in [
-            ("Bake", "bake_animation", 'Bake retargeted animation unless Bake Target is "None".'),
-            ("Proxy Bake", "force_proxy_bake", "Force the Python proxy skeleton bake fallback."),
-        ]:
-            self.add_checkbox(
-                label_text,
-                self.task.settings.get(key),
-                partial(self.set_task_setting, key=key),
-                layout=bake_layout,
-                tooltip=tooltip,
-            )
+        self.bake_checkbox = self.add_checkbox(
+            "Bake",
+            self.task.settings.get("bake_animation"),
+            self.set_bake_animation,
+            layout=bake_layout,
+            tooltip='Bake retargeted animation unless Bake Target is "None".',
+        )
+        self.add_checkbox(
+            "Proxy Bake",
+            self.task.settings.get("force_proxy_bake"),
+            partial(self.set_task_setting, key="force_proxy_bake"),
+            layout=bake_layout,
+            tooltip="Force the Python proxy skeleton bake fallback.",
+        )
         bake_layout.addStretch()
         self.content_layout.addLayout(bake_layout)
+
+    def set_bake_animation(self, value):
+        """Sets the bake state and refreshes bake-dependent controls.
+
+        Args:
+            value (bool): Whether HumanIK animation should be baked.
+        """
+        self.set_task_setting(bool(value), key="bake_animation")
+        self.refresh_pre_bake_script_warning()
 
     def add_cleanup_options(self):
         """Adds source cleanup options."""
@@ -274,7 +332,45 @@ class AttrWidgetRetargetHumanIK(AttrWidgetTask):
             partial(self.export_definition_from_current_scene, character_key="target_character_name")
         )
         layout.addWidget(export_target_button)
+        export_properties_button = ui_qt.QtWidgets.QPushButton("Export Target Properties")
+        export_properties_button.setMinimumHeight(35)
+        export_properties_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.rigger_action_export))
+        export_properties_button.setToolTip(
+            "Writes the configured target character's HumanIK retarget properties to JSON."
+        )
+        export_properties_button.clicked.connect(self.export_target_properties_from_current_scene)
+        layout.addWidget(export_properties_button)
         layout.addStretch()
+
+    def export_target_properties_from_current_scene(self):
+        """Exports target HumanIK properties from the current Maya scene."""
+        file_path = ui_file_dialog.file_dialog(
+            parent=self,
+            write_mode=True,
+            caption="Export Target HumanIK Properties",
+            starting_directory=self.get_dialog_starting_directory(),
+            file_filter="JSON Files (*.json);;All Files (*);;",
+        )
+        if not file_path:
+            return
+        if not file_path.lower().endswith(".json"):
+            file_path += ".json"
+        character_node = self.task.resolve_hik_character_for_namespace(
+            self.task.settings.get("target_character_name"),
+            self.task.settings.get("target_namespace"),
+        )
+        try:
+            self.task.export_properties_from_current_scene(character_node=character_node, file_path=file_path)
+            message = "Exported HumanIK target properties for '{0}' to: {1}".format(character_node, file_path)
+            sys.stdout.write(message + "\n")
+            self.emit_status_message(message)
+        except Exception as exception:
+            message = "Unable to export HumanIK target properties for '{0}'. Issue: {1}".format(
+                character_node,
+                exception,
+            )
+            sys.stdout.write(message + "\n")
+            self.emit_status_message(message, status="warning")
 
     def add_post_script_section(self):
         """Adds the collapsed optional post-script section."""
@@ -326,6 +422,75 @@ class AttrWidgetRetargetHumanIK(AttrWidgetTask):
             font_size_changed_callback=partial(self.set_task_setting, key="post_script_font_size"),
         )
         layout.addWidget(editor)
+
+    def add_pre_bake_script_section(self):
+        """Adds the collapsed optional pre-bake script section."""
+        collapsed = bool(self.task.settings.get("pre_bake_script_collapsed", True))
+        section = self.add_collapsible_section(
+            label_text="Pre-Bake Script",
+            collapsed=collapsed,
+            state_setter=partial(self.set_task_setting, key="pre_bake_script_collapsed"),
+            tooltip="Optional Python script that runs immediately before the HumanIK bake operation.",
+        )
+        self.pre_bake_script_section = section
+        layout = section.get("content_layout")
+        options_layout = ui_qt.QtWidgets.QHBoxLayout()
+        options_layout.setContentsMargins(0, 0, 0, 5)
+        self.add_checkbox(
+            "Run",
+            self.task.settings.get("run_pre_bake_script"),
+            partial(self.set_task_setting, key="run_pre_bake_script"),
+            layout=options_layout,
+            tooltip="Run the configured script immediately before baking retargeted animation.",
+        )
+        self.add_checkbox(
+            "Pass Task Args",
+            self.task.settings.get("pre_bake_script_pass_standard_arguments", True),
+            partial(self.set_task_setting, key="pre_bake_script_pass_standard_arguments"),
+            layout=options_layout,
+            tooltip="Expose input, output, project, task, and related values as arguments and args.",
+        )
+        self.add_checkbox(
+            "Pass Env",
+            self.task.settings.get("pre_bake_script_pass_environment_arguments", True),
+            partial(self.set_task_setting, key="pre_bake_script_pass_environment_arguments"),
+            layout=options_layout,
+            tooltip="Expose project environment variables as environment_variables and env.",
+        )
+        self.pre_bake_warning_label = ui_qt.QtWidgets.QLabel("Bake Off: Runs Like Post")
+        self.pre_bake_warning_label.setStyleSheet("color: #d6b656;")
+        self.pre_bake_warning_label.setToolTip(
+            "Bake is disabled, so this script runs after HumanIK source assignment without a following bake."
+        )
+        options_layout.addStretch()
+        options_layout.addWidget(self.pre_bake_warning_label)
+        layout.addLayout(options_layout)
+        editor = InlinePythonEditorWidget(
+            parent=self,
+            owner=self,
+            text=(
+                self.task.settings.get("pre_bake_script_text")
+                or task_hik_retarget.DEFAULT_PRE_BAKE_SCRIPT_TEXT
+            ),
+            placeholder=task_hik_retarget.DEFAULT_PRE_BAKE_SCRIPT_TEXT,
+            tooltip=(
+                "Inline Python pass executed after HumanIK source assignment and immediately before baking. "
+                "Use context, arguments/args, environment_variables/env, project, task, work_item, output_path, "
+                "source_character, and target_character."
+            ),
+            text_changed_callback=partial(self.set_task_setting, key="pre_bake_script_text"),
+            font_size=self.task.settings.get("pre_bake_script_font_size") or 14,
+            font_size_changed_callback=partial(self.set_task_setting, key="pre_bake_script_font_size"),
+        )
+        layout.addWidget(editor)
+        self.refresh_pre_bake_script_warning()
+
+    def refresh_pre_bake_script_warning(self):
+        """Shows the alternate pre-bake behavior warning while baking is inactive."""
+        if not self.pre_bake_warning_label:
+            return
+        is_bake_enabled = bool(self.task.settings.get("bake_animation", True))
+        self.pre_bake_warning_label.setVisible(not is_bake_enabled)
 
     def export_pose_from_current_scene(self):
         """Exports the configured source root pose from the current Maya scene."""

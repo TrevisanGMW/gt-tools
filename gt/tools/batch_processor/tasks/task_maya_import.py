@@ -17,6 +17,7 @@ DEFAULT_POST_SCRIPT_TEXT = """# Optional Import/Open Maya cleanup pass.
 #   project, task, work_item, output_path, imported_nodes.
 import pprint
 import sys
+import maya.cmds as cmds
 
 sys.stdout.write("Import/Open Maya post script\\n")
 sys.stdout.write("Input: {0}\\n".format(args.get("input") or context.get("source_path")))
@@ -29,7 +30,7 @@ pprint.pprint(environment_variables)
 
 
 class TaskMayaImport(task_base.BatchTask):
-    """Task that opens or imports incoming files in Maya and writes cooked Maya scenes."""
+    """Task that opens or imports incoming files in Maya with optional scene output."""
 
     task_type = constants.TaskType.MAYA_IMPORT
     default_display_name = "Import/Open Maya"
@@ -78,7 +79,7 @@ class TaskMayaImport(task_base.BatchTask):
         """
         result = task_base.ValidationResult()
         extension = self.get_output_extension()
-        if extension not in [".ma", ".mb"]:
+        if not self.passes_through() and extension not in [".ma", ".mb"]:
             result.add_error("Maya import output extension must be .ma or .mb.")
         if self.settings.get("set_framerate"):
             try:
@@ -115,6 +116,8 @@ class TaskMayaImport(task_base.BatchTask):
             ValidationResult: Collected validation result.
         """
         result = task_base.ValidationResult()
+        if self.passes_through():
+            return result
         output_paths = {}
         for work_item in work_items:
             output_path = self.build_output_path(work_item, step_output_dir)
@@ -158,7 +161,7 @@ class TaskMayaImport(task_base.BatchTask):
             str: Resolved output path.
         """
         base_name = os.path.splitext(os.path.basename(work_item.current_path))[0]
-        if self.modifies_in_place():
+        if self.modifies_in_place() or self.passes_through():
             return work_item.current_path
         file_name = task_base.sanitize_filename(base_name, "imported") + self.get_output_extension()
         return task_base.build_work_item_output_path(
@@ -180,7 +183,7 @@ class TaskMayaImport(task_base.BatchTask):
             WorkItem: Updated work item pointing to the cooked Maya scene.
         """
         output_path = self.build_output_path(work_item, step_output_dir)
-        if os.path.exists(output_path) and not self.modifies_in_place() and not self.settings.get("overwrite", False):
+        if os.path.exists(output_path) and self.writes_to_target_path() and not self.settings.get("overwrite", False):
             skipped_item = task_base.WorkItem(
                 source_path=work_item.source_path,
                 current_path=output_path,
@@ -194,7 +197,7 @@ class TaskMayaImport(task_base.BatchTask):
         load_relevant_plugins = self.settings.get("load_relevant_plugins", True)
         if self.settings.get("load_fbx_plugin", False):
             load_relevant_plugins = True
-        load_mode = self.settings.get("scene_load_mode") or "Import"
+        load_mode = "Open" if self.passes_through() else self.settings.get("scene_load_mode") or "Import"
         imported_nodes = []
         if load_mode == "Open":
             batch_processor_maya.open_scene(work_item.current_path, load_relevant_plugins=load_relevant_plugins)
@@ -214,7 +217,11 @@ class TaskMayaImport(task_base.BatchTask):
             imported_nodes=imported_nodes,
             context=context,
         )
-        batch_processor_maya.save_scene(output_path, file_type=batch_processor_maya.get_maya_file_type(output_path))
+        if not self.passes_through():
+            batch_processor_maya.save_scene(
+                output_path,
+                file_type=batch_processor_maya.get_maya_file_type(output_path),
+            )
         metadata = dict(work_item.metadata)
         metadata["last_task_id"] = self.id
         metadata["last_task_type"] = self.task_type

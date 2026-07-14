@@ -185,6 +185,44 @@ class TestBatchProcessorModel(unittest.TestCase):
         expected = ["hero.ma", "walk.ma", "source.fbx"]
         self.assertEqual(expected, result)
 
+    def test_input_module_explicit_ignore_patterns_remove_matching_files(self):
+        input_dir = os.path.join(self.temp_dir, "input")
+        nested_dir = os.path.join(input_dir, "nested")
+        os.makedirs(nested_dir)
+        self._write_file(os.path.join(input_dir, "hero.ma"), "maya")
+        self._write_file(os.path.join(input_dir, "skip.ma"), "maya")
+        self._write_file(os.path.join(nested_dir, "walk.ma"), "maya")
+        self._write_file(os.path.join(nested_dir, "walk_preview.ma"), "maya")
+
+        model = batch_processor_model.BatchProcessorModel()
+        input_module = model.get_input_module()
+        input_module.settings["input_dir"] = input_dir
+        input_module.settings["extensions"] = [".ma"]
+        input_module.settings["explicit_files"] = ["*.ma", "nested/*.ma"]
+        input_module.settings["explicit_ignore_patterns"] = ["skip.ma", "nested/*_preview.ma"]
+
+        result = [os.path.relpath(path, input_dir).replace("\\", "/") for path in input_module.discover_files(model)]
+
+        expected = ["hero.ma", "nested/walk.ma"]
+        self.assertEqual(expected, result)
+
+    def test_input_module_explicit_ignore_patterns_apply_to_folder_mode(self):
+        input_dir = os.path.join(self.temp_dir, "input")
+        os.makedirs(input_dir)
+        self._write_file(os.path.join(input_dir, "KeepFile.fbx"), "fbx")
+        self._write_file(os.path.join(input_dir, "TestFile.fbx"), "fbx")
+
+        model = batch_processor_model.BatchProcessorModel()
+        input_module = model.get_input_module()
+        input_module.settings["input_dir"] = input_dir
+        input_module.settings["extensions"] = [".fbx"]
+        input_module.settings["explicit_ignore_patterns"] = ["testfile.fbx"]
+
+        result = [os.path.basename(path) for path in input_module.discover_files(model)]
+
+        expected = ["KeepFile.fbx"]
+        self.assertEqual(expected, result)
+
     def test_input_module_reports_folder_statistics(self):
         input_dir = os.path.join(self.temp_dir, "input")
         os.makedirs(input_dir)
@@ -386,6 +424,44 @@ class TestBatchProcessorModel(unittest.TestCase):
 
         expected = 1
         self.assertEqual(expected, result)
+
+    def test_task_environment_index_automation_controls_disabled_tasks(self):
+        model = batch_processor_model.BatchProcessorModel()
+        disabled_import_task = model.add_task(modules.MayaImportModule())
+        disabled_import_task.enabled = False
+        hik_task = model.add_task(modules.create_task(constants.TaskType.HIK_RETARGET))
+
+        result = model.get_task_environment_index(hik_task)
+
+        expected = 2
+        self.assertEqual(expected, result)
+        expected = "02"
+        self.assertEqual(
+            expected,
+            model.get_environment_variables(task=hik_task, include_braces=False).get("task-idx"),
+        )
+
+        model.run_settings["ignore_disabled_tasks_for_task_index"] = True
+        result = model.get_task_environment_index(hik_task)
+
+        expected = 1
+        self.assertEqual(expected, result)
+        expected = "01"
+        self.assertEqual(
+            expected,
+            model.get_environment_variables(task=hik_task, include_braces=False).get("task-idx"),
+        )
+
+    def test_task_environment_index_automation_is_saved_with_project(self):
+        model = batch_processor_model.BatchProcessorModel()
+        model.run_settings["ignore_disabled_tasks_for_task_index"] = True
+        project_path = os.path.join(self.temp_dir, "task_index_automation.batch")
+
+        saved_path = model.save_to_file(project_path)
+        loaded_model = batch_processor_model.BatchProcessorModel.from_file(saved_path)
+
+        expected = True
+        self.assertEqual(expected, loaded_model.run_settings.get("ignore_disabled_tasks_for_task_index"))
 
     def test_task_environment_index_excludes_unchecked_output_and_delete_tasks(self):
         model = batch_processor_model.BatchProcessorModel()
@@ -1018,6 +1094,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertIn("environment_variables", result)
         self.assertIn("project_path", result)
         self.assertNotIn("project_file_path", result)
+        self.assertIn("import maya.cmds as cmds", result)
         self.assertIn("print", result)
 
     def test_python_task_builds_arguments_and_environment_context(self):
@@ -1197,8 +1274,51 @@ class TestBatchProcessorModel(unittest.TestCase):
 
         self.assertIn("arguments", result)
         self.assertIn("environment_variables", result)
+        self.assertIn("import maya.cmds as cmds", result)
         self.assertTrue(import_task.settings.get("post_script_pass_standard_arguments"))
         self.assertTrue(import_task.settings.get("post_script_pass_environment_arguments"))
+
+    def test_maya_import_open_only_opens_without_writing_output(self):
+        import_task = modules.create_task(constants.TaskType.MAYA_IMPORT)
+        import_task.settings["output_mode"] = modules.OUTPUT_MODE_PASSTHROUGH
+        source_path = os.path.join(self.temp_dir, "incoming.fbx")
+        work_item = modules.WorkItem(source_path=source_path)
+        project = batch_processor_model.BatchProcessorModel()
+
+        with mock.patch(
+            "gt.tools.batch_processor.tasks.task_maya_import.batch_processor_maya.open_scene"
+        ) as mock_open_scene:
+            with mock.patch(
+                "gt.tools.batch_processor.tasks.task_maya_import.batch_processor_maya.import_file"
+            ) as mock_import_file:
+                with mock.patch(
+                    "gt.tools.batch_processor.tasks.task_maya_import.batch_processor_maya.save_scene"
+                ) as mock_save_scene:
+                    with mock.patch(
+                        "gt.tools.batch_processor.tasks.task_maya_import.batch_processor_maya.apply_scene_options"
+                    ):
+                        result = import_task.execute(work_item, project, self.temp_dir)
+
+        expected = source_path
+        self.assertEqual(expected, result.current_path)
+        mock_open_scene.assert_called_once_with(source_path, load_relevant_plugins=True)
+        mock_import_file.assert_not_called()
+        mock_save_scene.assert_not_called()
+
+    def test_maya_import_open_only_does_not_require_target_path(self):
+        import_task = modules.create_task(constants.TaskType.MAYA_IMPORT)
+        import_task.settings["source_mode"] = modules.SOURCE_MODE_INCOMING
+        import_task.settings["output_mode"] = modules.OUTPUT_MODE_PASSTHROUGH
+        import_task.settings["target_path"] = ""
+        import_task.settings["output_extension"] = ".fbx"
+
+        result = import_task.validate_common_settings(batch_processor_model.BatchProcessorModel())
+        task_result = import_task.validate(batch_processor_model.BatchProcessorModel())
+
+        self.assertTrue(result.is_valid())
+        self.assertTrue(task_result.is_valid())
+        self.assertTrue(import_task.passes_through())
+        self.assertFalse(import_task.writes_to_target_path())
 
     def test_maya_import_post_script_context_includes_arguments_and_environment(self):
         import_task = modules.create_task(constants.TaskType.MAYA_IMPORT)
@@ -1462,16 +1582,27 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertEqual(expected, hik_task.settings.get("source_load_mode"))
         expected = ""
         self.assertEqual(expected, hik_task.settings.get("source_root"))
+        expected = "source"
+        self.assertEqual(expected, hik_task.settings.get("source_namespace"))
         expected = True
         self.assertEqual(expected, hik_task.settings.get("set_framerate"))
         expected = False
         self.assertEqual(expected, hik_task.settings.get("source_character_pre_existing"))
+        expected = False
+        self.assertEqual(expected, hik_task.settings.get("load_target_properties"))
+        expected = ""
+        self.assertEqual(expected, hik_task.settings.get("target_properties_path"))
         expected = "{project-dir}/data/source_hik.xml"
         self.assertEqual(expected, hik_task.settings.get("source_definition_path"))
         expected = "{project-dir}/data/source_tpose.pose"
         self.assertEqual(expected, hik_task.settings.get("source_tpose_path"))
         self.assertIn("None", modules.HIK_BAKE_TARGETS)
+        self.assertFalse(hik_task.settings.get("run_pre_bake_script"))
+        self.assertTrue(hik_task.settings.get("pre_bake_script_collapsed"))
+        self.assertIn("pre_bake_script_text", hik_task.settings)
+        self.assertIn("import maya.cmds as cmds", hik_task.settings.get("pre_bake_script_text"))
         self.assertIn("post_script_text", hik_task.settings)
+        self.assertIn("import maya.cmds as cmds", hik_task.settings.get("post_script_text"))
         self.assertIn("arguments", hik_task.settings.get("post_script_text"))
         self.assertIn("environment_variables", hik_task.settings.get("post_script_text"))
         self.assertTrue(hik_task.settings.get("post_script_pass_standard_arguments"))
@@ -1493,6 +1624,36 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertFalse(any("Source HIK definition" in error for error in result.errors))
         self.assertFalse(any("Source T-pose" in error for error in result.errors))
 
+    def test_hik_retarget_target_properties_validation_requires_existing_file(self):
+        hik_task = modules.create_task(constants.TaskType.HIK_RETARGET)
+        hik_task.settings["load_target_properties"] = True
+        hik_task.settings["target_properties_path"] = os.path.join(self.temp_dir, "missing_properties.json")
+
+        result = hik_task.validate(batch_processor_model.BatchProcessorModel())
+
+        self.assertFalse(result.is_valid())
+        self.assertTrue(any("Target HumanIK properties do not exist" in error for error in result.errors))
+
+    def test_hik_retarget_loads_target_properties(self):
+        hik_task = modules.create_task(constants.TaskType.HIK_RETARGET)
+        hik_task.settings["load_target_properties"] = True
+        hik_task.settings["target_properties_path"] = "properties.json"
+        project = batch_processor_model.BatchProcessorModel()
+
+        with mock.patch.object(hik_task, "get_resolved_path", return_value="C:/properties.json"):
+            with mock.patch("gt.core.io.read_json_dict", return_value={"ReachActorLeftWrist": 0.5}):
+                with mock.patch(
+                    "gt.utils.hik.set_hik_properties",
+                    return_value={"ReachActorLeftWrist": 0.5},
+                ) as mock_set_properties:
+                    with mock.patch.object(hik_task, "evaluate_hik_character") as mock_evaluate:
+                        result = hik_task.load_target_hik_properties(project, "TargetCharacter")
+
+        expected = {"ReachActorLeftWrist": 0.5}
+        self.assertEqual(expected, result)
+        mock_set_properties.assert_called_once_with("TargetCharacter", expected)
+        mock_evaluate.assert_called_once_with("TargetCharacter")
+
     def test_hik_retarget_pre_existing_source_character_is_not_created(self):
         hik_task = modules.create_task(constants.TaskType.HIK_RETARGET)
         hik_task.settings["source_character_pre_existing"] = True
@@ -1507,6 +1668,51 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertEqual(expected, result)
         mock_get_or_create.assert_not_called()
         mock_evaluate.assert_called_once_with("ExistingSource")
+
+    def test_hik_retarget_applies_pose_and_creates_character_with_source_namespace(self):
+        hik_task = modules.create_task(constants.TaskType.HIK_RETARGET)
+        project = batch_processor_model.BatchProcessorModel()
+        hik_task._runtime_source_namespace = "source"
+        hik_task.settings["source_tpose_path"] = "source_tpose.pose"
+        hik_task.settings["source_definition_path"] = "source_hik.xml"
+        pose_data = {"Hips": {"rx": 10}}
+        current_pose = {"Hips": {"rx": 20}}
+
+        with mock.patch.object(hik_task, "get_or_create_hik_character", return_value="source:source") as mock_create:
+            with mock.patch.object(hik_task, "get_source_joints", return_value=["source:Hips"]):
+                with mock.patch.object(
+                    hik_task,
+                    "get_resolved_path",
+                    side_effect=["source_tpose.pose", "source_hik.xml"],
+                ):
+                    with mock.patch("gt.core.pose.get_pose_as_dict", return_value=current_pose):
+                        with mock.patch(
+                            "gt.core.pose.set_pose_from_dict",
+                            side_effect=[["source:Hips"], ["source:Hips"]],
+                        ) as mock_set_pose:
+                            with mock.patch("gt.core.io.read_json_dict", return_value=pose_data):
+                                with mock.patch("gt.utils.hik.set_definition_lock") as mock_set_lock:
+                                    with mock.patch("gt.utils.hik.import_definition_from_xml") as mock_import_definition:
+                                        with mock.patch.object(hik_task, "force_joint_evaluation"):
+                                            with mock.patch.object(hik_task, "evaluate_hik_character"):
+                                                result = hik_task.setup_source_character(project)
+
+        expected = "source:source"
+        self.assertEqual(expected, result)
+        mock_create.assert_called_once_with("source:source")
+        mock_set_lock.assert_any_call("source:source", False)
+        mock_set_lock.assert_any_call("source:source", True)
+        mock_set_pose.assert_has_calls(
+            [
+                mock.call(pose_data, namespace="source"),
+                mock.call(current_pose, namespace="source"),
+            ]
+        )
+        mock_import_definition.assert_called_once_with(
+            "source:source",
+            "source_hik.xml",
+            prefix="source:",
+        )
 
     def test_hik_retarget_pre_existing_source_character_missing_errors(self):
         hik_task = modules.create_task(constants.TaskType.HIK_RETARGET)
@@ -1567,6 +1773,80 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertEqual(["target:root"], result.get("imported_target_nodes"))
         self.assertEqual("test", result.get("runner"))
 
+    def test_hik_retarget_pre_bake_script_context_and_bake_gate(self):
+        hik_task = modules.create_task(constants.TaskType.HIK_RETARGET)
+        hik_task.settings["run_pre_bake_script"] = True
+        project = batch_processor_model.BatchProcessorModel()
+        work_item = modules.WorkItem(source_path=os.path.join(self.temp_dir, "source.fbx"))
+
+        with mock.patch("gt.tools.batch_processor.tasks.task_hik_retarget.run_inline_python_script") as mock_run:
+            hik_task.run_pre_bake_script_if_needed(
+                project=project,
+                work_item=work_item,
+                output_path=os.path.join(self.temp_dir, "output.ma"),
+                source_character="source",
+                target_character="target",
+                imported_source_nodes=["source:root"],
+                imported_target_nodes=["target:root"],
+            )
+
+            expected = "<humanik_pre_bake_script>"
+            self.assertEqual(expected, mock_run.call_args.kwargs.get("script_name"))
+            result = mock_run.call_args.kwargs.get("context")
+            expected = "target"
+            self.assertEqual(expected, result.get("target_character"))
+
+            mock_run.reset_mock()
+            hik_task.settings["bake_animation"] = False
+            hik_task.run_pre_bake_script_if_needed(
+                project=project,
+                work_item=work_item,
+                output_path=os.path.join(self.temp_dir, "output.ma"),
+                source_character="source",
+                target_character="target",
+                imported_source_nodes=[],
+                imported_target_nodes=[],
+            )
+            mock_run.assert_called_once()
+
+    def test_hik_retarget_runs_pre_bake_callback_immediately_before_bake(self):
+        hik_task = modules.create_task(constants.TaskType.HIK_RETARGET)
+        fake_hik_module = types.ModuleType("gt.utils.hik")
+        fake_hik_module.set_definition_source = mock.Mock(return_value=True)
+        fake_hik_module.bake_to_skeleton = mock.Mock(return_value=True)
+        fake_hik_module.bake_to_control_rig = mock.Mock(return_value=True)
+        ordered_calls = mock.Mock()
+        pre_bake_callback = mock.Mock()
+        ordered_calls.attach_mock(pre_bake_callback, "pre_bake")
+        ordered_calls.attach_mock(fake_hik_module.bake_to_skeleton, "bake")
+
+        with mock.patch.dict(sys.modules, {"gt.utils.hik": fake_hik_module}):
+            with mock.patch.object(hik_task, "evaluate_hik_character"):
+                hik_task.retarget_and_bake(
+                    source_character="source",
+                    target_character="target",
+                    pre_bake_callback=pre_bake_callback,
+                )
+
+        expected = [
+            mock.call.pre_bake(),
+            mock.call.bake("target", force_proxy=False),
+        ]
+        self.assertEqual(expected, ordered_calls.mock_calls)
+
+        ordered_calls.reset_mock()
+        hik_task.settings["bake_animation"] = False
+        with mock.patch.dict(sys.modules, {"gt.utils.hik": fake_hik_module}):
+            with mock.patch.object(hik_task, "evaluate_hik_character"):
+                hik_task.retarget_and_bake(
+                    source_character="source",
+                    target_character="target",
+                    pre_bake_callback=pre_bake_callback,
+                )
+
+        expected = [mock.call.pre_bake()]
+        self.assertEqual(expected, ordered_calls.mock_calls)
+
     def test_hik_retarget_open_mode_opens_fbx_sources(self):
         hik_task = modules.create_task(constants.TaskType.HIK_RETARGET)
         source_path = os.path.join(self.temp_dir, "source.fbx")
@@ -1591,6 +1871,32 @@ class TestBatchProcessorModel(unittest.TestCase):
 
         expected = ["foo:my_sourcef", "my_sourcef"]
         self.assertEqual(expected, result)
+
+    def test_hik_retarget_namespaces_character_when_hik_creation_ignores_namespace(self):
+        hik_task = modules.create_task(constants.TaskType.HIK_RETARGET)
+
+        with mock.patch.object(hik_task, "resolve_hik_character", return_value=""):
+            with mock.patch.object(
+                hik_task,
+                "get_hik_characters",
+                side_effect=[[], ["source1"]],
+            ):
+                with mock.patch.object(
+                    hik_task,
+                    "is_hik_character",
+                    side_effect=[False, True],
+                ):
+                    with mock.patch.object(hik_task, "evaluate_hik_character"):
+                        with mock.patch("gt.utils.hik.create_definition", return_value="source:source"):
+                            with mock.patch(
+                                "gt.utils.hik.rename_definition",
+                                return_value="source:source1",
+                            ) as mock_rename:
+                                result = hik_task.get_or_create_hik_character("source:source")
+
+        expected = "source:source1"
+        self.assertEqual(expected, result)
+        mock_rename.assert_called_once_with("source1", "source:source")
 
         result = modules.TaskRetargetHumanIK.get_hik_character_namespace_candidates("foo:my_sourcef", "foo")
 
@@ -1664,31 +1970,38 @@ class TestBatchProcessorModel(unittest.TestCase):
                                         ):
                                             with mock.patch.object(
                                                 hik_task,
-                                                "retarget_and_bake",
-                                                side_effect=lambda *args, **kwargs: record_event("retarget"),
+                                                "load_target_hik_properties",
+                                                side_effect=lambda *args: record_event("properties", {}),
                                             ):
                                                 with mock.patch.object(
                                                     hik_task,
-                                                    "run_post_script_if_needed",
-                                                    side_effect=lambda *args, **kwargs: record_event("post"),
+                                                    "retarget_and_bake",
+                                                    side_effect=lambda *args, **kwargs: record_event("retarget"),
                                                 ):
                                                     with mock.patch.object(
                                                         hik_task,
-                                                        "cleanup_source",
-                                                        side_effect=lambda *args: record_event("cleanup"),
+                                                        "run_post_script_if_needed",
+                                                        side_effect=lambda *args, **kwargs: record_event("post"),
                                                     ):
                                                         with mock.patch.object(
                                                             hik_task,
-                                                            "write_output",
-                                                            side_effect=lambda *args: record_event("write"),
+                                                            "cleanup_source",
+                                                            side_effect=lambda *args: record_event("cleanup"),
                                                         ):
-                                                            hik_task.execute(work_item, project, step_output_dir)
+                                                            with mock.patch.object(
+                                                                hik_task,
+                                                                "write_output",
+                                                                side_effect=lambda *args: record_event("write"),
+                                                            ):
+                                                                hik_task.execute(work_item, project, step_output_dir)
 
         self.assertLess(events.index("load"), events.index("scene_options"))
         self.assertLess(events.index("scene_options"), events.index("round"))
         self.assertLess(events.index("round"), events.index("capture"))
         self.assertLess(events.index("capture"), events.index("target"))
         self.assertLess(events.index("target"), events.index("restore"))
+        self.assertLess(events.index("target_character"), events.index("properties"))
+        self.assertLess(events.index("properties"), events.index("retarget"))
 
     def test_skipped_task_feedback_uses_short_utf8_tracker_line(self):
         args = mock.Mock()
@@ -1821,6 +2134,10 @@ class TestBatchProcessorModel(unittest.TestCase):
 
         self.assertNotIn('self.set_task_setting(file_path, key="source_tpose_path")', widget_source)
         self.assertNotIn('self.set_task_setting(file_path, key="source_definition_path")', widget_source)
+        self.assertNotIn('field.setText(self.path_to_project_relative(file_path))', widget_source)
+        self.assertNotIn("self.target_properties_checkbox.setChecked(True)", widget_source)
+        self.assertIn("layout.addWidget(export_properties_button)", widget_source)
+        self.assertNotIn("properties_layout.addWidget(export_properties_button)", widget_source)
 
     def test_utilities_task_menu_order_keeps_python_first_and_rename_tasks_together(self):
         categories = modules.get_task_categories()
