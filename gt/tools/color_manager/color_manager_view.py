@@ -43,8 +43,7 @@ class ColorManagerView(metaclass=MayaWindowMeta):
         self.auto_viewport_to_outliner_checkbox = None
 
         self.set_window_title()
-        self.setMinimumSize(360, 285)
-        self.resize(410, 330)
+        self.setMinimumWidth(360)
         self.setWindowFlags(
             self.windowFlags()
             | ui_qt.QtLib.WindowFlag.WindowMaximizeButtonHint
@@ -54,6 +53,7 @@ class ColorManagerView(metaclass=MayaWindowMeta):
         self.create_widgets()
         self.create_layout()
         self.apply_stylesheet()
+        self.resize_to_contents()
         qt_utils.center_window(self)
 
     def set_window_title(self):
@@ -90,7 +90,8 @@ class ColorManagerView(metaclass=MayaWindowMeta):
 
         self.get_color_button = ui_qt.QtWidgets.QPushButton("Get")
         self.configure_text_button(self.get_color_button, minimum_height=30)
-        self.get_color_button.setFixedWidth(48)
+        get_button_width = self.get_color_button.sizeHint().width() + 8
+        self.get_color_button.setMinimumWidth(max(56, get_button_width))
         self.get_color_button.setToolTip("Get the color from the selected object.")
         self.get_color_button.clicked.connect(lambda *args: self.controller.get_selection_color())
 
@@ -126,7 +127,7 @@ class ColorManagerView(metaclass=MayaWindowMeta):
     def create_layout(self):
         """Creates the main view layout."""
         main_layout = ui_qt.QtWidgets.QVBoxLayout(self)
-        main_layout.setContentsMargins(10, 10, 10, 0)
+        main_layout.setContentsMargins(10, 10, 10, 10)
         main_layout.setSpacing(0)
 
         separator_outer_spacing = 8
@@ -149,7 +150,6 @@ class ColorManagerView(metaclass=MayaWindowMeta):
         self.complete_preferences_widget = self.create_complete_preferences_section()
         main_layout.addWidget(self.complete_preferences_widget)
 
-        main_layout.addStretch()
         main_layout.addSpacing(4)
         main_layout.addLayout(self.create_action_buttons_row())
 
@@ -203,6 +203,7 @@ class ColorManagerView(metaclass=MayaWindowMeta):
                 tooltip="Apply preset color {0}.".format(self.format_rgb_values(color)),
                 callback=lambda rgb=color: self.controller.apply_preset_color(rgb),
             )
+            button.setFixedHeight(self.preview_button.minimumHeight())
             layout.addWidget(button, 1)
         return layout
 
@@ -311,7 +312,7 @@ class ColorManagerView(metaclass=MayaWindowMeta):
             QVBoxLayout: Created layout.
         """
         layout = ui_qt.QtWidgets.QVBoxLayout()
-        layout.setContentsMargins(0, 2, 0, 10)
+        layout.setContentsMargins(0, 2, 0, 0)
         layout.setSpacing(6)
         reset_button = ui_qt.QtWidgets.QPushButton("Reset")
         self.configure_text_button(reset_button, minimum_height=34)
@@ -359,7 +360,20 @@ class ColorManagerView(metaclass=MayaWindowMeta):
             self.import_export_widget.setVisible(show_complete)
         if self.complete_preferences_widget:
             self.complete_preferences_widget.setVisible(show_complete)
+        self.resize_to_contents()
+
+    def resize_to_contents(self):
+        """Resizes a floating window to the smallest height required by its active mode."""
+        try:
+            if hasattr(self, "isFloating") and not self.isFloating():
+                return
+        except (AttributeError, RuntimeError):
+            pass
         self.updateGeometry()
+        self.adjustSize()
+        content_height = self.sizeHint().height()
+        if content_height > 0:
+            self.resize(max(self.width(), self.minimumWidth()), content_height)
 
     def get_current_color(self):
         """Gets the current RGB color.

@@ -36,6 +36,7 @@ class ColorManagerController:
         self.model.load_preferences()
         self.view.update_from_model(self.model)
         self.view.show()
+        ui_qt.QtCore.QTimer.singleShot(0, self.view.resize_to_contents)
 
     def set_current_color(self, color):
         """Updates the current color.
@@ -110,14 +111,8 @@ class ColorManagerController:
         Args:
             color (list): RGB color.
         """
-        from gt.tools.color_manager import color_manager_model as model_module
-
-        converted_color = model_module.convert_color_from_outliner(
-            color,
-            self.model.auto_adjust_outliner_to_viewport,
-        )
-        self.model.set_current_color(converted_color)
-        self.view.set_current_color(converted_color)
+        self.model.set_current_color(color)
+        self.view.set_current_color(color)
         self.apply_color(reset=False)
 
     def apply_saved_color(self, color):
