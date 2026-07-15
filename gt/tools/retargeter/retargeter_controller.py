@@ -299,19 +299,41 @@ class RetargeterController:
 
         try:
             _source_joints = self.get_joints_from_loaded_source()
-            if not self.get_source_path() or not self.get_target_path():
-                _health_score_dict = {}
-            else:
-                _health_score_dict = self.model.get_links_health_score(verbose=False)
-            self.view.update_mapping_table(
-                health_score_dict=_health_score_dict,
-                source_joints=_source_joints,
-                source_namespace=self.model.get_source_namespace(),
-                target_namespace=self.model.get_target_namespace(),
-            )
         except Exception as e:  # Otherwise running the code without maya.cmds in PyCharm will fail
-            logger.error(f"Error: {e}")
-            pass
+            logger.warning(f"Unable to collect source joints for the mapping table. Issue: {e}")
+
+        missing_definition_files = []
+        if self.view.source_path and not os.path.isfile(self.view.source_path):
+            missing_definition_files.append("source")
+        if self.view.target_path and not os.path.isfile(self.view.target_path):
+            missing_definition_files.append("target")
+
+        if missing_definition_files:
+            _missing_files = " and ".join(missing_definition_files)
+            _file_label = "file was"
+            if len(missing_definition_files) > 1:
+                _file_label = "files were"
+            _msg_text = (
+                f"Definition {_missing_files} {_file_label} not found. "
+                "Mapping links were still loaded from the definition."
+            )
+            logger.warning(_msg_text)
+            if self.view.timed_message_label:
+                self.view.timed_message_label.show_message(_msg_text, seconds=6, msg_type="warning")
+
+        self.model.update_links()
+        try:
+            _health_score_dict = self.model.get_links_health_score(verbose=False)
+        except Exception as e:
+            logger.warning(f"Unable to score mapping links. Loading links with warning status. Issue: {e}")
+            _health_score_dict = {link: 0 for link in self.model.project.get_links()}
+
+        self.view.update_mapping_table(
+            health_score_dict=_health_score_dict,
+            source_joints=_source_joints,
+            source_namespace=self.model.get_source_namespace(),
+            target_namespace=self.model.get_target_namespace(),
+        )
 
     def update_definition_model(self):
         """
@@ -877,12 +899,18 @@ class RetargeterController:
             logger.info("Create new definition aborted.")
             return
 
+        retarget_const = tools_retargeter_const.RetargeterConstants
         _new_definition_filename = f"{_new_definition_name}.{retarget_const.DATA_EXTENSION}"
-        _new_definition_path = os.path.normpath(os.path.join(self.view.definition_folder, _new_definition_filename))
+        _new_definition_path = os.path.normpath(
+            os.path.join(self.view.definition_folder, _new_definition_filename)
+        )
         _new_definition_path = _new_definition_path.replace("\\", "/")
 
         if os.path.isfile(_new_definition_path):
-            _msg_text = f"Cannot overwrite the existing file. Please choose a different name.\n\n{_new_definition_path}"
+            _msg_text = (
+                "Cannot overwrite the existing file. Please choose a different name."
+                f"\n\n{_new_definition_path}"
+            )
             logger.warning(_msg_text)
             tools_retargeter_widget.show_message_box(
                 self.view, title=_msg_title, message=_msg_text, icon_type="warning"
@@ -894,12 +922,11 @@ class RetargeterController:
         new_definition = None
         if _new_definition_profile == "biped":
             import gt.tools.retargeter.template_biped as tools_retargeter_biped
-            import gt.tests.test_retargeter as test_retargeter
-            import inspect
 
-            module_path = inspect.getfile(test_retargeter)
-            module_dir = os.path.dirname(module_path)
-            test_data_dir = os.path.join(module_dir, "data")
+            retargeter_dir = os.path.dirname(__file__)
+            tools_dir = os.path.dirname(retargeter_dir)
+            package_dir = os.path.dirname(tools_dir)
+            test_data_dir = os.path.join(package_dir, "tests", "test_retargeter", "data")
             rig_file = os.path.join(test_data_dir, "male_rig.ma")
 
             new_definition = tools_retargeter_biped.rom_create_biped_definition_with_long_skin_tester(
