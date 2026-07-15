@@ -156,6 +156,12 @@ def load_menu(*args):
     # ------------------------------------ Modeling ------------------------------------
     menu.add_sub_menu("Modeling", icon=ui_res_lib.Icon.root_modeling, parent_to_root=True)
     menu.add_menu_item(
+        label="Mesh Morpher",
+        command=IMPORT_TOOL + 'initialize_tool("mesh_morpher")',
+        tooltip="Opens the Mesh Morpher tool.",
+        icon=ui_res_lib.Icon.tool_mesh_morpher,
+    )
+    menu.add_menu_item(
         label="Mesh Library",
         command=IMPORT_TOOL + 'initialize_tool("mesh_library")',
         tooltip="Open the Mesh Library tool.",
@@ -610,61 +616,69 @@ def load_menu(*args):
             tooltip="Opens sample tool.",
             icon=ui_res_lib.Icon.dev_trash,
         )
-    # ------------------------------------ About/Help ------------------------------------
+    # ------------------------------------ Settings / Help ------------------------------------
     menu.add_divider(parent_to_root=True)
-    menu.add_sub_menu("Help", icon=ui_res_lib.Icon.root_help, parent_to_root=True)
-    menu.add_menu_item(
-        label="About",
-        command=IMPORT_TOOL + 'initialize_tool("package_setup", "open_about_window")',
-        tooltip="Opens about menu.",
-        icon=ui_res_lib.Icon.misc_about,
+    _rebuild_menu_command = (
+        "from gt.tools.package_setup.gt_tools_maya_menu import _rebuild_menu\n"
+        "from gt.utils.system import execute_deferred\n"
+        "execute_deferred(_rebuild_menu)"
     )
-    _rebuild_menu_command = "from gt.tools.package_setup.gt_tools_maya_menu import _rebuild_menu\n_rebuild_menu()"
+    menu.add_sub_menu("Settings", icon=ui_res_lib.Icon.root_dev, parent_to_root=True)
     menu.add_menu_item(
-        label="Re-Build Menu",
-        command=_rebuild_menu_command,
-        tooltip="Re-Creates this menu, and does a rehash to pick up any new scripts.",
-        icon=ui_res_lib.Icon.misc_rebuild_menu,
-    )
-    menu.add_menu_item(
-        label="Check for Updates",
-        command=IMPORT_TOOL + 'initialize_tool("package_updater")',
-        tooltip="Check for updates by comparing current version with latest release.",
-        icon=ui_res_lib.Icon.tool_package_updater,
-    )
-    menu.add_sub_menu("Toggle", icon=ui_res_lib.Icon.root_dev, parent="Help", parent_to_root=False)
-    menu.add_menu_item(
-        label="Toggle Develop Menu",
+        label="Show Develop Menu",
         command="from gt.core.prefs import toggle_dev_sub_menu\n" "toggle_dev_sub_menu()\n" + _rebuild_menu_command,
         tooltip="Shows or hides the development tools menu.",
         icon=ui_res_lib.Icon.root_dev,
         check_box=package_prefs.is_dev_menu_visible(),
-        parent="Toggle",
+        parent="Settings",
     )
     menu.add_menu_item(
-        label="Toggle Legacy Menu",
+        label="Show Legacy Menu",
         command="from gt.core.prefs import toggle_legacy_sub_menu\n"
         "toggle_legacy_sub_menu()\n"
         + _rebuild_menu_command,
         tooltip="Shows or hides the legacy tools menu.",
         icon=ui_res_lib.Icon.root_rigging,
         check_box=package_prefs.is_legacy_menu_visible(),
-        parent="Toggle",
+        parent="Settings",
     )
     menu.add_menu_item(
-        label="Toggle Automatic Dependency Installation",
+        label="Automatic Dependency Installation",
         command="from gt.core.prefs import toggle_dependency_auto_install\n"
         "toggle_dependency_auto_install()\n"
         + _rebuild_menu_command,
         tooltip="Automatically installs missing Python packages for tools that request them.",
         icon=ui_res_lib.Icon.ui_progress,
         check_box=is_auto_install_enabled(),
-        parent="Toggle",
+        parent="Settings",
+    )
+    menu.add_sub_menu("Help", icon=ui_res_lib.Icon.root_help, parent_to_root=True)
+    menu.add_menu_item(
+        label="About",
+        command=IMPORT_TOOL + 'initialize_tool("package_setup", "open_about_window")',
+        tooltip="Opens about menu.",
+        icon=ui_res_lib.Icon.misc_about,
+        parent="Help",
+    )
+    menu.add_menu_item(
+        label="Re-Build Menu",
+        command=_rebuild_menu_command,
+        tooltip="Re-Creates this menu, and does a rehash to pick up any new scripts.",
+        icon=ui_res_lib.Icon.misc_rebuild_menu,
+        parent="Help",
+    )
+    menu.add_menu_item(
+        label="Check for Updates",
+        command=IMPORT_TOOL + 'initialize_tool("package_updater")',
+        tooltip="Check for updates by comparing current version with latest release.",
+        icon=ui_res_lib.Icon.tool_package_updater,
+        parent="Help",
     )
     menu.add_menu_item(
         label=f"Installed Version: {str(package_version)}",
         enable=False,
         icon=ui_res_lib.Icon.misc_current_version,
+        parent="Help",
     )
     # ------------------------------------ End ------------------------------------
     if PackagePrefs().is_skipping_menu_creation():

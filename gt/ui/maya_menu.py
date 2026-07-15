@@ -34,6 +34,7 @@ MenuItem = namedtuple(
         "enable_command_repeat",
         "option_box",
         "option_box_icon",
+        "check_box",
     ],
 )
 MENU_ROOT_PLACEHOLDER = "TempMayaMenuPlaceholderRoot"
@@ -130,6 +131,7 @@ class MayaMenu:
         option_box=False,
         option_box_command=None,
         option_box_icon="",
+        check_box=None,
         parent_to_root=False,
     ):
         """
@@ -146,6 +148,8 @@ class MayaMenu:
             option_box (bool, optional): Determines whether the menu item is an option box.
             option_box_command (callable, optional): The command to be executed when the option box is clicked.
             option_box_icon (str, optional): The icon path for the option box.
+            check_box (bool or None, optional): Checked state for a checkable menu item.
+                When None, the item is not checkable.
             parent_to_root (bool, optional): Determines whether the menu item should be parented to the root menu.
         """
         # Determine Parent
@@ -172,6 +176,7 @@ class MayaMenu:
             enable_command_repeat=enable_command_repeat,
             option_box=False,
             option_box_icon="",
+            check_box=check_box,
         )
         self.menu_items.append(menu_item)
         if option_box:
@@ -190,6 +195,7 @@ class MayaMenu:
                 enable_command_repeat=enable_command_repeat,
                 option_box=True,
                 option_box_icon=option_box_icon,
+                check_box=None,
             )
             self.menu_items.append(menu_item)
 
@@ -228,6 +234,7 @@ class MayaMenu:
             enable_command_repeat=False,
             option_box=False,
             option_box_icon="",
+            check_box=None,
         )
         self.menu_items.append(menu_item)
         self.sub_menus.append(label)
@@ -268,6 +275,7 @@ class MayaMenu:
             enable_command_repeat=False,
             option_box=False,
             option_box_icon="",
+            check_box=None,
         )
         self.menu_items.append(menu_item)
 
@@ -314,6 +322,9 @@ class MayaMenu:
         if item.option_box:
             param_dict["optionBox"] = item.option_box
             # param_dict["optionBoxIcon"] = item.option_box_icon
+
+        if item.check_box is not None:
+            param_dict["checkBox"] = item.check_box
 
         return param_dict
 
