@@ -120,7 +120,8 @@ class PackageUpdaterView(metaclass=ui_qt_utils.MayaWindowMeta):
         self.latest_release_content.setFixedWidth(label.sizeHint().width())
 
         self.changelog_box.setSizePolicy(
-            self.changelog_box.sizePolicy().Expanding, self.changelog_box.sizePolicy().Expanding
+            ui_qt.QtLib.SizePolicy.Expanding,
+            ui_qt.QtLib.SizePolicy.Expanding,
         )
 
         self.auto_check_btn = ui_qt.QtWidgets.QPushButton("Auto Check: Activated")
