@@ -283,7 +283,19 @@ class TaskPythonScript(task_base.BatchTask):
                     )
                 )
             output_paths[key] = work_item.current_path
-            if os.path.exists(output_path) and not self.settings.get("overwrite", False):
+            if self.modifies_in_place():
+                current_extension = os.path.splitext(work_item.current_path)[1].lower()
+                if current_extension not in [".ma", ".mb"]:
+                    result.add_error(
+                        "Python script can only modify Maya scene files in place: {0}".format(
+                            work_item.current_path
+                        )
+                    )
+            if (
+                os.path.exists(output_path)
+                and not self.modifies_in_place()
+                and not self.settings.get("overwrite", False)
+            ):
                 result.add_warning("Python script output already exists and will be skipped: {0}".format(output_path))
         return result
 
@@ -300,7 +312,11 @@ class TaskPythonScript(task_base.BatchTask):
             WorkItem: Updated work item pointing to the cooked Maya scene.
         """
         output_path = self.build_output_path(work_item, step_output_dir)
-        if os.path.exists(output_path) and not self.settings.get("overwrite", False):
+        if (
+            os.path.exists(output_path)
+            and not self.modifies_in_place()
+            and not self.settings.get("overwrite", False)
+        ):
             skipped_item = task_base.WorkItem(
                 source_path=work_item.source_path,
                 current_path=output_path,
@@ -508,6 +524,8 @@ class TaskPythonScript(task_base.BatchTask):
         Returns:
             str: Resolved output path.
         """
+        if self.modifies_in_place():
+            return work_item.current_path
         base_name = os.path.splitext(os.path.basename(work_item.current_path))[0]
         file_name = task_base.sanitize_filename(base_name, "scene") + self.get_output_extension()
         return task_base.build_work_item_output_path(

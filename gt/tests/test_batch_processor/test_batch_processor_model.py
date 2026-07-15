@@ -263,6 +263,52 @@ class TestBatchProcessorModel(unittest.TestCase):
         expected = os.path.join(step_output_dir, "characters", "hero", "renamed_01.fbx")
         self.assertEqual(os.path.normpath(expected), result)
 
+    def test_python_task_modify_mode_uses_current_file_as_output(self):
+        source_path = os.path.join(self.temp_dir, "02_tasks", "01_python", "walk.ma")
+        work_item = modules.WorkItem(source_path=source_path)
+        step_output_dir = os.path.join(self.temp_dir, "02_tasks", "02_python")
+        python_task = modules.PythonScriptModule(
+            settings={"output_mode": modules.OUTPUT_MODE_MODIFY}
+        )
+
+        result = python_task.build_output_path(work_item, step_output_dir)
+
+        self.assertEqual(os.path.normpath(source_path), result)
+
+    def test_python_task_modify_mode_executes_when_current_file_exists(self):
+        source_path = os.path.join(self.temp_dir, "walk.ma")
+        self._write_file(source_path, "maya scene")
+        work_item = modules.WorkItem(source_path=source_path)
+        python_task = modules.PythonScriptModule(
+            settings={
+                "output_mode": modules.OUTPUT_MODE_MODIFY,
+                "script_text": "context['script_ran'] = True",
+            }
+        )
+        project = batch_processor_model.BatchProcessorModel()
+
+        with mock.patch.object(python_task, "load_source_scene") as mock_load_scene:
+            with mock.patch.object(python_task, "run_inline_python_script") as mock_run_script:
+                with mock.patch.object(batch_processor_maya, "save_scene") as mock_save_scene:
+                    result = python_task.execute(work_item, project, self.temp_dir)
+
+        self.assertEqual(os.path.normpath(source_path), result.current_path)
+        mock_load_scene.assert_called_once_with(source_path)
+        mock_run_script.assert_called_once()
+        mock_save_scene.assert_called_once_with(source_path, file_type="mayaAscii")
+
+    def test_python_task_modify_mode_rejects_non_maya_scene_files(self):
+        source_path = os.path.join(self.temp_dir, "walk.fbx")
+        work_item = modules.WorkItem(source_path=source_path)
+        python_task = modules.PythonScriptModule(
+            settings={"output_mode": modules.OUTPUT_MODE_MODIFY}
+        )
+
+        result = python_task.validate_work_items([work_item], None, self.temp_dir)
+
+        self.assertFalse(result.is_valid())
+        self.assertTrue(any("only modify Maya scene files" in error for error in result.errors))
+
     def test_environment_variable_template_resolution(self):
         model = batch_processor_model.BatchProcessorModel()
         model.project_file_path = os.path.join(self.temp_dir, "project.batch")

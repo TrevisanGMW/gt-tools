@@ -35,6 +35,8 @@ class Project:
     PREFS_KEY_FLAG_SKIPPED_TASKS = "flag_skipped_tasks"
     PREFS_KEY_FLAG_RUNNING_TASKS = "flag_running_tasks"
     PREFS_KEY_IGNORE_DISABLED_TASKS_FOR_TASK_INDEX = "ignore_disabled_tasks_for_task_index"
+    PREFS_KEY_RECENT_PROJECTS = "recent_projects"
+    MAX_RECENT_PROJECTS = 5
 
 
 class TaskType:

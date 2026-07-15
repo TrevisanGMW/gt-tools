@@ -15,6 +15,7 @@ import gt.ui.file_dialog as ui_file_dialog
 import gt.ui.qt_utils as ui_qt_utils
 import gt.ui.qt_import as ui_qt
 import gt.utils.request as utils_request
+import gt.utils.recent_projects as utils_recent_projects
 import gt.utils.system as utils_system
 import gt.core.prefs as core_prefs
 from functools import partial
@@ -49,6 +50,11 @@ class BatchProcessorController:
         self._active_log_file_path = None
         self._saved_project_state = None
         self._prefs = core_prefs.Prefs(constants.Project.PREFS_FILENAME)
+        self._recent_projects = utils_recent_projects.RecentProjects(
+            prefs=self._prefs,
+            key=constants.Project.PREFS_KEY_RECENT_PROJECTS,
+            max_count=constants.Project.MAX_RECENT_PROJECTS,
+        )
         old_worker_window_pref = self._prefs.get_bool(
             key=constants.Project.PREFS_KEY_SHOW_WORKER_WINDOWS,
             default=None,
@@ -117,6 +123,15 @@ class BatchProcessorController:
 
         self.view.add_menu_action(parent_menu=menu_file, action=action_new)
         self.view.add_menu_action(parent_menu=menu_file, action=action_open)
+
+        self._recent_projects_menu = self.view.add_menu_submenu(
+            parent_menu=menu_file,
+            submenu_name="Recent Projects",
+            icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_open),
+        )
+        self._recent_projects_menu.aboutToShow.connect(self.refresh_recent_projects_menu)
+        self.refresh_recent_projects_menu()
+
         self.view.add_menu_action(parent_menu=menu_file, action=action_save)
         self.view.add_menu_action(parent_menu=menu_file, action=action_save_as)
 
@@ -141,6 +156,31 @@ class BatchProcessorController:
             lambda *args: self.open_or_create_directory(batch_processor_templates.get_template_source_dir())
         )
         self.view.add_menu_action(parent_menu=menu_templates, action=action_open_templates)
+
+    def refresh_recent_projects_menu(self):
+        """Rebuilds the recent-project submenu from stored preferences."""
+        self._recent_projects_menu.clear()
+        recent_paths = self._recent_projects.get_paths()
+        if not recent_paths:
+            empty_action = self.create_action("No Recent Projects")
+            empty_action.setEnabled(False)
+            self._recent_projects_menu.addAction(empty_action)
+            return
+        for index, file_path in enumerate(recent_paths, start=1):
+            action_recent = self.create_action(f"{index}. {file_path}", icon_path=ui_res_lib.Icon.ui_open)
+            action_recent.setToolTip(file_path)
+            action_recent.triggered.connect(partial(self.load_project_from_path, file_path))
+            self._recent_projects_menu.addAction(action_recent)
+        self._recent_projects_menu.addSeparator()
+        action_clear = self.create_action("Clear Recent Projects", icon_path=ui_res_lib.Icon.ui_delete)
+        action_clear.triggered.connect(self.clear_recent_projects)
+        self._recent_projects_menu.addAction(action_clear)
+
+    def clear_recent_projects(self):
+        """Clears the stored recent-project list and refreshes its menu."""
+        self._recent_projects.clear()
+        self.refresh_recent_projects_menu()
+        self.log_status("Cleared recent projects.")
 
     @staticmethod
     def open_or_create_directory(directory_path, *args):
@@ -508,8 +548,6 @@ class BatchProcessorController:
 
     def open_project(self):
         """Opens an existing .batch project."""
-        if self.show_unsaved_changes_warning_dialog(window=self.view, is_close_event=False):
-            return
         file_path = ui_file_dialog.file_dialog(
             parent=self.view,
             caption="Open Batch Project",
@@ -519,12 +557,65 @@ class BatchProcessorController:
             cancel_caption="Cancel",
         )
         if file_path:
-            self.model.load_from_file(file_path)
-            self.apply_task_index_automation()
-            self.refresh_widgets()
-            self.view.set_window_title(prefix=os.path.basename(file_path))
-            self.mark_project_clean()
-            self.log_status("Loaded project: {0}".format(file_path))
+            return self.load_project_from_path(file_path)
+        return False
+
+    def load_project_from_path(self, file_path, *args):
+        """Safely loads a project path after validating it and protecting changes.
+
+        Args:
+            file_path (str): Batch project file path to load.
+            *args: Optional Qt signal arguments.
+
+        Returns:
+            bool: True when the project was loaded.
+        """
+        file_path = self._recent_projects.normalize_path(file_path)
+        if not os.path.isfile(file_path):
+            self._recent_projects.remove_path(file_path)
+            self.refresh_recent_projects_menu()
+            self.show_project_load_warning(
+                title="Project Not Found",
+                message=f'The project no longer exists:\n\n{file_path}',
+            )
+            return False
+        if self.show_unsaved_changes_warning_dialog(window=self.view, is_close_event=False):
+            return False
+        try:
+            loaded_model = type(self.model).from_file(file_path)
+        except Exception as exception:
+            logger.exception('Unable to load batch project: "%s"', file_path)
+            self.show_project_load_warning(
+                title="Unable to Open Project",
+                message=f'The project could not be opened and the current project was preserved.\n\n{exception}',
+            )
+            return False
+        self.model = loaded_model
+        self.apply_task_index_automation()
+        self.refresh_widgets()
+        self.view.set_window_title(prefix=os.path.basename(file_path))
+        self.mark_project_clean()
+        self._recent_projects.add_path(file_path)
+        self.refresh_recent_projects_menu()
+        self.log_status(f"Loaded project: {file_path}")
+        return True
+
+    def show_project_load_warning(self, title, message):
+        """Shows a blocking warning for an invalid recent project.
+
+        Args:
+            title (str): Warning dialog title.
+            message (str): Warning dialog message.
+        """
+        message_box = ui_qt.QtWidgets.QMessageBox(self.view)
+        message_box.setWindowTitle(title)
+        message_box.setText(message)
+        try:
+            message_box.setIcon(ui_qt.QtWidgets.QMessageBox.Warning)
+        except AttributeError:
+            message_box.setIcon(ui_qt.QtWidgets.QMessageBox.Icon.Warning)
+        message_box.exec_()
+        self.log_status(message.replace("\n", " "), status="warning")
 
     def save_project(self):
         """Saves the current project."""
@@ -533,6 +624,8 @@ class BatchProcessorController:
         self.model.save_to_file()
         self.view.set_window_title(prefix=os.path.basename(self.model.project_file_path))
         self.mark_project_clean()
+        self._recent_projects.add_path(self.model.project_file_path)
+        self.refresh_recent_projects_menu()
         self.log_status("Saved project: {0}".format(self.model.project_file_path))
         return True
 
@@ -551,6 +644,8 @@ class BatchProcessorController:
             saved_path = self.model.save_to_file(file_path)
             self.view.set_window_title(prefix=os.path.basename(saved_path))
             self.mark_project_clean()
+            self._recent_projects.add_path(saved_path)
+            self.refresh_recent_projects_menu()
             self.log_status("Saved project: {0}".format(saved_path))
             return True
         return False
