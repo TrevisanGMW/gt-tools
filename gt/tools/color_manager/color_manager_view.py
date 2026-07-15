@@ -82,8 +82,9 @@ class ColorManagerView(metaclass=MayaWindowMeta):
         self.target_combo.currentTextChanged.connect(lambda value: self.controller.set_target(value))
 
         self.preview_button = ui_qt.QtWidgets.QPushButton()
-        self.preview_button.setFixedWidth(54)
+        self.preview_button.setMinimumWidth(72)
         self.preview_button.setMinimumHeight(30)
+        self.preview_button.setSizePolicy(ui_qt.QtLib.SizePolicy.Expanding, ui_qt.QtLib.SizePolicy.Fixed)
         self.preview_button.setToolTip("Open color picker.")
         self.preview_button.clicked.connect(self.open_color_picker)
 
@@ -125,17 +126,18 @@ class ColorManagerView(metaclass=MayaWindowMeta):
     def create_layout(self):
         """Creates the main view layout."""
         main_layout = ui_qt.QtWidgets.QVBoxLayout(self)
-        main_layout.setContentsMargins(10, 10, 10, 10)
+        main_layout.setContentsMargins(10, 10, 10, 0)
         main_layout.setSpacing(0)
 
+        separator_outer_spacing = 8
         main_layout.addLayout(self.create_title_bar())
-        main_layout.addSpacing(3)
+        main_layout.addSpacing(separator_outer_spacing)
         main_layout.addWidget(self.create_separator())
         main_layout.addSpacing(14)
         main_layout.addLayout(self.create_current_color_row())
-        main_layout.addSpacing(7)
+        main_layout.addSpacing(10)
         main_layout.addLayout(self.create_preset_color_row())
-        main_layout.addSpacing(7)
+        main_layout.addSpacing(separator_outer_spacing)
         main_layout.addWidget(self.create_separator())
         main_layout.addSpacing(10)
         main_layout.addLayout(self.create_apply_options_row())
@@ -175,14 +177,14 @@ class ColorManagerView(metaclass=MayaWindowMeta):
             QHBoxLayout: Created layout.
         """
         layout = ui_qt.QtWidgets.QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(8)
+        layout.setContentsMargins(8, 0, 8, 0)
+        layout.setSpacing(10)
         label = ui_qt.QtWidgets.QLabel("Current Color")
-        label.setMinimumWidth(92)
+        label.setSizePolicy(ui_qt.QtLib.SizePolicy.Fixed, ui_qt.QtLib.SizePolicy.Preferred)
         label.setToolTip("Current RGB color.")
         layout.addWidget(label)
-        layout.addWidget(self.preview_button)
-        layout.addWidget(self.brightness_slider, 1)
+        layout.addWidget(self.preview_button, 2)
+        layout.addWidget(self.brightness_slider, 3)
         layout.addWidget(self.get_color_button)
         return layout
 
@@ -309,7 +311,7 @@ class ColorManagerView(metaclass=MayaWindowMeta):
             QVBoxLayout: Created layout.
         """
         layout = ui_qt.QtWidgets.QVBoxLayout()
-        layout.setContentsMargins(0, 2, 0, 4)
+        layout.setContentsMargins(0, 2, 0, 10)
         layout.setSpacing(6)
         reset_button = ui_qt.QtWidgets.QPushButton("Reset")
         self.configure_text_button(reset_button, minimum_height=34)
@@ -608,6 +610,7 @@ class ColorManagerView(metaclass=MayaWindowMeta):
         stylesheet += ui_res_lib.Stylesheet.checkbox_base
         stylesheet += ui_res_lib.Stylesheet.line_edit_base
         stylesheet += ui_res_lib.Stylesheet.btn_push_base
+        stylesheet += ui_res_lib.Stylesheet.slider_base
         stylesheet += """
         QLabel#ColorManagerTitle {
             background-color: rgb(95, 95, 95);
