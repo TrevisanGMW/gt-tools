@@ -1103,7 +1103,7 @@ class StylesheetVariables:
     }
     slider_base = {
         # Colors
-        "@groove_color_background;;": Color.RGB.gray_light,
+        "@groove_color_background;": Color.RGB.gray_light,
         "@groove_color_border;": Color.RGB.gray_mid_dark,
         "@handle_color;": Color.RGB.gray_light,
         "@handle_color_border;": Color.RGB.gray_light,

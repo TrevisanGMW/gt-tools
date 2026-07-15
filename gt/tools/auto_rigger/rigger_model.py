@@ -85,9 +85,10 @@ class RiggerModel:
         Args:
             path (str): Path to the project description (JSON format)
         """
-        self.project = tools_rig_frm.RigProject()
         data = core_io.read_json_dict(path)
-        self.project.read_data_from_dict(data)
+        loaded_project = tools_rig_frm.RigProject()
+        loaded_project.read_data_from_dict(data)
+        self.project = loaded_project
 
 
 if __name__ == "__main__":

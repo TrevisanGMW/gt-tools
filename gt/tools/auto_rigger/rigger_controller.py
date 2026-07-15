@@ -9,6 +9,7 @@ import gt.tools.auto_rigger.rig_constants as tools_rig_const
 import gt.tools.auto_rigger.rig_modules as tools_rig_modules
 import gt.tools.auto_rigger.rig_framework as tools_rig_frm
 import gt.tools.auto_rigger.rig_utils as tools_rig_utils
+import gt.utils.recent_projects as utils_recent_projects
 import gt.ui.tree_widget_enhanced as ui_tree_enhanced
 import gt.ui.resource_library as ui_res_lib
 import gt.ui.file_dialog as ui_file_dialog
@@ -159,8 +160,18 @@ class RiggerController:
         self.view.module_tree.setContextMenuPolicy(ui_qt.QtCore.Qt.CustomContextMenu)  # Allows context menu
         self.view.module_tree.customContextMenuRequested.connect(self.show_module_tree_context_menu)
 
+        # State Variables
+        self._opened_project = ""
+        self._opened_project_initial_state = {}  # Used for comparison to find changes
+        self._has_high_level_changes = False
+
         # Preferences
         self._prefs = core_prefs.Prefs(tools_rig_const.RiggerConstants.PREFS_FILENAME)
+        self._recent_projects = utils_recent_projects.RecentProjects(
+            prefs=self._prefs,
+            key=tools_rig_const.RiggerConstants.PREFS_KEY_RECENT_PROJECTS,
+            max_count=tools_rig_const.RiggerConstants.MAX_RECENT_PROJECTS,
+        )
         self._on_build_clear_log_window = self._prefs.get_bool(
             key=tools_rig_const.RiggerConstants.PREFS_KEY_ON_BUILD_CLEAR_LOG, default=True
         )
@@ -180,11 +191,6 @@ class RiggerController:
 
         # Set Close Window Dialog
         self.view.set_close_event_function(func=self.show_unsaved_changes_warning_dialog)
-
-        # State Variables
-        self._opened_project = ""
-        self._opened_project_initial_state = {}  # Used for comparison to find changes
-        self._has_high_level_changes = False
 
         # Show
         self.view.show()
@@ -211,6 +217,15 @@ class RiggerController:
         # Menu Assembly -------------------------------------------------------------------------------------
         self.view.add_menu_action(parent_menu=menu_file, action=action_new)
         self.view.add_menu_action(parent_menu=menu_file, action=action_open)
+
+        self._recent_projects_menu = self.view.add_menu_submenu(
+            parent_menu=menu_file,
+            submenu_name="Recent Projects",
+            icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_open),
+        )
+        self._recent_projects_menu.aboutToShow.connect(self.refresh_recent_projects_menu)
+        self.refresh_recent_projects_menu()
+
         self.view.add_menu_action(parent_menu=menu_file, action=action_save)
         self.view.add_menu_action(parent_menu=menu_file, action=action_save_as)
 
@@ -251,6 +266,37 @@ class RiggerController:
         _save_as_func = lambda *args: self.open_or_create_directory(tools_rig_templates.get_template_source_dir())
         action_open_resources.triggered.connect(_save_as_func)
         self.view.add_menu_action(parent_menu=menu_templates, action=action_open_resources)
+
+    def refresh_recent_projects_menu(self):
+        """Rebuilds the recent-project submenu from stored preferences."""
+        self._recent_projects_menu.clear()
+        recent_paths = self._recent_projects.get_paths()
+        if not recent_paths:
+            empty_action = ui_qt.QtLib.QtGui.QAction("No Recent Projects", self.view)
+            empty_action.setEnabled(False)
+            self._recent_projects_menu.addAction(empty_action)
+            return
+        for index, file_path in enumerate(recent_paths, start=1):
+            action_recent = ui_qt.QtLib.QtGui.QAction(
+                f"{index}. {file_path}",
+                icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_open),
+            )
+            action_recent.setToolTip(file_path)
+            action_recent.triggered.connect(partial(self.load_project_from_path, file_path))
+            self._recent_projects_menu.addAction(action_recent)
+        self._recent_projects_menu.addSeparator()
+        action_clear = ui_qt.QtLib.QtGui.QAction(
+            "Clear Recent Projects",
+            icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_delete),
+        )
+        action_clear.triggered.connect(self.clear_recent_projects)
+        self._recent_projects_menu.addAction(action_clear)
+
+    def clear_recent_projects(self):
+        """Clears the stored recent-project list and refreshes its menu."""
+        self._recent_projects.clear()
+        self.refresh_recent_projects_menu()
+        logger.info("Cleared recent projects.")
 
     @staticmethod
     def open_or_create_directory(directory_path, *args):
@@ -588,6 +634,9 @@ class RiggerController:
         Shows a save file dialog offering to save the current project to a file. (JSON formatted)
         Args:
             save_as (bool, optional): If True, the file save dialog will appear even if the project already exists.
+
+        Returns:
+            bool: True when the project was saved.
         """
         _save_path = None
         _starting_directory = None
@@ -618,6 +667,8 @@ class RiggerController:
             logger.info(f'Project saved to "{_save_path}".')
             self.set_opened_project(_save_path)
             self._has_high_level_changes = False
+            return True
+        return False
 
     def load_project_from_file(self, file_path=None):
         """
@@ -626,8 +677,6 @@ class RiggerController:
             file_path (str, optional): If provided, it will try to load the project path using the provided path
                                        instead of opening a dialog.
         """
-        if self.show_unsaved_changes_warning_dialog(window=None, is_close_event=False):  # True when cancelled
-            return
         if not file_path:
             file_path = ui_file_dialog.file_dialog(
                 caption="Open Rig Project",
@@ -638,10 +687,60 @@ class RiggerController:
                 cancel_caption="Cancel",
             )
         if file_path:
+            return self.load_project_from_path(file_path)
+        return False
+
+    def load_project_from_path(self, file_path, *args):
+        """Safely loads a project path after validating it and protecting changes.
+
+        Args:
+            file_path (str): Rig project file path to load.
+            *args: Optional Qt signal arguments.
+
+        Returns:
+            bool: True when the project was loaded.
+        """
+        file_path = self._recent_projects.normalize_path(file_path)
+        if not os.path.isfile(file_path):
+            self._recent_projects.remove_path(file_path)
+            self.refresh_recent_projects_menu()
+            self.show_project_load_warning(
+                title="Project Not Found",
+                message=f'The project no longer exists:\n\n{file_path}',
+            )
+            return False
+        if self.show_unsaved_changes_warning_dialog(window=self.view, is_close_event=False):
+            return False
+        try:
             self.model.load_project_from_file(path=file_path)
-            self.refresh_widgets()
-            self.set_opened_project(path=file_path)
-            self._has_high_level_changes = False
+        except Exception as exception:
+            logger.exception(f'Unable to load rig project: "{file_path}"')
+            self.show_project_load_warning(
+                title="Unable to Open Project",
+                message=f'The project could not be opened and the current project was preserved.\n\n{exception}',
+            )
+            return False
+        self.refresh_widgets()
+        self.set_opened_project(path=file_path)
+        self._has_high_level_changes = False
+        return True
+
+    def show_project_load_warning(self, title, message):
+        """Shows a blocking warning for an invalid recent project.
+
+        Args:
+            title (str): Warning dialog title.
+            message (str): Warning dialog message.
+        """
+        message_box = ui_qt.QtWidgets.QMessageBox(self.view)
+        message_box.setWindowTitle(title)
+        message_box.setText(message)
+        try:
+            message_box.setIcon(ui_qt.QtWidgets.QMessageBox.Warning)
+        except AttributeError:
+            message_box.setIcon(ui_qt.QtWidgets.QMessageBox.Icon.Warning)
+        message_box.exec_()
+        logger.warning(message.replace("\n", " "))
 
     def replace_project(self, project):
         """
@@ -1036,7 +1135,7 @@ class RiggerController:
         """
         # Check if there are changes to save
         if not self.has_unsaved_changes():
-            return
+            return False
         # Show Save Dialog
         message_box = ui_qt.QtWidgets.QMessageBox(window)
         message_box.setWindowTitle("Warning: Unsaved changes!")
@@ -1052,20 +1151,34 @@ class RiggerController:
 
         # Handle button clicks
         if message_box.clickedButton() == save_button:
-            self.save_project_to_file()
-        elif message_box.clickedButton() == dont_save_button:
-            pass
-        elif message_box.clickedButton() == cancel_button:
-            if is_close_event:
-                # Ignore close event
-                close_events = [arg for arg in args if isinstance(arg, ui_qt.QtGui.QCloseEvent)]
-                for close_event in close_events:
-                    close_event.ignore()
-                # Make window visible (with delay)
-                _func = partial(window.setVisible, True)
-                ui_qt.QtCore.QTimer.singleShot(100, _func)  # Maya DockableMixin ignores it when done immediately
-            else:
+            if not self.save_project_to_file():
+                self.cancel_pending_operation(window=window, is_close_event=is_close_event, close_args=args)
                 return True
+            return False
+        elif message_box.clickedButton() == dont_save_button:
+            return False
+        elif message_box.clickedButton() == cancel_button:
+            self.cancel_pending_operation(window=window, is_close_event=is_close_event, close_args=args)
+            return True
+        return False
+
+    @staticmethod
+    def cancel_pending_operation(window, is_close_event=True, close_args=None):
+        """Cancels a pending close or project-switch operation.
+
+        Args:
+            window (QDialog): Window associated with the operation.
+            is_close_event (bool, optional): Whether a close event is active.
+            close_args (tuple, optional): Possible close-event arguments.
+        """
+        if not is_close_event:
+            return
+        close_events = [arg for arg in close_args or [] if isinstance(arg, ui_qt.QtGui.QCloseEvent)]
+        for close_event in close_events:
+            close_event.ignore()
+        if window and ui_qt_utils.is_qt_object_valid(window):
+            visibility_func = partial(window.setVisible, True)
+            ui_qt.QtCore.QTimer.singleShot(100, visibility_func)
 
     # --------------------------------------------- Misc ----------------------------------------------
     def add_selected_joints_module_generic(self):
@@ -1223,11 +1336,14 @@ class RiggerController:
             path (str): A path to the current project.
         """
         if os.path.exists(path):
+            path = self._recent_projects.normalize_path(path)
             self._opened_project = path
             file_name = os.path.basename(path)
             self.view.set_window_title(prefix=file_name)
             self._opened_project_initial_state = self.model.get_project().get_project_as_dict()
             self._has_high_level_changes = False
+            self._recent_projects.add_path(path)
+            self.refresh_recent_projects_menu()
 
     def clear_opened_project(self):
         """
