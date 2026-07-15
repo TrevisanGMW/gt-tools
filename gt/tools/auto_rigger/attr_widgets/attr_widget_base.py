@@ -560,10 +560,7 @@ class AttrWidget(ui_qt.QtWidgets.QWidget):
         "{time}": Current time (e.g. 14-30-59)
         "{hostname}": Name of the machine/host. (e.g. "My-PC")
         "{module-name}": Name of the module.
-        "{module-sanitized-name}": Sanitized name of module (lowercase, no spaces, no illegal characters)
-        "{pipeline-assets-dir}": Path to the global assets directory
-        "{pipeline-male-dir}": Path to the male character directory
-        "{pipeline-female-dir}": Path to the female character directory"""
+        "{module-sanitized-name}": Sanitized name of module (lowercase, no spaces, no illegal characters)"""
         )
 
         _formatted_attr_name = core_str.snake_to_title(attr_name)
