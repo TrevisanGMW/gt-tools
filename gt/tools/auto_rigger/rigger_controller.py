@@ -9,7 +9,6 @@ import gt.tools.auto_rigger.rig_constants as tools_rig_const
 import gt.tools.auto_rigger.rig_modules as tools_rig_modules
 import gt.tools.auto_rigger.rig_framework as tools_rig_frm
 import gt.tools.auto_rigger.rig_utils as tools_rig_utils
-import gt.utils.recent_projects as utils_recent_projects
 import gt.ui.tree_widget_enhanced as ui_tree_enhanced
 import gt.ui.resource_library as ui_res_lib
 import gt.ui.file_dialog as ui_file_dialog
@@ -167,7 +166,7 @@ class RiggerController:
 
         # Preferences
         self._prefs = core_prefs.Prefs(tools_rig_const.RiggerConstants.PREFS_FILENAME)
-        self._recent_projects = utils_recent_projects.RecentProjects(
+        self._recent_projects = core_prefs.RecentProjects(
             prefs=self._prefs,
             key=tools_rig_const.RiggerConstants.PREFS_KEY_RECENT_PROJECTS,
             max_count=tools_rig_const.RiggerConstants.MAX_RECENT_PROJECTS,
