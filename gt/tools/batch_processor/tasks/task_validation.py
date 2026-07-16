@@ -492,7 +492,8 @@ class TaskValidationFolderCompare(task_base.BatchTask):
             include_subdirectories=bool(self.settings.get("include_subdirectories", True)),
         )
         has_issues = bool(report.get("only_in_a") or report.get("only_in_b") or report.get("changed"))
-        self.write_comparison_log_if_needed(step_output_dir, folder_a, folder_b, report, has_issues)
+        log_path = self.write_comparison_log_if_needed(step_output_dir, folder_a, folder_b, report, has_issues)
+        task_utils.report_log_artifact(context, log_path)
         if has_issues and self.settings.get("fail_on_differences"):
             raise RuntimeError("Folder comparison found differences.")
         return list(context.get("work_items") or [])
@@ -580,7 +581,7 @@ def write_task_validation_log(task, step_output_dir, entry, has_issues, context=
     output_path = build_validation_log_path(task, step_output_dir)
     report_entries = get_validation_report_entries(task, output_path, context)
     report_entries.append(dict(entry))
-    return task_utils.write_json_log(
+    log_path = task_utils.write_json_log(
         output_path,
         {
             "version": 1,
@@ -591,6 +592,7 @@ def write_task_validation_log(task, step_output_dir, entry, has_issues, context=
             "entries": report_entries,
         },
     )
+    return task_utils.report_log_artifact(context, log_path)
 
 
 def build_validation_log_path(task, step_output_dir):

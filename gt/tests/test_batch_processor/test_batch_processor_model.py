@@ -4,6 +4,7 @@ import io
 import json
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
 import types
@@ -28,10 +29,10 @@ from gt.tools.batch_processor import batch_processor_maya
 from gt.tools.batch_processor import batch_processor_model
 from gt.tools.batch_processor import batch_processor_modules as modules
 from gt.tools.batch_processor import batch_processor_templates
-from gt.tools.batch_processor import batch_processor_multi_tracker
-from gt.tools.batch_processor import batch_processor_multi_worker
 from gt.tools.batch_processor import batch_processor_tracker
 from gt.tools.batch_processor import batch_processor_worker
+from gt.tools.batch_processor.tracker import tracker_events
+from gt.tools.batch_processor.tracker import tracker_worker as batch_processor_multi_worker
 from gt.tools.batch_processor.tasks import task_utils
 import gt.utils.usd as utils_usd
 
@@ -741,7 +742,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         expected = 1
         self.assertEqual(expected, tracker.skipped)
 
-    def test_multi_instance_runner_passes_verbose_worker_updates_flag(self):
+    def test_multi_instance_runner_launches_standalone_tracker(self):
         project_path = os.path.join(self.temp_dir, "project.batch")
         input_dir = os.path.join(self.temp_dir, "01_input")
         os.makedirs(input_dir)
@@ -768,15 +769,17 @@ class TestBatchProcessorModel(unittest.TestCase):
 
         with mock.patch.object(batch_processor_worker, "find_mayapy_executable", return_value=sys.executable):
             with mock.patch.object(batch_processor_worker.subprocess, "Popen", side_effect=fake_popen):
-                runner = batch_processor_worker.MultiInstanceBatchRunner(
-                    verbose_tracker_updates=True,
-                    flag_running_tasks=True,
-                )
+                project_log_path = os.path.join(self.temp_dir, "project.log")
+                runner = batch_processor_worker.MultiInstanceBatchRunner(project_log_path=project_log_path)
                 runner.run(model)
 
-        self.assertIn("--verbose-worker-updates", captured_data.get("command"))
-        self.assertIn("--flag-running-tasks", captured_data.get("command"))
+        self.assertTrue(captured_data.get("command")[1].endswith("tracker_main.py"))
         self.assertIn("--task-time-logs", captured_data.get("command"))
+        project_log_index = captured_data.get("command").index("--project-log")
+        self.assertEqual(project_log_path, captured_data.get("command")[project_log_index + 1])
+        source_project_index = captured_data.get("command").index("--source-project-file")
+        self.assertEqual(project_path, captured_data.get("command")[source_project_index + 1])
+        self.assertEqual(subprocess.DEVNULL, captured_data.get("kwargs").get("stdout"))
 
         model.run_settings["create_task_time_log"] = False
         captured_data.clear()
@@ -785,7 +788,6 @@ class TestBatchProcessorModel(unittest.TestCase):
                 runner = batch_processor_worker.MultiInstanceBatchRunner(flag_running_tasks=False)
                 runner.run(model)
 
-        self.assertNotIn("--flag-running-tasks", captured_data.get("command"))
         self.assertNotIn("--task-time-logs", captured_data.get("command"))
 
     def test_multi_instance_runner_defers_run_once_zip_task(self):
@@ -2018,6 +2020,31 @@ class TestBatchProcessorModel(unittest.TestCase):
         expected = "my_sourcef"
         self.assertEqual(expected, result)
 
+    def test_hik_export_source_root_prefers_configured_namespace(self):
+        hik_task = modules.create_task(constants.TaskType.HIK_RETARGET)
+        hik_task.settings["source_root"] = "Hips"
+        hik_task.settings["source_namespace"] = "source"
+
+        with mock.patch.object(hik_task, "object_exists", return_value=True) as mock_exists:
+            result = hik_task.resolve_source_root_for_export()
+
+        expected = "source:Hips"
+        self.assertEqual(expected, result)
+        mock_exists.assert_called_once_with(expected)
+
+    def test_hik_export_source_root_falls_back_to_unnamespaced_node(self):
+        hik_task = modules.create_task(constants.TaskType.HIK_RETARGET)
+        hik_task.settings["source_root"] = "Hips"
+        hik_task.settings["source_namespace"] = "source"
+
+        with mock.patch.object(hik_task, "object_exists", side_effect=lambda node: node == "Hips") as mock_exists:
+            result = hik_task.resolve_source_root_for_export()
+
+        expected = "Hips"
+        self.assertEqual(expected, result)
+        expected_calls = [mock.call("source:Hips"), mock.call("Hips")]
+        self.assertEqual(expected_calls, mock_exists.call_args_list)
+
     def test_hik_retarget_execute_captures_range_after_scene_options(self):
         hik_task = modules.create_task(constants.TaskType.HIK_RETARGET)
         work_item = modules.WorkItem(source_path=os.path.join(self.temp_dir, "source.fbx"))
@@ -2261,26 +2288,21 @@ class TestBatchProcessorModel(unittest.TestCase):
         done_counter_index = tracker.events.index("DONE_COUNTER")
         self.assertLess(skip_index, done_counter_index)
 
-    def test_multi_tracker_replays_only_new_task_feedback(self):
-        log_path = os.path.join(self.temp_dir, "worker.log")
-        with open(log_path, "w", encoding="utf-8") as log_file:
-            log_file.write("[INFO] ignored\n")
-            log_file.write("     ∟ ⚙️ RUNNING: Rename\n")
-        stream = io.StringIO()
+    def test_tracker_event_reader_returns_only_new_complete_events(self):
+        event_path = os.path.join(self.temp_dir, "worker.jsonl")
+        writer = tracker_events.EventWriter(event_path, "job-0001")
+        reader = tracker_events.EventReader(event_path)
+        writer.emit("job_started")
 
-        with contextlib.redirect_stdout(stream):
-            offset = batch_processor_multi_tracker.print_task_feedback_from_log(log_path)
-        first_result = stream.getvalue()
-        with open(log_path, "a", encoding="utf-8") as log_file:
-            log_file.write("     ∟ ⏩ SKIPPING: Rename\n")
-        stream = io.StringIO()
-        with contextlib.redirect_stdout(stream):
-            batch_processor_multi_tracker.print_task_feedback_from_log(log_path, start_offset=offset)
+        first_result = reader.read_new()
+        writer.emit("task_started", task_id="rename")
+        second_result = reader.read_new()
+        writer.close()
 
-        self.assertTrue(first_result.startswith("     ∟ ⚙️ RUNNING:"))
-        self.assertNotIn("ignored", first_result)
-        self.assertIn("⏩ SKIPPING:", stream.getvalue())
-        self.assertNotIn("⚙️ RUNNING:", stream.getvalue())
+        expected = ["job_started"]
+        self.assertEqual(expected, [event.get("event") for event in first_result])
+        expected = ["task_started"]
+        self.assertEqual(expected, [event.get("event") for event in second_result])
 
     def test_hik_export_buttons_do_not_update_task_path_settings(self):
         widget_path = os.path.join(
@@ -2441,8 +2463,46 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertEqual(expected, blender_task.category)
         expected = ""
         self.assertEqual(expected, blender_task.settings.get("blender_executable"))
-        expected = "External File"
+        expected = "Inline"
         self.assertEqual(expected, blender_task.settings.get("script_mode"))
+
+    def test_blender_default_inline_script_opens_input_and_exports_fbx(self):
+        blender_task = modules.create_task(constants.TaskType.BLENDER_SCRIPT)
+
+        result = blender_task.settings.get("script_text")
+
+        self.assertIn("open_input_file(input_path)", result)
+        self.assertIn("export_fbx(output_path)", result)
+        self.assertIn('os.path.splitext(file_path)[0] + ".fbx"', result)
+
+    def test_blender_output_check_ignores_extension(self):
+        blender_task = modules.create_task(constants.TaskType.BLENDER_SCRIPT)
+        source_path = os.path.join(self.temp_dir, "source.fbx")
+        expected_output_path = os.path.join(self.temp_dir, "output", "source.fbx")
+        actual_output_path = os.path.join(self.temp_dir, "output", "source.abc")
+        os.makedirs(os.path.dirname(actual_output_path))
+        self._write_file(source_path, "source")
+        self._write_file(actual_output_path, "output")
+        work_item = modules.WorkItem(source_path=source_path)
+
+        result = blender_task.finalize_output(work_item=work_item, output_path=expected_output_path)
+
+        expected = os.path.normpath(actual_output_path)
+        self.assertEqual(expected, result)
+
+    def test_blender_output_check_rejects_different_file_name(self):
+        blender_task = modules.create_task(constants.TaskType.BLENDER_SCRIPT)
+        source_path = os.path.join(self.temp_dir, "source.fbx")
+        expected_output_path = os.path.join(self.temp_dir, "output", "source.fbx")
+        os.makedirs(os.path.dirname(expected_output_path))
+        self._write_file(source_path, "source")
+        self._write_file(os.path.join(self.temp_dir, "output", "different.abc"), "output")
+        work_item = modules.WorkItem(source_path=source_path)
+
+        with self.assertRaises(RuntimeError) as context:
+            blender_task.finalize_output(work_item=work_item, output_path=expected_output_path)
+
+        self.assertIn("output named 'source'", str(context.exception))
 
     def test_blender_command_passes_batch_context_arguments(self):
         blender_task = modules.create_task(constants.TaskType.BLENDER_SCRIPT)

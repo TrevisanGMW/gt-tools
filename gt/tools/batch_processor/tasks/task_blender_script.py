@@ -6,7 +6,7 @@ from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_task_base as task_base
 from gt.tools.batch_processor.tasks.task_motionbuilder_script import TaskMotionBuilderScript
 from gt.tools.batch_processor.tasks.task_motionbuilder_script import parse_command_arguments
-from gt.tools.batch_processor.tasks.task_python_script import SCRIPT_MODE_EXTERNAL_FILE
+from gt.tools.batch_processor.tasks.task_python_script import SCRIPT_MODE_INLINE
 from gt.tools.batch_processor.tasks.task_python_script import TaskPythonScript
 import glob
 import os
@@ -77,18 +77,14 @@ def load_context(context_path):
     return {}
 
 
-def clear_scene():
-    """Deletes all objects from the current Blender scene."""
-    bpy.ops.object.select_all(action="SELECT")
-    bpy.ops.object.delete()
-
-
-def import_file(file_path):
-    """Imports or opens the input file."""
+def open_input_file(file_path):
+    """Opens a Blend file or imports a supported interchange file."""
     extension = os.path.splitext(file_path)[1].lower()
     if extension == ".blend":
         bpy.ops.wm.open_mainfile(filepath=file_path)
-    elif extension == ".fbx":
+        return
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    if extension == ".fbx":
         bpy.ops.import_scene.fbx(filepath=file_path)
     elif extension == ".obj":
         bpy.ops.wm.obj_import(filepath=file_path)
@@ -98,22 +94,14 @@ def import_file(file_path):
         raise RuntimeError("Unsupported Blender input extension: {0}".format(extension))
 
 
-def export_file(file_path):
-    """Exports or saves the output file."""
-    output_dir = os.path.dirname(file_path)
+def export_fbx(file_path):
+    """Exports the current Blender scene as FBX."""
+    output_path = os.path.splitext(file_path)[0] + ".fbx"
+    output_dir = os.path.dirname(output_path)
     if output_dir and not os.path.isdir(output_dir):
         os.makedirs(output_dir)
-    extension = os.path.splitext(file_path)[1].lower()
-    if extension == ".blend":
-        bpy.ops.wm.save_as_mainfile(filepath=file_path)
-    elif extension == ".fbx":
-        bpy.ops.export_scene.fbx(filepath=file_path)
-    elif extension == ".obj":
-        bpy.ops.wm.obj_export(filepath=file_path)
-    elif extension in [".gltf", ".glb"]:
-        bpy.ops.export_scene.gltf(filepath=file_path)
-    else:
-        raise RuntimeError("Unsupported Blender output extension: {0}".format(extension))
+    bpy.ops.export_scene.fbx(filepath=output_path)
+    return output_path
 
 
 def main():
@@ -127,9 +115,9 @@ def main():
         raise RuntimeError("Input and output paths are required.")
     print("Input Path: {0}".format(input_path))
     print("Output Path: {0}".format(output_path))
-    clear_scene()
-    import_file(input_path)
-    export_file(output_path)
+    open_input_file(input_path)
+    exported_path = export_fbx(output_path)
+    print("Exported FBX: {0}".format(exported_path))
 
 
 main()
@@ -160,7 +148,7 @@ class TaskBlenderScript(TaskMotionBuilderScript):
             {
                 "source_path": "{previous-task-path}",
                 "target_path": self.default_target_path_template,
-                "script_mode": SCRIPT_MODE_EXTERNAL_FILE,
+                "script_mode": SCRIPT_MODE_INLINE,
                 "script_text": DEFAULT_BLENDER_INLINE_SCRIPT,
                 "script_path": "{project-dir}/scripts/blender_process.py",
                 "scripts_path": "{project-dir}/scripts/blender",
@@ -276,6 +264,27 @@ class TaskBlenderScript(TaskMotionBuilderScript):
         )
         return task_base.normalize_path(os.path.join(target_dir, file_name))
 
+    def finalize_output(self, work_item, output_path):
+        """Resolves Blender output without requiring a specific extension.
+
+        Args:
+            work_item (WorkItem): Work item being processed.
+            output_path (str): Expected output path used to derive the file stem.
+
+        Returns:
+            str: Matching output path, or the expected path when output checks are disabled.
+        """
+        matching_path = find_output_file_by_stem(output_path)
+        if matching_path:
+            return matching_path
+        if self.settings.get("copy_input_if_output_missing"):
+            return super().finalize_output(work_item=work_item, output_path=output_path)
+        if self.settings.get("wait_for_completion", True) and self.settings.get("require_output_file", True):
+            output_name = os.path.splitext(os.path.basename(output_path))[0]
+            output_dir = os.path.dirname(output_path)
+            raise RuntimeError(f"Blender script did not create an output named '{output_name}' in: {output_dir}")
+        return output_path
+
     def resolve_motionbuilder_executable(self, project=None):
         """Resolves the configured Blender executable path.
 
@@ -305,6 +314,33 @@ def find_blender_executable(version=None):
         if os.path.isfile(candidate):
             return task_base.normalize_path(candidate)
     return ""
+
+
+def find_output_file_by_stem(output_path):
+    """Finds an output file with the expected name, ignoring its extension.
+
+    Args:
+        output_path (str): Expected output path.
+
+    Returns:
+        str: Matching file path, or an empty string when none exists.
+    """
+    if os.path.isfile(output_path):
+        return task_base.normalize_path(output_path)
+    output_dir = os.path.dirname(output_path)
+    expected_stem = os.path.splitext(os.path.basename(output_path))[0].lower()
+    if not output_dir or not expected_stem or not os.path.isdir(output_dir):
+        return ""
+    matching_paths = []
+    for file_name in os.listdir(output_dir):
+        candidate_path = os.path.join(output_dir, file_name)
+        candidate_stem = os.path.splitext(file_name)[0].lower()
+        if candidate_stem == expected_stem and os.path.isfile(candidate_path):
+            matching_paths.append(candidate_path)
+    if not matching_paths:
+        return ""
+    matching_paths.sort(key=lambda path: os.path.basename(path).lower())
+    return task_base.normalize_path(matching_paths[0])
 
 
 def get_blender_executable_candidates(version=None):

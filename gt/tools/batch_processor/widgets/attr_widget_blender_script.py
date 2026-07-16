@@ -103,7 +103,10 @@ class AttrWidgetBlenderScriptTask(AttrWidgetMotionBuilderScriptTask):
             self.task.settings.get("require_output_file", True),
             partial(self.set_task_setting, key="require_output_file"),
             layout=options_layout,
-            tooltip="Fail when Blender exits without creating the expected output file.",
+            tooltip=(
+                "Fail when Blender exits without creating a file with the expected name in the output folder. "
+                "The file extension is ignored."
+            ),
         )
         self.add_checkbox(
             "Pass Task Args",

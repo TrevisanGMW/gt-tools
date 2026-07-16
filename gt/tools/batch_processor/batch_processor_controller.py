@@ -15,7 +15,6 @@ import gt.ui.file_dialog as ui_file_dialog
 import gt.ui.qt_utils as ui_qt_utils
 import gt.ui.qt_import as ui_qt
 import gt.utils.request as utils_request
-import gt.utils.recent_projects as utils_recent_projects
 import gt.utils.system as utils_system
 import gt.core.prefs as core_prefs
 from functools import partial
@@ -50,18 +49,10 @@ class BatchProcessorController:
         self._active_log_file_path = None
         self._saved_project_state = None
         self._prefs = core_prefs.Prefs(constants.Project.PREFS_FILENAME)
-        self._recent_projects = utils_recent_projects.RecentProjects(
+        self._recent_projects = core_prefs.RecentProjects(
             prefs=self._prefs,
             key=constants.Project.PREFS_KEY_RECENT_PROJECTS,
             max_count=constants.Project.MAX_RECENT_PROJECTS,
-        )
-        old_worker_window_pref = self._prefs.get_bool(
-            key=constants.Project.PREFS_KEY_SHOW_WORKER_WINDOWS,
-            default=None,
-        )
-        self._verbose_tracker_updates = self._prefs.get_bool(
-            key=constants.Project.PREFS_KEY_VERBOSE_TRACKER_UPDATES,
-            default=bool(old_worker_window_pref),
         )
         self._convert_abs_paths_to_relative = self._prefs.get_bool(
             key=constants.Project.PREFS_KEY_CONVERT_ABS_PATHS_TO_RELATIVE,
@@ -73,10 +64,6 @@ class BatchProcessorController:
         )
         self._flag_skipped_tasks = self._prefs.get_bool(
             key=constants.Project.PREFS_KEY_FLAG_SKIPPED_TASKS,
-            default=True,
-        )
-        self._flag_running_tasks = self._prefs.get_bool(
-            key=constants.Project.PREFS_KEY_FLAG_RUNNING_TASKS,
             default=True,
         )
         self._ignore_disabled_tasks_for_task_index = self._prefs.get_bool(
@@ -230,12 +217,29 @@ class BatchProcessorController:
     def add_menu_utils(self):
         """Adds utilities actions to the view menu bar."""
         menu_utils = self.view.add_menu_parent("Utilities")
+        ui_qt_utils.add_labeled_separator(menu=menu_utils, text="Project")
+
+        action_open_project_folder = self.create_action(
+            "Open Project Folder",
+            icon_path=ui_res_lib.Icon.util_open_dir,
+        )
+        action_open_project_folder.setToolTip("Open the resolved project directory.")
+        action_open_project_folder.triggered.connect(self.open_project_directory)
+        self.view.add_menu_action(parent_menu=menu_utils, action=action_open_project_folder)
+
         action_get_environment_vars = self.create_action(
             "Get Environment Variables", icon_path=ui_res_lib.Icon.ui_env_var
         )
         action_get_environment_vars.setToolTip("Show resolved batch environment variables.")
         action_get_environment_vars.triggered.connect(self.show_environment_variables)
         self.view.add_menu_action(parent_menu=menu_utils, action=action_get_environment_vars)
+
+        action_validate = self.create_action("Validate Project", icon_path=ui_res_lib.Icon.validator_pass)
+        action_validate.setToolTip("Validate the active batch project.")
+        action_validate.triggered.connect(self.validate_project)
+        self.view.add_menu_action(parent_menu=menu_utils, action=action_validate)
+
+        ui_qt_utils.add_labeled_separator(menu=menu_utils, text="Task Execution")
 
         action_print_selected_index = self.create_action(
             "Print Selected Task Index",
@@ -257,10 +261,7 @@ class BatchProcessorController:
         action_run_from_selected.triggered.connect(self.run_from_selected)
         self.view.add_menu_action(parent_menu=menu_utils, action=action_run_from_selected)
 
-        action_validate = self.create_action("Validate Project", icon_path=ui_res_lib.Icon.validator_pass)
-        action_validate.setToolTip("Validate the active batch project.")
-        action_validate.triggered.connect(self.validate_project)
-        self.view.add_menu_action(parent_menu=menu_utils, action=action_validate)
+        ui_qt_utils.add_labeled_separator(menu=menu_utils, text="Cleanup")
 
         action_purge_task_files = self.create_action("Purge Task Directory Files", icon_path=ui_res_lib.Icon.ui_delete)
         action_purge_task_files.setToolTip("Delete all files under the configured task directory after confirmation.")
@@ -275,6 +276,8 @@ class BatchProcessorController:
         )
         action_purge_output_files.triggered.connect(self.purge_output_directory_files)
         self.view.add_menu_action(parent_menu=menu_utils, action=action_purge_output_files)
+
+        ui_qt_utils.add_labeled_separator(menu=menu_utils, text="Preferences")
 
         menu_automations = self.view.add_menu_submenu(
             parent_menu=menu_utils,
@@ -295,25 +298,9 @@ class BatchProcessorController:
 
         self.create_menu_checkbox_action(
             parent_menu=menu_automations,
-            text="Verbose Tracker Updates",
-            checked=self._verbose_tracker_updates,
-            tooltip="Print per-worker task and file progress into the multi-instance tracker window.",
-            callback=self.toggle_verbose_tracker_updates,
-        )
-
-        self.create_menu_checkbox_action(
-            parent_menu=menu_automations,
-            text="Flag Running Tasks",
-            checked=self._flag_running_tasks,
-            tooltip="Print concise task progress and remaining-task counts in the batch tracker.",
-            callback=self.toggle_flag_running_tasks,
-        )
-
-        self.create_menu_checkbox_action(
-            parent_menu=menu_automations,
-            text="Flag Skipped Tasks",
+            text="Flag Skipped Tasks in Single-Instance Log",
             checked=self._flag_skipped_tasks,
-            tooltip="Print explicit tracker warnings when a task skips work.",
+            tooltip="Print explicit log warnings when single-instance processing skips work.",
             callback=self.toggle_flag_skipped_tasks,
         )
 
@@ -335,6 +322,41 @@ class BatchProcessorController:
             tooltip="Ask for confirmation before deleting a task from the right-click menu or task panel.",
             callback=self.toggle_confirm_delete_task,
         )
+
+    def open_project_directory(self, *args):
+        """Opens the resolved project directory in the system file browser.
+
+        Args:
+            *args: Optional Qt signal arguments.
+        """
+        configured_path = self.model.environment_variables.get("project-dir", "")
+        if not str(configured_path or "").strip():
+            self.log_status(
+                "Warning: Unable to open directory because the path field is empty.",
+                status="warning",
+            )
+            return
+        resolved_path = self.model.resolve_template_path(configured_path)
+        directory_path = resolved_path
+        if os.path.isfile(directory_path):
+            directory_path = os.path.dirname(directory_path)
+        if not os.path.isdir(directory_path):
+            message = f"Target folder does not exist:\n{directory_path or resolved_path or '<empty>'}"
+            ui_qt.QtWidgets.QMessageBox.warning(
+                self.view,
+                "Target Folder Missing",
+                message,
+            )
+            self.log_status(
+                f"Warning: Unable to open directory because the path does not exist: {directory_path}",
+                status="warning",
+            )
+            return
+        try:
+            utils_system.open_file_dir(directory_path)
+            self.log_status(f"Opened directory: {directory_path}")
+        except Exception as exception:
+            self.log_status(f"Unable to open directory: {exception}")
 
     def add_menu_logging(self):
         """Adds logging actions to the view menu bar."""
@@ -404,21 +426,6 @@ class BatchProcessorController:
         self.view.menu_items.append(checkbox)
         return widget_action
 
-    def toggle_verbose_tracker_updates(self, checked):
-        """Stores whether multi-instance worker details should print in the tracker.
-
-        Args:
-            checked (bool): New preference state.
-        """
-        self._verbose_tracker_updates = bool(checked)
-        self._prefs.set_bool(
-            key=constants.Project.PREFS_KEY_VERBOSE_TRACKER_UPDATES,
-            value=self._verbose_tracker_updates,
-        )
-        self._prefs.save()
-        state_name = "enabled" if self._verbose_tracker_updates else "disabled"
-        self.log_status("Verbose tracker updates {0} for multi-instance runs.".format(state_name))
-
     def toggle_convert_abs_paths_to_relative(self, checked):
         """Stores whether browsed absolute paths should become project-relative templates.
 
@@ -464,21 +471,6 @@ class BatchProcessorController:
         self._prefs.save()
         state_name = "enabled" if self._flag_skipped_tasks else "disabled"
         self.log_status("Skipped task tracker warnings {0}.".format(state_name))
-
-    def toggle_flag_running_tasks(self, checked):
-        """Stores whether running tasks should emit explicit tracker updates.
-
-        Args:
-            checked (bool): New preference state.
-        """
-        self._flag_running_tasks = bool(checked)
-        self._prefs.set_bool(
-            key=constants.Project.PREFS_KEY_FLAG_RUNNING_TASKS,
-            value=self._flag_running_tasks,
-        )
-        self._prefs.save()
-        state_name = "enabled" if self._flag_running_tasks else "disabled"
-        self.log_status("Running task tracker updates {0}.".format(state_name))
 
     def toggle_ignore_disabled_tasks_for_task_index(self, checked):
         """Stores whether disabled tasks should be excluded from task indexes.
@@ -1150,11 +1142,7 @@ class BatchProcessorController:
         if self.model.run_settings.get("create_log", True):
             self._active_log_file_path = self.create_run_log_file()
         if self.model.run_settings.get("multi_instance") and not force_single_instance:
-            runner = batch_processor_worker.MultiInstanceBatchRunner(
-                verbose_tracker_updates=self._verbose_tracker_updates,
-                flag_skipped_tasks=self._flag_skipped_tasks,
-                flag_running_tasks=self._flag_running_tasks,
-            )
+            runner = batch_processor_worker.MultiInstanceBatchRunner(project_log_path=self._active_log_file_path)
         else:
             if force_single_instance and self.model.run_settings.get("multi_instance"):
                 self.append_log("[INFO] - (single-instance) - Running selected aggregate task in this process.")
@@ -1172,8 +1160,9 @@ class BatchProcessorController:
             )
             self.append_log(self._format_tracker(tracker))
             if self.model.run_settings.get("multi_instance"):
-                self.append_log("[OPERATION] - (Multi-instance) - Run launched in multi-instance tracker console.")
-                self.view.set_status("Run launched in multi-instance tracker console.")
+                launch_message = "Run launched in standalone tracker."
+                self.append_log(f"[OPERATION] - (Multi-instance) - {launch_message}")
+                self.view.set_status(launch_message, status="success")
             else:
                 self.log_status("Run finished: {0}".format(tracker.status))
         except Exception as exception:

@@ -404,7 +404,7 @@ class SingleInstanceBatchRunner:
 
 
 class MultiInstanceBatchRunner:
-    """Launches a separate tracker console for batch processing."""
+    """Launches an independent Qt tracker for multi-instance processing."""
 
     def __init__(
         self,
@@ -413,6 +413,7 @@ class MultiInstanceBatchRunner:
         show_worker_windows=False,
         flag_skipped_tasks=False,
         flag_running_tasks=True,
+        project_log_path=None,
     ):
         """Initializes a multi-instance launcher.
 
@@ -422,11 +423,13 @@ class MultiInstanceBatchRunner:
             show_worker_windows (bool, optional): Legacy alias for verbose tracker updates.
             flag_skipped_tasks (bool, optional): Whether skipped tasks should be printed in the tracker.
             flag_running_tasks (bool, optional): Whether running tasks should be printed in the tracker.
+            project_log_path (str, optional): Main project log shown by the standalone tracker.
         """
         self.tracker = tracker or batch_processor_tracker.BatchProgressTracker()
         self.verbose_tracker_updates = bool(verbose_tracker_updates or show_worker_windows)
         self.flag_skipped_tasks = bool(flag_skipped_tasks)
         self.flag_running_tasks = bool(flag_running_tasks)
+        self.project_log_path = project_log_path
 
     def run(self, project, run_from_task_id=None, run_from_module_id=None, run_to_task_id=None):
         """Launches the tracker console for a project.
@@ -461,7 +464,7 @@ class MultiInstanceBatchRunner:
         if not source_files:
             raise RuntimeError("No source files found for multi-instance run.")
         job_file_path = self._write_job_file(source_files)
-        tracker_script_path = os.path.join(os.path.dirname(__file__), "batch_processor_multi_tracker.py")
+        tracker_script_path = os.path.join(os.path.dirname(__file__), "tracker", "tracker_main.py")
         preferred_maya_version = project.run_settings.get("preferred_maya_version")
         mayapy_path, maya_version_warning = resolve_mayapy_executable(preferred_version=preferred_maya_version)
         worker_count = int(project.run_settings.get("worker_count") or 1)
@@ -480,6 +483,10 @@ class MultiInstanceBatchRunner:
             "--logs-dir",
             logs_dir,
         ]
+        if self.project_log_path:
+            command.extend(["--project-log", self.project_log_path])
+        if project.project_file_path:
+            command.extend(["--source-project-file", project.project_file_path])
         if maya_version_warning:
             command.extend(["--maya-version-warning", maya_version_warning])
         if run_from_task_id:
@@ -490,21 +497,27 @@ class MultiInstanceBatchRunner:
             command.extend(["--final-task-id", final_task.id])
         if not project.run_settings.get("create_log", True):
             command.append("--no-log")
-        if self.verbose_tracker_updates:
-            command.append("--verbose-worker-updates")
-        if self.flag_skipped_tasks:
-            command.append("--flag-skipped-tasks")
-        if self.flag_running_tasks:
-            command.append("--flag-running-tasks")
         if project.run_settings.get("create_task_time_log", True):
             command.append("--task-time-logs")
 
         creation_flags = 0
+        popen_kwargs = {}
         if sys.platform == "win32":
-            creation_flags = subprocess.CREATE_NEW_CONSOLE
+            creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW
+        else:
+            popen_kwargs["start_new_session"] = True
         env = dict(os.environ)
         env["PYTHONIOENCODING"] = "utf-8"
-        subprocess.Popen(command, creationflags=creation_flags, shell=False, env=env)
+        subprocess.Popen(
+            command,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            creationflags=creation_flags,
+            shell=False,
+            env=env,
+            **popen_kwargs,
+        )
 
         self.tracker.start_run(
             project_name=project.project_name,
@@ -513,7 +526,7 @@ class MultiInstanceBatchRunner:
             active_workers=worker_count,
             run_mode="multi-instance",
         )
-        self.tracker.record_message("Launched batch tracker console: {0}".format(project_snapshot_path))
+        self.tracker.record_message("Launched standalone batch tracker: {0}".format(project_snapshot_path))
         if maya_version_warning:
             self.tracker.record_message("[WARNING] - (maya) - {0}".format(maya_version_warning))
         return self.tracker

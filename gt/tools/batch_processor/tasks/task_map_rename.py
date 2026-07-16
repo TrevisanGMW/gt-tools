@@ -127,6 +127,7 @@ class TaskMapRename(task_base.BatchTask):
             },
         }
         task_utils.write_json_log(map_path, payload)
+        task_utils.report_log_artifact(context, map_path)
         return list(work_items)
 
     def get_folder_path(self, project, key):

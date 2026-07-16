@@ -28,12 +28,9 @@ class Project:
         "ignore_disabled_tasks_for_task_index": False,
     }
     PREFS_FILENAME = "batch_processor"
-    PREFS_KEY_VERBOSE_TRACKER_UPDATES = "verbose_tracker_updates"
-    PREFS_KEY_SHOW_WORKER_WINDOWS = "show_worker_windows"
     PREFS_KEY_CONVERT_ABS_PATHS_TO_RELATIVE = "convert_abs_paths_to_relative"
     PREFS_KEY_CONFIRM_DELETE_TASK = "confirm_delete_task"
     PREFS_KEY_FLAG_SKIPPED_TASKS = "flag_skipped_tasks"
-    PREFS_KEY_FLAG_RUNNING_TASKS = "flag_running_tasks"
     PREFS_KEY_IGNORE_DISABLED_TASKS_FOR_TASK_INDEX = "ignore_disabled_tasks_for_task_index"
     PREFS_KEY_RECENT_PROJECTS = "recent_projects"
     MAX_RECENT_PROJECTS = 5

@@ -309,6 +309,7 @@ class TaskMotionBuilderScript(TaskPythonScript):
                     script_path=script_path,
                     project=project,
                 )
+                task_utils.report_log_artifact(context, process_log_path)
                 self.run_motionbuilder_script(
                     executable_path=self.resolve_motionbuilder_executable(project),
                     script_path=script_path,
@@ -318,7 +319,7 @@ class TaskMotionBuilderScript(TaskPythonScript):
                     context_path=context_path,
                     process_log_path=process_log_path,
                 )
-            self.finalize_output(work_item=work_item, output_path=output_path)
+            output_path = self.finalize_output(work_item=work_item, output_path=output_path)
         finally:
             self.cleanup_temporary_paths(temporary_paths)
         metadata = task_utils.build_metadata(task=self, work_item=work_item)
@@ -569,19 +570,23 @@ class TaskMotionBuilderScript(TaskPythonScript):
         Args:
             work_item (WorkItem): Work item being processed.
             output_path (str): Expected output path.
+
+        Returns:
+            str: Resolved output path.
         """
         if os.path.isfile(output_path):
-            return
+            return output_path
         if self.settings.get("copy_input_if_output_missing"):
             output_dir = os.path.dirname(output_path)
             if output_dir and not os.path.isdir(output_dir):
                 os.makedirs(output_dir)
             shutil.copy2(work_item.current_path, output_path)
-            return
+            return output_path
         if self.settings.get("wait_for_completion", True) and self.settings.get("require_output_file", True):
             raise RuntimeError(
                 "{0} script did not create the expected output file: {1}".format(self.application_name, output_path)
             )
+        return output_path
 
     def build_output_path(self, work_item, step_output_dir):
         """Builds the expected MotionBuilder output path.

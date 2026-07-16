@@ -81,6 +81,22 @@ def write_json_log(output_path, data):
     return output_path
 
 
+def report_log_artifact(context, log_path):
+    """Reports a generated log path to an optional runtime tracker callback.
+
+    Args:
+        context (dict): Task execution context.
+        log_path (str): Generated log path.
+
+    Returns:
+        str: Unmodified log path.
+    """
+    callback = (context or {}).get("report_log")
+    if log_path and callable(callback):
+        callback(log_path)
+    return log_path
+
+
 def get_timestamp():
     """Gets an ISO timestamp string.
 

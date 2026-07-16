@@ -112,6 +112,7 @@ class TaskDeleteProjectFiles(task_base.BatchTask):
                     "warnings": list(safety_result.warnings),
                 },
             )
+            task_utils.report_log_artifact(context, report_path)
         return list(work_items)
 
     def get_delete_path(self, project):

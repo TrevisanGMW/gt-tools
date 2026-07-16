@@ -1189,6 +1189,21 @@ class TaskRetargetHumanIK(task_base.BatchTask):
                 return short_name
         return self.get_namespaced_name(name, namespace) if namespace else name
 
+    def resolve_source_root_for_export(self):
+        """Resolves the configured source root for a current-scene export.
+
+        The configured namespace is preferred when that node exists. Scenes
+        prepared without namespaces remain usable through the unnamespaced
+        fallback in :meth:`resolve_existing_node`.
+
+        Returns:
+            str: Existing source root, or the preferred candidate when missing.
+        """
+        return self.resolve_existing_node(
+            name=self.settings.get("source_root"),
+            namespace=self.settings.get("source_namespace"),
+        )
+
     @staticmethod
     def force_joint_evaluation(joints):
         """Forces Maya to evaluate the provided joints.

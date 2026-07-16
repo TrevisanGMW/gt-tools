@@ -15,11 +15,11 @@ __version_suffix__ = ""
 __version__ = ".".join(str(number) for number in __version_tuple__) + __version_suffix__
 
 
-def launch_tool():
-    """
-    Launch user interface and create any necessary connections for the tool to function.
-    Entry point for when using this tool.
-    Creates Model, View and Controller and uses QtApplicationContext to determine context.
+def launch_tool(project_path=None):
+    """Launches the Batch Processor and optionally loads a project.
+
+    Args:
+        project_path (str, optional): Batch project to load after constructing the tool.
     """
     from gt.tools.batch_processor import batch_processor_controller
     from gt.tools.batch_processor import batch_processor_model
@@ -30,6 +30,8 @@ def launch_tool():
         _view = batch_processor_view.BatchProcessorView(parent=context.get_parent(), version=__version__)
         _model = batch_processor_model.BatchProcessorModel()
         _controller = batch_processor_controller.BatchProcessorController(model=_model, view=_view)
+        if project_path:
+            _controller.load_project_from_path(project_path)
 
 
 if __name__ == "__main__":

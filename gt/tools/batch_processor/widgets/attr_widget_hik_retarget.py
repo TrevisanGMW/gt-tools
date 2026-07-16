@@ -504,10 +504,7 @@ class AttrWidgetRetargetHumanIK(AttrWidgetTask):
         if not file_path:
             return
         try:
-            source_root = self.task.get_namespaced_name(
-                self.task.settings.get("source_root"),
-                self.task.settings.get("source_namespace"),
-            )
+            source_root = self.task.resolve_source_root_for_export()
             self.task.export_pose_from_current_scene(file_path=file_path, source_root=source_root)
             message = "Exported HumanIK source pose from '{0}' to: {1}".format(source_root, file_path)
             sys.stdout.write(message + "\n")
