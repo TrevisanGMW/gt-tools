@@ -100,6 +100,15 @@ class ColorManagerController:
         self.model.auto_adjust_viewport_to_outliner = bool(value)
         self.model.save_preferences()
 
+    def set_current_color_mode(self, value):
+        """Updates how clicked colors populate the Current Color control.
+
+        Args:
+            value (str): Current Color representation mode.
+        """
+        self.model.current_color_mode = value
+        self.model.save_preferences()
+
     def cycle_ui_mode(self):
         """Cycles Minimal, Default, and Complete UI modes."""
         self.model.cycle_ui_mode()
@@ -111,8 +120,9 @@ class ColorManagerController:
         Args:
             color (list): RGB color.
         """
-        self.model.set_current_color(color)
-        self.view.set_current_color(color)
+        current_color = self.model.prepare_clicked_color(color)
+        self.model.set_current_color(current_color)
+        self.view.set_current_color(current_color)
         self.apply_color(reset=False)
 
     def apply_saved_color(self, color):
@@ -121,8 +131,9 @@ class ColorManagerController:
         Args:
             color (list): RGB color.
         """
-        self.model.set_current_color(color)
-        self.view.set_current_color(color)
+        current_color = self.model.prepare_clicked_color(color)
+        self.model.set_current_color(current_color)
+        self.view.set_current_color(current_color)
         self.apply_color(reset=False)
 
     def get_selection_color(self):

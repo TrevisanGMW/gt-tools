@@ -7,7 +7,6 @@ import logging
 import math
 import os
 import random
-import gt.core.prefs as core_prefs
 
 
 logging.basicConfig()
@@ -26,6 +25,10 @@ COLOR_MODES = [COLOR_MODE_DRAWING_OVERRIDE, COLOR_MODE_WIREFRAME]
 TARGET_TRANSFORM = "Transform"
 TARGET_SHAPE = "Shape"
 TARGETS = [TARGET_TRANSFORM, TARGET_SHAPE]
+
+CURRENT_COLOR_UNCONVERTED = "Unconverted (Clicked)"
+CURRENT_COLOR_CONVERTED = "Converted (Viewport)"
+CURRENT_COLOR_MODES = [CURRENT_COLOR_UNCONVERTED, CURRENT_COLOR_CONVERTED]
 
 PREFS_FILENAME = "color_manager"
 PREFS_KEY_STATE = "state"
@@ -158,6 +161,9 @@ class ColorManagerModel:
         self.saved_colors = []
         self.auto_adjust_outliner_to_viewport = True
         self.auto_adjust_viewport_to_outliner = True
+        self.current_color_mode = CURRENT_COLOR_UNCONVERTED
+        import gt.core.prefs as core_prefs
+
         self._prefs = core_prefs.Prefs(PREFS_FILENAME)
 
     def load_preferences(self):
@@ -173,6 +179,11 @@ class ColorManagerModel:
         )
         self.auto_adjust_viewport_to_outliner = bool(
             state.get("auto_adjust_viewport_to_outliner", self.auto_adjust_viewport_to_outliner)
+        )
+        self.current_color_mode = self._validate_value(
+            state.get("current_color_mode", self.current_color_mode),
+            CURRENT_COLOR_MODES,
+            CURRENT_COLOR_UNCONVERTED,
         )
         self.current_color = normalize_color(state.get("current_color", self.current_color))
         self.target = self._validate_value(state.get("target", self.target), TARGETS, TARGET_TRANSFORM)
@@ -196,6 +207,7 @@ class ColorManagerModel:
             "saved_colors": normalize_saved_colors(self.saved_colors),
             "auto_adjust_outliner_to_viewport": bool(self.auto_adjust_outliner_to_viewport),
             "auto_adjust_viewport_to_outliner": bool(self.auto_adjust_viewport_to_outliner),
+            "current_color_mode": str(self.current_color_mode),
         }
         self._prefs.set_raw_preferences({PREFS_KEY_STATE: payload})
         self._prefs.save()
@@ -214,6 +226,40 @@ class ColorManagerModel:
         """
         self.current_color = normalize_color(color)
         self.save_preferences()
+
+    def prepare_clicked_color(self, color):
+        """Prepares a clicked swatch color for the Current Color control.
+
+        Args:
+            color (list): Unconverted clicked RGB color.
+
+        Returns:
+            list: Color represented by the active Current Color mode.
+        """
+        color = normalize_color(color)
+        if self.current_color_mode == CURRENT_COLOR_CONVERTED:
+            return convert_color_from_outliner(color, self.auto_adjust_outliner_to_viewport)
+        return color
+
+    def get_viewport_color(self):
+        """Gets the current color converted for viewport application.
+
+        Returns:
+            list: RGB color for viewport drawing overrides or wireframes.
+        """
+        color = normalize_color(self.current_color)
+        if self.current_color_mode == CURRENT_COLOR_UNCONVERTED:
+            return convert_color_from_outliner(color, self.auto_adjust_outliner_to_viewport)
+        return color
+
+    def get_outliner_color(self):
+        """Gets the current color converted for Outliner application.
+
+        Returns:
+            list: RGB color for the Maya Outliner.
+        """
+        viewport_color = self.get_viewport_color()
+        return convert_color_for_outliner(viewport_color, self.auto_adjust_viewport_to_outliner)
 
     def cycle_ui_mode(self):
         """Cycles the active UI mode.
@@ -341,13 +387,19 @@ class ColorManagerModel:
                     cmds.getAttr("{0}.outlinerColorG".format(selected_item)),
                     cmds.getAttr("{0}.outlinerColorB".format(selected_item)),
                 ]
-                return convert_color_from_outliner(outliner_color, self.auto_adjust_outliner_to_viewport)
+                return self.prepare_clicked_color(outliner_color)
             if self.set_viewport:
-                return [
+                viewport_color = [
                     cmds.getAttr("{0}.overrideColorR".format(selected_item)),
                     cmds.getAttr("{0}.overrideColorG".format(selected_item)),
                     cmds.getAttr("{0}.overrideColorB".format(selected_item)),
                 ]
+                if self.current_color_mode == CURRENT_COLOR_UNCONVERTED:
+                    return convert_color_for_outliner(
+                        viewport_color,
+                        self.auto_adjust_viewport_to_outliner,
+                    )
+                return viewport_color
         except Exception as exception:
             cmds.warning("Unable to extract color. Issue: {0}".format(exception))
         return None
@@ -492,9 +544,10 @@ class ColorManagerModel:
             cmds.color(obj)
         cmds.setAttr("{0}.overrideEnabled".format(obj), 1)
         cmds.setAttr("{0}.overrideRGBColors".format(obj), 1)
-        cmds.setAttr("{0}.overrideColorR".format(obj), self.current_color[0])
-        cmds.setAttr("{0}.overrideColorG".format(obj), self.current_color[1])
-        cmds.setAttr("{0}.overrideColorB".format(obj), self.current_color[2])
+        viewport_color = self.get_viewport_color()
+        cmds.setAttr("{0}.overrideColorR".format(obj), viewport_color[0])
+        cmds.setAttr("{0}.overrideColorG".format(obj), viewport_color[1])
+        cmds.setAttr("{0}.overrideColorB".format(obj), viewport_color[2])
         return 1
 
     def _set_wireframe_color(self, obj):
@@ -512,7 +565,8 @@ class ColorManagerModel:
             cmds.setAttr("{0}.overrideColorR".format(obj), 0)
             cmds.setAttr("{0}.overrideColorG".format(obj), 0)
             cmds.setAttr("{0}.overrideColorB".format(obj), 0)
-        cmds.color(obj, rgb=(self.current_color[0], self.current_color[1], self.current_color[2]))
+        viewport_color = self.get_viewport_color()
+        cmds.color(obj, rgb=(viewport_color[0], viewport_color[1], viewport_color[2]))
         return 1
 
     def _set_outliner_color(self, obj):
@@ -523,7 +577,7 @@ class ColorManagerModel:
         """
         import gt.core.color as core_color
 
-        outliner_color = convert_color_for_outliner(self.current_color, self.auto_adjust_viewport_to_outliner)
+        outliner_color = self.get_outliner_color()
         core_color.set_color_outliner(obj_list=obj, rgb_color=outliner_color)
 
     def _get_target_object(self, selected_item):

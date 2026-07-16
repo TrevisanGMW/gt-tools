@@ -30,6 +30,7 @@ class ColorManagerView(metaclass=MayaWindowMeta):
         self.mode_button = None
         self.mode_combo = None
         self.target_combo = None
+        self.current_color_mode_combo = None
         self.preview_button = None
         self.get_color_button = None
         self.brightness_slider = None
@@ -81,6 +82,16 @@ class ColorManagerView(metaclass=MayaWindowMeta):
         self.target_combo.setToolTip("Apply color to selected transforms or their shapes.")
         self.target_combo.currentTextChanged.connect(lambda value: self.controller.set_target(value))
 
+        self.current_color_mode_combo = ui_qt.QtWidgets.QComboBox()
+        self.current_color_mode_combo.addItems(model.CURRENT_COLOR_MODES)
+        self.current_color_mode_combo.setToolTip(
+            "Choose whether clicked or read colors appear as their original swatch value "
+            "or as the value converted for Maya's viewport."
+        )
+        self.current_color_mode_combo.currentTextChanged.connect(
+            lambda value: self.controller.set_current_color_mode(value)
+        )
+
         self.preview_button = ui_qt.QtWidgets.QPushButton()
         self.preview_button.setMinimumWidth(72)
         self.preview_button.setMinimumHeight(30)
@@ -111,14 +122,14 @@ class ColorManagerView(metaclass=MayaWindowMeta):
 
         self.auto_outliner_to_viewport_checkbox = ui_qt.QtWidgets.QCheckBox("Outliner to Viewport")
         self.auto_outliner_to_viewport_checkbox.setToolTip(
-            "Convert outliner colors when reading them so they match viewport colors more closely."
+            "Convert unconverted colors before viewport application or converted Current Color display."
         )
         self.auto_outliner_to_viewport_checkbox.toggled.connect(
             lambda value: self.controller.set_auto_adjust_outliner_to_viewport(value)
         )
         self.auto_viewport_to_outliner_checkbox = ui_qt.QtWidgets.QCheckBox("Viewport to Outliner")
         self.auto_viewport_to_outliner_checkbox.setToolTip(
-            "Convert viewport colors when writing outliner colors so they match more closely."
+            "Convert the derived viewport color before applying it to the Outliner."
         )
         self.auto_viewport_to_outliner_checkbox.toggled.connect(
             lambda value: self.controller.set_auto_adjust_viewport_to_outliner(value)
@@ -297,11 +308,20 @@ class ColorManagerView(metaclass=MayaWindowMeta):
         option_layout.addLayout(self.create_labeled_widget("Mode", self.mode_combo), 1)
         option_layout.addLayout(self.create_labeled_widget("Target", self.target_combo), 1)
         layout.addLayout(option_layout)
+        layout.addLayout(self.create_labeled_widget("Current Color", self.current_color_mode_combo))
         checkbox_layout = ui_qt.QtWidgets.QHBoxLayout()
         checkbox_layout.setContentsMargins(0, 0, 0, 0)
         checkbox_layout.setSpacing(8)
-        checkbox_layout.addWidget(self.auto_outliner_to_viewport_checkbox, 1)
-        checkbox_layout.addWidget(self.auto_viewport_to_outliner_checkbox, 1)
+        checkbox_layout.addWidget(
+            self.auto_outliner_to_viewport_checkbox,
+            1,
+            ui_qt.QtLib.AlignmentFlag.AlignCenter,
+        )
+        checkbox_layout.addWidget(
+            self.auto_viewport_to_outliner_checkbox,
+            1,
+            ui_qt.QtLib.AlignmentFlag.AlignCenter,
+        )
         layout.addLayout(checkbox_layout)
         return widget
 
@@ -336,6 +356,7 @@ class ColorManagerView(metaclass=MayaWindowMeta):
         self._is_updating = True
         self.set_combo_value(self.mode_combo, color_model.color_mode)
         self.set_combo_value(self.target_combo, color_model.target)
+        self.set_combo_value(self.current_color_mode_combo, color_model.current_color_mode)
         self.outliner_checkbox.setChecked(bool(color_model.set_outliner))
         self.viewport_checkbox.setChecked(bool(color_model.set_viewport))
         self.auto_outliner_to_viewport_checkbox.setChecked(bool(color_model.auto_adjust_outliner_to_viewport))
