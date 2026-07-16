@@ -36,6 +36,7 @@ class TrackerScheduler:
         self.final_task_index = 0
         self.abort_requested_at = None
         self._finish_notified = False
+        self._preserve_terminal_finalization = False
         os.makedirs(self.session.session_dir, exist_ok=True)
         os.makedirs(self.get_events_dir(), exist_ok=True)
         os.makedirs(self.get_logs_dir(), exist_ok=True)
@@ -65,6 +66,7 @@ class TrackerScheduler:
         if self.session.aborting:
             changed = self._advance_abort() or changed
         else:
+            changed = self._advance_job_cancellations() or changed
             changed = self._launch_available_jobs() or changed
             changed = self._advance_finalization() or changed
         if self._is_finished() and not self.session.finished:
@@ -87,18 +89,116 @@ class TrackerScheduler:
         self.session.aborting = True
         self.abort_requested_at = time.monotonic()
         for job in self.regular_queue:
-            job.status = tracker_constants.Status.CANCELED
-            job.completed_at = tracker_events.utc_now_iso()
+            self._mark_job_canceled(job)
         self.regular_queue = []
         if self.finalization_job and self.finalization_job.id not in self.running:
-            self.finalization_job.status = tracker_constants.Status.CANCELED
-            self.finalization_job.completed_at = tracker_events.utc_now_iso()
+            self._mark_job_canceled(self.finalization_job)
         for process_data in self.running.values():
             process_data["job"].status = tracker_constants.Status.CANCELING
             tracker_process_utils.terminate_process_tree(process_data["process"], force=False)
         self.write_state()
         if callable(self.update_callback):
             self.update_callback()
+
+    def can_cancel_job(self, job):
+        """Checks whether a queued or running regular job can be canceled.
+
+        Args:
+            job (TrackerJob): Job requested for cancellation.
+
+        Returns:
+            bool: True when the job can be canceled independently.
+        """
+        if not job or job.is_finalization or self.session.aborting:
+            return False
+        if job in self.regular_queue:
+            return job.status == tracker_constants.Status.QUEUED
+        return job.id in self.running and job.status in {
+            tracker_constants.Status.WAITING,
+            tracker_constants.Status.RUNNING,
+        }
+
+    def cancel_job(self, job):
+        """Cancels one queued job or requests termination of its worker.
+
+        Args:
+            job (TrackerJob): Queued or running regular job to cancel.
+
+        Returns:
+            bool: True when cancellation was applied or requested.
+        """
+        if not self.can_cancel_job(job):
+            return False
+        if job in self.regular_queue:
+            self.regular_queue.remove(job)
+            self._mark_job_canceled(job)
+            self._append_project_log(
+                f"[OPERATION] - (Multi-instance) - Canceled queued job '{job.name}'.\n"
+            )
+        else:
+            process_data = self.running[job.id]
+            process_data["cancel_requested_at"] = time.monotonic()
+            process_data["cancel_force_requested"] = False
+            job.status = tracker_constants.Status.CANCELING
+            tracker_process_utils.terminate_process_tree(process_data["process"], force=False)
+            self._append_project_log(
+                f"[OPERATION] - (Multi-instance) - Cancellation requested for '{job.name}'.\n"
+            )
+        self.write_state()
+        if callable(self.update_callback):
+            self.update_callback()
+        return True
+
+    def can_restart_job(self, job):
+        """Checks whether a regular terminal job can be queued again.
+
+        Args:
+            job (TrackerJob): Job requested for restart.
+
+        Returns:
+            bool: True when the job can safely be restarted.
+        """
+        if not job or job.is_finalization:
+            return False
+        if job.status not in tracker_constants.TERMINAL_STATUSES:
+            return False
+        if job.id in self.running or job in self.regular_queue:
+            return False
+        if self.session.aborting and not self.session.finished:
+            return False
+        if self.finalization_job and self.finalization_job.id in self.running:
+            return False
+        return job in self.session.regular_jobs
+
+    def restart_job(self, job):
+        """Resets and queues one previously completed regular job.
+
+        Args:
+            job (TrackerJob): Terminal regular job to execute again.
+
+        Returns:
+            bool: True when the job was queued.
+        """
+        if not self.can_restart_job(job):
+            return False
+        job.reset_for_restart()
+        self.regular_queue.append(job)
+        self.session.finished = False
+        self.session.completed_at = ""
+        self.session.aborting = False
+        self.abort_requested_at = None
+        self._finish_notified = False
+        self._preserve_terminal_finalization = bool(
+            self.finalization_job
+            and self.finalization_job.status in tracker_constants.TERMINAL_STATUSES
+        )
+        self._append_project_log(
+            f"[OPERATION] - (Multi-instance) - Restart queued for '{job.name}'.\n"
+        )
+        self.write_state()
+        if callable(self.update_callback):
+            self.update_callback()
+        return True
 
     def _launch_available_jobs(self):
         """Launches regular jobs up to the requested worker limit.
@@ -192,9 +292,11 @@ class TrackerScheduler:
             "job": job,
             "final_task": final_task,
             "log_path": log_path,
+            "cancel_requested_at": None,
+            "cancel_force_requested": False,
         }
         if log_path:
-            self.worker_log_offsets.setdefault(log_path, 0)
+            self.worker_log_offsets[log_path] = 0
         target_name = final_task.name if final_task else job.name
         self._append_project_log(
             f"[OPERATION] - (Multi-instance) - Launched '{target_name}' "
@@ -211,6 +313,9 @@ class TrackerScheduler:
         for reader in self.readers.values():
             for event in reader.read_new():
                 self.session.apply_event(event)
+                process_data = self.running.get(event.get("job_id"))
+                if process_data and process_data.get("cancel_requested_at") is not None:
+                    process_data["job"].status = tracker_constants.Status.CANCELING
                 changed = True
         return changed
 
@@ -233,13 +338,13 @@ class TrackerScheduler:
                     self.session.apply_event(event)
             job = process_data["job"]
             final_task = process_data["final_task"]
-            if self.session.aborting:
-                job.status = tracker_constants.Status.CANCELED
-                job.completed_at = tracker_events.utc_now_iso()
-                for task in job.tasks:
-                    if task.status not in tracker_constants.TERMINAL_STATUSES:
-                        task.status = tracker_constants.Status.CANCELED
-                        task.completed_at = job.completed_at
+            cancellation_requested = process_data.get("cancel_requested_at") is not None
+            if self.session.aborting or cancellation_requested:
+                self._mark_job_canceled(job)
+                if cancellation_requested:
+                    self._append_project_log(
+                        f"[OPERATION] - (Multi-instance) - Canceled running job '{job.name}'.\n"
+                    )
             elif return_code:
                 job.status = tracker_constants.Status.FAILED
                 job.completed_at = tracker_events.utc_now_iso()
@@ -340,15 +445,16 @@ class TrackerScheduler:
         )
         completed_tasks = len([task for task in tasks if task.status in tracker_constants.TERMINAL_STATUSES])
         failed = len([job for job in regular_jobs if job.status == tracker_constants.Status.FAILED])
+        canceled = len([job for job in regular_jobs if job.status == tracker_constants.Status.CANCELED])
         errors = sum(job.errors for job in regular_jobs)
         warnings = sum(job.warnings for job in regular_jobs)
-        result = "Aborted" if self.session.aborting else "Completed"
+        result = "Aborted" if self.session.aborting or canceled else "Completed"
         self._append_project_log(
             "\n"
             f"[OPERATION] - (Multi-instance) - {result}. "
             f"Tasks {completed_tasks}/{len(tasks)} | Files {completed_files}/{len(regular_jobs)} | "
             f"Progress {self.session.progress}% | "
-            f"Failed {failed} | Errors {errors} | Warnings {warnings}.\n"
+            f"Failed {failed} | Canceled {canceled} | Errors {errors} | Warnings {warnings}.\n"
         )
 
     def _advance_finalization(self):
@@ -362,7 +468,13 @@ class TrackerScheduler:
             return False
         if job.id in self.running:
             return False
-        if any(regular.status == tracker_constants.Status.FAILED for regular in self.session.regular_jobs):
+        if self._preserve_terminal_finalization and job.status in tracker_constants.TERMINAL_STATUSES:
+            return False
+        blocking_statuses = {
+            tracker_constants.Status.FAILED,
+            tracker_constants.Status.CANCELED,
+        }
+        if any(regular.status in blocking_statuses for regular in self.session.regular_jobs):
             job.status = tracker_constants.Status.SKIPPED
             job.completed_at = tracker_events.utc_now_iso()
             for task in job.tasks:
@@ -402,6 +514,25 @@ class TrackerScheduler:
         self.abort_requested_at = time.monotonic() + 3600.0
         return True
 
+    def _advance_job_cancellations(self):
+        """Force-terminates individual jobs that exceed the cancellation grace period.
+
+        Returns:
+            bool: True when a force-termination request was issued.
+        """
+        changed = False
+        current_time = time.monotonic()
+        for process_data in self.running.values():
+            requested_at = process_data.get("cancel_requested_at")
+            if requested_at is None or process_data.get("cancel_force_requested"):
+                continue
+            if current_time - requested_at < 3.0:
+                continue
+            tracker_process_utils.terminate_process_tree(process_data["process"], force=True)
+            process_data["cancel_force_requested"] = True
+            changed = True
+        return changed
+
     def _is_finished(self):
         """Checks whether the session reached a terminal state.
 
@@ -415,6 +546,22 @@ class TrackerScheduler:
         if self.finalization_job:
             return self.finalization_job.status in tracker_constants.TERMINAL_STATUSES
         return all(job.status in tracker_constants.TERMINAL_STATUSES for job in self.session.regular_jobs)
+
+    @staticmethod
+    def _mark_job_canceled(job):
+        """Marks a job and all unfinished tasks as canceled.
+
+        Args:
+            job (TrackerJob): Job whose unfinished state should be canceled.
+        """
+        timestamp = tracker_events.utc_now_iso()
+        job.status = tracker_constants.Status.CANCELED
+        job.completed_at = timestamp
+        job.completion_result = ""
+        for task in job.tasks:
+            if task.status not in tracker_constants.TERMINAL_STATUSES:
+                task.status = tracker_constants.Status.CANCELED
+                task.completed_at = timestamp
 
     def write_state(self):
         """Atomically writes a recoverable session summary."""

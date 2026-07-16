@@ -1,5 +1,6 @@
 """Controller for the standalone Batch Processor tracker."""
 
+from functools import partial
 import html
 import os
 import subprocess
@@ -80,6 +81,21 @@ class TrackerController:
         self.view.expand_all_action.triggered.connect(self.view.tree.expandAll)
         self.view.collapse_all_action.triggered.connect(self.view.tree.collapseAll)
         self.view.flag_skips_as_warnings_action.toggled.connect(self.toggle_skip_warnings)
+        self.view.copy_failed_jobs_action.triggered.connect(
+            partial(self.copy_job_names, "failed")
+        )
+        self.view.copy_warning_jobs_action.triggered.connect(
+            partial(self.copy_job_names, "warning")
+        )
+        self.view.copy_completed_jobs_action.triggered.connect(
+            partial(self.copy_job_names, "completed")
+        )
+        self.view.copy_skipped_jobs_action.triggered.connect(
+            partial(self.copy_job_names, "skipped")
+        )
+        self.view.copy_all_jobs_action.triggered.connect(
+            partial(self.copy_job_names, "all")
+        )
         self.view.hide_completed_action.toggled.connect(self.apply_filters)
         self.view.failed_only_action.toggled.connect(self.toggle_failed_filter)
         self.view.warnings_only_action.toggled.connect(self.toggle_warnings_filter)
@@ -119,8 +135,33 @@ class TrackerController:
     def refresh(self):
         """Refreshes tracker rows and aggregate summary text."""
         self.source_model.notify_all_changed()
+        self._update_copy_actions()
         self._update_summary()
         self.refresh_logs()
+
+    def _update_copy_actions(self):
+        """Enables global copy actions only when matching jobs exist."""
+        action_categories = {
+            self.view.copy_failed_jobs_action: "failed",
+            self.view.copy_warning_jobs_action: "warning",
+            self.view.copy_completed_jobs_action: "completed",
+            self.view.copy_skipped_jobs_action: "skipped",
+            self.view.copy_all_jobs_action: "all",
+        }
+        for action, category in action_categories.items():
+            action.setEnabled(bool(self.session.get_job_names(category)))
+
+    def copy_job_names(self, result_category, *args):
+        """Copies matching regular job names to the system clipboard.
+
+        Args:
+            result_category (str): Result category requested by the copy action.
+            *args: Optional Qt signal values.
+        """
+        job_names = self.session.get_job_names(result_category)
+        if not job_names:
+            return
+        ui_qt.QtWidgets.QApplication.clipboard().setText("\n".join(job_names))
 
     def _update_summary(self):
         """Updates project, progress, worker, issue, and timing summaries."""
@@ -447,21 +488,108 @@ class TrackerController:
         self.refresh()
 
     def show_tree_context_menu(self, position):
-        """Shows expand-all and collapse-all actions for the job tree.
+        """Shows file actions for the job under the cursor.
 
         Args:
             position (QPoint): Viewport-local context-menu position.
         """
+        proxy_index = self.view.tree.indexAt(position)
+        if not proxy_index.isValid():
+            return
+        source_index = self.proxy_model.mapToSource(proxy_index)
+        item = source_index.data(tracker_tree_model.OBJECT_ROLE)
+        job = item.parent_job if isinstance(item, tracker_model.TrackerTask) else item
+        if not isinstance(job, tracker_model.TrackerJob) or job.is_finalization:
+            return
         menu = ui_qt.QtWidgets.QMenu(self.view.tree)
-        expand_action = menu.addAction(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_branch_open), "Expand All")
-        collapse_action = menu.addAction(
-            ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_branch_closed),
-            "Collapse All",
+        copy_name_action = menu.addAction(
+            ui_qt.QtGui.QIcon(ui_res_lib.Icon.rigger_action_copy),
+            "Copy File Name",
         )
-        expand_action.triggered.connect(self.view.tree.expandAll)
-        collapse_action.triggered.connect(self.view.tree.collapseAll)
+        copy_path_action = menu.addAction(
+            ui_qt.QtGui.QIcon(ui_res_lib.Icon.rigger_action_copy),
+            "Copy Full Path",
+        )
+        open_source_folder_action = menu.addAction(
+            ui_qt.QtGui.QIcon(ui_res_lib.Icon.util_open_dir),
+            "Open Source Folder",
+        )
+        source_directory = os.path.dirname(os.path.normpath(job.source_file or ""))
+        open_source_folder_action.setEnabled(bool(source_directory and os.path.isdir(source_directory)))
+        menu.addSeparator()
+        open_log_action = menu.addAction(
+            ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_templates),
+            "Open Job Log",
+        )
+        open_log_action.setEnabled(bool(job.log_path and os.path.isfile(job.log_path)))
+        open_log_folder_action = menu.addAction(
+            ui_qt.QtGui.QIcon(ui_res_lib.Icon.util_open_dir),
+            "Open Log Folder",
+        )
+        log_directory = self.scheduler.get_logs_dir()
+        open_log_folder_action.setEnabled(os.path.isdir(log_directory))
+        menu.addSeparator()
+        restart_action = menu.addAction(
+            ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_reset),
+            "Restart Job",
+        )
+        restart_action.setEnabled(self.scheduler.can_restart_job(job))
+        cancel_action = menu.addAction(
+            ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_delete),
+            "Cancel Job",
+        )
+        cancel_action.setEnabled(self.scheduler.can_cancel_job(job))
         self.tree_context_menu = menu
-        menu.exec_(self.view.tree.viewport().mapToGlobal(position))
+        selected_action = menu.exec_(self.view.tree.viewport().mapToGlobal(position))
+        if selected_action == copy_name_action:
+            ui_qt.QtWidgets.QApplication.clipboard().setText(job.name)
+        elif selected_action == copy_path_action:
+            ui_qt.QtWidgets.QApplication.clipboard().setText(os.path.normpath(job.source_file))
+        elif selected_action == open_source_folder_action:
+            utils_system.open_file_dir(source_directory)
+        elif selected_action == open_log_action:
+            log_url = ui_qt.QtCore.QUrl.fromLocalFile(os.path.normpath(job.log_path))
+            ui_qt.QtGui.QDesktopServices.openUrl(log_url)
+        elif selected_action == open_log_folder_action:
+            utils_system.open_file_dir(log_directory)
+        elif selected_action == restart_action:
+            self.restart_job(job)
+        elif selected_action == cancel_action:
+            self.cancel_job(job)
+
+    def restart_job(self, job):
+        """Confirms and queues one terminal job for another execution.
+
+        Args:
+            job (TrackerJob): Regular tracker job to restart.
+        """
+        if not self.scheduler.can_restart_job(job):
+            return
+        if not self.view.confirm_restart_job(job.name):
+            return
+        if not self.scheduler.restart_job(job):
+            return
+        self.close_after_abort = False
+        self.view.set_abort_enabled(True)
+        self.scheduler_timer.start()
+        self.log_timer.start()
+        self.refresh()
+        self.rebuild_log_tabs()
+
+    def cancel_job(self, job):
+        """Confirms and cancels one queued or running regular job.
+
+        Args:
+            job (TrackerJob): Regular tracker job to cancel.
+        """
+        if not self.scheduler.can_cancel_job(job):
+            return
+        if not self.view.confirm_cancel_job(job.name):
+            return
+        if not self.scheduler.cancel_job(job):
+            return
+        self.refresh()
+        self.rebuild_log_tabs()
 
     def on_header_clicked(self, section):
         """Restores original order when the number header is clicked.

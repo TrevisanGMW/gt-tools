@@ -119,6 +119,24 @@ class TrackerTask:
             return "-"
         return f"{self.completed_items}/{self.total_items}"
 
+    def reset_for_restart(self):
+        """Resets runtime state so the task can be executed again."""
+        self.status = tracker_constants.Status.QUEUED
+        self.progress = 0
+        self.completed_items = 0
+        self.total_items = 0
+        self.errors = 0
+        self.warnings = 0
+        self.reported_warnings = 0
+        self.skipped_items = 0
+        self.completion_result = ""
+        self.skip_status_message = ""
+        self.started_at = ""
+        self.completed_at = ""
+        self.worker = ""
+        self.log_paths = []
+        self.messages = []
+
 
 class TrackerJob:
     """Tracks one source-file job."""
@@ -241,6 +259,18 @@ class TrackerJob:
         """
         return sum(task.warnings for task in self.tasks)
 
+    @property
+    def has_skipped_work(self):
+        """Checks whether any task skipped one or more work items.
+
+        Returns:
+            bool: True when skipped work was reported for this job.
+        """
+        return any(
+            task.skipped_items or task.status == tracker_constants.Status.SKIPPED
+            for task in self.tasks
+        )
+
     def get_count_text(self):
         """Gets formatted completed-task counts.
 
@@ -249,6 +279,18 @@ class TrackerJob:
         """
         completed = len([task for task in self.tasks if task.status in tracker_constants.TERMINAL_STATUSES])
         return f"{completed}/{len(self.tasks)}"
+
+    def reset_for_restart(self):
+        """Resets runtime state so the regular job can be executed again."""
+        self.status = tracker_constants.Status.QUEUED
+        self.started_at = ""
+        self.completed_at = ""
+        self.worker = ""
+        self.log_path = ""
+        self.timing_log_path = ""
+        self.completion_result = ""
+        for task in self.tasks:
+            task.reset_for_restart()
 
 
 class TrackerSession:
@@ -361,6 +403,40 @@ class TrackerSession:
         for job in self.jobs:
             job.flag_skips_as_warnings = self.flag_skips_as_warnings
             job.refresh_completed_status()
+
+    def get_job_names(self, result_category="all"):
+        """Gets regular job file names matching a result category.
+
+        Args:
+            result_category (str, optional): One of all, failed, warning,
+                completed, or skipped.
+
+        Returns:
+            list: Matching job names in original session order.
+        """
+        category = str(result_category or "all").strip().lower()
+        jobs = self.regular_jobs
+        if category == "failed":
+            jobs = [
+                job
+                for job in jobs
+                if job.status == tracker_constants.Status.FAILED or job.errors
+            ]
+        elif category == "warning":
+            jobs = [job for job in jobs if job.warnings]
+        elif category == "completed":
+            jobs = [
+                job
+                for job in jobs
+                if job.status == tracker_constants.Status.COMPLETED
+                and not job.warnings
+                and not job.has_skipped_work
+            ]
+        elif category == "skipped":
+            jobs = [job for job in jobs if job.has_skipped_work]
+        elif category != "all":
+            return []
+        return [job.name for job in jobs]
 
     def finish(self):
         """Marks the session finished."""

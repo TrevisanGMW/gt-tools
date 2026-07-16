@@ -156,6 +156,283 @@ class TestBatchProcessorTracker(unittest.TestCase):
         expected = 1
         self.assertEqual(expected, job.errors)
 
+    def test_session_get_job_names_groups_results_in_original_order(self):
+        """Tests global-copy result grouping and original job ordering."""
+        failed_job = self.create_job()
+        failed_job.name = "failed.ma"
+        failed_job.status = tracker_constants.Status.FAILED
+        failed_job.tasks[0].errors = 1
+        warning_job = self.create_job()
+        warning_job.name = "warning.ma"
+        warning_job.status = tracker_constants.Status.COMPLETED_WARNINGS
+        warning_job.tasks[0].warnings = 1
+        completed_job = self.create_job()
+        completed_job.name = "completed.ma"
+        completed_job.status = tracker_constants.Status.COMPLETED
+        skipped_job = self.create_job()
+        skipped_job.name = "skipped.ma"
+        skipped_job.status = tracker_constants.Status.COMPLETED_WARNINGS
+        skipped_job.tasks[0].status = tracker_constants.Status.SKIPPED
+        skipped_job.tasks[0].skipped_items = 1
+        finalization_job = tracker_model.TrackerJob(
+            "finalization",
+            5,
+            "",
+            [],
+            is_finalization=True,
+        )
+        finalization_job.status = tracker_constants.Status.FAILED
+        session = tracker_model.TrackerSession(
+            "Test",
+            "C:/project",
+            1,
+            [failed_job, warning_job, completed_job, skipped_job, finalization_job],
+            "C:/session",
+        )
+
+        self.assertEqual(["failed.ma"], session.get_job_names("failed"))
+        self.assertEqual(["warning.ma"], session.get_job_names("warning"))
+        self.assertEqual(["completed.ma"], session.get_job_names("completed"))
+        self.assertEqual(["skipped.ma"], session.get_job_names("skipped"))
+        expected = ["failed.ma", "warning.ma", "completed.ma", "skipped.ma"]
+        self.assertEqual(expected, session.get_job_names("all"))
+
+    def test_clean_completed_copy_excludes_skips_when_skip_warnings_are_disabled(self):
+        """Tests that skipped work never appears in the clean-completion copy list."""
+        skipped_job = self.create_job()
+        skipped_job.status = tracker_constants.Status.COMPLETED
+        skipped_job.tasks[0].status = tracker_constants.Status.SKIPPED
+        skipped_job.tasks[0].skipped_items = 1
+        session = tracker_model.TrackerSession(
+            "Test",
+            "C:/project",
+            1,
+            [skipped_job],
+            "C:/session",
+        )
+
+        self.assertEqual([], session.get_job_names("completed"))
+        self.assertEqual([skipped_job.name], session.get_job_names("skipped"))
+
+    def test_job_reset_for_restart_clears_runtime_state(self):
+        """Tests that restarting clears prior job and task runtime results."""
+        job = self.create_job()
+        job.status = tracker_constants.Status.FAILED
+        job.started_at = "started"
+        job.completed_at = "completed"
+        job.worker = "1"
+        job.log_path = "worker.log"
+        job.completion_result = "failed"
+        task = job.tasks[0]
+        task.status = tracker_constants.Status.FAILED
+        task.progress = 100
+        task.errors = 1
+        task.messages.append(("Error", "Failed"))
+
+        job.reset_for_restart()
+
+        expected = tracker_constants.Status.QUEUED
+        self.assertEqual(expected, job.status)
+        self.assertEqual("", job.started_at)
+        self.assertEqual("", job.completed_at)
+        self.assertEqual("", job.log_path)
+        self.assertEqual(expected, task.status)
+        self.assertEqual(0, task.progress)
+        self.assertEqual(0, task.errors)
+        self.assertEqual([], task.messages)
+
+    def test_scheduler_restarts_terminal_regular_job(self):
+        """Tests that a finished regular job can return to the scheduler queue."""
+        session_dir = tempfile.mkdtemp(prefix="gt_tracker_restart_test_")
+        self.addCleanup(lambda: os.path.isdir(session_dir) and shutil.rmtree(session_dir))
+        job = self.create_job()
+        job.status = tracker_constants.Status.FAILED
+        job.tasks[0].status = tracker_constants.Status.FAILED
+        job.tasks[0].progress = 100
+        session = tracker_model.TrackerSession("Test", "C:/project", 1, [job], session_dir)
+        session.finished = True
+        session.aborting = True
+        session.completed_at = "completed"
+        options = types.SimpleNamespace(no_log=True, task_time_logs=False)
+        scheduler = tracker_scheduler.TrackerScheduler(session=session, options=options)
+        scheduler.regular_queue = []
+
+        result = scheduler.restart_job(job)
+
+        self.assertTrue(result)
+        self.assertEqual([job], scheduler.regular_queue)
+        self.assertFalse(session.finished)
+        self.assertFalse(session.aborting)
+        self.assertEqual("", session.completed_at)
+        expected = tracker_constants.Status.QUEUED
+        self.assertEqual(expected, job.status)
+
+    def test_scheduler_rejects_active_and_finalization_job_restarts(self):
+        """Tests that unsafe or unsupported restart targets remain protected."""
+        session_dir = tempfile.mkdtemp(prefix="gt_tracker_restart_guard_test_")
+        self.addCleanup(lambda: os.path.isdir(session_dir) and shutil.rmtree(session_dir))
+        active_job = self.create_job()
+        active_job.status = tracker_constants.Status.RUNNING
+        final_job = tracker_model.TrackerJob(
+            "finalization",
+            2,
+            "",
+            [],
+            is_finalization=True,
+        )
+        final_job.status = tracker_constants.Status.COMPLETED
+        session = tracker_model.TrackerSession(
+            "Test",
+            "C:/project",
+            1,
+            [active_job, final_job],
+            session_dir,
+        )
+        options = types.SimpleNamespace(no_log=True, task_time_logs=False)
+        scheduler = tracker_scheduler.TrackerScheduler(session=session, options=options)
+
+        self.assertFalse(scheduler.can_restart_job(active_job))
+        self.assertFalse(scheduler.can_restart_job(final_job))
+
+    def test_restart_preserves_terminal_finalization_state(self):
+        """Tests that a single-job restart does not rerun project finalization."""
+        session_dir = tempfile.mkdtemp(prefix="gt_tracker_restart_final_test_")
+        self.addCleanup(lambda: os.path.isdir(session_dir) and shutil.rmtree(session_dir))
+        job = self.create_job()
+        job.status = tracker_constants.Status.FAILED
+        final_job = tracker_model.TrackerJob(
+            "finalization",
+            2,
+            "",
+            [{"id": "archive", "number": 1, "name": "Archive"}],
+            is_finalization=True,
+        )
+        final_job.status = tracker_constants.Status.SKIPPED
+        final_job.tasks[0].status = tracker_constants.Status.SKIPPED
+        final_job.tasks[0].progress = 100
+        session = tracker_model.TrackerSession(
+            "Test",
+            "C:/project",
+            1,
+            [job, final_job],
+            session_dir,
+        )
+        session.finished = True
+        options = types.SimpleNamespace(no_log=True, task_time_logs=False)
+        scheduler = tracker_scheduler.TrackerScheduler(session=session, options=options)
+        scheduler.regular_queue = []
+
+        scheduler.restart_job(job)
+        scheduler.regular_queue = []
+        result = scheduler._advance_finalization()
+
+        self.assertFalse(result)
+        expected = tracker_constants.Status.SKIPPED
+        self.assertEqual(expected, final_job.status)
+
+    def test_scheduler_cancels_queued_regular_job(self):
+        """Tests that canceling queued work removes it without launching a process."""
+        session_dir = tempfile.mkdtemp(prefix="gt_tracker_cancel_queue_test_")
+        self.addCleanup(lambda: os.path.isdir(session_dir) and shutil.rmtree(session_dir))
+        job = self.create_job()
+        session = tracker_model.TrackerSession("Test", "C:/project", 1, [job], session_dir)
+        options = types.SimpleNamespace(no_log=True, task_time_logs=False)
+        scheduler = tracker_scheduler.TrackerScheduler(session=session, options=options)
+
+        result = scheduler.cancel_job(job)
+
+        self.assertTrue(result)
+        self.assertEqual([], scheduler.regular_queue)
+        expected = tracker_constants.Status.CANCELED
+        self.assertEqual(expected, job.status)
+        self.assertTrue(all(task.status == expected for task in job.tasks))
+
+    def test_scheduler_cancels_running_job_without_reporting_failure(self):
+        """Tests graceful and forced termination of an individual running worker."""
+        class FakeProcess:
+            """Controllable process double for individual cancellation."""
+
+            def __init__(self):
+                """Initializes a running process double."""
+                self.return_code = None
+
+            def poll(self):
+                """Gets the configured process return code.
+
+                Returns:
+                    int or None: Current fake process state.
+                """
+                return self.return_code
+
+        session_dir = tempfile.mkdtemp(prefix="gt_tracker_cancel_running_test_")
+        self.addCleanup(lambda: os.path.isdir(session_dir) and shutil.rmtree(session_dir))
+        job = self.create_job()
+        job.status = tracker_constants.Status.RUNNING
+        job.tasks[0].status = tracker_constants.Status.RUNNING
+        session = tracker_model.TrackerSession("Test", "C:/project", 1, [job], session_dir)
+        options = types.SimpleNamespace(no_log=True, task_time_logs=False)
+        scheduler = tracker_scheduler.TrackerScheduler(session=session, options=options)
+        scheduler.regular_queue = []
+        process = FakeProcess()
+        scheduler.running[job.id] = {
+            "process": process,
+            "job": job,
+            "final_task": None,
+            "log_path": "",
+            "cancel_requested_at": None,
+            "cancel_force_requested": False,
+        }
+        with mock.patch.object(tracker_scheduler.time, "monotonic", side_effect=[10.0, 14.0]):
+            with mock.patch.object(tracker_scheduler.tracker_process_utils, "terminate_process_tree") as terminate:
+                result = scheduler.cancel_job(job)
+                forced = scheduler._advance_job_cancellations()
+
+        self.assertTrue(result)
+        self.assertTrue(forced)
+        self.assertEqual(
+            [mock.call(process, force=False), mock.call(process, force=True)],
+            terminate.call_args_list,
+        )
+        process.return_code = 1
+        job.completion_result = "completed"
+        scheduler._collect_finished_processes()
+        session.set_flag_skips_as_warnings(False)
+        expected = tracker_constants.Status.CANCELED
+        self.assertEqual(expected, job.status)
+        self.assertEqual(0, job.errors)
+        self.assertTrue(all(task.status == expected for task in job.tasks))
+
+    def test_canceled_regular_job_skips_finalization(self):
+        """Tests that run-once finalization does not process an incomplete batch."""
+        session_dir = tempfile.mkdtemp(prefix="gt_tracker_cancel_final_test_")
+        self.addCleanup(lambda: os.path.isdir(session_dir) and shutil.rmtree(session_dir))
+        job = self.create_job()
+        job.status = tracker_constants.Status.CANCELED
+        final_job = tracker_model.TrackerJob(
+            "finalization",
+            2,
+            "",
+            [{"id": "archive", "number": 1, "name": "Archive"}],
+            is_finalization=True,
+        )
+        session = tracker_model.TrackerSession(
+            "Test",
+            "C:/project",
+            1,
+            [job, final_job],
+            session_dir,
+        )
+        options = types.SimpleNamespace(no_log=True, task_time_logs=False)
+        scheduler = tracker_scheduler.TrackerScheduler(session=session, options=options)
+        scheduler.regular_queue = []
+
+        result = scheduler._advance_finalization()
+
+        self.assertTrue(result)
+        expected = tracker_constants.Status.SKIPPED
+        self.assertEqual(expected, final_job.status)
+        self.assertEqual(expected, final_job.tasks[0].status)
+
     def test_event_reader_preserves_partial_line_until_complete(self):
         file_handle, event_path = tempfile.mkstemp(suffix=".jsonl")
         os.close(file_handle)

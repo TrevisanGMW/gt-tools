@@ -208,6 +208,18 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
         self.flag_skips_as_warnings_action = self.view_menu.addAction("Flag Skips as Warnings")
         self.flag_skips_as_warnings_action.setCheckable(True)
         self.flag_skips_as_warnings_action.setChecked(True)
+        self.copy_menu = self.tracker_menu_bar.addMenu("Copy")
+        self.copy_failed_jobs_action = self.copy_menu.addAction("Copy Failed Job Names")
+        self.copy_failed_jobs_action.setToolTip("Copy failed job file names, one per line.")
+        self.copy_warning_jobs_action = self.copy_menu.addAction("Copy Warning Job Names")
+        self.copy_warning_jobs_action.setToolTip("Copy job file names with reported warnings, one per line.")
+        self.copy_completed_jobs_action = self.copy_menu.addAction("Copy Completed Job Names")
+        self.copy_completed_jobs_action.setToolTip("Copy cleanly completed job file names, one per line.")
+        self.copy_skipped_jobs_action = self.copy_menu.addAction("Copy Skipped Job Names")
+        self.copy_skipped_jobs_action.setToolTip("Copy job file names containing skipped work, one per line.")
+        self.copy_menu.addSeparator()
+        self.copy_all_jobs_action = self.copy_menu.addAction("Copy All Job Names")
+        self.copy_all_jobs_action.setToolTip("Copy every regular job file name, one per line.")
         self.filters_menu = self.tracker_menu_bar.addMenu("Filters")
         self.hide_completed_action = self.filters_menu.addAction("Hide Completed")
         self.hide_completed_action.setCheckable(True)
@@ -431,6 +443,42 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
             self,
             "Abort Batch",
             "Abort all queued and running jobs?\n\nGenerated files will be preserved.",
+            ui_qt.QtLib.StandardButton.Yes | ui_qt.QtLib.StandardButton.No,
+            ui_qt.QtLib.StandardButton.No,
+        )
+        return answer == ui_qt.QtLib.StandardButton.Yes
+
+    def confirm_restart_job(self, job_name):
+        """Asks the user to confirm restarting one completed job.
+
+        Args:
+            job_name (str): File name shown for the selected job.
+
+        Returns:
+            bool: True when the restart was confirmed.
+        """
+        answer = ui_qt.QtWidgets.QMessageBox.question(
+            self,
+            "Restart Job",
+            f"Restart '{job_name}'?\n\nConfigured tasks will run again and may replace generated outputs.",
+            ui_qt.QtLib.StandardButton.Yes | ui_qt.QtLib.StandardButton.No,
+            ui_qt.QtLib.StandardButton.No,
+        )
+        return answer == ui_qt.QtLib.StandardButton.Yes
+
+    def confirm_cancel_job(self, job_name):
+        """Asks the user to confirm canceling one queued or running job.
+
+        Args:
+            job_name (str): File name shown for the selected job.
+
+        Returns:
+            bool: True when cancellation was confirmed.
+        """
+        answer = ui_qt.QtWidgets.QMessageBox.question(
+            self,
+            "Cancel Job",
+            f"Cancel '{job_name}'?\n\nIf already running, its active task may leave a partial generated output.",
             ui_qt.QtLib.StandardButton.Yes | ui_qt.QtLib.StandardButton.No,
             ui_qt.QtLib.StandardButton.No,
         )
