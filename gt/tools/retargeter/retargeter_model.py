@@ -3,6 +3,7 @@ Animation Retargeter Model
 """
 
 import gt.tools.retargeter.retargeter_framework as tools_retargeter_frm
+import gt.tools.retargeter.retargeter_preferences as tools_retargeter_prefs
 from gt.core.io import write_json, read_json_dict
 import logging
 import os
@@ -19,6 +20,39 @@ class RetargeterModel:
         Initialize the RiggerModel object.
         """
         self.project = tools_retargeter_frm.RetargeterDefinition()
+        self.preferences = tools_retargeter_prefs.RetargeterPreferences()
+
+    def get_preference(self, key, default=None):
+        """Gets a persistent tool preference.
+
+        Args:
+            key (str): Preference key.
+            default (object, optional): Value returned for an unknown key.
+
+        Returns:
+            object: Stored preference value.
+        """
+        return self.preferences.get(key, default)
+
+    def set_preference(self, key, value, save=False):
+        """Updates a persistent tool preference.
+
+        Args:
+            key (str): Preference key.
+            value (object): Preference value.
+            save (bool, optional): Whether to immediately write preferences.
+
+        Returns:
+            bool: True when the preference was updated.
+        """
+        was_updated = self.preferences.set(key, value)
+        if was_updated and save:
+            self.preferences.save()
+        return was_updated
+
+    def save_preferences(self):
+        """Writes Retargeter preferences to disk."""
+        self.preferences.save()
 
     # --------------------- Project ---------------------
     def clear_project(self):

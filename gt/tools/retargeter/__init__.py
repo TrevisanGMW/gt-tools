@@ -2,10 +2,6 @@
  Animation Retargeter
 """
 
-from gt.tools.retargeter import retargeter_controller
-from gt.tools.retargeter import retargeter_model
-from gt.tools.retargeter import retargeter_view
-from gt.ui import qt_utils
 import logging
 
 # Logging Setup
@@ -25,9 +21,14 @@ def launch_tool():
     Entry point for when using this tool.
     Creates Model, View and Controller and uses QtApplicationContext to determine context (inside of Maya or not?)
     """
+    from gt.tools.retargeter import retargeter_controller
+    from gt.tools.retargeter import retargeter_model
+    from gt.tools.retargeter import retargeter_view
+    from gt.ui import qt_utils
+
     with qt_utils.QtApplicationContext() as context:
-        _view = retargeter_view.RetargeterView(parent=context.get_parent(), version=__version__)
         _model = retargeter_model.RetargeterModel()
+        _view = retargeter_view.RetargeterView(parent=context.get_parent(), model=_model, version=__version__)
         _controller = retargeter_controller.RetargeterController(model=_model, view=_view)
 
 

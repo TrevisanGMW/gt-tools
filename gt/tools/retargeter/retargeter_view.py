@@ -3,6 +3,7 @@ Animation Retargeter View
 """
 
 import gt.tools.retargeter.retargeter_constants as tools_retargeter_const
+import gt.tools.retargeter.retargeter_preferences as tools_retargeter_prefs
 import gt.tools.retargeter.retargeter_widget as tools_retarget_widget
 import gt.ui.resource_library as ui_res_lib
 import gt.core.session as core_session
@@ -18,8 +19,49 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
+class ModelPreference:
+    """Descriptor that exposes model-owned preferences to existing view bindings."""
+
+    def __init__(self, key):
+        """Initializes the descriptor.
+
+        Args:
+            key (str): Preference key.
+        """
+        self.key = key
+
+    def __get__(self, instance, owner):
+        """Gets a preference from the model-owned preference store.
+
+        Args:
+            instance (RetargeterView): View instance.
+            owner (type): View class.
+
+        Returns:
+            object: Preference value or this descriptor for class access.
+        """
+        if instance is None:
+            return self
+        return instance._preferences.get(self.key)
+
+    def __set__(self, instance, value):
+        """Sets a preference in the model-owned preference store.
+
+        Args:
+            instance (RetargeterView): View instance.
+            value (object): Preference value.
+        """
+        instance._preferences.set(self.key, value)
+
+
 class RetargeterView(metaclass=ui_qt_utils.MayaWindowMeta):
-    def __init__(self, parent=None, controller=None, version=None):
+    """Qt view for configuring and running animation retargeting."""
+
+    for _preference_name in tools_retargeter_prefs.PREFERENCE_DEFAULTS:
+        locals()[_preference_name] = ModelPreference(_preference_name)
+    del _preference_name
+
+    def __init__(self, parent=None, controller=None, model=None, version=None):
         """
         Initialize the RetargeterView (Animation Retargeter View/UI)
         This window represents the main GUI window of the tool.
@@ -28,17 +70,21 @@ class RetargeterView(metaclass=ui_qt_utils.MayaWindowMeta):
             parent (str): Parent for this window
             controller (ResourceLibraryController): RetargeterController, not to be used.
                                                     Here to avoid the garbage collector.  Defaults to None.
+            model (RetargeterModel, optional): Model that owns persistent preferences.
             version (str, optional): If provided, it will be used to determine the window title. e.g. Title - (v1.2.3)
         """
         super().__init__(parent=parent)
         self.controller = controller  # Only here so it doesn't get deleted by the garbage collectors
+        self.model = model
+        self._preferences = model.preferences if model else tools_retargeter_prefs.RetargeterPreferences()
 
         # Set Window
         window_title = "Animation Retargeter"
         if version:
             window_title += f" - (v{str(version)})"
         self.setWindowTitle(window_title)
-        self.setGeometry(100, 100, 600, 600)
+        self.setMinimumSize(640, 560)
+        self.resize(760, 700)
         self.setWindowFlags(
             self.windowFlags()
             | ui_qt.QtLib.WindowFlag.WindowMaximizeButtonHint
@@ -57,38 +103,25 @@ class RetargeterView(metaclass=ui_qt_utils.MayaWindowMeta):
         stylesheet += ui_res_lib.Stylesheet.spin_box_base
         stylesheet += ui_res_lib.Stylesheet.slider_base
         stylesheet += ui_res_lib.Stylesheet.tab_widget_base
+        stylesheet += ui_res_lib.Stylesheet.btn_push_base
         if not core_session.is_script_in_interactive_maya():
             stylesheet += ui_res_lib.Stylesheet.menu_base
+        stylesheet += """
+        QLabel#RetargeterIntro {
+            color: rgb(175, 175, 175);
+            padding: 2px 2px 8px 2px;
+        }
+        QPushButton#RetargeterPrimaryButton {
+            background-color: rgb(188, 188, 188);
+            color: rgb(28, 28, 28);
+            font-weight: bold;
+            min-height: 34px;
+        }
+        QPushButton#RetargeterPrimaryButton:hover {
+            background-color: rgb(205, 205, 205);
+        }
+        """
         self.setStyleSheet(stylesheet)
-
-        # View variables - serialized user preferences
-        self.active_tab = 0
-        self.batch_status = False
-        self.batch_source_folder = None
-        self.batch_target_folder = None
-        self.source_animation_path = None
-        self.target_rig_path = None
-        self.definition_filename = None
-        self.override_delete_source = False
-        self.override_target_namespace_status = False
-        self.override_target_namespace = None
-        self.delete_static_channels = True
-        self.disable_post_processing = False
-        # -- setup
-        self.definition_setup_filename = None
-        self.source_path = None
-        self.target_path = None
-        self.source_namespace = None
-        self.target_namespace = None
-        self.linked_status = False
-        self.select_scene_targets = True
-        self.select_scene_sources = True
-        # -- settings
-        self.definition_folder = None
-        self.skip_existing_files = True
-        self.multi_process_batch = False
-        self.multi_process_max_instances = 6
-        self.multi_write_log_file = True
 
         # Interface items and settings
         self._default_source_namespace = "source"
@@ -137,9 +170,6 @@ class RetargeterView(metaclass=ui_qt_utils.MayaWindowMeta):
         self.multi_process_max_instances_spinbox = None
         self.multi_write_log_file_chk = None
 
-        # Init User Preferences
-        self.load_preferences()
-
         # Populate UI
         self.create_layout()
         self.create_widgets()
@@ -154,8 +184,27 @@ class RetargeterView(metaclass=ui_qt_utils.MayaWindowMeta):
             self.update_definition_combobox()
 
         # Final Adjustments
-        ui_qt_utils.resize_to_screen(self, percentage=50)
+        self.resize_to_available_screen()
         ui_qt_utils.center_window(self)
+
+    def resize_to_available_screen(self):
+        """Limits the preferred window size to the available screen geometry."""
+        if ui_qt.IS_PYSIDE6:
+            screen_geometry = ui_qt.QtGui.QGuiApplication.primaryScreen().availableGeometry()
+        else:
+            screen_geometry = ui_qt.QtWidgets.QDesktopWidget().availableGeometry(self)
+        width = min(760, int(screen_geometry.width() * 0.8))
+        height = min(700, int(screen_geometry.height() * 0.85))
+        self.resize(width, height)
+
+    def attach_model(self, model):
+        """Attaches the model that owns persistent preferences.
+
+        Args:
+            model (RetargeterModel): Tool model.
+        """
+        self.model = model
+        self._preferences = model.preferences
 
     def eventFilter(self, object, event):
         """
@@ -189,9 +238,14 @@ class RetargeterView(metaclass=ui_qt_utils.MayaWindowMeta):
         main_layout = ui_qt.QtWidgets.QVBoxLayout()
 
         # Top Tabs
-        _tab_title_list = ["Retarget", "Definition Setup", "Settings"]
+        _tab_title_list = ["Retarget", "Definition Editor", "Preferences"]
         tab_widget = tools_retarget_widget.TabWidget(self, _tab_title_list, margin=10)
-        _tab_func = partial(tools_retarget_widget.set_value_from_field, parent=self, var="active_tab", field=tab_widget)
+        _tab_func = partial(
+            tools_retarget_widget.set_value_from_field,
+            parent=self,
+            var="active_tab",
+            field=tab_widget,
+        )
         tab_widget.currentChanged.connect(_tab_func)
         self._tab_layout_list = tab_widget.layout_list
         tab_widget.setCurrentIndex(self.active_tab)
@@ -199,7 +253,7 @@ class RetargeterView(metaclass=ui_qt_utils.MayaWindowMeta):
         # Label widget for timed messages
         self.timed_message_label = tools_retarget_widget.TimedLabel(self)
 
-        main_layout.setContentsMargins(15, 10, 15, 15)
+        main_layout.setContentsMargins(12, 10, 12, 12)
         main_layout.setSpacing(0)
         main_layout.addWidget(tab_widget)
         main_layout.addWidget(self.timed_message_label)
@@ -225,10 +279,17 @@ class RetargeterView(metaclass=ui_qt_utils.MayaWindowMeta):
         """
         _label_width = 100
 
+        intro_label = ui_qt.QtWidgets.QLabel(
+            "Choose an animation, target rig, and definition. Use folder mode to process multiple files."
+        )
+        intro_label.setObjectName("RetargeterIntro")
+        intro_label.setWordWrap(True)
+
         # ---- Batch check box
         batch_check_box_layout = ui_qt.QtWidgets.QHBoxLayout()
-        batch_check_box_layout.setAlignment(ui_qt.QtCore.Qt.AlignRight)
-        self.batch_check_box = ui_qt.QtWidgets.QCheckBox("Batch")
+        batch_check_box_layout.setAlignment(ui_qt.QtCore.Qt.AlignLeft)
+        self.batch_check_box = ui_qt.QtWidgets.QCheckBox("Process a Folder (Batch)")
+        self.batch_check_box.setToolTip("Process checked animation files from a source folder.")
         self.batch_check_box.setChecked(self.batch_status)
         self.batch_check_box.stateChanged.connect(self.toggle_batch_settings)
         batch_check_box_layout.addWidget(self.batch_check_box)
@@ -312,14 +373,18 @@ class RetargeterView(metaclass=ui_qt_utils.MayaWindowMeta):
 
         # ---- Buttons
         self.retarget_btn = ui_qt.QtWidgets.QPushButton("Retarget")
-        self.retarget_btn.setToolTip("Retarget")
+        self.retarget_btn.setObjectName("RetargeterPrimaryButton")
+        self.retarget_btn.setToolTip("Run retargeting with the settings above.")
 
+        layout.addWidget(intro_label)
+        layout.addWidget(tools_retarget_widget.HLineWidget(label_text="Source Animation"))
         layout.addLayout(batch_check_box_layout)
         layout.addWidget(self.batch_settings_widget)
         layout.addWidget(self.source_anim_path_widget)
-        layout.addWidget(self.definition_widget)
+        layout.addWidget(tools_retarget_widget.HLineWidget(label_text="Target Setup"))
         layout.addWidget(self.target_rig_path_widget)
-        layout.addWidget(tools_retarget_widget.HLineWidget(label_text="Overrides"))
+        layout.addWidget(self.definition_widget)
+        layout.addWidget(tools_retarget_widget.HLineWidget(label_text="Output Options"))
         layout.addWidget(self.override_options_widget)
         layout.addItem(self.retarget_tab_spacer)
         layout.addWidget(self.retarget_btn)
@@ -335,11 +400,11 @@ class RetargeterView(metaclass=ui_qt_utils.MayaWindowMeta):
 
         _definition_tab_title_list = [
             "Mapping",
-            "Scene Setup",
+            "Scene",
             "Source Setup",
             "Post Bake",
             "Patches",
-            "Python Scripts",
+            "Scripts",
         ]
         definition_tab_widget = tools_retarget_widget.TabWidget(self, _definition_tab_title_list, margin=4)
         self._definition_tab_layout_list = definition_tab_widget.layout_list
@@ -361,7 +426,7 @@ class RetargeterView(metaclass=ui_qt_utils.MayaWindowMeta):
         self.source_path_widget = tools_retarget_widget.TextBrowseFileWidget(
             self,
             var_name="source_path",
-            nice_name="Source",
+            nice_name="Source Rig",
             file_filter=tools_retargeter_const.RetargeterConstants.RETARGET_FILTER,
             label_width=_label_width,
             browse_width=self._browse_width,
@@ -370,7 +435,7 @@ class RetargeterView(metaclass=ui_qt_utils.MayaWindowMeta):
         self.target_path_widget = tools_retarget_widget.TextBrowseFileWidget(
             self,
             var_name="target_path",
-            nice_name="Target",
+            nice_name="Target Rig",
             file_filter=tools_retargeter_const.RetargeterConstants.RETARGET_FILTER,
             label_width=_label_width,
             browse_width=self._browse_width,
@@ -402,8 +467,8 @@ class RetargeterView(metaclass=ui_qt_utils.MayaWindowMeta):
         )
 
         # ---- Edit Mode (Import/Reload)
-        self.edit_mode_btn = ui_qt.QtWidgets.QPushButton("Import/Reload")
-        self.edit_mode_btn.setToolTip("Import/reload - turn on edit mode")
+        self.edit_mode_btn = ui_qt.QtWidgets.QPushButton("Load Definition in Scene")
+        self.edit_mode_btn.setToolTip("Import or reload the source and target rigs for editing.")
 
         linked_check_box = ui_qt.QtWidgets.QCheckBox("Linked")
         linked_check_box.setChecked(self.linked_status)
@@ -418,15 +483,16 @@ class RetargeterView(metaclass=ui_qt_utils.MayaWindowMeta):
 
         # ---- Save Button
         self.edit_save_definition_btn = ui_qt.QtWidgets.QPushButton("Save Definition")
+        self.edit_save_definition_btn.setObjectName("RetargeterPrimaryButton")
         self.edit_save_definition_btn.setToolTip("Save the selected definition with the current mapping and settings.")
 
         # ---- Skeleton Pose Buttons
         skel_pose_layout = ui_qt.QtWidgets.QHBoxLayout()
         skel_pose_layout.setContentsMargins(0, 0, 0, 0)
         skel_pose_layout.setSpacing(8)
-        self.save_source_skel_pose_btn = ui_qt.QtWidgets.QPushButton("Save Current Source Skeleton Pose")
+        self.save_source_skel_pose_btn = ui_qt.QtWidgets.QPushButton("Capture Source Pose")
         self.save_source_skel_pose_btn.setToolTip("Save the source skeleton current pose.")
-        self.clear_source_skel_pose_btn = ui_qt.QtWidgets.QPushButton("Clear Source Skeleton Pose And Save")
+        self.clear_source_skel_pose_btn = ui_qt.QtWidgets.QPushButton("Clear Source Pose")
         self.clear_source_skel_pose_btn.setToolTip("Clear the source skeleton current pose.")
         skel_pose_layout.addWidget(self.save_source_skel_pose_btn)
         skel_pose_layout.addWidget(self.clear_source_skel_pose_btn)
@@ -445,14 +511,14 @@ class RetargeterView(metaclass=ui_qt_utils.MayaWindowMeta):
         setup_scroll_area.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignTop)
         layout_setup_scroll.addWidget(setup_scroll_area)
 
-        grp_options_widget = ui_qt.QtWidgets.QGroupBox("Setup:")
+        grp_options_widget = ui_qt.QtWidgets.QGroupBox("Mapping Tools")
         layout_options = ui_qt.QtWidgets.QVBoxLayout()
         grp_options_widget.setLayout(layout_options)
         setup_scroll_area.setWidget(grp_options_widget)
 
-        self.add_controls_btn = ui_qt.QtWidgets.QPushButton("Add Controls From Selection")
-        self.delete_targets_btn = ui_qt.QtWidgets.QPushButton("Delete Targets From Table")
-        self.autofix_mapping_names_btn = ui_qt.QtWidgets.QPushButton("Auto-fix Mapping Names")
+        self.add_controls_btn = ui_qt.QtWidgets.QPushButton("Add Selected Controls")
+        self.delete_targets_btn = ui_qt.QtWidgets.QPushButton("Remove Selected Targets")
+        self.autofix_mapping_names_btn = ui_qt.QtWidgets.QPushButton("Resolve Mapping Names")
         self.option_boxes_widget = tools_retarget_widget.DefinitionOptionsWidget(self)
 
         layout_options.addWidget(self.add_controls_btn)
@@ -573,7 +639,7 @@ class RetargeterView(metaclass=ui_qt_utils.MayaWindowMeta):
                                                  will be added.
         """
         # -------------------------------------- General Settings --------------------------------------
-        general_group_box = ui_qt.QtWidgets.QGroupBox("General Settings")
+        general_group_box = ui_qt.QtWidgets.QGroupBox("Definitions and Output")
         general_layout = ui_qt.QtWidgets.QVBoxLayout()
 
         # --- Layout Spacing ---
@@ -620,18 +686,25 @@ class RetargeterView(metaclass=ui_qt_utils.MayaWindowMeta):
         layout.addWidget(general_group_box)
 
         # -------------------------------------- Batch Processing --------------------------------------
-        batch_group_box = ui_qt.QtWidgets.QGroupBox("Multithreading Batch Processing (Experimental)")
+        batch_group_box = ui_qt.QtWidgets.QGroupBox("Multi-Process Batch (Experimental)")
         batch_layout = ui_qt.QtWidgets.QVBoxLayout()
 
         # --- Layout Spacing ---
         batch_layout.addSpacing(5)
         batch_layout.setSpacing(6)  # Add spacing between batch widgets
 
+        batch_description = ui_qt.QtWidgets.QLabel(
+            "Runs files in separate Maya processes. Increase the limit gradually for your workstation."
+        )
+        batch_description.setWordWrap(True)
+        batch_description.setStyleSheet("color: grey;")
+        batch_layout.addWidget(batch_description)
+
         # --- Create a horizontal layout for all batch controls ---
         batch_controls_layout = ui_qt.QtWidgets.QHBoxLayout()
 
         # --- Enable Batch Mode Checkbox ---
-        self.multi_process_batch_mode_chk = ui_qt.QtWidgets.QCheckBox("Enable Multi-Process")
+        self.multi_process_batch_mode_chk = ui_qt.QtWidgets.QCheckBox("Enable")
         self.multi_process_batch_mode_chk.setToolTip(
             "EXPERIMENTAL: Launches multiple Maya instances to process files in parallel.\n" "Use with caution."
         )
@@ -640,7 +713,7 @@ class RetargeterView(metaclass=ui_qt_utils.MayaWindowMeta):
         batch_controls_layout.addWidget(self.multi_process_batch_mode_chk)
 
         # --- Max Instances Label ---
-        max_instances_label = ui_qt.QtWidgets.QLabel("Max Instances:")
+        max_instances_label = ui_qt.QtWidgets.QLabel("Concurrent Maya Processes:")
         max_instances_label.setContentsMargins(10, 0, 0, 0)
         batch_controls_layout.addWidget(max_instances_label)
 
@@ -898,7 +971,10 @@ class RetargeterView(metaclass=ui_qt_utils.MayaWindowMeta):
         self.definition_widget.combobox.setEnabled(True)
         self.edit_definition_widget.combobox.setEnabled(True)
         if not _definition_file_list:
-            _definition_file_list = ["<No definitions files found. Please select a different definition folder.>", None]
+            _definition_file_list = [
+                "<No definition files found. Select a different definition folder.>",
+                None,
+            ]
             self.definition_widget.combobox.setEnabled(False)
             self.edit_definition_widget.combobox.setEnabled(False)
         self.definition_widget.populate_list(
@@ -999,38 +1075,12 @@ class RetargeterView(metaclass=ui_qt_utils.MayaWindowMeta):
             return []
         return [addon_class().name for addon_ame, addon_class in addons_dict.items()]
 
-    # View User Preferences ----------------------------------------------------------
-    def get_preferences_data(self):
-        """
-        Gets the interface variables to serialize as user preferences in Documents/maya/gt/retargeter.json.
-        Private variables are excluded.
-
-        Returns:
-            dict: variables (as key) plus their values.
-        """
-        prefs_variables = {}
-        for k, v in vars(self).items():
-            if isinstance(v, (int, float, str, list, bool)) and not k.startswith("__") and not k.startswith("_"):
-                prefs_variables[k] = v
-        return prefs_variables
-
     def save_preferences(self):
-        """Saves view user preferences."""
-        import gt.core.prefs as core_prefs
-
-        retargeter_prefs_obj = core_prefs.Prefs(tools_retargeter_const.RetargeterConstants.PREFS_FILENAME)
-        retargeter_prefs_obj.preferences = self.get_preferences_data()
-        retargeter_prefs_obj.save()
-
-    def load_preferences(self):
-        """Loads view user preferences."""
-        import gt.core.prefs as core_prefs
-
-        retargeter_prefs_obj = core_prefs.Prefs(tools_retargeter_const.RetargeterConstants.PREFS_FILENAME)
-        retargeter_prefs_obj.load()
-        for k, v in retargeter_prefs_obj.preferences.items():
-            if hasattr(self, k):
-                setattr(self, k, v)
+        """Delegates preference persistence to the model-owned store."""
+        if self.model:
+            self.model.save_preferences()
+        else:
+            self._preferences.save()
 
 
 if __name__ == "__main__":

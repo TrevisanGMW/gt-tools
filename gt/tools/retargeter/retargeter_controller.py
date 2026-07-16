@@ -34,6 +34,7 @@ class RetargeterController:
         """
         self.model = model  # the model is used for the Definition Setup
         self.view = view
+        self.view.attach_model(model)
         self.view.controller = self
         self.progress_win = None
 
