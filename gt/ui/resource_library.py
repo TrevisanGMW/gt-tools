@@ -424,6 +424,7 @@ class Icon:
     rigger_module_quad_spine = get_icon_path(r"rigger_module_quad_spine.svg")
     rigger_module_util = get_icon_path(r"rigger_module_util.svg")
     rigger_module_skin_weights = get_icon_path(r"rigger_module_skin_weights.svg")
+    rigger_module_ngskin_weights = get_icon_path(r"rigger_module_ngskin_weights.svg")
     rigger_module_group = get_icon_path(r"rigger_module_group.svg")
     rigger_module_playblast_capture = get_icon_path(r"rigger_module_playblast_capture.svg")
     rigger_module_thumbnail_capture = get_icon_path(r"rigger_module_thumbnail_capture.svg")

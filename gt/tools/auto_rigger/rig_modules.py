@@ -10,6 +10,7 @@ import gt.tools.auto_rigger.modules.module_arm as tools_mod_arm
 import gt.tools.auto_rigger.modules.module_biped_finger as tools_mod_finger
 import gt.tools.auto_rigger.modules.module_head as tools_mod_head
 import gt.tools.auto_rigger.modules.module_utils as tools_mod_utils
+import gt.tools.auto_rigger.modules.module_ngskin as tools_mod_ngskin
 import gt.tools.auto_rigger.modules.module_mh_facial as tools_mod_meta_face
 import gt.tools.auto_rigger.modules.module_socket as tools_mod_socket
 import gt.tools.auto_rigger.modules.module_attr_hub as tools_mod_attr_switcher
@@ -101,6 +102,7 @@ class RigModules:
         ModuleNewScene = tools_mod_utils.ModuleNewScene
         ModuleImportFile = tools_mod_utils.ModuleImportFile
         ModuleSkinWeights = tools_mod_utils.ModuleSkinWeights
+        ModuleNGSkinWeights = tools_mod_ngskin.ModuleNGSkinWeights
         ModulePython = tools_mod_utils.ModulePython
         ModuleExportSkeletalMesh = tools_mod_utils.ModuleExportSkeletalMesh
         ModuleSaveScene = tools_mod_utils.ModuleSaveScene

@@ -103,6 +103,8 @@ def get_module_attr_widgets(module):
         return tools_rig_attr_widget.AttrWidgetModuleImportFile
     if isinstance(module, tools_rig_modules.RigModules.Utils.ModuleSkinWeights):
         return tools_rig_attr_widget.AttrWidgetModuleSkinWeights
+    if isinstance(module, tools_rig_modules.RigModules.Utils.ModuleNGSkinWeights):
+        return tools_rig_attr_widget.AttrWidgetModuleNGSkinWeights
     if isinstance(module, tools_rig_modules.RigModules.Utils.ModuleExportSkeletalMesh):
         return tools_rig_attr_widget.AttrWidgetModuleExportSkeletalMesh
     if isinstance(module, tools_rig_modules.RigModules.Utils.ModuleSaveScene):
@@ -908,7 +910,6 @@ class RiggerController:
         action_copy = ui_qt.QtLib.QtGui.QAction("Copy", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.rigger_action_copy))
         func_copy_module = partial(self.context_menu_copy_module, source_module)
         action_copy.triggered.connect(func_copy_module)
-        action_copy.triggered.connect(self.refresh_widgets)
         self.view.add_menu_action(parent_menu=menu, action=action_copy)
 
         # Paste
@@ -977,15 +978,15 @@ class RiggerController:
             return
         _as_dict = module.get_module_as_dict()
         _as_str = json.dumps(_as_dict, indent=4, ensure_ascii=False)
-        utils_system.copy_to_clipboard(_as_str)
+        ui_qt.QtWidgets.QApplication.clipboard().setText(_as_str)
         logger.info(f'"{module.get_name()}" was copied to the clipboard.')
 
     def context_menu_paste_module(self):
         """
         Attempt to interpret the clipboard content as a dictionary, and builds a module with the data when available.
         """
-        clipboard_content = utils_system.get_clipboard_content()
         try:
+            clipboard_content = ui_qt.QtWidgets.QApplication.clipboard().text()
             clipboard_as_dict = json.loads(clipboard_content)
             self.model.get_project().add_module_from_dict(clipboard_as_dict)
         except Exception as e:

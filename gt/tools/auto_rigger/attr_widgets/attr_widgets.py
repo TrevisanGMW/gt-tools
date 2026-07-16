@@ -29,6 +29,7 @@ from gt.tools.auto_rigger.attr_widgets.attr_widget_group import *
 from gt.tools.auto_rigger.attr_widgets.attr_widget_new_scene import *
 from gt.tools.auto_rigger.attr_widgets.attr_widget_import_file import *
 from gt.tools.auto_rigger.attr_widgets.attr_widget_skin_weights import *
+from gt.tools.auto_rigger.attr_widgets.attr_widget_ngskin import *
 from gt.tools.auto_rigger.attr_widgets.attr_widget_shapes_snapshot import *
 from gt.tools.auto_rigger.attr_widgets.attr_widget_export_skeletal_mesh import *
 from gt.tools.auto_rigger.attr_widgets.attr_widget_save_scene import *
