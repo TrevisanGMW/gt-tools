@@ -184,9 +184,13 @@ class AttrWidgetBase(ui_qt.QtWidgets.QWidget):
         }
 
     def call_parent_refresh(self):
-        """Calls the parent refresh function when one was provided."""
+        """Queues the parent refresh function when one was provided.
+
+        Deferring the refresh allows the active Qt signal or event to finish before
+        a parent rebuild can delete the widget that emitted it.
+        """
         if callable(self.refresh_parent_func):
-            self.refresh_parent_func()
+            ui_qt.QtCore.QTimer.singleShot(0, self.refresh_parent_func)
 
     def add_labeled_layout(self, label_text, label_width=110, tooltip=None, parent_layout=None):
         """Adds a horizontal row with a fixed-width label.

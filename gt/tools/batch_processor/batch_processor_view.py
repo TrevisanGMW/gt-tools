@@ -273,31 +273,60 @@ class BatchProcessorView(metaclass=MayaWindowMeta):
             project (BatchProcessorModel): Project to display.
         """
         selected_task_id = self.get_selected_task_id()
-        self.clear_task_tree()
+        signals_were_blocked = self.task_tree.blockSignals(True)
+        try:
+            self.clear_task_tree()
 
-        self.project_item = ui_tree_enhanced.QTreeItemEnhanced([project.project_name])
-        self.project_item.setIcon(0, ui_qt.QtGui.QIcon(ui_res_lib.Icon.rigger_project))
-        self.project_item.setData(0, self.DATA_ROLE, "project")
-        self.project_item.setFlags(self.project_item.flags() & ~ui_qt.QtLib.ItemFlag.ItemIsDragEnabled)
-        self.add_item_to_task_tree(self.project_item)
+            self.project_item = ui_tree_enhanced.QTreeItemEnhanced([project.project_name])
+            self.project_item.setIcon(0, ui_qt.QtGui.QIcon(ui_res_lib.Icon.rigger_project))
+            self.project_item.setData(0, self.DATA_ROLE, "project")
+            self.project_item.setFlags(self.project_item.flags() & ~ui_qt.QtLib.ItemFlag.ItemIsDragEnabled)
+            self.add_item_to_task_tree(self.project_item)
 
-        selected_item = None
-        for task in project.tasks:
-            label = task.display_name
-            tree_item = ui_tree_enhanced.QTreeItemEnhanced([label])
-            tree_item.setIcon(0, ui_qt.QtGui.QIcon(batch_processor_task_widget.get_icon_path(task.icon)))
-            tree_item.setData(0, self.DATA_ROLE, task.id)
-            tree_item.set_allow_parenting(False)
-            self.project_item.addChild(tree_item)
-            is_selected_task = bool(selected_task_id and selected_task_id == task.id)
-            if not task.enabled:
+            selected_item = None
+            for task in project.tasks:
+                label = task.display_name
+                tree_item = ui_tree_enhanced.QTreeItemEnhanced([label])
+                tree_item.setIcon(0, ui_qt.QtGui.QIcon(batch_processor_task_widget.get_icon_path(task.icon)))
+                tree_item.setData(0, self.DATA_ROLE, task.id)
+                tree_item.set_allow_parenting(False)
+                self.project_item.addChild(tree_item)
+                is_selected_task = bool(selected_task_id and selected_task_id == task.id)
+                if not task.enabled:
+                    tree_item.setForeground(0, ui_qt.QtGui.QColor(ui_res_lib.Color.Hex.gray_dim))
+                    tree_item.setToolTip(0, "Task is disabled.")
+                if is_selected_task:
+                    selected_item = tree_item
+
+            self.expand_all_task_tree_items()
+            self.task_tree.setCurrentItem(selected_item or self.project_item)
+        finally:
+            self.task_tree.blockSignals(signals_were_blocked)
+
+    def update_task_tree_item(self, task):
+        """Updates an existing task tree item in place.
+
+        Args:
+            task (BatchTask): Task providing the current label and enabled state.
+
+        Returns:
+            bool: True when a matching tree item was found and updated.
+        """
+        if not self.project_item or not task:
+            return False
+        for index in range(self.project_item.childCount()):
+            tree_item = self.project_item.child(index)
+            if tree_item.data(0, self.DATA_ROLE) != task.id:
+                continue
+            tree_item.setText(0, task.display_name)
+            if task.enabled:
+                tree_item.setForeground(0, ui_qt.QtGui.QBrush())
+                tree_item.setToolTip(0, "")
+            else:
                 tree_item.setForeground(0, ui_qt.QtGui.QColor(ui_res_lib.Color.Hex.gray_dim))
                 tree_item.setToolTip(0, "Task is disabled.")
-            if is_selected_task:
-                selected_item = tree_item
-
-        self.expand_all_task_tree_items()
-        self.task_tree.setCurrentItem(selected_item or self.project_item)
+            return True
+        return False
 
     def get_selected_task_id(self):
         """Gets the selected task id from the tree.

@@ -879,6 +879,20 @@ class BatchProcessorController:
         self.view.refresh_tree(self.model)
         self.update_details()
 
+    def refresh_task_tree_item(self, task_id):
+        """Refreshes one existing task tree item without rebuilding its details widget.
+
+        Args:
+            task_id (str): Identifier of the task to refresh.
+
+        Returns:
+            bool: True when the task and its tree item were found.
+        """
+        task = self.model.get_task(task_id)
+        if not task:
+            return False
+        return self.view.update_task_tree_item(task)
+
     def update_details(self):
         """Updates the details panel for the current selection."""
         task_id = self.view.get_selected_task_id()
@@ -1004,7 +1018,7 @@ class BatchProcessorController:
             return
         payload = json.dumps(source_task.to_dict(), indent=4, sort_keys=True)
         try:
-            utils_system.copy_to_clipboard(payload)
+            ui_qt.QtWidgets.QApplication.clipboard().setText(payload)
             self.log_status('Copied task to clipboard: "{0}".'.format(source_task.display_name))
         except Exception as exception:
             self.log_status("Unable to copy task to clipboard: {0}".format(exception), status="warning")
@@ -1012,7 +1026,7 @@ class BatchProcessorController:
     def context_menu_paste_task(self):
         """Pastes a task JSON payload from the clipboard."""
         try:
-            clipboard_content = utils_system.get_clipboard_content()
+            clipboard_content = ui_qt.QtWidgets.QApplication.clipboard().text()
             task_data = json.loads(clipboard_content)
             inserted_task = self.insert_task_from_data(task_data)
             self.refresh_widgets()

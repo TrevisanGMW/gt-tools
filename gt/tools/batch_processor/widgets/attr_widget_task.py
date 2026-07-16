@@ -623,7 +623,6 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
             value (bool): Whether the task should be counted.
         """
         self.set_task_setting(bool(value), key="include_in_task_index")
-        self.call_parent_refresh()
 
     def refresh_source_path_enabled_state(self):
         """Refreshes source path widgets based on source mode."""
@@ -733,8 +732,25 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
 
     def set_task_name(self):
         """Updates the task display name from the header field."""
-        self.task.display_name = self.task_name_field.text() or self.task.default_display_name
-        self.call_parent_refresh()
+        display_name = self.task_name_field.text() or self.task.default_display_name
+        if self.task_name_field.text() != display_name:
+            self.task_name_field.setText(display_name)
+        if self.task.display_name == display_name:
+            return
+        self.task.display_name = display_name
+        if not self.refresh_task_tree_item():
+            self.call_parent_refresh()
+
+    def refresh_task_tree_item(self):
+        """Refreshes this task's existing tree item without rebuilding the details widget.
+
+        Returns:
+            bool: True when the owning controller updated the tree item.
+        """
+        controller = self.get_batch_controller()
+        if not controller or not hasattr(controller, "refresh_task_tree_item"):
+            return False
+        return bool(controller.refresh_task_tree_item(self.task.id))
 
     def set_task_enabled(self, value):
         """Updates the task enabled state.
@@ -742,10 +758,14 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         Args:
             value (bool): New enabled state.
         """
-        self.task.enabled = bool(value)
+        enabled = bool(value)
+        if self.task.enabled == enabled:
+            return
+        self.task.enabled = enabled
         state_name = "enabled" if self.task.enabled else "disabled"
         self.emit_status_message('Task "{0}" {1}.'.format(self.task.display_name, state_name))
-        self.call_parent_refresh()
+        if not self.refresh_task_tree_item():
+            self.call_parent_refresh()
 
     def set_task_setting(self, value, key):
         """Sets a task setting.
