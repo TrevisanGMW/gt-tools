@@ -12,6 +12,9 @@ UI_MODE_MINIMAL = color_manager_model.UI_MODE_MINIMAL
 UI_MODE_DEFAULT = color_manager_model.UI_MODE_DEFAULT
 UI_MODE_COMPLETE = color_manager_model.UI_MODE_COMPLETE
 UI_MODES = color_manager_model.UI_MODES
+CURRENT_COLOR_UNCONVERTED = color_manager_model.CURRENT_COLOR_UNCONVERTED
+CURRENT_COLOR_CONVERTED = color_manager_model.CURRENT_COLOR_CONVERTED
+CURRENT_COLOR_MODES = color_manager_model.CURRENT_COLOR_MODES
 
 normalize_saved_colors = color_manager_model.normalize_saved_colors
 colors_match = color_manager_model.colors_match

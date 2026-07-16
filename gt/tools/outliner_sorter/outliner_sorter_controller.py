@@ -2,8 +2,10 @@
 Outliner Sorter Controller
 """
 
-from gt.tools.outliner_sorter import outliner_sorter_model as model_module
 import logging
+
+from gt.tools.outliner_sorter import outliner_sorter_model as model_module
+import gt.ui.qt_import as ui_qt
 
 
 logger = logging.getLogger(__name__)
@@ -24,6 +26,7 @@ class OutlinerSorterController:
         self.view = view
         self.connect_view()
         self.view.show()
+        ui_qt.QtCore.QTimer.singleShot(0, self.view.resize_to_contents)
 
     def connect_view(self):
         """Connects view signals."""
