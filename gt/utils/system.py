@@ -1017,7 +1017,64 @@ def copy_to_clipboard(input_data):
     string_data = str(input_data)
 
     if sys.platform == OS_WINDOWS:
-        subprocess.run("clip", text=True, input=string_data, check=True)
+        import ctypes
+        from ctypes import wintypes
+
+        clipboard_format_unicode = 13
+        global_memory_moveable = 0x0002
+        user32 = ctypes.WinDLL("user32", use_last_error=True)
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+
+        user32.OpenClipboard.argtypes = [wintypes.HWND]
+        user32.OpenClipboard.restype = wintypes.BOOL
+        user32.EmptyClipboard.argtypes = []
+        user32.EmptyClipboard.restype = wintypes.BOOL
+        user32.SetClipboardData.argtypes = [wintypes.UINT, wintypes.HANDLE]
+        user32.SetClipboardData.restype = wintypes.HANDLE
+        user32.CloseClipboard.argtypes = []
+        user32.CloseClipboard.restype = wintypes.BOOL
+        kernel32.GlobalAlloc.argtypes = [wintypes.UINT, ctypes.c_size_t]
+        kernel32.GlobalAlloc.restype = wintypes.HGLOBAL
+        kernel32.GlobalLock.argtypes = [wintypes.HGLOBAL]
+        kernel32.GlobalLock.restype = ctypes.c_void_p
+        kernel32.GlobalUnlock.argtypes = [wintypes.HGLOBAL]
+        kernel32.GlobalUnlock.restype = wintypes.BOOL
+        kernel32.GlobalFree.argtypes = [wintypes.HGLOBAL]
+        kernel32.GlobalFree.restype = wintypes.HGLOBAL
+
+        encoded_data = string_data.encode("utf-16-le") + b"\x00\x00"
+        memory_handle = kernel32.GlobalAlloc(global_memory_moveable, len(encoded_data))
+        if not memory_handle:
+            raise ctypes.WinError(ctypes.get_last_error())
+
+        clipboard_opened = False
+        try:
+            memory_pointer = kernel32.GlobalLock(memory_handle)
+            if not memory_pointer:
+                raise ctypes.WinError(ctypes.get_last_error())
+            try:
+                ctypes.memmove(memory_pointer, encoded_data, len(encoded_data))
+            finally:
+                kernel32.GlobalUnlock(memory_handle)
+
+            for attempt in range(10):
+                if user32.OpenClipboard(None):
+                    clipboard_opened = True
+                    break
+                if attempt < 9:
+                    time.sleep(0.01)
+            if not clipboard_opened:
+                raise ctypes.WinError(ctypes.get_last_error())
+            if not user32.EmptyClipboard():
+                raise ctypes.WinError(ctypes.get_last_error())
+            if not user32.SetClipboardData(clipboard_format_unicode, memory_handle):
+                raise ctypes.WinError(ctypes.get_last_error())
+            memory_handle = None
+        finally:
+            if clipboard_opened:
+                user32.CloseClipboard()
+            if memory_handle:
+                kernel32.GlobalFree(memory_handle)
     elif sys.platform == OS_MAC:
         subprocess.run("pbcopy", text=True, input=string_data, check=True)
     elif sys.platform == OS_LINUX:
@@ -1033,7 +1090,52 @@ def get_clipboard_content():
         str: Clipboard content.
     """
     if sys.platform == OS_WINDOWS:
-        return subprocess.run("powershell Get-Clipboard", capture_output=True, text=True, check=True).stdout.strip()
+        import ctypes
+        from ctypes import wintypes
+
+        clipboard_format_unicode = 13
+        user32 = ctypes.WinDLL("user32", use_last_error=True)
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+
+        user32.OpenClipboard.argtypes = [wintypes.HWND]
+        user32.OpenClipboard.restype = wintypes.BOOL
+        user32.IsClipboardFormatAvailable.argtypes = [wintypes.UINT]
+        user32.IsClipboardFormatAvailable.restype = wintypes.BOOL
+        user32.GetClipboardData.argtypes = [wintypes.UINT]
+        user32.GetClipboardData.restype = wintypes.HANDLE
+        user32.CloseClipboard.argtypes = []
+        user32.CloseClipboard.restype = wintypes.BOOL
+        kernel32.GlobalLock.argtypes = [wintypes.HGLOBAL]
+        kernel32.GlobalLock.restype = ctypes.c_void_p
+        kernel32.GlobalUnlock.argtypes = [wintypes.HGLOBAL]
+        kernel32.GlobalUnlock.restype = wintypes.BOOL
+
+        clipboard_opened = False
+        try:
+            for attempt in range(10):
+                if user32.OpenClipboard(None):
+                    clipboard_opened = True
+                    break
+                if attempt < 9:
+                    time.sleep(0.01)
+            if not clipboard_opened:
+                raise ctypes.WinError(ctypes.get_last_error())
+            if not user32.IsClipboardFormatAvailable(clipboard_format_unicode):
+                return ""
+
+            memory_handle = user32.GetClipboardData(clipboard_format_unicode)
+            if not memory_handle:
+                raise ctypes.WinError(ctypes.get_last_error())
+            memory_pointer = kernel32.GlobalLock(memory_handle)
+            if not memory_pointer:
+                raise ctypes.WinError(ctypes.get_last_error())
+            try:
+                return ctypes.wstring_at(memory_pointer).strip()
+            finally:
+                kernel32.GlobalUnlock(memory_handle)
+        finally:
+            if clipboard_opened:
+                user32.CloseClipboard()
     elif sys.platform == OS_MAC:
         return subprocess.run("pbpaste", capture_output=True, text=True, check=True).stdout.strip()
     elif sys.platform == OS_LINUX:
