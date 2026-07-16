@@ -60,7 +60,7 @@ def load_menu(*args):
         label="Batch Processor",
         command=IMPORT_TOOL + 'initialize_tool("batch_processor")',
         tooltip="Opens the batch processor.",
-        icon=ui_res_lib.Icon.ui_progress,
+        icon=ui_res_lib.Icon.tool_batch_processor,
     )
     menu.add_divider(parent="General")
     menu.add_menu_item(
