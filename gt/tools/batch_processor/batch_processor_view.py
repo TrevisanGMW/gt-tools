@@ -53,7 +53,7 @@ class BatchProcessorView(metaclass=MayaWindowMeta):
             | ui_qt.QtLib.WindowFlag.WindowMaximizeButtonHint
             | ui_qt.QtLib.WindowFlag.WindowMinimizeButtonHint
         )
-        self.setWindowIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.tool_auto_rigger))
+        self.setWindowIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.tool_batch_processor))
         self.create_widgets()
         self.create_layout()
         self.apply_stylesheet()

@@ -253,6 +253,7 @@ class Icon:
     root_help = get_icon_path(r"root_help.svg")
     root_dev = get_icon_path(r"root_dev.svg")
     # General
+    tool_batch_processor = get_icon_path(r"tool_batch_processor.svg")
     tool_renamer = get_icon_path(r"tool_renamer.svg")
     tool_outliner_sorter = get_icon_path(r"tool_outliner_sorter.svg")
     tool_selection_manager = get_icon_path(r"tool_selection_manager.svg")

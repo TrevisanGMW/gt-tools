@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px"
+     viewBox="0 0 512 512" style="enable-background:new 0 0 512 512;" xml:space="preserve">
+<g id="tool_x5F_batch_x5F_processor">
+    <!-- A stack of source files represents the batch. -->
+    <rect x="42" y="43" width="211" height="270" rx="12" style="fill:#828282;stroke:#1D1D1D;stroke-width:18;"/>
+    <rect x="73" y="72" width="211" height="270" rx="12" style="fill:#BDBDBD;stroke:#1D1D1D;stroke-width:18;"/>
+    <rect x="105" y="101" width="211" height="270" rx="12" style="fill:#6BBE66;stroke:#1D1D1D;stroke-width:18;"/>
+    <path style="fill:#7DD875;" d="M123,119h175v54H123V119z"/>
+    <path style="fill:#1D1D1D;" d="M144,199h133v20H144V199z M144,244h133v20H144V244z M144,289h91v20h-91V289z"/>
+
+    <!-- The forward arrow connects the queued files to their processor. -->
+    <path style="fill:#6BBE66;stroke:#1D1D1D;stroke-width:16;stroke-linejoin:round;"
+          d="M244,353h83v-39l69,62l-69,62v-39h-83V353z"/>
+
+    <!-- A bold gear silhouette remains readable in Maya menus and title bars. -->
+    <g style="fill:#65AF5F;stroke:#1D1D1D;stroke-width:16;stroke-linejoin:round;">
+        <rect x="369" y="277" width="66" height="180" rx="10"/>
+        <rect x="312" y="334" width="180" height="66" rx="10"/>
+        <rect x="369" y="277" width="66" height="180" rx="10" transform="rotate(45 402 367)"/>
+        <rect x="369" y="277" width="66" height="180" rx="10" transform="rotate(-45 402 367)"/>
+    </g>
+    <circle cx="402" cy="367" r="86" style="fill:#6BBE66;stroke:#1D1D1D;stroke-width:18;"/>
+    <circle cx="402" cy="367" r="35" style="fill:#BDBDBD;stroke:#1D1D1D;stroke-width:16;"/>
+</g>
+</svg>
