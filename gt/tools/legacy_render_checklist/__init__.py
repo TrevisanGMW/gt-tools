@@ -49,9 +49,9 @@ def launch_tool():
     Launch user interface and create any necessary connections for the tool to function.
     Entry point for when using the tool GT Render Checklist.
     """
-    from gt.tools.render_checklist import render_checklist
-    render_checklist.script_version = __version__
-    render_checklist.build_gui_gt_render_checklist()
+    from gt.tools.legacy_render_checklist import legacy_render_checklist
+    legacy_render_checklist.script_version = __version__
+    legacy_render_checklist.build_gui_gt_render_checklist()
 
 
 if __name__ == "__main__":

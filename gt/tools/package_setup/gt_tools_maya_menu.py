@@ -94,12 +94,6 @@ def load_menu(*args):
         icon=ui_res_lib.Icon.tool_renamer,
     )
     menu.add_menu_item(
-        label="Render Checklist",
-        command=IMPORT_TOOL + 'initialize_tool("render_checklist")',
-        tooltip="Performs a series of checks to detect common issues that are often accidentally " "ignored/unnoticed.",
-        icon=ui_res_lib.Icon.tool_render_checklist,
-    )
-    menu.add_menu_item(
         label="Selection Manager",
         command=IMPORT_TOOL + 'initialize_tool("selection_manager")',
         tooltip="Manages or creates custom selections.",
@@ -111,13 +105,6 @@ def load_menu(*args):
         tooltip="Script for quickly transferring Translate, Rotate, and Scale between objects.",
         icon=ui_res_lib.Icon.tool_transfer_transforms,
     )
-    menu.add_menu_item(
-        label="World Space Baker",
-        command=IMPORT_TOOL + 'initialize_tool("world_space_baker")',
-        tooltip="Script for getting and setting translate and rotate world space data.",
-        icon=ui_res_lib.Icon.tool_world_space_baker,
-    )
-
     # ------------------------------------ Curves ------------------------------------
     menu.add_sub_menu("Curves", icon=ui_res_lib.Icon.root_curves, parent_to_root=True)
     menu.add_menu_item(
@@ -284,7 +271,7 @@ def load_menu(*args):
         tooltip="Create ribbon setups, using existing objects or by itself.",
         icon=ui_res_lib.Icon.tool_ribbon,
     )
-    menu.add_divider()  # General Rigging Tools +++++++++++++++++++++++++++++++++
+    menu.add_divider(divider_label="Utilities")  # General Rigging Tools +++++++++++++++++++++++++++++++++
     menu.add_menu_item(
         label="Rivet Locator",
         command=IMPORT_UTIL + 'initialize_utility("constraint", "create_rivet")',
@@ -305,6 +292,12 @@ def load_menu(*args):
         command=IMPORT_TOOL + 'initialize_tool("clip_tracker")',
         tooltip="Opens the animation clip tracker.",
         icon=ui_res_lib.Icon.root_animation,
+    )
+    menu.add_menu_item(
+        label="World Space Baker",
+        command=IMPORT_TOOL + 'initialize_tool("world_space_baker")',
+        tooltip="Extracts and bakes translate and rotate animation in world space.",
+        icon=ui_res_lib.Icon.tool_world_space_baker,
     )
 
     # ------------------------------------ Utilities ------------------------------------
@@ -510,6 +503,15 @@ def load_menu(*args):
     package_prefs = PackagePrefs()
     if package_prefs.is_legacy_menu_visible():
         menu.add_sub_menu("Legacy", icon=ui_res_lib.Icon.root_rigging, parent_to_root=True)
+        menu.add_divider(parent="Legacy", divider_label="General")
+        menu.add_menu_item(
+            label="Render Checklist",
+            command=IMPORT_TOOL + 'initialize_tool("legacy_render_checklist")',
+            tooltip="Performs a series of checks to detect common issues that are often accidentally "
+            "ignored/unnoticed.",
+            icon=ui_res_lib.Icon.tool_render_checklist,
+        )
+        menu.add_divider(parent="Legacy", divider_label="Rigging")
         menu.add_menu_item(
             label="Biped Auto Rigger",
             command=IMPORT_TOOL + 'initialize_tool("legacy_biped_rigger")',
@@ -522,6 +524,7 @@ def load_menu(*args):
             tooltip="Rig interface for the legacy Biped Auto Rigger.",
             icon=ui_res_lib.Icon.tool_rig_interface,
         )
+        menu.add_divider(parent="Legacy", divider_label="Animation")
         menu.add_menu_item(
             label="Retarget Assistant",
             command=IMPORT_TOOL + 'initialize_tool("legacy_biped_rigger", "launch_retarget_assistant")',

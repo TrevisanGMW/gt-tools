@@ -24,7 +24,6 @@
   <li><a href="#color-manager">Color Manager</a></li>
   <li><a href="#transfer-transforms">Transfer Transforms</a></li>
   <li><a href="#world-space-baker">World Space Baker</a></li>
-  <li><a href="#render-checklist">Render Checklist</a></li>
 </ul>
 <h3><b>Curves:</b></h3>
 <ul>
@@ -75,6 +74,7 @@
 </ul>
 <h3><b>Legacy Tools:</b></h3>
 <ul>
+  <li><a href="#render-checklist">Render Checklist</a></li>
   <li><a href="#biped-auto-rigger">Biped Auto Rigger</a></li>
   <li><a href="#biped-rig-interface">Biped Rig Interface</a></li>
   <li><a href="#retarget-assistant">Retarget Assistant</a></li>
@@ -423,6 +423,8 @@ with the provided prefix "Left Side Tag".</p>
 <!-- Render Checklist -->
 <div>
 <h1>Render Checklist</h1>
+
+<p><b>Legacy Tool:</b> Enable it from <b>GT Tools > Help > Toggle > Toggle Legacy Menu</b>, then open it from <b>GT Tools > Legacy > Render Checklist</b>.</p>
 
 <img src="./media/gt_render_checklist.gif" align="right"
      alt="GT Render Checklist GUI">
