@@ -25,18 +25,6 @@ PACKAGE_PREFS_DIR = "prefs"
 PACKAGE_PREFS_EXT = "json"
 
 
-def get_prefs_dir():
-    """
-    Gets the path to the package prefs (preferences) directory. e.g. ".../Documents/maya/gt_tools/prefs"
-    Returns:
-        str: Path to package prefs dir. e.g. ".../Documents/maya/gt-tools/prefs"
-    """
-    _maya_preferences_dir = get_maya_preferences_dir(get_system())
-    _package_parent_dir = os.path.join(_maya_preferences_dir, PACKAGE_NAME)
-    _prefs_dir = os.path.join(_package_parent_dir, PACKAGE_PREFS_DIR)
-    return _prefs_dir
-
-
 class Prefs:
     def __init__(self, prefs_name, location_dir=None):
         """
@@ -546,6 +534,135 @@ class PackageCache:
         WARNING: This will delete other caches too, it deletes the entire cache folder
         """
         delete_paths(self.cache_dir)
+
+
+class RecentProjects:
+    """Maintains a most-recently-used list of project paths in Prefs."""
+
+    def __init__(self, prefs, key, max_count=5):
+        """Initializes the recent-project list.
+
+        Args:
+            prefs (Prefs): Preference object used for persistence.
+            key (str): Preference key used to store the path list.
+            max_count (int, optional): Maximum number of paths to retain.
+        """
+        self.prefs = prefs
+        self.key = key
+        self.max_count = max(1, int(max_count))
+
+    @staticmethod
+    def normalize_path(file_path):
+        """Normalizes a project path for persistent storage.
+
+        Args:
+            file_path (str): Project file path.
+
+        Returns:
+            str: Absolute normalized path, or an empty string for invalid input.
+        """
+        if not isinstance(file_path, str) or not file_path.strip():
+            return ""
+        return os.path.normpath(os.path.abspath(os.path.expanduser(file_path.strip())))
+
+    @staticmethod
+    def _comparison_key(file_path):
+        """Builds a platform-aware key used to compare project paths.
+
+        Args:
+            file_path (str): Normalized project file path.
+
+        Returns:
+            str: Normalized comparison key.
+        """
+        return os.path.normcase(file_path)
+
+    def get_paths(self):
+        """Gets normalized, de-duplicated recent project paths.
+
+        Returns:
+            list: Recent project paths ordered from newest to oldest.
+        """
+        raw_paths = self.prefs.get_raw_preferences().get(self.key, [])
+        if not isinstance(raw_paths, list):
+            return []
+        recent_paths = []
+        known_paths = set()
+        for raw_path in raw_paths:
+            normalized_path = self.normalize_path(raw_path)
+            comparison_key = self._comparison_key(normalized_path)
+            if not normalized_path or comparison_key in known_paths:
+                continue
+            known_paths.add(comparison_key)
+            recent_paths.append(normalized_path)
+            if len(recent_paths) >= self.max_count:
+                break
+        return recent_paths
+
+    def add_path(self, file_path):
+        """Adds a path to the front of the recent-project list and saves it.
+
+        Args:
+            file_path (str): Project file path to add.
+
+        Returns:
+            list: Updated recent project paths.
+        """
+        normalized_path = self.normalize_path(file_path)
+        if not normalized_path:
+            return self.get_paths()
+        comparison_key = self._comparison_key(normalized_path)
+        recent_paths = [
+            path for path in self.get_paths() if self._comparison_key(path) != comparison_key
+        ]
+        recent_paths.insert(0, normalized_path)
+        return self._store_paths(recent_paths[: self.max_count])
+
+    def remove_path(self, file_path):
+        """Removes a path from the recent-project list and saves it.
+
+        Args:
+            file_path (str): Project file path to remove.
+
+        Returns:
+            list: Updated recent project paths.
+        """
+        normalized_path = self.normalize_path(file_path)
+        comparison_key = self._comparison_key(normalized_path)
+        recent_paths = [
+            path for path in self.get_paths() if self._comparison_key(path) != comparison_key
+        ]
+        return self._store_paths(recent_paths)
+
+    def clear(self):
+        """Clears and saves the recent-project list."""
+        self._store_paths([])
+
+    def _store_paths(self, paths):
+        """Stores project paths in the associated preference object.
+
+        Args:
+            paths (list): Project paths to store.
+
+        Returns:
+            list: Stored project paths.
+        """
+        preferences = self.prefs.get_raw_preferences()
+        preferences[self.key] = list(paths)
+        self.prefs.save()
+        return list(paths)
+
+
+def get_prefs_dir():
+    """
+    Gets the path to the package prefs (preferences) directory. e.g. ".../Documents/maya/gt_tools/prefs"
+    Returns:
+        str: Path to package prefs dir. e.g. ".../Documents/maya/gt-tools/prefs"
+    """
+    _maya_preferences_dir = get_maya_preferences_dir(get_system())
+    _package_parent_dir = os.path.join(_maya_preferences_dir, PACKAGE_NAME)
+    _prefs_dir = os.path.join(_package_parent_dir, PACKAGE_PREFS_DIR)
+    return _prefs_dir
 
 
 def toggle_dev_sub_menu():
