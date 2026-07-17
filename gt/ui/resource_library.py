@@ -262,6 +262,7 @@ class Icon:
     tool_color_manager_roller = get_icon_path(r"tool_color_manager_roller.svg")
     tool_transfer_transforms = get_icon_path(r"tool_transfer_transforms.svg")
     tool_world_space_baker = get_icon_path(r"tool_world_space_baker.svg")
+    tool_clip_tracker = get_icon_path(r"tool_clip_tracker.svg")
     tool_attributes_to_python = get_icon_path(r"tool_attributes_to_python.svg")
     tool_render_checklist = get_icon_path(r"tool_render_checklist.svg")
     # Curves

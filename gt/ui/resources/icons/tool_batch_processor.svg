@@ -1,26 +1,36 @@
-<?xml version="1.0" encoding="utf-8"?>
-<svg version="1.1" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px"
-     viewBox="0 0 512 512" style="enable-background:new 0 0 512 512;" xml:space="preserve">
-<g id="tool_x5F_batch_x5F_processor">
-    <!-- A stack of source files represents the batch. -->
-    <rect x="42" y="43" width="211" height="270" rx="12" style="fill:#828282;stroke:#1D1D1D;stroke-width:18;"/>
-    <rect x="73" y="72" width="211" height="270" rx="12" style="fill:#BDBDBD;stroke:#1D1D1D;stroke-width:18;"/>
-    <rect x="105" y="101" width="211" height="270" rx="12" style="fill:#6BBE66;stroke:#1D1D1D;stroke-width:18;"/>
-    <path style="fill:#7DD875;" d="M123,119h175v54H123V119z"/>
-    <path style="fill:#1D1D1D;" d="M144,199h133v20H144V199z M144,244h133v20H144V244z M144,289h91v20h-91V289z"/>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+	<g id="tool_x5F_batch_x5F_processor">
+		<!-- Three lively source cards form the incoming batch. -->
+		<g transform="rotate(-12 113 126)">
+			<rect x="55" y="55" width="116" height="142" rx="16" style="fill:#6BBE66;stroke:#1D1D1D;stroke-width:16;"/>
+			<path d="M127,55 L171,99 H127 Z" style="fill:#A5E39F;stroke:#1D1D1D;stroke-width:12;stroke-linejoin:round;"/>
+			<line x1="78" y1="130" x2="145" y2="130" style="stroke:#1D1D1D;stroke-width:14;stroke-linecap:round;"/>
+			<line x1="78" y1="160" x2="128" y2="160" style="stroke:#1D1D1D;stroke-width:14;stroke-linecap:round;"/>
+		</g>
+		<g>
+			<rect x="198" y="31" width="116" height="142" rx="16" style="fill:#7DD875;stroke:#1D1D1D;stroke-width:16;"/>
+			<path d="M270,31 L314,75 H270 Z" style="fill:#B7EDB2;stroke:#1D1D1D;stroke-width:12;stroke-linejoin:round;"/>
+			<line x1="221" y1="106" x2="288" y2="106" style="stroke:#1D1D1D;stroke-width:14;stroke-linecap:round;"/>
+			<line x1="221" y1="136" x2="271" y2="136" style="stroke:#1D1D1D;stroke-width:14;stroke-linecap:round;"/>
+		</g>
+		<g transform="rotate(12 399 126)">
+			<rect x="341" y="55" width="116" height="142" rx="16" style="fill:#6BBE66;stroke:#1D1D1D;stroke-width:16;"/>
+			<path d="M413,55 L457,99 H413 Z" style="fill:#A5E39F;stroke:#1D1D1D;stroke-width:12;stroke-linejoin:round;"/>
+			<line x1="364" y1="130" x2="431" y2="130" style="stroke:#1D1D1D;stroke-width:14;stroke-linecap:round;"/>
+			<line x1="364" y1="160" x2="414" y2="160" style="stroke:#1D1D1D;stroke-width:14;stroke-linecap:round;"/>
+		</g>
 
-    <!-- The forward arrow connects the queued files to their processor. -->
-    <path style="fill:#6BBE66;stroke:#1D1D1D;stroke-width:16;stroke-linejoin:round;"
-          d="M244,353h83v-39l69,62l-69,62v-39h-83V353z"/>
+		<!-- A friendly funnel combines the batch into one processed result. -->
+		<path d="M62,225 Q62,205 82,205 H430 Q450,205 450,225 L321,349 V430 L256,474 L191,430 V349 Z"
+			  style="fill:#BDBDBD;stroke:#1D1D1D;stroke-width:20;stroke-linejoin:round;"/>
+		<path d="M88,225 H424 L302,341 V416 L256,447 L210,416 V341 Z" style="fill:#6BBE66;"/>
 
-    <!-- A bold gear silhouette remains readable in Maya menus and title bars. -->
-    <g style="fill:#65AF5F;stroke:#1D1D1D;stroke-width:16;stroke-linejoin:round;">
-        <rect x="369" y="277" width="66" height="180" rx="10"/>
-        <rect x="312" y="334" width="180" height="66" rx="10"/>
-        <rect x="369" y="277" width="66" height="180" rx="10" transform="rotate(45 402 367)"/>
-        <rect x="369" y="277" width="66" height="180" rx="10" transform="rotate(-45 402 367)"/>
-    </g>
-    <circle cx="402" cy="367" r="86" style="fill:#6BBE66;stroke:#1D1D1D;stroke-width:18;"/>
-    <circle cx="402" cy="367" r="35" style="fill:#BDBDBD;stroke:#1D1D1D;stroke-width:16;"/>
-</g>
+		<!-- Sparkles make the processing action feel active and playful. -->
+		<path d="M256,241 L270,278 L307,292 L270,306 L256,343 L242,306 L205,292 L242,278 Z"
+			  style="fill:#D9F4D6;stroke:#1D1D1D;stroke-width:12;stroke-linejoin:round;"/>
+		<circle cx="156" cy="273" r="16" style="fill:#7DD875;stroke:#1D1D1D;stroke-width:10;"/>
+		<circle cx="356" cy="271" r="16" style="fill:#7DD875;stroke:#1D1D1D;stroke-width:10;"/>
+		<path d="M239,413 L256,430 L285,397" style="fill:none;stroke:#1D1D1D;stroke-width:16;stroke-linecap:round;stroke-linejoin:round;"/>
+	</g>
 </svg>

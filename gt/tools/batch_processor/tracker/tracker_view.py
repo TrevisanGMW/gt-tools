@@ -153,7 +153,7 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
         super().__init__(parent)
         self.close_callback = None
         self.setWindowTitle(f"Batch Processor Tracker - {project_name}")
-        self.setWindowIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_progress))
+        self.setWindowIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.tool_batch_processor))
         self.resize(1320, 720)
         self.setMinimumSize(900, 480)
         self._create_widgets()

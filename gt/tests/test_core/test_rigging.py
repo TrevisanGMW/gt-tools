@@ -63,6 +63,84 @@ class TestRiggingCore(unittest.TestCase):
         """Resets the Maya scene before each individual test runs."""
         maya_test_tools.force_new_scene()
 
+    def test_create_twist_extraction_network(self):
+        """Tests that twist extraction creates only the expected native Maya nodes."""
+        driver = cmds.createNode("transform", name="driver")
+        driven = cmds.createNode("joint", name="driven")
+
+        setup_node = core_rigging.create_twist_extraction_network(
+            driver=driver,
+            driven=driven,
+            twist_weight=0.5,
+        )
+
+        expected = "driven_twistNode"
+        self.assertEqual(expected, str(setup_node))
+        self.assertEqual("network", cmds.nodeType(str(setup_node)))
+        self.assertEqual(str(setup_node), core_rigging.get_twist_setup_from_target(driven))
+        self.assertEqual("multMatrix", cmds.nodeType("driven_twistLocal"))
+        self.assertEqual("decomposeMatrix", cmds.nodeType("driven_twistDecompose"))
+        self.assertEqual("multiplyDivide", cmds.nodeType("driven_twistNegate"))
+        self.assertEqual("condition", cmds.nodeType("driven_twistSign"))
+        self.assertEqual("composeMatrix", cmds.nodeType("driven_twistCompose"))
+        self.assertEqual("blendMatrix", cmds.nodeType("driven_twistBlend"))
+        self.assertEqual("multMatrix", cmds.nodeType("driven_twistOutput"))
+
+    def test_create_twist_extraction_network_positive_and_negative_weight(self):
+        """Tests positive and negative fractional twist extraction."""
+        driver = cmds.createNode("transform", name="driver")
+        driven = cmds.createNode("joint", name="driven")
+        setup_node = core_rigging.create_twist_extraction_network(
+            driver=driver,
+            driven=driven,
+            twist_weight=0.5,
+        )
+        output_decompose = cmds.createNode("decomposeMatrix")
+        cmds.connectAttr(f"{driven}.offsetParentMatrix", f"{output_decompose}.inputMatrix")
+        cmds.setAttr(f"{driver}.rotateX", 90)
+
+        expected = 45.0
+        result = cmds.getAttr(f"{output_decompose}.outputRotateX")
+        self.assertAlmostEqual(expected, result, places=5)
+
+        cmds.setAttr(f"{setup_node}.twist", -0.5)
+        expected = -45.0
+        result = cmds.getAttr(f"{output_decompose}.outputRotateX")
+        self.assertAlmostEqual(expected, result, places=5)
+
+    def test_create_twist_extraction_network_with_driver_rest_offset(self):
+        """Tests the optional driver rest offset matrix wiring."""
+        driver = cmds.createNode("transform", name="driver")
+        driven = cmds.createNode("joint", name="driven")
+        rest_offset_matrix = (-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1)
+
+        core_rigging.create_twist_extraction_network(
+            driver=driver,
+            driven=driven,
+            driver_rest_offset_matrix=rest_offset_matrix,
+        )
+
+        expected = list(rest_offset_matrix)
+        result = cmds.getAttr("driven_twistLocal.matrixIn[1]")
+        self.assertEqual(expected, result)
+        expected = f"{driver}.parentInverseMatrix"
+        result = cmds.listConnections(
+            "driven_twistLocal.matrixIn[2]", source=True, destination=False, plugs=True
+        )[0]
+        self.assertEqual(expected, result)
+
+    def test_create_twist_extraction_network_rejects_invalid_axis(self):
+        """Tests that an invalid twist axis is rejected."""
+        driver = cmds.createNode("transform", name="driver")
+        driven = cmds.createNode("joint", name="driven")
+
+        with self.assertRaises(ValueError):
+            core_rigging.create_twist_extraction_network(
+                driver=driver,
+                driven=driven,
+                twist_axis="invalid",
+            )
+
     def test_duplicate_joint_for_automation(self):
         joint_one = cmds.joint(name="one_jnt")
         cmds.select(clear=True)

@@ -6,8 +6,8 @@
 	<rect x="0" style="fill:none;" width="512" height="512"/>
 	<g>
 		<linearGradient id="SVGID_1_" gradientUnits="userSpaceOnUse" x1="46.0046" y1="256" x2="466.0146" y2="256">
-			<stop  offset="0.0013" style="stop-color:#FFCB4B"/>
-			<stop  offset="1" style="stop-color:#FFD748"/>
+			<stop  offset="0.0013" style="stop-color:#B79EE4"/>
+			<stop  offset="1" style="stop-color:#9A7DDF"/>
 		</linearGradient>
 		<path style="fill-rule:evenodd;clip-rule:evenodd;fill:url(#SVGID_1_);" d="M313.453,494.959
 			c-20.931,0-37.908-16.977-37.908-37.908v-99.058h-38.838v99.058c0,20.931-16.977,37.908-37.908,37.908s-38.14-16.977-38.14-37.908

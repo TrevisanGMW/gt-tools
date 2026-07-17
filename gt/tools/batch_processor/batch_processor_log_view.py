@@ -45,7 +45,7 @@ class BatchProcessorLoggingView(metaclass=ui_qt_utils.MayaWindowMeta):
         layout = ui_qt.QtWidgets.QVBoxLayout(self)
         layout.addWidget(self.log_widget)
         self.setLayout(layout)
-        self.setWindowIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.dev_code))
+        self.setWindowIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.tool_batch_processor))
         ui_qt_utils.resize_to_screen(self, percentage=20)
         ui_qt_utils.center_window(self)
 

@@ -120,7 +120,7 @@ class ClipTrackerView:
             if not pointer:
                 return
             widget = ui_qt.shiboken.wrapInstance(int(pointer), ui_qt.QtWidgets.QWidget)
-            widget.setWindowIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.root_animation))
+            widget.setWindowIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.tool_clip_tracker))
         except Exception:
             pass
 

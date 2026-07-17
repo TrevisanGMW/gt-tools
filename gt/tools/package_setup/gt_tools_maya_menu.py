@@ -224,12 +224,6 @@ def load_menu(*args):
         icon=ui_res_lib.Icon.tool_create_fk,
     )
     menu.add_menu_item(
-        label="Create Testing Keys",
-        command=IMPORT_TOOL + 'initialize_tool("create_testing_keys")',
-        tooltip="Automated solution for creating testing keyframes.",
-        icon=ui_res_lib.Icon.tool_testing_keys,
-    )
-    menu.add_menu_item(
         label="Influences to Python",
         command=IMPORT_TOOL + 'initialize_tool("influences_to_python")',
         tooltip="Generate Python code used to select influence (bound) joints.",
@@ -287,17 +281,52 @@ def load_menu(*args):
         tooltip="Opens retargeter.",
         icon=ui_res_lib.Icon.tool_retargeter,
     )
+    menu.add_divider()
     menu.add_menu_item(
         label="Animation Clip Tracker",
         command=IMPORT_TOOL + 'initialize_tool("clip_tracker")',
         tooltip="Opens the animation clip tracker.",
-        icon=ui_res_lib.Icon.root_animation,
+        icon=ui_res_lib.Icon.tool_clip_tracker,
+    )
+    menu.add_menu_item(
+        label="Create Testing Keys",
+        command=IMPORT_TOOL + 'initialize_tool("create_testing_keys")',
+        tooltip="Automated solution for creating testing keyframes.",
+        icon=ui_res_lib.Icon.tool_testing_keys,
     )
     menu.add_menu_item(
         label="World Space Baker",
         command=IMPORT_TOOL + 'initialize_tool("world_space_baker")',
         tooltip="Extracts and bakes translate and rotate animation in world space.",
         icon=ui_res_lib.Icon.tool_world_space_baker,
+    )
+
+    # ------------------------------------ Miscellaneous ------------------------------------
+    menu.add_sub_menu("Miscellaneous", icon=ui_res_lib.Icon.root_miscellaneous, parent_to_root=True)
+    menu.add_menu_item(
+        label="fSpy Importer",
+        command=IMPORT_TOOL + 'initialize_tool("fspy_importer")',
+        tooltip="Imports the JSON data exported out of fSpy (Camera Matching software).",
+        icon=ui_res_lib.Icon.tool_fspy_importer,
+    )
+    menu.add_menu_item(
+        label="Maya to Discord",
+        command=IMPORT_TOOL + 'initialize_tool("maya_to_discord")',
+        tooltip="Send images and videos (playblasts) from Maya to Discord using a "
+        "Discord Webhook to bridge the two programs.",
+        icon=ui_res_lib.Icon.tool_maya_to_discord,
+    )
+    menu.add_menu_item(
+        label="Render Calculator",
+        command=IMPORT_TOOL + 'initialize_tool("render_calculator")',
+        tooltip="Helps calculate how long it's going to take to render an image sequence.",
+        icon=ui_res_lib.Icon.tool_render_calculator,
+    )
+    menu.add_menu_item(
+        label="Startup Booster",
+        command=IMPORT_TOOL + 'initialize_tool("startup_booster")',
+        tooltip="Improve startup times by managing which plugins get loaded when starting Maya.",
+        icon=ui_res_lib.Icon.tool_startup_booster,
     )
 
     # ------------------------------------ Utilities ------------------------------------
@@ -336,11 +365,11 @@ def load_menu(*args):
         icon=ui_res_lib.Icon.util_joint_to_label,
     )
     menu.add_menu_item(
-        label="Uniform LRA Toggle",
-        command=IMPORT_UTIL + 'initialize_utility("display", "toggle_uniform_lra")',
-        tooltip="Makes the visibility of the Local Rotation Axis uniform among the selected "
-        "objects according to the current state of the majority of them.",
-        icon=ui_res_lib.Icon.util_lra_toggle,
+        label="Unhide Default Channels",
+        command=IMPORT_UTIL + 'initialize_utility("attr", ' '"selection_unhide_default_channels")',
+        tooltip="Un-hides the default channels of the selected objects. "
+        "(Default channels : Translate, Rotate, Scale and Visibility)",
+        icon=ui_res_lib.Icon.util_unhide_trs,
     )
     menu.add_menu_item(
         label="Uniform Joint Label Toggle",
@@ -350,11 +379,11 @@ def load_menu(*args):
         icon=ui_res_lib.Icon.util_joint_label_toggle,
     )
     menu.add_menu_item(
-        label="Unhide Default Channels",
-        command=IMPORT_UTIL + 'initialize_utility("attr", ' '"selection_unhide_default_channels")',
-        tooltip="Un-hides the default channels of the selected objects. "
-        "(Default channels : Translate, Rotate, Scale and Visibility)",
-        icon=ui_res_lib.Icon.util_unhide_trs,
+        label="Uniform LRA Toggle",
+        command=IMPORT_UTIL + 'initialize_utility("display", "toggle_uniform_lra")',
+        tooltip="Makes the visibility of the Local Rotation Axis uniform among the selected "
+        "objects according to the current state of the majority of them.",
+        icon=ui_res_lib.Icon.util_lra_toggle,
     )
     menu.add_menu_item(
         label="Unlock Default Channels",
@@ -394,10 +423,10 @@ def load_menu(*args):
 
     menu.add_divider(divider_label="Pivot Utilities")  # Pivot Section +++++++++++++++++++++++++++++++++
     menu.add_menu_item(
-        label="Move Pivot to Top",
-        command=IMPORT_UTIL + 'initialize_utility("transform", "move_pivot_top")',
-        tooltip="Moves pivot point to the top of the bounding box of every selected object.",
-        icon=ui_res_lib.Icon.util_pivot_top,
+        label="Move Object to Origin",
+        command=IMPORT_UTIL + 'initialize_utility("transform", "move_selection_to_origin")',
+        tooltip="Moves selected objects to origin according to their pivot point.",
+        icon=ui_res_lib.Icon.util_move_origin,
     )
     menu.add_menu_item(
         label="Move Pivot to Base",
@@ -406,20 +435,13 @@ def load_menu(*args):
         icon=ui_res_lib.Icon.util_pivot_bottom,
     )
     menu.add_menu_item(
-        label="Move Object to Origin",
-        command=IMPORT_UTIL + 'initialize_utility("transform", "move_selection_to_origin")',
-        tooltip="Moves selected objects to origin according to their pivot point.",
-        icon=ui_res_lib.Icon.util_move_origin,
+        label="Move Pivot to Top",
+        command=IMPORT_UTIL + 'initialize_utility("transform", "move_pivot_top")',
+        tooltip="Moves pivot point to the top of the bounding box of every selected object.",
+        icon=ui_res_lib.Icon.util_pivot_top,
     )
 
     menu.add_divider(divider_label="Reset Utilities")  # Reset Section +++++++++++++++++++++++++++++++++
-    menu.add_menu_item(
-        label="Reset Transforms",
-        command=IMPORT_UTIL + 'initialize_utility("transform", "reset_transforms")',
-        tooltip="Reset transforms. It checks for incoming connections, then set the attribute to 0 "
-        "if there are none. Currently affects Joints, meshes and transforms. (Only Rotation)",
-        icon=ui_res_lib.Icon.util_reset_transforms,
-    )
     menu.add_menu_item(
         label="Reset Joints Display",
         command=IMPORT_UTIL + 'initialize_utility("display", "reset_joint_display")',
@@ -432,6 +454,13 @@ def load_menu(*args):
         command=IMPORT_UTIL + 'initialize_utility("camera", "reset_persp_shape_attributes")',
         tooltip="If persp camera exists (default camera), reset its attributes.",
         icon=ui_res_lib.Icon.util_reset_persp,
+    )
+    menu.add_menu_item(
+        label="Reset Transforms",
+        command=IMPORT_UTIL + 'initialize_utility("transform", "reset_transforms")',
+        tooltip="Reset transforms. It checks for incoming connections, then set the attribute to 0 "
+        "if there are none. Currently affects Joints, meshes and transforms. (Only Rotation)",
+        icon=ui_res_lib.Icon.util_reset_transforms,
     )
 
     menu.add_divider(divider_label="Delete Utilities")  # Delete Section +++++++++++++++++++++++++++++++++
@@ -472,33 +501,6 @@ def load_menu(*args):
         icon=ui_res_lib.Icon.util_delete_keyframes,
     )
 
-    # ------------------------------------ Miscellaneous ------------------------------------
-    menu.add_sub_menu("Miscellaneous", icon=ui_res_lib.Icon.root_miscellaneous, parent_to_root=True)
-    menu.add_menu_item(
-        label="Startup Booster",
-        command=IMPORT_TOOL + 'initialize_tool("startup_booster")',
-        tooltip="Improve startup times by managing which plugins get loaded when starting Maya.",
-        icon=ui_res_lib.Icon.tool_startup_booster,
-    )
-    menu.add_menu_item(
-        label="fSpy Importer",
-        command=IMPORT_TOOL + 'initialize_tool("fspy_importer")',
-        tooltip="Imports the JSON data exported out of fSpy (Camera Matching software).",
-        icon=ui_res_lib.Icon.tool_fspy_importer,
-    )
-    menu.add_menu_item(
-        label="Maya to Discord",
-        command=IMPORT_TOOL + 'initialize_tool("maya_to_discord")',
-        tooltip="Send images and videos (playblasts) from Maya to Discord using a "
-        "Discord Webhook to bridge the two programs.",
-        icon=ui_res_lib.Icon.tool_maya_to_discord,
-    )
-    menu.add_menu_item(
-        label="Render Calculator",
-        command=IMPORT_TOOL + 'initialize_tool("render_calculator")',
-        tooltip="Helps calculate how long it's going to take to render an image sequence.",
-        icon=ui_res_lib.Icon.tool_render_calculator,
-    )
     # ------------------------------------ Legacy ------------------------------------
     package_prefs = PackagePrefs()
     if package_prefs.is_legacy_menu_visible():
@@ -526,16 +528,16 @@ def load_menu(*args):
         )
         menu.add_divider(parent="Legacy", divider_label="Animation")
         menu.add_menu_item(
-            label="Retarget Assistant",
-            command=IMPORT_TOOL + 'initialize_tool("legacy_biped_rigger", "launch_retarget_assistant")',
-            tooltip="HumanIK retargeting assistant for legacy biped rigs.",
-            icon=ui_res_lib.Icon.tool_retarget_assistant,
-        )
-        menu.add_menu_item(
             label="Game FBX Exporter",
             command=IMPORT_TOOL + 'initialize_tool("legacy_biped_rigger", "launch_game_exporter")',
             tooltip="Exports legacy biped rigs for real-time use as FBX files.",
             icon=ui_res_lib.Icon.tool_game_fbx_exporter,
+        )
+        menu.add_menu_item(
+            label="Retarget Assistant",
+            command=IMPORT_TOOL + 'initialize_tool("legacy_biped_rigger", "launch_retarget_assistant")',
+            tooltip="HumanIK retargeting assistant for legacy biped rigs.",
+            icon=ui_res_lib.Icon.tool_retarget_assistant,
         )
     # ------------------------------------ Development ------------------------------------
     if package_prefs.is_dev_menu_visible():
@@ -561,13 +563,6 @@ def load_menu(*args):
             icon=ui_res_lib.Icon.dev_filter,
         )
         menu.add_menu_item(
-            label="Write Curve Files from Selection",
-            command="from gt.core.curve import write_curve_files_from_selection\n"
-            "write_curve_files_from_selection()\n",
-            tooltip="Write curve data attributes to a desktop folder.",
-            icon=ui_res_lib.Icon.dev_binary,
-        )
-        menu.add_menu_item(
             label="Get Package CRV files to Python",
             command="from gt.core.curve import print_code_for_crv_files\n"
             "print_code_for_crv_files(use_output_window=True)\n",
@@ -581,7 +576,28 @@ def load_menu(*args):
             tooltip="Render thumbnails for the package curves to a desktop folder.",
             icon=ui_res_lib.Icon.dev_picker,
         )
+        menu.add_menu_item(
+            label="Write Curve Files from Selection",
+            command="from gt.core.curve import write_curve_files_from_selection\n"
+            "write_curve_files_from_selection()\n",
+            tooltip="Write curve data attributes to a desktop folder.",
+            icon=ui_res_lib.Icon.dev_binary,
+        )
         menu.add_divider(divider_label="General")  # Misc Section +++++++++++++++++++++++++++++++++
+        menu.add_menu_item(
+            label="Get Loaded Package Location",
+            command="from gt.core.session import get_module_path\n"
+            "from gt.utils.system import open_file_dir\n"
+            'open_file_dir(get_module_path(module_name="gt", verbose=True))\n',
+            tooltip="Gets the loaded package path location.",
+            icon=ui_res_lib.Icon.dev_code,
+        )
+        menu.add_menu_item(
+            label="Silently Check for Updates",
+            command=IMPORT_TOOL + 'initialize_tool("package_updater", "silently_check_for_updates")',
+            tooltip="Silently checks for updates.",
+            icon=ui_res_lib.Icon.dev_git_pull_request,
+        )
         menu.add_menu_item(
             label="Take Viewport Snapshot",
             command="from gt.utils.system import get_desktop_path, get_formatted_time\n"
@@ -592,32 +608,18 @@ def load_menu(*args):
             tooltip="Saves a viewport snapshot to the desktop.",
             icon=ui_res_lib.Icon.dev_picker,
         )
-        menu.add_menu_item(
-            label="Silently Check for Updates",
-            command=IMPORT_TOOL + 'initialize_tool("package_updater", "silently_check_for_updates")',
-            tooltip="Silently checks for updates.",
-            icon=ui_res_lib.Icon.dev_git_pull_request,
-        )
-        menu.add_menu_item(
-            label="Get Loaded Package Location",
-            command="from gt.core.session import get_module_path\n"
-            "from gt.utils.system import open_file_dir\n"
-            'open_file_dir(get_module_path(module_name="gt", verbose=True))\n',
-            tooltip="Gets the loaded package path location.",
-            icon=ui_res_lib.Icon.dev_code,
-        )
         menu.add_divider(divider_label="Dangerous")  # Misc Section +++++++++++++++++++++++++++++++++
-        menu.add_menu_item(
-            label="Skip Menu Creation Toggle",
-            command="from gt.core.prefs import toggle_skip_menu_creation\n" "toggle_skip_menu_creation()\n",
-            tooltip="Opens sample tool.",
-            icon=ui_res_lib.Icon.dev_code,
-        )
         menu.add_menu_item(
             label="Purge Package Settings",
             command="from gt.core.prefs import purge_package_settings\n" "purge_package_settings()\n",
             tooltip="Opens sample tool.",
             icon=ui_res_lib.Icon.dev_trash,
+        )
+        menu.add_menu_item(
+            label="Skip Menu Creation Toggle",
+            command="from gt.core.prefs import toggle_skip_menu_creation\n" "toggle_skip_menu_creation()\n",
+            tooltip="Opens sample tool.",
+            icon=ui_res_lib.Icon.dev_code,
         )
     # ------------------------------------ Settings / Help ------------------------------------
     menu.add_divider(parent_to_root=True)
@@ -627,6 +629,16 @@ def load_menu(*args):
         "execute_deferred(_rebuild_menu)"
     )
     menu.add_sub_menu("Settings", icon=ui_res_lib.Icon.root_dev, parent_to_root=True)
+    menu.add_menu_item(
+        label="Automatic Dependency Installation",
+        command="from gt.core.prefs import toggle_dependency_auto_install\n"
+        "toggle_dependency_auto_install()\n"
+        + _rebuild_menu_command,
+        tooltip="Automatically installs missing Python packages for tools that request them.",
+        icon=ui_res_lib.Icon.ui_progress,
+        check_box=is_auto_install_enabled(),
+        parent="Settings",
+    )
     menu.add_menu_item(
         label="Show Develop Menu",
         command="from gt.core.prefs import toggle_dev_sub_menu\n" "toggle_dev_sub_menu()\n" + _rebuild_menu_command,
@@ -643,16 +655,6 @@ def load_menu(*args):
         tooltip="Shows or hides the legacy tools menu.",
         icon=ui_res_lib.Icon.root_rigging,
         check_box=package_prefs.is_legacy_menu_visible(),
-        parent="Settings",
-    )
-    menu.add_menu_item(
-        label="Automatic Dependency Installation",
-        command="from gt.core.prefs import toggle_dependency_auto_install\n"
-        "toggle_dependency_auto_install()\n"
-        + _rebuild_menu_command,
-        tooltip="Automatically installs missing Python packages for tools that request them.",
-        icon=ui_res_lib.Icon.ui_progress,
-        check_box=is_auto_install_enabled(),
         parent="Settings",
     )
     menu.add_sub_menu("Help", icon=ui_res_lib.Icon.root_help, parent_to_root=True)
