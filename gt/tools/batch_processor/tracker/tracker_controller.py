@@ -210,6 +210,45 @@ class TrackerController:
             warning_jobs (int): Number of jobs completed with warnings.
         """
         state = self.session.health_state
+        warning_status = (
+            (
+                ui_res_lib.Icon.validator_warning,
+                f"Completed with warnings — {warning_jobs} job(s), {warnings} reported warning(s).",
+                "Tracker status: Completed with warnings",
+            )
+            if self.session.finished
+            else (
+                ui_res_lib.Icon.ui_yellow_circle,
+                f"Running with warnings — {warnings} reported warning(s).",
+                "Tracker status: Running with warnings",
+            )
+        )
+        error_status = (
+            (
+                ui_res_lib.Icon.validator_fail_hard,
+                f"Failed — {failed} failed job(s), {errors} error(s).",
+                "Tracker status: Failed",
+            )
+            if self.session.finished
+            else (
+                ui_res_lib.Icon.ui_red_circle,
+                f"Running with errors — {failed} failed job(s), {errors} error(s).",
+                "Tracker status: Running with errors",
+            )
+        )
+        aborted_status = (
+            (
+                ui_res_lib.Icon.validator_fail_soft,
+                "Aborted by the user.",
+                "Tracker status: Aborted",
+            )
+            if self.session.finished
+            else (
+                ui_res_lib.Icon.ui_red_circle,
+                "Aborting — worker processes are being stopped.",
+                "Tracker status: Aborting",
+            )
+        )
         status_data = {
             tracker_constants.HealthState.STARTING: (
                 ui_res_lib.Icon.ui_grey_circle,
@@ -226,21 +265,9 @@ class TrackerController:
                 "Completed successfully.",
                 "Tracker status: Completed successfully",
             ),
-            tracker_constants.HealthState.WARNING: (
-                ui_res_lib.Icon.validator_warning,
-                f"Warnings detected — {warning_jobs} job(s), {warnings} reported warning(s).",
-                "Tracker status: Warnings detected",
-            ),
-            tracker_constants.HealthState.ERROR: (
-                ui_res_lib.Icon.validator_fail_hard,
-                f"Errors detected — {failed} failed job(s), {errors} error(s).",
-                "Tracker status: Errors detected",
-            ),
-            tracker_constants.HealthState.ABORTED: (
-                ui_res_lib.Icon.ui_red_circle,
-                "Aborted by the user.",
-                "Tracker status: Aborted",
-            ),
+            tracker_constants.HealthState.WARNING: warning_status,
+            tracker_constants.HealthState.ERROR: error_status,
+            tracker_constants.HealthState.ABORTED: aborted_status,
         }
         icon_path, tooltip, accessible_name = status_data[state]
         self.view.set_status_icon(icon_path, tooltip, accessible_name)
