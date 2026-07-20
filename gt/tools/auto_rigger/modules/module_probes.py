@@ -261,12 +261,12 @@ class ModuleProbeRotation(tools_rig_frm.ModuleGeneric):
             return
         probe_group = create_probe_group(name=probe_group)
 
-        twist_swing_node = core_node.create_node(node_type="SwingTwistNode", name=f"{_prefix}SwingTwist")
+        local_matrix_node = core_node.create_node(node_type="multMatrix", name=f"{_prefix}localRotationMatrix")
         decompose_matrix_node = core_node.create_node(node_type="decomposeMatrix", name=f"{_prefix}decomposeMatrix")
 
-        cmds.connectAttr(f"{self.source}.parentMatrix[0]", f"{twist_swing_node}.driverRestMatrix")
-        cmds.connectAttr(f"{self.source}.worldMatrix[0]", f"{twist_swing_node}.driverMatrix")
-        cmds.connectAttr(f"{twist_swing_node}.outMatrix", f"{decompose_matrix_node}.inputMatrix")
+        cmds.connectAttr(f"{self.source}.worldMatrix[0]", f"{local_matrix_node}.matrixIn[0]")
+        cmds.connectAttr(f"{self.source}.parentInverseMatrix[0]", f"{local_matrix_node}.matrixIn[1]")
+        cmds.connectAttr(f"{local_matrix_node}.matrixSum", f"{decompose_matrix_node}.inputMatrix")
 
         # Connect Output
         _axis = ["X", "Y", "Z"]

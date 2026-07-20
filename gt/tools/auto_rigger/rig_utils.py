@@ -1122,8 +1122,7 @@ def create_twist_joints(
 
 
 def create_twist_setup(twist_jnt_list, mid_joints, side, reverse=False, reverse_matrix=False):
-    """
-    Creates the twist joints and connections in a joint chain.
+    """Creates native Maya twist extraction networks for a joint chain.
 
     Args:
         twist_jnt_list (list): List of all the joints.
@@ -1131,53 +1130,81 @@ def create_twist_setup(twist_jnt_list, mid_joints, side, reverse=False, reverse_
         side (str): Side of the operation.
         reverse (bool): Reverse the twist (usually for upperArm / upperLeg behaviour).
         reverse_matrix (bool): Additional operation for reversing the matrix (Usually for upperLeg).
-    Returns:
-        list: A list of all the twist joints.
-    """
 
-    for jnt in twist_jnt_list:
-        try:
-            twist_node = cmds.createNode("SwingTwistNode", n=f"{jnt}_twistNode")
-        except:
-            cmds.warning("Couldn't create twist node 'SwingTwistNode', please check you have the plugin loaded.")
-        cmds.setAttr(f"{twist_node}.swing", 0)
-        cmds.connectAttr(f"{twist_node}.outMatrix", f"{jnt}.offsetParentMatrix")
-        twist_value = (twist_jnt_list.index(jnt) + 1) * (1 / (mid_joints + 1))
+    Returns:
+        list: Native twist setup network nodes created for the joints.
+    """
+    twist_setup_nodes = []
+    reverse_joints = list(reversed(twist_jnt_list))
+    for index, jnt in enumerate(twist_jnt_list):
+        twist_value = (index + 1) * (1 / (mid_joints + 1))
         driver_joint = cmds.listRelatives(cmds.listRelatives(jnt, p=True, fullPath=True))[0]
         if reverse:
-            reverse_joints = list(reversed(twist_jnt_list))
             driver_joint = cmds.listRelatives(jnt, p=True, fullPath=True)[0]
             twist_value = -(reverse_joints.index(jnt) + 1) * (1 / (mid_joints + 1))
+
+        driver_rest_offset_matrix = None
         if reverse_matrix:
-            reverse_joints = list(reversed(twist_jnt_list))
             twist_value = -(reverse_joints.index(jnt) + 1) * (1 / (mid_joints + 1))
-            mult_mat = cmds.createNode("multMatrix", n=f"{jnt}_multMat")
-            cmds.connectAttr(f"{driver_joint}.parentMatrix[0]", f"{mult_mat}.matrixIn[0]")
             if core_naming.NamingConstants.Prefix.RIGHT in side:
-                cmds.setAttr(
-                    f"{mult_mat}.matrixIn[1]", (-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1), type="matrix"
+                driver_rest_offset_matrix = (
+                    -1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    -1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    1,
                 )
             elif core_naming.NamingConstants.Prefix.LEFT in side:
                 twist_value = (reverse_joints.index(jnt) + 1) * (1 / (mid_joints + 1))
-                cmds.setAttr(
-                    f"{mult_mat}.matrixIn[1]", (1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1), type="matrix"
+                driver_rest_offset_matrix = (
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    -1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    1,
                 )
-                # 1.0, 0.0, 0.0, 0.0, 0.0, -1, 0, -0.0, -0.0, -0, 1, 0.0, 0.0, 0.0, 0.0, 1.0
-            cmds.connectAttr(f"{mult_mat}.matrixSum", f"{twist_node}.driverRestMatrix")
-        else:
-            cmds.connectAttr(f"{driver_joint}.parentMatrix[0]", f"{twist_node}.driverRestMatrix")
 
-        cmds.connectAttr(f"{driver_joint}.worldMatrix[0]", f"{twist_node}.driverMatrix")
-        cmds.setAttr(f"{twist_node}.twist", twist_value)
+        twist_setup = core_rigging.create_twist_extraction_network(
+            driver=driver_joint,
+            driven=jnt,
+            twist_weight=twist_value,
+            twist_axis=0,
+            driver_rest_offset_matrix=driver_rest_offset_matrix,
+            name=f"{jnt}_twistNode",
+        )
+        twist_setup_nodes.append(twist_setup)
+    return twist_setup_nodes
 
 
 def extract_twist_rotation(twist_jnt_list):
     """
     Resets the twist rotation targets for a list of twist joints by setting their
-    corresponding twist node's targetRestMatrix attribute.
+    corresponding native setup's targetRestMatrix attribute.
 
     This function temporarily suspends viewport refresh for performance,
-    sets the character to A-pose, updates each twist node's targetRestMatrix
+    sets the character to A-pose, updates each twist setup's targetRestMatrix
     using the inverse of the joint's offsetParentMatrix, then resets the character
     to T-pose and resumes refresh.
 
@@ -1188,11 +1215,14 @@ def extract_twist_rotation(twist_jnt_list):
     core_pose.set_apose()
     rest_mat = OpenMayaApi.MMatrix()
     for jnt in twist_jnt_list:
-        twist_node = f"{jnt}_twistNode"
-        cmds.setAttr(f"{twist_node}.targetRestMatrix", rest_mat, type="matrix")
+        twist_setup = core_rigging.get_twist_setup_from_target(jnt)
+        if not twist_setup:
+            cmds.warning(f'Unable to extract twist rotation. No twist setup found for "{jnt}".')
+            continue
+        cmds.setAttr(f"{twist_setup}.targetRestMatrix", rest_mat, type="matrix")
         twist_offset_parent_mat = cmds.getAttr(f"{jnt}.offsetParentMatrix")
         inverse_twist_offset_parent_mat = OpenMayaApi.MMatrix(twist_offset_parent_mat).inverse()
-        cmds.setAttr(f"{twist_node}.targetRestMatrix", inverse_twist_offset_parent_mat, type="matrix")
+        cmds.setAttr(f"{twist_setup}.targetRestMatrix", inverse_twist_offset_parent_mat, type="matrix")
     core_pose.set_tpose()
     cmds.refresh(suspend=False)
 

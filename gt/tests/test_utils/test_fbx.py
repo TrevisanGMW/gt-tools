@@ -16,9 +16,8 @@ for to_append in [package_root_dir, tests_dir]:
     if to_append not in sys.path:
         sys.path.append(to_append)
 import gt.tests.maya_test_tools as maya_test_tools
-import gt.utils.fbx as utils_fbx
 import gt.core.plugin as core_plugin
-
+import gt.utils.fbx as utils_fbx
 cmds = maya_test_tools.cmds
 
 
@@ -58,6 +57,33 @@ class TestFbxUtils(unittest.TestCase):
 
     def import_exported_file(self):
         cmds.file(self.file_path, i=True)
+
+    def test_native_twist_deformer_status(self):
+        """Tests that native twist networks are disabled and restored for export."""
+        import gt.core.rigging as core_rigging
+
+        driver = cmds.createNode("transform", name="driver")
+        driven = cmds.createNode("joint", name="driven")
+        cmds.addAttr(driven, longName="jointDrivers", dataType="string")
+        cmds.setAttr(f"{driven}.jointDrivers", "twist", type="string")
+        setup_node = core_rigging.create_twist_extraction_network(
+            driver=driver,
+            driven=driven,
+            twist_weight=0.75,
+        )
+        exporter = utils_fbx.FbxExporter()
+
+        expected = str(setup_node)
+        result = exporter.get_deformer_node_from_joint(driven)
+        self.assertEqual(expected, result)
+
+        expected = [str(setup_node)]
+        result = exporter.set_deformers_status(status=False)
+        self.assertEqual(expected, result)
+        self.assertEqual(0, cmds.getAttr(f"{setup_node}.twist"))
+
+        exporter.set_deformers_status(status=True)
+        self.assertEqual(0.75, cmds.getAttr(f"{setup_node}.twist"))
 
     def test_skeletal_mesh_export(self):
         import_test_rig_file()

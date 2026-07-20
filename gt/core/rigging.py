@@ -43,6 +43,7 @@ class RiggingConstants:
     ATTR_SHOW_PIVOT = "showPivotCtrl"
     ATTR_INFLUENCE_SWITCH = "influenceSwitch"
     ATTR_IMPORT_OFFSET_REF = "isImportOffsetGrp"
+    ATTR_TWIST_SETUP = "twistSetup"
     # Separator Attributes
     SEPARATOR_OPTIONS = "options"
     SEPARATOR_CONTROL = "controlOptions"
@@ -51,6 +52,164 @@ class RiggingConstants:
     SEPARATOR_INFLUENCE = "influenceOptions"
     # Default control parent groups base names
     OFFSET_PARENT_GROUP = "offset"
+
+
+def get_twist_setup_from_target(target):
+    """Gets the native twist setup connected to a target transform.
+
+    Args:
+        target (str, Node): Transform or joint driven by a twist setup.
+
+    Returns:
+        str or None: Connected twist setup node, if one exists.
+    """
+    target = str(target)
+    if not target or not cmds.objExists(target):
+        return None
+
+    setup_attr = f"{target}.{RiggingConstants.ATTR_TWIST_SETUP}"
+    if cmds.objExists(setup_attr):
+        setup_nodes = cmds.listConnections(setup_attr, source=True, destination=False) or []
+        for setup_node in setup_nodes:
+            if cmds.objExists(f"{setup_node}.twist"):
+                return setup_node
+    return None
+
+
+def create_twist_extraction_network(
+    driver,
+    driven,
+    twist_weight=1.0,
+    twist_axis=0,
+    driver_rest_offset_matrix=None,
+    target_rest_matrix=None,
+    name=None,
+):
+    """Creates a Maya-native quaternion twist extraction network.
+
+    The network uses Maya dependency nodes that do not require a plug-in. The
+    driver's local quaternion is projected onto the requested axis, normalized
+    by a ``composeMatrix`` node, and interpolated from identity by
+    ``blendMatrix``.
+
+    Args:
+        driver (str, Node): Transform from which local twist is extracted.
+        driven (str, Node): Transform whose offset parent matrix receives twist.
+        twist_weight (float, optional): Twist multiplier from -1.0 to 1.0.
+        twist_axis (int, str, optional): Twist axis as 0/1/2 or X/Y/Z.
+        driver_rest_offset_matrix (tuple, list, optional): Matrix inserted
+            between the driver world and parent inverse matrices.
+        target_rest_matrix (tuple, list, optional): Matrix multiplied after the
+            weighted twist rotation.
+        name (str, optional): Name for the network node that stores settings.
+
+    Returns:
+        Node: Network node containing the twist and target rest attributes.
+
+    Raises:
+        ValueError: If an input is invalid or the driven transform is already
+            connected to another offset parent matrix setup.
+    """
+    driver = str(driver)
+    driven = str(driven)
+    for label, obj in [("driver", driver), ("driven", driven)]:
+        if not obj or not cmds.objExists(obj):
+            raise ValueError(f'Unable to create twist extraction network. Invalid {label}: "{obj}".')
+
+    axis_lookup = {0: "X", 1: "Y", 2: "Z", "X": "X", "Y": "Y", "Z": "Z"}
+    axis_key = twist_axis.upper() if isinstance(twist_axis, str) else twist_axis
+    axis = axis_lookup.get(axis_key)
+    if not axis:
+        raise ValueError(f'Invalid twist axis: "{twist_axis}". Use 0/1/2 or X/Y/Z.')
+    if not isinstance(twist_weight, (int, float)) or not -1.0 <= twist_weight <= 1.0:
+        raise ValueError("Twist weight must be a number between -1.0 and 1.0.")
+
+    driver_rest_offset_values = None
+    if driver_rest_offset_matrix is not None:
+        driver_rest_offset_values = list(driver_rest_offset_matrix)
+        if len(driver_rest_offset_values) != 16:
+            raise ValueError("Driver rest offset matrix must contain 16 values.")
+
+    target_rest_values = None
+    if target_rest_matrix is not None:
+        target_rest_values = list(target_rest_matrix)
+        if len(target_rest_values) != 16:
+            raise ValueError("Target rest matrix must contain 16 values.")
+
+    offset_parent_attr = f"{driven}.offsetParentMatrix"
+    if not cmds.objExists(offset_parent_attr):
+        raise ValueError(f'The driven transform does not have an offset parent matrix: "{driven}".')
+    existing_setup = get_twist_setup_from_target(driven)
+    if existing_setup:
+        raise ValueError(f'The driven transform already has a twist setup: "{existing_setup}".')
+    existing_inputs = cmds.listConnections(offset_parent_attr, source=True, destination=False, plugs=True) or []
+    if existing_inputs:
+        raise ValueError(f'The driven offset parent matrix already has an input: "{existing_inputs[0]}".')
+
+    driven_short_name = core_naming.get_short_name(driven)
+    setup_name = name or f"{driven_short_name}_twistNode"
+    setup_node = cmds.createNode("network", name=core_naming.get_short_name(setup_name))
+    cmds.addAttr(
+        setup_node,
+        longName="twist",
+        attributeType="double",
+        defaultValue=twist_weight,
+        minValue=-1.0,
+        maxValue=1.0,
+        keyable=True,
+    )
+    cmds.addAttr(setup_node, longName="targetRestMatrix", dataType="matrix")
+    if target_rest_values:
+        cmds.setAttr(f"{setup_node}.targetRestMatrix", target_rest_values, type="matrix")
+
+    setup_message_attr = f"{driven}.{RiggingConstants.ATTR_TWIST_SETUP}"
+    if not cmds.objExists(setup_message_attr):
+        cmds.addAttr(driven, longName=RiggingConstants.ATTR_TWIST_SETUP, attributeType="message")
+    cmds.connectAttr(f"{setup_node}.message", setup_message_attr)
+
+    local_matrix = cmds.createNode("multMatrix", name=f"{driven_short_name}_twistLocal")
+    decompose_matrix = cmds.createNode("decomposeMatrix", name=f"{driven_short_name}_twistDecompose")
+    negate_values = cmds.createNode("multiplyDivide", name=f"{driven_short_name}_twistNegate")
+    sign_condition = cmds.createNode("condition", name=f"{driven_short_name}_twistSign")
+    compose_matrix = cmds.createNode("composeMatrix", name=f"{driven_short_name}_twistCompose")
+    blend_matrix = cmds.createNode("blendMatrix", name=f"{driven_short_name}_twistBlend")
+    output_matrix = cmds.createNode("multMatrix", name=f"{driven_short_name}_twistOutput")
+
+    cmds.connectAttr(f"{driver}.worldMatrix[0]", f"{local_matrix}.matrixIn[0]")
+    parent_inverse_index = 1
+    if driver_rest_offset_values:
+        cmds.setAttr(f"{local_matrix}.matrixIn[1]", driver_rest_offset_values, type="matrix")
+        parent_inverse_index = 2
+    cmds.connectAttr(
+        f"{driver}.parentInverseMatrix[0]", f"{local_matrix}.matrixIn[{parent_inverse_index}]"
+    )
+    cmds.connectAttr(f"{local_matrix}.matrixSum", f"{decompose_matrix}.inputMatrix")
+
+    quaternion_axis_attr = f"{decompose_matrix}.outputQuat{axis}"
+    cmds.connectAttr(quaternion_axis_attr, f"{negate_values}.input1X")
+    cmds.connectAttr(f"{setup_node}.twist", f"{negate_values}.input1Y")
+    cmds.setAttr(f"{negate_values}.input2", -1, -1, 1, type="double3")
+
+    cmds.setAttr(f"{sign_condition}.operation", 4)
+    cmds.connectAttr(f"{setup_node}.twist", f"{sign_condition}.firstTerm")
+    cmds.connectAttr(f"{negate_values}.outputX", f"{sign_condition}.colorIfTrueR")
+    cmds.connectAttr(quaternion_axis_attr, f"{sign_condition}.colorIfFalseR")
+    cmds.connectAttr(f"{negate_values}.outputY", f"{sign_condition}.colorIfTrueG")
+    cmds.connectAttr(f"{setup_node}.twist", f"{sign_condition}.colorIfFalseG")
+
+    cmds.setAttr(f"{compose_matrix}.useEulerRotation", False)
+    cmds.connectAttr(f"{sign_condition}.outColorR", f"{compose_matrix}.inputQuat{axis}")
+    cmds.connectAttr(f"{decompose_matrix}.outputQuatW", f"{compose_matrix}.inputQuatW")
+    cmds.connectAttr(f"{compose_matrix}.outputMatrix", f"{blend_matrix}.target[0].targetMatrix")
+    cmds.connectAttr(f"{sign_condition}.outColorG", f"{blend_matrix}.target[0].weight")
+    cmds.setAttr(f"{blend_matrix}.target[0].translateWeight", 0)
+    cmds.setAttr(f"{blend_matrix}.target[0].scaleWeight", 0)
+    cmds.setAttr(f"{blend_matrix}.target[0].shearWeight", 0)
+
+    cmds.connectAttr(f"{blend_matrix}.outputMatrix", f"{output_matrix}.matrixIn[0]")
+    cmds.connectAttr(f"{setup_node}.targetRestMatrix", f"{output_matrix}.matrixIn[1]")
+    cmds.connectAttr(f"{output_matrix}.matrixSum", offset_parent_attr)
+    return core_node.Node(setup_node)
 
 
 def get_control_parent_group_name_list():

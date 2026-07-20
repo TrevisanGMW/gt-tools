@@ -19,6 +19,7 @@ import gt.tools.auto_rigger.modules.module_root as tools_mod_root
 import gt.tools.auto_rigger.rig_framework as tools_rig_frm
 import gt.tools.auto_rigger.rig_constants as tools_rig_const
 import gt.tools.auto_rigger.rig_utils as tools_rig_utils
+import gt.core.rigging as core_rigging
 from gt.tests import maya_test_tools
 import gt.core.node as core_node
 
@@ -1272,6 +1273,32 @@ class TestRigUtils(unittest.TestCase):
         result = tools_rig_utils.update_uuids_in_dict(data, uuid_mapping)
         self.assertEqual(expected, result)
 
-    # TODO Modify and test: "create_control_visualization_line", "get_single_skeleton_root_joint", "get_world_ref_loc"
+    def test_create_twist_setup_uses_native_nodes(self):
+        """Tests that auto-rigger twist setups use native Maya networks."""
+        start_joint = cmds.joint(name="L_start_JNT")
+        cmds.joint(name="L_end_JNT", position=(10, 0, 0))
+        twist_joints = []
+        for index in range(3):
+            twist_joint = cmds.duplicate(start_joint, parentOnly=True, name=f"L_twist0{index + 1}_JNT")[0]
+            cmds.parent(twist_joint, start_joint)
+            twist_joints.append(twist_joint)
 
-    # TODO Unittests: "create_twist_joints", "create_twist_setup", "create_follow_setup"
+        setup_nodes = tools_rig_utils.create_twist_setup(
+            twist_jnt_list=twist_joints,
+            mid_joints=2,
+            side="L",
+        )
+
+        expected_weights = [1 / 3, 2 / 3, 1.0]
+        self.assertEqual(3, len(setup_nodes))
+        for index, setup_node in enumerate(setup_nodes):
+            twist_joint = twist_joints[index]
+            self.assertEqual("network", cmds.nodeType(str(setup_node)))
+            self.assertAlmostEqual(expected_weights[index], cmds.getAttr(f"{setup_node}.twist"))
+            expected = [str(setup_node)]
+            result = cmds.listConnections(
+                f"{twist_joint}.{core_rigging.RiggingConstants.ATTR_TWIST_SETUP}",
+                source=True,
+                destination=False,
+            )
+            self.assertEqual(expected, result)

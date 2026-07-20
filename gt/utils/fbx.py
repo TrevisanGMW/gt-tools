@@ -15,10 +15,9 @@ https://docs.unity3d.com/560/Documentation/Manual/HOWTO-exportFBX.html
 #
 
 """
-
-import os
-import logging
 import maya.cmds as cmds
+import logging
+import os
 
 # Logging Setup
 logging.basicConfig()
@@ -155,7 +154,6 @@ class FbxExporter:
         self._remove_deformer_joints = False
         self._deformer_joints = None
         self._fbx_nodes_visilibity = True
-        self._deformer_type_list = ["SwingTwistNode"]
         self._twist_value_map = {}
         self.read_timeline_settings()
 
@@ -210,22 +208,17 @@ class FbxExporter:
         cmds.FBXResetExport()
 
     def get_deformer_node_from_joint(self, joint_name):
-        """
-        Get the connected deformer node.
+        """Gets the native twist deformer connected to a joint.
+
         Args:
             joint_name (str): joint name connected to the deformer.
+
         Returns:
-            deformer_node (str): deformer node or None.
+            str or None: Deformer node or None.
         """
-        jnt_inputs = cmds.listConnections(joint_name, s=True, d=False)
-        deformer_node = None
-        if jnt_inputs:
-            for j_in in jnt_inputs:
-                is_deformer = any(d_type in cmds.nodeType(j_in) for d_type in self._deformer_type_list)
-                if is_deformer:
-                    deformer_node = j_in
-                    break
-        return deformer_node
+        import gt.core.rigging as core_rigging
+
+        return core_rigging.get_twist_setup_from_target(joint_name)
 
     def set_deformers_status(self, status=True):
         """
@@ -254,7 +247,7 @@ class FbxExporter:
                         deformer_nodes.append(deformer_node)
 
                         # Set Status - TWIST
-                        if cmds.nodeType(deformer_node) == "SwingTwistNode":
+                        if cmds.objExists(f"{deformer_node}.twist"):
                             if not status:
                                 self._twist_value_map[deformer_node] = cmds.getAttr(f"{deformer_node}.twist")
                                 cmds.setAttr(f"{deformer_node}.twist", 0)
