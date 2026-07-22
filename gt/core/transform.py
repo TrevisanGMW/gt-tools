@@ -757,95 +757,143 @@ class Transform:
 
 
 # ------------------------------------------------- Utilities Start -----------------------------------------------
-def move_pivot_top():
-    """Moves pivot point to the top of the boundary box"""
-    selection = cmds.ls(selection=True, long=True)
-    selection_short = cmds.ls(selection=True)
+def get_bounding_box_pivot(bounding_box, horizontal="center", vertical="base", depth="center"):
+    """
+    Computes a world-space anchor position inside a bounding box.
 
-    if not selection:
+    This is a pure helper (no Maya calls). The bounding box format matches the output of
+    "cmds.exactWorldBoundingBox": [x_min, y_min, z_min, x_max, y_max, z_max].
+
+    The three axes are addressed independently so any corner, edge, face-center or the
+    volume center can be requested:
+        - horizontal (X): "left" (x_min), "center" (mid), "right" (x_max)
+        - vertical   (Y): "base" (y_min), "middle" (mid), "top" (y_max)
+        - depth      (Z): "front" (z_max), "center" (mid), "back" (z_min)
+
+    Args:
+        bounding_box (list): Six values [x_min, y_min, z_min, x_max, y_max, z_max].
+        horizontal (str, optional): X anchor. Defaults to "center".
+        vertical (str, optional): Y anchor. Defaults to "base".
+        depth (str, optional): Z anchor. Defaults to "center".
+
+    Returns:
+        list: World-space position [x, y, z] for the requested anchor.
+
+    Raises:
+        ValueError: If an unknown anchor keyword is provided for any axis.
+    """
+    x_min, y_min, z_min, x_max, y_max, z_max = bounding_box
+
+    horizontal_map = {"left": x_min, "center": (x_min + x_max) / 2, "right": x_max}
+    vertical_map = {"base": y_min, "middle": (y_min + y_max) / 2, "top": y_max}
+    depth_map = {"front": z_max, "center": (z_min + z_max) / 2, "back": z_min}
+
+    if horizontal not in horizontal_map:
+        raise ValueError(f'Invalid horizontal anchor "{horizontal}". Expected: {list(horizontal_map)}.')
+    if vertical not in vertical_map:
+        raise ValueError(f'Invalid vertical anchor "{vertical}". Expected: {list(vertical_map)}.')
+    if depth not in depth_map:
+        raise ValueError(f'Invalid depth anchor "{depth}". Expected: {list(depth_map)}.')
+
+    return [horizontal_map[horizontal], vertical_map[vertical], depth_map[depth]]
+
+
+def move_pivot_to_bounding_box_position(obj_list=None, horizontal="center", vertical="base", depth="center"):
+    """
+    Moves the pivot of each object to an anchor point of its world bounding box.
+
+    Args:
+        obj_list (list, optional): Objects to affect. If None, the current selection is
+            used.
+        horizontal (str, optional): X anchor ("left", "center", "right"). Default "center".
+        vertical (str, optional): Y anchor ("base", "middle", "top"). Default "base".
+        depth (str, optional): Z anchor ("front", "center", "back"). Default "center".
+
+    Returns:
+        int: number of objects whose pivot was moved.
+    """
+    if obj_list is None:
+        obj_list = cmds.ls(selection=True, long=True)
+    elif isinstance(obj_list, str):
+        obj_list = [obj_list]
+
+    if not obj_list:
         cmds.warning("Nothing selected. Please select at least one object and try again.")
-        return
+        return 0
 
+    function_name = "Move Pivot To Bounding Box Position"
+    cmds.undoInfo(openChunk=True, chunkName=function_name)
     counter = 0
     errors = ""
-    for obj in selection:
-        try:
-            bbox = cmds.exactWorldBoundingBox(obj)  # extracts bounding box
-            top = [(bbox[0] + bbox[3]) / 2, bbox[4], (bbox[2] + bbox[5]) / 2]  # find top
-            cmds.xform(obj, piv=top, ws=True)
-            counter += 1
-        except Exception as e:
-            errors += str(e) + "\n"
+    try:
+        for obj in obj_list:
+            try:
+                bbox = cmds.exactWorldBoundingBox(obj)
+                position = get_bounding_box_pivot(bbox, horizontal=horizontal, vertical=vertical, depth=depth)
+                cmds.xform(obj, piv=position, ws=True)
+                counter += 1
+            except Exception as e:
+                errors += str(e) + "\n"
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
     if errors:
         print(("#" * 50) + "\n")
         print(errors)
         print("#" * 50)
 
-    pivot_pos = "top"
+    _print_move_pivot_feedback(obj_list, counter, vertical=vertical, horizontal=horizontal, depth=depth)
+    return counter
+
+
+def _print_move_pivot_feedback(obj_list, counter, vertical="base", horizontal="center", depth="center"):
+    """
+    Prints an in-view feedback message describing a pivot move.
+
+    Args:
+        obj_list (list): Objects that were processed.
+        counter (int): Number of pivots successfully moved.
+        vertical (str, optional): Y anchor used. Defaults to "base".
+        horizontal (str, optional): X anchor used. Defaults to "center".
+        depth (str, optional): Z anchor used. Defaults to "center".
+    """
+    # Build a concise, human-readable anchor label (e.g. "base", "top left", "base back right")
+    parts = [vertical]
+    if depth != "center":
+        parts.append(depth)
+    if horizontal != "center":
+        parts.append(horizontal)
+    pivot_pos = " ".join(parts)
+
     highlight_style = "color:#FF0000;text-decoration:underline;"
-    feedback = core_fback.FeedbackMessage(
-        quantity=counter,
-        singular="pivot was",
-        plural="pivots were",
-        conclusion="moved to the",
-        suffix=pivot_pos,
-        style_suffix=highlight_style,
-    )
     if counter == 1:
         feedback = core_fback.FeedbackMessage(
-            intro=f'"{selection_short[0]}"',
+            intro=f'"{obj_list[0].split("|")[-1]}"',
             style_intro=highlight_style,
             conclusion="pivot was moved to the",
             suffix=pivot_pos,
             style_suffix=highlight_style,
         )
+    else:
+        feedback = core_fback.FeedbackMessage(
+            quantity=counter,
+            singular="pivot was",
+            plural="pivots were",
+            conclusion="moved to the",
+            suffix=pivot_pos,
+            style_suffix=highlight_style,
+        )
     feedback.print_inview_message()
+
+
+def move_pivot_top():
+    """Moves pivot point to the top-center of the bounding box of every selected object."""
+    return move_pivot_to_bounding_box_position(horizontal="center", vertical="top", depth="center")
 
 
 def move_pivot_base():
-    """Moves pivot point to the base of the boundary box"""
-    selection = cmds.ls(selection=True, long=True)
-    selection_short = cmds.ls(selection=True)
-
-    if not selection:
-        cmds.warning("Nothing selected. Please select at least one object and try again.")
-        return
-
-    counter = 0
-    errors = ""
-    for obj in selection:
-        try:
-            bbox = cmds.exactWorldBoundingBox(obj)  # extracts bounding box
-            bottom = [(bbox[0] + bbox[3]) / 2, bbox[1], (bbox[2] + bbox[5]) / 2]  # find bottom
-            cmds.xform(obj, piv=bottom, ws=True)  # sends pivot to bottom
-            counter += 1
-        except Exception as e:
-            errors += str(e) + "\n"
-
-    if errors:
-        print(("#" * 50) + "\n")
-        print(errors)
-        print("#" * 50)
-    pivot_pos = "base"
-    highlight_style = "color:#FF0000;text-decoration:underline;"
-    feedback = core_fback.FeedbackMessage(
-        quantity=counter,
-        singular="pivot was",
-        plural="pivots were",
-        conclusion="moved to the",
-        suffix=pivot_pos,
-        style_suffix=highlight_style,
-    )
-    if counter == 1:
-        feedback = core_fback.FeedbackMessage(
-            intro=f'"{selection_short[0]}"',
-            style_intro=highlight_style,
-            conclusion="pivot was moved to the",
-            suffix=pivot_pos,
-            style_suffix=highlight_style,
-        )
-    feedback.print_inview_message()
+    """Moves pivot point to the base-center of the bounding box of every selected object."""
+    return move_pivot_to_bounding_box_position(horizontal="center", vertical="base", depth="center")
 
 
 def move_to_origin(obj):

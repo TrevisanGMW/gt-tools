@@ -1980,3 +1980,62 @@ class TestTransformCore(unittest.TestCase):
         # Allow some tolerance due to Maya's internal rotation handling
         expected_pitch = -90.0
         self.assertAlmostEqual(rotation[2], expected_pitch, delta=0.1)
+
+    def test_get_bounding_box_pivot_default(self):
+        bounding_box = [-1.0, -2.0, -3.0, 1.0, 2.0, 3.0]
+        result = core_transform.get_bounding_box_pivot(bounding_box)
+        expected = [0.0, -2.0, 0.0]  # center, base, center
+        self.assertEqual(expected, result)
+
+    def test_get_bounding_box_pivot_top_left_back(self):
+        bounding_box = [-1.0, -2.0, -3.0, 1.0, 2.0, 3.0]
+        result = core_transform.get_bounding_box_pivot(
+            bounding_box, horizontal="left", vertical="top", depth="back"
+        )
+        expected = [-1.0, 2.0, -3.0]  # "back" maps to -Z (z_min)
+        self.assertEqual(expected, result)
+
+    def test_get_bounding_box_pivot_right_middle_front(self):
+        bounding_box = [-1.0, -2.0, -3.0, 1.0, 2.0, 3.0]
+        result = core_transform.get_bounding_box_pivot(
+            bounding_box, horizontal="right", vertical="middle", depth="front"
+        )
+        expected = [1.0, 0.0, 3.0]  # "front" maps to +Z (z_max)
+        self.assertEqual(expected, result)
+
+    def test_get_bounding_box_pivot_invalid_anchor(self):
+        bounding_box = [-1.0, -2.0, -3.0, 1.0, 2.0, 3.0]
+        with self.assertRaises(ValueError):
+            core_transform.get_bounding_box_pivot(bounding_box, horizontal="middle")
+
+    def test_move_pivot_to_bounding_box_position_base(self):
+        cube = cmds.polyCube(name="pivot_cube", width=2, height=2, depth=2, ch=False)[0]
+        result = core_transform.move_pivot_to_bounding_box_position(
+            obj_list=[cube], horizontal="center", vertical="base", depth="center"
+        )
+        self.assertEqual(1, result)
+        pivot = cmds.xform(cube, query=True, worldSpace=True, pivots=True)
+        expected = [0.0, -1.0, 0.0]
+        for expected_value, result_value in zip(expected, pivot[0:3]):
+            self.assertAlmostEqual(expected_value, result_value, delta=0.001)
+
+    def test_move_pivot_to_bounding_box_position_corner(self):
+        cube = cmds.polyCube(name="pivot_cube_corner", width=2, height=2, depth=2, ch=False)[0]
+        result = core_transform.move_pivot_to_bounding_box_position(
+            obj_list=[cube], horizontal="right", vertical="base", depth="back"
+        )
+        self.assertEqual(1, result)
+        pivot = cmds.xform(cube, query=True, worldSpace=True, pivots=True)
+        expected = [1.0, -1.0, -1.0]  # "back" maps to -Z (z_min)
+        for expected_value, result_value in zip(expected, pivot[0:3]):
+            self.assertAlmostEqual(expected_value, result_value, delta=0.001)
+
+    def test_move_pivot_top_delegates(self):
+        cube = cmds.polyCube(name="pivot_cube_top", width=2, height=2, depth=2, ch=False)[0]
+        cmds.select(cube)
+        result = core_transform.move_pivot_top()
+        self.assertEqual(1, result)
+        pivot = cmds.xform(cube, query=True, worldSpace=True, pivots=True)
+        expected = [0.0, 1.0, 0.0]
+        for expected_value, result_value in zip(expected, pivot[0:3]):
+            self.assertAlmostEqual(expected_value, result_value, delta=0.001)
