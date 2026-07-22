@@ -162,6 +162,7 @@ class OptionWindow(ui_qt.QtWidgets.QDialog):
                 command (callable): Called when the button is clicked.
                 variant (str, optional): One of BUTTON_VARIANTS. Defaults to "normal".
                 tooltip (str, optional): Tooltip text.
+                icon (str, optional): Path to an icon resource shown on the button.
 
         Returns:
             QPushButton: The created button.
@@ -173,6 +174,8 @@ class OptionWindow(ui_qt.QtWidgets.QDialog):
         button = ui_qt.QtWidgets.QPushButton(spec.get("label", ""))
         button.setObjectName(f"option_{variant}_button")
         button.setMinimumHeight(self.BUTTON_HEIGHT)
+        if spec.get("icon"):
+            button.setIcon(ui_qt.QtGui.QIcon(spec.get("icon")))
         if spec.get("tooltip"):
             button.setToolTip(spec.get("tooltip"))
         command = spec.get("command")
@@ -274,7 +277,7 @@ class OptionWindow(ui_qt.QtWidgets.QDialog):
         self.controls[key or label] = checkbox
         return checkbox
 
-    def add_button(self, label, command, variant="normal", tooltip=None):
+    def add_button(self, label, command, variant="normal", tooltip=None, icon=None):
         """
         Adds a single full-width button.
 
@@ -283,12 +286,13 @@ class OptionWindow(ui_qt.QtWidgets.QDialog):
             command (callable): Called when the button is clicked.
             variant (str, optional): One of BUTTON_VARIANTS. Defaults to "normal".
             tooltip (str, optional): Tooltip text.
+            icon (str, optional): Path to an icon resource shown on the button.
 
         Returns:
             QPushButton: The created button.
         """
         button = self._create_button(
-            {"label": label, "command": command, "variant": variant, "tooltip": tooltip}
+            {"label": label, "command": command, "variant": variant, "tooltip": tooltip, "icon": icon}
         )
         self._main_layout.addWidget(button)
         return button
