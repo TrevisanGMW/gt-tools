@@ -26,9 +26,11 @@ from gt.tools.utility_options.pivot_options import (
     open_move_pivot_base_options,
     open_move_pivot_top_options,
 )
+from gt.tools.utility_options.material_options import open_copy_paste_material_options
 
 __all__ = [
     "open_delete_keyframes_options",
     "open_move_pivot_base_options",
     "open_move_pivot_top_options",
+    "open_copy_paste_material_options",
 ]

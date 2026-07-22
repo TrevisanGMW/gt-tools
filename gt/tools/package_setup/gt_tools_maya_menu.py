@@ -176,18 +176,11 @@ def load_menu(*args):
         icon=ui_res_lib.Icon.util_mod_bif_to_mesh,
     )
 
-    menu.add_divider(divider_label="Copy/Paste Utilities")  # Material Section +++++++++++++++++++++++++++++++++
     menu.add_menu_item(
-        label="Copy Material",
-        command=IMPORT_UTIL + 'initialize_utility("misc", "material_copy")',
-        tooltip="Copies material to clipboard.",
+        label="Copy/Paste Material",
+        command=IMPORT_TOOL + 'initialize_tool("utility_options", "open_copy_paste_material_options")',
+        tooltip="Opens a window with options to copy and paste materials.",
         icon=ui_res_lib.Icon.util_mod_copy_material,
-    )
-    menu.add_menu_item(
-        label="Paste Material",
-        command=IMPORT_UTIL + 'initialize_utility("misc", "material_paste")',
-        tooltip="Pastes material from clipboard.",
-        icon=ui_res_lib.Icon.util_mod_paste_material,
     )
     # ------------------------------------ Rigging ------------------------------------
     menu.add_sub_menu("Rigging", icon=ui_res_lib.Icon.root_rigging, parent_to_root=True)
