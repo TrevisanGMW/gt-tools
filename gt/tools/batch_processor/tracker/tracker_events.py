@@ -16,6 +16,40 @@ def utc_now_iso():
     return datetime.datetime.now(datetime.timezone.utc).isoformat()
 
 
+def parse_timestamp(value):
+    """Parses an ISO timestamp.
+
+    Args:
+        value (str): ISO timestamp.
+
+    Returns:
+        datetime.datetime or None: Parsed value, or None when unparsable.
+    """
+    if not value:
+        return None
+    try:
+        return datetime.datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except (TypeError, ValueError, AttributeError):
+        return None
+
+
+def elapsed_seconds(started_at, completed_at=""):
+    """Gets elapsed seconds between two ISO timestamps.
+
+    Args:
+        started_at (str): Start timestamp.
+        completed_at (str, optional): End timestamp, or now when empty.
+
+    Returns:
+        float: Elapsed seconds, clamped to be non-negative.
+    """
+    start = parse_timestamp(started_at)
+    if not start:
+        return 0.0
+    end = parse_timestamp(completed_at) or datetime.datetime.now(datetime.timezone.utc)
+    return max(0.0, (end - start).total_seconds())
+
+
 class EventWriter:
     """Writes append-only JSON-line worker events."""
 

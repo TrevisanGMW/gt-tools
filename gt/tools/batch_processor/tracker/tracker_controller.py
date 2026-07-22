@@ -163,6 +163,20 @@ class TrackerController:
             return
         ui_qt.QtWidgets.QApplication.clipboard().setText("\n".join(job_names))
 
+    def _format_estimate(self):
+        """Formats the estimated remaining time for the summary row.
+
+        Returns:
+            str: HH:MM:SS estimate, "Done" once finished, or "-" while no
+                regular job has completed yet.
+        """
+        if self.session.finished:
+            return "Done"
+        seconds = self.session.estimate_remaining_seconds()
+        if seconds is None:
+            return "-"
+        return tracker_tree_model.format_duration(seconds)
+
     def _update_summary(self):
         """Updates project, progress, worker, issue, and timing summaries."""
         regular_jobs = self.session.regular_jobs
@@ -176,18 +190,20 @@ class TrackerController:
         errors = sum(job.errors for job in regular_jobs)
         warnings = sum(job.warnings for job in regular_jobs)
         elapsed = tracker_tree_model.format_elapsed(self.session.started_at, self.session.completed_at)
+        estimate = self._format_estimate()
         primary_values = [
             ("Project", self.session.project_name, "value"),
             ("Jobs / Files", f"{completed}/{len(regular_jobs)}", "value"),
             ("Overall", f"{self.session.progress}%", "value"),
-            ("Workers", f"{active}/{self.session.worker_count}", "value"),
-        ]
-        secondary_values = [
             ("Failed", failed, "error" if failed else "value"),
             ("Errors", errors, "error" if errors else "value"),
             ("Warnings", warnings, "warning" if warnings else "value"),
-            ("Started", tracker_tree_model.format_timestamp(self.session.started_at), "value"),
+        ]
+        secondary_values = [
+            ("Started", tracker_tree_model.format_timestamp(self.session.started_at, include_year=False), "value"),
             ("Elapsed", elapsed, "value"),
+            ("Est. Left", estimate, "value"),
+            ("Workers", f"{active}/{self.session.worker_count}", "value"),
             ("CPU", self.cpu_text, self._usage_color_role(self.cpu_percent)),
             ("RAM", self.memory_text, self._usage_color_role(self.memory_percent)),
         ]

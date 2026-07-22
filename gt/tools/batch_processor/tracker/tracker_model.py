@@ -168,6 +168,7 @@ class TrackerJob:
         self.timing_log_path = ""
         self.completion_result = ""
         self.flag_skips_as_warnings = True
+        self._source_size = None
         self.tasks = []
         for definition in task_definitions:
             task = TrackerTask(
@@ -189,6 +190,31 @@ class TrackerJob:
             TrackerTask or None: Matching task.
         """
         return next((task for task in self.tasks if task.id == task_id), None)
+
+    def get_source_size(self):
+        """Gets the source file size in bytes, cached after the first lookup.
+
+        The size is read at most once per job and reused for every later
+        estimate, so repeated calls never touch the filesystem again.
+
+        Returns:
+            int: Source file size in bytes, or 0 when it cannot be read.
+        """
+        if self._source_size is None:
+            try:
+                self._source_size = os.path.getsize(self.source_file)
+            except (OSError, TypeError, ValueError):
+                self._source_size = 0
+        return self._source_size
+
+    def get_elapsed_seconds(self):
+        """Gets this job's elapsed run time.
+
+        Returns:
+            float: Elapsed seconds between the job start and completion, or
+                the time since it started when it is still running.
+        """
+        return tracker_events.elapsed_seconds(self.started_at, self.completed_at)
 
     def apply_event(self, event, flag_skips_as_warnings=True):
         """Applies a structured event to this job.
@@ -359,6 +385,53 @@ class TrackerSession:
         """
         tasks = [task for job in self.jobs for task in job.tasks]
         return int(sum(task.progress for task in tasks) / len(tasks)) if tasks else 0
+
+    def estimate_remaining_seconds(self):
+        """Estimates wall-clock seconds left until every regular job finishes.
+
+        Uses the completed regular jobs as a sample. When source file sizes are
+        available it assumes run time scales with size (seconds per byte);
+        otherwise it falls back to a simple per-job average. The projected work
+        is divided by the effective worker count to approximate parallel
+        wall-clock time, and time already spent on running jobs is credited.
+
+        The per-call cost is a single pass over the regular jobs doing cached
+        arithmetic, so it is safe to call on a display timer. Finalization jobs
+        are excluded because their source file is not representative.
+
+        Returns:
+            float or None: Estimated seconds remaining, 0.0 when nothing is
+                left, or None while no regular job has completed yet.
+        """
+        completed_seconds = 0.0
+        completed_bytes = 0
+        completed_count = 0
+        remaining_bytes = 0
+        remaining_count = 0
+        running_seconds = 0.0
+        for job in self.regular_jobs:
+            if job.status in tracker_constants.TERMINAL_STATUSES:
+                completed_seconds += job.get_elapsed_seconds()
+                completed_bytes += job.get_source_size()
+                completed_count += 1
+            else:
+                remaining_count += 1
+                remaining_bytes += job.get_source_size()
+                if job.status == tracker_constants.Status.RUNNING:
+                    running_seconds += job.get_elapsed_seconds()
+        if completed_count == 0:
+            return None
+        if remaining_count == 0:
+            return 0.0
+        if completed_bytes > 0 and remaining_bytes > 0:
+            seconds_per_byte = completed_seconds / completed_bytes
+            remaining_work_seconds = seconds_per_byte * remaining_bytes
+        else:
+            average_seconds = completed_seconds / completed_count
+            remaining_work_seconds = average_seconds * remaining_count
+        remaining_work_seconds = max(0.0, remaining_work_seconds - running_seconds)
+        effective_workers = max(1, min(self.worker_count, remaining_count))
+        return remaining_work_seconds / effective_workers
 
     @property
     def health_state(self):

@@ -1,12 +1,11 @@
 """Qt presentation model and delegates for Batch Processor tracker rows."""
 
-import datetime
-
 import gt.ui.qt_import as ui_qt
 import gt.ui.resource_library as ui_res_lib
 
 from gt.tools.batch_processor.tracker import tracker_constants
 from gt.tools.batch_processor.tracker import tracker_model
+from gt.tools.batch_processor.tracker.tracker_events import elapsed_seconds, parse_timestamp
 
 
 DISPLAY_ROLE = ui_qt.QtCore.Qt.ItemDataRole.DisplayRole if ui_qt.IS_PYSIDE6 else ui_qt.QtCore.Qt.DisplayRole
@@ -358,28 +357,13 @@ class ProgressBarDelegate(ui_qt.QtWidgets.QStyledItemDelegate):
         return ui_qt.QtCore.QSize(140, 28)
 
 
-def parse_timestamp(value):
-    """Parses an ISO timestamp.
-
-    Args:
-        value (str): ISO timestamp.
-
-    Returns:
-        datetime.datetime or None: Parsed value.
-    """
-    if not value:
-        return None
-    try:
-        return datetime.datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except (TypeError, ValueError):
-        return None
-
-
-def format_timestamp(value):
+def format_timestamp(value, include_year=True):
     """Formats an ISO timestamp in local time.
 
     Args:
         value (str): ISO timestamp.
+        include_year (bool, optional): Whether to include the year. When False
+            the year is omitted to save horizontal space.
 
     Returns:
         str: Local display timestamp.
@@ -387,24 +371,23 @@ def format_timestamp(value):
     timestamp = parse_timestamp(value)
     if not timestamp:
         return "-"
-    return timestamp.astimezone().strftime("%Y-%m-%d %H:%M:%S")
+    time_format = "%Y-%m-%d %H:%M:%S" if include_year else "%m-%d %H:%M:%S"
+    return timestamp.astimezone().strftime(time_format)
 
 
-def elapsed_seconds(started_at, completed_at=""):
-    """Gets elapsed seconds between timestamps.
+def format_duration(total_seconds):
+    """Formats a duration in seconds as a compact HH:MM:SS string.
 
     Args:
-        started_at (str): Start timestamp.
-        completed_at (str, optional): End timestamp, or now when empty.
+        total_seconds (float): Duration in seconds.
 
     Returns:
-        float: Elapsed seconds.
+        str: HH:MM:SS duration.
     """
-    start = parse_timestamp(started_at)
-    if not start:
-        return 0.0
-    end = parse_timestamp(completed_at) or datetime.datetime.now(datetime.timezone.utc)
-    return max(0.0, (end - start).total_seconds())
+    total_seconds = int(max(0, total_seconds))
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
 
 
 def format_elapsed(started_at, completed_at=""):
@@ -419,7 +402,4 @@ def format_elapsed(started_at, completed_at=""):
     """
     if not started_at:
         return "-"
-    total_seconds = int(elapsed_seconds(started_at, completed_at))
-    hours, remainder = divmod(total_seconds, 3600)
-    minutes, seconds = divmod(remainder, 60)
-    return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+    return format_duration(elapsed_seconds(started_at, completed_at))
