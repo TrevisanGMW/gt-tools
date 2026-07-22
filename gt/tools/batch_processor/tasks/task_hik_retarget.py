@@ -86,6 +86,7 @@ class TaskRetargetHumanIK(task_base.BatchTask):
             "source_root": "",
             "source_character_name": "source",
             "source_character_pre_existing": False,
+            "source_character_auto_detect": False,
             "source_definition_path": "{project-dir}/data/source_hik.xml",
             "source_tpose_path": "{project-dir}/data/source_tpose.pose",
             "target_rig_path": "",
@@ -161,7 +162,11 @@ class TaskRetargetHumanIK(task_base.BatchTask):
             post_script_text = DEFAULT_POST_SCRIPT_TEXT
         if self.settings.get("run_post_script") and not post_script_text:
             result.add_error("HumanIK post script is enabled but no inline script is set.")
-        if self.uses_pre_existing_source_character() and not self.settings.get("source_character_name"):
+        if (
+            self.uses_pre_existing_source_character()
+            and not self.uses_auto_detected_source_character()
+            and not self.settings.get("source_character_name")
+        ):
             result.add_error("Pre-existing HumanIK source character mode requires a Source Character name.")
         if not self.uses_pre_existing_source_character() and not self.settings.get("source_definition_path"):
             result.add_warning("HumanIK retarget has no source HIK XML definition path configured.")
@@ -427,6 +432,28 @@ class TaskRetargetHumanIK(task_base.BatchTask):
         """
         return bool(self.settings.get("source_character_pre_existing", False))
 
+    def uses_auto_detected_source_character(self):
+        """Gets whether the source character should be auto-detected from the scene.
+
+        Returns:
+            bool: True when pre-existing mode should auto-detect the source character.
+        """
+        return self.uses_pre_existing_source_character() and bool(
+            self.settings.get("source_character_auto_detect", False)
+        )
+
+    def get_auto_detected_source_character(self):
+        """Gets the first HumanIK character in the scene that is not the target character.
+
+        Returns:
+            str: Auto-detected source HIK character node, or empty string.
+        """
+        target_character = self.get_target_character()
+        for hik_node in self.get_hik_characters():
+            if hik_node and hik_node != target_character:
+                return hik_node
+        return ""
+
     def get_pre_existing_source_character(self, requested_character):
         """Gets an existing source HumanIK character without creating one.
 
@@ -436,6 +463,10 @@ class TaskRetargetHumanIK(task_base.BatchTask):
         Returns:
             str: Existing source HIK character node, or empty string.
         """
+        if self.uses_auto_detected_source_character():
+            auto_detected_character = self.get_auto_detected_source_character()
+            if auto_detected_character:
+                return auto_detected_character
         source_namespace = self.get_runtime_source_namespace()
         source_character = self.resolve_hik_character_for_namespace(requested_character, source_namespace)
         if source_character and self.is_hik_character(source_character):
@@ -1458,6 +1489,118 @@ class TaskRetargetHumanIK(task_base.BatchTask):
             raise RuntimeError("No HumanIK properties found for target: {0}".format(character_node))
         core_io.write_json(path=file_path, data=properties)
         return file_path
+
+    def apply_source_tpose_in_scene(self, project):
+        """Applies the configured source T-pose to the current scene for testing.
+
+        Args:
+            project (BatchProcessorModel): Active project.
+
+        Returns:
+            list: Joints affected by the applied pose.
+        """
+        import gt.core.io as core_io
+        import gt.core.pose as core_pose
+
+        tpose_path = self.get_resolved_path(project, "source_tpose_path")
+        if not tpose_path:
+            raise RuntimeError("No Source T-Pose path is configured.")
+        if not os.path.isfile(tpose_path):
+            raise RuntimeError("Source T-Pose file does not exist: {0}".format(tpose_path))
+        tpose_dict = core_io.read_json_dict(tpose_path)
+        if not tpose_dict:
+            raise RuntimeError("Source T-Pose file is empty or invalid: {0}".format(tpose_path))
+        source_namespace = self.get_runtime_source_namespace()
+        applied_joints = core_pose.set_pose_from_dict(tpose_dict, namespace=source_namespace)
+        if not applied_joints:
+            raise RuntimeError(
+                "Source T-Pose did not match any joints using namespace '{0}': {1}".format(
+                    source_namespace or "<root>",
+                    tpose_path,
+                )
+            )
+        return applied_joints
+
+    def import_source_definition_in_scene(self, project):
+        """Imports the configured source HIK definition into the current scene for testing.
+
+        Args:
+            project (BatchProcessorModel): Active project.
+
+        Returns:
+            str: Source HIK character node the definition was imported onto.
+        """
+        import gt.utils.hik as utils_hik
+
+        definition_path = self.get_resolved_path(project, "source_definition_path")
+        if not definition_path:
+            raise RuntimeError("No Source HIK XML path is configured.")
+        if not os.path.isfile(definition_path):
+            raise RuntimeError("Source HIK XML file does not exist: {0}".format(definition_path))
+        source_namespace = self.get_runtime_source_namespace()
+        requested_character = self.get_namespaced_name(
+            self.settings.get("source_character_name") or "source",
+            source_namespace,
+        )
+        source_character = self.get_or_create_hik_character(requested_character)
+        if not source_character:
+            raise RuntimeError("Unable to create or find a HumanIK source character for the definition import.")
+        utils_hik.set_definition_lock(source_character, False)
+        prefix = "{0}:".format(source_namespace.strip(":")) if source_namespace else ""
+        utils_hik.import_definition_from_xml(source_character, definition_path, prefix=prefix)
+        utils_hik.set_definition_lock(source_character, True)
+        self.evaluate_hik_character(source_character)
+        return source_character
+
+    def import_target_rig_in_scene(self, project):
+        """Imports the configured target rig into the current scene for testing.
+
+        Args:
+            project (BatchProcessorModel): Active project.
+
+        Returns:
+            list: Imported target nodes.
+        """
+        target_rig_path = self.get_resolved_path(project, "target_rig_path")
+        if not target_rig_path:
+            raise RuntimeError("No Target Rig path is configured.")
+        if not os.path.isfile(target_rig_path):
+            raise RuntimeError("Target Rig file does not exist: {0}".format(target_rig_path))
+        return self.import_target_rig(project)
+
+    def import_target_properties_in_scene(self, project):
+        """Applies the configured target HIK properties in the current scene for testing.
+
+        Args:
+            project (BatchProcessorModel): Active project.
+
+        Returns:
+            dict: Properties applied to the target character.
+        """
+        import gt.core.io as core_io
+        import gt.utils.hik as utils_hik
+
+        properties_path = self.get_resolved_path(project, "target_properties_path")
+        if not properties_path:
+            raise RuntimeError("No Target Properties path is configured.")
+        if not os.path.isfile(properties_path):
+            raise RuntimeError("Target Properties file does not exist: {0}".format(properties_path))
+        target_character = self.get_target_character()
+        if not target_character:
+            raise RuntimeError("Unable to resolve a HumanIK target character in the current scene.")
+        properties = core_io.read_json_dict(properties_path)
+        if not isinstance(properties, dict) or not properties:
+            raise RuntimeError("Target HumanIK properties file is empty or invalid: {0}".format(properties_path))
+        applied_properties = utils_hik.set_hik_properties(target_character, properties)
+        if not applied_properties:
+            raise RuntimeError(
+                "No HumanIK properties could be applied to target character '{0}' from: {1}".format(
+                    target_character,
+                    properties_path,
+                )
+            )
+        self.evaluate_hik_character(target_character)
+        return applied_properties
 
 
 def run_inline_python_script(script_text, context, script_name="<humanik_post_script>"):

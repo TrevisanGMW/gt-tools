@@ -526,6 +526,103 @@ class TestBatchProcessorTracker(unittest.TestCase):
         self.assertIn("Worker task output", project_log_text)
         self.assertIn("Tasks 1/1 | Files 1/1 | Progress 100%", project_log_text)
 
+    def create_completed_job(self, name="done.ma", size=None, status=None):
+        """Creates a terminal job with a fixed ten-second run time.
+
+        Args:
+            name (str, optional): Job display name.
+            size (int, optional): Cached source size in bytes.
+            status (str, optional): Terminal status to assign.
+
+        Returns:
+            TrackerJob: Completed test job.
+        """
+        job = self.create_job()
+        job.name = name
+        job.status = status or tracker_constants.Status.COMPLETED
+        job.started_at = "2026-01-01T00:00:00+00:00"
+        job.completed_at = "2026-01-01T00:00:10+00:00"
+        if size is not None:
+            job._source_size = size
+        return job
+
+    def test_estimate_is_none_before_any_job_completes(self):
+        """Tests that no estimate is offered until one job finishes."""
+        session = tracker_model.TrackerSession(
+            "Test", "C:/project", 1, [self.create_job(), self.create_job()], "C:/session"
+        )
+
+        self.assertIsNone(session.estimate_remaining_seconds())
+
+    def test_estimate_is_zero_when_all_jobs_complete(self):
+        """Tests that a fully completed batch reports no remaining time."""
+        done = self.create_completed_job(size=0)
+        session = tracker_model.TrackerSession("Test", "C:/project", 1, [done], "C:/session")
+
+        expected = 0.0
+        self.assertEqual(expected, session.estimate_remaining_seconds())
+
+    def test_estimate_uses_simple_average_when_sizes_unavailable(self):
+        """Tests the per-job fallback used when file sizes are missing."""
+        done = self.create_completed_job(size=0)
+        pending_one = self.create_job()
+        pending_two = self.create_job()
+        pending_one._source_size = 0
+        pending_two._source_size = 0
+        session = tracker_model.TrackerSession(
+            "Test", "C:/project", 1, [done, pending_one, pending_two], "C:/session"
+        )
+
+        expected = 20.0
+        self.assertAlmostEqual(expected, session.estimate_remaining_seconds())
+
+    def test_estimate_weights_remaining_time_by_source_file_size(self):
+        """Tests that a larger remaining file scales the estimate."""
+        done = self.create_completed_job(size=100)
+        pending = self.create_job()
+        pending._source_size = 300
+        session = tracker_model.TrackerSession("Test", "C:/project", 1, [done, pending], "C:/session")
+
+        expected = 30.0
+        self.assertAlmostEqual(expected, session.estimate_remaining_seconds())
+
+    def test_estimate_divides_projected_work_by_worker_count(self):
+        """Tests that concurrent workers shorten the projected wall-clock time."""
+        done = self.create_completed_job(size=0)
+        pending_jobs = [self.create_job() for _ in range(4)]
+        for job in pending_jobs:
+            job._source_size = 0
+        session = tracker_model.TrackerSession(
+            "Test", "C:/project", 2, [done] + pending_jobs, "C:/session"
+        )
+
+        expected = 20.0
+        self.assertAlmostEqual(expected, session.estimate_remaining_seconds())
+
+    def test_estimate_ignores_finalization_jobs(self):
+        """Tests that the finalization phase does not distort the estimate."""
+        done = self.create_completed_job(size=0)
+        pending = self.create_job()
+        pending._source_size = 0
+        final_job = tracker_model.TrackerJob("finalization", 3, "", [], is_finalization=True)
+        session = tracker_model.TrackerSession(
+            "Test", "C:/project", 1, [done, pending, final_job], "C:/session"
+        )
+
+        expected = 10.0
+        self.assertAlmostEqual(expected, session.estimate_remaining_seconds())
+
+    def test_source_size_is_read_from_disk_only_once(self):
+        """Tests that the source size is stat-ed once and cached afterward."""
+        job = self.create_job()
+        with mock.patch.object(tracker_model.os.path, "getsize", return_value=512) as getsize:
+            first = job.get_source_size()
+            second = job.get_source_size()
+
+        self.assertEqual(512, first)
+        self.assertEqual(512, second)
+        getsize.assert_called_once()
+
 
 if __name__ == "__main__":
     unittest.main()

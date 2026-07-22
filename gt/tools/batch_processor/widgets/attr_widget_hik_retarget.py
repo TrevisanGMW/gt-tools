@@ -29,6 +29,9 @@ class AttrWidgetRetargetHumanIK(AttrWidgetTask):
         self.pre_bake_script_section = None
         self.pre_bake_warning_label = None
         self.bake_checkbox = None
+        self.source_character_field = None
+        self.source_character_pre_existing_checkbox = None
+        self.source_character_auto_detect_checkbox = None
         super().__init__(
             parent=parent,
             task=task,
@@ -123,6 +126,7 @@ class AttrWidgetRetargetHumanIK(AttrWidgetTask):
         self.add_scene_and_bake_options()
         self.add_cleanup_options()
         self.add_action_buttons()
+        self.add_testing_buttons()
         self.add_pre_bake_script_section()
         self.add_post_script_section()
         self.content_layout.addStretch()
@@ -175,14 +179,14 @@ class AttrWidgetRetargetHumanIK(AttrWidgetTask):
             "or resolved from the source scene when Pre-existing HIK is on."
         )
         layout = self.add_labeled_layout("Source Character", tooltip=tooltip)
-        source_character_field = self.create_text_field(
+        self.source_character_field = self.create_text_field(
             text=self.task.settings.get("source_character_name"),
             placeholder="source",
             tooltip=tooltip,
         )
-        source_character_field.textChanged.connect(partial(self.set_task_setting, key="source_character_name"))
-        layout.addWidget(source_character_field)
-        layout.setStretchFactor(source_character_field, 1)
+        self.source_character_field.textChanged.connect(partial(self.set_task_setting, key="source_character_name"))
+        layout.addWidget(self.source_character_field)
+        layout.setStretchFactor(self.source_character_field, 1)
         self.source_character_pre_existing_checkbox = ui_qt.QtWidgets.QCheckBox("Pre-existing HIK")
         self.source_character_pre_existing_checkbox.setMinimumHeight(
             self.source_character_pre_existing_checkbox.sizeHint().height() + 2
@@ -206,6 +210,30 @@ class AttrWidgetRetargetHumanIK(AttrWidgetTask):
             )
         )
         layout.addWidget(self.source_character_pre_existing_checkbox)
+        self.source_character_auto_detect_checkbox = ui_qt.QtWidgets.QCheckBox("Auto Detect")
+        self.source_character_auto_detect_checkbox.setMinimumHeight(
+            self.source_character_auto_detect_checkbox.sizeHint().height() + 2
+        )
+        self.source_character_auto_detect_checkbox.setSizePolicy(
+            ui_qt.QtLib.SizePolicy.Fixed,
+            ui_qt.QtLib.SizePolicy.Fixed,
+        )
+        self.source_character_auto_detect_checkbox.setChecked(
+            bool(self.task.settings.get("source_character_auto_detect", False))
+        )
+        self.source_character_auto_detect_checkbox.setToolTip(
+            (
+                "Automatically detect the source HumanIK character from the scene. When enabled, the first "
+                "HumanIK character found in the scene that is not the Target Character is used as the source, "
+                "and the Source Character name field is ignored. Only available while Pre-existing HIK is enabled."
+            )
+        )
+        self.source_character_auto_detect_checkbox.stateChanged.connect(
+            lambda *args: self.set_source_character_auto_detect(
+                self.source_character_auto_detect_checkbox.isChecked()
+            )
+        )
+        layout.addWidget(self.source_character_auto_detect_checkbox)
 
     def set_source_character_pre_existing(self, value):
         """Sets whether the source character already exists in the source scene.
@@ -216,9 +244,19 @@ class AttrWidgetRetargetHumanIK(AttrWidgetTask):
         self.set_task_setting(bool(value), key="source_character_pre_existing")
         self.refresh_source_character_mode_controls()
 
+    def set_source_character_auto_detect(self, value):
+        """Sets whether the source character is auto-detected from the scene.
+
+        Args:
+            value (bool): Whether to auto-detect the source HIK character.
+        """
+        self.set_task_setting(bool(value), key="source_character_auto_detect")
+        self.refresh_source_character_mode_controls()
+
     def refresh_source_character_mode_controls(self):
-        """Refreshes controls disabled by pre-existing source HIK mode."""
+        """Refreshes controls disabled by pre-existing and auto-detect source HIK modes."""
         is_pre_existing = bool(self.task.settings.get("source_character_pre_existing", False))
+        is_auto_detect = is_pre_existing and bool(self.task.settings.get("source_character_auto_detect", False))
         for widget_group in [
             getattr(self, "source_definition_widgets", None),
             getattr(self, "source_tpose_widgets", None),
@@ -229,6 +267,10 @@ class AttrWidgetRetargetHumanIK(AttrWidgetTask):
                 widget = widget_group.get(key)
                 if widget:
                     widget.setEnabled(not is_pre_existing)
+        if self.source_character_auto_detect_checkbox:
+            self.source_character_auto_detect_checkbox.setEnabled(is_pre_existing)
+        if self.source_character_field:
+            self.source_character_field.setEnabled(not is_auto_detect)
 
     def add_scene_and_bake_options(self):
         """Adds scene and bake controls."""
@@ -341,6 +383,94 @@ class AttrWidgetRetargetHumanIK(AttrWidgetTask):
         export_properties_button.clicked.connect(self.export_target_properties_from_current_scene)
         layout.addWidget(export_properties_button)
         layout.addStretch()
+
+    def add_testing_buttons(self):
+        """Adds current-scene helper buttons for testing individual HumanIK elements."""
+        tooltip = (
+            "Apply or import individual HumanIK elements into the current Maya scene to test the configured settings."
+        )
+        layout = self.add_labeled_layout("Testing", tooltip=tooltip)
+        apply_pose_button = ui_qt.QtWidgets.QPushButton("Apply Pose To Source")
+        apply_pose_button.setMinimumHeight(35)
+        apply_pose_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.rigger_action_import))
+        apply_pose_button.setToolTip(
+            "Applies the configured Source T-Pose to the source skeleton in the current scene."
+        )
+        apply_pose_button.clicked.connect(self.apply_source_tpose_in_current_scene)
+        layout.addWidget(apply_pose_button)
+        import_source_button = ui_qt.QtWidgets.QPushButton("Import Source HIK")
+        import_source_button.setMinimumHeight(35)
+        import_source_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.rigger_action_import))
+        import_source_button.setToolTip(
+            "Imports the configured Source HIK XML definition onto the source character in the current scene."
+        )
+        import_source_button.clicked.connect(self.import_source_definition_in_current_scene)
+        layout.addWidget(import_source_button)
+        import_target_rig_button = ui_qt.QtWidgets.QPushButton("Import Target Rig")
+        import_target_rig_button.setMinimumHeight(35)
+        import_target_rig_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.rigger_action_import))
+        import_target_rig_button.setToolTip(
+            "Imports the configured Target Rig into the current scene using the target namespace."
+        )
+        import_target_rig_button.clicked.connect(self.import_target_rig_in_current_scene)
+        layout.addWidget(import_target_rig_button)
+        import_target_properties_button = ui_qt.QtWidgets.QPushButton("Import Target Properties")
+        import_target_properties_button.setMinimumHeight(35)
+        import_target_properties_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.rigger_action_import))
+        import_target_properties_button.setToolTip(
+            "Applies the configured Target Properties JSON onto the target character in the current scene."
+        )
+        import_target_properties_button.clicked.connect(self.import_target_properties_in_current_scene)
+        layout.addWidget(import_target_properties_button)
+        layout.addStretch()
+
+    def apply_source_tpose_in_current_scene(self):
+        """Applies the configured source T-pose to the current scene for testing."""
+        try:
+            applied_joints = self.task.apply_source_tpose_in_scene(self.project)
+            message = "Applied HumanIK source T-pose to {0} joint(s).".format(len(applied_joints))
+            sys.stdout.write(message + "\n")
+            self.emit_status_message(message)
+        except Exception as exception:
+            message = "Unable to apply HumanIK source T-pose. Issue: {0}".format(exception)
+            sys.stdout.write(message + "\n")
+            self.emit_status_message(message, status="warning")
+
+    def import_source_definition_in_current_scene(self):
+        """Imports the configured source HIK definition into the current scene for testing."""
+        try:
+            source_character = self.task.import_source_definition_in_scene(self.project)
+            message = "Imported HumanIK source definition onto: {0}".format(source_character)
+            sys.stdout.write(message + "\n")
+            self.emit_status_message(message)
+        except Exception as exception:
+            message = "Unable to import HumanIK source definition. Issue: {0}".format(exception)
+            sys.stdout.write(message + "\n")
+            self.emit_status_message(message, status="warning")
+
+    def import_target_rig_in_current_scene(self):
+        """Imports the configured target rig into the current scene for testing."""
+        try:
+            imported_nodes = self.task.import_target_rig_in_scene(self.project)
+            message = "Imported HumanIK target rig ({0} node(s)).".format(len(imported_nodes))
+            sys.stdout.write(message + "\n")
+            self.emit_status_message(message)
+        except Exception as exception:
+            message = "Unable to import HumanIK target rig. Issue: {0}".format(exception)
+            sys.stdout.write(message + "\n")
+            self.emit_status_message(message, status="warning")
+
+    def import_target_properties_in_current_scene(self):
+        """Applies the configured target HIK properties in the current scene for testing."""
+        try:
+            applied_properties = self.task.import_target_properties_in_scene(self.project)
+            message = "Applied {0} HumanIK target properties to the current scene.".format(len(applied_properties))
+            sys.stdout.write(message + "\n")
+            self.emit_status_message(message)
+        except Exception as exception:
+            message = "Unable to import HumanIK target properties. Issue: {0}".format(exception)
+            sys.stdout.write(message + "\n")
+            self.emit_status_message(message, status="warning")
 
     def export_target_properties_from_current_scene(self):
         """Exports target HumanIK properties from the current Maya scene."""
