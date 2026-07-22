@@ -433,12 +433,16 @@ def load_menu(*args):
         command=IMPORT_UTIL + 'initialize_utility("transform", "move_pivot_base")',
         tooltip="Moves pivot point to the base of the bounding box of every selected object.",
         icon=ui_res_lib.Icon.util_pivot_bottom,
+        option_box=True,
+        option_box_command=IMPORT_TOOL + 'initialize_tool("utility_options", "open_move_pivot_base_options")',
     )
     menu.add_menu_item(
         label="Move Pivot to Top",
         command=IMPORT_UTIL + 'initialize_utility("transform", "move_pivot_top")',
         tooltip="Moves pivot point to the top of the bounding box of every selected object.",
         icon=ui_res_lib.Icon.util_pivot_top,
+        option_box=True,
+        option_box_command=IMPORT_TOOL + 'initialize_tool("utility_options", "open_move_pivot_top_options")',
     )
 
     menu.add_divider(divider_label="Reset Utilities")  # Reset Section +++++++++++++++++++++++++++++++++
@@ -499,6 +503,8 @@ def load_menu(*args):
         command=IMPORT_UTIL + 'initialize_utility("anim", "delete_time_keyframes")',
         tooltip='Deletes all nodes of the type "animCurveTA" (keyframes).',
         icon=ui_res_lib.Icon.util_delete_keyframes,
+        option_box=True,
+        option_box_command=IMPORT_TOOL + 'initialize_tool("utility_options", "open_delete_keyframes_options")',
     )
 
     # ------------------------------------ Legacy ------------------------------------
