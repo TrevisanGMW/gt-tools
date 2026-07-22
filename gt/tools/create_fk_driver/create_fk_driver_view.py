@@ -35,6 +35,11 @@ class CreateFkDriverView(metaclass=qt_utils.MayaWindowMeta):
             "Create animator controls and offset groups for selected joints. Controls can follow the joint hierarchy."
         )
         description.setWordWrap(True)
+        description.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignCenter)
+        description.setStyleSheet(f"color: {ui_res_lib.Color.RGB.gray_dark};")
+        description.setSizePolicy(
+            ui_qt.QtLib.SizePolicy.Preferred, ui_qt.QtLib.SizePolicy.Fixed
+        )
         layout.addWidget(description)
 
         behavior_group = ui_qt.QtWidgets.QGroupBox("Behavior")
@@ -96,7 +101,7 @@ class CreateFkDriverView(metaclass=qt_utils.MayaWindowMeta):
         button_layout.setSpacing(8)
         self.reset_button = ui_qt.QtWidgets.QPushButton("Reset Settings")
         self.generate_button = ui_qt.QtWidgets.QPushButton("Create FK Drivers")
-        self.reset_button.setMinimumHeight(34)
+        self.reset_button.setMinimumHeight(40)
         self.generate_button.setMinimumHeight(40)
         self.generate_button.setStyleSheet(ui_res_lib.Stylesheet.btn_push_bright)
         button_layout.addWidget(self.reset_button)

@@ -30,9 +30,9 @@ class CreateFkDriverModel:
         "include_hierarchy": True,
         "curve_type": "Circle",
         "curve_radius": 1.0,
-        "joint_suffix": "_jnt",
-        "control_suffix": "_ctrl",
-        "control_group_suffix": "_ctrlGrp",
+        "joint_suffix": "_JNT",
+        "control_suffix": "_CTRL",
+        "control_group_suffix": "_offset",
         "ignored_strings": "endJnt, eye",
         "custom_curve_code": DEFAULT_CUSTOM_CURVE_CODE,
     }
