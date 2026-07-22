@@ -23,12 +23,9 @@ def onMayaDroppedPythonFile(*args):
     print("Initializing Drag-and-Drop Setup...")
 
     # Remove existing loaded modules (So it uses the new one)
-    try:
-        from gt.core.setup import remove_package_loaded_modules
-    except:
-        from gt.utils.setup_utils import remove_package_loaded_modules  # Temporarily to transition into new pattern
+    import gt.core.setup as core_setup
 
-    removed_modules = remove_package_loaded_modules()
+    removed_modules = core_setup.remove_package_loaded_modules()
     if removed_modules:
         print("Removing package loaded modules...")
 
