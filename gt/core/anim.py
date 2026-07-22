@@ -22,6 +22,36 @@ KEY_TYPE_TIME = ["animCurveTA", "animCurveTL", "animCurveTT", "animCurveTU"]
 KEY_TYPE_DOUBLE = ["animCurveUL", "animCurveUA", "animCurveUT", "animCurveUU"]
 
 
+class KeyframeScope:
+    def __init__(self):
+        """
+        Constant keyframe scope types (strings). Used to determine which keyframe
+        (animation curve) nodes an operation should affect.
+        """
+
+    TIME = "time"  # Standard animation keyframes (animCurveTA, animCurveTL, ...)
+    DOUBLE = "double"  # Set Driven Keys (animCurveUA, animCurveUL, ...)
+    BOTH = "both"  # Both time and double keyframes
+
+    @staticmethod
+    def get_available_scopes():
+        """
+        Gets a list of all available keyframe scopes. These are the same as the string
+        attributes found above.
+
+        Returns:
+            list: A list of available keyframe scopes (strings). e.g. ["time", "double", "both"]
+        """
+        scopes = []
+        attrs = vars(KeyframeScope)
+        attrs_keys = [attr for attr in attrs if not (attr.startswith("__") and attr.endswith("__"))]
+        for key in attrs_keys:
+            attr_value = getattr(KeyframeScope, key)
+            if isinstance(attr_value, str) and not callable(attr_value):
+                scopes.append(attr_value)
+        return scopes
+
+
 def get_time_keyframes(obj_list=None):
     """
     Gets animation keyframe nodes (excluding Set Driven Keys).
@@ -105,17 +135,49 @@ def get_double_keyframes(obj_list=None):
     return sorted(cmds.ls(type=KEY_TYPE_DOUBLE)) or []
 
 
-def delete_time_keyframes():
+def get_keyframes(obj_list=None, key_scope=KeyframeScope.TIME):
+    """
+    Gets keyframe (animation curve) nodes for the requested scope.
+
+    Args:
+        obj_list (list, optional): Objects to get keyframes from. If None, the entire
+            scene is considered.
+        key_scope (str, optional): Which keyframe nodes to gather. A "KeyframeScope"
+            value: TIME (animation keyframes), DOUBLE (Set Driven Keys) or BOTH.
+            Defaults to KeyframeScope.TIME.
+
+    Returns:
+        list: A sorted list of keyframe (animation curve) nodes matching the scope.
+    """
+    normalized_scope = str(key_scope).lower()
+    keyframe_nodes = set()
+    if normalized_scope in (KeyframeScope.TIME, KeyframeScope.BOTH):
+        keyframe_nodes.update(get_time_keyframes(obj_list=obj_list))
+    if normalized_scope in (KeyframeScope.DOUBLE, KeyframeScope.BOTH):
+        keyframe_nodes.update(get_double_keyframes(obj_list=obj_list))
+    if normalized_scope not in KeyframeScope.get_available_scopes():
+        logger.warning(
+            f'Unknown key_scope "{key_scope}". Expected one of: {KeyframeScope.get_available_scopes()}.'
+        )
+    return sorted(keyframe_nodes)
+
+
+def delete_time_keyframes(obj_list=None):
     """
     Deletes time (animation) keyframes. (Set Driven Keys are not included)
+
+    Args:
+        obj_list (list, optional): Objects to delete keyframes from. If None, all time
+            keyframes in the scene are deleted.
+
     Returns:
-        list: number of keyframes deleted during the operation
+        int: number of keyframe nodes deleted during the operation
     """
     function_name = "Delete Time Keyframes"
     cmds.undoInfo(openChunk=True, chunkName=function_name)
     deleted_counter = 0
     try:
-        for obj in get_time_keyframes():
+        for obj in get_time_keyframes(obj_list=obj_list):
             try:
                 cmds.delete(obj)
                 deleted_counter += 1
@@ -138,17 +200,22 @@ def delete_time_keyframes():
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
 
-def delete_double_keyframes():
+def delete_double_keyframes(obj_list=None):
     """
     Deletes Double (driven) keyframes. (Animation keyframes are not included)
+
+    Args:
+        obj_list (list, optional): Objects to delete driven keyframes from. If None, all
+            driven keyframes in the scene are deleted.
+
     Returns:
-        int: number of keyframes deleted during the operation
+        int: number of keyframe nodes deleted during the operation
     """
     function_name = "Delete Double Keyframes"
     cmds.undoInfo(openChunk=True, chunkName=function_name)
     deleted_counter = 0
     try:
-        for obj in get_double_keyframes():
+        for obj in get_double_keyframes(obj_list=obj_list):
             try:
                 cmds.delete(obj)
                 deleted_counter += 1
@@ -169,6 +236,153 @@ def delete_double_keyframes():
         return deleted_counter
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
+
+
+def delete_keyframes(obj_list=None, key_scope=KeyframeScope.TIME):
+    """
+    Deletes keyframe (animation curve) nodes for the requested scope. This removes the
+    entire animation curve for each affected attribute (it does not operate on a time
+    range). For range-based removal use "delete_keyframes_in_range".
+
+    Args:
+        obj_list (list, optional): Objects to delete keyframes from. If None, the whole
+            scene is affected.
+        key_scope (str, optional): Which keyframes to delete. A "KeyframeScope" value:
+            TIME, DOUBLE or BOTH. Defaults to KeyframeScope.TIME.
+
+    Returns:
+        int: number of keyframe nodes deleted during the operation.
+    """
+    function_name = "Delete Keyframes"
+    cmds.undoInfo(openChunk=True, chunkName=function_name)
+    deleted_counter = 0
+    try:
+        for keyframe_node in get_keyframes(obj_list=obj_list, key_scope=key_scope):
+            try:
+                cmds.delete(keyframe_node)
+                deleted_counter += 1
+            except Exception as e:
+                logger.debug(str(e))
+
+        feedback = core_fback.FeedbackMessage(
+            quantity=deleted_counter,
+            singular="keyframe node was",
+            plural="keyframe nodes were",
+            conclusion="deleted.",
+            zero_overwrite_message="No matching keyframes found.",
+        )
+        feedback.print_inview_message()
+        return deleted_counter
+    except Exception as e:
+        cmds.warning(str(e))
+        return deleted_counter
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=function_name)
+
+
+def delete_keyframes_in_range(obj_list=None, start=None, end=None, key_scope=KeyframeScope.TIME):
+    """
+    Removes keyframes that fall within a time range, leaving keyframes outside the range
+    (and the animation curves themselves) intact. Keys are not shifted to close the gap.
+    For a ripple delete that shifts subsequent keys, see "ripple_delete_keyframes".
+
+    Args:
+        obj_list (list, optional): Objects whose keyframes are affected. If None, the
+            whole scene is considered.
+        start (float, optional): Start of the range (inclusive). If None, an open lower
+            bound is used (removes everything up to "end").
+        end (float, optional): End of the range (inclusive). If None, an open upper bound
+            is used (removes everything from "start" onward).
+        key_scope (str, optional): Which keyframes to affect. A "KeyframeScope" value:
+            TIME, DOUBLE or BOTH. Defaults to KeyframeScope.TIME.
+
+    Returns:
+        int: number of keyframe (animation curve) nodes that had keys removed.
+    """
+    open_bound = 99999999  # Matches the sentinel range used by ripple_delete_keyframes
+    range_start = -open_bound if start is None else start
+    range_end = open_bound if end is None else end
+    if range_start > range_end:
+        cmds.warning("Invalid range: start frame is greater than end frame.")
+        return 0
+
+    keyframe_nodes = get_keyframes(obj_list=obj_list, key_scope=key_scope)
+    if not keyframe_nodes:
+        cmds.warning("No matching keyframes found for the provided scope.")
+        return 0
+
+    function_name = "Delete Keyframes In Range"
+    cmds.undoInfo(openChunk=True, chunkName=function_name)
+    affected_counter = 0
+    try:
+        for keyframe_node in keyframe_nodes:
+            try:
+                # cutKey(clear=True) does not report how many keys it removed, so query first.
+                keys_in_range = cmds.keyframe(
+                    keyframe_node, query=True, time=(range_start, range_end), keyframeCount=True
+                )
+                if keys_in_range:
+                    cmds.cutKey(keyframe_node, time=(range_start, range_end), clear=True)
+                    affected_counter += 1
+            except Exception as e:
+                logger.debug(str(e))
+
+        feedback = core_fback.FeedbackMessage(
+            quantity=affected_counter,
+            singular="keyframe node was",
+            plural="keyframe nodes were",
+            conclusion="affected.",
+            zero_overwrite_message="No keyframes found in the provided range.",
+        )
+        feedback.print_inview_message()
+        return affected_counter
+    except Exception as e:
+        cmds.warning(str(e))
+        return affected_counter
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=function_name)
+
+
+def delete_keyframes_before_current_frame(obj_list=None, include_current=False, key_scope=KeyframeScope.TIME):
+    """
+    Removes keyframes located before the current frame.
+
+    Args:
+        obj_list (list, optional): Objects whose keyframes are affected. If None, the
+            whole scene is considered.
+        include_current (bool, optional): If True, keyframes on the current frame are also
+            removed. Defaults to False.
+        key_scope (str, optional): Which keyframes to affect. A "KeyframeScope" value:
+            TIME, DOUBLE or BOTH. Defaults to KeyframeScope.TIME.
+
+    Returns:
+        int: number of keyframe (animation curve) nodes that had keys removed.
+    """
+    current_frame = cmds.currentTime(query=True)
+    epsilon = 0.0001
+    end = current_frame if include_current else current_frame - epsilon
+    return delete_keyframes_in_range(obj_list=obj_list, start=None, end=end, key_scope=key_scope)
+
+
+def delete_keyframes_after_current_frame(obj_list=None, include_current=False, key_scope=KeyframeScope.TIME):
+    """
+    Removes keyframes located after the current frame.
+
+    Args:
+        obj_list (list, optional): Objects whose keyframes are affected. If None, the
+            whole scene is considered.
+        include_current (bool, optional): If True, keyframes on the current frame are also
+            removed. Defaults to False.
+        key_scope (str, optional): Which keyframes to affect. A "KeyframeScope" value:
+            TIME, DOUBLE or BOTH. Defaults to KeyframeScope.TIME.
+
+    Returns:
+        int: number of keyframe (animation curve) nodes that had keys removed.
+    """
+    current_frame = cmds.currentTime(query=True)
+    epsilon = 0.0001
+    start = current_frame if include_current else current_frame + epsilon
+    return delete_keyframes_in_range(obj_list=obj_list, start=start, end=None, key_scope=key_scope)
 
 
 def check_unsaved_animation_changes():

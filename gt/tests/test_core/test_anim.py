@@ -161,6 +161,99 @@ class TestAnimCore(unittest.TestCase):
         expected = 4
         self.assertEqual(expected, result)
 
+    def test_keyframe_scope_available_scopes(self):
+        result = sorted(core_anim.KeyframeScope.get_available_scopes())
+        expected = ["both", "double", "time"]
+        self.assertEqual(expected, result)
+
+    def test_get_keyframes_both(self):
+        create_anim_test_scene()
+        result = core_anim.get_keyframes(key_scope=core_anim.KeyframeScope.BOTH)
+        expected = [
+            "cube_double_rotateY",
+            "cube_double_scaleY",
+            "cube_double_translateX",
+            "cube_mixed_rotateY",
+            "cube_mixed_scaleY",
+            "cube_mixed_translateZ",
+            "cube_time_rotateY",
+            "cube_time_scaleY",
+            "cube_time_translateZ",
+        ]
+        self.assertEqual(expected, result)
+
+    def test_get_keyframes_time_scope(self):
+        create_anim_test_scene()
+        result = core_anim.get_keyframes(key_scope=core_anim.KeyframeScope.TIME)
+        expected = sorted(core_anim.get_time_keyframes())
+        self.assertEqual(expected, result)
+
+    def test_get_keyframes_double_scope(self):
+        create_anim_test_scene()
+        result = core_anim.get_keyframes(key_scope=core_anim.KeyframeScope.DOUBLE)
+        expected = sorted(core_anim.get_double_keyframes())
+        self.assertEqual(expected, result)
+
+    def test_get_keyframes_filtered(self):
+        create_anim_test_scene()
+        result = core_anim.get_keyframes(obj_list=["cube_time"], key_scope=core_anim.KeyframeScope.TIME)
+        expected = ["cube_time_rotateY", "cube_time_scaleY", "cube_time_translateZ"]
+        self.assertEqual(expected, result)
+
+    def test_delete_keyframes_both(self):
+        create_anim_test_scene()
+        result = core_anim.delete_keyframes(key_scope=core_anim.KeyframeScope.BOTH)
+        expected = 9
+        self.assertEqual(expected, result)
+
+    def test_delete_keyframes_time_scope(self):
+        create_anim_test_scene()
+        result = core_anim.delete_keyframes(key_scope=core_anim.KeyframeScope.TIME)
+        expected = 5
+        self.assertEqual(expected, result)
+
+    def test_delete_keyframes_double_scope(self):
+        create_anim_test_scene()
+        result = core_anim.delete_keyframes(key_scope=core_anim.KeyframeScope.DOUBLE)
+        expected = 4
+        self.assertEqual(expected, result)
+
+    def test_delete_keyframes_selected_scope(self):
+        create_anim_test_scene()
+        result = core_anim.delete_keyframes(obj_list=["cube_time"], key_scope=core_anim.KeyframeScope.TIME)
+        expected = 3
+        self.assertEqual(expected, result)
+
+    def test_delete_keyframes_in_range(self):
+        create_anim_test_scene()
+        result = core_anim.delete_keyframes_in_range(start=None, end=5, key_scope=core_anim.KeyframeScope.TIME)
+        expected = 5  # All five time curves have a key at/before frame 5
+        self.assertEqual(expected, result)
+        # cube_time_translateZ had keys at 1 and 10; only the key at 10 should remain
+        result = cmds.keyframe("cube_time_translateZ", query=True, keyframeCount=True)
+        expected = 1
+        self.assertEqual(expected, result)
+
+    def test_delete_keyframes_before_current_frame(self):
+        create_anim_test_scene()
+        cmds.currentTime(5)
+        result = core_anim.delete_keyframes_before_current_frame(key_scope=core_anim.KeyframeScope.TIME)
+        expected = 5
+        self.assertEqual(expected, result)
+        result = cmds.keyframe("cube_time_translateZ", query=True, keyframeCount=True)
+        expected = 1  # Key at frame 10 remains
+        self.assertEqual(expected, result)
+
+    def test_delete_keyframes_after_current_frame(self):
+        create_anim_test_scene()
+        cmds.currentTime(5)
+        result = core_anim.delete_keyframes_after_current_frame(key_scope=core_anim.KeyframeScope.TIME)
+        expected = 5
+        self.assertEqual(expected, result)
+        result = cmds.keyframe("cube_time_translateZ", query=True, keyframeCount=True)
+        expected = 1  # Key at frame 1 remains
+        self.assertEqual(expected, result)
+
     def test_DoubleKeyframe(self):
         create_anim_test_scene()
         double_keyframe = core_anim.DoubleKeyframe("cube_double_scaleY")
