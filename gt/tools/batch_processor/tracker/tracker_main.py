@@ -77,6 +77,47 @@ def build_task_definitions(project, args):
     return create_definitions(regular_tasks), create_definitions(final_tasks)
 
 
+def build_segments(project, args):
+    """Builds ordered input-segment descriptors for a multi-instance run.
+
+    Args:
+        project (BatchProcessorModel): Snapshot project.
+        args (argparse.Namespace): Tracker options.
+
+    Returns:
+        tuple: (segments, final_definitions, final_tasks) where segments is a
+            list of descriptor dictionaries in run order.
+    """
+    from gt.tools.batch_processor import batch_processor_worker
+
+    runner = batch_processor_worker.SingleInstanceBatchRunner()
+    selected_tasks = runner._trim_tasks(
+        project.get_enabled_tasks(),
+        args.run_from_task_id or None,
+        args.run_to_task_id or None,
+    )
+    final_ids = set(args.final_task_id or [])
+    final_tasks = [task for task in selected_tasks if not task.is_input_task and task.id in final_ids]
+    final_definitions = create_definitions(final_tasks)
+    content_tasks = [task for task in selected_tasks if task.id not in final_ids]
+    segments = []
+    for segment_tasks in project.get_task_segments(task_list=content_tasks):
+        processing_tasks = [task for task in segment_tasks if not task.is_input_task]
+        input_tasks = [task for task in segment_tasks if task.is_input_task]
+        if not processing_tasks:
+            continue
+        segments.append(
+            {
+                "index": len(segments),
+                "input_tasks": input_tasks,
+                "processing_tasks": processing_tasks,
+                "definitions": create_definitions(processing_tasks),
+                "task_ids": [task.id for task in processing_tasks],
+            }
+        )
+    return segments, final_definitions, final_tasks
+
+
 def create_definitions(tasks):
     """Converts task objects to tracker definitions.
 
@@ -131,27 +172,47 @@ def run_tracker(args):
     from gt.tools.batch_processor.tracker import tracker_view
 
     project = batch_processor_model.BatchProcessorModel.from_file(args.project_file)
-    regular_definitions, final_definitions = build_task_definitions(project, args)
-    source_files = read_jobs(args.job_file)
-    jobs = [
-        tracker_model.TrackerJob(
-            job_id=f"job-{index:04d}",
-            number=index,
-            source_file=source_file,
-            task_definitions=regular_definitions,
-        )
-        for index, source_file in enumerate(source_files, 1)
-    ]
-    if final_definitions:
-        jobs.append(
-            tracker_model.TrackerJob(
-                job_id="finalization",
-                number=len(source_files) + 1,
-                source_file=args.project_file,
-                task_definitions=final_definitions,
-                is_finalization=True,
+    segments, segmented_final_definitions, _segmented_final_tasks = build_segments(project, args)
+    segmented = len(segments) > 1
+    finalization_number = 10_000_000
+    if segmented:
+        # Segment jobs are materialized lazily by the scheduler, one phase at a
+        # time, so later segments can discover files produced by earlier ones.
+        jobs = []
+        if segmented_final_definitions:
+            jobs.append(
+                tracker_model.TrackerJob(
+                    job_id="finalization",
+                    number=finalization_number,
+                    source_file=args.project_file,
+                    task_definitions=segmented_final_definitions,
+                    is_finalization=True,
+                )
             )
-        )
+        scheduler_segments = segments
+    else:
+        regular_definitions, final_definitions = build_task_definitions(project, args)
+        source_files = read_jobs(args.job_file)
+        jobs = [
+            tracker_model.TrackerJob(
+                job_id=f"job-{index:04d}",
+                number=index,
+                source_file=source_file,
+                task_definitions=regular_definitions,
+            )
+            for index, source_file in enumerate(source_files, 1)
+        ]
+        if final_definitions:
+            jobs.append(
+                tracker_model.TrackerJob(
+                    job_id="finalization",
+                    number=len(source_files) + 1,
+                    source_file=args.project_file,
+                    task_definitions=final_definitions,
+                    is_finalization=True,
+                )
+            )
+        scheduler_segments = None
     session = tracker_model.TrackerSession(
         project_name=project.project_name,
         project_path=project.get_project_dir(),
@@ -164,7 +225,12 @@ def run_tracker(args):
     application = ui_qt.QtWidgets.QApplication.instance() or ui_qt.QtWidgets.QApplication(sys.argv)
     application.setApplicationName("GT Batch Processor Tracker")
     view = tracker_view.TrackerView(project_name=project.project_name)
-    scheduler = tracker_scheduler.TrackerScheduler(session=session, options=args)
+    scheduler = tracker_scheduler.TrackerScheduler(
+        session=session,
+        options=args,
+        project=project if segmented else None,
+        segments=scheduler_segments,
+    )
     controller = tracker_controller.TrackerController(session=session, scheduler=scheduler, view=view)
     if args.maya_version_warning:
         view.statusBar().showMessage(args.maya_version_warning)

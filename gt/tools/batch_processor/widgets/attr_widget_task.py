@@ -651,8 +651,8 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
             self.output_extension_combo.setEnabled(not self.task.passes_through())
 
     def show_incoming_files(self):
-        """Shows incoming files discovered by enabled input tasks."""
-        file_paths = self.project.discover_input_files() if self.project else []
+        """Shows incoming files discovered by the input tasks in this task's segment."""
+        file_paths = self.project.discover_incoming_files_for_task(self.task) if self.project else []
         self.show_path_list(title="Incoming Files", file_paths=file_paths)
         self.emit_status_message("Incoming files preview found {0} file(s).".format(len(file_paths)))
 
@@ -671,7 +671,7 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         if not self.project:
             return []
         if self.task.uses_incoming_files():
-            return self.project.discover_input_files()
+            return self.project.discover_incoming_files_for_task(self.task)
         task_index = self.project.get_task_environment_index(self.task)
         return self.task.discover_source_files(project=self.project, task_index=task_index)
 

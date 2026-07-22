@@ -41,7 +41,28 @@ class TaskInput(task_base.BatchTask):
             "extensions": [".ma", ".mb", ".fbx"],
             "exclude_patterns": [],
             "explicit_files": [],
+            "start_new_input_list": False,
+            "force_segment_separator": False,
+            "segment_name": "",
+            "segment_color": "blue_light_sky",
         }
+
+    def get_segment_display_name(self):
+        """Gets the display name shown on this input task's segment separator.
+
+        Returns:
+            str: User-defined segment name, or "New Input Segment" when empty.
+        """
+        segment_name = str(self.settings.get("segment_name") or "").strip()
+        return segment_name or "New Input Segment"
+
+    def get_segment_color_name(self):
+        """Gets the UI color name used for this input task's segment separator.
+
+        Returns:
+            str: Color name from the UI color library, defaulting to a soft blue.
+        """
+        return str(self.settings.get("segment_color") or "blue_light_sky").strip() or "blue_light_sky"
 
     def get_source_path_template(self):
         """Gets this input task's source path template.

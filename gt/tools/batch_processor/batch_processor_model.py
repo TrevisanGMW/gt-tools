@@ -356,6 +356,102 @@ class BatchProcessorModel:
             input_tasks = [task for task in input_tasks if task.enabled]
         return input_tasks
 
+    def get_task_segments(self, task_list=None):
+        """Splits tasks into ordered segments at input segment boundaries.
+
+        A new segment begins at every input task that starts a new input list.
+        Input tasks without that flag join the current segment, preserving the
+        merge behavior used to combine multiple input folders. Tasks before the
+        first input task form a leading segment of their own.
+
+        Args:
+            task_list (list, optional): Tasks to segment. Defaults to the
+                enabled tasks in project order.
+
+        Returns:
+            list: List of task lists, one per segment, in project order.
+        """
+        tasks = task_list if task_list is not None else self.get_enabled_tasks()
+        segments = []
+        current_segment = []
+        for task in tasks:
+            if task.starts_new_input_list() and current_segment:
+                segments.append(current_segment)
+                current_segment = []
+            current_segment.append(task)
+        if current_segment:
+            segments.append(current_segment)
+        return segments
+
+    def has_input_segments(self, task_list=None):
+        """Checks whether tasks split into more than one input segment.
+
+        Args:
+            task_list (list, optional): Tasks to inspect. Defaults to enabled tasks.
+
+        Returns:
+            bool: True when at least one segment boundary is present.
+        """
+        return len(self.get_task_segments(task_list=task_list)) > 1
+
+    def discover_segment_input_files(self, segment_tasks):
+        """Discovers input files for a single segment's input tasks.
+
+        Unlike discover_input_files, which merges every input task in the
+        project, this only considers the input tasks that belong to the given
+        segment. It is used by multi-instance runs to fan out one segment at a
+        time, discovering later-segment files only once earlier segments have
+        produced their outputs.
+
+        Args:
+            segment_tasks (list): Tasks that make up one segment.
+
+        Returns:
+            list: Sorted discovered input file paths for the segment.
+        """
+        discovered = []
+        for task in segment_tasks or []:
+            if getattr(task, "is_input_task", False) and task.enabled:
+                discovered.extend(task.discover_files(self))
+        return sorted(set(discovered))
+
+    def get_segment_for_task(self, task, task_list=None):
+        """Gets the segment that contains a task.
+
+        Args:
+            task (BatchTask): Task to locate.
+            task_list (list, optional): Tasks to segment. Defaults to enabled tasks.
+
+        Returns:
+            list or None: Tasks in the segment containing the task, or None.
+        """
+        if not task:
+            return None
+        for segment in self.get_task_segments(task_list=task_list):
+            if any(segment_task.id == task.id for segment_task in segment):
+                return segment
+        return None
+
+    def discover_incoming_files_for_task(self, task):
+        """Discovers the incoming input files available to a task in its segment.
+
+        Only the input tasks in the same segment as the given task are used, so a
+        task placed after a "Start New Input List" boundary no longer reports the
+        earlier segments' files.
+
+        Args:
+            task (BatchTask): Task requesting its incoming files.
+
+        Returns:
+            list: Sorted discovered incoming file paths for the task's segment.
+        """
+        segment = self.get_segment_for_task(task)
+        if segment is None:
+            segment = self.get_segment_for_task(task, task_list=list(self.tasks))
+        if segment is None:
+            return self.discover_input_files()
+        return self.discover_segment_input_files(segment)
+
     def get_task_environment_index(self, task, enabled_only=None):
         """Gets the one-based task index used by path environment variables.
 

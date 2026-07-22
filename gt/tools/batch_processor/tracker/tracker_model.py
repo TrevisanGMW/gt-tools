@@ -141,7 +141,7 @@ class TrackerTask:
 class TrackerJob:
     """Tracks one source-file job."""
 
-    def __init__(self, job_id, number, source_file, task_definitions, is_finalization=False):
+    def __init__(self, job_id, number, source_file, task_definitions, is_finalization=False, segment_index=0):
         """Initializes job state.
 
         Args:
@@ -150,12 +150,14 @@ class TrackerJob:
             source_file (str): Source file assigned to the job.
             task_definitions (list): Task definition dictionaries.
             is_finalization (bool, optional): Whether this is the final run-once phase.
+            segment_index (int, optional): Zero-based input segment this job belongs to.
         """
         self.id = job_id
         self.number = int(number)
         self.source_file = source_file
         self.name = "Finalization" if is_finalization else os.path.basename(source_file)
         self.is_finalization = bool(is_finalization)
+        self.segment_index = int(segment_index)
         self.status = (
             tracker_constants.Status.PENDING_FINALIZATION
             if self.is_finalization

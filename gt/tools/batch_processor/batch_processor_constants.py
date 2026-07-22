@@ -32,6 +32,7 @@ class Project:
     PREFS_KEY_CONFIRM_DELETE_TASK = "confirm_delete_task"
     PREFS_KEY_FLAG_SKIPPED_TASKS = "flag_skipped_tasks"
     PREFS_KEY_IGNORE_DISABLED_TASKS_FOR_TASK_INDEX = "ignore_disabled_tasks_for_task_index"
+    PREFS_KEY_AUTO_SEGMENT_IMPORTED_PROJECTS = "auto_segment_imported_projects"
     PREFS_KEY_RECENT_PROJECTS = "recent_projects"
     MAX_RECENT_PROJECTS = 5
 

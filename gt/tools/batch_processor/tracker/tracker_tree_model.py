@@ -232,6 +232,15 @@ class TrackerTreeModel(ui_qt.QtCore.QAbstractItemModel):
             return ui_qt.QtCore.Qt.ItemFlag.ItemIsEnabled | ui_qt.QtCore.Qt.ItemFlag.ItemIsSelectable
         return ui_qt.QtCore.Qt.ItemIsEnabled | ui_qt.QtCore.Qt.ItemIsSelectable
 
+    def reset_rows(self):
+        """Rebuilds the model structure after the job list changes.
+
+        Used when a segmented multi-instance run materializes a new segment's
+        jobs while running, so newly added rows appear in the view.
+        """
+        self.beginResetModel()
+        self.endResetModel()
+
     def notify_all_changed(self):
         """Notifies views that all fixed-structure tracker values changed."""
         if not self.session.jobs:

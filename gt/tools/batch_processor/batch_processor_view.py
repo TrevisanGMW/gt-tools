@@ -258,6 +258,76 @@ class BatchProcessorView(metaclass=MayaWindowMeta):
         """
         self.task_tree.addTopLevelItem(item)
 
+    def add_segment_separator_item(self, segment_name="New Input Segment", color_hex=None):
+        """Adds a non-interactive divider marking the start of a new input segment.
+
+        The separator is purely presentational. It is rebuilt on every tree
+        refresh and is skipped by task-order synchronization because it is not
+        mapped to a task id.
+
+        Args:
+            segment_name (str, optional): Segment label shown in the divider.
+            color_hex (str, optional): Divider text color. Defaults to a soft blue.
+        """
+        segment_name = str(segment_name or "New Input Segment").strip() or "New Input Segment"
+        color_hex = color_hex or ui_res_lib.Color.Hex.blue_light_sky
+        tooltip = (
+            "A new input segment starts below. Incoming files reset here so the "
+            "following tasks process a fresh input list."
+        )
+        separator_item = ui_tree_enhanced.QTreeItemEnhanced([""])
+        separator_item.setData(0, self.DATA_ROLE, "segment_separator")
+        separator_item.set_allow_parenting(False)
+        separator_item.setFlags(ui_qt.QtLib.ItemFlag.ItemIsEnabled)
+        separator_item.setToolTip(0, tooltip)
+        self.project_item.addChild(separator_item)
+        self.task_tree.setItemWidget(
+            separator_item, 0, self._build_segment_separator_widget(segment_name, color_hex, tooltip)
+        )
+
+    def _build_segment_separator_widget(self, segment_name, color_hex, tooltip=""):
+        """Builds a full-width divider widget with a centered label between two rules.
+
+        The horizontal rules expand to fill the row, so the divider stretches from
+        left to right and follows the window as it is resized.
+
+        Args:
+            segment_name (str): Segment label shown in the center.
+            color_hex (str): Divider color.
+            tooltip (str, optional): Tooltip for the divider widget.
+
+        Returns:
+            QWidget: Divider widget.
+        """
+        container = ui_qt.QtWidgets.QWidget()
+        container.setToolTip(tooltip)
+        # Keep the divider transparent so it blends with the tree background.
+        container.setStyleSheet("background: transparent;")
+        layout = ui_qt.QtWidgets.QHBoxLayout(container)
+        layout.setContentsMargins(6, 0, 6, 0)
+        layout.setSpacing(8)
+
+        def build_rule():
+            """Builds one thin, horizontally expanding colored rule.
+
+            Returns:
+                QFrame: Divider rule.
+            """
+            rule = ui_qt.QtWidgets.QFrame()
+            rule.setFixedHeight(1)
+            rule.setSizePolicy(ui_qt.QtLib.SizePolicy.Expanding, ui_qt.QtLib.SizePolicy.Fixed)
+            rule.setStyleSheet("background-color: {0}; border: none;".format(color_hex))
+            return rule
+
+        label = ui_qt.QtWidgets.QLabel(segment_name)
+        label.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignCenter)
+        label.setFont(self.task_tree.font())
+        label.setStyleSheet("color: {0}; background: transparent;".format(color_hex))
+        layout.addWidget(build_rule(), 1, ui_qt.QtLib.AlignmentFlag.AlignVCenter)
+        layout.addWidget(label, 0)
+        layout.addWidget(build_rule(), 1, ui_qt.QtLib.AlignmentFlag.AlignVCenter)
+        return container
+
     def expand_all_task_tree_items(self):
         """Expands all task tree items."""
         self.task_tree.expandAll()
@@ -284,13 +354,23 @@ class BatchProcessorView(metaclass=MayaWindowMeta):
             self.add_item_to_task_tree(self.project_item)
 
             selected_item = None
+            task_items_added = 0
             for task in project.tasks:
+                forces_separator = bool(task.settings.get("force_segment_separator"))
+                if task.enabled and task.shows_segment_separator() and (task_items_added > 0 or forces_separator):
+                    segment_name = task.get_segment_display_name()
+                    color_name = task.get_segment_color_name()
+                    color_hex = getattr(
+                        ui_res_lib.Color.Hex, color_name, ui_res_lib.Color.Hex.blue_light_sky
+                    )
+                    self.add_segment_separator_item(segment_name, color_hex)
                 label = task.display_name
                 tree_item = ui_tree_enhanced.QTreeItemEnhanced([label])
                 tree_item.setIcon(0, ui_qt.QtGui.QIcon(batch_processor_task_widget.get_icon_path(task.icon)))
                 tree_item.setData(0, self.DATA_ROLE, task.id)
                 tree_item.set_allow_parenting(False)
                 self.project_item.addChild(tree_item)
+                task_items_added += 1
                 is_selected_task = bool(selected_task_id and selected_task_id == task.id)
                 if not task.enabled:
                     tree_item.setForeground(0, ui_qt.QtGui.QColor(ui_res_lib.Color.Hex.gray_dim))

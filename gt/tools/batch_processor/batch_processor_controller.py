@@ -70,10 +70,15 @@ class BatchProcessorController:
             key=constants.Project.PREFS_KEY_IGNORE_DISABLED_TASKS_FOR_TASK_INDEX,
             default=False,
         )
+        self._auto_segment_imported_projects = self._prefs.get_bool(
+            key=constants.Project.PREFS_KEY_AUTO_SEGMENT_IMPORTED_PROJECTS,
+            default=True,
+        )
         self.apply_task_index_automation()
         self.add_menu_file()
         self.add_menu_tasks()
         self.add_menu_utils()
+        self.add_menu_preferences()
         self.add_menu_logging()
         self.add_menu_help()
         self.connect_view()
@@ -143,6 +148,14 @@ class BatchProcessorController:
             lambda *args: self.open_or_create_directory(batch_processor_templates.get_template_source_dir())
         )
         self.view.add_menu_action(parent_menu=menu_templates, action=action_open_templates)
+
+        action_import_project = self.create_action("Import Project", icon_path=ui_res_lib.Icon.ui_open)
+        action_import_project.setToolTip(
+            "Import all tasks from an existing .batch project and append them to the current project. "
+            "Only the tasks and their settings are imported; project settings are discarded."
+        )
+        action_import_project.triggered.connect(self.import_project)
+        self.view.add_menu_action(parent_menu=menu_file, action=action_import_project)
 
     def refresh_recent_projects_menu(self):
         """Rebuilds the recent-project submenu from stored preferences."""
@@ -277,16 +290,12 @@ class BatchProcessorController:
         action_purge_output_files.triggered.connect(self.purge_output_directory_files)
         self.view.add_menu_action(parent_menu=menu_utils, action=action_purge_output_files)
 
-        ui_qt_utils.add_labeled_separator(menu=menu_utils, text="Preferences")
-
-        menu_automations = self.view.add_menu_submenu(
-            parent_menu=menu_utils,
-            submenu_name="Automations",
-            icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.root_general),
-        )
+    def add_menu_preferences(self):
+        """Adds the Preferences menu with the toolkit automation toggles."""
+        menu_preferences = self.view.add_menu_parent("Preferences")
 
         self.create_menu_checkbox_action(
-            parent_menu=menu_automations,
+            parent_menu=menu_preferences,
             text="Convert Absolute Paths to Relative",
             checked=self._convert_abs_paths_to_relative,
             tooltip=(
@@ -297,7 +306,7 @@ class BatchProcessorController:
         )
 
         self.create_menu_checkbox_action(
-            parent_menu=menu_automations,
+            parent_menu=menu_preferences,
             text="Flag Skipped Tasks in Single-Instance Log",
             checked=self._flag_skipped_tasks,
             tooltip="Print explicit log warnings when single-instance processing skips work.",
@@ -305,7 +314,7 @@ class BatchProcessorController:
         )
 
         self.create_menu_checkbox_action(
-            parent_menu=menu_automations,
+            parent_menu=menu_preferences,
             text="Ignore Disabled Tasks for Index",
             checked=self._ignore_disabled_tasks_for_task_index,
             tooltip=(
@@ -316,11 +325,22 @@ class BatchProcessorController:
         )
 
         self.create_menu_checkbox_action(
-            parent_menu=menu_automations,
+            parent_menu=menu_preferences,
             text="Confirm Task Delete",
             checked=self._confirm_delete_task,
             tooltip="Ask for confirmation before deleting a task from the right-click menu or task panel.",
             callback=self.toggle_confirm_delete_task,
+        )
+
+        self.create_menu_checkbox_action(
+            parent_menu=menu_preferences,
+            text="Auto-Segment Imported Projects",
+            checked=self._auto_segment_imported_projects,
+            tooltip=(
+                "When importing a project whose first task is an Input Files task, automatically start a "
+                "new segment on it and name the segment after the imported project."
+            ),
+            callback=self.toggle_auto_segment_imported_projects,
         )
 
     def open_project_directory(self, *args):
@@ -489,6 +509,21 @@ class BatchProcessorController:
         state_name = "ignored" if self._ignore_disabled_tasks_for_task_index else "included"
         self.log_status(f"Disabled tasks are now {state_name} when resolving task indexes.")
 
+    def toggle_auto_segment_imported_projects(self, checked):
+        """Stores whether importing a project should start a new segment automatically.
+
+        Args:
+            checked (bool): New preference state.
+        """
+        self._auto_segment_imported_projects = bool(checked)
+        self._prefs.set_bool(
+            key=constants.Project.PREFS_KEY_AUTO_SEGMENT_IMPORTED_PROJECTS,
+            value=self._auto_segment_imported_projects,
+        )
+        self._prefs.save()
+        state_name = "enabled" if self._auto_segment_imported_projects else "disabled"
+        self.log_status("Auto-segment imported projects {0}.".format(state_name))
+
     def apply_task_index_automation(self):
         """Applies the global disabled-task indexing preference to the active project."""
         self.model.run_settings["ignore_disabled_tasks_for_task_index"] = bool(
@@ -551,6 +586,90 @@ class BatchProcessorController:
         if file_path:
             return self.load_project_from_path(file_path)
         return False
+
+    def import_project(self):
+        """Imports all tasks from an existing project into the current project.
+
+        Prompts for a .batch file and appends its tasks to the bottom of the
+        current project. Only the tasks and their settings are imported; the
+        source project's own settings are discarded.
+
+        Returns:
+            bool: True when tasks were imported.
+        """
+        file_path = ui_file_dialog.file_dialog(
+            parent=self.view,
+            caption="Import Batch Project Tasks",
+            starting_directory=os.path.expanduser("~"),
+            file_filter="Batch Projects (*.batch);;All Files (*);;",
+            ok_caption="Import Tasks",
+            cancel_caption="Cancel",
+        )
+        if file_path:
+            return self.import_tasks_from_path(file_path)
+        return False
+
+    def import_tasks_from_path(self, file_path, *args):
+        """Appends every task from a project file to the current project.
+
+        Args:
+            file_path (str): Batch project file path to import tasks from.
+            *args: Optional Qt signal arguments.
+
+        Returns:
+            bool: True when tasks were imported.
+        """
+        file_path = os.path.abspath(os.path.expanduser(str(file_path or "")))
+        if not os.path.isfile(file_path):
+            self.show_project_load_warning(
+                title="Project Not Found",
+                message=f"The project no longer exists:\n\n{file_path}",
+            )
+            return False
+        try:
+            imported_model = type(self.model).from_file(file_path)
+        except Exception as exception:
+            logger.exception('Unable to import batch project tasks: "%s"', file_path)
+            self.show_project_load_warning(
+                title="Unable to Import Project",
+                message=(
+                    "The project tasks could not be imported and the current project "
+                    f"was preserved.\n\n{exception}"
+                ),
+            )
+            return False
+        imported_tasks = list(imported_model.tasks)
+        if not imported_tasks:
+            self.log_status(f"No tasks found to import from: {file_path}", status="warning")
+            return False
+        self.apply_auto_segment_on_import(imported_tasks=imported_tasks, imported_model=imported_model)
+        for task in imported_tasks:
+            self.model.add_task_from_dict(task.to_dict(), reinitialize_id=True)
+        self.apply_task_index_automation()
+        self.refresh_widgets()
+        self.log_status(f"Imported {len(imported_tasks)} task(s) from: {file_path}")
+        return True
+
+    def apply_auto_segment_on_import(self, imported_tasks, imported_model):
+        """Starts a new segment on an imported project's leading input task.
+
+        When the auto-segment preference is enabled and the first imported task is
+        an input task, it is flagged to start a new input list and named after the
+        imported project, so the import reads as its own segment.
+
+        Args:
+            imported_tasks (list): Tasks being imported, in order.
+            imported_model (BatchProcessorModel): Source project providing the name.
+        """
+        if not self._auto_segment_imported_projects or not imported_tasks:
+            return
+        first_task = imported_tasks[0]
+        if not getattr(first_task, "is_input_task", False):
+            return
+        first_task.settings["start_new_input_list"] = True
+        project_name = str(getattr(imported_model, "project_name", "") or "").strip()
+        if project_name:
+            first_task.settings["segment_name"] = project_name
 
     def load_project_from_path(self, file_path, *args):
         """Safely loads a project path after validating it and protecting changes.

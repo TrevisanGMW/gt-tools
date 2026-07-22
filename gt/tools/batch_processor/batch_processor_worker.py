@@ -82,10 +82,18 @@ class SingleInstanceBatchRunner:
                 self._record_operation(task)
                 if task.is_input_task:
                     new_items = task.prepare(project, context={"task_index": task_environment_index})
-                    current_items.extend(new_items)
-                    self.tracker.record_message(
-                        'Input task "{0}" discovered {1} file(s).'.format(task.display_name, len(new_items))
-                    )
+                    if task.starts_new_input_list():
+                        current_items = list(new_items)
+                        self.tracker.record_message(
+                            'Input task "{0}" started a new input list with {1} file(s).'.format(
+                                task.display_name, len(new_items)
+                            )
+                        )
+                    else:
+                        current_items.extend(new_items)
+                        self.tracker.record_message(
+                            'Input task "{0}" discovered {1} file(s).'.format(task.display_name, len(new_items))
+                        )
                     self._record_task_timing(
                         task=task,
                         task_index=step_index,
@@ -564,6 +572,12 @@ class MultiInstanceBatchRunner:
             if task and not task.is_input_task and not task.uses_incoming_files():
                 task_index = project.get_task_environment_index(task)
                 return task.discover_source_files(project=project, task_index=task_index)
+        segments = project.get_task_segments()
+        if len(segments) > 1:
+            # Segmented runs fan out one segment at a time. The initial queue only
+            # needs the first segment's files; later segments are discovered by the
+            # tracker once earlier segments produce their outputs.
+            return project.discover_segment_input_files(segments[0])
         return project.discover_input_files()
 
     @staticmethod

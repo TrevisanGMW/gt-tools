@@ -52,6 +52,12 @@ def parse_args():
         help="Task id deferred to the tracker final phase.",
     )
     parser.add_argument("--final-task-id", default="", help="Run only this task using its discovered source path.")
+    parser.add_argument(
+        "--task-id",
+        action="append",
+        default=[],
+        help="Explicit processing task id to run, in order (used for segmented runs).",
+    )
     parser.add_argument("--worker-id", default="", help="Worker identifier for logs.")
     parser.add_argument("--total-jobs", default="1", help="Total job count for tracker messages.")
     parser.add_argument("--log-file", default="", help="Optional log file used while stdout remains visible.")
@@ -90,6 +96,11 @@ def main():
         if not final_task or final_task.is_input_task or not final_task.enabled:
             raise RuntimeError(f"Unable to resolve enabled final task: {args.final_task_id}")
         process_tasks = [final_task]
+    elif args.task_id:
+        tasks_by_id = {task.id: task for task in project.get_enabled_tasks()}
+        process_tasks = [tasks_by_id[task_id] for task_id in args.task_id if task_id in tasks_by_id]
+        if not process_tasks:
+            raise RuntimeError("Unable to resolve any segment task id for this worker.")
     else:
         process_tasks = runner._trim_tasks(
             project.get_enabled_tasks(),

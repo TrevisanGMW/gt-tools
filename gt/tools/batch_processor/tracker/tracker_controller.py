@@ -34,6 +34,7 @@ class TrackerController:
         self.scheduler = scheduler
         self.view = view
         self.source_model = tracker_tree_model.TrackerTreeModel(session=session, parent=view.tree)
+        self._displayed_job_count = len(session.jobs)
         self.proxy_model = tracker_tree_model.TrackerFilterProxyModel(view.tree)
         self.proxy_model.setSourceModel(self.source_model)
         self.proxy_model.setSortRole(tracker_tree_model.SORT_ROLE)
@@ -134,6 +135,9 @@ class TrackerController:
 
     def refresh(self):
         """Refreshes tracker rows and aggregate summary text."""
+        if len(self.session.jobs) != self._displayed_job_count:
+            self.source_model.reset_rows()
+            self._displayed_job_count = len(self.session.jobs)
         self.source_model.notify_all_changed()
         self._update_copy_actions()
         self._update_summary()

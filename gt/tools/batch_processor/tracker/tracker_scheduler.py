@@ -9,13 +9,14 @@ import time
 
 from gt.tools.batch_processor.tracker import tracker_constants
 from gt.tools.batch_processor.tracker import tracker_events
+from gt.tools.batch_processor.tracker import tracker_model
 from gt.tools.batch_processor.tracker import tracker_process_utils
 
 
 class TrackerScheduler:
     """Owns the job queue and all worker subprocesses."""
 
-    def __init__(self, session, options, update_callback=None, finish_callback=None):
+    def __init__(self, session, options, update_callback=None, finish_callback=None, project=None, segments=None):
         """Initializes the scheduler.
 
         Args:
@@ -23,11 +24,22 @@ class TrackerScheduler:
             options (argparse.Namespace): Tracker launch options.
             update_callback (callable, optional): Called after state changes.
             finish_callback (callable, optional): Called when all work finishes.
+            project (BatchProcessorModel, optional): Project model used to discover
+                each segment's source files at phase start. Required for segmented runs.
+            segments (list, optional): Ordered segment descriptors. When provided
+                (more than one), the run executes one segment at a time with a
+                barrier between segments.
         """
         self.session = session
         self.options = options
         self.update_callback = update_callback
         self.finish_callback = finish_callback
+        self.project = project
+        self.segments = list(segments or [])
+        self.segmented = len(self.segments) > 1
+        self.current_segment_index = 0
+        self._materialized_segments = set()
+        self._job_counter = 0
         self.running = {}
         self.readers = {}
         self.worker_log_offsets = {}
@@ -67,6 +79,8 @@ class TrackerScheduler:
             changed = self._advance_abort() or changed
         else:
             changed = self._advance_job_cancellations() or changed
+            if self.segmented:
+                changed = self._advance_segments() or changed
             changed = self._launch_available_jobs() or changed
             changed = self._advance_finalization() or changed
         if self._is_finished() and not self.session.finished:
@@ -160,6 +174,8 @@ class TrackerScheduler:
         """
         if not job or job.is_finalization:
             return False
+        if self.segmented and getattr(job, "segment_index", 0) != self.current_segment_index:
+            return False
         if job.status not in tracker_constants.TERMINAL_STATUSES:
             return False
         if job.id in self.running or job in self.regular_queue:
@@ -216,6 +232,123 @@ class TrackerScheduler:
             changed = True
         return changed
 
+    def _advance_segments(self):
+        """Materializes the current segment and advances across barriers.
+
+        The first segment is materialized on the first call. Each later segment
+        is materialized only once every job in the current segment reaches a
+        terminal state, so a segment can read files produced by the segment
+        before it.
+
+        Returns:
+            bool: Whether segment state changed.
+        """
+        if self.current_segment_index not in self._materialized_segments:
+            self._materialize_segment(self.current_segment_index)
+            self._materialized_segments.add(self.current_segment_index)
+            return True
+        if not self._segment_complete(self.current_segment_index):
+            return False
+        if self.current_segment_index + 1 < len(self.segments):
+            self.current_segment_index += 1
+            self._materialize_segment(self.current_segment_index)
+            self._materialized_segments.add(self.current_segment_index)
+            return True
+        return False
+
+    def _materialize_segment(self, segment_index):
+        """Discovers a segment's source files and enqueues one job per file.
+
+        Args:
+            segment_index (int): Zero-based segment index to materialize.
+        """
+        segment = self.segments[segment_index]
+        source_files = []
+        if self.project:
+            source_files = self.project.discover_segment_input_files(segment.get("input_tasks"))
+        self._append_project_log(
+            "[OPERATION] - (Multi-instance) - Segment {0}/{1} discovered {2} file(s).\n".format(
+                segment_index + 1, len(self.segments), len(source_files)
+            )
+        )
+        insert_at = self._get_regular_insert_index()
+        new_jobs = []
+        for source_file in source_files:
+            self._job_counter += 1
+            job = tracker_model.TrackerJob(
+                job_id="seg{0:02d}-job-{1:04d}".format(segment_index + 1, self._job_counter),
+                number=self._job_counter,
+                source_file=source_file,
+                task_definitions=segment.get("definitions") or [],
+                segment_index=segment_index,
+            )
+            job.name = "[Seg {0}] {1}".format(segment_index + 1, job.name)
+            new_jobs.append(job)
+        for offset, job in enumerate(new_jobs):
+            self.session.jobs.insert(insert_at + offset, job)
+        self.regular_queue.extend(new_jobs)
+
+    def _get_regular_insert_index(self):
+        """Gets the index in session jobs where new regular jobs should go.
+
+        Keeps the finalization job last so it renders and schedules after every
+        regular job.
+
+        Returns:
+            int: Insertion index.
+        """
+        for index, job in enumerate(self.session.jobs):
+            if job.is_finalization:
+                return index
+        return len(self.session.jobs)
+
+    def _segment_jobs(self, segment_index):
+        """Gets materialized regular jobs for a segment.
+
+        Args:
+            segment_index (int): Segment index.
+
+        Returns:
+            list: Regular jobs belonging to the segment.
+        """
+        return [
+            job
+            for job in self.session.regular_jobs
+            if getattr(job, "segment_index", 0) == segment_index
+        ]
+
+    def _segment_complete(self, segment_index):
+        """Checks whether every job in a segment reached a terminal state.
+
+        A segment that discovered no files is complete immediately.
+
+        Args:
+            segment_index (int): Segment index.
+
+        Returns:
+            bool: True when the segment has no remaining work.
+        """
+        segment_jobs = self._segment_jobs(segment_index)
+        if not segment_jobs:
+            return True
+        if any(job.id in self.running for job in segment_jobs):
+            return False
+        if any(job in self.regular_queue for job in segment_jobs):
+            return False
+        return all(job.status in tracker_constants.TERMINAL_STATUSES for job in segment_jobs)
+
+    def _segments_remaining(self):
+        """Checks whether any segment still needs to run.
+
+        Returns:
+            bool: True when segments are unmaterialized or the current one is unfinished.
+        """
+        if not self.segmented:
+            return False
+        if len(self._materialized_segments) < len(self.segments):
+            return True
+        return not self._segment_complete(self.current_segment_index)
+
     def _launch_job(self, job, final_task=None):
         """Launches one job worker.
 
@@ -253,6 +386,10 @@ class TrackerScheduler:
         ]
         if final_task:
             command.extend(["--final-task-id", final_task.id])
+        elif self.segmented:
+            segment = self.segments[getattr(job, "segment_index", 0)]
+            for task_id in segment.get("task_ids") or []:
+                command.extend(["--task-id", task_id])
         else:
             if self.options.run_from_task_id:
                 command.extend(["--run-from-task-id", self.options.run_from_task_id])
@@ -466,6 +603,8 @@ class TrackerScheduler:
         job = self.finalization_job
         if not job or self.regular_queue or any(not data["job"].is_finalization for data in self.running.values()):
             return False
+        if self._segments_remaining():
+            return False
         if job.id in self.running:
             return False
         if self._preserve_terminal_finalization and job.status in tracker_constants.TERMINAL_STATUSES:
@@ -543,6 +682,8 @@ class TrackerScheduler:
             return False
         if self.session.aborting:
             return True
+        if self._segments_remaining():
+            return False
         if self.finalization_job:
             return self.finalization_job.status in tracker_constants.TERMINAL_STATUSES
         return all(job.status in tracker_constants.TERMINAL_STATUSES for job in self.session.regular_jobs)
@@ -619,6 +760,7 @@ class TrackerScheduler:
             "number": job.number,
             "name": job.name,
             "source_file": job.source_file,
+            "segment_index": getattr(job, "segment_index", 0),
             "status": job.status,
             "progress": job.progress,
             "errors": job.errors,

@@ -604,6 +604,32 @@ class BatchTask:
         """
         return self.settings.get("source_mode") == SOURCE_MODE_INCOMING
 
+    def starts_new_input_list(self):
+        """Checks whether this task starts a new input segment.
+
+        A segment boundary resets the accumulated incoming work items so a
+        single project can process unrelated file sets in sequence. Only input
+        tasks can start a new segment; the check is safe to call on any task.
+
+        Returns:
+            bool: True when this input task begins a fresh input list.
+        """
+        return bool(self.is_input_task and self.settings.get("start_new_input_list", False))
+
+    def shows_segment_separator(self):
+        """Checks whether this task shows a segment divider in the task list.
+
+        A divider is shown when the task starts a new input list or when the user
+        forces a separator. The forced separator is purely presentational and does
+        not reset the incoming file list.
+
+        Returns:
+            bool: True when a segment divider should be drawn above this task.
+        """
+        if not self.is_input_task:
+            return False
+        return bool(self.starts_new_input_list() or self.settings.get("force_segment_separator", False))
+
     def modifies_in_place(self):
         """Checks whether this task should modify received files in place.
 
