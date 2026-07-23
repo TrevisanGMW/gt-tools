@@ -99,7 +99,7 @@ def get_persistent_settings_render_checklist():
 
 def set_persistent_settings_render_checklist():
     """
-    Stores persistent settings for GT Render Checklist.
+    Stores persistent settings for Render Checklist.
     It converts the dictionary into a list for easy storage. (The get function converts it back to a dictionary)
     It assumes that persistent settings were stored using the cmds.optionVar function.
     """
@@ -107,7 +107,7 @@ def set_persistent_settings_render_checklist():
 
 
 def reset_persistent_settings_render_checklist():
-    """Resets persistent settings for GT Render Checklist"""
+    """Resets persistent settings for Render Checklist"""
     cmds.optionVar(remove="gt_render_checklist_setup")
     get_persistent_settings_render_checklist()
     build_gui_gt_render_checklist()

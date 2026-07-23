@@ -1211,7 +1211,7 @@ def add_rig_interface_button():
     """
     create_shelf_button(
         "import gt_biped_rig_interface\ngt_biped_rig_interface.build_gui_custom_rig_interface()",
-        label='GTRig', tooltip='This button opens the Custom Rig Interface for GT Biped Rigger.',
+        label='GTRig', tooltip='This button opens the Custom Rig Interface for Biped Rigger.',
         image='out_timeEditorAnimSource.png', label_color=(1, 0.45, 0))
     cmds.inViewMessage(
         amg='<span style=\"color:#FFFF00;\">Custom Rig Interface</span> button was added to your current shelf.',

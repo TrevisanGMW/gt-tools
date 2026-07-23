@@ -29,7 +29,7 @@ __version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 def launch_tool():
     """
     Launch user interface and create any necessary connections for the tool to function.
-    Entry point for when using the tool GT fSpy Importer.
+    Entry point for when using the tool fSpy Importer.
     """
     from gt.tools.fspy_importer import fspy_importer
     fspy_importer.script_version = __version__

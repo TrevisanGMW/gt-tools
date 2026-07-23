@@ -30,7 +30,7 @@ python_version = sys.version_info.major
 
 
 def build_gui_uv_transfer():
-    """Builds the UI for GT Sphere Types"""
+    """Builds the UI for Sphere Types"""
     if cmds.window("build_gui_uv_transfer", exists=True):
         cmds.deleteUI("build_gui_uv_transfer")
 
@@ -101,7 +101,7 @@ def uv_import():
     else:
         cmds.warning("Please select at least one target mesh.")
 
-    function_name = "GT Import UVs"
+    function_name = "Import UVs"
     cmds.undoInfo(openChunk=True, chunkName=function_name)
 
     try:
@@ -243,7 +243,7 @@ def uv_transfer_source_target():
         cmds.warning("Please select at least one source and one target.")
 
     if is_valid:
-        function_name = "GT Transfer UVs"
+        function_name = "Transfer UVs"
         cmds.undoInfo(openChunk=True, chunkName=function_name)
         try:
             error_occurred = False

@@ -636,7 +636,7 @@ def get_persistent_settings(data_object):
 
 def set_persistent_settings(data_object):
     """
-    Stores persistent settings for GT Rigger Data objects.
+    Stores persistent settings for Rigger Data objects.
     It converts the dictionary into a list for easy storage. (The get function converts it back to a dictionary)
     It assumes that persistent settings were stored using the cmds.optionVar function.
 
@@ -665,7 +665,7 @@ def set_persistent_settings(data_object):
 
 def reset_persistent_settings(data_object):
     """
-    Resets persistent settings for GT Rigger Data Object
+    Resets persistent settings for Rigger Data Object
 
     Args:
         data_object (GT*RiggerData): A GT*RiggerData object that is used to expo.

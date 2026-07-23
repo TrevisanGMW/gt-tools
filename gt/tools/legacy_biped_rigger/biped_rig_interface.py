@@ -520,7 +520,7 @@ def _get_persistent_settings_rig_interface():
 
 def _set_persistent_settings_rig_interface():
     """
-    Stores persistent settings for GT Auto Biped Rig Interface.
+    Stores persistent settings for Auto Biped Rig Interface.
     It converts the dictionary into a list for easy storage. (The get function converts it back to a dictionary)
     It assumes that persistent settings were stored using the cmds.optionVar function.
     """
@@ -528,7 +528,7 @@ def _set_persistent_settings_rig_interface():
 
 
 def _reset_persistent_settings_rig_interface():
-    """Resets persistent settings for GT Auto Biped Rig Interface"""
+    """Resets persistent settings for Auto Biped Rig Interface"""
     cmds.optionVar(remove="gt_auto_biped_rig_interface_setup")
     # gt_custom_rig_interface_settings = gt_custom_rig_interface_settings_default
     cmds.optionVar(sv=("gt_auto_biped_rig_interface_setup", str(gt_custom_rig_interface_settings_default)))
@@ -2584,7 +2584,7 @@ def anim_reset(namespace=""):
     Args:
         namespace (string): In case the rig has a namespace, it will be used to properly select the controls.
     """
-    function_name = "GT Reset Rig Animation"
+    function_name = "Reset Rig Animation"
     cmds.undoInfo(openChunk=True, chunkName=function_name)
     try:
         keys_ta = cmds.ls(type="animCurveTA")

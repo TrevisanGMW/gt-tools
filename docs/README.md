@@ -11,7 +11,7 @@
 <ul>
   <li><a href="#package-setup">Package Setup</a></li>
   <li><a href="#gt-menu">GT Menu</a></li>
-  <li><a href="#gt-check-for-updates">GT Check for Updates</a></li>
+  <li><a href="#gt-check-for-updates">Check for Updates</a></li>
 </ul>
 <h3><b>Tools:</b></h3>
 <ul>
@@ -170,11 +170,11 @@ After installing, you can delete the downloaded/extracted files (as they have al
 <br>
 </div>
 
-<!-- GT Check for Updates -->
+<!-- Check for Updates -->
 <div>
-<h1>GT Check for Updates</h1>
+<h1>Check for Updates</h1>
 <img src="./media/gt_check_for_updates.jpg" align="right"
-     alt="GT Check for Updates UI">
+     alt="Check for Updates UI">
 
 <p>This script compares your current GT Tools version with the latest release on GitHub. If the installed version is older, an update option becomes available.<br>You can also control how often the script automatically checks for updates.</p>
 
@@ -228,9 +228,9 @@ After installing, you can delete the downloaded/extracted files (as they have al
 <div>
 <h1>Renamer</h1>
 <img src="./media/gt_renamer.jpg" align="right"
-     alt="GT Renamer GUI">
+     alt="Renamer GUI">
 <img src="./media/gt_renamer_sample.gif" align="right"
-     alt="GT Renamer Sample">
+     alt="Renamer Sample">
 
 <p>Script for quickly renaming multiple objects.<br>Feedback is given through inView messages at the left bottom corner.</p>
 
@@ -255,7 +255,7 @@ After installing, you can delete the downloaded/extracted files (as they have al
 <div>
 <h1>Outliner Sorter</h1>
 <img src="./media/gt_outliner_sorter.jpg" align="right"
-     alt="GT Renamer GUI">
+     alt="Renamer GUI">
 
 <p>Script for sorting outliner hierarchies. Options will not re-parent objects, only change their order.</p>
 
@@ -286,11 +286,11 @@ After installing, you can delete the downloaded/extracted files (as they have al
 
 </div>
 
-<!-- GT Selection Manager-->
+<!-- Selection Manager-->
 <div>
 <h1>Selection Manager</h1>
 <img src="./media/gt_selection_manager.jpg" align="right"
-     alt="GT Selection Manager GUI">
+     alt="Selection Manager GUI">
 
 <p>This script allows you to update selections to contain (or not) filtered elements. You can also save and load previous selections.</p>	 
 <p><b>Element Name: </b>This option checks whether an object name contains or does not contain the provided text.</p>
@@ -313,7 +313,7 @@ After installing, you can delete the downloaded/extracted files (as they have al
 <div>
 <h1>Path Manager</h1>
 <img src="./media/gt_path_manager.gif" align="right"
-     alt="GT Path Manager GUI">
+     alt="Path Manager GUI">
 	 
 <p>This script displays a list with the name, type and path of any common nodes found in Maya.<br><br>You can select the node listed by clicking on it or change its name or path by double clicking the cell.
 
@@ -339,7 +339,7 @@ The icon on the left describes the validity of the path. If the file or director
 <h1>Color Manager</h1>
 
 <img src="./media/gt_color_manager.jpg" align="right"
-     alt="GT Color Manager GUI">
+     alt="Color Manager GUI">
 
 <p>Script for quickly coloring elements in Maya.<br>Feedback is given through inView messages at the left bottom corner.</p>
 <br>
@@ -349,9 +349,9 @@ The icon on the left describes the validity of the path. If the file or director
 <br>
 
 <img src="./media/gt_color_manager_sample_b.gif" align="right"
-	 alt="GT Path Manager Sample B">
+	 alt="Path Manager Sample B">
 <img src="./media/gt_color_manager_sample_a.gif" align="right"
-	 alt="GT Path Manager Sample A">
+	 alt="Path Manager Sample A">
 
 <p><b>Current Color: </b><br>The color used in the operation. Click on the color to open Maya's color picker.</p>
 
@@ -368,7 +368,7 @@ The icon on the left describes the validity of the path. If the file or director
 <h1>Transfer Transforms</h1>
 
 <img src="./media/gt_transfer_transforms.jpg" align="right"
-     alt="GT Transfer Transforms GUI">
+     alt="Transfer Transforms GUI">
 
 <p>Script for transferring translate, rotate or scale data from one object to another.</p>
 
@@ -400,7 +400,7 @@ with the provided prefix "Left Side Tag".</p>
 <h1>World Space Baker</h1>
 
 <img src="./media/gt_world_space_baker.jpg" align="right"
-     alt="GT World Space Baker GUI">
+     alt="World Space Baker GUI">
 
 <p>Script for storing then baking transforms using world-space data.</p>
 
@@ -427,7 +427,7 @@ with the provided prefix "Left Side Tag".</p>
 <p><b>Legacy Tool:</b> Enable it from <b>GT Tools > Help > Toggle > Toggle Legacy Menu</b>, then open it from <b>GT Tools > Legacy > Render Checklist</b>.</p>
 
 <img src="./media/gt_render_checklist.gif" align="right"
-     alt="GT Render Checklist GUI">
+     alt="Render Checklist GUI">
 
 <p>This script performs a series of checks to detect common issues that are often accidentally ignored/unnoticed.</p>
 
@@ -527,7 +527,7 @@ with the provided prefix "Left Side Tag".</p>
 <h1>Extract Python Curve</h1>
 
 <img src="./media/gt_extract_python_curve.jpg" align="right"
-     alt="GT Generate Python Curve GUI">
+     alt="Generate Python Curve GUI">
 
 <p>This script generates the Python code necessary to create a selected curve.<br>Helpful for when you want to save a curve to your shelf or to add it to a script.</p>
 
@@ -554,7 +554,7 @@ with the provided prefix "Left Side Tag".</p>
 <h1>Generate Text Curve</h1>
 
 <img src="./media/gt_generate_text_curve.jpg" align="right"
-     alt="GT Generate Text Curve GUI">
+     alt="Generate Text Curve GUI">
 
 <p>This script creates merged curves containing the input text from the text field. <br>(All shapes go under one transform)</p>
 
@@ -576,7 +576,7 @@ with the provided prefix "Left Side Tag".</p>
 <h1>Extract Curve State</h1>
 
 <img src="./media/gt_extract_shape_state.jpg" align="right"
-     alt="GT Extract Curve State GUI">
+     alt="Extract Curve State GUI">
 
 <p>This script generates the Python code necessary to recreate a curve shape state.</p>
 
@@ -604,7 +604,7 @@ with the provided prefix "Left Side Tag".</p>
 <h1>Transfer UVs</h1>
 
 <img src="./media/gt_transfer_uvs.jpg" align="right"
-     alt="GT Transfer UVs GUI">
+     alt="Transfer UVs GUI">
 
 <p>Script used to quickly transfer UVs between objects. It allows you to export or import UVs or transfer them from an object to other objects in the scene.<br> This script automatically bakes the UVs onto the intermediate object allowing you to transfer UVs without generating history.</p>
 
@@ -621,7 +621,7 @@ with the provided prefix "Left Side Tag".</p>
 <h1>Sphere Types</h1>
 
 <img src="./media/gt_create_sphere_types.jpg" align="right"
-     alt="GT Sphere Types GUI">
+     alt="Sphere Types GUI">
 
 <p>Quite simple script used as a reminder that the standard sphere is not the only sphere option.</p>
 
@@ -665,7 +665,7 @@ with the provided prefix "Left Side Tag".</p>
 <h1>Biped Auto Rigger</h1>
 
 <img src="./media/gt_auto_biped_rigger.jpg" align="right"
-     alt="GT Biped Auto Rigger GUI">
+     alt="Biped Auto Rigger GUI">
 
 <p>Script for quickly generating an advanced biped rig.
 <br>For more predictable results execute the script in a new scene containing only the geometry of the desired character. This solves most naming conflicts and data loss issues. In case you want the auto rigger to manage your geometry, parent it under a group called "geometry_grp".
@@ -735,7 +735,7 @@ Now that the rig has been created, it is time to attach it to the geometry.
 <p><h3>Utilities:</h3>
 
 <img src="./media/gt_auto_biped_rigger_fkik.jpg" align="right"
-     alt="GT Seamless FK/IK Switcher for Biped Auto Rigger GUI">
+     alt="Seamless FK/IK Switcher for Biped Auto Rigger GUI">
 
 These are utilities and extra functions that you can use after creating your rig.
 <br>
@@ -753,7 +753,7 @@ These are utilities and extra functions that you can use after creating your rig
 <br>
 <h3>Example of seamless FK/IK switch being used:</h3>
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_fkik.gif?raw=true"
-     alt="GT Seamless FK/IK Switcher for Biped Auto Rigger Example">
+     alt="Seamless FK/IK Switcher for Biped Auto Rigger Example">
 
 <p><br><br><h3>How to attach motion capture data to the rig through HumanIK:</h3>
 <b>- 1.</b> Start by defining a character and assigning all bones to the definition (You can do that in one click using the utility "Attach to HumanIK")
@@ -766,7 +766,7 @@ These are utilities and extra functions that you can use after creating your rig
 <br>Feel free to delete the HumanIK character definition and mocap data after that as the keyframes are now already baked to the controls.
 </p>
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_hik.gif?raw=true"
-     alt="GT Auto Biped attached to HumanIK Example">
+     alt="Auto Biped attached to HumanIK Example">
 
 <p><h3>Lock Attribute and Follow Object:</h3>
 This rig comes with many custom attributes so you can tweak how much stability/flexibility you want and how the systems should behave.</p>
@@ -774,14 +774,14 @@ This rig comes with many custom attributes so you can tweak how much stability/f
 <p><b>- Follow Object</b>: A few controls give you the option to follow other controls or move on their own. These are the pole vector controls (such as the IK knees and IK elbows) and the eye controls. Below you can see an example of the eye controls following or not the head. </p>
 
 <img src="./media/gt_auto_biped_rigger_lock_attr.jpg"
-     alt="GT Auto Biped Lock Attribute Example">
+     alt="Auto Biped Lock Attribute Example">
 <img src="./media/gt_auto_biped_rigger_follow_attr.jpg" align="right"
-     alt="GT Auto Biped Follow Attribute Example">
+     alt="Auto Biped Follow Attribute Example">
 
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_foot.gif?raw=true"
-     alt="GT Auto Biped Foot Rolls Example">
+     alt="Auto Biped Foot Rolls Example">
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_eyes.gif?raw=true" align="right"
-     alt="GT Auto Biped Follow Eye Example">
+     alt="Auto Biped Follow Eye Example">
 
 <p><h3>FK/IK Switch Control, Stretchy System, and Finger Automation:</h3><b>- FK/IK Switch</b>: To control which system is currently active, just change the value in the attribute "Influence Switch" (".influenceSwitch"), when set to "0" (Zero) the rig uses forward kinematics (FK) when set to "1" (One) it uses inverse kinematics (IK). By default the visibility of the controls is automatically managed, but in case you want to control it manually, you can deactivate the attribute "Auto Visibility" and pick which one you want to see through the attribute "System Visibility". </p>
 <p><b>- Stretchy Attributes</b>: The custom attributes to control how the stretchy system behaves can be found under the FK/IK Switch Controls. In order to use the stretchy system the rig must be configured to to "IK".
@@ -803,14 +803,14 @@ This rig comes with many custom attributes so you can tweak how much stability/f
 <br>
 
 <img src="./media/gt_auto_biped_rigger_stretchy_system.jpg"
-     alt="GT Auto Biped Stretchy Attributes Example">
+     alt="Auto Biped Stretchy Attributes Example">
 <img src="./media/gt_auto_biped_rigger_finger_attr.jpg" align="right"
-     alt="GT Auto Biped Follow Attribute Example">
+     alt="Auto Biped Follow Attribute Example">
 
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_fingers.gif?raw=true" align="right"
-     alt="GT Auto Biped Finger Automation Example">
+     alt="Auto Biped Finger Automation Example">
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_stretchy.gif?raw=true"
-     alt="GT Auto Biped Stretchy System Example">
+     alt="Auto Biped Stretchy System Example">
 
 <br>
 <p><h3>Auto Breathing, Abduction/Adduction, and Knuckles Compression Systems:</h3>
@@ -842,14 +842,14 @@ This rig comes with many custom attributes so you can tweak how much stability/f
 <br>
 
 <img src="./media/gt_auto_biped_rigger_abduction_system.jpg" 
-     alt="GT Auto Biped Abduction Attribute Example">
+     alt="Auto Biped Abduction Attribute Example">
 <img src="./media/gt_auto_biped_rigger_breathing_system.jpg" align="right"
-     alt="GT Auto Biped Auto Breathing Attributes Example">
+     alt="Auto Biped Auto Breathing Attributes Example">
 
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_breathing.gif?raw=true" align="right"
-     alt="GT Auto Biped Breathing Automation Example">
+     alt="Auto Biped Breathing Automation Example">
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_knuckles.gif?raw=true"
-     alt="GT Auto Biped Abduction/Adduction System Example">
+     alt="Auto Biped Abduction/Adduction System Example">
 
 <h3>Settings:</h3>
 <ul>
@@ -866,8 +866,8 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 <br>
 <p><h3>Auto Rigger Work Sample:</h3></p>
-<p>Below you can watch a few animations that used GT Biped Auto Rigger to rig their characters.</p>
-<img src="./media/gt_auto_rigger_home_remedy.jpg" alt="GT Biped Auto Rigger Home Remedy Promo">
+<p>Below you can watch a few animations that used Biped Auto Rigger to rig their characters.</p>
+<img src="./media/gt_auto_rigger_home_remedy.jpg" alt="Biped Auto Rigger Home Remedy Promo">
 
 <p>
 <ul>
@@ -887,7 +887,7 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 <h1>Biped Rig Interface</h1>
 
 <img src="./media/gt_custom_rig_interface.jpg" align="right"
-     alt="GT Biped Rig Interface GUI">
+     alt="Biped Rig Interface GUI">
 
 <p>Extra functions and automation for rigs generated using GT Biped Auto Rigger.
 <br>This script includes FK/IK Switchers, Pose managers, Animation managers and more.</p>

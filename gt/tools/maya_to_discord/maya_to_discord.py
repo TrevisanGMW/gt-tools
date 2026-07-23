@@ -139,7 +139,7 @@ def set_persistent_settings_maya_to_discord(
     custom_username, webhook, image_format, video_format, video_scale, video_compression, video_output_type
 ):
     """
-    Stores persistent settings for GT Maya to Discord.
+    Stores persistent settings for Maya to Discord.
     It assumes that persistent settings were stored using the cmds.optionVar function.
 
     Args:
@@ -199,7 +199,7 @@ def set_persistent_settings_maya_to_discord(
 
 
 def reset_persistent_settings_maya_to_discord():
-    """Resets persistent settings for GT Maya to Discord"""
+    """Resets persistent settings for Maya to Discord"""
     cmds.optionVar(remove="gt_maya_to_discord_webhook")
     cmds.optionVar(remove="gt_maya_to_discord_webhook_name")
     cmds.optionVar(remove="gt_maya_to_discord_custom_username")
@@ -989,7 +989,7 @@ def build_gui_maya_to_discord():
 
 # Creates Help GUI
 def build_gui_help_maya_to_discord():
-    """Builds the Help UI for GT Maya to Discord"""
+    """Builds the Help UI for Maya to Discord"""
     window_name = "build_gui_help_maya_to_discord"
     if cmds.window(window_name, exists=True):
         cmds.deleteUI(window_name, window=True)
@@ -1104,7 +1104,7 @@ def build_gui_help_maya_to_discord():
 
 
 def build_gui_settings_maya_to_discord():
-    """Builds the Settings UI for GT Maya to Discord"""
+    """Builds the Settings UI for Maya to Discord"""
     window_name = "build_gui_settings_maya_to_discord"
     if cmds.window(window_name, exists=True):
         cmds.deleteUI(window_name, window=True)

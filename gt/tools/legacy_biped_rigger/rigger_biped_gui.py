@@ -744,7 +744,7 @@ def build_gui_auto_biped_rig():
 
         Args:
             key_string (string) : Key name, used to determine what bool value to flip
-            data_object: GT Rigger data object used to update the settings
+            data_object: Rigger data object used to update the settings
         """
         data_object.settings[key_string] = not data_object.settings.get(key_string)
         set_persistent_settings(data_object)
@@ -1096,7 +1096,7 @@ def validate_biped_operation(operation):
 
         # If valid, create proxy
         if is_valid:
-            function_name = "GT Auto Biped - Create Proxy"
+            function_name = "Auto Biped - Create Proxy"
             cmds.undoInfo(openChunk=True, chunkName=function_name)
             cmds.refresh(suspend=True)
             try:
@@ -1167,7 +1167,7 @@ def validate_biped_operation(operation):
 
         # If valid, create rig
         if is_valid:
-            function_name = "GT Auto Biped - Create Rig"
+            function_name = "Auto Biped - Create Rig"
             if data_biped.debugging:
                 create_biped_rig(data_biped)
             else:
@@ -1529,7 +1529,7 @@ def mirror_proxy(operation, proxy_target="base"):
 
 def define_biped_humanik(character_name):
     """
-    Auto creates a character definition for GT Auto Biped. (It overwrites any definition with the same name)
+    Auto creates a character definition for Auto Biped. (It overwrites any definition with the same name)
 
     Args:
         character_name (string): Name of the HIK character
