@@ -1,6 +1,7 @@
 """Model and pure helpers for the Shape Text to Curve tool."""
 
 import logging
+import re
 
 
 logger = logging.getLogger(__name__)
@@ -11,7 +12,7 @@ DEFAULT_TEXT = "hello, world"
 
 
 def parse_text_entries(raw_text):
-    """Parses comma-separated text into non-empty entries.
+    """Parses comma-separated or newline-separated text into non-empty entries.
 
     Args:
         raw_text (str): Text entered by the user.
@@ -21,7 +22,7 @@ def parse_text_entries(raw_text):
     """
     if not isinstance(raw_text, str):
         return []
-    return [entry.strip() for entry in raw_text.split(",") if entry.strip()]
+    return [entry.strip() for entry in re.split(r"[,\n]", raw_text) if entry.strip()]
 
 
 class ShapeTextToCurveModel:

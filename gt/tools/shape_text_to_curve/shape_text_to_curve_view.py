@@ -48,21 +48,14 @@ class ShapeTextToCurveView(metaclass=MayaWindowMeta):
         font_layout.addWidget(self.font_button, 1)
         main_layout.addLayout(font_layout)
 
-        separator = ui_qt.QtWidgets.QFrame()
-        separator.setFrameShape(ui_qt.QtLib.FrameStyle.HLine)
-        separator.setFrameShadow(ui_qt.QtLib.FrameStyle.Sunken)
-        main_layout.addWidget(separator)
+        main_layout.addWidget(self._build_labeled_separator("Text:"))
 
-        text_layout = ui_qt.QtWidgets.QHBoxLayout()
-        text_layout.setSpacing(8)
-        text_label = ui_qt.QtWidgets.QLabel("Text:")
-        self.text_field = ui_qt.QtWidgets.QLineEdit()
-        self.text_field.setMinimumHeight(24)
-        self.text_field.setPlaceholderText("Enter text; separate multiple entries with commas")
-        self.text_field.setToolTip("Use commas to create multiple text curves in one operation.")
-        text_layout.addWidget(text_label)
-        text_layout.addWidget(self.text_field, 1)
-        main_layout.addLayout(text_layout)
+        self.text_field = ui_qt.QtWidgets.QPlainTextEdit()
+        self.text_field.setMinimumHeight(48)
+        self.text_field.setSizePolicy(ui_qt.QtLib.SizePolicy.Expanding, ui_qt.QtLib.SizePolicy.Expanding)
+        self.text_field.setPlaceholderText("Enter text; separate multiple entries with commas or new lines")
+        self.text_field.setToolTip("Use commas or new lines to create multiple text curves in one operation.")
+        main_layout.addWidget(self.text_field, 1)
 
         self.generate_button = ui_qt.QtWidgets.QPushButton("Generate")
         self.generate_button.setObjectName("generateButton")
@@ -74,9 +67,14 @@ class ShapeTextToCurveView(metaclass=MayaWindowMeta):
         self.status_label = ui_qt.QtWidgets.QLabel()
         self.status_label.setObjectName("statusLabel")
         self.status_label.setWordWrap(True)
+        self.status_label.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignCenter)
         self.status_label.setVisible(False)
         main_layout.addWidget(self.status_label)
-        main_layout.addStretch(1)
+
+        self._status_timer = ui_qt.QtCore.QTimer(self)
+        self._status_timer.setSingleShot(True)
+        self._status_timer.setInterval(2000)
+        self._status_timer.timeout.connect(lambda: self.set_status(""))
 
     def _build_title_bar(self):
         """Builds the title strip and help button.
@@ -103,6 +101,35 @@ class ShapeTextToCurveView(metaclass=MayaWindowMeta):
         title_layout.addWidget(self.help_button)
         return title_bar
 
+    @staticmethod
+    def _build_labeled_separator(text):
+        """Builds a horizontal separator with a centered section label.
+
+        Args:
+            text (str): Section label shown between the two separator lines.
+
+        Returns:
+            QWidget: Separator widget with lines flanking the label.
+        """
+        widget = ui_qt.QtWidgets.QWidget()
+        layout = ui_qt.QtWidgets.QHBoxLayout(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(7)
+
+        left_line = ui_qt.QtWidgets.QFrame()
+        right_line = ui_qt.QtWidgets.QFrame()
+        for line in [left_line, right_line]:
+            line.setFrameShape(ui_qt.QtLib.FrameStyle.HLine)
+            line.setFrameShadow(ui_qt.QtLib.FrameStyle.Sunken)
+
+        label = ui_qt.QtWidgets.QLabel(text)
+        label.setObjectName("separatorLabel")
+        label.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignCenter)
+        layout.addWidget(left_line, 1)
+        layout.addWidget(label)
+        layout.addWidget(right_line, 1)
+        return widget
+
     def resize_to_contents(self):
         """Shrinks a floating window to the smallest useful content size."""
         try:
@@ -122,7 +149,7 @@ class ShapeTextToCurveView(metaclass=MayaWindowMeta):
         Returns:
             str: Current text field value.
         """
-        return self.text_field.text()
+        return self.text_field.toPlainText()
 
     def set_text(self, text):
         """Sets the text field value.
@@ -130,7 +157,7 @@ class ShapeTextToCurveView(metaclass=MayaWindowMeta):
         Args:
             text (str): New text field value.
         """
-        self.text_field.setText(text)
+        self.text_field.setPlainText(text)
 
     def set_font_name(self, font_name):
         """Updates the displayed font name.
@@ -143,6 +170,8 @@ class ShapeTextToCurveView(metaclass=MayaWindowMeta):
     def set_status(self, message, is_error=False):
         """Shows a concise operation status below the action button.
 
+        The message automatically clears after a short delay.
+
         Args:
             message (str): Status message. An empty value hides the label.
             is_error (bool, optional): Whether to use warning emphasis.
@@ -152,6 +181,10 @@ class ShapeTextToCurveView(metaclass=MayaWindowMeta):
         self.status_label.setVisible(bool(message))
         self.status_label.style().unpolish(self.status_label)
         self.status_label.style().polish(self.status_label)
+        if message:
+            self._status_timer.start()
+        else:
+            self._status_timer.stop()
 
     def create_help_dialog(self):
         """Creates the non-modal help dialog.
@@ -211,19 +244,29 @@ class ShapeTextToCurveView(metaclass=MayaWindowMeta):
         Returns:
             str: Combined Maya and tool-specific stylesheet.
         """
-        return ui_res_lib.Stylesheet.maya_dialog_base + """
-            QFrame#titleBar { background-color: #666666; border: none; }
-            QLabel#titleLabel, QLabel#helpTitle { color: #f0f0f0; font-weight: bold; }
-            QPushButton#helpButton { background-color: #666666; color: #eeeeee; padding: 2px 10px; }
-            QPushButton#helpButton:hover { background-color: #777777; }
-            QPushButton#fontButton { background-color: #5c5c5c; color: #dddddd; }
-            QPushButton#fontButton:hover { background-color: #696969; }
-            QPushButton#generateButton { background-color: #999999; color: #202020; font-weight: bold; }
-            QPushButton#generateButton:hover { background-color: #aaaaaa; }
-            QPushButton#generateButton:pressed { background-color: #777777; }
-            QLabel#statusLabel { color: #a8c7a0; font-weight: normal; }
-            QLabel#statusLabel[error="true"] { color: #d8a09a; }
-            QLineEdit { padding: 3px 5px; }
+        field_background = ui_res_lib.Color.RGB.gray_darker
+        field_selection = ui_res_lib.Color.RGB.blue_pastel
+        field_text = ui_res_lib.Color.RGB.white_smoke_darker
+        return ui_res_lib.Stylesheet.maya_dialog_base + f"""
+            QFrame#titleBar {{ background-color: #666666; border: none; }}
+            QLabel#titleLabel, QLabel#helpTitle {{ color: #f0f0f0; font-weight: bold; }}
+            QPushButton#helpButton {{ background-color: #666666; color: #eeeeee; padding: 2px 10px; }}
+            QPushButton#helpButton:hover {{ background-color: #777777; }}
+            QPushButton#fontButton {{ background-color: #5c5c5c; color: #dddddd; }}
+            QPushButton#fontButton:hover {{ background-color: #696969; }}
+            QPushButton#generateButton {{ background-color: #999999; color: #202020; font-weight: bold; }}
+            QPushButton#generateButton:hover {{ background-color: #aaaaaa; }}
+            QPushButton#generateButton:pressed {{ background-color: #777777; }}
+            QLabel#separatorLabel {{ color: #909090; font-weight: normal; }}
+            QLabel#statusLabel {{ color: #a8c7a0; font-weight: normal; }}
+            QLabel#statusLabel[error="true"] {{ color: #d8a09a; }}
+            QLineEdit, QPlainTextEdit {{ padding: 3px 5px; }}
+            QPlainTextEdit {{
+                background-color: {field_background};
+                selection-background-color: {field_selection};
+                color: {field_text};
+                border: none;
+            }}
         """
 
 

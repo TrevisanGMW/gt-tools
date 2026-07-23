@@ -14,6 +14,12 @@ class TestShapeTextToCurveModel(unittest.TestCase):
         result = model.parse_text_entries(" hello, world ")
         self.assertEqual(expected, result)
 
+    def test_parse_text_entries_with_newline_separator(self):
+        """Tests parsing entries separated by new lines and commas."""
+        expected = ["hello", "world", "again"]
+        result = model.parse_text_entries("hello\nworld,\nagain")
+        self.assertEqual(expected, result)
+
     def test_parse_text_entries_discards_empty_values(self):
         """Tests that empty comma-separated values are discarded."""
         expected = ["hello", "world"]

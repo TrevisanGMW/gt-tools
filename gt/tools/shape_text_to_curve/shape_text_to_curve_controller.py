@@ -33,7 +33,6 @@ class ShapeTextToCurveController:
     def _connect_view(self):
         """Connects user interface signals to controller actions."""
         self.view.generate_button.clicked.connect(self.generate_curves)
-        self.view.text_field.returnPressed.connect(self.generate_curves)
         self.view.font_button.clicked.connect(self.choose_font)
         self.view.help_button.clicked.connect(self.show_help)
 
@@ -49,6 +48,14 @@ class ShapeTextToCurveController:
         if not created_curves:
             self.view.set_status("Enter text before generating curves.", is_error=True)
             return
+
+        try:
+            import maya.cmds as cmds
+
+            cmds.select(created_curves, replace=True)
+        except Exception:
+            logger.exception("Unable to select the generated curves.")
+
         curve_label = "curve" if len(created_curves) == 1 else "curves"
         self.view.set_status(f"Created {len(created_curves)} text {curve_label}.")
 
