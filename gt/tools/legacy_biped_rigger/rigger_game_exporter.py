@@ -1,5 +1,5 @@
 """
-GT Rigger - Game Exporter
+Rigger - Game Exporter
 github.com/TrevisanGMW/gt-tools - 2022-02-04
 
 v1.0.0 - 2022-02-04
@@ -122,7 +122,7 @@ class StripNamespace(object):
 def _export_fbx(file_path, baked_animation_export=True):
     """
     Exports auto biped rig data as FBX to be imported into real-time engines.
-    This function was specifically made for rigs created with GT biped rigger it assumes that
+    This function was specifically made for rigs created with biped rigger it assumes that
     all geometry will be found inside "geometry_grp" and the bound skeleton is "root_jnt"
 
     Args:

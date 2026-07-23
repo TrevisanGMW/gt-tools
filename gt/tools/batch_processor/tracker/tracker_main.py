@@ -23,7 +23,7 @@ def parse_args():
     Returns:
         argparse.Namespace: Parsed options.
     """
-    parser = argparse.ArgumentParser(description="GT Batch Processor Tracker")
+    parser = argparse.ArgumentParser(description="Batch Processor Tracker")
     parser.add_argument("--project-file", required=True, help="Immutable .batch project snapshot.")
     parser.add_argument("--job-file", required=True, help="Text file containing source jobs.")
     parser.add_argument("--mayapy", required=True, help="mayapy executable used for workers.")
@@ -223,7 +223,7 @@ def run_tracker(args):
         source_project_file=args.source_project_file,
     )
     application = ui_qt.QtWidgets.QApplication.instance() or ui_qt.QtWidgets.QApplication(sys.argv)
-    application.setApplicationName("GT Batch Processor Tracker")
+    application.setApplicationName("Batch Processor Tracker")
     view = tracker_view.TrackerView(project_name=project.project_name)
     scheduler = tracker_scheduler.TrackerScheduler(
         session=session,

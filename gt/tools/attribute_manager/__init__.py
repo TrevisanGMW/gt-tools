@@ -1,5 +1,5 @@
 """
- GT Attribute Manager - Script for quickly creating, deleting or updating user defined attributes.
+ Attribute Manager - Script for quickly creating, deleting or updating user defined attributes.
  github.com/TrevisanGMW/gt-tools - 2022-08-06
 
  ATTENTION!!: This is a legacy tool. It was created before version "3.0.0" and it should NOT be used as an example of
@@ -48,7 +48,7 @@ __version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 def launch_tool():
     """
     Launch user interface and create any necessary connections for the tool to function.
-    Entry point for when using the tool GT Attribute Manager.
+    Entry point for when using the tool Attribute Manager.
     """
     from gt.tools.attribute_manager import attribute_manager
     print("Tool is still a work in progress.")

@@ -1,5 +1,5 @@
 """
- GT Maya to Discord
+ Maya to Discord
  Send images and videos (playblasts) from Maya to Discord using a Discord Webhook to bridge the two programs.
  github.com/TrevisanGMW/gt-tools -  2020-06-28
  Tested on Maya 2018, 2019, 2020 - Windows 10
@@ -63,7 +63,7 @@ __version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 def launch_tool():
     """
     Launch user interface and create any necessary connections for the tool to function.
-    Entry point for when using the tool GT Maya To Discord.
+    Entry point for when using the tool Maya To Discord.
     """
     from gt.tools.maya_to_discord import maya_to_discord
     maya_to_discord.script_version = __version__

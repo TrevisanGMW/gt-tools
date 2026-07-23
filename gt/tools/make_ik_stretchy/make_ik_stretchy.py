@@ -1,5 +1,5 @@
 """
- GT Make IK Stretchy - Solution for making simple IK systems stretchy.
+ Make IK Stretchy - Solution for making simple IK systems stretchy.
  github.com/TrevisanGMW/gt-tools -  2020-03-13
 
  1.1 - 2020-06-07

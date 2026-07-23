@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-SCRIPT_NAME = "GT Renamer"
+SCRIPT_NAME = "Renamer"
 ERROR_MESSAGE = "Some objects were not renamed. Open the script editor to see why."
 
 SELECTION_SELECTED = "Selected"

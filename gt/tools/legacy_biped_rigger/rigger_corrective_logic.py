@@ -1,5 +1,5 @@
 """
- GT Corrective Rigger
+ Corrective Rigger
  Creates joints for the knees, wrists and shoulders to be used as correctives
  github.com/TrevisanGMW - 2022-01-10
 

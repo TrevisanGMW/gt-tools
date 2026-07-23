@@ -1,5 +1,5 @@
 """
- GT Render Calculator - Script for calculating the time a render will take
+ Render Calculator - Script for calculating the time a render will take
  github.com/TrevisanGMW - 2022-07-18
 
  ATTENTION!!: This is a legacy tool. It was created before version "3.0.0" and it should NOT be used as an example of
@@ -24,7 +24,7 @@ __version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 def launch_tool():
     """
     Launch user interface and create any necessary connections for the tool to function.
-    Entry point for when using the tool GT Render Calculator.
+    Entry point for when using the tool Render Calculator.
     """
     from gt.tools.render_calculator import render_calculator
     render_calculator.script_version = __version__

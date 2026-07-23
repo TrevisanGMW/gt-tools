@@ -38,7 +38,7 @@ def parse_args():
     Returns:
         argparse.Namespace: Parsed arguments.
     """
-    parser = argparse.ArgumentParser(description="GT Batch Processor Worker")
+    parser = argparse.ArgumentParser(description="Batch Processor Worker")
     parser.add_argument("--project-file", required=True, help="Path to a .batch project snapshot.")
     parser.add_argument("--source-file", required=True, help="Source file assigned to this worker.")
     parser.add_argument("--job-id", required=True, help="Stable tracker job identifier.")

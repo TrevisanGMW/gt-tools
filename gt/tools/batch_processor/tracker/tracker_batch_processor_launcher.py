@@ -19,7 +19,7 @@ def parse_args():
     Returns:
         argparse.Namespace: Parsed launcher options.
     """
-    parser = argparse.ArgumentParser(description="GT Batch Processor Standalone Launcher")
+    parser = argparse.ArgumentParser(description="Batch Processor Standalone Launcher")
     parser.add_argument("--project-file", required=True, help="Saved .batch project to open.")
     return parser.parse_args()
 

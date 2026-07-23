@@ -1,5 +1,5 @@
 """
- GT Facial Rigger
+ Facial Rigger
  github.com/TrevisanGMW/gt-tools -  2021-12-06
 
  0.0.1 - 2021-12-10

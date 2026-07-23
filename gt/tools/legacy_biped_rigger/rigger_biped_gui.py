@@ -1,5 +1,5 @@
 """
- GT Biped Rigger GUI
+ Biped Rigger GUI
  github.com/TrevisanGMW - 2020-12-08
 
  2022-06-20
@@ -81,7 +81,7 @@ get_persistent_settings(data_corrective)
 
 # Main Dialog ============================================================================
 def build_gui_auto_biped_rig():
-    """Creates the main GUI for GT Auto Biped Rigger"""
+    """Creates the main GUI for Auto Biped Rigger"""
 
     # Unpack Common Variables
     script_name = data_biped.script_name

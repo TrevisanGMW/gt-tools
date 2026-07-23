@@ -1,5 +1,5 @@
 """
- GT Extract Influence Joints
+ Extract Influence Joints
  github.com/TrevisanGMW/gt-tools - 2022-06-22
 
  0.0.1 to 1.1.4 - 2022-06-22 to 2022-09-12

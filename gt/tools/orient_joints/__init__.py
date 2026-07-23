@@ -1,5 +1,5 @@
 """
- GT Orient Joints - Script for orienting multiple joints
+ Orient Joints - Script for orienting multiple joints
  github.com/TrevisanGMW/gt-tools - 2023-01-19
 
 """

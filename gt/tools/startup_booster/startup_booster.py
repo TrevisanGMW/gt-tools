@@ -1,5 +1,5 @@
 """
- GT Startup Booster - A script for managing which plugins get loaded when starting Maya.
+ Startup Booster - A script for managing which plugins get loaded when starting Maya.
  github.com/TrevisanGMW/gt-tools - 2020-11-20
 """
 
@@ -24,7 +24,7 @@ script_name = "Startup Booster"
 
 
 def build_gui_startup_booster():
-    """Builds the UI for GT Startup Booster"""
+    """Builds the UI for Startup Booster"""
     if cmds.window("build_gui_startup_booster", exists=True):
         cmds.deleteUI("build_gui_startup_booster")
 
@@ -603,7 +603,7 @@ def build_gui_startup_booster():
     def add_button_arnold():
         """Create a button for manually loading the Arnold plugin"""
         create_shelf_button(
-            '"""\n This button was generated using GT Startup Booster\n @Guilherme Trevisan - github.com/'
+            '"""\n This button was generated using Startup Booster\n @Guilherme Trevisan - github.com/'
             "TrevisanGMW\n\n This button will try to load a plugin in case it's not already loaded.\n "
             "This is used to make Maya open faster by not auto loading heavy plugins during startup.\n \n"
             ' How to use it:\n 1. Use GT Startup Booster and turn off "Auto Load" for the plugins you want'

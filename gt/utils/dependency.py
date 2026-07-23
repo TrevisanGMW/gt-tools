@@ -134,7 +134,7 @@ def _show_dependency_installer(missing_dependencies, auto_start, parent=None):
             self.package_index = 0
             self.install_succeeded = False
             self.process = None
-            self.setWindowTitle("GT Tools Dependency Installer")
+            self.setWindowTitle("Tools Dependency Installer")
             self.setWindowIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_progress))
             self.setMinimumSize(680, 440)
             self.setModal(True)

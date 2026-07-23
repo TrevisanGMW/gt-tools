@@ -1,5 +1,5 @@
 """
- GT Sine Attributes - Create Sine output attributes without using third-party plugins or expressions.
+ Sine Attributes - Create Sine output attributes without using third-party plugins or expressions.
  github.com/TrevisanGMW/gt-tools - 2021-01-25
 
  1.0 - 2021-01-25
@@ -23,7 +23,7 @@ __version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 def launch_tool():
     """Launch user interface and create any necessary connections for the tool to function.
 
-    Entry point for when using the tool GT Sine Attributes.
+    Entry point for when using the tool Sine Attributes.
     Creates Model, View and Controller.
     """
     from gt.tools.sine_attributes import sine_attributes_controller

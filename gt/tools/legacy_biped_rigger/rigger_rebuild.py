@@ -1,5 +1,5 @@
 """
-GT Rigger - Biped Rigger Re-build Script (Rebuilder)
+Rigger - Biped Rigger Re-build Script (Rebuilder)
 github.com/TrevisanGMW/gt-tools - 2022-09-28
 
 0.0.1 - 2022-09-28

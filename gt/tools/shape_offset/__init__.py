@@ -1,5 +1,5 @@
 """
-GT Offset Shape - Offsets the CVs of a curve shape
+Offset Shape - Offsets the CVs of a curve shape
 github.com/TrevisanGMW/gt-tools - 2022-03-16
 
  ATTENTION!!: This is a legacy tool. It was created before version "3.0.0" and it should NOT be used as an example of
@@ -18,7 +18,7 @@ __version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 def launch_tool():
     """
     Launch user interface and create any necessary connections for the tool to function.
-    Entry point for when using the tool GT Shape Offset.
+    Entry point for when using the tool Shape Offset.
     """
     from gt.tools.shape_offset import shape_offset
     print("Tool is still a work in progress.")

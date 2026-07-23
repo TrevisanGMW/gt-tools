@@ -1,5 +1,5 @@
 """
- GT Attributes to Python - Tools for extracting attributes as python code.
+ Attributes to Python - Tools for extracting attributes as python code.
  github.com/TrevisanGMW/gt-tools - 2021-12-01
 
  0.0.2 to 1.0.1- 2022-03-31 to 2022-10-06

@@ -5,7 +5,7 @@ import maya.cmds as cmds
 
 
 def build_gui_about_gt_tools():
-    """Creates "About" window for the GT Tools menu"""
+    """Creates "About" window for the Tools menu"""
 
     gt_version = core_version.get_installed_version()
 

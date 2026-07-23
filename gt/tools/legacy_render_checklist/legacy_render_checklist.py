@@ -1,5 +1,5 @@
 """
- GT Render Checklist - Check your Maya scene before submitting to a render farm or simply batch rendering.
+ Render Checklist - Check your Maya scene before submitting to a render farm or simply batch rendering.
  github.com/TrevisanGMW/gt-tools -  2020-06-11
  Tested on Maya 2019, 2020 - Windows 10
  
@@ -23,7 +23,7 @@ logger = logging.getLogger("gt_render_checklist")
 logger.setLevel(logging.INFO)
 
 # Checklist Name
-script_name = "GT Render Checklist"
+script_name = "Render Checklist"
 
 # Versions
 script_version = "?.?.?"  # Module version (init)
@@ -79,7 +79,7 @@ CHECKLIST_BUTTONS_COLUMN_HEIGHT = 90
 
 def get_persistent_settings_render_checklist():
     """
-    Checks if persistent settings for GT Render Checklist exists and transfer them to the settings dictionary.
+    Checks if persistent settings for Render Checklist exists and transfer them to the settings dictionary.
     It assumes that persistent settings were stored using the cmds.optionVar function.
     """
     # Check if there is anything stored

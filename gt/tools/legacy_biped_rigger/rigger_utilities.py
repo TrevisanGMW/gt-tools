@@ -1,5 +1,5 @@
 """
- GT Rigger Utilities - Common functions used by the auto rigger scripts
+ Rigger Utilities - Common functions used by the auto rigger scripts
  github.com/TrevisanGMW/gt-tools -  2021-12-10
 
  2022-01-31
@@ -82,7 +82,7 @@ def dist_center_to_center(obj_a, obj_b):
 
 def combine_curves_list(curve_list):
     """
-    This is a modified version of the GT Utility "Combine Curves"
+    This is a modified version of the utility "Combine Curves"
     It moves the shape objects of all elements in the provided input (curve_list) to a single group (combining them)
     This version was changed to accept a list of objects (instead of selection)
     

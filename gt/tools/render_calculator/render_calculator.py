@@ -1,5 +1,5 @@
 """
- GT Render Calculator - Script for calculating the time a render will take
+ Render Calculator - Script for calculating the time a render will take
  github.com/TrevisanGMW - 2022-07-18
 """
 

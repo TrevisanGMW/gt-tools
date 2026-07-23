@@ -1,5 +1,5 @@
 """
- GT Renamer - Script for Quickly Renaming Multiple Objects
+ Renamer - Script for Quickly Renaming Multiple Objects
  github.com/TrevisanGMW/gt-tools - 2020-06-25
 
  ATTENTION!!: This is a legacy tool. It was created before version "3.0.0" and it should NOT be used as an example of
@@ -52,7 +52,7 @@ __version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 def launch_tool():
     """
     Launch user interface and create any necessary connections for the tool to function.
-    Entry point for when using the tool GT Renamer.
+    Entry point for when using the tool Renamer.
     """
     return build_gui_renamer()
 

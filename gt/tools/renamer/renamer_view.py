@@ -8,7 +8,7 @@ import gt.ui.qt_import as ui_qt
 
 
 class RenamerView(metaclass=MayaWindowMeta):
-    """Compact Qt view for GT Renamer."""
+    """Compact Qt view for Renamer."""
 
     WINDOW_WIDTH = 330
     LABEL_WIDTH = 58
@@ -23,7 +23,7 @@ class RenamerView(metaclass=MayaWindowMeta):
             version (str, optional): Tool version.
         """
         super().__init__(parent=parent)
-        self.setWindowTitle("GT Renamer" + (" - (v{0})".format(version) if version else ""))
+        self.setWindowTitle("Renamer" + (" - (v{0})".format(version) if version else ""))
         self.setMinimumWidth(self.WINDOW_WIDTH)
         self.setWindowIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.tool_renamer))
         self.setStyleSheet(self._build_stylesheet())
@@ -69,7 +69,7 @@ class RenamerView(metaclass=MayaWindowMeta):
         title_layout = ui_qt.QtWidgets.QHBoxLayout(title_widget)
         title_layout.setContentsMargins(8, 4, 4, 4)
         title_layout.setSpacing(4)
-        title_label = ui_qt.QtWidgets.QLabel("GT Renamer")
+        title_label = ui_qt.QtWidgets.QLabel("Renamer")
         title_label.setObjectName("renamerTitle")
         title_layout.addWidget(title_label)
         title_layout.addStretch()

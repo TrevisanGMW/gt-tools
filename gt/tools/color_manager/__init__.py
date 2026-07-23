@@ -1,5 +1,5 @@
 """
-GT Color Manager
+Color Manager
 """
 # Tool Version
 __version_tuple__ = (2, 0, 0)

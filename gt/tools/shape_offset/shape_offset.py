@@ -1,5 +1,5 @@
 """
-GT Offset Shape - Offsets the CVs of a curve shape
+Offset Shape - Offsets the CVs of a curve shape
 github.com/TrevisanGMW/gt-tools - 2022-03-16
 """
 import maya.cmds as cmds

@@ -1,5 +1,5 @@
 """
- GT Mirror Cluster Tool - Tool to mirror cluster weights.
+ Mirror Cluster Tool - Tool to mirror cluster weights.
  github.com/TrevisanGMW/gt-tools -  2020-06-16
 """
 

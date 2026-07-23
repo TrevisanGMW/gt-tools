@@ -1,28 +1,6 @@
 """
  Package Updater - Checks for new releases and automatically download and install them
  github.com/TrevisanGMW/gt-tools - 2020-11-10
-
- 1.1.0 to 1.7.1 - 2020-11-11 to 2022-10-27
- Updated link to show only latest release.
- The "Update" button now is disabled after refreshing.
- Changed it, so it retrieves three latest releases
- Added dates to changelog
- Added a label for when the version is higher than expected (Unreleased Version)
- Added an auto check for updates so user does not need to manually check
- Added threading support so the http request doesn't slow things down
- Made script compatible with Python 3 (Maya 2022+)
- Updated parsing mechanism to be fully compatible with semantic versioning
- PEP8 Cleanup
- Added patch to version
- Added output message for when changing auto check or interval values
- Fixed an issue where it wouldn't be able to make an HTTP request on Maya 2023+
-
- 2.0.0 to 2.0.2 - 2023-08-08 to 2023-08-16
- Renamed tool from "GT Check for Updates" to "Package Updater".
- Updated to the test-driven development pattern.
- Recreated the update system to automatically download, extract and install update.
- Updated preferences system to use package variables instead of maya option vars
- Made tool dockable
 """
 from gt.tools.package_updater import package_updater_controller
 from gt.tools.package_updater import package_updater_model

@@ -1,5 +1,5 @@
 """
- GT Morphing Utilities
+ Morphing Utilities
  github.com/TrevisanGMW/gt-tools - 2020-11-15
 """
 

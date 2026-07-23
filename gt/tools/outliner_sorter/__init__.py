@@ -1,5 +1,5 @@
 """
- GT Outliner Manager - General Outliner organization script
+ Outliner Manager - General Outliner organization script
  github.com/TrevisanGMW/gt-tools - 2022-08-18
 
  ATTENTION!!: This is a legacy tool. It was created before version "3.0.0" and it should NOT be used as an example of
@@ -50,7 +50,7 @@ __version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 def launch_tool():
     """
     Launch user interface and create any necessary connections for the tool to function.
-    Entry point for when using the tool GT Outliner Sorter.
+    Entry point for when using the tool Outliner Sorter.
     """
     return build_gui_outliner_sorter()
 

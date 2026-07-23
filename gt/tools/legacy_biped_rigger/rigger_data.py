@@ -1,5 +1,5 @@
 """
-GT Rigger Data - Settings and naming conventions for auto rigger scripts
+Rigger Data - Settings and naming conventions for auto rigger scripts
 github.com/TrevisanGMW - 2021-12-10
 
 2022-06-28

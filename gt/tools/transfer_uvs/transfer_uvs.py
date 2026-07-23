@@ -1,5 +1,5 @@
 """
- GT Transfer UVs - Script for exporting/importing or transferring UVs
+ Transfer UVs - Script for exporting/importing or transferring UVs
  github.com/TrevisanGMW - 2021-06-22
  Tested on Maya 2020.4 - Windows 10
 """

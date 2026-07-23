@@ -1,5 +1,5 @@
 """
- GT Attribute Manager - Script for quickly creating, deleting or updating user defined attributes.
+ Attribute Manager - Script for quickly creating, deleting or updating user defined attributes.
  github.com/TrevisanGMW/gt-tools - 2022-08-06
 """
 # from collections import namedtuple

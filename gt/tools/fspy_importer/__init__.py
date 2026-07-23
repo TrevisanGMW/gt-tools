@@ -1,5 +1,5 @@
 """
- GT fSpy Importer - Imports a JSON file exported out of fSpy
+ fSpy Importer - Imports a JSON file exported out of fSpy
  github.com/TrevisanGMW/gt-tools -  2020-12-10
 
  ATTENTION!!: This is a legacy tool. It was created before version "3.0.0" and it should NOT be used as an example of

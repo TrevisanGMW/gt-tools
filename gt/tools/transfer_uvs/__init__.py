@@ -1,5 +1,5 @@
 """
- GT Transfer UVs - Script for exporting/importing or transferring UVs
+ Transfer UVs - Script for exporting/importing or transferring UVs
  github.com/TrevisanGMW - 2021-06-22
  Tested on Maya 2020.4 - Windows 10
 
@@ -29,7 +29,7 @@ __version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 def launch_tool():
     """
     Launch user interface and create any necessary connections for the tool to function.
-    Entry point for when using the tool GT Transfer UVs.
+    Entry point for when using the tool Transfer UVs.
     """
     from gt.tools.transfer_uvs import transfer_uvs
     transfer_uvs.script_version = __version__

@@ -77,7 +77,7 @@ gt_mtod_settings_default = copy.deepcopy(gt_mtod_settings)
 
 def get_persistent_settings_maya_to_discord():
     """
-    Checks if persistent settings for GT Maya to Discord exists and transfer them to the settings dictionary.
+    Checks if persistent settings for Maya to Discord exists and transfer them to the settings dictionary.
     It assumes that persistent settings were stored using the cmds.optionVar function.
     """
 

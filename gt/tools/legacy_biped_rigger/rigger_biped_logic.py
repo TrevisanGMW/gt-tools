@@ -1,5 +1,5 @@
 """
- GT Biped Rigger Logic
+ Biped Rigger Logic
  github.com/TrevisanGMW - 2020-12-08
 
  1.0 - 2020-12-29

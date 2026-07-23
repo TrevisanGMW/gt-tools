@@ -59,7 +59,7 @@ def list_reference_pairs():
 
 
 class GTPathManagerDialog(ui_qt.QtWidgets.QDialog):
-    """Main GT Path Manager Class"""
+    """Main Path Manager Class"""
 
     ATTR_ROLE = ui_qt.QtLib.ItemDataRole.UserRole
     VALUE_ROLE = ui_qt.QtLib.ItemDataRole.UserRole + 1
@@ -832,7 +832,7 @@ class GTPathManagerDialog(ui_qt.QtWidgets.QDialog):
             cmds.windowPref(prog_win_name, r=1)
 
     def build_gui_help_path_manager(self):
-        """Creates the Help GUI for GT Path Manager"""
+        """Creates the Help GUI for Path Manager"""
         window_name = "build_gui_help_path_manager"
         if cmds.window(window_name, exists=True):
             cmds.deleteUI(window_name, window=True)

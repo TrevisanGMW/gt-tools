@@ -1,5 +1,5 @@
 """
- Custom Rig Interface for GT Biped Auto Rigger
+ Custom Rig Interface for Biped Auto Rigger
  github.com/TrevisanGMW/gt-tools - 2021-01-05
  
  1.0 - 2021-05-01
@@ -500,7 +500,7 @@ main_ctrl = "main_ctrl"
 # Manage Persistent Settings
 def _get_persistent_settings_rig_interface():
     """
-    Checks if persistent settings for GT Auto Biped Rig Interface exists and loads it if this is the case.
+    Checks if persistent settings for Auto Biped Rig Interface exists and loads it if this is the case.
     It assumes that persistent settings were stored using the cmds.optionVar function.
     """
     # Check if there is anything stored
