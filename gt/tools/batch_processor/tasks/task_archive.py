@@ -39,11 +39,14 @@ class TaskCompressZip(task_base.BatchTask):
             "archive_version_auto": False,
             "archive_version_padding": 2,
             "compression": "Deflated",
-            "run_once_after_multi_instance": False,
+            "run_once_after_multi_instance": True,
             "use_source_path_as_relative_root": True,
             "preserve_relative_paths": True,
             "relative_root": "",
             "overwrite": False,
+            "force_segment_separator": False,
+            "segment_name": "",
+            "segment_color": "blue_light_sky",
         }
 
     def validate(self, project):

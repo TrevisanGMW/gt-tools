@@ -689,6 +689,150 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
             header_lines=header_lines,
         )
 
+    def add_segmentation_section(self, main_label, main_key, main_tooltip):
+        """Adds a collapsible Segmentation section with a main toggle and divider controls.
+
+        The section is shared by tasks that participate in segmentation. It always
+        provides an "Add Separator" toggle plus segment name and color controls; the
+        primary checkbox is task-specific and defined by the caller.
+
+        Args:
+            main_label (str): Label for the section's primary checkbox.
+            main_key (str): Task setting key toggled by the primary checkbox.
+            main_tooltip (str): Tooltip for the primary checkbox.
+        """
+        self.task.settings.setdefault("segmentation_collapsed", True)
+        section = self.add_collapsible_section(
+            "Segmentation",
+            collapsed=self.task.settings.get("segmentation_collapsed", True),
+            state_setter=partial(self.set_task_setting, key="segmentation_collapsed"),
+            tooltip="Optional segmentation and task-list divider settings.",
+        )
+        section_layout = section.get("content_layout")
+
+        checkbox_row = ui_qt.QtWidgets.QHBoxLayout()
+        checkbox_row.setSpacing(6)
+        section_layout.addLayout(checkbox_row)
+        checkbox_row.addStretch()
+        self.add_checkbox(
+            main_label,
+            self.task.settings.get(main_key),
+            partial(self.set_task_setting, key=main_key),
+            layout=checkbox_row,
+            tooltip=main_tooltip,
+        )
+        checkbox_row.addStretch()
+        self.add_checkbox(
+            "Add Separator",
+            self.task.settings.get("force_segment_separator"),
+            self.set_force_segment_separator,
+            layout=checkbox_row,
+            tooltip=(
+                "Show a labeled divider above this task in the task list. This is purely visual "
+                "and works with or without the option on the left. Enabling it activates the "
+                "segment name and color below."
+            ),
+        )
+        checkbox_row.addStretch()
+
+        separator_enabled = bool(self.task.settings.get("force_segment_separator"))
+        segment_name_tooltip = (
+            "Optional name for this segment divider shown in the task list. Only applies when "
+            '"Add Separator" is enabled. Leave empty to use the default name.'
+        )
+        segment_name_layout = self.add_labeled_layout(
+            "Segment Name",
+            label_width=140,
+            tooltip=segment_name_tooltip,
+            parent_layout=section_layout,
+        )
+        segment_name_field = self.create_text_field(
+            text=self.task.settings.get("segment_name") or "",
+            placeholder=self.task.default_segment_name,
+            tooltip=segment_name_tooltip,
+        )
+        segment_name_field.textChanged.connect(partial(self.set_task_setting, key="segment_name"))
+        segment_name_field.editingFinished.connect(self.call_parent_refresh)
+        segment_name_field.setEnabled(separator_enabled)
+        segment_name_layout.addWidget(segment_name_field)
+
+        color_tooltip = (
+            "Color used for this segment's divider in the task list. Pick any color from the "
+            'toolkit UI colors. Only applies when "Add Separator" is enabled.'
+        )
+        color_layout = self.add_labeled_layout(
+            "Segment Color",
+            label_width=140,
+            tooltip=color_tooltip,
+            parent_layout=section_layout,
+        )
+        color_combo = ui_qt.QtWidgets.QComboBox()
+        color_combo.setMinimumHeight(35)
+        color_combo.setMinimumWidth(1)
+        color_combo.setSizePolicy(ui_qt.QtLib.SizePolicy.Expanding, ui_qt.QtLib.SizePolicy.Fixed)
+        color_combo.setToolTip(color_tooltip)
+        for color_name, color_hex in self._get_ui_color_choices():
+            color_combo.addItem(self._make_color_icon(color_hex), color_name)
+        current_color_name = self.task.get_segment_color_name()
+        current_index = color_combo.findText(current_color_name)
+        if current_index < 0:
+            color_combo.addItem(current_color_name)
+            current_index = color_combo.findText(current_color_name)
+        color_combo.setCurrentIndex(max(0, current_index))
+        color_combo.setEnabled(separator_enabled)
+        color_combo.activated.connect(
+            lambda index, combo=color_combo: self.set_segment_color(combo.itemText(index))
+        )
+        color_layout.addWidget(color_combo)
+
+    def set_force_segment_separator(self, value):
+        """Sets the divider flag and refreshes the task tree separator.
+
+        Args:
+            value (bool): Whether a divider is shown above this task.
+        """
+        self.set_task_setting(value=value, key="force_segment_separator")
+        self.call_parent_refresh()
+
+    def set_segment_color(self, value):
+        """Sets the segment divider color and refreshes the task tree separator.
+
+        Args:
+            value (str): UI color name selected for the divider.
+        """
+        self.set_task_setting(value=value, key="segment_color")
+        self.call_parent_refresh()
+
+    @staticmethod
+    def _get_ui_color_choices():
+        """Gets the selectable UI color names and their hex values.
+
+        Returns:
+            list: Sorted (name, hex) tuples from the toolkit UI color library.
+        """
+        choices = []
+        for name in dir(ui_res_lib.Color.Hex):
+            if name.startswith("_"):
+                continue
+            value = getattr(ui_res_lib.Color.Hex, name)
+            if isinstance(value, str) and value.startswith("#"):
+                choices.append((name, value))
+        return sorted(choices)
+
+    @staticmethod
+    def _make_color_icon(color_hex):
+        """Builds a small swatch icon for a color.
+
+        Args:
+            color_hex (str): Hex color value.
+
+        Returns:
+            QIcon: Swatch icon filled with the color.
+        """
+        pixmap = ui_qt.QtGui.QPixmap(16, 16)
+        pixmap.fill(ui_qt.QtGui.QColor(color_hex))
+        return ui_qt.QtGui.QIcon(pixmap)
+
     def add_run_selected_task_button(self, label_text="Run Selected Task", tooltip=None):
         """Adds a button that runs only this task through the batch controller.
 

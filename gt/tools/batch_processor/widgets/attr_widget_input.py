@@ -116,19 +116,11 @@ class AttrWidgetInputTask(AttrWidgetTask):
         self.content_layout.addStretch()
 
     def build_segmentation_section(self):
-        """Builds the segmentation controls shown at the bottom of the widget."""
-        self.add_widget_separator_line(label_text="Segmentation")
-        starts_new_input_list = bool(self.task.settings.get("start_new_input_list"))
-        checkbox_row = ui_qt.QtWidgets.QHBoxLayout()
-        checkbox_row.setSpacing(6)
-        self.content_layout.addLayout(checkbox_row)
-        checkbox_row.addStretch()
-        self.add_checkbox(
-            "Start New Segment",
-            starts_new_input_list,
-            self.set_start_new_input_list,
-            layout=checkbox_row,
-            tooltip=(
+        """Builds the collapsible segmentation controls shown at the bottom of the widget."""
+        self.add_segmentation_section(
+            main_label="Start New Segment",
+            main_key="start_new_input_list",
+            main_tooltip=(
                 "Start a new input segment at this task. Files discovered here replace the "
                 "accumulated incoming files instead of merging with them, so the tasks that "
                 "follow process a fresh list. This lets one project handle different file "
@@ -136,133 +128,6 @@ class AttrWidgetInputTask(AttrWidgetTask):
                 "USD processing). Leave this off to merge these files with earlier input tasks."
             ),
         )
-        checkbox_row.addStretch()
-        add_separator_tooltip = (
-            "Show a labeled divider above this task in the task list without starting a "
-            "new segment. Useful for naming the first segment or visually grouping "
-            'tasks. Enabling this activates the segment name and color below, just like '
-            '"Start New Segment" does.'
-        )
-        add_separator_checkbox = self.add_checkbox(
-            "Add Separator",
-            self.task.settings.get("force_segment_separator"),
-            self.set_force_segment_separator,
-            layout=checkbox_row,
-            tooltip=add_separator_tooltip,
-        )
-        checkbox_row.addStretch()
-        if starts_new_input_list:
-            # A separator is always shown while a new segment is started, so the
-            # explicit toggle is redundant and disabled.
-            add_separator_checkbox.setEnabled(False)
-            add_separator_checkbox.setToolTip(
-                'A separator is always shown while "Start New Segment" is enabled.'
-            )
-        segmentation_enabled = bool(
-            starts_new_input_list or self.task.settings.get("force_segment_separator")
-        )
-        segment_name_tooltip = (
-            "Optional name for this segment divider. It labels the divider shown in the task "
-            'list. Only applies when "Start New Segment" or "Add Separator" is enabled. '
-            'Leave empty to use "New Input Segment".'
-        )
-        segment_name_layout = self.add_labeled_layout(
-            "Segment Name",
-            label_width=140,
-            tooltip=segment_name_tooltip,
-        )
-        segment_name_field = self.create_text_field(
-            text=self.task.settings.get("segment_name") or "",
-            placeholder="New Input Segment",
-            tooltip=segment_name_tooltip,
-        )
-        segment_name_field.textChanged.connect(partial(self.set_task_setting, key="segment_name"))
-        segment_name_field.editingFinished.connect(self.call_parent_refresh)
-        segment_name_field.setEnabled(segmentation_enabled)
-        segment_name_layout.addWidget(segment_name_field)
-
-        color_tooltip = (
-            "Color used for this segment's divider in the task list. Pick any color from the "
-            "toolkit UI colors to highlight a segment. Defaults to a soft blue."
-        )
-        color_layout = self.add_labeled_layout("Segment Color", label_width=140, tooltip=color_tooltip)
-        color_combo = ui_qt.QtWidgets.QComboBox()
-        color_combo.setMinimumHeight(35)
-        color_combo.setMinimumWidth(1)
-        color_combo.setSizePolicy(ui_qt.QtLib.SizePolicy.Expanding, ui_qt.QtLib.SizePolicy.Fixed)
-        color_combo.setToolTip(color_tooltip)
-        for name, color_hex in self._get_ui_color_choices():
-            color_combo.addItem(self._make_color_icon(color_hex), name)
-        current_color_name = self.task.get_segment_color_name()
-        current_index = color_combo.findText(current_color_name)
-        if current_index < 0:
-            color_combo.addItem(current_color_name)
-            current_index = color_combo.findText(current_color_name)
-        color_combo.setCurrentIndex(max(0, current_index))
-        color_combo.setEnabled(segmentation_enabled)
-        # "activated" only fires on real user selection, never programmatically or on
-        # teardown, which avoids a rebuild-triggered refresh loop.
-        color_combo.activated.connect(
-            lambda index, combo=color_combo: self.set_segment_color(combo.itemText(index))
-        )
-        color_layout.addWidget(color_combo)
-
-    @staticmethod
-    def _get_ui_color_choices():
-        """Gets the selectable UI color names and their hex values.
-
-        Returns:
-            list: Sorted (name, hex) tuples from the toolkit UI color library.
-        """
-        choices = []
-        for name in dir(ui_res_lib.Color.Hex):
-            if name.startswith("_"):
-                continue
-            value = getattr(ui_res_lib.Color.Hex, name)
-            if isinstance(value, str) and value.startswith("#"):
-                choices.append((name, value))
-        return sorted(choices)
-
-    @staticmethod
-    def _make_color_icon(color_hex):
-        """Builds a small swatch icon for a color.
-
-        Args:
-            color_hex (str): Hex color value.
-
-        Returns:
-            QIcon: Swatch icon filled with the color.
-        """
-        pixmap = ui_qt.QtGui.QPixmap(16, 16)
-        pixmap.fill(ui_qt.QtGui.QColor(color_hex))
-        return ui_qt.QtGui.QIcon(pixmap)
-
-    def set_start_new_input_list(self, value):
-        """Sets the segment-start flag and refreshes the task tree separator.
-
-        Args:
-            value (bool): Whether this input task starts a new input segment.
-        """
-        self.set_task_setting(value=value, key="start_new_input_list")
-        self.call_parent_refresh()
-
-    def set_force_segment_separator(self, value):
-        """Sets the forced-separator flag and refreshes the task tree separator.
-
-        Args:
-            value (bool): Whether a divider is shown without starting a new input list.
-        """
-        self.set_task_setting(value=value, key="force_segment_separator")
-        self.call_parent_refresh()
-
-    def set_segment_color(self, value):
-        """Sets the segment divider color and refreshes the task tree separator.
-
-        Args:
-            value (str): UI color name selected for the divider.
-        """
-        self.set_task_setting(value=value, key="segment_color")
-        self.call_parent_refresh()
 
     def show_resolved_input_files(self):
         """Shows all file paths resolved by this input task."""

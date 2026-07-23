@@ -272,13 +272,13 @@ class BatchProcessorView(metaclass=MayaWindowMeta):
         segment_name = str(segment_name or "New Input Segment").strip() or "New Input Segment"
         color_hex = color_hex or ui_res_lib.Color.Hex.blue_light_sky
         tooltip = (
-            "A new input segment starts below. Incoming files reset here so the "
-            "following tasks process a fresh input list."
+            "Segment divider (task-list marker only). Select it to see which segment it labels."
         )
         separator_item = ui_tree_enhanced.QTreeItemEnhanced([""])
         separator_item.setData(0, self.DATA_ROLE, "segment_separator")
+        separator_item.segment_name = segment_name
         separator_item.set_allow_parenting(False)
-        separator_item.setFlags(ui_qt.QtLib.ItemFlag.ItemIsEnabled)
+        separator_item.setFlags(ui_qt.QtLib.ItemFlag.ItemIsEnabled | ui_qt.QtLib.ItemFlag.ItemIsSelectable)
         separator_item.setToolTip(0, tooltip)
         self.project_item.addChild(separator_item)
         self.task_tree.setItemWidget(
@@ -317,16 +317,33 @@ class BatchProcessorView(metaclass=MayaWindowMeta):
             rule.setFixedHeight(1)
             rule.setSizePolicy(ui_qt.QtLib.SizePolicy.Expanding, ui_qt.QtLib.SizePolicy.Fixed)
             rule.setStyleSheet("background-color: {0}; border: none;".format(color_hex))
+            self._set_transparent_for_mouse(rule)
             return rule
 
         label = ui_qt.QtWidgets.QLabel(segment_name)
         label.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignCenter)
         label.setFont(self.task_tree.font())
         label.setStyleSheet("color: {0}; background: transparent;".format(color_hex))
+        self._set_transparent_for_mouse(label)
         layout.addWidget(build_rule(), 1, ui_qt.QtLib.AlignmentFlag.AlignVCenter)
         layout.addWidget(label, 0)
         layout.addWidget(build_rule(), 1, ui_qt.QtLib.AlignmentFlag.AlignVCenter)
+        # Let clicks fall through to the tree so the separator row can be selected.
+        self._set_transparent_for_mouse(container)
         return container
+
+    @staticmethod
+    def _set_transparent_for_mouse(widget):
+        """Makes a widget ignore mouse events so clicks reach the widget behind it.
+
+        Args:
+            widget (QWidget): Widget to make click-through.
+        """
+        try:
+            attribute = ui_qt.QtCore.Qt.WA_TransparentForMouseEvents
+        except AttributeError:
+            attribute = ui_qt.QtCore.Qt.WidgetAttribute.WA_TransparentForMouseEvents
+        widget.setAttribute(attribute, True)
 
     def expand_all_task_tree_items(self):
         """Expands all task tree items."""
@@ -354,10 +371,8 @@ class BatchProcessorView(metaclass=MayaWindowMeta):
             self.add_item_to_task_tree(self.project_item)
 
             selected_item = None
-            task_items_added = 0
             for task in project.tasks:
-                forces_separator = bool(task.settings.get("force_segment_separator"))
-                if task.enabled and task.shows_segment_separator() and (task_items_added > 0 or forces_separator):
+                if task.enabled and task.shows_segment_separator():
                     segment_name = task.get_segment_display_name()
                     color_name = task.get_segment_color_name()
                     color_hex = getattr(
@@ -370,7 +385,6 @@ class BatchProcessorView(metaclass=MayaWindowMeta):
                 tree_item.setData(0, self.DATA_ROLE, task.id)
                 tree_item.set_allow_parenting(False)
                 self.project_item.addChild(tree_item)
-                task_items_added += 1
                 is_selected_task = bool(selected_task_id and selected_task_id == task.id)
                 if not task.enabled:
                     tree_item.setForeground(0, ui_qt.QtGui.QColor(ui_res_lib.Color.Hex.gray_dim))
@@ -418,7 +432,7 @@ class BatchProcessorView(metaclass=MayaWindowMeta):
         if not item:
             return None
         item_data = item.data(0, self.DATA_ROLE)
-        if item_data == "project":
+        if item_data in ("project", "segment_separator"):
             return None
         return item_data
 
@@ -430,6 +444,26 @@ class BatchProcessorView(metaclass=MayaWindowMeta):
         """
         item = self.task_tree.currentItem()
         return bool(item and item.data(0, self.DATA_ROLE) == "project")
+
+    def is_segment_separator_selected(self):
+        """Checks whether a segment separator row is selected.
+
+        Returns:
+            bool: True when the current item is a segment separator.
+        """
+        item = self.task_tree.currentItem()
+        return bool(item and item.data(0, self.DATA_ROLE) == "segment_separator")
+
+    def get_selected_segment_name(self):
+        """Gets the segment name of the selected separator row.
+
+        Returns:
+            str: Segment name, or an empty string when no separator is selected.
+        """
+        item = self.task_tree.currentItem()
+        if not item or item.data(0, self.DATA_ROLE) != "segment_separator":
+            return ""
+        return str(getattr(item, "segment_name", "") or "")
 
     def select_task_by_id(self, task_id):
         """Selects a task tree item by task id.

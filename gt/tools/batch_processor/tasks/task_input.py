@@ -17,6 +17,7 @@ class TaskInput(task_base.BatchTask):
     icon = "rigger_module_import_file"
     category = "Inputs"
     category_icon = "rigger_module_import_file"
+    default_segment_name = "New Input Segment"
     is_input_task = True
 
     def _normalize_common_settings(self, incoming_settings=None):
@@ -46,23 +47,6 @@ class TaskInput(task_base.BatchTask):
             "segment_name": "",
             "segment_color": "blue_light_sky",
         }
-
-    def get_segment_display_name(self):
-        """Gets the display name shown on this input task's segment separator.
-
-        Returns:
-            str: User-defined segment name, or "New Input Segment" when empty.
-        """
-        segment_name = str(self.settings.get("segment_name") or "").strip()
-        return segment_name or "New Input Segment"
-
-    def get_segment_color_name(self):
-        """Gets the UI color name used for this input task's segment separator.
-
-        Returns:
-            str: Color name from the UI color library, defaulting to a soft blue.
-        """
-        return str(self.settings.get("segment_color") or "blue_light_sky").strip() or "blue_light_sky"
 
     def get_source_path_template(self):
         """Gets this input task's source path template.

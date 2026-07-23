@@ -479,6 +479,7 @@ class BatchTask:
     icon = ""
     category = "General"
     category_icon = ""
+    default_segment_name = "New Segment"
     can_be_removed = True
     is_input_task = False
     is_indexless_task = False
@@ -619,16 +620,31 @@ class BatchTask:
     def shows_segment_separator(self):
         """Checks whether this task shows a segment divider in the task list.
 
-        A divider is shown when the task starts a new input list or when the user
-        forces a separator. The forced separator is purely presentational and does
-        not reset the incoming file list.
+        The divider is controlled solely by the "Add Separator" option, so it can
+        appear on any task that exposes it and is independent of starting a new
+        input list. It is purely presentational.
 
         Returns:
             bool: True when a segment divider should be drawn above this task.
         """
-        if not self.is_input_task:
-            return False
-        return bool(self.starts_new_input_list() or self.settings.get("force_segment_separator", False))
+        return bool(self.settings.get("force_segment_separator", False))
+
+    def get_segment_display_name(self):
+        """Gets the label shown on this task's segment divider.
+
+        Returns:
+            str: User-defined segment name, or the task's default when empty.
+        """
+        segment_name = str(self.settings.get("segment_name") or "").strip()
+        return segment_name or self.default_segment_name
+
+    def get_segment_color_name(self):
+        """Gets the UI color name used for this task's segment divider.
+
+        Returns:
+            str: Color name from the UI color library, defaulting to a soft blue.
+        """
+        return str(self.settings.get("segment_color") or "blue_light_sky").strip() or "blue_light_sky"
 
     def modifies_in_place(self):
         """Checks whether this task should modify received files in place.

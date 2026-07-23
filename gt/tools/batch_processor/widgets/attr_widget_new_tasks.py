@@ -509,15 +509,6 @@ class AttrWidgetZipCompressTask(AttrWidgetTask):
             partial(self.set_task_setting, key="compression"),
             tooltip="Compression method used by the zip archive.",
         )
-        self.add_checkbox(
-            "Run Once After All Jobs",
-            self.task.settings.get("run_once_after_multi_instance", False),
-            partial(self.set_task_setting, key="run_once_after_multi_instance"),
-            tooltip=(
-                "In multi-instance mode, wait for every regular job to succeed, then create this archive once "
-                "from the resolved Source Path. This Zip Compress task must be the last enabled processing task."
-            ),
-        )
         self.source_path_relative_root_checkbox = self.add_checkbox(
             "Use Source Path Root",
             self.task.settings.get("use_source_path_as_relative_root", True),
@@ -540,6 +531,15 @@ class AttrWidgetZipCompressTask(AttrWidgetTask):
             tooltip="Store files using paths relative to a common or explicit root.",
         )
         self.refresh_source_path_relative_root_controls()
+        self.add_segmentation_section(
+            main_label="Run Once After All Jobs",
+            main_key="run_once_after_multi_instance",
+            main_tooltip=(
+                "In multi-instance mode, wait for every regular job to succeed, then create this archive "
+                "once from the resolved Source Path. This Zip Compress task must be the last enabled "
+                "processing task. Enable \"Add Separator\" to mark this run-once step in the task list."
+            ),
+        )
         self.content_layout.addStretch()
 
     def add_archive_name_field(self):

@@ -136,19 +136,24 @@ class TestBatchProcessorSegments(unittest.TestCase):
         self.assertTrue(task.shows_segment_separator())
         self.assertFalse(task.starts_new_input_list())
 
-    def test_reset_flag_shows_separator(self):
+    def test_reset_flag_alone_does_not_show_separator(self):
+        # Starting a new segment no longer forces a divider; the divider is
+        # controlled solely by the "Add Separator" (force_segment_separator) flag.
         task = tasks.InputTask()
         task.settings["start_new_input_list"] = True
-        self.assertTrue(task.shows_segment_separator())
+        task.settings["force_segment_separator"] = False
+        self.assertFalse(task.shows_segment_separator())
 
     def test_no_separator_by_default(self):
         task = tasks.InputTask()
         self.assertFalse(task.shows_segment_separator())
 
-    def test_process_task_never_shows_separator(self):
+    def test_separator_shown_on_any_task_with_flag(self):
+        # The divider is generic: any task can show it via force_segment_separator.
         process_task = self._build_process_task()
-        process_task.settings["force_segment_separator"] = True
         self.assertFalse(process_task.shows_segment_separator())
+        process_task.settings["force_segment_separator"] = True
+        self.assertTrue(process_task.shows_segment_separator())
 
     def test_forced_separator_does_not_create_runtime_segment(self):
         model = batch_processor_model.BatchProcessorModel()
@@ -171,6 +176,19 @@ class TestBatchProcessorSegments(unittest.TestCase):
         expected = "New Input Segment"
         task = tasks.InputTask()
         self.assertEqual(expected, task.get_segment_display_name())
+
+    def test_zip_task_run_once_default_true(self):
+        zip_task = tasks.create_task(task_type=constants.TaskType.ZIP_COMPRESS)
+        self.assertTrue(zip_task.settings.get("run_once_after_multi_instance"))
+
+    def test_zip_task_supports_separator(self):
+        zip_task = tasks.create_task(task_type=constants.TaskType.ZIP_COMPRESS)
+        self.assertFalse(zip_task.shows_segment_separator())
+        self.assertEqual("New Segment", zip_task.get_segment_display_name())
+        zip_task.settings["force_segment_separator"] = True
+        zip_task.settings["segment_name"] = "Finalize"
+        self.assertTrue(zip_task.shows_segment_separator())
+        self.assertEqual("Finalize", zip_task.get_segment_display_name())
 
     def test_segment_display_name_uses_custom_value(self):
         expected = "FBX Retarget"

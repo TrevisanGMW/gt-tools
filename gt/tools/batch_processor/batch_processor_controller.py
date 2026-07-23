@@ -667,6 +667,7 @@ class BatchProcessorController:
         if not getattr(first_task, "is_input_task", False):
             return
         first_task.settings["start_new_input_list"] = True
+        first_task.settings["force_segment_separator"] = True
         project_name = str(getattr(imported_model, "project_name", "") or "").strip()
         if project_name:
             first_task.settings["segment_name"] = project_name
@@ -1014,6 +1015,10 @@ class BatchProcessorController:
 
     def update_details(self):
         """Updates the details panel for the current selection."""
+        if self.view.is_segment_separator_selected():
+            segment_name = self.view.get_selected_segment_name()
+            self.view.set_task_widget(self.build_separator_details_widget(segment_name))
+            return
         task_id = self.view.get_selected_task_id()
         if not task_id:
             widget_object = batch_processor_task_widget.AttrWidgetProject(
@@ -1036,6 +1041,36 @@ class BatchProcessorController:
             controller=self,
         )
         self.view.set_task_widget(widget_object)
+
+    def build_separator_details_widget(self, segment_name):
+        """Builds a centered, greyed-out details panel for a segment separator row.
+
+        Args:
+            segment_name (str): Name of the segment the separator labels.
+
+        Returns:
+            QWidget: Details widget.
+        """
+        container = ui_qt.QtWidgets.QWidget()
+        layout = ui_qt.QtWidgets.QVBoxLayout(container)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(4)
+        grey_color = ui_res_lib.Color.Hex.gray_dim
+        title_label = ui_qt.QtWidgets.QLabel("Segment Separator")
+        title_label.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignCenter)
+        title_label.setStyleSheet("color: {0}; font-size: 15pt;".format(grey_color))
+        title_label.setWordWrap(True)
+        name_label = ui_qt.QtWidgets.QLabel(segment_name or "New Segment")
+        name_label.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignCenter)
+        name_label.setStyleSheet(
+            "color: {0}; font-size: 18pt; font-weight: bold;".format(ui_res_lib.Color.Hex.white)
+        )
+        name_label.setWordWrap(True)
+        layout.addStretch()
+        layout.addWidget(title_label)
+        layout.addWidget(name_label)
+        layout.addStretch()
+        return container
 
     def sync_task_order_from_tree(self):
         """Synchronizes model task order after a tree drag/drop operation."""
