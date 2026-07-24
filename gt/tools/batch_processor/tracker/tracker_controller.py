@@ -82,6 +82,8 @@ class TrackerController:
         self.view.expand_all_action.triggered.connect(self.view.tree.expandAll)
         self.view.collapse_all_action.triggered.connect(self.view.tree.collapseAll)
         self.view.flag_skips_as_warnings_action.toggled.connect(self.toggle_skip_warnings)
+        self.view.restart_failed_jobs_action.triggered.connect(self.restart_all_failed_jobs)
+        self.view.restart_canceled_jobs_action.triggered.connect(self.restart_all_canceled_jobs)
         self.view.copy_failed_jobs_action.triggered.connect(
             partial(self.copy_job_names, "failed")
         )
@@ -615,6 +617,47 @@ class TrackerController:
         if not self.view.confirm_restart_job(job.name):
             return
         if not self.scheduler.restart_job(job):
+            return
+        self.close_after_abort = False
+        self.view.set_abort_enabled(True)
+        self.scheduler_timer.start()
+        self.log_timer.start()
+        self.refresh()
+        self.rebuild_log_tabs()
+
+    def restart_all_failed_jobs(self):
+        """Confirms and queues every failed regular job for another execution."""
+        self._restart_all_jobs_with_status(tracker_constants.Status.FAILED, "failed")
+
+    def restart_all_canceled_jobs(self):
+        """Confirms and queues every canceled regular job for another execution."""
+        self._restart_all_jobs_with_status(tracker_constants.Status.CANCELED, "canceled")
+
+    def _restart_all_jobs_with_status(self, status, status_label):
+        """Confirms and queues every regular job in a status for another run.
+
+        Mirrors selecting "Restart Job" for each matching job, but asks for a
+        single confirmation and starts the scheduler once for the whole batch.
+
+        Args:
+            status (str): Terminal status value used to select jobs to restart.
+            status_label (str): Lowercase word shown to the user for the status.
+        """
+        matching_jobs = [
+            job
+            for job in self.session.regular_jobs
+            if job.status == status and self.scheduler.can_restart_job(job)
+        ]
+        if not matching_jobs:
+            self.view.statusBar().showMessage(f"No {status_label} jobs available to restart.", 5000)
+            return
+        if not self.view.confirm_restart_jobs(len(matching_jobs), status_label):
+            return
+        restarted = 0
+        for job in matching_jobs:
+            if self.scheduler.restart_job(job):
+                restarted += 1
+        if not restarted:
             return
         self.close_after_abort = False
         self.view.set_abort_enabled(True)

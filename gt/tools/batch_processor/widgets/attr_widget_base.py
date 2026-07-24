@@ -307,7 +307,7 @@ class AttrWidgetBase(ui_qt.QtWidgets.QWidget):
         info_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_env_var))
         info_button.setToolTip("Get more information about the current path.")
         open_button = ui_qt.QtWidgets.QPushButton()
-        open_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.util_open_dir))
+        open_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.tool_renamer))
         open_button.setToolTip("Open the resolved directory.")
         browse_button = ui_qt.QtWidgets.QPushButton()
         browse_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_open))

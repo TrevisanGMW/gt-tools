@@ -208,6 +208,17 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
         self.flag_skips_as_warnings_action = self.view_menu.addAction("Flag Skips as Warnings")
         self.flag_skips_as_warnings_action.setCheckable(True)
         self.flag_skips_as_warnings_action.setChecked(True)
+        self.actions_menu = self.tracker_menu_bar.addMenu("Actions")
+        self.restart_failed_jobs_action = self.actions_menu.addAction(
+            ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_reset),
+            "Restart All Failed Jobs",
+        )
+        self.restart_failed_jobs_action.setToolTip("Queue every failed job to run again.")
+        self.restart_canceled_jobs_action = self.actions_menu.addAction(
+            ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_reset),
+            "Restart All Canceled Jobs",
+        )
+        self.restart_canceled_jobs_action.setToolTip("Queue every canceled job to run again.")
         self.copy_menu = self.tracker_menu_bar.addMenu("Copy")
         self.copy_failed_jobs_action = self.copy_menu.addAction("Copy Failed Job Names")
         self.copy_failed_jobs_action.setToolTip("Copy failed job file names, one per line.")
@@ -461,6 +472,27 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
             self,
             "Restart Job",
             f"Restart '{job_name}'?\n\nConfigured tasks will run again and may replace generated outputs.",
+            ui_qt.QtLib.StandardButton.Yes | ui_qt.QtLib.StandardButton.No,
+            ui_qt.QtLib.StandardButton.No,
+        )
+        return answer == ui_qt.QtLib.StandardButton.Yes
+
+    def confirm_restart_jobs(self, job_count, status_label):
+        """Asks the user to confirm restarting every job in a status at once.
+
+        Args:
+            job_count (int): Number of jobs to be restarted.
+            status_label (str): Lowercase word describing the job status.
+
+        Returns:
+            bool: True when the batch restart was confirmed.
+        """
+        job_label = "job" if job_count == 1 else "jobs"
+        answer = ui_qt.QtWidgets.QMessageBox.question(
+            self,
+            f"Restart All {status_label.capitalize()} Jobs",
+            f"Restart {job_count} {status_label} {job_label}?\n\n"
+            "Configured tasks will run again and may replace generated outputs.",
             ui_qt.QtLib.StandardButton.Yes | ui_qt.QtLib.StandardButton.No,
             ui_qt.QtLib.StandardButton.No,
         )
