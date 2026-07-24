@@ -671,17 +671,14 @@ class TaskRetargetHumanIK(task_base.BatchTask):
             imported_source_nodes (list): Imported source nodes.
             source_character (str): Source HIK character.
         """
-        cmds = batch_processor_maya.get_maya_cmds()
         if self.settings.get("delete_source_elements", True):
             delete_targets = []
             source_root = self.get_source_root()
-            if source_root and cmds.objExists(source_root):
+            if source_root:
                 delete_targets.append(source_root)
-            delete_targets.extend([node for node in imported_source_nodes or [] if cmds.objExists(node)])
+            delete_targets.extend(imported_source_nodes or [])
             delete_targets.append(source_character)
-            delete_targets = sorted(set([node for node in delete_targets if node and cmds.objExists(node)]))
-            if delete_targets:
-                cmds.delete(delete_targets)
+            self.delete_source_nodes(delete_targets)
         try:
             import gt.utils.hik as utils_hik
 
@@ -692,6 +689,73 @@ class TaskRetargetHumanIK(task_base.BatchTask):
             for namespace in [self.get_runtime_source_namespace(), self.get_runtime_target_namespace()]:
                 if namespace:
                     self.delete_namespace(namespace)
+
+    @staticmethod
+    def resolve_delete_paths(requested_nodes):
+        """Resolves requested nodes to unique deletable paths.
+
+        Non-unique short names are expanded to their full DAG paths so each
+        matching object can be deleted individually. Names that match a single
+        object (including non-DAG nodes such as HIK character nodes) are kept as
+        returned by Maya. Duplicate paths are removed while preserving a
+        deepest-first order so children are addressed before their parents.
+
+        Args:
+            requested_nodes (list): Requested node names, possibly non-unique.
+
+        Returns:
+            list: Unique full paths to delete, ordered deepest-first.
+        """
+        cmds = batch_processor_maya.get_maya_cmds()
+        resolved_paths = []
+        for node in requested_nodes or []:
+            if not node:
+                continue
+            try:
+                matches = cmds.ls(node, long=True) or []
+            except Exception:
+                matches = []
+            for match in matches:
+                if match and match not in resolved_paths:
+                    resolved_paths.append(match)
+        return sorted(resolved_paths, key=lambda item: str(item).count("|"), reverse=True)
+
+    def delete_source_nodes(self, requested_nodes):
+        """Deletes source nodes one at a time, logging failures instead of erroring.
+
+        Each requested name is resolved to its full path(s) so non-unique or
+        dirty scene names do not abort the whole deletion. Nodes already removed
+        by an earlier parent deletion are skipped silently.
+
+        Args:
+            requested_nodes (list): Requested node names to delete.
+
+        Returns:
+            dict: Counts keyed by "deleted", "skipped", and "failed".
+        """
+        cmds = batch_processor_maya.get_maya_cmds()
+        counts = {"deleted": 0, "skipped": 0, "failed": 0}
+        for path in self.resolve_delete_paths(requested_nodes):
+            try:
+                if not cmds.objExists(path):
+                    counts["skipped"] += 1
+                    continue
+                cmds.delete(path)
+                counts["deleted"] += 1
+            except Exception as exception:
+                counts["failed"] += 1
+                sys.stdout.write(
+                    "[WARNING] - (HumanIK) - Unable to delete source element '{0}': {1}\n".format(path, exception)
+                )
+                sys.stdout.flush()
+        if counts["failed"]:
+            sys.stdout.write(
+                "[HumanIK] Source cleanup deleted {0}, skipped {1}, failed {2}.\n".format(
+                    counts["deleted"], counts["skipped"], counts["failed"]
+                )
+            )
+            sys.stdout.flush()
+        return counts
 
     def write_output(self, output_path):
         """Writes the retargeted scene.

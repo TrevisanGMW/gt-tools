@@ -2020,6 +2020,40 @@ class TestBatchProcessorModel(unittest.TestCase):
         expected = "my_sourcef"
         self.assertEqual(expected, result)
 
+    def test_hik_resolve_delete_paths_expands_non_unique_names(self):
+        hik_task = modules.create_task(constants.TaskType.HIK_RETARGET)
+        maya_cmds = mock.Mock()
+        maya_cmds.ls.side_effect = lambda node, long: {
+            "Hips": ["|group_a|Hips", "|group_b|Hips"],
+            "source": ["source"],
+        }.get(node, [])
+
+        with mock.patch.object(batch_processor_maya, "get_maya_cmds", return_value=maya_cmds):
+            result = hik_task.resolve_delete_paths(["Hips", "source"])
+
+        expected = ["|group_a|Hips", "|group_b|Hips", "source"]
+        self.assertEqual(expected, result)
+
+    def test_hik_delete_source_nodes_logs_failures_without_raising(self):
+        hik_task = modules.create_task(constants.TaskType.HIK_RETARGET)
+        maya_cmds = mock.Mock()
+        maya_cmds.ls.side_effect = lambda node, long: {
+            "Hips": ["|group_a|Hips", "|group_b|Hips"],
+        }.get(node, [])
+        maya_cmds.objExists.return_value = True
+
+        def fake_delete(path):
+            if path == "|group_b|Hips":
+                raise RuntimeError("More than one object matches name")
+
+        maya_cmds.delete.side_effect = fake_delete
+
+        with mock.patch.object(batch_processor_maya, "get_maya_cmds", return_value=maya_cmds):
+            result = hik_task.delete_source_nodes(["Hips"])
+
+        expected = {"deleted": 1, "skipped": 0, "failed": 1}
+        self.assertEqual(expected, result)
+
     def test_hik_export_source_root_prefers_configured_namespace(self):
         hik_task = modules.create_task(constants.TaskType.HIK_RETARGET)
         hik_task.settings["source_root"] = "Hips"
