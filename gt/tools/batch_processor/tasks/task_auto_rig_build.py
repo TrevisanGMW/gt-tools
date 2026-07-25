@@ -5,6 +5,7 @@ Batch Processor Auto Rig Build Task
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_maya
 from gt.tools.batch_processor import batch_processor_task_base as task_base
+import gt.ui.resource_library as ui_res_lib
 from gt.tools.batch_processor.tasks import task_utils
 import os
 
@@ -15,10 +16,9 @@ class TaskAutoRigBuild(task_base.BatchTask):
     task_type = constants.TaskType.AUTO_RIG_BUILD
     default_display_name = "Build Auto Rig"
     default_target_path_template = "{project-dir}/{output-dir}"
-    icon = "tool_auto_rigger"
+    icon = ui_res_lib.Icon.tool_auto_rigger
     category = "Rigging"
-    category_icon = "root_biped"
-
+    category_icon = ui_res_lib.Icon.root_rigging
     def get_default_settings(self):
         """Gets default Auto Rig build settings.
 
@@ -189,6 +189,3 @@ class TaskAutoRigBuild(task_base.BatchTask):
             return str(module_name or "").strip() in available_names
         except Exception:
             return True
-
-
-AutoRigBuildTask = TaskAutoRigBuild

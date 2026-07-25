@@ -4,6 +4,7 @@ Batch Processor Input Task
 
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_task_base as task_base
+import gt.ui.resource_library as ui_res_lib
 import fnmatch
 import glob
 import os
@@ -14,9 +15,9 @@ class TaskInput(task_base.BatchTask):
 
     task_type = constants.TaskType.INPUT
     default_display_name = "Input Files"
-    icon = "rigger_module_import_file"
+    icon = ui_res_lib.Icon.rigger_module_import_file
     category = "Inputs"
-    category_icon = "rigger_module_import_file"
+    category_icon = ui_res_lib.Icon.rigger_module_import_file
     default_segment_name = "New Input Segment"
     is_input_task = True
 
@@ -424,6 +425,3 @@ class TaskInput(task_base.BatchTask):
             bool: True when the path contains glob wildcards.
         """
         return any(character in str(path or "") for character in ["*", "?", "["])
-
-
-InputTask = TaskInput

@@ -5,6 +5,7 @@ Batch Processor Validation Tasks
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_maya
 from gt.tools.batch_processor import batch_processor_task_base as task_base
+import gt.ui.resource_library as ui_res_lib
 from gt.tools.batch_processor.tasks import task_utils
 import hashlib
 import os
@@ -42,9 +43,9 @@ class TaskValidationMayaScene(task_base.BatchTask):
     task_type = constants.TaskType.MAYA_SCENE_VALIDATE
     default_display_name = "Validate Scene"
     default_target_path_template = VALIDATION_LOG_TARGET_PATH_TEMPLATE
-    icon = "rigger_module_validate"
+    icon = ui_res_lib.Icon.tool_validator
     category = "Validation"
-    category_icon = "rigger_module_validate"
+    category_icon = ui_res_lib.Icon.tool_validator
     is_indexless_task = True
 
     def __init__(self, *args, **kwargs):
@@ -219,9 +220,9 @@ class TaskValidationFileIntegrity(task_base.BatchTask):
     task_type = constants.TaskType.FILE_INTEGRITY_VALIDATE
     default_display_name = "Validate Integrity"
     default_target_path_template = VALIDATION_LOG_TARGET_PATH_TEMPLATE
-    icon = "rigger_module_validate"
+    icon = ui_res_lib.Icon.tool_validator
     category = "Validation"
-    category_icon = "rigger_module_validate"
+    category_icon = ui_res_lib.Icon.tool_validator
     is_indexless_task = True
 
     def __init__(self, *args, **kwargs):
@@ -415,9 +416,9 @@ class TaskValidationFolderCompare(task_base.BatchTask):
     task_type = constants.TaskType.FOLDER_COMPARE_VALIDATE
     default_display_name = "Validate Parity"
     default_target_path_template = VALIDATION_LOG_TARGET_PATH_TEMPLATE
-    icon = "rigger_module_validate"
+    icon = ui_res_lib.Icon.tool_validator
     category = "Validation"
-    category_icon = "rigger_module_validate"
+    category_icon = ui_res_lib.Icon.tool_validator
     is_indexless_task = True
     is_aggregate_task = True
 
@@ -809,8 +810,3 @@ def parse_optional_int(value):
     if value in [None, ""]:
         return None
     return int(value)
-
-
-MayaSceneValidationTask = TaskValidationMayaScene
-FileIntegrityValidationTask = TaskValidationFileIntegrity
-FolderCompareValidationTask = TaskValidationFolderCompare

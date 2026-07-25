@@ -2,9 +2,9 @@
 Batch Processor Blender Task Attribute Widget
 """
 
-from gt.tools.batch_processor.widgets.attr_widget_motionbuilder_script import AttrWidgetMotionBuilderScriptTask
+from gt.tools.batch_processor.widgets.attr_widget_external_mobu import AttrWidgetMotionBuilderScriptTask
 from gt.tools.batch_processor.widgets import attr_widget_base
-from gt.tools.batch_processor.tasks import task_blender_script
+from gt.tools.batch_processor.tasks import task_external_blender
 import gt.ui.resource_library as ui_res_lib
 import gt.ui.qt_import as ui_qt
 from functools import partial
@@ -75,14 +75,14 @@ class AttrWidgetBlenderScriptTask(AttrWidgetMotionBuilderScriptTask):
             "Arguments",
             self.task.settings.get("blender_arguments"),
             partial(self.set_task_setting, key="blender_arguments"),
-            placeholder=task_blender_script.DEFAULT_BLENDER_ARGUMENTS,
+            placeholder=task_external_blender.DEFAULT_BLENDER_ARGUMENTS,
             tooltip="Blender process arguments. One argument per line, or quoted shell-style text.",
         )
         self.add_text_field(
             "Script Flag",
             self.task.settings.get("script_flag"),
             partial(self.set_task_setting, key="script_flag"),
-            placeholder=task_blender_script.DEFAULT_BLENDER_SCRIPT_FLAG,
+            placeholder=task_external_blender.DEFAULT_BLENDER_SCRIPT_FLAG,
             tooltip="Command-line flag used before the script path.",
             label_width=100,
         )
@@ -155,7 +155,7 @@ class AttrWidgetBlenderScriptTask(AttrWidgetMotionBuilderScriptTask):
         Args:
             field (QLineEdit): Executable field to update.
         """
-        found_path = task_blender_script.find_blender_executable()
+        found_path = task_external_blender.find_blender_executable()
         if not found_path:
             self.emit_status_message("Unable to find Blender in common install folders.", status="warning")
             return

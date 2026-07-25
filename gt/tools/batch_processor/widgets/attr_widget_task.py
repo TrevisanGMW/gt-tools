@@ -56,7 +56,7 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         active_checkbox.stateChanged.connect(lambda *args: self.set_task_enabled(active_checkbox.isChecked()))
         layout.addWidget(active_checkbox)
 
-        icon_path = attr_widget_base.get_icon_path(self.task.icon)
+        icon_path = self.task.icon
         icon_label = ui_qt.QtWidgets.QLabel()
         icon_label.setPixmap(ui_qt.QtGui.QIcon(icon_path).pixmap(32, 32))
         icon_label.setToolTip(self.task.default_display_name)
@@ -1064,11 +1064,11 @@ def get_task_widget_class(task):
 
         return AttrWidgetPythonScriptTask
     if task.task_type == constants.TaskType.MOTIONBUILDER_SCRIPT:
-        from gt.tools.batch_processor.widgets.attr_widget_motionbuilder_script import AttrWidgetMotionBuilderScriptTask
+        from gt.tools.batch_processor.widgets.attr_widget_external_mobu import AttrWidgetMotionBuilderScriptTask
 
         return AttrWidgetMotionBuilderScriptTask
     if task.task_type == constants.TaskType.BLENDER_SCRIPT:
-        from gt.tools.batch_processor.widgets.attr_widget_blender_script import AttrWidgetBlenderScriptTask
+        from gt.tools.batch_processor.widgets.attr_widget_external_blender import AttrWidgetBlenderScriptTask
 
         return AttrWidgetBlenderScriptTask
     if task.task_type == constants.TaskType.PYTHON_SCRIPTS_FOLDER:
@@ -1080,7 +1080,7 @@ def get_task_widget_class(task):
 
         return AttrWidgetMayaSaveTask
     if task.task_type == constants.TaskType.USD_EXPORT:
-        from gt.tools.batch_processor.widgets.attr_widget_usd_export import AttrWidgetUsdExportTask
+        from gt.tools.batch_processor.widgets.attr_widget_export_usd import AttrWidgetUsdExportTask
 
         return AttrWidgetUsdExportTask
     if task.task_type == constants.TaskType.RETARGET:
@@ -1092,51 +1092,51 @@ def get_task_widget_class(task):
 
         return AttrWidgetRetargetHumanIK
     if task.task_type == constants.TaskType.FBX_EXPORT:
-        from gt.tools.batch_processor.widgets.attr_widget_new_tasks import AttrWidgetFbxExportTask
+        from gt.tools.batch_processor.widgets.attr_widget_export_fbx import AttrWidgetFbxExportTask
 
         return AttrWidgetFbxExportTask
     if task.task_type == constants.TaskType.AUTO_RIG_BUILD:
-        from gt.tools.batch_processor.widgets.attr_widget_new_tasks import AttrWidgetAutoRigBuildTask
+        from gt.tools.batch_processor.widgets.attr_widget_auto_rig_build import AttrWidgetAutoRigBuildTask
 
         return AttrWidgetAutoRigBuildTask
     if task.task_type == constants.TaskType.CLIP_SPLIT:
-        from gt.tools.batch_processor.widgets.attr_widget_new_tasks import AttrWidgetClipSplitTask
+        from gt.tools.batch_processor.widgets.attr_widget_clip import AttrWidgetClipSplitTask
 
         return AttrWidgetClipSplitTask
     if task.task_type == constants.TaskType.CLIP_SNAPSHOT:
-        from gt.tools.batch_processor.widgets.attr_widget_new_tasks import AttrWidgetClipSnapshotTask
+        from gt.tools.batch_processor.widgets.attr_widget_clip import AttrWidgetClipSnapshotTask
 
         return AttrWidgetClipSnapshotTask
     if task.task_type == constants.TaskType.MAP_RENAME:
-        from gt.tools.batch_processor.widgets.attr_widget_new_tasks import AttrWidgetMapRenameTask
+        from gt.tools.batch_processor.widgets.attr_widget_map_rename import AttrWidgetMapRenameTask
 
         return AttrWidgetMapRenameTask
     if task.task_type == constants.TaskType.DELETE_PROJECT_FILES:
-        from gt.tools.batch_processor.widgets.attr_widget_new_tasks import AttrWidgetDeleteProjectFilesTask
+        from gt.tools.batch_processor.widgets.attr_widget_delete_project_files import AttrWidgetDeleteProjectFilesTask
 
         return AttrWidgetDeleteProjectFilesTask
     if task.task_type == constants.TaskType.ZIP_COMPRESS:
-        from gt.tools.batch_processor.widgets.attr_widget_new_tasks import AttrWidgetZipCompressTask
+        from gt.tools.batch_processor.widgets.attr_widget_archive import AttrWidgetArchiveTask
 
-        return AttrWidgetZipCompressTask
+        return AttrWidgetArchiveTask
     if task.task_type == constants.TaskType.MAYA_SCENE_VALIDATE:
-        from gt.tools.batch_processor.widgets.attr_widget_new_tasks import AttrWidgetMayaSceneValidationTask
+        from gt.tools.batch_processor.widgets.attr_widget_validation import AttrWidgetMayaSceneValidationTask
 
         return AttrWidgetMayaSceneValidationTask
     if task.task_type == constants.TaskType.FILE_INTEGRITY_VALIDATE:
-        from gt.tools.batch_processor.widgets.attr_widget_new_tasks import AttrWidgetFileIntegrityValidationTask
+        from gt.tools.batch_processor.widgets.attr_widget_validation import AttrWidgetFileIntegrityValidationTask
 
         return AttrWidgetFileIntegrityValidationTask
     if task.task_type == constants.TaskType.FOLDER_COMPARE_VALIDATE:
-        from gt.tools.batch_processor.widgets.attr_widget_new_tasks import AttrWidgetFolderCompareValidationTask
+        from gt.tools.batch_processor.widgets.attr_widget_validation import AttrWidgetFolderCompareValidationTask
 
         return AttrWidgetFolderCompareValidationTask
     if task.task_type == constants.TaskType.THUMBNAIL_CAPTURE:
-        from gt.tools.batch_processor.widgets.attr_widget_new_tasks import AttrWidgetThumbnailCaptureTask
+        from gt.tools.batch_processor.widgets.attr_widget_capture import AttrWidgetThumbnailCaptureTask
 
         return AttrWidgetThumbnailCaptureTask
     if task.task_type == constants.TaskType.PLAYBLAST_CAPTURE:
-        from gt.tools.batch_processor.widgets.attr_widget_new_tasks import AttrWidgetPlayblastCaptureTask
+        from gt.tools.batch_processor.widgets.attr_widget_capture import AttrWidgetPlayblastCaptureTask
 
         return AttrWidgetPlayblastCaptureTask
     return AttrWidgetTask

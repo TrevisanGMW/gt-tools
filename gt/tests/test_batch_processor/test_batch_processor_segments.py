@@ -38,7 +38,7 @@ class TestBatchProcessorSegments(unittest.TestCase):
         Returns:
             TaskInput: Configured input task.
         """
-        task = tasks.InputTask()
+        task = tasks.TaskInput()
         task.settings["start_new_input_list"] = start_new_input_list
         task.enabled = enabled
         return task
@@ -58,7 +58,7 @@ class TestBatchProcessorSegments(unittest.TestCase):
 
     def test_default_flag_is_false(self):
         expected = False
-        task = tasks.InputTask()
+        task = tasks.TaskInput()
         self.assertEqual(expected, task.settings.get("start_new_input_list"))
         self.assertEqual(expected, task.starts_new_input_list())
 
@@ -130,7 +130,7 @@ class TestBatchProcessorSegments(unittest.TestCase):
         self.assertEqual(expected, len(model.get_task_segments()))
 
     def test_forced_separator_shows_without_reset(self):
-        task = tasks.InputTask()
+        task = tasks.TaskInput()
         task.settings["start_new_input_list"] = False
         task.settings["force_segment_separator"] = True
         self.assertTrue(task.shows_segment_separator())
@@ -139,13 +139,13 @@ class TestBatchProcessorSegments(unittest.TestCase):
     def test_reset_flag_alone_does_not_show_separator(self):
         # Starting a new segment no longer forces a divider; the divider is
         # controlled solely by the "Add Separator" (force_segment_separator) flag.
-        task = tasks.InputTask()
+        task = tasks.TaskInput()
         task.settings["start_new_input_list"] = True
         task.settings["force_segment_separator"] = False
         self.assertFalse(task.shows_segment_separator())
 
     def test_no_separator_by_default(self):
-        task = tasks.InputTask()
+        task = tasks.TaskInput()
         self.assertFalse(task.shows_segment_separator())
 
     def test_separator_shown_on_any_task_with_flag(self):
@@ -167,14 +167,14 @@ class TestBatchProcessorSegments(unittest.TestCase):
         self.assertEqual(expected, len(model.get_task_segments()))
 
     def test_segment_color_name_defaults_and_custom(self):
-        task = tasks.InputTask()
+        task = tasks.TaskInput()
         self.assertEqual("blue_light_sky", task.get_segment_color_name())
         task.settings["segment_color"] = "orange"
         self.assertEqual("orange", task.get_segment_color_name())
 
     def test_segment_display_name_defaults_when_empty(self):
         expected = "New Input Segment"
-        task = tasks.InputTask()
+        task = tasks.TaskInput()
         self.assertEqual(expected, task.get_segment_display_name())
 
     def test_zip_task_run_once_default_true(self):
@@ -192,7 +192,7 @@ class TestBatchProcessorSegments(unittest.TestCase):
 
     def test_segment_display_name_uses_custom_value(self):
         expected = "FBX Retarget"
-        task = tasks.InputTask()
+        task = tasks.TaskInput()
         task.settings["segment_name"] = "  FBX Retarget  "
         self.assertEqual(expected, task.get_segment_display_name())
 

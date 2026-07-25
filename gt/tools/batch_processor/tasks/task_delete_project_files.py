@@ -4,6 +4,7 @@ Batch Processor Delete Project Files Task
 
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_task_base as task_base
+import gt.ui.resource_library as ui_res_lib
 from gt.tools.batch_processor.tasks import task_utils
 import fnmatch
 import os
@@ -15,9 +16,9 @@ class TaskDeleteProjectFiles(task_base.BatchTask):
     task_type = constants.TaskType.DELETE_PROJECT_FILES
     default_display_name = "Delete Project Files"
     default_target_path_template = "{previous-task-path}"
-    icon = "ui_delete"
+    icon = ui_res_lib.Icon.ui_delete
     category = "Utilities"
-    category_icon = "root_utilities"
+    category_icon = ui_res_lib.Icon.root_utilities
     is_aggregate_task = True
     is_delete_task = True
 
@@ -226,6 +227,3 @@ class TaskDeleteProjectFiles(task_base.BatchTask):
             for pattern in exclude_patterns
         )
         return bool(is_included and not is_excluded)
-
-
-DeleteProjectFilesTask = TaskDeleteProjectFiles

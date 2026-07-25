@@ -236,6 +236,9 @@ def run_tracker(args):
     )
     application = ui_qt.QtWidgets.QApplication.instance() or ui_qt.QtWidgets.QApplication(sys.argv)
     application.setApplicationName("Batch Processor Tracker")
+    # Installed on the application (not on widgets) so Qt Style Sheets still
+    # render while menu icons are pinned to the check-indicator size.
+    application.setStyle(tracker_view.MenuIconStyle(application.style()))
     view = tracker_view.TrackerView(project_name=project.project_name)
     scheduler = tracker_scheduler.TrackerScheduler(
         session=session,

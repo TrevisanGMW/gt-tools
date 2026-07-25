@@ -319,7 +319,7 @@ class TrackerTreeModel(ui_qt.QtCore.QAbstractItemModel):
         if isinstance(item, tracker_model.TrackerJob):
             path = ui_res_lib.Icon.rigger_project if item.is_finalization else ui_res_lib.Icon.ui_progress
         else:
-            path = getattr(ui_res_lib.Icon, item.icon, ui_res_lib.Icon.ui_progress)
+            path = item.icon or ui_res_lib.Icon.ui_progress
         return ui_qt.QtGui.QIcon(path)
 
 

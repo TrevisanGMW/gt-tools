@@ -5,6 +5,7 @@ Batch Processor Maya Save Task
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_maya
 from gt.tools.batch_processor import batch_processor_task_base as task_base
+import gt.ui.resource_library as ui_res_lib
 import os
 
 
@@ -14,9 +15,9 @@ class TaskMayaSave(task_base.BatchTask):
     task_type = constants.TaskType.MAYA_SAVE
     default_display_name = "Save Maya File"
     default_target_path_template = "{project-dir}/{output-dir}"
-    icon = "rigger_module_save_scene"
+    icon = ui_res_lib.Icon.rigger_module_save_scene
     category = "Outputs"
-    category_icon = "rigger_module_save_scene"
+    category_icon = ui_res_lib.Icon.rigger_module_save_scene
     is_output_task = True
 
     def get_default_settings(self):
@@ -172,6 +173,3 @@ class TaskMayaSave(task_base.BatchTask):
         if self.settings.get("open_source_scene", True):
             return "Open"
         return "Import"
-
-
-MayaSaveTask = TaskMayaSave

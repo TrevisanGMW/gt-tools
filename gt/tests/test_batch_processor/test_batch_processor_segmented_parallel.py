@@ -67,9 +67,9 @@ class TestSegmentBuilder(unittest.TestCase):
             BatchProcessorModel: Configured model.
         """
         model = batch_processor_model.BatchProcessorModel()
-        first_input = tasks.InputTask()
+        first_input = tasks.TaskInput()
         first_process = tasks.create_task(task_type=constants.TaskType.RENAME)
-        second_input = tasks.InputTask()
+        second_input = tasks.TaskInput()
         second_input.settings["start_new_input_list"] = True
         second_process = tasks.create_task(task_type=constants.TaskType.RENAME)
         model.tasks = [first_input, first_process, second_input, second_process]
@@ -91,7 +91,7 @@ class TestSegmentBuilder(unittest.TestCase):
 
     def test_single_segment_project_reports_one_segment(self):
         model = batch_processor_model.BatchProcessorModel()
-        model.tasks = [tasks.InputTask(), tasks.create_task(task_type=constants.TaskType.RENAME)]
+        model.tasks = [tasks.TaskInput(), tasks.create_task(task_type=constants.TaskType.RENAME)]
         args = types.SimpleNamespace(run_from_task_id="", run_to_task_id="", final_task_id=[])
 
         segments, _, _ = tracker_main.build_segments(model, args)

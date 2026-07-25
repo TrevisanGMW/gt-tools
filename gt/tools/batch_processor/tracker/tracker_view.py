@@ -11,17 +11,23 @@ MENU_ICON_SIZE = 16
 
 
 class MenuIconStyle(ui_qt.QtWidgets.QProxyStyle):
-    """Pins menu icon and indicator sizes so they match across DPI scales.
+    """Pins the small-icon size so menu icons match stylesheet check indicators.
 
     Menu action icons are drawn at the active style's small-icon metric, which
     scales differently from stylesheet-sized check indicators on remote or
-    high-DPI displays (for example over Parsec). Forcing both metrics to one
-    value keeps every menu icon and checkbox the same size regardless of the
-    host resolution or scaling.
+    high-DPI displays (for example over Parsec), leaving icons large while the
+    checkboxes stay small. Forcing the small-icon metric to the same value the
+    indicators use keeps every menu icon and checkbox the same size regardless
+    of the host resolution or scaling.
+
+    This proxy wraps an existing base style and must be installed on the
+    QApplication (not on individual widgets). Installing a custom style directly
+    on a widget disables Qt Style Sheet rendering for it; at the application
+    level the stylesheet style wraps this proxy, so both keep working.
     """
 
     def pixelMetric(self, metric, option=None, widget=None):
-        """Returns a uniform size for menu icon and indicator metrics.
+        """Returns a uniform size for the small-icon metric.
 
         Args:
             metric (QStyle.PixelMetric): Requested pixel metric.
@@ -29,30 +35,15 @@ class MenuIconStyle(ui_qt.QtWidgets.QProxyStyle):
             widget (QWidget, optional): Target widget.
 
         Returns:
-            int: Overridden size for icon/indicator metrics, otherwise the base
+            int: Overridden size for the small-icon metric, otherwise the base
                 style value.
-        """
-        if metric in self._uniform_metrics():
-            return MENU_ICON_SIZE
-        return super().pixelMetric(metric, option, widget)
-
-    @staticmethod
-    def _uniform_metrics():
-        """Gets the binding-compatible metrics forced to a uniform size.
-
-        Returns:
-            set: Pixel-metric enum values for small icons and menu indicators.
         """
         pixel_metric = (
             ui_qt.QtWidgets.QStyle.PixelMetric if ui_qt.IS_PYSIDE6 else ui_qt.QtWidgets.QStyle
         )
-        return {
-            pixel_metric.PM_SmallIconSize,
-            pixel_metric.PM_IndicatorWidth,
-            pixel_metric.PM_IndicatorHeight,
-            pixel_metric.PM_ExclusiveIndicatorWidth,
-            pixel_metric.PM_ExclusiveIndicatorHeight,
-        }
+        if metric == pixel_metric.PM_SmallIconSize:
+            return MENU_ICON_SIZE
+        return super().pixelMetric(metric, option, widget)
 
 
 class TrackerTreeView(ui_qt.QtWidgets.QTreeView):
@@ -230,10 +221,6 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
         self.actions_widget = ui_qt.QtWidgets.QWidget()
         self.filters_widget = ui_qt.QtWidgets.QWidget()
         self.tracker_menu_bar = ui_qt.QtWidgets.QMenuBar()
-        # Retained on the view so the proxy style outlives the menus that use it.
-        # QWidget.setStyle does not take ownership, so a Python reference is enough.
-        self.menu_icon_style = MenuIconStyle()
-        self.tracker_menu_bar.setStyle(self.menu_icon_style)
         self.file_menu = self.tracker_menu_bar.addMenu("File")
         self.open_batch_processor_action = self.file_menu.addAction(
             ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_open),
@@ -312,8 +299,6 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
             "Reset Filters",
         )
         self.reset_filters_action.setToolTip("Clear all tracker filters.")
-        for menu in (self.file_menu, self.view_menu, self.actions_menu, self.copy_menu, self.filters_menu):
-            menu.setStyle(self.menu_icon_style)
         self.search_field = ui_qt.QtWidgets.QLineEdit()
         self.search_field.setPlaceholderText("Filter by job name...")
         self.search_field.setClearButtonEnabled(True)
@@ -442,11 +427,12 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
             "QMenuBar::item { background: transparent; padding: 4px 8px; border-radius: 3px; }"
             "QMenuBar::item:selected { background-color: #465158; color: #ffffff; }"
             "QMenuBar::item:pressed { background-color: #55788a; color: #ffffff; }"
-            "QMenu { background-color: #303030; color: #dddddd; border: 1px solid #505050;"
+            "QMenu { background-color: #444444; color: #dddddd; border: 1px solid #5a5a5a;"
             " padding: 4px 0px; }"
-            "QMenu::item { padding: 6px 28px 6px 36px; min-height: 20px; }"
+            "QMenu::item { background-color: transparent; padding: 6px 28px 6px 36px; min-height: 20px; }"
             "QMenu::item:selected { background-color: #55788a; color: #ffffff; }"
-            "QMenu::item:disabled { color: #707070; }"
+            "QMenu::item:disabled { color: #808080; }"
+            "QMenu::separator { height: 1px; background-color: #5f5f5f; margin: 4px 8px; }"
             "QMenu::icon { left: 9px; }"
             "QMenu::indicator { left: 9px; width: 16px; height: 16px; }"
             f"QMenu::indicator:checked {{ image: url({checked_icon}); }}"

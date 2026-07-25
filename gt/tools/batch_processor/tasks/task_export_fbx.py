@@ -4,6 +4,7 @@ Batch Processor FBX Export Task
 
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_task_base as task_base
+import gt.ui.resource_library as ui_res_lib
 from gt.tools.batch_processor.tasks import task_utils
 import os
 
@@ -20,9 +21,9 @@ class TaskExportFbx(task_base.BatchTask):
     task_type = constants.TaskType.FBX_EXPORT
     default_display_name = "FBX Export"
     default_target_path_template = "{project-dir}/{output-dir}"
-    icon = "rigger_module_export_sk"
+    icon = ui_res_lib.Icon.rigger_module_export_sk
     category = "Outputs"
-    category_icon = "rigger_module_export_sk"
+    category_icon = ui_res_lib.Icon.rigger_module_export_sk
     is_output_task = True
 
     def get_default_settings(self):
@@ -188,6 +189,3 @@ class TaskExportFbx(task_base.BatchTask):
             float(value)
         except (TypeError, ValueError):
             result.add_error("FBX export {0} frame must be numeric: {1}".format(label, value))
-
-
-FbxExportTask = TaskExportFbx

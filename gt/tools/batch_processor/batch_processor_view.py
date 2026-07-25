@@ -4,7 +4,6 @@ Batch Processor View
 
 import logging
 
-from gt.tools.batch_processor import batch_processor_task_widget
 import gt.ui.tree_widget_enhanced as ui_tree_enhanced
 import gt.ui.resource_library as ui_res_lib
 import gt.core.session as core_session
@@ -381,7 +380,7 @@ class BatchProcessorView(metaclass=MayaWindowMeta):
                     self.add_segment_separator_item(segment_name, color_hex)
                 label = task.display_name
                 tree_item = ui_tree_enhanced.QTreeItemEnhanced([label])
-                tree_item.setIcon(0, ui_qt.QtGui.QIcon(batch_processor_task_widget.get_icon_path(task.icon)))
+                tree_item.setIcon(0, ui_qt.QtGui.QIcon(task.icon))
                 tree_item.setData(0, self.DATA_ROLE, task.id)
                 tree_item.set_allow_parenting(False)
                 self.project_item.addChild(tree_item)

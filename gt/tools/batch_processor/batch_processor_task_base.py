@@ -13,6 +13,8 @@ import os
 import re
 import uuid
 
+import gt.ui.resource_library as ui_res_lib
+
 
 SOURCE_MODE_INCOMING = "incoming"
 SOURCE_MODE_PATH = "source_path"
@@ -476,9 +478,9 @@ class BatchTask:
     default_source_path_template = "{previous-task-path}"
     default_target_path_template = "{project-dir}/{task-dir}/{task-idx}_{task-name}"
     default_task_path_template = default_target_path_template
-    icon = ""
+    icon = ui_res_lib.Icon.rigger_module_generic
     category = "General"
-    category_icon = ""
+    category_icon = ui_res_lib.Icon.rigger_module_generic
     default_segment_name = "New Segment"
     can_be_removed = True
     is_input_task = False

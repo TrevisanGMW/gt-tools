@@ -4,7 +4,9 @@ Batch Processor Controller
 
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_tasks as tasks
-from gt.tools.batch_processor import batch_processor_task_widget
+from gt.tools.batch_processor.widgets.attr_widget_base import get_icon_path
+from gt.tools.batch_processor.widgets.attr_widget_project import AttrWidgetProject
+from gt.tools.batch_processor.widgets.attr_widget_task import get_task_widget_class
 from gt.tools.batch_processor import batch_processor_templates
 from gt.tools.batch_processor import batch_processor_log_view
 from gt.tools.batch_processor import batch_processor_tracker
@@ -138,7 +140,7 @@ class BatchProcessorController:
             formatted_name = self.format_template_name(name)
             action_template = self.create_action(
                 formatted_name,
-                icon_path=batch_processor_task_widget.get_icon_path(template_registry.icon_files),
+                icon_path=get_icon_path(template_registry.icon_files),
             )
             action_template.triggered.connect(partial(self.replace_project_from_template, template_func=template_func))
             self.view.add_menu_action(parent_menu=menu_templates, action=action_template)
@@ -211,9 +213,7 @@ class BatchProcessorController:
         menu_tasks = self.view.add_menu_parent("Tasks")
         category_icons = tasks.get_task_category_icons()
         for category_name, task_classes in tasks.get_task_categories().items():
-            category_icon = batch_processor_task_widget.get_icon_path(
-                category_icons.get(category_name), fallback="rigger_module_generic"
-            )
+            category_icon = category_icons.get(category_name) or ui_res_lib.Icon.rigger_module_generic
             category_menu = self.view.add_menu_submenu(
                 parent_menu=menu_tasks,
                 submenu_name=category_name,
@@ -221,7 +221,7 @@ class BatchProcessorController:
             )
             ui_qt_utils.add_labeled_separator(menu=category_menu, text=category_name)
             for task_class in task_classes:
-                task_icon = batch_processor_task_widget.get_icon_path(task_class.icon)
+                task_icon = task_class.icon
                 action_task = self.create_action(task_class.default_display_name, icon_path=task_icon)
                 action_task.setToolTip("Add a {0} task to the project.".format(task_class.default_display_name))
                 action_task.triggered.connect(partial(self.add_task_by_type, task_type=task_class.task_type))
@@ -1021,7 +1021,7 @@ class BatchProcessorController:
             return
         task_id = self.view.get_selected_task_id()
         if not task_id:
-            widget_object = batch_processor_task_widget.AttrWidgetProject(
+            widget_object = AttrWidgetProject(
                 project=self.model,
                 refresh_parent_func=self.refresh_widgets,
                 controller=self,
@@ -1033,7 +1033,7 @@ class BatchProcessorController:
         if not task:
             self.view.clear_task_widget()
             return
-        widget_class = batch_processor_task_widget.get_task_widget_class(task)
+        widget_class = get_task_widget_class(task)
         widget_object = widget_class(
             task=task,
             project=self.model,

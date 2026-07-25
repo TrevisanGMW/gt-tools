@@ -4,6 +4,7 @@ Batch Processor Rename Map Task
 
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_task_base as task_base
+import gt.ui.resource_library as ui_res_lib
 from gt.tools.batch_processor.tasks import task_utils
 import hashlib
 import os
@@ -18,9 +19,9 @@ class TaskMapRename(task_base.BatchTask):
     task_type = constants.TaskType.MAP_RENAME
     default_display_name = "Map Rename"
     default_target_path_template = "{project-dir}/data"
-    icon = "tool_renamer"
+    icon = ui_res_lib.Icon.tool_renamer
     category = "Utilities"
-    category_icon = "root_utilities"
+    category_icon = ui_res_lib.Icon.root_utilities
     is_aggregate_task = True
     is_data_load_task = True
 
@@ -239,6 +240,3 @@ class TaskMapRename(task_base.BatchTask):
             "checksum": checksum,
             "size": os.path.getsize(file_path),
         }
-
-
-MapRenameTask = TaskMapRename

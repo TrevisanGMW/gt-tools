@@ -49,7 +49,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         model = batch_processor_model.BatchProcessorModel()
         model.project_name = "Unit Test Batch"
         model.run_settings["create_task_time_log"] = False
-        model.add_module(modules.RenameModule(settings={"pattern": "asset_{index}", "padding": 2}))
+        model.add_module(modules.TaskRename(settings={"pattern": "asset_{index}", "padding": 2}))
         project_path = os.path.join(self.temp_dir, "test_project.batch")
 
         saved_path = model.save_to_file(project_path)
@@ -67,7 +67,7 @@ class TestBatchProcessorModel(unittest.TestCase):
 
     def test_project_save_uses_tasks_key(self):
         model = batch_processor_model.BatchProcessorModel()
-        model.add_task(modules.RenameModule())
+        model.add_task(modules.TaskRename())
         project_path = os.path.join(self.temp_dir, "test_project.batch")
 
         saved_path = model.save_to_file(project_path)
@@ -89,8 +89,8 @@ class TestBatchProcessorModel(unittest.TestCase):
             "paths": {},
             "run_settings": {},
             "modules": [
-                modules.InputModule().to_dict(),
-                modules.RenameModule(settings={"pattern": "legacy_{index}"}).to_dict(),
+                modules.TaskInput().to_dict(),
+                modules.TaskRename(settings={"pattern": "legacy_{index}"}).to_dict(),
             ],
         }
         with open(project_path, "w", encoding="utf-8") as project_file:
@@ -120,7 +120,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         template_path = os.path.join(template_dir, "FbxToMaya.batch")
         template_data = batch_processor_model.BatchProcessorModel().to_dict()
         template_data["project_name"] = "FBX To Maya"
-        template_data["tasks"].append(modules.MayaImportModule().to_dict())
+        template_data["tasks"].append(modules.TaskMayaImport().to_dict())
         with open(template_path, "w", encoding="utf-8") as template_file:
             json.dump(template_data, template_file)
 
@@ -191,7 +191,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertEqual(expected, result)
 
     def test_input_module_drops_retired_explicit_ignore_setting(self):
-        input_module = modules.InputModule(
+        input_module = modules.TaskInput(
             settings={"explicit_ignore_patterns": ["*_preview.ma"]},
         )
 
@@ -248,9 +248,9 @@ class TestBatchProcessorModel(unittest.TestCase):
         source_path = os.path.join(input_dir, "characters", "hero", "walk.fbx")
         work_item = modules.WorkItem(source_path=source_path, source_root=input_dir)
         step_output_dir = os.path.join(self.temp_dir, "02_tasks", "01_python")
-        python_task = modules.PythonScriptModule()
-        usd_task = modules.UsdExportModule()
-        rename_task = modules.RenameModule(settings={"pattern": "renamed_{index}", "padding": 2})
+        python_task = modules.TaskPythonScript()
+        usd_task = modules.TaskExportUsd()
+        rename_task = modules.TaskRename(settings={"pattern": "renamed_{index}", "padding": 2})
 
         result = python_task.build_output_path(work_item, step_output_dir)
         expected = os.path.join(step_output_dir, "characters", "hero", "walk.ma")
@@ -268,7 +268,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         source_path = os.path.join(self.temp_dir, "02_tasks", "01_python", "walk.ma")
         work_item = modules.WorkItem(source_path=source_path)
         step_output_dir = os.path.join(self.temp_dir, "02_tasks", "02_python")
-        python_task = modules.PythonScriptModule(
+        python_task = modules.TaskPythonScript(
             settings={"output_mode": modules.OUTPUT_MODE_MODIFY}
         )
 
@@ -280,7 +280,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         source_path = os.path.join(self.temp_dir, "walk.ma")
         self._write_file(source_path, "maya scene")
         work_item = modules.WorkItem(source_path=source_path)
-        python_task = modules.PythonScriptModule(
+        python_task = modules.TaskPythonScript(
             settings={
                 "output_mode": modules.OUTPUT_MODE_MODIFY,
                 "script_text": "context['script_ran'] = True",
@@ -301,7 +301,7 @@ class TestBatchProcessorModel(unittest.TestCase):
     def test_python_task_modify_mode_rejects_non_maya_scene_files(self):
         source_path = os.path.join(self.temp_dir, "walk.fbx")
         work_item = modules.WorkItem(source_path=source_path)
-        python_task = modules.PythonScriptModule(
+        python_task = modules.TaskPythonScript(
             settings={"output_mode": modules.OUTPUT_MODE_MODIFY}
         )
 
@@ -314,7 +314,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         model = batch_processor_model.BatchProcessorModel()
         model.project_file_path = os.path.join(self.temp_dir, "project.batch")
         model.environment_variables["task-dir"] = "custom_tasks"
-        rename_task = modules.RenameModule()
+        rename_task = modules.TaskRename()
         model.add_task(rename_task)
 
         result = rename_task.resolve_task_path(model, task_index=2)
@@ -324,9 +324,9 @@ class TestBatchProcessorModel(unittest.TestCase):
     def test_environment_variables_include_task_dependent_neighbors(self):
         model = batch_processor_model.BatchProcessorModel()
         model.project_file_path = os.path.join(self.temp_dir, "project.batch")
-        rename_task = model.add_task(modules.RenameModule())
-        python_task = model.add_task(modules.PythonScriptModule())
-        save_task = model.add_task(modules.MayaSaveModule())
+        rename_task = model.add_task(modules.TaskRename())
+        python_task = model.add_task(modules.TaskPythonScript())
+        save_task = model.add_task(modules.TaskMayaSave())
 
         result = model.get_environment_variables(task=save_task, include_braces=True)
 
@@ -388,7 +388,7 @@ class TestBatchProcessorModel(unittest.TestCase):
 
     def test_task_environment_index_ignores_input_tasks_by_default(self):
         model = batch_processor_model.BatchProcessorModel()
-        rename_task = model.add_task(modules.RenameModule())
+        rename_task = model.add_task(modules.TaskRename())
 
         result = model.get_task_environment_index(rename_task)
 
@@ -402,7 +402,7 @@ class TestBatchProcessorModel(unittest.TestCase):
 
     def test_duplicate_task_inserts_after_source_with_new_id(self):
         model = batch_processor_model.BatchProcessorModel()
-        rename_task = model.add_task(modules.RenameModule(settings={"pattern": "asset_{index}"}))
+        rename_task = model.add_task(modules.TaskRename(settings={"pattern": "asset_{index}"}))
 
         result = model.duplicate_task(rename_task.id)
 
@@ -418,7 +418,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         model = batch_processor_model.BatchProcessorModel()
         input_task = model.get_input_task()
         input_task.settings["include_in_task_index"] = True
-        rename_task = model.add_task(modules.RenameModule())
+        rename_task = model.add_task(modules.TaskRename())
 
         result = model.get_task_environment_index(input_task)
 
@@ -432,9 +432,9 @@ class TestBatchProcessorModel(unittest.TestCase):
 
     def test_task_environment_index_uses_enabled_only_when_requested(self):
         model = batch_processor_model.BatchProcessorModel()
-        disabled_task = model.add_task(modules.RenameModule())
+        disabled_task = model.add_task(modules.TaskRename())
         disabled_task.enabled = False
-        rename_task = model.add_task(modules.RenameModule())
+        rename_task = model.add_task(modules.TaskRename())
 
         result = model.get_task_environment_index(rename_task)
 
@@ -448,7 +448,7 @@ class TestBatchProcessorModel(unittest.TestCase):
 
     def test_task_environment_index_automation_controls_disabled_tasks(self):
         model = batch_processor_model.BatchProcessorModel()
-        disabled_import_task = model.add_task(modules.MayaImportModule())
+        disabled_import_task = model.add_task(modules.TaskMayaImport())
         disabled_import_task.enabled = False
         hik_task = model.add_task(modules.create_task(constants.TaskType.HIK_RETARGET))
 
@@ -486,9 +486,9 @@ class TestBatchProcessorModel(unittest.TestCase):
 
     def test_task_environment_index_excludes_unchecked_output_and_delete_tasks(self):
         model = batch_processor_model.BatchProcessorModel()
-        output_task = model.add_task(modules.MayaSaveTask())
-        delete_task = model.add_task(modules.DeleteProjectFilesTask())
-        rename_task = model.add_task(modules.RenameModule())
+        output_task = model.add_task(modules.TaskMayaSave())
+        delete_task = model.add_task(modules.TaskDeleteProjectFiles())
+        rename_task = model.add_task(modules.TaskRename())
 
         result = model.get_task_environment_index(rename_task)
 
@@ -509,9 +509,9 @@ class TestBatchProcessorModel(unittest.TestCase):
 
     def test_task_environment_index_excludes_unchecked_data_load_tasks(self):
         model = batch_processor_model.BatchProcessorModel()
-        clip_task = model.add_task(modules.ClipSnapshotModule())
-        map_task = model.add_task(modules.MapRenameModule())
-        rename_task = model.add_task(modules.RenameModule())
+        clip_task = model.add_task(modules.TaskClipSnapshot())
+        map_task = model.add_task(modules.TaskMapRename())
+        rename_task = model.add_task(modules.TaskRename())
 
         result = model.get_task_environment_index(rename_task)
 
@@ -533,8 +533,8 @@ class TestBatchProcessorModel(unittest.TestCase):
 
     def test_validation_tasks_do_not_count_by_default(self):
         model = batch_processor_model.BatchProcessorModel()
-        validation_task = model.add_task(modules.MayaSceneValidationModule())
-        rename_task = model.add_task(modules.RenameModule())
+        validation_task = model.add_task(modules.TaskValidationMayaScene())
+        rename_task = model.add_task(modules.TaskRename())
 
         result = model.get_task_environment_index(validation_task)
 
@@ -548,7 +548,7 @@ class TestBatchProcessorModel(unittest.TestCase):
 
     def test_task_index_participation_saves_with_task_parameters(self):
         model = batch_processor_model.BatchProcessorModel()
-        rename_task = model.add_task(modules.RenameModule())
+        rename_task = model.add_task(modules.TaskRename())
         rename_task.settings["include_in_task_index"] = False
         project_path = os.path.join(self.temp_dir, "test_project.batch")
 
@@ -620,7 +620,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertTrue(result.is_valid())
 
     def test_rename_module_detects_duplicate_outputs(self):
-        rename_module = modules.RenameModule(settings={"pattern": "same", "preserve_extension": True})
+        rename_module = modules.TaskRename(settings={"pattern": "same", "preserve_extension": True})
         work_items = [
             modules.WorkItem(source_path=os.path.join(self.temp_dir, "a.ma")),
             modules.WorkItem(source_path=os.path.join(self.temp_dir, "b.ma")),
@@ -633,7 +633,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertTrue(result.errors)
 
     def test_rename_module_validate_uses_context_item_index(self):
-        rename_module = modules.RenameModule(
+        rename_module = modules.TaskRename(
             settings={"pattern": "smoke_{index}", "padding": 2, "preserve_extension": True}
         )
         step_output_dir = os.path.join(self.temp_dir, "tasks", "01_rename")
@@ -652,14 +652,14 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertEqual(expected, result.warnings)
 
     def test_rename_module_rejects_unknown_token(self):
-        rename_module = modules.RenameModule(settings={"pattern": "{name}_{missing}"})
+        rename_module = modules.TaskRename(settings={"pattern": "{name}_{missing}"})
         result = rename_module.validate(None)
 
         self.assertFalse(result.is_valid())
         self.assertTrue(result.errors)
 
     def test_rename_module_rejects_malformed_pattern(self):
-        rename_module = modules.RenameModule(settings={"pattern": "{name"})
+        rename_module = modules.TaskRename(settings={"pattern": "{name"})
         result = rename_module.validate(None)
 
         self.assertFalse(result.is_valid())
@@ -676,7 +676,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         input_module = model.get_input_module()
         input_module.settings["input_dir"] = input_dir
         input_module.settings["extensions"] = [".ma"]
-        model.add_module(modules.RenameModule(settings={"pattern": "renamed_{index}", "padding": 2}))
+        model.add_module(modules.TaskRename(settings={"pattern": "renamed_{index}", "padding": 2}))
 
         runner = batch_processor_worker.SingleInstanceBatchRunner()
         tracker = runner.run(model)
@@ -702,7 +702,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         input_module = model.get_input_module()
         input_module.settings["input_dir"] = input_dir
         input_module.settings["extensions"] = [".ma"]
-        model.add_module(modules.RenameModule(settings={"pattern": "renamed_{index}", "padding": 2}))
+        model.add_module(modules.TaskRename(settings={"pattern": "renamed_{index}", "padding": 2}))
 
         runner = batch_processor_worker.SingleInstanceBatchRunner()
         tracker = runner.run(model)
@@ -730,7 +730,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         input_module = model.get_input_module()
         input_module.settings["input_dir"] = input_dir
         input_module.settings["extensions"] = [".ma"]
-        model.add_module(modules.RenameModule(settings={"pattern": "renamed_{index}", "padding": 2}))
+        model.add_module(modules.TaskRename(settings={"pattern": "renamed_{index}", "padding": 2}))
 
         runner = batch_processor_worker.SingleInstanceBatchRunner()
         runner.run(model)
@@ -846,7 +846,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         self._write_file(os.path.join(input_dir, "clip.ma"), "maya scene")
         model = batch_processor_model.BatchProcessorModel()
         model.project_file_path = project_path
-        model.add_module(modules.RenameModule(settings={"pattern": "timed_{index}"}))
+        model.add_module(modules.TaskRename(settings={"pattern": "timed_{index}"}))
         timing_log_path = os.path.join(self.temp_dir, "logs", "task_times.log")
         runner = batch_processor_worker.SingleInstanceBatchRunner(
             task_time_log_path=timing_log_path,
@@ -871,7 +871,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         model.project_file_path = project_path
         model.get_input_module().enabled = False
         rename_task = model.add_module(
-            modules.RenameModule(
+            modules.TaskRename(
                 settings={
                     "source_path": source_dir,
                     "pattern": "selected_{index}",
@@ -899,7 +899,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         model.project_file_path = project_path
         model.get_input_module().enabled = False
         rename_task = model.add_module(
-            modules.RenameModule(
+            modules.TaskRename(
                 settings={
                     "source_path": source_dir,
                     "source_include_subdirectories": True,
@@ -939,14 +939,14 @@ class TestBatchProcessorModel(unittest.TestCase):
         model.project_file_path = project_path
         model.get_input_module().enabled = False
         clip_task = model.add_task(
-            modules.ClipSplitModule(
+            modules.TaskClipSplit(
                 settings={
                     "target_path": clips_dir,
                 }
             )
         )
         python_task = model.add_task(
-            modules.PythonScriptModule(
+            modules.TaskPythonScript(
                 settings={
                     "source_path": "{previous-task-path}",
                 }
@@ -1003,10 +1003,10 @@ class TestBatchProcessorModel(unittest.TestCase):
         first_input_task.settings["input_dir"] = first_input_dir
         first_input_task.settings["extensions"] = [".ma"]
         second_input_task = model.add_module(
-            modules.InputModule(settings={"input_dir": second_input_dir, "extensions": [".ma"]})
+            modules.TaskInput(settings={"input_dir": second_input_dir, "extensions": [".ma"]})
         )
         rename_task = model.add_module(
-            modules.RenameModule(
+            modules.TaskRename(
                 settings={
                     "source_mode": modules.SOURCE_MODE_INCOMING,
                     "pattern": "incoming_{index}",
@@ -1037,7 +1037,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         input_task.settings["input_dir"] = input_dir
         input_task.settings["extensions"] = [".ma"]
         model.add_module(
-            modules.RenameModule(
+            modules.TaskRename(
                 settings={
                     "source_mode": modules.SOURCE_MODE_INCOMING,
                     "output_mode": modules.OUTPUT_MODE_MODIFY,
@@ -1053,7 +1053,7 @@ class TestBatchProcessorModel(unittest.TestCase):
     def test_rename_module_applies_optional_name_operations(self):
         model = batch_processor_model.BatchProcessorModel()
         model.project_name = "Show One"
-        rename_task = modules.RenameModule(
+        rename_task = modules.TaskRename(
             settings={
                 "name_template": "{name}",
                 "use_prefix": True,
@@ -1084,7 +1084,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         self._write_file(os.path.join(scripts_dir, "__init__.py"), "")
         self._write_file(os.path.join(scripts_dir, "notes.txt"), "")
         model = batch_processor_model.BatchProcessorModel()
-        script_task = modules.PythonScriptsFolderModule(settings={"scripts_path": scripts_dir})
+        script_task = modules.TaskPythonScriptsFolder(settings={"scripts_path": scripts_dir})
 
         result = [os.path.basename(path) for path in script_task.get_script_paths(model)]
 
@@ -1105,7 +1105,7 @@ class TestBatchProcessorModel(unittest.TestCase):
 
     def test_task_io_collapsed_state_round_trip(self):
         model = batch_processor_model.BatchProcessorModel()
-        rename_task = model.add_task(modules.RenameModule(settings={"task_io_collapsed": True}))
+        rename_task = model.add_task(modules.TaskRename(settings={"task_io_collapsed": True}))
         project_path = os.path.join(self.temp_dir, "test_project.batch")
 
         saved_path = model.save_to_file(project_path)
@@ -1116,8 +1116,8 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertEqual(expected, loaded_task.settings.get("task_io_collapsed"))
 
     def test_python_legacy_script_modes_are_normalized(self):
-        inline_task = modules.PythonScriptModule(settings={"script_mode": "Single Script"})
-        batch_task = modules.PythonScriptModule(settings={"script_mode": "Batch"})
+        inline_task = modules.TaskPythonScript(settings={"script_mode": "Single Script"})
+        batch_task = modules.TaskPythonScript(settings={"script_mode": "Batch"})
 
         expected = "Inline"
         self.assertEqual(expected, inline_task.get_script_mode())
@@ -1128,7 +1128,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         script_path = os.path.join(self.temp_dir, "external_script.py")
         self._write_file(script_path, "def run(context): pass")
         model = batch_processor_model.BatchProcessorModel()
-        script_task = modules.PythonScriptModule(
+        script_task = modules.TaskPythonScript(
             settings={
                 "script_mode": "External File",
                 "script_path": script_path,
@@ -1169,7 +1169,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         self._write_file(os.path.join(scripts_dir, "01_build.py"), "def run(context): pass")
         self._write_file(os.path.join(scripts_dir, "02_publish.py"), "def run(context): pass")
         self._write_file(os.path.join(scripts_dir, "03_wip.py"), "def run(context): pass")
-        script_task = modules.PythonScriptModule(
+        script_task = modules.TaskPythonScript(
             settings={
                 "script_mode": "Batch Directory",
                 "scripts_path": scripts_dir,
@@ -1188,13 +1188,13 @@ class TestBatchProcessorModel(unittest.TestCase):
         context = {}
         script_text = "context['top_level'] = True\n\ndef run(context):\n    context['run_called'] = True\n"
 
-        modules.PythonScriptModule.run_inline_python_script(script_text=script_text, context=context)
+        modules.TaskPythonScript.run_inline_python_script(script_text=script_text, context=context)
 
         self.assertTrue(context.get("top_level"))
         self.assertTrue(context.get("run_called"))
 
     def test_python_task_default_inline_script_documents_arguments_and_environment(self):
-        script_task = modules.PythonScriptModule()
+        script_task = modules.TaskPythonScript()
 
         result = script_task.settings.get("script_text")
 
@@ -1209,7 +1209,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         project = batch_processor_model.BatchProcessorModel()
         project.project_file_path = os.path.join(self.temp_dir, "project.batch")
         project.environment_variables["custom-dir"] = "C:/custom"
-        script_task = modules.PythonScriptModule()
+        script_task = modules.TaskPythonScript()
         project.add_task(script_task)
         source_path = os.path.join(self.temp_dir, "source.ma")
         output_path = os.path.join(self.temp_dir, "output.ma")
@@ -1247,7 +1247,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         }
         script_text = "context['result'] = args.get('input') + '|' + env.get('custom-dir')\n"
 
-        modules.PythonScriptModule.run_inline_python_script(script_text=script_text, context=context)
+        modules.TaskPythonScript.run_inline_python_script(script_text=script_text, context=context)
 
         expected = "source.ma|C:/custom"
         self.assertEqual(expected, context.get("result"))
@@ -1263,7 +1263,7 @@ class TestBatchProcessorModel(unittest.TestCase):
             "environment_variables": {"custom-dir": "C:/custom"},
         }
 
-        modules.PythonScriptModule.run_python_script(script_path=script_path, context=context)
+        modules.TaskPythonScript.run_python_script(script_path=script_path, context=context)
 
         expected = "source.ma|C:/custom"
         self.assertEqual(expected, context.get("result"))
@@ -1320,7 +1320,7 @@ class TestBatchProcessorModel(unittest.TestCase):
 
     def test_python_task_open_mode_opens_fbx_sources(self):
         source_path = os.path.join(self.temp_dir, "source.fbx")
-        script_task = modules.PythonScriptModule()
+        script_task = modules.TaskPythonScript()
         script_task.settings["source_load_mode"] = "Open"
         with mock.patch(
             "gt.tools.batch_processor.tasks.task_python_script.batch_processor_maya.open_scene"
@@ -1358,16 +1358,16 @@ class TestBatchProcessorModel(unittest.TestCase):
 
     def test_usd_export_open_mode_opens_fbx_sources(self):
         source_path = os.path.join(self.temp_dir, "source.fbx")
-        usd_task = modules.UsdExportModule()
+        usd_task = modules.TaskExportUsd()
         usd_task.settings["source_load_mode"] = "Open"
         with mock.patch(
-            "gt.tools.batch_processor.tasks.task_usd_export.batch_processor_maya.open_scene"
+            "gt.tools.batch_processor.tasks.task_export_usd.batch_processor_maya.open_scene"
         ) as mock_open_scene:
             with mock.patch(
-                "gt.tools.batch_processor.tasks.task_usd_export.batch_processor_maya.new_scene"
+                "gt.tools.batch_processor.tasks.task_export_usd.batch_processor_maya.new_scene"
             ) as mock_new_scene:
                 with mock.patch(
-                    "gt.tools.batch_processor.tasks.task_usd_export.batch_processor_maya.import_file"
+                    "gt.tools.batch_processor.tasks.task_export_usd.batch_processor_maya.import_file"
                 ) as mock_import_file:
                     usd_task.load_source_scene(source_path)
 
@@ -1672,8 +1672,6 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertEqual(expected, playblast_task.__class__.__name__)
         expected = "TaskExportUsd"
         self.assertEqual(expected, usd_task.__class__.__name__)
-        self.assertIs(modules.ThumbnailCaptureTask, modules.TaskCaptureThumbnail)
-        self.assertIs(modules.UsdExportTask, modules.TaskExportUsd)
 
     def test_hik_retarget_task_is_registered(self):
         hik_task = modules.create_task(constants.TaskType.HIK_RETARGET)
@@ -2304,7 +2302,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         self._write_file(source_path, "source")
         self._write_file(os.path.join(step_output_dir, "source.fbx"), "existing")
         project = batch_processor_model.BatchProcessorModel()
-        rename_task = modules.RenameModule(settings={"name_template": "{name}", "overwrite": False})
+        rename_task = modules.TaskRename(settings={"name_template": "{name}", "overwrite": False})
         tracker = OrderedTracker()
         runner = batch_processor_worker.SingleInstanceBatchRunner(
             tracker=tracker,
@@ -2589,14 +2587,14 @@ class TestBatchProcessorModel(unittest.TestCase):
             "tools",
             "batch_processor",
             "widgets",
-            "attr_widget_motionbuilder_script.py",
+            "attr_widget_external_mobu.py",
         )
         blender_widget_path = os.path.join(
             package_root_dir,
             "tools",
             "batch_processor",
             "widgets",
-            "attr_widget_blender_script.py",
+            "attr_widget_external_blender.py",
         )
         with open(motionbuilder_widget_path, "r", encoding="utf-8") as widget_file:
             motionbuilder_source = widget_file.read()
@@ -2750,7 +2748,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertIn("target_path", save_task.settings)
 
     def test_maya_import_task_validates_scene_options(self):
-        import_task = modules.MayaImportModule(
+        import_task = modules.TaskMayaImport(
             settings={
                 "set_framerate": True,
                 "framerate": 0,
@@ -2769,7 +2767,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertTrue(any("up axis" in error for error in result.errors))
 
     def test_usd_export_task_validates_settings(self):
-        usd_task = modules.UsdExportModule()
+        usd_task = modules.TaskExportUsd()
 
         result = usd_task.validate(None)
 
@@ -2981,7 +2979,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         map_path = os.path.join(self.temp_dir, "rename_map.json")
         model = batch_processor_model.BatchProcessorModel()
         model.project_file_path = os.path.join(self.temp_dir, "project.batch")
-        task = modules.MapRenameModule(
+        task = modules.TaskMapRename(
             settings={
                 "folder_a": folder_a,
                 "folder_b": folder_b,
@@ -3006,7 +3004,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         outside_dir = tempfile.mkdtemp(prefix="gt_batch_processor_outside_")
         model = batch_processor_model.BatchProcessorModel()
         model.project_file_path = os.path.join(self.temp_dir, "project.batch")
-        task = modules.DeleteProjectFilesModule(settings={"delete_path": outside_dir})
+        task = modules.TaskDeleteProjectFiles(settings={"delete_path": outside_dir})
         try:
             result = task.validate(model)
         finally:
@@ -3023,7 +3021,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         report_path = os.path.join(self.temp_dir, "delete_report.json")
         model = batch_processor_model.BatchProcessorModel()
         model.project_file_path = os.path.join(self.temp_dir, "project.batch")
-        task = modules.DeleteProjectFilesModule(
+        task = modules.TaskDeleteProjectFiles(
             settings={
                 "delete_path": delete_dir,
                 "report_path": report_path,
@@ -3047,7 +3045,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         model = batch_processor_model.BatchProcessorModel()
         model.project_file_path = os.path.join(self.temp_dir, "project.batch")
         delete_task = model.add_task(
-            modules.DeleteProjectFilesModule(
+            modules.TaskDeleteProjectFiles(
                 settings={
                     "delete_path": delete_dir,
                     "report_path": report_path,

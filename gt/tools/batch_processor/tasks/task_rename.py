@@ -4,6 +4,7 @@ Batch Processor Rename Task
 
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_task_base as task_base
+import gt.ui.resource_library as ui_res_lib
 import os
 import shutil
 
@@ -14,9 +15,9 @@ class TaskRename(task_base.BatchTask):
     task_type = constants.TaskType.RENAME
     default_display_name = "Rename"
     default_target_path_template = "{project-dir}/{task-dir}/{task-idx}_rename"
-    icon = "tool_renamer"
+    icon = ui_res_lib.Icon.tool_renamer
     category = "Utilities"
-    category_icon = "root_utilities"
+    category_icon = ui_res_lib.Icon.root_utilities
     allowed_tokens = set(["name", "ext", "index", "task-name", "step", "date"])
 
     def get_default_settings(self):
@@ -213,6 +214,3 @@ class TaskRename(task_base.BatchTask):
         metadata["last_task_type"] = self.task_type
         metadata["settings_hash"] = task_base.hash_settings(self.settings)
         return task_base.WorkItem(source_path=work_item.source_path, current_path=output_path, metadata=metadata)
-
-
-RenameTask = TaskRename

@@ -5,6 +5,7 @@ Batch Processor Retarget Task
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_maya
 from gt.tools.batch_processor import batch_processor_task_base as task_base
+import gt.ui.resource_library as ui_res_lib
 from gt.tools.batch_processor.tasks import task_utils
 import os
 
@@ -15,10 +16,9 @@ class TaskRetarget(task_base.BatchTask):
     task_type = constants.TaskType.RETARGET
     default_display_name = "Retarget"
     default_target_path_template = "{project-dir}/{task-dir}/{task-idx}_retarget"
-    icon = "tool_retargeter"
+    icon = ui_res_lib.Icon.tool_retargeter
     category = "Animation"
-    category_icon = "root_animation"
-
+    category_icon = ui_res_lib.Icon.root_animation
     def get_default_settings(self):
         """Gets default retarget settings.
 
@@ -241,6 +241,3 @@ class TaskRetarget(task_base.BatchTask):
         """
         target_rig_path = self.settings.get("target_rig_path") or ""
         return project.resolve_template_path(target_rig_path, task=self) if target_rig_path else ""
-
-
-RetargetTask = TaskRetarget

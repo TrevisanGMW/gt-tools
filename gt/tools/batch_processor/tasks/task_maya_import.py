@@ -5,6 +5,7 @@ Batch Processor Maya Import Task
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_maya
 from gt.tools.batch_processor import batch_processor_task_base as task_base
+import gt.ui.resource_library as ui_res_lib
 from gt.tools.batch_processor.tasks import task_utils
 import os
 
@@ -35,10 +36,9 @@ class TaskMayaImport(task_base.BatchTask):
     task_type = constants.TaskType.MAYA_IMPORT
     default_display_name = "Import/Open Maya"
     default_target_path_template = "{project-dir}/{task-dir}/{task-idx}_import_maya"
-    icon = "rigger_module_import_file"
+    icon = ui_res_lib.Icon.rigger_module_import_file
     category = "Inputs"
-    category_icon = "rigger_module_import_file"
-
+    category_icon = ui_res_lib.Icon.rigger_module_import_file
     def get_default_settings(self):
         """Gets default Maya import settings.
 
@@ -266,6 +266,3 @@ class TaskMayaImport(task_base.BatchTask):
             context=runtime_context,
             script_name="<maya_import_post_script>",
         )
-
-
-MayaImportTask = TaskMayaImport

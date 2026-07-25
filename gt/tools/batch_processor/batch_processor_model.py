@@ -112,7 +112,7 @@ class BatchProcessorModel:
         self.notes = ""
         self.environment_variables = dict(constants.Project.DEFAULT_ENVIRONMENT_VARIABLES)
         self.run_settings = dict(constants.Project.DEFAULT_RUN_SETTINGS)
-        self.tasks = [tasks.InputTask()]
+        self.tasks = [tasks.TaskInput()]
         self.extra_data = {}
 
     def get_project_dir(self):
@@ -741,7 +741,7 @@ class BatchProcessorModel:
             task_data = data.get("modules", [])
         self.tasks = [tasks.create_task_from_dict(item) for item in task_data]
         if not self.tasks:
-            self.tasks = [tasks.InputTask()]
+            self.tasks = [tasks.TaskInput()]
 
     def get_environment_variables(self, task=None, task_index=None, include_braces=True, include_neighbor_paths=True):
         """Gets project-level and optional task-level environment variables.

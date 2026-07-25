@@ -28,31 +28,31 @@ from gt.tools.batch_processor.batch_processor_task_base import normalize_path
 from gt.tools.batch_processor.batch_processor_task_base import path_is_inside_directory
 from gt.tools.batch_processor.batch_processor_task_base import sanitize_filename
 from gt.tools.batch_processor.tasks.task_input import TaskInput
-from gt.tools.batch_processor.tasks.task_archive import TaskCompressZip
+from gt.tools.batch_processor.tasks.task_archive import TaskArchive
 from gt.tools.batch_processor.tasks.task_auto_rig_build import TaskAutoRigBuild
-from gt.tools.batch_processor.tasks.task_blender_script import TaskBlenderScript
-from gt.tools.batch_processor.tasks.task_blender_script import find_blender_executable
-from gt.tools.batch_processor.tasks.task_blender_script import get_blender_executable_candidates
+from gt.tools.batch_processor.tasks.task_external_blender import TaskBlenderScript
+from gt.tools.batch_processor.tasks.task_external_blender import find_blender_executable
+from gt.tools.batch_processor.tasks.task_external_blender import get_blender_executable_candidates
 from gt.tools.batch_processor.tasks.task_capture import TaskCapturePlayblast
 from gt.tools.batch_processor.tasks.task_capture import TaskCaptureThumbnail
 from gt.tools.batch_processor.tasks.task_clip import TaskClipSnapshot
 from gt.tools.batch_processor.tasks.task_clip import TaskClipSplit
 from gt.tools.batch_processor.tasks.task_delete_project_files import TaskDeleteProjectFiles
-from gt.tools.batch_processor.tasks.task_fbx_export import TaskExportFbx
+from gt.tools.batch_processor.tasks.task_export_fbx import TaskExportFbx
 from gt.tools.batch_processor.tasks.task_hik_retarget import HIK_BAKE_TARGET_NONE
 from gt.tools.batch_processor.tasks.task_hik_retarget import TaskRetargetHumanIK
 from gt.tools.batch_processor.tasks.task_hik_retarget import HIK_BAKE_TARGETS
 from gt.tools.batch_processor.tasks.task_map_rename import TaskMapRename
 from gt.tools.batch_processor.tasks.task_maya_import import TaskMayaImport
 from gt.tools.batch_processor.tasks.task_maya_save import TaskMayaSave
-from gt.tools.batch_processor.tasks.task_motionbuilder_script import TaskMotionBuilderScript
-from gt.tools.batch_processor.tasks.task_motionbuilder_script import find_motionbuilder_executable
-from gt.tools.batch_processor.tasks.task_motionbuilder_script import get_motionbuilder_executable_candidates
+from gt.tools.batch_processor.tasks.task_external_mobu import TaskMotionBuilderScript
+from gt.tools.batch_processor.tasks.task_external_mobu import find_motionbuilder_executable
+from gt.tools.batch_processor.tasks.task_external_mobu import get_motionbuilder_executable_candidates
 from gt.tools.batch_processor.tasks.task_python_script import TaskPythonScript
 from gt.tools.batch_processor.tasks.task_python_script import TaskPythonScriptsFolder
 from gt.tools.batch_processor.tasks.task_rename import TaskRename
 from gt.tools.batch_processor.tasks.task_retarget import TaskRetarget
-from gt.tools.batch_processor.tasks.task_usd_export import TaskExportUsd
+from gt.tools.batch_processor.tasks.task_export_usd import TaskExportUsd
 from gt.tools.batch_processor.tasks.task_validation import TaskValidationFileIntegrity
 from gt.tools.batch_processor.tasks.task_validation import TaskValidationFolderCompare
 from gt.tools.batch_processor.tasks.task_validation import TaskValidationMayaScene
@@ -75,7 +75,7 @@ TASK_TYPES = {
     constants.TaskType.CLIP_SPLIT: TaskClipSplit,
     constants.TaskType.CLIP_SNAPSHOT: TaskClipSnapshot,
     constants.TaskType.DELETE_PROJECT_FILES: TaskDeleteProjectFiles,
-    constants.TaskType.ZIP_COMPRESS: TaskCompressZip,
+    constants.TaskType.ZIP_COMPRESS: TaskArchive,
     constants.TaskType.MAYA_SCENE_VALIDATE: TaskValidationMayaScene,
     constants.TaskType.FILE_INTEGRITY_VALIDATE: TaskValidationFileIntegrity,
     constants.TaskType.FOLDER_COMPARE_VALIDATE: TaskValidationFolderCompare,
@@ -160,31 +160,6 @@ def create_task_from_dict(data):
     return task
 
 
-def create_module(module_type, **kwargs):
-    """Creates a task using the legacy module factory name.
-
-    Args:
-        module_type (str): Legacy module type key.
-        **kwargs: Keyword arguments forwarded to the task constructor.
-
-    Returns:
-        BatchTask: New task instance.
-    """
-    return create_task(task_type=module_type, **kwargs)
-
-
-def create_module_from_dict(data):
-    """Creates a task using the legacy module deserializer name.
-
-    Args:
-        data (dict): Serialized task data.
-
-    Returns:
-        BatchTask: Deserialized task instance.
-    """
-    return create_task_from_dict(data)
-
-
 def get_task_class(task_type):
     """Gets the task class for a task type.
 
@@ -220,54 +195,3 @@ def get_task_category_icons():
     for task_class in TASK_TYPES.values():
         category_icons.setdefault(task_class.category, task_class.category_icon)
     return category_icons
-
-
-# Backward-compatible class aliases.
-BatchModule = BatchTask
-InputTask = TaskInput
-MayaImportTask = TaskMayaImport
-RenameTask = TaskRename
-PythonScriptTask = TaskPythonScript
-PythonScriptsFolderTask = TaskPythonScriptsFolder
-MotionBuilderScriptTask = TaskMotionBuilderScript
-BlenderScriptTask = TaskBlenderScript
-MayaSaveTask = TaskMayaSave
-UsdExportTask = TaskExportUsd
-FbxExportTask = TaskExportFbx
-RetargetTask = TaskRetarget
-HumanIKRetargetTask = TaskRetargetHumanIK
-AutoRigBuildTask = TaskAutoRigBuild
-ClipSplitTask = TaskClipSplit
-ClipSnapshotTask = TaskClipSnapshot
-MapRenameTask = TaskMapRename
-DeleteProjectFilesTask = TaskDeleteProjectFiles
-ZipCompressTask = TaskCompressZip
-MayaSceneValidationTask = TaskValidationMayaScene
-FileIntegrityValidationTask = TaskValidationFileIntegrity
-FolderCompareValidationTask = TaskValidationFolderCompare
-ThumbnailCaptureTask = TaskCaptureThumbnail
-PlayblastCaptureTask = TaskCapturePlayblast
-InputModule = TaskInput
-MayaImportModule = TaskMayaImport
-RenameModule = TaskRename
-PythonScriptModule = TaskPythonScript
-PythonScriptsFolderModule = TaskPythonScriptsFolder
-MotionBuilderScriptModule = TaskMotionBuilderScript
-BlenderScriptModule = TaskBlenderScript
-MayaSaveModule = TaskMayaSave
-UsdExportModule = TaskExportUsd
-RetargetModule = TaskRetarget
-HumanIKRetargetModule = TaskRetargetHumanIK
-FbxExportModule = TaskExportFbx
-AutoRigBuildModule = TaskAutoRigBuild
-ClipSplitModule = TaskClipSplit
-ClipSnapshotModule = TaskClipSnapshot
-MapRenameModule = TaskMapRename
-DeleteProjectFilesModule = TaskDeleteProjectFiles
-ZipCompressModule = TaskCompressZip
-MayaSceneValidationModule = TaskValidationMayaScene
-FileIntegrityValidationModule = TaskValidationFileIntegrity
-FolderCompareValidationModule = TaskValidationFolderCompare
-ThumbnailCaptureModule = TaskCaptureThumbnail
-PlayblastCaptureModule = TaskCapturePlayblast
-MODULE_TYPES = TASK_TYPES

@@ -4,6 +4,7 @@ Batch Processor MotionBuilder Script Task
 
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_task_base as task_base
+import gt.ui.resource_library as ui_res_lib
 from gt.tools.batch_processor.tasks import task_utils
 from gt.tools.batch_processor.tasks.task_python_script import SCRIPT_MODE_BATCH_DIRECTORY
 from gt.tools.batch_processor.tasks.task_python_script import SCRIPT_MODE_EXTERNAL_FILE
@@ -158,9 +159,9 @@ class TaskMotionBuilderScript(TaskPythonScript):
     default_display_name = "MotionBuilder"
     application_name = "MotionBuilder"
     default_target_path_template = "{project-dir}/{task-dir}/{task-idx}_motionbuilder"
-    icon = "app_mobu"
+    icon = ui_res_lib.Icon.app_mobu
     category = "External"
-    category_icon = "root_miscellaneous"
+    category_icon = ui_res_lib.Icon.root_miscellaneous
     metadata_scripts_key = "motionbuilder_scripts"
     temporary_file_prefix = "mobu"
 
@@ -811,6 +812,3 @@ def get_motionbuilder_executable_candidates(version=None):
         candidates.extend(glob.glob("/usr/autodesk/motionbuilder*/bin/motionbuilder"))
         candidates.extend(glob.glob("/opt/Autodesk/MotionBuilder*/bin/motionbuilder"))
     return list(dict.fromkeys([task_base.normalize_path(path) for path in candidates if path]))
-
-
-MotionBuilderScriptTask = TaskMotionBuilderScript

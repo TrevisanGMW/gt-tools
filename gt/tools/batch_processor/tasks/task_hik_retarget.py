@@ -5,6 +5,7 @@ Batch Processor HumanIK Task
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_maya
 from gt.tools.batch_processor import batch_processor_task_base as task_base
+import gt.ui.resource_library as ui_res_lib
 from gt.tools.batch_processor.tasks import task_utils
 import os
 import sys
@@ -66,10 +67,9 @@ class TaskRetargetHumanIK(task_base.BatchTask):
     task_type = constants.TaskType.HIK_RETARGET
     default_display_name = "HumanIK"
     default_target_path_template = "{project-dir}/{task-dir}/{task-idx}_hik_retarget"
-    icon = "tool_retargeter"
+    icon = ui_res_lib.Icon.tool_retargeter
     category = "Animation"
-    category_icon = "root_animation"
-
+    category_icon = ui_res_lib.Icon.root_animation
     def get_default_settings(self):
         """Gets default HumanIK retarget settings.
 
@@ -1680,8 +1680,3 @@ def run_inline_python_script(script_text, context, script_name="<humanik_post_sc
         context=context,
         script_name=script_name,
     )
-
-
-HumanIKRetargetTask = TaskRetargetHumanIK
-HikRetargetTask = TaskRetargetHumanIK
-RetargetHumanIKTask = TaskRetargetHumanIK

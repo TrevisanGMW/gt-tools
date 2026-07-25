@@ -4,8 +4,9 @@ Batch Processor Blender Script Task
 
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_task_base as task_base
-from gt.tools.batch_processor.tasks.task_motionbuilder_script import TaskMotionBuilderScript
-from gt.tools.batch_processor.tasks.task_motionbuilder_script import parse_command_arguments
+import gt.ui.resource_library as ui_res_lib
+from gt.tools.batch_processor.tasks.task_external_mobu import TaskMotionBuilderScript
+from gt.tools.batch_processor.tasks.task_external_mobu import parse_command_arguments
 from gt.tools.batch_processor.tasks.task_python_script import SCRIPT_MODE_INLINE
 from gt.tools.batch_processor.tasks.task_python_script import TaskPythonScript
 import glob
@@ -131,9 +132,9 @@ class TaskBlenderScript(TaskMotionBuilderScript):
     default_display_name = "Blender"
     application_name = "Blender"
     default_target_path_template = "{project-dir}/{task-dir}/{task-idx}_blender"
-    icon = "app_blender"
+    icon = ui_res_lib.Icon.app_blender
     category = "External"
-    category_icon = "root_miscellaneous"
+    category_icon = ui_res_lib.Icon.root_miscellaneous
     metadata_scripts_key = "blender_scripts"
     temporary_file_prefix = "blender"
 
@@ -374,6 +375,3 @@ def get_blender_executable_candidates(version=None):
         candidates.extend(["/usr/bin/blender", "/usr/local/bin/blender"])
         candidates.extend(glob.glob("/opt/blender*/blender"))
     return list(dict.fromkeys([task_base.normalize_path(path) for path in candidates if path]))
-
-
-BlenderScriptTask = TaskBlenderScript

@@ -4,6 +4,7 @@ Batch Processor Archive Tasks
 
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_task_base as task_base
+import gt.ui.resource_library as ui_res_lib
 from gt.tools.batch_processor.tasks import task_utils
 import os
 import re
@@ -13,15 +14,15 @@ import zipfile
 ZIP_VERSION_TOKEN = "{version}"
 
 
-class TaskCompressZip(task_base.BatchTask):
+class TaskArchive(task_base.BatchTask):
     """Task that compresses incoming files into one zip archive."""
 
     task_type = constants.TaskType.ZIP_COMPRESS
-    default_display_name = "Zip Compress"
+    default_display_name = "Archive"
     default_target_path_template = "{project-dir}/{output-dir}"
-    icon = "util_zip"
+    icon = ui_res_lib.Icon.rigger_module_generic
     category = "Outputs"
-    category_icon = "util_zip"
+    category_icon = ui_res_lib.Icon.rigger_module_generic
     is_aggregate_task = True
     is_output_task = True
 
@@ -374,6 +375,3 @@ def build_version_file_regex(archive_pattern):
     escaped_token = re.escape(ZIP_VERSION_TOKEN)
     regex_pattern = escaped_pattern.replace(escaped_token, r"(?P<version>\d+)", 1)
     return re.compile(r"^{0}$".format(regex_pattern))
-
-
-ZipCompressTask = TaskCompressZip

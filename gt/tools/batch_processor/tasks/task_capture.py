@@ -4,6 +4,7 @@ Batch Processor Capture Tasks
 
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_task_base as task_base
+import gt.ui.resource_library as ui_res_lib
 from gt.tools.batch_processor.tasks import task_utils
 import os
 
@@ -14,9 +15,9 @@ class TaskCaptureThumbnail(task_base.BatchTask):
     task_type = constants.TaskType.THUMBNAIL_CAPTURE
     default_display_name = "Capture Thumbnail"
     default_target_path_template = "{project-dir}/{output-dir}/thumbnails"
-    icon = "rigger_module_thumbnail_capture"
+    icon = ui_res_lib.Icon.rigger_module_thumbnail_capture
     category = "Outputs"
-    category_icon = "rigger_module_thumbnail_capture"
+    category_icon = ui_res_lib.Icon.rigger_module_thumbnail_capture
     is_output_task = True
 
     def get_default_settings(self):
@@ -137,9 +138,9 @@ class TaskCapturePlayblast(task_base.BatchTask):
     task_type = constants.TaskType.PLAYBLAST_CAPTURE
     default_display_name = "Capture Playblast"
     default_target_path_template = "{project-dir}/{output-dir}/playblasts"
-    icon = "rigger_module_playblast_capture"
+    icon = ui_res_lib.Icon.rigger_module_playblast_capture
     category = "Outputs"
-    category_icon = "rigger_module_playblast_capture"
+    category_icon = ui_res_lib.Icon.rigger_module_playblast_capture
     is_output_task = True
 
     def get_default_settings(self):
@@ -497,7 +498,3 @@ def get_valid_camera_transform(cmds, camera_name):
         if cmds.objectType(shape) == "camera":
             return camera_name
     raise RuntimeError("Capture camera is not a camera transform or shape: {0}".format(camera_name))
-
-
-ThumbnailCaptureTask = TaskCaptureThumbnail
-PlayblastCaptureTask = TaskCapturePlayblast

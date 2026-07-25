@@ -5,6 +5,7 @@ Batch Processor Clip Tasks
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_maya
 from gt.tools.batch_processor import batch_processor_task_base as task_base
+import gt.ui.resource_library as ui_res_lib
 from gt.tools.batch_processor.tasks import task_utils
 import datetime
 import json
@@ -32,10 +33,9 @@ class TaskClipSplit(task_base.BatchTask):
     task_type = constants.TaskType.CLIP_SPLIT
     default_display_name = "Clip Split"
     default_target_path_template = "{project-dir}/{task-dir}/{task-idx}_clips"
-    icon = "rigger_module_playblast_capture"
+    icon = ui_res_lib.Icon.rigger_module_playblast_capture
     category = "Animation"
-    category_icon = "root_animation"
-
+    category_icon = ui_res_lib.Icon.root_animation
     def __init__(self, *args, **kwargs):
         """Initializes the clip split task and normalizes old display names.
 
@@ -167,9 +167,9 @@ class TaskClipSnapshot(task_base.BatchTask):
     task_type = constants.TaskType.CLIP_SNAPSHOT
     default_display_name = "Clip Snapshot"
     default_target_path_template = "{project-dir}/{output-dir}"
-    icon = "rigger_module_shapes_snapshot"
+    icon = ui_res_lib.Icon.rigger_module_shapes_snapshot
     category = "Animation"
-    category_icon = "root_animation"
+    category_icon = ui_res_lib.Icon.root_animation
     is_aggregate_task = True
     is_data_load_task = True
 
@@ -382,7 +382,3 @@ def find_snapshot_key(file_path, snapshot_data):
         if normalized_path.endswith(str(key).replace("\\", "/")):
             return key
     return None
-
-
-ClipSplitTask = TaskClipSplit
-ClipSnapshotTask = TaskClipSnapshot

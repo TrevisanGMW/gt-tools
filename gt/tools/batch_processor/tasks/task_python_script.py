@@ -5,6 +5,7 @@ Batch Processor Python Script Tasks
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_maya
 from gt.tools.batch_processor import batch_processor_task_base as task_base
+import gt.ui.resource_library as ui_res_lib
 import importlib.util
 import fnmatch
 import os
@@ -63,10 +64,9 @@ class TaskPythonScript(task_base.BatchTask):
     task_type = constants.TaskType.PYTHON_SCRIPT
     default_display_name = "Python"
     default_target_path_template = "{project-dir}/{task-dir}/{task-idx}_python"
-    icon = "rigger_module_python"
+    icon = ui_res_lib.Icon.rigger_module_python
     category = "Utilities"
-    category_icon = "root_utilities"
-
+    category_icon = ui_res_lib.Icon.root_utilities
     def __init__(self, *args, **kwargs):
         """Initializes the Python task and normalizes legacy settings."""
         super().__init__(*args, **kwargs)
@@ -735,7 +735,3 @@ def parse_filter_patterns(value):
         raw_text = raw_text.replace(";", "\n").replace(",", "\n")
         raw_items = raw_text.splitlines()
     return [str(item).strip() for item in raw_items if str(item).strip()]
-
-
-PythonScriptTask = TaskPythonScript
-PythonScriptsFolderTask = TaskPythonScriptsFolder

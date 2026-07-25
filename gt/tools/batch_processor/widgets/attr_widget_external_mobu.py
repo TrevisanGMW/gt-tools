@@ -5,7 +5,7 @@ Batch Processor MotionBuilder Task Attribute Widget
 from gt.tools.batch_processor.widgets.attr_widget_python_script import AttrWidgetPythonScriptTask
 from gt.tools.batch_processor.widgets.attr_widget_task import AttrWidgetTask
 from gt.tools.batch_processor.widgets import attr_widget_base
-from gt.tools.batch_processor.tasks import task_motionbuilder_script
+from gt.tools.batch_processor.tasks import task_external_mobu
 import gt.ui.resource_library as ui_res_lib
 import gt.ui.qt_import as ui_qt
 from functools import partial
@@ -128,7 +128,7 @@ class AttrWidgetMotionBuilderScriptTask(AttrWidgetPythonScriptTask):
             "Arguments",
             self.task.settings.get("motionbuilder_arguments"),
             partial(self.set_task_setting, key="motionbuilder_arguments"),
-            placeholder=task_motionbuilder_script.DEFAULT_MOBU_ARGUMENTS,
+            placeholder=task_external_mobu.DEFAULT_MOBU_ARGUMENTS,
             tooltip="MotionBuilder process arguments. One argument per line, or quoted shell-style text.",
         )
         self.add_text_field(
@@ -220,7 +220,7 @@ class AttrWidgetMotionBuilderScriptTask(AttrWidgetPythonScriptTask):
         Args:
             field (QLineEdit): Executable field to update.
         """
-        found_path = task_motionbuilder_script.find_motionbuilder_executable()
+        found_path = task_external_mobu.find_motionbuilder_executable()
         if not found_path:
             self.emit_status_message("Unable to find MotionBuilder in common install folders.", status="warning")
             return
