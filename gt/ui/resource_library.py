@@ -478,6 +478,7 @@ class Icon:
     ui_trash = get_icon_path(r"ui_trash.svg")
     ui_new = get_icon_path(r"ui_new.svg")
     ui_open = get_icon_path(r"ui_open.svg")
+    ui_copy_text = get_icon_path(r"ui_copy_text.svg")
     ui_save = get_icon_path(r"ui_save.svg")
     ui_env_var = get_icon_path(r"ui_env_var.svg")
     ui_templates = get_icon_path(r"ui_templates.svg")
