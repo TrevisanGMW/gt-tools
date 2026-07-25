@@ -37,6 +37,12 @@ def parse_args():
         default=0,
         help="Times a failed job is retried at the end of the run. 0 disables retries.",
     )
+    parser.add_argument(
+        "--timeout-minutes",
+        type=int,
+        default=0,
+        help="Minutes a job may run before it is automatically canceled. 0 disables the timeout.",
+    )
     parser.add_argument("--logs-dir", default="", help="Base directory for run-scoped session data.")
     parser.add_argument("--project-log", default="", help="Main Batch Processor project log path.")
     parser.add_argument("--source-project-file", default="", help="Original saved Batch Processor project path.")

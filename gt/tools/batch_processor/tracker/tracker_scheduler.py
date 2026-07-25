@@ -40,7 +40,10 @@ class TrackerScheduler:
         self.current_segment_index = 0
         self._materialized_segments = set()
         self.max_retries = max(0, int(getattr(options, "max_retries", 0) or 0))
+        self.timeout_seconds = max(0, int(getattr(options, "timeout_minutes", 0) or 0)) * 60
         self.job_retry_counts = {}
+        self.timed_out_jobs = set()
+        self.pending_restarts = set()
         self._job_counter = 0
         self.running = {}
         self.readers = {}
@@ -81,7 +84,10 @@ class TrackerScheduler:
             changed = self._advance_abort() or changed
         else:
             changed = self._advance_job_cancellations() or changed
+            changed = self._advance_timeouts() or changed
+            changed = self._advance_pending_restarts() or changed
             changed = self._advance_retries() or changed
+            changed = self._finalize_timed_out_jobs() or changed
             if self.segmented:
                 changed = self._advance_segments() or changed
             changed = self._launch_available_jobs() or changed
@@ -189,6 +195,69 @@ class TrackerScheduler:
             return False
         return job in self.session.regular_jobs
 
+    def can_request_restart_job(self, job):
+        """Checks whether a restart can be requested for a job.
+
+        Unlike ``can_restart_job``, this also accepts active (queued or running)
+        jobs, which are canceled first and restarted once they stop.
+
+        Args:
+            job (TrackerJob): Job requested for restart.
+
+        Returns:
+            bool: True when a restart can be requested.
+        """
+        return self.can_restart_job(job) or self.can_cancel_job(job)
+
+    def request_restart_job(self, job):
+        """Restarts a terminal job, or cancels an active job then restarts it.
+
+        Terminal jobs are queued immediately. Active jobs are canceled and
+        marked for a deferred restart, which runs automatically once the worker
+        stops and the job reaches a terminal state.
+
+        Args:
+            job (TrackerJob): Regular job to run again.
+
+        Returns:
+            bool: True when the restart was queued or scheduled.
+        """
+        if self.can_restart_job(job):
+            return self.restart_job(job)
+        if not self.can_cancel_job(job):
+            return False
+        if not self.cancel_job(job):
+            return False
+        self.pending_restarts.add(job.id)
+        self._append_project_log(
+            f"[OPERATION] - (Multi-instance) - Restart requested for active job '{job.name}'; "
+            "it will run again once it stops.\n"
+        )
+        return True
+
+    def _advance_pending_restarts(self):
+        """Restarts canceled jobs that were flagged for a deferred restart.
+
+        Returns:
+            bool: Whether any job was queued for a restart.
+        """
+        if not self.pending_restarts:
+            return False
+        changed = False
+        for job_id in list(self.pending_restarts):
+            job = self.session.get_job(job_id)
+            if job is None:
+                self.pending_restarts.discard(job_id)
+                continue
+            if job.id in self.running or job in self.regular_queue:
+                continue
+            if job.status not in tracker_constants.TERMINAL_STATUSES:
+                continue
+            self.pending_restarts.discard(job_id)
+            if self.restart_job(job):
+                changed = True
+        return changed
+
     def restart_job(self, job):
         """Resets and queues one previously completed regular job.
 
@@ -200,6 +269,7 @@ class TrackerScheduler:
         """
         if not self.can_restart_job(job):
             return False
+        self.timed_out_jobs.discard(job.id)
         job.reset_for_restart()
         self.regular_queue.append(job)
         self.session.finished = False
@@ -256,6 +326,7 @@ class TrackerScheduler:
         for job in retry_jobs:
             attempt = self.job_retry_counts.get(job.id, 0) + 1
             self.job_retry_counts[job.id] = attempt
+            self.timed_out_jobs.discard(job.id)
             job.reset_for_restart()
             self.regular_queue.append(job)
             self._append_project_log(
@@ -263,6 +334,82 @@ class TrackerScheduler:
                 f"queued for '{job.name}'.\n"
             )
         return True
+
+    def _retries_remaining(self, job):
+        """Checks whether a failed job still has configured retry attempts left.
+
+        Args:
+            job (TrackerJob): Job to evaluate.
+
+        Returns:
+            bool: True when at least one retry attempt remains.
+        """
+        return self.max_retries > 0 and self.job_retry_counts.get(job.id, 0) < self.max_retries
+
+    def _advance_timeouts(self):
+        """Force-cancels regular jobs that exceed the configured runtime timeout.
+
+        A timed-out worker is force-terminated so a stuck job cannot run
+        indefinitely. When retries remain the job is retried like any other
+        failure; once retries are exhausted its terminal status is changed to
+        ``Timed Out`` by ``_finalize_timed_out_jobs``. A timeout of 0 disables
+        the check entirely.
+
+        Returns:
+            bool: Whether any job timed out this tick.
+        """
+        if self.timeout_seconds <= 0:
+            return False
+        changed = False
+        current_time = time.monotonic()
+        for job_id, process_data in self.running.items():
+            job = process_data["job"]
+            if job.is_finalization or process_data.get("timed_out"):
+                continue
+            if process_data.get("cancel_requested_at") is not None:
+                continue
+            started_monotonic = process_data.get("started_monotonic")
+            if started_monotonic is None or current_time - started_monotonic < self.timeout_seconds:
+                continue
+            process_data["timed_out"] = True
+            self.timed_out_jobs.add(job_id)
+            job.status = tracker_constants.Status.CANCELING
+            tracker_process_utils.terminate_process_tree(process_data["process"], force=True)
+            self._append_project_log(
+                f"[OPERATION] - (Multi-instance) - Timed out '{job.name}' after "
+                f"{self.timeout_seconds // 60} minute(s); stopping worker.\n"
+            )
+            changed = True
+        return changed
+
+    def _finalize_timed_out_jobs(self):
+        """Marks exhausted timed-out jobs as ``Timed Out`` instead of ``Failed``.
+
+        A job that timed out and still has retry attempts left is left in the
+        ``Failed`` state so the retry logic re-queues it. Once no retries remain,
+        its terminal result is relabeled ``Timed Out`` so the cause is visible.
+
+        Returns:
+            bool: Whether any job status changed.
+        """
+        if not self.timed_out_jobs:
+            return False
+        changed = False
+        for job_id in list(self.timed_out_jobs):
+            job = self.session.get_job(job_id)
+            if job is None:
+                self.timed_out_jobs.discard(job_id)
+                continue
+            if job.id in self.running or job in self.regular_queue:
+                continue
+            if job.status != tracker_constants.Status.FAILED:
+                continue
+            if self._retries_remaining(job):
+                continue
+            job.status = tracker_constants.Status.TIMED_OUT
+            self.timed_out_jobs.discard(job_id)
+            changed = True
+        return changed
 
     def _launch_available_jobs(self):
         """Launches regular jobs up to the requested worker limit.
@@ -479,6 +626,8 @@ class TrackerScheduler:
             "log_path": log_path,
             "cancel_requested_at": None,
             "cancel_force_requested": False,
+            "started_monotonic": time.monotonic(),
+            "timed_out": False,
         }
         if log_path:
             self.worker_log_offsets[log_path] = 0
@@ -659,6 +808,7 @@ class TrackerScheduler:
             return False
         blocking_statuses = {
             tracker_constants.Status.FAILED,
+            tracker_constants.Status.TIMED_OUT,
             tracker_constants.Status.CANCELED,
         }
         if any(regular.status in blocking_statuses for regular in self.session.regular_jobs):

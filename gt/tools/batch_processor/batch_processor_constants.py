@@ -21,6 +21,7 @@ class Project:
         "multi_instance": True,
         "worker_count": 30,
         "max_retries": 0,
+        "timeout_minutes": 0,
         "preferred_maya_version": "",
         "create_log": True,
         "create_task_time_log": True,

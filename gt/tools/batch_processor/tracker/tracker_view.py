@@ -7,6 +7,54 @@ import gt.ui.resource_library as ui_res_lib
 from gt.tools.batch_processor.tracker import tracker_tree_model
 
 
+MENU_ICON_SIZE = 16
+
+
+class MenuIconStyle(ui_qt.QtWidgets.QProxyStyle):
+    """Pins menu icon and indicator sizes so they match across DPI scales.
+
+    Menu action icons are drawn at the active style's small-icon metric, which
+    scales differently from stylesheet-sized check indicators on remote or
+    high-DPI displays (for example over Parsec). Forcing both metrics to one
+    value keeps every menu icon and checkbox the same size regardless of the
+    host resolution or scaling.
+    """
+
+    def pixelMetric(self, metric, option=None, widget=None):
+        """Returns a uniform size for menu icon and indicator metrics.
+
+        Args:
+            metric (QStyle.PixelMetric): Requested pixel metric.
+            option (QStyleOption, optional): Style option.
+            widget (QWidget, optional): Target widget.
+
+        Returns:
+            int: Overridden size for icon/indicator metrics, otherwise the base
+                style value.
+        """
+        if metric in self._uniform_metrics():
+            return MENU_ICON_SIZE
+        return super().pixelMetric(metric, option, widget)
+
+    @staticmethod
+    def _uniform_metrics():
+        """Gets the binding-compatible metrics forced to a uniform size.
+
+        Returns:
+            set: Pixel-metric enum values for small icons and menu indicators.
+        """
+        pixel_metric = (
+            ui_qt.QtWidgets.QStyle.PixelMetric if ui_qt.IS_PYSIDE6 else ui_qt.QtWidgets.QStyle
+        )
+        return {
+            pixel_metric.PM_SmallIconSize,
+            pixel_metric.PM_IndicatorWidth,
+            pixel_metric.PM_IndicatorHeight,
+            pixel_metric.PM_ExclusiveIndicatorWidth,
+            pixel_metric.PM_ExclusiveIndicatorHeight,
+        }
+
+
 class TrackerTreeView(ui_qt.QtWidgets.QTreeView):
     """Tree view with Maya Outliner-style branch indicators."""
 
@@ -182,6 +230,10 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
         self.actions_widget = ui_qt.QtWidgets.QWidget()
         self.filters_widget = ui_qt.QtWidgets.QWidget()
         self.tracker_menu_bar = ui_qt.QtWidgets.QMenuBar()
+        # Retained on the view so the proxy style outlives the menus that use it.
+        # QWidget.setStyle does not take ownership, so a Python reference is enough.
+        self.menu_icon_style = MenuIconStyle()
+        self.tracker_menu_bar.setStyle(self.menu_icon_style)
         self.file_menu = self.tracker_menu_bar.addMenu("File")
         self.open_batch_processor_action = self.file_menu.addAction(
             ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_open),
@@ -220,17 +272,30 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
         )
         self.restart_canceled_jobs_action.setToolTip("Queue every canceled job to run again.")
         self.copy_menu = self.tracker_menu_bar.addMenu("Copy")
-        self.copy_failed_jobs_action = self.copy_menu.addAction("Copy Failed Job Names")
+        copy_icon = ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_copy_text)
+        self.copy_failed_jobs_action = self.copy_menu.addAction(copy_icon, "Copy Failed Job Names")
         self.copy_failed_jobs_action.setToolTip("Copy failed job file names, one per line.")
-        self.copy_warning_jobs_action = self.copy_menu.addAction("Copy Warning Job Names")
+        self.copy_warning_jobs_action = self.copy_menu.addAction(copy_icon, "Copy Warning Job Names")
         self.copy_warning_jobs_action.setToolTip("Copy job file names with reported warnings, one per line.")
-        self.copy_completed_jobs_action = self.copy_menu.addAction("Copy Completed Job Names")
+        self.copy_completed_jobs_action = self.copy_menu.addAction(copy_icon, "Copy Completed Job Names")
         self.copy_completed_jobs_action.setToolTip("Copy cleanly completed job file names, one per line.")
-        self.copy_skipped_jobs_action = self.copy_menu.addAction("Copy Skipped Job Names")
+        self.copy_skipped_jobs_action = self.copy_menu.addAction(copy_icon, "Copy Skipped Job Names")
         self.copy_skipped_jobs_action.setToolTip("Copy job file names containing skipped work, one per line.")
         self.copy_menu.addSeparator()
-        self.copy_all_jobs_action = self.copy_menu.addAction("Copy All Job Names")
+        self.copy_all_jobs_action = self.copy_menu.addAction(copy_icon, "Copy All Job Names")
         self.copy_all_jobs_action.setToolTip("Copy every regular job file name, one per line.")
+        self.copy_menu.addSeparator()
+        self.copy_failed_paths_action = self.copy_menu.addAction(copy_icon, "Copy Failed Job Paths")
+        self.copy_failed_paths_action.setToolTip("Copy failed job source file paths, one per line.")
+        self.copy_warning_paths_action = self.copy_menu.addAction(copy_icon, "Copy Warning Job Paths")
+        self.copy_warning_paths_action.setToolTip("Copy source file paths with reported warnings, one per line.")
+        self.copy_completed_paths_action = self.copy_menu.addAction(copy_icon, "Copy Completed Job Paths")
+        self.copy_completed_paths_action.setToolTip("Copy cleanly completed job source file paths, one per line.")
+        self.copy_skipped_paths_action = self.copy_menu.addAction(copy_icon, "Copy Skipped Job Paths")
+        self.copy_skipped_paths_action.setToolTip("Copy source file paths containing skipped work, one per line.")
+        self.copy_menu.addSeparator()
+        self.copy_all_paths_action = self.copy_menu.addAction(copy_icon, "Copy All Job Paths")
+        self.copy_all_paths_action.setToolTip("Copy every regular job source file path, one per line.")
         self.filters_menu = self.tracker_menu_bar.addMenu("Filters")
         self.hide_completed_action = self.filters_menu.addAction("Hide Completed")
         self.hide_completed_action.setCheckable(True)
@@ -247,6 +312,8 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
             "Reset Filters",
         )
         self.reset_filters_action.setToolTip("Clear all tracker filters.")
+        for menu in (self.file_menu, self.view_menu, self.actions_menu, self.copy_menu, self.filters_menu):
+            menu.setStyle(self.menu_icon_style)
         self.search_field = ui_qt.QtWidgets.QLineEdit()
         self.search_field.setPlaceholderText("Filter by job name...")
         self.search_field.setClearButtonEnabled(True)
@@ -375,11 +442,13 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
             "QMenuBar::item { background: transparent; padding: 4px 8px; border-radius: 3px; }"
             "QMenuBar::item:selected { background-color: #465158; color: #ffffff; }"
             "QMenuBar::item:pressed { background-color: #55788a; color: #ffffff; }"
-            "QMenu { background-color: #303030; color: #dddddd; border: 1px solid #505050; }"
-            "QMenu::item { padding: 5px 24px 5px 8px; }"
+            "QMenu { background-color: #303030; color: #dddddd; border: 1px solid #505050;"
+            " padding: 4px 0px; }"
+            "QMenu::item { padding: 6px 28px 6px 36px; min-height: 20px; }"
             "QMenu::item:selected { background-color: #55788a; color: #ffffff; }"
             "QMenu::item:disabled { color: #707070; }"
-            "QMenu::indicator { width: 16px; height: 16px; }"
+            "QMenu::icon { left: 9px; }"
+            "QMenu::indicator { left: 9px; width: 16px; height: 16px; }"
             f"QMenu::indicator:checked {{ image: url({checked_icon}); }}"
             f"QMenu::indicator:unchecked {{ image: url({unchecked_icon}); }}"
             "QLineEdit { background-color: #202020; color: #e6e6e6; border: 1px solid #484848;"
@@ -459,19 +528,29 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
         )
         return answer == ui_qt.QtLib.StandardButton.Yes
 
-    def confirm_restart_job(self, job_name):
-        """Asks the user to confirm restarting one completed job.
+    def confirm_restart_job(self, job_name, active=False):
+        """Asks the user to confirm restarting one job.
 
         Args:
             job_name (str): File name shown for the selected job.
+            active (bool, optional): Whether the job is still queued or running
+                and will be canceled before it is restarted.
 
         Returns:
             bool: True when the restart was confirmed.
         """
+        if active:
+            message = (
+                f"'{job_name}' is still active.\n\n"
+                "It will be canceled and then restarted. Configured tasks will "
+                "run again and may replace generated outputs."
+            )
+        else:
+            message = f"Restart '{job_name}'?\n\nConfigured tasks will run again and may replace generated outputs."
         answer = ui_qt.QtWidgets.QMessageBox.question(
             self,
             "Restart Job",
-            f"Restart '{job_name}'?\n\nConfigured tasks will run again and may replace generated outputs.",
+            message,
             ui_qt.QtLib.StandardButton.Yes | ui_qt.QtLib.StandardButton.No,
             ui_qt.QtLib.StandardButton.No,
         )

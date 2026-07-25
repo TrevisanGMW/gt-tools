@@ -479,6 +479,42 @@ class TrackerSession:
             job.flag_skips_as_warnings = self.flag_skips_as_warnings
             job.refresh_completed_status()
 
+    def get_jobs_by_category(self, result_category="all"):
+        """Gets regular jobs matching a result category in session order.
+
+        Args:
+            result_category (str, optional): One of all, failed, warning,
+                completed, or skipped.
+
+        Returns:
+            list: Matching regular jobs, or an empty list for unknown
+                categories.
+        """
+        category = str(result_category or "all").strip().lower()
+        jobs = self.regular_jobs
+        if category == "failed":
+            return [
+                job
+                for job in jobs
+                if job.status in {tracker_constants.Status.FAILED, tracker_constants.Status.TIMED_OUT}
+                or job.errors
+            ]
+        if category == "warning":
+            return [job for job in jobs if job.warnings]
+        if category == "completed":
+            return [
+                job
+                for job in jobs
+                if job.status == tracker_constants.Status.COMPLETED
+                and not job.warnings
+                and not job.has_skipped_work
+            ]
+        if category == "skipped":
+            return [job for job in jobs if job.has_skipped_work]
+        if category == "all":
+            return list(jobs)
+        return []
+
     def get_job_names(self, result_category="all"):
         """Gets regular job file names matching a result category.
 
@@ -489,29 +525,24 @@ class TrackerSession:
         Returns:
             list: Matching job names in original session order.
         """
-        category = str(result_category or "all").strip().lower()
-        jobs = self.regular_jobs
-        if category == "failed":
-            jobs = [
-                job
-                for job in jobs
-                if job.status == tracker_constants.Status.FAILED or job.errors
-            ]
-        elif category == "warning":
-            jobs = [job for job in jobs if job.warnings]
-        elif category == "completed":
-            jobs = [
-                job
-                for job in jobs
-                if job.status == tracker_constants.Status.COMPLETED
-                and not job.warnings
-                and not job.has_skipped_work
-            ]
-        elif category == "skipped":
-            jobs = [job for job in jobs if job.has_skipped_work]
-        elif category != "all":
-            return []
-        return [job.name for job in jobs]
+        return [job.name for job in self.get_jobs_by_category(result_category)]
+
+    def get_job_paths(self, result_category="all"):
+        """Gets regular job source file paths matching a result category.
+
+        Args:
+            result_category (str, optional): One of all, failed, warning,
+                completed, or skipped.
+
+        Returns:
+            list: Matching normalized source file paths in original session
+                order. Jobs without a source file are omitted.
+        """
+        paths = []
+        for job in self.get_jobs_by_category(result_category):
+            if job.source_file:
+                paths.append(os.path.normpath(job.source_file))
+        return paths
 
     def finish(self):
         """Marks the session finished."""

@@ -402,6 +402,176 @@ class TestBatchProcessorTracker(unittest.TestCase):
         self.assertEqual(0, job.errors)
         self.assertTrue(all(task.status == expected for task in job.tasks))
 
+    def test_session_get_job_paths_groups_results_in_original_order(self):
+        """Tests that global path-copy grouping mirrors job-name grouping."""
+        failed_job = self.create_job()
+        failed_job.name = "failed.ma"
+        failed_job.source_file = "C:/input/failed.ma"
+        failed_job.status = tracker_constants.Status.FAILED
+        failed_job.tasks[0].errors = 1
+        timed_out_job = self.create_job()
+        timed_out_job.name = "timeout.ma"
+        timed_out_job.source_file = "C:/input/timeout.ma"
+        timed_out_job.status = tracker_constants.Status.TIMED_OUT
+        completed_job = self.create_job()
+        completed_job.name = "completed.ma"
+        completed_job.source_file = "C:/input/completed.ma"
+        completed_job.status = tracker_constants.Status.COMPLETED
+        session = tracker_model.TrackerSession(
+            "Test",
+            "C:/project",
+            1,
+            [failed_job, timed_out_job, completed_job],
+            "C:/session",
+        )
+
+        expected_failed = [os.path.normpath("C:/input/failed.ma"), os.path.normpath("C:/input/timeout.ma")]
+        self.assertEqual(expected_failed, session.get_job_paths("failed"))
+        self.assertEqual([os.path.normpath("C:/input/completed.ma")], session.get_job_paths("completed"))
+        expected_all = [
+            os.path.normpath("C:/input/failed.ma"),
+            os.path.normpath("C:/input/timeout.ma"),
+            os.path.normpath("C:/input/completed.ma"),
+        ]
+        self.assertEqual(expected_all, session.get_job_paths("all"))
+
+    def test_scheduler_times_out_running_job_and_marks_timed_out(self):
+        """Tests that a job exceeding the timeout is force-canceled and relabeled."""
+        class FakeProcess:
+            """Controllable process double for timeout handling."""
+
+            def __init__(self):
+                """Initializes a running process double."""
+                self.return_code = None
+
+            def poll(self):
+                """Gets the configured process return code.
+
+                Returns:
+                    int or None: Current fake process state.
+                """
+                return self.return_code
+
+        session_dir = tempfile.mkdtemp(prefix="gt_tracker_timeout_test_")
+        self.addCleanup(lambda: os.path.isdir(session_dir) and shutil.rmtree(session_dir))
+        job = self.create_job()
+        job.status = tracker_constants.Status.RUNNING
+        job.tasks[0].status = tracker_constants.Status.RUNNING
+        session = tracker_model.TrackerSession("Test", "C:/project", 1, [job], session_dir)
+        options = types.SimpleNamespace(no_log=True, task_time_logs=False, timeout_minutes=5)
+        scheduler = tracker_scheduler.TrackerScheduler(session=session, options=options)
+        scheduler.regular_queue = []
+        process = FakeProcess()
+        scheduler.running[job.id] = {
+            "process": process,
+            "job": job,
+            "final_task": None,
+            "log_path": "",
+            "cancel_requested_at": None,
+            "cancel_force_requested": False,
+            "started_monotonic": 0.0,
+            "timed_out": False,
+        }
+
+        with mock.patch.object(tracker_scheduler.time, "monotonic", return_value=600.0):
+            with mock.patch.object(tracker_scheduler.tracker_process_utils, "terminate_process_tree") as terminate:
+                timed_out = scheduler._advance_timeouts()
+
+        self.assertTrue(timed_out)
+        terminate.assert_called_once_with(process, force=True)
+        self.assertIn(job.id, scheduler.timed_out_jobs)
+        process.return_code = 1
+        scheduler._collect_finished_processes()
+        self.assertEqual(tracker_constants.Status.FAILED, job.status)
+
+        changed = scheduler._finalize_timed_out_jobs()
+
+        self.assertTrue(changed)
+        self.assertEqual(tracker_constants.Status.TIMED_OUT, job.status)
+        self.assertNotIn(job.id, scheduler.timed_out_jobs)
+
+    def test_timed_out_job_with_retries_remaining_is_requeued_not_relabeled(self):
+        """Tests that a timed-out job is retried before it is marked timed out."""
+        session_dir = tempfile.mkdtemp(prefix="gt_tracker_timeout_retry_test_")
+        self.addCleanup(lambda: os.path.isdir(session_dir) and shutil.rmtree(session_dir))
+        job = self.create_job()
+        job.status = tracker_constants.Status.FAILED
+        job.tasks[0].status = tracker_constants.Status.FAILED
+        session = tracker_model.TrackerSession("Test", "C:/project", 1, [job], session_dir)
+        options = types.SimpleNamespace(
+            no_log=True, task_time_logs=False, timeout_minutes=5, max_retries=2
+        )
+        scheduler = tracker_scheduler.TrackerScheduler(session=session, options=options)
+        scheduler.regular_queue = []
+        scheduler.timed_out_jobs.add(job.id)
+
+        finalized = scheduler._finalize_timed_out_jobs()
+
+        self.assertFalse(finalized)
+        self.assertEqual(tracker_constants.Status.FAILED, job.status)
+
+        retried = scheduler._advance_retries()
+
+        self.assertTrue(retried)
+        self.assertEqual([job], scheduler.regular_queue)
+        self.assertEqual(tracker_constants.Status.QUEUED, job.status)
+        self.assertNotIn(job.id, scheduler.timed_out_jobs)
+
+    def test_request_restart_cancels_and_requeues_running_job(self):
+        """Tests that restarting an active job cancels it then queues it again."""
+        class FakeProcess:
+            """Controllable process double for deferred restart."""
+
+            def __init__(self):
+                """Initializes a running process double."""
+                self.return_code = None
+
+            def poll(self):
+                """Gets the configured process return code.
+
+                Returns:
+                    int or None: Current fake process state.
+                """
+                return self.return_code
+
+        session_dir = tempfile.mkdtemp(prefix="gt_tracker_restart_active_test_")
+        self.addCleanup(lambda: os.path.isdir(session_dir) and shutil.rmtree(session_dir))
+        job = self.create_job()
+        job.status = tracker_constants.Status.RUNNING
+        job.tasks[0].status = tracker_constants.Status.RUNNING
+        session = tracker_model.TrackerSession("Test", "C:/project", 1, [job], session_dir)
+        options = types.SimpleNamespace(no_log=True, task_time_logs=False)
+        scheduler = tracker_scheduler.TrackerScheduler(session=session, options=options)
+        scheduler.regular_queue = []
+        process = FakeProcess()
+        scheduler.running[job.id] = {
+            "process": process,
+            "job": job,
+            "final_task": None,
+            "log_path": "",
+            "cancel_requested_at": None,
+            "cancel_force_requested": False,
+            "started_monotonic": 0.0,
+            "timed_out": False,
+        }
+
+        self.assertTrue(scheduler.can_request_restart_job(job))
+        with mock.patch.object(tracker_scheduler.tracker_process_utils, "terminate_process_tree"):
+            requested = scheduler.request_restart_job(job)
+
+        self.assertTrue(requested)
+        self.assertIn(job.id, scheduler.pending_restarts)
+        process.return_code = 1
+        scheduler._collect_finished_processes()
+        self.assertEqual(tracker_constants.Status.CANCELED, job.status)
+
+        advanced = scheduler._advance_pending_restarts()
+
+        self.assertTrue(advanced)
+        self.assertEqual([job], scheduler.regular_queue)
+        self.assertEqual(tracker_constants.Status.QUEUED, job.status)
+        self.assertNotIn(job.id, scheduler.pending_restarts)
+
     def test_canceled_regular_job_skips_finalization(self):
         """Tests that run-once finalization does not process an incomplete batch."""
         session_dir = tempfile.mkdtemp(prefix="gt_tracker_cancel_final_test_")

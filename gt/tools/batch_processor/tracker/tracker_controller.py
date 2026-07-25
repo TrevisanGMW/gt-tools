@@ -99,6 +99,21 @@ class TrackerController:
         self.view.copy_all_jobs_action.triggered.connect(
             partial(self.copy_job_names, "all")
         )
+        self.view.copy_failed_paths_action.triggered.connect(
+            partial(self.copy_job_paths, "failed")
+        )
+        self.view.copy_warning_paths_action.triggered.connect(
+            partial(self.copy_job_paths, "warning")
+        )
+        self.view.copy_completed_paths_action.triggered.connect(
+            partial(self.copy_job_paths, "completed")
+        )
+        self.view.copy_skipped_paths_action.triggered.connect(
+            partial(self.copy_job_paths, "skipped")
+        )
+        self.view.copy_all_paths_action.triggered.connect(
+            partial(self.copy_job_paths, "all")
+        )
         self.view.hide_completed_action.toggled.connect(self.apply_filters)
         self.view.failed_only_action.toggled.connect(self.toggle_failed_filter)
         self.view.warnings_only_action.toggled.connect(self.toggle_warnings_filter)
@@ -147,15 +162,24 @@ class TrackerController:
 
     def _update_copy_actions(self):
         """Enables global copy actions only when matching jobs exist."""
-        action_categories = {
+        name_categories = {
             self.view.copy_failed_jobs_action: "failed",
             self.view.copy_warning_jobs_action: "warning",
             self.view.copy_completed_jobs_action: "completed",
             self.view.copy_skipped_jobs_action: "skipped",
             self.view.copy_all_jobs_action: "all",
         }
-        for action, category in action_categories.items():
-            action.setEnabled(bool(self.session.get_job_names(category)))
+        path_categories = {
+            self.view.copy_failed_paths_action: "failed",
+            self.view.copy_warning_paths_action: "warning",
+            self.view.copy_completed_paths_action: "completed",
+            self.view.copy_skipped_paths_action: "skipped",
+            self.view.copy_all_paths_action: "all",
+        }
+        for action, category in name_categories.items():
+            action.setEnabled(bool(self.session.get_jobs_by_category(category)))
+        for action, category in path_categories.items():
+            action.setEnabled(bool(self.session.get_job_paths(category)))
 
     def copy_job_names(self, result_category, *args):
         """Copies matching regular job names to the system clipboard.
@@ -168,6 +192,18 @@ class TrackerController:
         if not job_names:
             return
         ui_qt.QtWidgets.QApplication.clipboard().setText("\n".join(job_names))
+
+    def copy_job_paths(self, result_category, *args):
+        """Copies matching regular job source paths to the system clipboard.
+
+        Args:
+            result_category (str): Result category requested by the copy action.
+            *args: Optional Qt signal values.
+        """
+        job_paths = self.session.get_job_paths(result_category)
+        if not job_paths:
+            return
+        ui_qt.QtWidgets.QApplication.clipboard().setText("\n".join(job_paths))
 
     def _format_estimate(self):
         """Formats the estimated remaining time for the summary row.
@@ -582,7 +618,11 @@ class TrackerController:
             ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_reset),
             "Restart Job",
         )
-        restart_action.setEnabled(self.scheduler.can_restart_job(job))
+        restart_action.setEnabled(self.scheduler.can_request_restart_job(job))
+        if self.scheduler.can_cancel_job(job):
+            restart_action.setToolTip("Cancel the active job and queue it to run again.")
+        else:
+            restart_action.setToolTip("Queue this job to run again.")
         cancel_action = menu.addAction(
             ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_delete),
             "Cancel Job",
@@ -607,16 +647,21 @@ class TrackerController:
             self.cancel_job(job)
 
     def restart_job(self, job):
-        """Confirms and queues one terminal job for another execution.
+        """Confirms and queues one job for another execution.
+
+        A terminal job is queued immediately. An active (queued or running) job
+        is canceled first and then restarted once its worker stops, so the user
+        no longer has to cancel it manually before restarting.
 
         Args:
             job (TrackerJob): Regular tracker job to restart.
         """
-        if not self.scheduler.can_restart_job(job):
+        if not self.scheduler.can_request_restart_job(job):
             return
-        if not self.view.confirm_restart_job(job.name):
+        active = not self.scheduler.can_restart_job(job)
+        if not self.view.confirm_restart_job(job.name, active=active):
             return
-        if not self.scheduler.restart_job(job):
+        if not self.scheduler.request_restart_job(job):
             return
         self.close_after_abort = False
         self.view.set_abort_enabled(True)

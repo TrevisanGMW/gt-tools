@@ -104,6 +104,24 @@ class AttrWidgetProject(attr_widget_base.AttrWidgetBase):
         retry_spin_box.setToolTip(retry_tooltip)
         retry_spin_box.valueChanged.connect(partial(self.set_run_setting, key="max_retries"))
         worker_layout.addWidget(retry_spin_box)
+        worker_layout.addSpacing(8)
+        timeout_tooltip = (
+            "Maximum minutes a single job may run before it is automatically canceled. "
+            "0 disables the timeout, so stuck jobs can run indefinitely. When a job times out "
+            "it is retried if retry attempts remain; otherwise it is marked as timed out."
+        )
+        timeout_label = ui_qt.QtWidgets.QLabel("Timeout (min):")
+        attr_widget_base.configure_label_for_scaled_displays(timeout_label)
+        timeout_label.setToolTip(timeout_tooltip)
+        worker_layout.addWidget(timeout_label)
+        timeout_spin_box = ui_qt.QtWidgets.QSpinBox()
+        timeout_spin_box.setRange(0, 100000)
+        timeout_spin_box.setValue(int(self.project.run_settings.get("timeout_minutes") or 0))
+        timeout_spin_box.setMinimumHeight(35)
+        timeout_spin_box.setFixedWidth(90)
+        timeout_spin_box.setToolTip(timeout_tooltip)
+        timeout_spin_box.valueChanged.connect(partial(self.set_run_setting, key="timeout_minutes"))
+        worker_layout.addWidget(timeout_spin_box)
         worker_layout.addStretch()
 
         self.add_text_field(
@@ -280,6 +298,14 @@ class AttrWidgetProject(attr_widget_base.AttrWidgetBase):
                 )
             else:
                 self.emit_status_message("Failed job retries disabled.")
+        elif key == "timeout_minutes":
+            if value:
+                self.emit_status_message(
+                    "Jobs running longer than {0} minute(s) will be canceled automatically.".format(value),
+                    status="warning",
+                )
+            else:
+                self.emit_status_message("Job timeout disabled.")
         elif key == "preferred_maya_version":
             self.emit_status_message(
                 'Preferred Maya version changed to "{0}". Validate before running multi-instance jobs.'.format(

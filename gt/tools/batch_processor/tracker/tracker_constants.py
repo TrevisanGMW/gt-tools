@@ -25,6 +25,7 @@ class Status:
     COMPLETED = "Completed"
     COMPLETED_WARNINGS = "Completed (Warnings)"
     FAILED = "Failed"
+    TIMED_OUT = "Timed Out"
     PENDING_FINALIZATION = "Pending Finalization"
     CANCELING = "Canceling"
     CANCELED = "Canceled"
@@ -38,6 +39,7 @@ STATUS_COLORS = {
     Status.COMPLETED: "#3978b8",
     Status.COMPLETED_WARNINGS: "#c18a2b",
     Status.FAILED: "#b94b4b",
+    Status.TIMED_OUT: "#c07a3a",
     Status.PENDING_FINALIZATION: "#9a6bb5",
     Status.CANCELING: "#b06f3c",
     Status.CANCELED: "#696d72",
@@ -48,6 +50,7 @@ TERMINAL_STATUSES = {
     Status.COMPLETED,
     Status.COMPLETED_WARNINGS,
     Status.FAILED,
+    Status.TIMED_OUT,
     Status.CANCELED,
     Status.SKIPPED,
 }
