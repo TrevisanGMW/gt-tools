@@ -203,5 +203,86 @@ class TestSchedulerSegmentBarrier(unittest.TestCase):
         self.assertFalse(scheduler._segments_remaining())
 
 
+class TestSchedulerRetries(unittest.TestCase):
+    def setUp(self):
+        self.session_dir = tempfile.mkdtemp(prefix="gt_retry_sched_test_")
+        self.addCleanup(lambda: os.path.isdir(self.session_dir) and shutil.rmtree(self.session_dir))
+
+    def _make_scheduler(self, max_retries):
+        """Builds a non-segmented two-job scheduler with a retry budget.
+
+        Args:
+            max_retries (int): Configured retry count.
+
+        Returns:
+            TrackerScheduler: Scheduler ready for retry advancement.
+        """
+        definitions = [{"id": "t1", "number": 1, "name": "Rename", "icon": ""}]
+        jobs = [
+            tracker_model.TrackerJob(
+                job_id="job-0001", number=1, source_file="/in/a.ma", task_definitions=definitions
+            ),
+            tracker_model.TrackerJob(
+                job_id="job-0002", number=2, source_file="/in/b.ma", task_definitions=definitions
+            ),
+        ]
+        session = tracker_model.TrackerSession("T", "C:/p", 1, jobs, self.session_dir)
+        options = types.SimpleNamespace(no_log=True, task_time_logs=False, max_retries=max_retries)
+        return tracker_scheduler.TrackerScheduler(session=session, options=options)
+
+    @staticmethod
+    def _drain_as_failed(scheduler, job):
+        """Simulates a job draining out of the active scope as failed.
+
+        Args:
+            scheduler (TrackerScheduler): Scheduler under test.
+            job (TrackerJob): Job to mark failed and dequeue.
+        """
+        if job in scheduler.regular_queue:
+            scheduler.regular_queue.remove(job)
+        job.status = tracker_constants.Status.FAILED
+
+    def test_retries_disabled_never_requeues(self):
+        scheduler = self._make_scheduler(max_retries=0)
+        failed_job = scheduler.session.regular_jobs[0]
+        self._drain_as_failed(scheduler, failed_job)
+        scheduler.regular_queue = []
+
+        self.assertFalse(scheduler._advance_retries())
+        self.assertEqual(tracker_constants.Status.FAILED, failed_job.status)
+
+    def test_failed_job_requeued_until_budget_exhausted(self):
+        scheduler = self._make_scheduler(max_retries=2)
+        failed_job, passing_job = scheduler.session.regular_jobs
+        passing_job.status = tracker_constants.Status.COMPLETED
+        self._drain_as_failed(scheduler, failed_job)
+        scheduler.regular_queue = [job for job in scheduler.regular_queue if job is not passing_job]
+
+        # First retry.
+        self.assertTrue(scheduler._advance_retries())
+        self.assertIn(failed_job, scheduler.regular_queue)
+        self.assertEqual(tracker_constants.Status.QUEUED, failed_job.status)
+        self.assertEqual(1, scheduler.job_retry_counts[failed_job.id])
+
+        # Second retry after failing again.
+        self._drain_as_failed(scheduler, failed_job)
+        self.assertTrue(scheduler._advance_retries())
+        self.assertEqual(2, scheduler.job_retry_counts[failed_job.id])
+
+        # Budget exhausted: stays failed, never retried again.
+        self._drain_as_failed(scheduler, failed_job)
+        self.assertFalse(scheduler._advance_retries())
+        self.assertEqual(tracker_constants.Status.FAILED, failed_job.status)
+        self.assertNotIn(passing_job.id, scheduler.job_retry_counts)
+
+    def test_no_retry_while_active_work_remains(self):
+        scheduler = self._make_scheduler(max_retries=3)
+        failed_job = scheduler.session.regular_jobs[0]
+        failed_job.status = tracker_constants.Status.FAILED
+        # The second job is still queued, so retries must wait for the scope to drain.
+        self.assertFalse(scheduler._advance_retries())
+        self.assertEqual({}, scheduler.job_retry_counts)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

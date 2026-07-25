@@ -39,6 +39,8 @@ class TrackerScheduler:
         self.segmented = len(self.segments) > 1
         self.current_segment_index = 0
         self._materialized_segments = set()
+        self.max_retries = max(0, int(getattr(options, "max_retries", 0) or 0))
+        self.job_retry_counts = {}
         self._job_counter = 0
         self.running = {}
         self.readers = {}
@@ -79,6 +81,7 @@ class TrackerScheduler:
             changed = self._advance_abort() or changed
         else:
             changed = self._advance_job_cancellations() or changed
+            changed = self._advance_retries() or changed
             if self.segmented:
                 changed = self._advance_segments() or changed
             changed = self._launch_available_jobs() or changed
@@ -214,6 +217,51 @@ class TrackerScheduler:
         self.write_state()
         if callable(self.update_callback):
             self.update_callback()
+        return True
+
+    def _advance_retries(self):
+        """Re-queues failed regular jobs that still have retry attempts left.
+
+        Retries are deferred until the active scope drains, so every job runs
+        once before any failure is attempted again and all retries batch at the
+        end of the run. Each eligible job is reset and queued exactly as a
+        manual "Restart Job" would, but driven by the project's configured retry
+        count instead of a user action. In segmented runs, only the current
+        segment's failures are retried so a segment fully resolves before the
+        run advances past its barrier.
+
+        Returns:
+            bool: Whether any job was queued for a retry.
+        """
+        if self.max_retries <= 0 or self.session.aborting:
+            return False
+        if self.regular_queue:
+            return False
+        if any(not process_data["job"].is_finalization for process_data in self.running.values()):
+            return False
+        if self.segmented:
+            if self.current_segment_index not in self._materialized_segments:
+                return False
+            candidate_jobs = self._segment_jobs(self.current_segment_index)
+        else:
+            candidate_jobs = self.session.regular_jobs
+        retry_jobs = [
+            job
+            for job in candidate_jobs
+            if job.status == tracker_constants.Status.FAILED
+            and self.job_retry_counts.get(job.id, 0) < self.max_retries
+        ]
+        if not retry_jobs:
+            return False
+        for job in retry_jobs:
+            attempt = self.job_retry_counts.get(job.id, 0) + 1
+            self.job_retry_counts[job.id] = attempt
+            job.reset_for_restart()
+            self.regular_queue.append(job)
+            self._append_project_log(
+                f"[OPERATION] - (Multi-instance) - Retry {attempt}/{self.max_retries} "
+                f"queued for '{job.name}'.\n"
+            )
         return True
 
     def _launch_available_jobs(self):

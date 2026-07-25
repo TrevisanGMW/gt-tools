@@ -476,6 +476,7 @@ class MultiInstanceBatchRunner:
         preferred_maya_version = project.run_settings.get("preferred_maya_version")
         mayapy_path, maya_version_warning = resolve_mayapy_executable(preferred_version=preferred_maya_version)
         worker_count = int(project.run_settings.get("worker_count") or 1)
+        max_retries = max(0, int(project.run_settings.get("max_retries") or 0))
         logs_dir = project.get_logs_dir()
         command = [
             mayapy_path,
@@ -503,6 +504,8 @@ class MultiInstanceBatchRunner:
             command.extend(["--run-to-task-id", run_to_task_id])
         for final_task in final_tasks:
             command.extend(["--final-task-id", final_task.id])
+        if max_retries:
+            command.extend(["--max-retries", str(max_retries)])
         if not project.run_settings.get("create_log", True):
             command.append("--no-log")
         if project.run_settings.get("create_task_time_log", True):

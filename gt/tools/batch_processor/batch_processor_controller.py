@@ -234,7 +234,7 @@ class BatchProcessorController:
 
         action_open_project_folder = self.create_action(
             "Open Project Folder",
-            icon_path=ui_res_lib.Icon.util_open_dir,
+            icon_path=ui_res_lib.Icon.ui_open_external,
         )
         action_open_project_folder.setToolTip("Open the resolved project directory.")
         action_open_project_folder.triggered.connect(self.open_project_directory)

@@ -31,6 +31,12 @@ def parse_args():
     parser.add_argument("--run-to-task-id", default="", help="Optional last task id.")
     parser.add_argument("--final-task-id", action="append", default=[], help="Deferred run-once task id.")
     parser.add_argument("--worker-count", type=int, default=1, help="Maximum concurrent workers.")
+    parser.add_argument(
+        "--max-retries",
+        type=int,
+        default=0,
+        help="Times a failed job is retried at the end of the run. 0 disables retries.",
+    )
     parser.add_argument("--logs-dir", default="", help="Base directory for run-scoped session data.")
     parser.add_argument("--project-log", default="", help="Main Batch Processor project log path.")
     parser.add_argument("--source-project-file", default="", help="Original saved Batch Processor project path.")
