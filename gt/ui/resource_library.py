@@ -491,6 +491,8 @@ class Icon:
     ui_read_only = get_icon_path(r"ui_read_only.svg")
     ui_progress = get_icon_path(r"ui_progress.svg")
     ui_cursor = get_icon_path(r"ui_cursor.svg")
+    ui_open_external = get_icon_path(r"ui_open_external.svg")
+    ui_goto_location = get_icon_path(r"ui_goto_location.svg")
     # Branch/Hierarchy Lines
     ui_branch_closed = get_icon_path(r"ui_branch_closed.svg")
     ui_branch_end = get_icon_path(r"ui_branch_end.svg")
@@ -506,6 +508,10 @@ class Icon:
     validator_warning = get_icon_path(r"validator_warning.svg")
     validator_fail_soft = get_icon_path(r"validator_fail_soft.svg")
     validator_fail_hard = get_icon_path(r"validator_fail_hard.svg")
+    # Apps
+    app_unreal = get_icon_path(r"app_unreal.svg")
+    app_blender = get_icon_path(r"app_blender.svg")
+    app_mobu = get_icon_path(r"app_mobu.svg")
 
 
 class Color:
