@@ -83,7 +83,7 @@ class AttrWidgetMotionBuilderScriptTask(AttrWidgetPythonScriptTask):
         info_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_env_var))
         info_button.setToolTip("Get more information about the resolved executable path.")
         open_button = ui_qt.QtWidgets.QPushButton()
-        open_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.util_open_dir))
+        open_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_open_external))
         open_button.setToolTip("Open the resolved MotionBuilder executable directory.")
         browse_button = ui_qt.QtWidgets.QPushButton()
         browse_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_open))

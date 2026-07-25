@@ -84,6 +84,26 @@ class AttrWidgetProject(attr_widget_base.AttrWidgetBase):
         worker_spin_box.setToolTip("Number of worker instances to use in multi-instance mode.")
         worker_spin_box.valueChanged.connect(partial(self.set_run_setting, key="worker_count"))
         worker_layout.addWidget(worker_spin_box)
+        # Match the visual gap the empty "Multi" checkbox leaves before "Count:"
+        # so the retries group is not flush against the worker count spin box.
+        worker_layout.addSpacing(8)
+        retry_tooltip = (
+            "Number of times a failed job is retried at the end of the run. "
+            "0 disables retries. Each still-failing job is re-run up to this many times, "
+            "and jobs that keep failing after all retries remain failed."
+        )
+        retry_label = ui_qt.QtWidgets.QLabel("Retries:")
+        attr_widget_base.configure_label_for_scaled_displays(retry_label)
+        retry_label.setToolTip(retry_tooltip)
+        worker_layout.addWidget(retry_label)
+        retry_spin_box = ui_qt.QtWidgets.QSpinBox()
+        retry_spin_box.setRange(0, 64)
+        retry_spin_box.setValue(int(self.project.run_settings.get("max_retries") or 0))
+        retry_spin_box.setMinimumHeight(35)
+        retry_spin_box.setFixedWidth(90)
+        retry_spin_box.setToolTip(retry_tooltip)
+        retry_spin_box.valueChanged.connect(partial(self.set_run_setting, key="max_retries"))
+        worker_layout.addWidget(retry_spin_box)
         worker_layout.addStretch()
 
         self.add_text_field(
@@ -252,6 +272,14 @@ class AttrWidgetProject(attr_widget_base.AttrWidgetBase):
             self.emit_status_message("Multi-instance mode {0}.".format(state_name), status="warning")
         elif key == "worker_count":
             self.emit_status_message("Worker count changed to {0}.".format(value), status="warning")
+        elif key == "max_retries":
+            if value:
+                self.emit_status_message(
+                    "Failed jobs will be retried up to {0} time(s) at the end of the run.".format(value),
+                    status="warning",
+                )
+            else:
+                self.emit_status_message("Failed job retries disabled.")
         elif key == "preferred_maya_version":
             self.emit_status_message(
                 'Preferred Maya version changed to "{0}". Validate before running multi-instance jobs.'.format(

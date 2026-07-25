@@ -158,7 +158,7 @@ class TaskMotionBuilderScript(TaskPythonScript):
     default_display_name = "MotionBuilder"
     application_name = "MotionBuilder"
     default_target_path_template = "{project-dir}/{task-dir}/{task-idx}_motionbuilder"
-    icon = "tool_retarget_animation"
+    icon = "app_mobu"
     category = "External"
     category_icon = "root_miscellaneous"
     metadata_scripts_key = "motionbuilder_scripts"

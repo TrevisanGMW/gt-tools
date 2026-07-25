@@ -131,7 +131,7 @@ class TaskBlenderScript(TaskMotionBuilderScript):
     default_display_name = "Blender"
     application_name = "Blender"
     default_target_path_template = "{project-dir}/{task-dir}/{task-idx}_blender"
-    icon = "tool_mesh_morpher"
+    icon = "app_blender"
     category = "External"
     category_icon = "root_miscellaneous"
     metadata_scripts_key = "blender_scripts"
