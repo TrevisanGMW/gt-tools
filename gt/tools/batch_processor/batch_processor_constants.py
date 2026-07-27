@@ -57,7 +57,7 @@ class TaskType:
     AUTO_RIG_BUILD = "auto_rig_build"
     CLIP_SPLIT = "clip_split"
     CLIP_SNAPSHOT = "clip_snapshot"
-    MAP_RENAME = "map_rename"
+    MAP_HIERARCHY = "map_hierarchy"
     DELETE_PROJECT_FILES = "delete_project_files"
     ZIP_COMPRESS = "zip_compress"
     MAYA_SCENE_VALIDATE = "validate_maya_scene"

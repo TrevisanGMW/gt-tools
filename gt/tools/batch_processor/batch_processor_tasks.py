@@ -42,7 +42,7 @@ from gt.tools.batch_processor.tasks.task_export_fbx import TaskExportFbx
 from gt.tools.batch_processor.tasks.task_hik_retarget import HIK_BAKE_TARGET_NONE
 from gt.tools.batch_processor.tasks.task_hik_retarget import TaskRetargetHumanIK
 from gt.tools.batch_processor.tasks.task_hik_retarget import HIK_BAKE_TARGETS
-from gt.tools.batch_processor.tasks.task_map_rename import TaskMapRename
+from gt.tools.batch_processor.tasks.task_map_hierarchy import TaskMapHierarchy
 from gt.tools.batch_processor.tasks.task_maya_import import TaskMayaImport
 from gt.tools.batch_processor.tasks.task_maya_save import TaskMayaSave
 from gt.tools.batch_processor.tasks.task_external_mobu import TaskMotionBuilderScript
@@ -63,7 +63,7 @@ TASK_TYPES = {
     constants.TaskType.MAYA_IMPORT: TaskMayaImport,
     constants.TaskType.PYTHON_SCRIPT: TaskPythonScript,
     constants.TaskType.RENAME: TaskRename,
-    constants.TaskType.MAP_RENAME: TaskMapRename,
+    constants.TaskType.MAP_HIERARCHY: TaskMapHierarchy,
     constants.TaskType.MOTIONBUILDER_SCRIPT: TaskMotionBuilderScript,
     constants.TaskType.BLENDER_SCRIPT: TaskBlenderScript,
     constants.TaskType.MAYA_SAVE: TaskMayaSave,

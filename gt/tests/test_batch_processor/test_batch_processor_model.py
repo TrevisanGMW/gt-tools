@@ -510,24 +510,26 @@ class TestBatchProcessorModel(unittest.TestCase):
     def test_task_environment_index_excludes_unchecked_data_load_tasks(self):
         model = batch_processor_model.BatchProcessorModel()
         clip_task = model.add_task(modules.TaskClipSnapshot())
-        map_task = model.add_task(modules.TaskMapRename())
+        map_task = model.add_task(modules.TaskMapHierarchy())
         rename_task = model.add_task(modules.TaskRename())
 
-        result = model.get_task_environment_index(rename_task)
-
-        expected = 2
-        self.assertEqual(expected, result)
-
-        clip_task.settings["include_in_task_index"] = False
-        map_task.settings["include_in_task_index"] = False
+        # Data-load tasks are excluded from the task index by default.
         result = model.get_task_environment_index(rename_task)
 
         expected = 1
         self.assertEqual(expected, result)
 
+        # Enabling the data-load tasks in the index makes them count.
+        clip_task.settings["include_in_task_index"] = True
+        map_task.settings["include_in_task_index"] = True
+        result = model.get_task_environment_index(rename_task)
+
+        expected = 3
+        self.assertEqual(expected, result)
+
         result = model.get_task_environment_index(clip_task)
 
-        expected = 0
+        expected = 1
         self.assertEqual(expected, result)
         self.assertTrue(getattr(map_task, "is_data_load_task", False))
 
@@ -2360,7 +2362,7 @@ class TestBatchProcessorModel(unittest.TestCase):
 
         expected = "TaskPythonScript"
         self.assertEqual(expected, utility_names[0])
-        expected = ["TaskRename", "TaskMapRename"]
+        expected = ["TaskRename", "TaskMapHierarchy"]
         self.assertEqual(expected, utility_names[1:3])
 
     def test_motionbuilder_script_task_is_registered(self):
@@ -2969,21 +2971,24 @@ class TestBatchProcessorModel(unittest.TestCase):
         ]
         self.assertEqual(sorted(expected), sorted(result))
 
-    def test_map_rename_task_creates_map_for_identical_files(self):
-        folder_a = os.path.join(self.temp_dir, "folder_a")
-        folder_b = os.path.join(self.temp_dir, "folder_b")
-        os.makedirs(folder_a)
-        os.makedirs(folder_b)
-        self._write_file(os.path.join(folder_a, "old_name.ma"), "same data")
-        self._write_file(os.path.join(folder_b, "new_name.ma"), "same data")
-        map_path = os.path.join(self.temp_dir, "rename_map.json")
+    def test_map_hierarchy_records_snapshot_mapping_for_renamed_files(self):
+        from gt.tools.batch_processor.tasks import task_map_hierarchy
+
+        source_dir = os.path.join(self.temp_dir, "source")
+        target_dir = os.path.join(self.temp_dir, "target")
+        os.makedirs(source_dir)
+        os.makedirs(os.path.join(target_dir, "renamed"))
+        self._write_file(os.path.join(source_dir, "old_name.ma"), "same data")
+        self._write_file(os.path.join(target_dir, "renamed", "new_name.ma"), "same data")
+        snapshot_path = os.path.join(self.temp_dir, "hierarchy_snapshot.json")
         model = batch_processor_model.BatchProcessorModel()
         model.project_file_path = os.path.join(self.temp_dir, "project.batch")
-        task = modules.TaskMapRename(
+        task = modules.TaskMapHierarchy(
             settings={
-                "folder_a": folder_a,
-                "folder_b": folder_b,
-                "map_path": map_path,
+                "mode": task_map_hierarchy.MODE_RECORD_SOURCE_TARGET,
+                "source_dir": source_dir,
+                "target_dir": target_dir,
+                "snapshot_path": snapshot_path,
             }
         )
 
@@ -2991,14 +2996,190 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertTrue(result.is_valid())
         task.execute(None, model, self.temp_dir, context={"work_items": []})
 
-        with open(map_path, "r", encoding="utf-8") as map_file:
-            payload = json.load(map_file)
+        with open(snapshot_path, "r", encoding="utf-8") as snapshot_file:
+            payload = json.load(snapshot_file)
         expected = 1
-        self.assertEqual(expected, payload.get("summary").get("mapped_files"))
+        self.assertEqual(expected, payload.get("metadata").get("modifications_required"))
+        file_entries = [entry for entry in payload.get("mapping") if entry.get("type") == "file"]
         expected = "old_name.ma"
-        self.assertEqual(expected, payload.get("rename_map")[0].get("from_name"))
-        expected = "new_name.ma"
-        self.assertEqual(expected, payload.get("rename_map")[0].get("to_name"))
+        self.assertEqual(expected, file_entries[0].get("original_relative_path"))
+        expected = "renamed/new_name.ma"
+        self.assertEqual(expected, file_entries[0].get("target_relative_path"))
+        expected = task_map_hierarchy.STATUS_MOVED
+        self.assertEqual(expected, file_entries[0].get("status"))
+
+    def test_map_hierarchy_applies_mapping_forward_and_is_idempotent(self):
+        from gt.tools.batch_processor.tasks import task_map_hierarchy
+
+        work_dir = os.path.join(self.temp_dir, "work")
+        os.makedirs(work_dir)
+        self._write_file(os.path.join(work_dir, "old_name.ma"), "same data")
+        snapshot_path = os.path.join(self.temp_dir, "hierarchy_snapshot.json")
+        model = batch_processor_model.BatchProcessorModel()
+        model.project_file_path = os.path.join(self.temp_dir, "project.batch")
+        record_task = modules.TaskMapHierarchy(
+            settings={
+                "mode": task_map_hierarchy.MODE_RECORD_SOURCE,
+                "source_dir": work_dir,
+                "snapshot_path": snapshot_path,
+            }
+        )
+        record_task.execute(None, model, self.temp_dir, context={"work_items": []})
+
+        # Manually author a target state into the snapshot so the mapping renames the file.
+        with open(snapshot_path, "r", encoding="utf-8") as snapshot_file:
+            payload = json.load(snapshot_file)
+        payload["target_entries"] = {
+            "files": [dict(payload["source_entries"]["files"][0], relative_path="renamed/new_name.ma")],
+            "folders": ["renamed"],
+        }
+        payload["mapping"] = task_map_hierarchy.compute_mapping(
+            payload["source_entries"], payload["target_entries"]
+        )
+        with open(snapshot_path, "w", encoding="utf-8") as snapshot_file:
+            json.dump(payload, snapshot_file)
+
+        apply_task = modules.TaskMapHierarchy(
+            settings={
+                "mode": task_map_hierarchy.MODE_APPLY_FORWARD,
+                "apply_dir": work_dir,
+                "use_apply_dir": True,
+                "snapshot_path": snapshot_path,
+                "write_report": False,
+            }
+        )
+        apply_task.execute(None, model, self.temp_dir, context={"work_items": []})
+
+        self.assertFalse(os.path.isfile(os.path.join(work_dir, "old_name.ma")))
+        self.assertTrue(os.path.isfile(os.path.join(work_dir, "renamed", "new_name.ma")))
+
+        # Running again must not raise or move anything (idempotent).
+        apply_task.execute(None, model, self.temp_dir, context={"work_items": []})
+        self.assertTrue(os.path.isfile(os.path.join(work_dir, "renamed", "new_name.ma")))
+
+    def test_map_hierarchy_applies_to_parallel_directory_ignoring_extensions(self):
+        from gt.tools.batch_processor.tasks import task_map_hierarchy
+
+        source_dir = os.path.join(self.temp_dir, "source")
+        target_dir = os.path.join(self.temp_dir, "target")
+        parallel_dir = os.path.join(self.temp_dir, "parallel")
+        os.makedirs(source_dir)
+        os.makedirs(os.path.join(target_dir, "renamed"))
+        os.makedirs(parallel_dir)
+        self._write_file(os.path.join(source_dir, "old_name.ma"), "same data")
+        self._write_file(os.path.join(target_dir, "renamed", "new_name.ma"), "same data")
+        self._write_file(os.path.join(parallel_dir, "old_name.fbx"), "unrelated fbx data")
+        snapshot_path = os.path.join(self.temp_dir, "hierarchy_snapshot.json")
+        model = batch_processor_model.BatchProcessorModel()
+        model.project_file_path = os.path.join(self.temp_dir, "project.batch")
+        record_task = modules.TaskMapHierarchy(
+            settings={
+                "mode": task_map_hierarchy.MODE_RECORD_SOURCE_TARGET,
+                "source_dir": source_dir,
+                "target_dir": target_dir,
+                "snapshot_path": snapshot_path,
+            }
+        )
+        record_task.execute(None, model, self.temp_dir, context={"work_items": []})
+
+        parallel_task = modules.TaskMapHierarchy(
+            settings={
+                "mode": task_map_hierarchy.MODE_APPLY_PARALLEL_FORWARD,
+                "apply_dir": parallel_dir,
+                "use_apply_dir": True,
+                "snapshot_path": snapshot_path,
+                "write_report": False,
+            }
+        )
+        parallel_task.execute(None, model, self.temp_dir, context={"work_items": []})
+
+        self.assertFalse(os.path.isfile(os.path.join(parallel_dir, "old_name.fbx")))
+        self.assertTrue(os.path.isfile(os.path.join(parallel_dir, "renamed", "new_name.fbx")))
+
+        # Reverting the parallel directory undoes the change using base-name matching.
+        revert_task = modules.TaskMapHierarchy(
+            settings={
+                "mode": task_map_hierarchy.MODE_REVERT_PARALLEL_BACKWARD,
+                "apply_dir": parallel_dir,
+                "use_apply_dir": True,
+                "snapshot_path": snapshot_path,
+                "write_report": False,
+            }
+        )
+        revert_task.execute(None, model, self.temp_dir, context={"work_items": []})
+
+        self.assertTrue(os.path.isfile(os.path.join(parallel_dir, "old_name.fbx")))
+        self.assertFalse(os.path.isfile(os.path.join(parallel_dir, "renamed", "new_name.fbx")))
+
+    def test_map_hierarchy_copy_source_and_apply_leaves_source_intact(self):
+        from gt.tools.batch_processor.tasks import task_map_hierarchy
+
+        source_dir = os.path.join(self.temp_dir, "source")
+        target_dir = os.path.join(self.temp_dir, "target")
+        apply_dir = os.path.join(self.temp_dir, "apply")
+        os.makedirs(source_dir)
+        os.makedirs(os.path.join(target_dir, "renamed"))
+        os.makedirs(apply_dir)
+        self._write_file(os.path.join(source_dir, "old_name.ma"), "same data")
+        self._write_file(os.path.join(target_dir, "renamed", "new_name.ma"), "same data")
+        snapshot_path = os.path.join(self.temp_dir, "hierarchy_snapshot_data.json")
+        model = batch_processor_model.BatchProcessorModel()
+        model.project_file_path = os.path.join(self.temp_dir, "project.batch")
+        modules.TaskMapHierarchy(
+            settings={
+                "mode": task_map_hierarchy.MODE_RECORD_SOURCE_TARGET,
+                "source_dir": source_dir,
+                "target_dir": target_dir,
+                "snapshot_path": snapshot_path,
+            }
+        ).execute(None, model, self.temp_dir, context={"work_items": []})
+
+        copy_task = modules.TaskMapHierarchy(
+            settings={
+                "mode": task_map_hierarchy.MODE_COPY_APPLY_FORWARD,
+                "source_dir": source_dir,
+                "apply_dir": apply_dir,
+                "use_apply_dir": True,
+                "snapshot_path": snapshot_path,
+                "write_report": False,
+            }
+        )
+        result = copy_task.validate(model)
+        self.assertTrue(result.is_valid())
+        copy_task.execute(None, model, self.temp_dir, context={"work_items": []})
+
+        # Source is untouched, apply directory receives the target structure.
+        self.assertTrue(os.path.isfile(os.path.join(source_dir, "old_name.ma")))
+        self.assertTrue(os.path.isfile(os.path.join(apply_dir, "renamed", "new_name.ma")))
+
+    def test_map_hierarchy_copy_source_blocks_when_apply_overlaps_source(self):
+        from gt.tools.batch_processor.tasks import task_map_hierarchy
+
+        source_dir = os.path.join(self.temp_dir, "source")
+        os.makedirs(source_dir)
+        self._write_file(os.path.join(source_dir, "old_name.ma"), "same data")
+        snapshot_path = os.path.join(self.temp_dir, "hierarchy_snapshot_data.json")
+        model = batch_processor_model.BatchProcessorModel()
+        model.project_file_path = os.path.join(self.temp_dir, "project.batch")
+        modules.TaskMapHierarchy(
+            settings={
+                "mode": task_map_hierarchy.MODE_RECORD_SOURCE,
+                "source_dir": source_dir,
+                "snapshot_path": snapshot_path,
+            }
+        ).execute(None, model, self.temp_dir, context={"work_items": []})
+
+        copy_task = modules.TaskMapHierarchy(
+            settings={
+                "mode": task_map_hierarchy.MODE_COPY_APPLY_FORWARD,
+                "source_dir": source_dir,
+                "apply_dir": source_dir,
+                "use_apply_dir": True,
+                "snapshot_path": snapshot_path,
+            }
+        )
+        result = copy_task.validate(model)
+        self.assertFalse(result.is_valid())
 
     def test_delete_project_files_task_blocks_outside_project(self):
         outside_dir = tempfile.mkdtemp(prefix="gt_batch_processor_outside_")

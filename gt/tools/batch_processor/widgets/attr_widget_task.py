@@ -1107,10 +1107,10 @@ def get_task_widget_class(task):
         from gt.tools.batch_processor.widgets.attr_widget_clip import AttrWidgetClipSnapshotTask
 
         return AttrWidgetClipSnapshotTask
-    if task.task_type == constants.TaskType.MAP_RENAME:
-        from gt.tools.batch_processor.widgets.attr_widget_map_rename import AttrWidgetMapRenameTask
+    if task.task_type == constants.TaskType.MAP_HIERARCHY:
+        from gt.tools.batch_processor.widgets.attr_widget_map_hierarchy import AttrWidgetMapHierarchyTask
 
-        return AttrWidgetMapRenameTask
+        return AttrWidgetMapHierarchyTask
     if task.task_type == constants.TaskType.DELETE_PROJECT_FILES:
         from gt.tools.batch_processor.widgets.attr_widget_delete_project_files import AttrWidgetDeleteProjectFilesTask
 
