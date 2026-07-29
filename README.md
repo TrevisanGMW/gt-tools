@@ -16,14 +16,11 @@
    <a href="https://github.com/TrevisanGMW/gt-tools/blob/master/LICENSE">
    <img alt="GitHub license" src="https://img.shields.io/github/license/TrevisanGMW/gt-tools.svg?style=flat-square" ></a>
    <a href="https://www.paypal.me/TrevisanGMW"> 
-   <img src="https://img.shields.io/badge/$-donate-blue.svg?maxAge=2592000&amp;style=flat-square">
-   <a href="https://www.linkedin.com/in/trevisangmw/">
-   <img alt="GitHub stars" src="https://img.shields.io/badge/-LinkedIn-black.svg?style=flat-square&logo=linkedin&colorB=555" ></a>
+   <img src="https://img.shields.io/badge/$-donate-blue.svg?maxAge=2592000&amp;style=flat-square"></a>
 </p>
 
 <h1>Description</h1>
-This is my collection of scripts for Autodesk Maya – These scripts were created with the aim of automating, 
-enhancing or simply filling the missing details of what I find lacking in Maya.
+A collection of tools and Python scripts designed to automate workflows, enhance existing features, and bridge the gaps in Autodesk Maya.
 
 After installing or running the script collection, you’ll find a pull-down menu that provides easy access to a
 variety of tools and utilities. This menu contains sub-menus that have been organized to contain related tools,
@@ -35,9 +32,7 @@ check their documentation by going to the <a href="./docs">docs</a> folder. For 
 All of these items are supplied as is. You alone are solely responsible for any issues. Use at your own risk.
 Hopefully these scripts are helpful to you as they are to me.
 
-Note: Python 2 is no longer supported. If you want to still use an older versions of Maya, make sure to use a GT-Tools version below "3.0.0" for compatibility.
-
-<p><b>Package tested using Autodesk Maya 2025, and 2026 (Windows 11)</b></p>
+<p><b>Package tested using Autodesk Maya 2025, 2026, and 2027 (Windows 11)</b></p>
 
 <h1>Organization</h1>
 <ul>
@@ -104,9 +99,5 @@ If you'd like to contribute, see the <a href="./CONTRIBUTING.md">CONTRIBUTING</a
 <a href="https://github.com/TrevisanGMW/gt-tools/graphs/contributors">
   <img src="https://contributors-img.web.app/image?repo=TrevisanGMW/gt-tools" />
 </a>
-
-Looking for other ways to contribute? You could [**buy me a coffee! :coffee:**](https://www.buymeacoffee.com/TrevisanGMW) or use the [**Github sponsor :heart:**](https://github.com/sponsors/TrevisanGMW) options!
-<br>This is definitely a huge motivation boost! :star_struck:
-
 <h1> Licensing </h1>
 The MIT License 2020 - Guilherme Trevisan
