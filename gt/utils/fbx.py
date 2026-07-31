@@ -46,7 +46,7 @@ def get_fbx_common_module():
         raise ImportError(
             'Optional FBX SDK helper "FbxCommon" is not available. '
             "Maya FBX import and export can still use FbxImporter and FbxExporter, "
-            "but SDK-level FBX file edits require the Autodesk FBX SDK."
+            "SDK-level FBX file edits require the Autodesk FBX SDK."
         ) from exception
 
     _fbx_common_module = imported_fbx_common
@@ -473,10 +473,6 @@ class FbxExporter:
         self.reset_preferences()
         self.read_timeline_settings()
 
-        # post edits settings
-        # -- Default values are correct at the moment.
-        # -- TODO: customize post edits following the upcoming modelling team guidelines.
-
         # FBX settings
         cmds.FBXProperty("Export|IncludeGrp|Animation", "-v", 0)  # it needs 0 or 1
         cmds.FBXExportBakeComplexAnimation("-v", False)
@@ -505,28 +501,163 @@ class FbxExporter:
     @suppress_fbx_interface
     def export_file(self, path):
         """Exports scene contents in FBX.
+        Uses original FBX SDK post-edits if available. If the SDK is missing
+        and parent groups need to be removed, it falls back to a Bake-and-Undo method.
 
         Args:
             path: the path of the FBX resulting file.
         """
-
         # Check scene selection
         current_selection = cmds.ls(sl=True)
         if self.selection and current_selection is None:
             self.selection = False
 
+        # 1. Determine if the optional FBX SDK is available
+        sdk_available = True
         try:
-            if self.selection:
-                cmds.FBXExport("-f", path, "-s")
-            else:
-                cmds.FBXExport("-f", path)
-            logger.info(f"FBX file exported: {str(path)}")
+            get_fbx_common_module()
+        except ImportError:
+            sdk_available = False
 
-            # FBX file post edits
-            self.fbx_post_edits(path=path)
+        # 2. Route the export logic
+        if sdk_available or not self._remove_parent_groups:
+            # --- ORIGINAL BEHAVIOR ---
+            try:
+                if self.selection:
+                    cmds.FBXExport("-f", path, "-s")
+                else:
+                    cmds.FBXExport("-f", path)
+                logger.info(f"FBX file exported: {str(path)}")
+
+                # FBX file post edits
+                self.fbx_post_edits(path=path)
+
+            except Exception as e:
+                logger.warning(f"FBX Export failed. Issue: {str(e)}")
+        else:
+            # --- FALLBACK BEHAVIOR ---
+            logger.info("FBX SDK not found. Using Maya Undo-Chunk fallback to remove parent groups.")
+            self._export_fallback_without_sdk(path, current_selection)
+
+    def _export_fallback_without_sdk(self, path, current_selection):
+        """
+        Fallback method that safely unparents top-level sub-groups to world
+        (preserving internal hierarchy and scale), exports, and then undoes everything.
+        Only runs bakeResults on joints driven by complex constraints.
+        """
+        if not current_selection:
+            logger.warning("Nothing selected for export fallback.")
+            return
+
+        # 1. Store selection via UUID to survive hierarchy path changes
+        sel_uuids = cmds.ls(current_selection, uuid=True)
+
+        undo_was_enabled = cmds.undoInfo(q=True, state=True)
+        if not undo_was_enabled:
+            cmds.undoInfo(state=True)
+
+        cmds.undoInfo(openChunk=True)
+
+        try:
+            # 2. Determine highest-level nodes to extract based on _parent_groups
+            nodes_to_unparent = set()
+            parent_groups_clean = [grp.split(":")[-1] for grp in self._parent_groups] if self._parent_groups else []
+
+            for obj in cmds.ls(current_selection, long=True):
+                parts = [p for p in obj.split("|") if p]
+                current_path = ""
+
+                for part in parts:
+                    current_path += "|" + part
+                    short_name = part.split(":")[-1]
+
+                    if short_name not in parent_groups_clean:
+                        nodes_to_unparent.add(current_path)
+                        break
+
+            # Helper method to check if a node is driven by constraints (not raw keyframes)
+            def has_complex_drivers(node_path):
+                for attr in ["translate", "rotate", "scale"]:
+                    for axis in ["x", "y", "z"]:
+                        conns = cmds.listConnections(f"{node_path}.{attr}{axis.upper()}", s=True, d=False)
+                        # If a connection exists and it is NOT an animCurve, it's complex
+                        if conns and not cmds.nodeType(conns[0]).startswith('animCurve'):
+                            return True
+                return False
+
+            # 3. Bake Animation ONLY on constrained nodes
+            start = self._bake_start if self._bake_start is not None else self._original_start
+            end = self._bake_end if self._bake_end is not None else self._original_end
+
+            if start is not None and end is not None:
+                bake_targets = set()
+                for node in nodes_to_unparent:
+                    if cmds.nodeType(node) == "joint" and has_complex_drivers(node):
+                        bake_targets.add(node)
+
+                    child_joints = cmds.listRelatives(node, ad=True, type="joint", fullPath=True) or []
+                    for cj in child_joints:
+                        if has_complex_drivers(cj):
+                            bake_targets.add(cj)
+
+                if bake_targets:
+                    cmds.bakeResults(
+                        list(bake_targets),
+                        time=(start, end),
+                        simulation=True,
+                        sampleBy=1,
+                        disableImplicitControl=True,
+                        preserveOutsideKeys=True,
+                        sparseAnimCurveBake=False,
+                        removeBakedAttributeFromLayer=False,
+                        bakeOnOverrideLayer=False,
+                        minimizeRotation=True,
+                        controlPoints=False,
+                        shape=True,
+                    )
+
+            # 4. Decouple targets and inherit scale natively
+            for node in nodes_to_unparent:
+                if not cmds.objExists(node):
+                    continue
+
+                for attr in ["translate", "rotate", "scale"]:
+                    for axis in ["x", "y", "z"]:
+                        plug = f"{node}.{attr}{axis.upper()}"
+                        try:
+                            cmds.setAttr(plug, lock=False)
+                            # Break driving connections EXCEPT standard animCurves
+                            conns = cmds.listConnections(plug, s=True, d=False, plugs=True, c=True)
+                            if conns:
+                                src_node = conns[1].split('.')[0]
+                                if not cmds.nodeType(src_node).startswith('animCurve'):
+                                    cmds.disconnectAttr(conns[1], conns[0])
+                        except Exception:
+                            pass
+
+                # Unparent to world (absolute=True computes & bakes world space natively into pure animCurves)
+                if cmds.listRelatives(node, parent=True):
+                    cmds.parent(node, world=True, absolute=True)
+
+            # 5. Reselect via UUIDs and Export
+            updated_sel = cmds.ls(sel_uuids, long=True)
+            if updated_sel:
+                cmds.select(updated_sel, replace=True)
+                cmds.FBXExport("-f", path, "-s")
+                logger.info(f"FBX fallback exported cleanly without parent groups: {path}")
+            else:
+                logger.error("Could not recover selection from UUIDs. Export aborted.")
 
         except Exception as e:
-            logger.warning(f"FBX Export failed. Issue: {str(e)}")
+            logger.error(f"FBX Fallback Export failed: {e}")
+
+        finally:
+            # 6. Close chunk and UNDO to restore the complex rig completely
+            cmds.undoInfo(closeChunk=True)
+            cmds.undo()
+
+            if current_selection:
+                cmds.select(current_selection, replace=True)
 
     def fbx_post_edits(self, path):
         """

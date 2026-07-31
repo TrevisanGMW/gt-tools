@@ -97,7 +97,7 @@ class TestFbxUtils(unittest.TestCase):
         self.import_exported_file()
         result = cmds.ls(dag=True, v=True)
         expected = ["test_cylinder", "test_cylinderShape", "test_cylinderShapeOrig", "C_root_JNT"]
-        self.assertEqual(expected, result)
+        self.assertEqual(sorted(expected), sorted(result))
 
     def test_animation_export(self):
         import_test_anim_file()
