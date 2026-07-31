@@ -1,14 +1,12 @@
 """
 Animation Clip Tracker Model
 """
-
 from gt.core.prefs import Prefs
-import json
-import os
 import datetime
+import json
 
 
-PREFS_FILENAME = "clip_tracker"
+PREFS_FILENAME = "anim_clip_tracker"
 PREFS_KEY_STATE = "state"
 CLIP_NODE_NAME = "animClipData"
 CLIP_ATTR_NAME = "clipData"

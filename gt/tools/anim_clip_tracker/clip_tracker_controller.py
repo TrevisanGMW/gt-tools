@@ -1,7 +1,6 @@
 """
 Animation Clip Tracker Controller
 """
-
 import gt.ui.qt_import as ui_qt
 
 
@@ -37,42 +36,50 @@ class ClipTrackerController:
         """Starts the tool."""
         self.view.build_ui()
         self.install_focus_refresh_filter()
-        self.refresh()
+        self.refresh(force=True)
 
-    def refresh(self):
-        """Reloads scene data and redraws the clip list."""
+    def refresh(self, force=False):
+        """Reloads scene data and redraws the clip list.
+
+        Args:
+            force (bool, optional): Forces UI redraw even if data didn't change.
+        """
         if self._is_refreshing:
             return
         if not self.view.window_exists():
             return
         self._is_refreshing = True
         try:
+            import copy
+            # Snapshot the current state before reloading
+            old_clips = copy.deepcopy(self.model.get_data())
+
             self.model.load_data()
             if self.model.auto_add_timeline_clip:
                 self.model.add_timeline_clip_if_missing()
             if self.model.sync_time_slider_bookmarks:
                 self.model.sync_from_time_slider_bookmarks()
+
+            new_clips = self.model.get_data()
+
             if self.view.window_exists():
-                self.view.draw_clips(self.model.get_data(), self.playing_index)
+                # Only destroy and redraw the UI if the data actually changed or if forced
+                if force or old_clips != new_clips:
+                    self.view.draw_clips(self.model.get_data(), self.playing_index)
         finally:
             self._is_refreshing = False
 
     def deferred_refresh(self):
         """Refreshes only when the window still exists."""
         if self.view.window_exists():
-            self.refresh()
-
-    def deferred_draw_clips(self):
-        """Redraws clips only when the UI still exists."""
-        if self.view.window_exists() and self.view.clips_layout_exists():
-            self.view.draw_clips(self.model.get_data(), self.playing_index)
+            self.refresh()  # Evaluates normally without forcing a redraw
 
     def rebuild_view(self):
         """Rebuilds the window after deferred UI actions."""
         if self.view.window_exists():
             self.view.build_ui()
             self.install_focus_refresh_filter()
-            self.refresh()
+            self.refresh(force=True)
 
     def add_clip(self, *args):
         """Adds a clip."""

@@ -20,9 +20,9 @@ def launch_tool():
     Returns:
         ClipTrackerController: Tool controller.
     """
-    from gt.tools.clip_tracker import clip_tracker_controller
-    from gt.tools.clip_tracker import clip_tracker_model
-    from gt.tools.clip_tracker import clip_tracker_view
+    from gt.tools.anim_clip_tracker import clip_tracker_controller
+    from gt.tools.anim_clip_tracker import clip_tracker_model
+    from gt.tools.anim_clip_tracker import clip_tracker_view
 
     model = clip_tracker_model.ClipTrackerModel()
     view = clip_tracker_view.ClipTrackerView(version=__version__)

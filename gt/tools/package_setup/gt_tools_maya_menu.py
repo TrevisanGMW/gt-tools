@@ -277,7 +277,7 @@ def load_menu(*args):
     menu.add_divider()
     menu.add_menu_item(
         label="Animation Clip Tracker",
-        command=IMPORT_TOOL + 'initialize_tool("clip_tracker")',
+        command=IMPORT_TOOL + 'initialize_tool("anim_clip_tracker")',
         tooltip="Opens the animation clip tracker.",
         icon=ui_res_lib.Icon.tool_clip_tracker,
     )

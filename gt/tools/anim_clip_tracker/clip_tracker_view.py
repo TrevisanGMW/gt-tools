@@ -1,12 +1,10 @@
 """
 Animation Clip Tracker View
 """
-
+import gt.ui.resource_library as ui_res_lib
+import gt.ui.qt_import as ui_qt
 from functools import partial
 import os
-
-import gt.ui.qt_import as ui_qt
-import gt.ui.resource_library as ui_res_lib
 
 
 def get_maya_cmds():
@@ -136,13 +134,15 @@ class ClipTrackerView:
         cmds = get_maya_cmds()
         top_form = cmds.formLayout(parent=parent, height=30)
         self.info_ui = cmds.text(parent=top_form, label=self.get_scene_info(), font="plainLabelFont")
+
         btn_refresh = cmds.symbolButton(
             parent=top_form,
             image="refresh.png",
             annotation="Refresh Data",
             width=26,
             height=26,
-            command=lambda x: self.controller.refresh(),
+            # Pass force=True to ensure manual clicks always rebuild the UI
+            command=lambda x: self.controller.refresh(force=True),
         )
         btn_add = cmds.symbolButton(
             parent=top_form,
