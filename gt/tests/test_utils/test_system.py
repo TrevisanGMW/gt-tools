@@ -269,63 +269,63 @@ class TestSystemUtils(unittest.TestCase):
         self.assertEqual(expected, result)
 
     @patch("os.path.exists")
-    @patch("subprocess.check_call")
-    def test_launch_maya_from_path(self, mock_check_call, mock_exists):
+    @patch("subprocess.Popen")
+    def test_launch_maya_from_path(self, mock_popen, mock_exists):
         mock_exists.return_value = True  # Skip check to see if it exists
         utils_system.launch_maya_from_path(maya_path="mocked_path")
         mock_exists.assert_called_once()
-        mock_check_call.assert_called_once()
-        result = str(mock_check_call.call_args)
+        mock_popen.assert_called_once()
+        result = str(mock_popen.call_args)
         expected = "call(['mocked_path'])"
         self.assertEqual(expected, result)
 
     @patch("os.path.exists")
-    @patch("subprocess.check_call")
-    def test_launch_maya_from_path_python_script(self, mock_check_call, mock_exists):
+    @patch("subprocess.Popen")
+    def test_launch_maya_from_path_python_script(self, mock_popen, mock_exists):
         mock_exists.return_value = True  # Skip check to see if it exists
         utils_system.launch_maya_from_path(maya_path="mocked_path", python_script="py")
         mock_exists.assert_called_once()
-        mock_check_call.assert_called_once()
-        result = str(mock_check_call.call_args)
+        mock_popen.assert_called_once()
+        result = str(mock_popen.call_args)
         expected = (
             "call(['mocked_path', '-c', " "'python(\"import base64; exec (base64.urlsafe_b64decode(b\\'cHk=\\'))\")'])"
         )
         self.assertEqual(expected, result)
 
     @patch("os.path.exists")
-    @patch("subprocess.check_call")
-    def test_launch_maya_from_path_additional_args(self, mock_check_call, mock_exists):
+    @patch("subprocess.Popen")
+    def test_launch_maya_from_path_additional_args(self, mock_popen, mock_exists):
         mock_exists.return_value = True  # Skip check to see if it exists
         utils_system.launch_maya_from_path(maya_path="mocked_path", additional_args=["a", "b"])
         mock_exists.assert_called_once()
-        mock_check_call.assert_called_once()
-        result = str(mock_check_call.call_args)
+        mock_popen.assert_called_once()
+        result = str(mock_popen.call_args)
         expected = "call(['mocked_path', 'a', 'b'])"
         self.assertEqual(expected, result)
 
     @patch("os.path.exists")
-    @patch("subprocess.check_call")
+    @patch("subprocess.Popen")
     @patch("gt.utils.system.get_maya_executable")
-    def test_launch_maya(self, mock_get_maya_executable, mock_check_call, mock_exists):
+    def test_launch_maya(self, mock_get_maya_executable, mock_popen, mock_exists):
         mock_get_maya_executable.return_value = "mocked_path"
         mock_exists.return_value = True  # Skip check to see if it exists
         utils_system.launch_maya()
         mock_exists.assert_called_once()
-        mock_check_call.assert_called_once()
-        result = str(mock_check_call.call_args)
+        mock_popen.assert_called_once()
+        result = str(mock_popen.call_args)
         expected = "call(['mocked_path'])"
         self.assertEqual(expected, result)
 
     @patch("os.path.exists")
-    @patch("subprocess.check_call")
+    @patch("subprocess.Popen")
     @patch("gt.utils.system.get_maya_executable")
-    def test_launch_maya_preferred_version(self, mock_get_maya_executable, mock_check_call, mock_exists):
+    def test_launch_maya_preferred_version(self, mock_get_maya_executable, mock_popen, mock_exists):
         mock_get_maya_executable.return_value = "mocked_path"
         mock_exists.return_value = True  # Skip check to see if it exists
         utils_system.launch_maya(preferred_version="2024")
         mock_exists.assert_called_once()
-        mock_check_call.assert_called_once()
-        result_one = str(mock_check_call.call_args)
+        mock_popen.assert_called_once()
+        result_one = str(mock_popen.call_args)
         result_two = str(mock_get_maya_executable.call_args)
         expected = ["call(['mocked_path'])", "call(preferred_version='2024')"]
         self.assertEqual(expected, [result_one, result_two])
@@ -388,7 +388,7 @@ class TestSystemUtils(unittest.TestCase):
         expected = True
         self.assertEqual(expected, result)
 
-    @patch("tests.run_all_tests_with_summary")
+    @patch("tests.run_unittests_with_summary")
     def test_process_launch_options_test(self, mock_tests):
         result = utils_system.process_launch_args(["mocked_script_name", "-test", "-all"])
         mock_tests.assert_called_once()

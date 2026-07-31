@@ -916,7 +916,7 @@ def process_launch_args(sys_args):
         import tests
 
         if "-all" in sys_args:
-            tests.run_all_tests_with_summary()
+            tests.run_unittests_with_summary()
         else:
             print('Unrecognized or missing launching option:\n1. "-all" to run all unittests.\n')
             logger.warning("Unable to run test. Unrecognized or missing launching option.")
