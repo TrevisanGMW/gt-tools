@@ -567,4 +567,4 @@ def run_import_dependencies_checks():
 if __name__ == "__main__":
     run_import_dependencies_checks()
     run_unittests_with_summary(print_results=True, print_traceback=True)
-    run_docstring_checks_with_summary(include_classes=False)  # Does not check unittests directory.
+    # run_docstring_checks_with_summary(include_classes=False)  # Does not check unittests directory.

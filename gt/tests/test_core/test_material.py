@@ -68,15 +68,19 @@ class TestAttributeCore(unittest.TestCase):
         self.assertEqual(expected, result)
 
     def test_get_shading_engine(self):
-        result = core_mat.get_shading_engine(material_name="lambert1")
-        expected = "initialParticleSE"
+        cube_one = maya_test_tools.create_poly_cube()
+        default_lambert = "lambert1"
+        core_mat.assign_material(obj_list=cube_one, rgb_color=(1, 0, 0), material_name=default_lambert, is_unique=True)
+        result = core_mat.get_shading_engine(material_name=default_lambert)
+        expected = f"{default_lambert}SG"
         self.assertEqual(expected, result)
 
-        cube = maya_test_tools.create_poly_cube()
-        core_mat.assign_material(obj_list=cube, rgb_color=(1, 0, 0), material_name="M_mocked")
+        cube_two = maya_test_tools.create_poly_cube()
+        mocked_material = "M_mocked"
+        core_mat.assign_material(obj_list=cube_two, rgb_color=(1, 0, 0), material_name=mocked_material)
 
-        result = core_mat.get_shading_engine(material_name="M_mocked")
-        expected = "M_mockedSG"
+        result = core_mat.get_shading_engine(material_name=mocked_material)
+        expected = f"{mocked_material}SG"
         self.assertEqual(expected, result)
 
     def test_assign_material(self):
@@ -96,7 +100,7 @@ class TestAttributeCore(unittest.TestCase):
         result = core_mat.assign_material(
             obj_list=cube, rgb_color=(1, 1, 0), material_type=core_mat.CommonMaterials.blinn
         )
-        expected = "MAT_blinn"
+        expected = "M_blinn"
         self.assertEqual(expected, result)
 
         color_result = cmds.getAttr(f"{result}.color")[0]

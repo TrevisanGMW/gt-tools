@@ -36,10 +36,12 @@ class TestPrefsCore(unittest.TestCase):
     @patch('gt.core.prefs.get_maya_preferences_dir')
     def test_get_prefs_dir(self, mocked_get_prefs_dir):
         mocked_get_prefs_dir.return_value = "mocked_path"
-        result = core_prefs.get_prefs_dir()
-        from gt.core.setup import PACKAGE_NAME
-        expected = os.path.join("mocked_path", PACKAGE_NAME, core_prefs.PACKAGE_PREFS_DIR)
-        self.assertEqual(expected, result)
+
+        # Patch PACKAGE_NAME inside the core_prefs module where it is being used
+        with patch.object(core_prefs, 'PACKAGE_NAME', 'mocked_package_name', create=True):
+            result = core_prefs.get_prefs_dir()
+            expected = os.path.join("mocked_path", "mocked_package_name", core_prefs.PACKAGE_PREFS_DIR)
+            self.assertEqual(expected, result)
 
     def test_set_and_get_float(self):
         self.prefs = core_prefs.Prefs("mock_prefs")

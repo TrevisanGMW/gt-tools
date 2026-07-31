@@ -38,7 +38,7 @@ class ModuleBipedLeg(tools_rig_frm.ModuleGeneric):
         name="Leg",
         prefix=None,
         suffix=None,
-        create_twist_joints=False,
+        create_twist_joints=True,
         auto_pole_vector=False,
         ensure_coplanarity=True,
     ):

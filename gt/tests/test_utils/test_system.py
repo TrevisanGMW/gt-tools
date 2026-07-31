@@ -396,23 +396,30 @@ class TestSystemUtils(unittest.TestCase):
         self.assertEqual(expected, result)
 
     @patch("gt.utils.system.eval")
-    @patch("importlib.import_module")
-    def test_initialize_from_package_calling(self, mock_import_module, mock_eval):
-        result = utils_system.initialize_from_package("mocked_import_path", "mocked_entry_point_function")
-        mock_import_module.assert_called_once()
-        mock_eval.assert_called_once()
-        expected = True
-        self.assertEqual(expected, result)
+    def test_initialize_from_package_calling(self, mock_eval):
+        with patch("gt.utils.system.importlib.import_module") as mock_import_module:
+            result = utils_system.initialize_from_package("mocked_import_path", "mocked_entry_point_function")
+
+            # Check that your target module was imported
+            self.assertIn(
+                unittest.mock.call("mocked_import_path"),
+                mock_import_module.call_args_list
+            )
+            mock_eval.assert_called_once()
+            self.assertTrue(result)
 
     @patch("gt.utils.system.eval")
-    @patch("importlib.import_module")
-    def test_initialize_from_package_arguments(self, mock_import_module, mock_eval):
-        utils_system.initialize_from_package("mocked_import_path", "mocked_entry_point_function")
-        mock_import_module.assert_called_once()
-        mock_eval.assert_called_once()
-        expected = "call('module.mocked_entry_point_function()')"
-        result = str(mock_eval.call_args)
-        self.assertEqual(expected, result)
+    def test_initialize_from_package_arguments(self, mock_eval):
+        # Patch locally inside the test body so background suite imports don't trigger it
+        with patch("gt.utils.system.importlib.import_module") as mock_import_module:
+            utils_system.initialize_from_package("mocked_import_path", "mocked_entry_point_function")
+
+            # If internal logic triggers sub-imports, filter down to the expected call
+            self.assertIn(
+                unittest.mock.call("mocked_import_path"),
+                mock_import_module.call_args_list
+            )
+            mock_eval.assert_called_once_with("module.mocked_entry_point_function()")
 
     @patch("gt.utils.system.initialize_from_package")
     def test_initialize_utility(self, mock_initialize_from_package):

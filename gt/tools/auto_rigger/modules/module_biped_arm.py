@@ -41,7 +41,7 @@ class ModuleBipedArm(tools_rig_frm.ModuleGeneric):
         prefix=None,
         suffix=None,
         clavicle_world=False,
-        create_twist_joints=False,
+        create_twist_joints=True,
         auto_pole_vector=True,
     ):
         """
