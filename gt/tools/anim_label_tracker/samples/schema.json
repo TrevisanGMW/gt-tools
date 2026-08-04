@@ -1,0 +1,135 @@
+{
+  "validation": {
+    "full_coverage": true,
+    "allow_overlap": false
+  },
+  "file_level": [
+    {
+      "type": "enum",
+      "name": "quality",
+      "label": "Quality",
+      "options": ["low", "medium", "high"],
+      "required": true,
+      "description": "Defines overall animation fidelity and usability."
+    },
+    {
+      "type": "string",
+      "name": "source",
+      "label": "Source",
+      "required": true,
+      "placeholder": "e.g. mocap_shoot_01",
+      "description": "Identifies the origin animation or dataset."
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "row",
+      "items": [
+        {
+          "type": "boolean",
+          "name": "clipped",
+          "label": "Clipped",
+          "required": true,
+          "description": "True when this sequence was extracted from a longer take."
+        },
+        {
+          "type": "boolean",
+          "name": "labelled",
+          "label": "Labelled",
+          "required": true,
+          "description": "True when frame-range metadata is verified."
+        }
+      ]
+    }
+  ],
+  "frame_range": [
+    {
+      "type": "row",
+      "items": [
+        {
+          "type": "enum",
+          "name": "state",
+          "label": "State",
+          "options": ["none", "idle", "walk", "jog", "run", "sprint", "transition", "mixed"],
+          "required": true,
+          "description": "The core locomotion or foundational action."
+        },
+        {
+          "type": "enum",
+          "name": "style",
+          "label": "Style",
+          "options": ["none", "relaxed", "combat", "tired", "drunk", "confident", "injured", "scared", "aggressive", "cautious", "stealth"],
+          "required": true,
+          "description": "The physical demeanor or emotional overlay."
+        },
+        {
+          "type": "enum",
+          "name": "stance",
+          "label": "Stance",
+          "options": ["none", "stand", "crouch", "kneel", "prone", "sit", "crawl"],
+          "required": true,
+          "description": "The character's primary vertical posture."
+        }
+      ]
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "enum",
+      "name": "interaction_type",
+      "label": "Interaction Type",
+      "options": ["none", "avoid", "carry_light", "carry_heavy", "navigate", "push_pull", "climb", "gesture"],
+      "required": true,
+      "description": "The primary interaction performed in this range."
+    },
+    {
+      "type": "enum",
+      "name": "interaction_scope",
+      "label": "Interaction Scope",
+      "options": ["full_body", "upper_body", "lower_body", "both_arms", "left_arm", "right_arm", "both_legs", "left_leg", "right_leg"],
+      "required": false,
+      "description": "The body parts actively constrained by the interaction."
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "string",
+      "name": "interaction_volumes",
+      "label": "Interaction Volumes",
+      "required": false,
+      "automation": "detect_volumes.py",
+      "placeholder": "e.g. box_01, door_02",
+      "description": "Comma-separated scene nodes representing interaction volumes."
+    },
+    {
+      "type": "string",
+      "name": "interaction_context",
+      "label": "Interaction Context",
+      "required": false,
+      "placeholder": "e.g. torch, phone, sword",
+      "description": "Prop or target context when no volume exists."
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "string",
+      "name": "events",
+      "label": "Events",
+      "required": false,
+      "placeholder": "e.g. {\"foot_strike\": [18, 32]}",
+      "description": "JSON dictionary mapping animation events to frame numbers."
+    },
+    {
+      "type": "string",
+      "name": "auxiliary_context",
+      "label": "Auxiliary Context",
+      "required": false,
+      "placeholder": "e.g. ground is slippery",
+      "description": "Narrative, environmental, or technical notes."
+    }
+  ]
+}
