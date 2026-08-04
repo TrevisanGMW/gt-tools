@@ -285,7 +285,7 @@ def load_menu(*args):
         label="Animation Label Tracker",
         command=IMPORT_TOOL + 'initialize_tool("anim_label_tracker")',
         tooltip="Opens animation label tracker.",
-        icon=ui_res_lib.Icon.tool_clip_tracker,
+        icon=ui_res_lib.Icon.tool_label_tracker,
     )
     menu.add_menu_item(
         label="Create Testing Keys",
