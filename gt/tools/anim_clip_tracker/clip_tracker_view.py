@@ -1,10 +1,19 @@
 """
 Animation Clip Tracker View
 """
+from gt.tools.anim_clip_tracker import clip_tracker_preferences
+from gt.tools.anim_clip_tracker import clip_tracker_timeline
 import gt.ui.resource_library as ui_res_lib
 import gt.ui.qt_import as ui_qt
 from functools import partial
 import os
+
+
+TIMELINE_HEIGHT = 110
+PREFERENCES_HEIGHT = 310
+SELECTED_ROW_COLOR = [0.30, 0.26, 0.12]
+SELECTED_ROW_LABEL_COLOR = "#FFC832"
+MAX_SCROLL_PIXELS = 100000
 
 
 def get_maya_cmds():
@@ -49,42 +58,71 @@ class ClipTrackerView:
         self.duration_fields = []
         self.frame_fields = {}
         self.default_bg = [0.17, 0.17, 0.17]
+        self.default_name_bg = None
+        self.name_fields = {}
+        self.index_labels = {}
+        self.clip_rows = {}
+        self.clips_scroll = None
         self.preferences_frame = None
+        self.timeline_host = None
+        self.timeline_widget = None
+        self.preferences_host = None
+        self.preferences_panel = None
 
     def build_ui(self):
         """Builds the Maya UI."""
         cmds = get_maya_cmds()
         if cmds.window(self.WINDOW_NAME, exists=True):
             cmds.deleteUI(self.WINDOW_NAME)
+        model = self.controller.model
         title = "Animation Clip Tracker"
         if self.version:
             title += " - (v{0})".format(self.version)
-        cmds.window(self.WINDOW_NAME, title=title, widthHeight=(700, 520))
+        self.timeline_host = None
+        self.timeline_widget = None
+        self.preferences_host = None
+        self.preferences_panel = None
+        cmds.window(self.WINDOW_NAME, title=title, widthHeight=(780, 700))
         main_form = cmds.formLayout()
         top_form = self.build_top_toolbar(parent=main_form)
         clips_frame = self.build_clips_frame(parent=main_form)
         preferences_frame = self.build_preferences_frame(parent=main_form)
+        attach_form = [
+            (top_form, "top", 5),
+            (top_form, "left", 0),
+            (top_form, "right", 0),
+            (clips_frame, "left", 8),
+            (clips_frame, "right", 8),
+            (preferences_frame, "left", 8),
+            (preferences_frame, "right", 8),
+            (preferences_frame, "bottom", 8),
+        ]
+        attach_control = [(clips_frame, "bottom", 5, preferences_frame)]
+        attach_none = [(top_form, "bottom"), (preferences_frame, "top")]
+        if model.show_timeline:
+            self.timeline_host = self.build_timeline_host(parent=main_form)
+            attach_form.extend([(self.timeline_host, "left", 8), (self.timeline_host, "right", 8)])
+            attach_control.extend(
+                [
+                    (self.timeline_host, "top", 5, top_form),
+                    (clips_frame, "top", 5, self.timeline_host),
+                ]
+            )
+            attach_none.append((self.timeline_host, "bottom"))
+        else:
+            attach_control.append((clips_frame, "top", 5, top_form))
         cmds.formLayout(
             main_form,
             edit=True,
-            attachForm=[
-                (top_form, "top", 5),
-                (top_form, "left", 0),
-                (top_form, "right", 0),
-                (clips_frame, "left", 8),
-                (clips_frame, "right", 8),
-                (preferences_frame, "left", 8),
-                (preferences_frame, "right", 8),
-                (preferences_frame, "bottom", 8),
-            ],
-            attachControl=[
-                (clips_frame, "top", 5, top_form),
-                (clips_frame, "bottom", 5, preferences_frame),
-            ],
-            attachNone=[(top_form, "bottom"), (preferences_frame, "top")],
+            attachForm=attach_form,
+            attachControl=attach_control,
+            attachNone=attach_none,
         )
         cmds.showWindow(self.WINDOW_NAME)
         self.apply_window_icon()
+        self.attach_preferences_panel()
+        if model.show_timeline:
+            self.attach_timeline_widget()
 
     def window_exists(self):
         """Checks whether the tool window still exists.
@@ -147,7 +185,7 @@ class ClipTrackerView:
         btn_add = cmds.symbolButton(
             parent=top_form,
             image="addClip.png",
-            annotation="Add Current Timeline as Clip",
+            annotation="Add New Clip\n(Uses the timeline range or the current frame)",
             width=26,
             height=26,
             command=lambda x: self.controller.add_clip(),
@@ -166,6 +204,65 @@ class ClipTrackerView:
         )
         return top_form
 
+    def build_timeline_host(self, parent):
+        """Builds the layout that hosts the Qt timeline widget.
+
+        Args:
+            parent (str): Parent layout.
+
+        Returns:
+            str: Created layout.
+        """
+        cmds = get_maya_cmds()
+        host = cmds.columnLayout(parent=parent, adjustableColumn=True, height=TIMELINE_HEIGHT, rowSpacing=0)
+        cmds.setParent(parent)
+        return host
+
+    def attach_timeline_widget(self):
+        """Creates the Qt timeline widget inside the timeline host layout."""
+        if not self.timeline_host:
+            return
+        try:
+            host_widget = self.wrap_host_layout(self.timeline_host)
+            if not host_widget:
+                self.controller.model.log("Unable to find the timeline host layout.")
+                return
+            host_layout = self.get_host_layout(host_widget)
+            widget = clip_tracker_timeline.ClipTimelineWidget(parent=host_widget)
+            host_layout.addWidget(widget)
+            widget.show()
+            self.timeline_widget = widget
+            self.controller.connect_timeline(widget)
+            self.update_timeline()
+        except Exception as exception:
+            self.timeline_widget = None
+            self.controller.model.log("Unable to build the timeline view: {0}".format(exception))
+
+    def timeline_widget_alive(self):
+        """Checks whether the Qt timeline widget can still receive updates.
+
+        Returns:
+            bool: True when the timeline widget exists and was not deleted.
+        """
+        if not self.timeline_widget:
+            return False
+        try:
+            return bool(ui_qt.shiboken.isValid(self.timeline_widget))
+        except Exception:
+            return False
+
+    def update_timeline(self):
+        """Pushes clip data and the interaction mode into the timeline widget."""
+        if not self.timeline_widget_alive():
+            return
+        model = self.controller.model
+        self.timeline_widget.set_mode(model.timeline_mode)
+        self.timeline_widget.set_show_names(model.timeline_show_names)
+        self.timeline_widget.set_sync_time_on_edit(model.timeline_sync_time_edit)
+        self.timeline_widget.set_allow_outside_range(model.timeline_allow_outside_range)
+        self.timeline_widget.set_clips(model.get_data())
+        self.timeline_widget.set_selected_index(self.controller.selected_index)
+
     def build_clips_frame(self, parent):
         """Builds the clips frame.
 
@@ -183,6 +280,8 @@ class ClipTrackerView:
             cmds.text(label=label, align="left", font="boldLabelFont")
         cmds.setParent("..")
         clips_scroll = cmds.scrollLayout(childResizable=True)
+        self.clips_scroll = clips_scroll
+        self.add_clips_popup(parent=clips_scroll)
         self.clips_layout = cmds.columnLayout(adjustableColumn=True)
         cmds.setParent("..")
         cmds.setParent("..")
@@ -203,7 +302,7 @@ class ClipTrackerView:
         return frame
 
     def build_preferences_frame(self, parent):
-        """Builds the preferences frame.
+        """Builds the frame that hosts the Qt preferences panel.
 
         Args:
             parent (str): Parent layout.
@@ -221,154 +320,73 @@ class ClipTrackerView:
             collapseCommand=lambda *args: self.controller.set_preferences_collapsed(True),
             expandCommand=lambda *args: self.controller.set_preferences_collapsed(False),
         )
-        main_column = cmds.columnLayout(adjustableColumn=True, rowSpacing=6, columnAttach=("both", 8))
-        validation_row = cmds.formLayout(parent=main_column, height=30)
-        validation_controls = []
-        validation_controls.append(cmds.checkBox(
-            parent=validation_row,
-            label="Min Frames",
-            value=bool(model.validate_min_frames),
-            changeCommand=partial(self.controller.update_preference, "validate_min_frames"),
-        ))
-        validation_controls.append(cmds.intField(
-            parent=validation_row,
-            value=int(model.min_frames),
-            changeCommand=partial(self.controller.update_preference, "min_frames"),
-        ))
-        validation_controls.append(cmds.checkBox(
-            parent=validation_row,
-            label="Max Frames",
-            value=bool(model.validate_max_frames),
-            changeCommand=partial(self.controller.update_preference, "validate_max_frames"),
-        ))
-        validation_controls.append(cmds.intField(
-            parent=validation_row,
-            value=int(model.max_frames),
-            changeCommand=partial(self.controller.update_preference, "max_frames"),
-        ))
-        validation_controls.append(cmds.checkBox(
-            parent=validation_row,
-            label="Overlaps",
-            value=bool(model.detect_overlaps),
-            changeCommand=partial(self.controller.update_preference, "detect_overlaps"),
-        ))
-        self.apply_even_form_spacing(validation_row, validation_controls)
-
-        options_row = cmds.formLayout(parent=main_column, height=30)
-        option_controls = []
-        option_controls.append(cmds.checkBox(
-            parent=options_row,
-            label="Refresh On Focus",
-            value=bool(model.refresh_on_focus),
-            changeCommand=partial(self.controller.update_preference, "refresh_on_focus"),
-        ))
-        option_controls.append(cmds.checkBox(
-            parent=options_row,
-            label="Auto Add Timeline",
-            value=bool(model.auto_add_timeline_clip),
-            changeCommand=partial(self.controller.update_preference, "auto_add_timeline_clip"),
-        ))
-        option_controls.append(cmds.checkBox(
-            parent=options_row,
-            label="Sync Bookmarks",
-            value=bool(model.sync_time_slider_bookmarks),
-            changeCommand=partial(self.controller.update_preference, "sync_time_slider_bookmarks"),
-        ))
-        option_controls.append(cmds.checkBox(
-            parent=options_row,
-            label="Auto Reorder",
-            value=bool(model.auto_reorder_clips),
-            changeCommand=partial(self.controller.update_preference, "auto_reorder_clips"),
-        ))
-        option_controls.append(cmds.checkBox(
-            parent=options_row,
-            label="Confirm Delete",
-            value=bool(model.confirm_delete_clip),
-            changeCommand=partial(self.controller.update_preference, "confirm_delete_clip"),
-        ))
-        self.apply_even_form_spacing(options_row, option_controls)
-
-        action_row = cmds.formLayout(parent=main_column, height=42)
-        action_controls = []
-        action_controls.append(cmds.button(
-            parent=action_row,
-            label="Add Current Timeline",
-            command=lambda *args: self.controller.add_clip(),
-        ))
-        action_controls.append(cmds.button(
-            parent=action_row,
-            label="Sync Time Slider Bookmarks",
-            command=lambda *args: self.controller.sync_bookmarks(),
-        ))
-        action_controls.append(cmds.button(
-            parent=action_row,
-            label="Reorder Clips",
-            command=lambda *args: self.controller.reorder_clips(),
-        ))
-        action_controls.append(cmds.button(
-            parent=action_row,
-            label="Import JSON...",
-            command=lambda *args: self.controller.import_data(),
-        ))
-        action_controls.append(cmds.button(
-            parent=action_row,
-            label="Export JSON...",
-            command=lambda *args: self.controller.export_data(),
-        ))
-        action_controls.append(cmds.button(
-            parent=action_row,
-            label="Reset Settings",
-            command=lambda *args: self.controller.reset_preferences(),
-        ))
-        self.apply_even_form_spacing(action_row, action_controls, bottom_padding=8)
+        self.preferences_host = cmds.columnLayout(
+            parent=self.preferences_frame,
+            adjustableColumn=True,
+            height=PREFERENCES_HEIGHT,
+            rowSpacing=0,
+        )
         cmds.setParent(parent)
         return self.preferences_frame
 
+    def attach_preferences_panel(self):
+        """Creates the Qt preferences panel inside the preferences host layout."""
+        cmds = get_maya_cmds()
+        if not self.preferences_host:
+            return
+        try:
+            host_widget = self.wrap_host_layout(self.preferences_host)
+            if not host_widget:
+                return
+            host_layout = self.get_host_layout(host_widget)
+            panel = clip_tracker_preferences.ClipPreferencesPanel(
+                preferences=self.controller.model.get_preference_values(),
+                parent=host_widget,
+            )
+            host_layout.addWidget(panel)
+            panel.show()
+            self.preferences_panel = panel
+            self.controller.connect_preferences_panel(panel)
+            panel_height = max(panel.sizeHint().height(), panel.minimumSizeHint().height())
+            cmds.columnLayout(self.preferences_host, edit=True, height=panel_height + 4)
+        except Exception as exception:
+            self.preferences_panel = None
+            self.controller.model.log("Unable to build the preferences panel: {0}".format(exception))
+
     @staticmethod
-    def apply_even_form_spacing(
-        form_layout,
-        controls,
-        side_padding=8,
-        inner_padding=4,
-        top_padding=2,
-        bottom_padding=2,
-    ):
-        """Applies equal-width spacing to controls in a form layout.
+    def wrap_host_layout(layout_name):
+        """Wraps a Maya layout into a Qt widget.
 
         Args:
-            form_layout (str): Form layout to edit.
-            controls (list): Child controls to distribute.
-            side_padding (int, optional): Left and right padding.
-            inner_padding (int, optional): Padding between controls.
-            top_padding (int, optional): Top padding.
-            bottom_padding (int, optional): Bottom padding.
+            layout_name (str): Maya layout name.
+
+        Returns:
+            QWidget or None: Wrapped widget, or None when the layout was not found.
         """
-        cmds = get_maya_cmds()
-        controls = list(controls or [])
-        control_count = len(controls)
-        if not control_count:
-            return
-        attach_form = []
-        attach_position = []
-        for index, control in enumerate(controls):
-            left_position = int(index * 100.0 / control_count)
-            right_position = int((index + 1) * 100.0 / control_count)
-            attach_form.append((control, "top", top_padding))
-            attach_form.append((control, "bottom", bottom_padding))
-            if index == 0:
-                attach_form.append((control, "left", side_padding))
-            else:
-                attach_position.append((control, "left", inner_padding, left_position))
-            if index == control_count - 1:
-                attach_form.append((control, "right", side_padding))
-            else:
-                attach_position.append((control, "right", inner_padding, right_position))
-        cmds.formLayout(
-            form_layout,
-            edit=True,
-            attachForm=attach_form,
-            attachPosition=attach_position,
-        )
+        from maya import OpenMayaUI
+
+        pointer = OpenMayaUI.MQtUtil.findControl(layout_name)
+        if not pointer:
+            pointer = OpenMayaUI.MQtUtil.findLayout(layout_name)
+        if not pointer:
+            return None
+        return ui_qt.shiboken.wrapInstance(int(pointer), ui_qt.QtWidgets.QWidget)
+
+    @staticmethod
+    def get_host_layout(host_widget):
+        """Gets the Qt layout used to add widgets to a Maya layout.
+
+        Args:
+            host_widget (QWidget): Wrapped Maya layout.
+
+        Returns:
+            QLayout: Layout that can receive Qt widgets.
+        """
+        host_layout = host_widget.layout()
+        if host_layout is None:
+            host_layout = ui_qt.QtWidgets.QVBoxLayout(host_widget)
+        host_layout.setContentsMargins(0, 0, 0, 0)
+        return host_layout
 
     def get_scene_info(self):
         """Gets scene info label text.
@@ -406,6 +424,7 @@ class ClipTrackerView:
             playing_index (int, optional): Currently playing clip index.
         """
         cmds = get_maya_cmds()
+        self.update_timeline()
         if not self.clips_layout_exists():
             return
         self.update_top_info()
@@ -416,9 +435,13 @@ class ClipTrackerView:
         self.play_buttons = []
         self.duration_fields = []
         self.frame_fields = {}
+        self.name_fields = {}
+        self.index_labels = {}
+        self.clip_rows = {}
         issues = self.controller.model.get_clip_issues()
         for index, clip in enumerate(clips_data):
             self.draw_clip_row(index=index, clip=clip, issues=issues.get(index), playing_index=playing_index)
+        self.highlight_clip_row(self.controller.selected_index)
 
     def draw_clip_row(self, index, clip, issues=None, playing_index=None):
         """Draws one clip row.
@@ -430,19 +453,25 @@ class ClipTrackerView:
             playing_index (int, optional): Currently playing clip index.
         """
         cmds = get_maya_cmds()
-        cmds.rowLayout(numberOfColumns=10, columnWidth=self.CLIP_COLUMNS, adjustableColumn=4)
+        self.clip_rows[index] = cmds.rowLayout(
+            numberOfColumns=10,
+            columnWidth=self.CLIP_COLUMNS,
+            adjustableColumn=4,
+        )
         cmds.text(label="")
-        cmds.text(label=str(index + 1))
+        self.index_labels[index] = cmds.text(label=str(index + 1))
         cmds.checkBox(
             label="",
             value=clip.get("active"),
             changeCommand=partial(self.controller.update_clip_val, index, "active"),
         )
-        cmds.textField(
+        self.name_fields[index] = cmds.textField(
             text=clip.get("name") or "",
             placeholderText="Enter clip name...",
             changeCommand=partial(self.controller.update_clip_val, index, "name"),
         )
+        if self.default_name_bg is None:
+            self.default_name_bg = cmds.textField(self.name_fields[index], query=True, backgroundColor=True)
         start_field = cmds.intField(
             value=int(clip.get("start", 0)),
             changeCommand=partial(self.controller.update_clip_val, index, "start"),
@@ -491,6 +520,97 @@ class ClipTrackerView:
         )
         cmds.setParent("..")
 
+    def highlight_clip_row(self, selected_index, scroll_into_view=False):
+        """Highlights the clip row matching the clip selected in the timeline.
+
+        Args:
+            selected_index (int): Clip index, or a negative value to clear the highlight.
+            scroll_into_view (bool, optional): Whether the row should be scrolled into view.
+        """
+        cmds = get_maya_cmds()
+        if not self.window_exists():
+            return
+        selected_index = int(selected_index)
+        for index, name_field in self.name_fields.items():
+            try:
+                if not cmds.textField(name_field, query=True, exists=True):
+                    continue
+            except RuntimeError:
+                continue
+            is_selected = index == selected_index
+            background_color = SELECTED_ROW_COLOR if is_selected else self.default_name_bg
+            if background_color:
+                cmds.textField(name_field, edit=True, backgroundColor=background_color)
+            self.update_index_label(index=index, is_selected=is_selected)
+        if scroll_into_view and selected_index >= 0:
+            self.scroll_clip_row_into_view(selected_index)
+
+    def update_index_label(self, index, is_selected):
+        """Updates the row number label of one clip row.
+
+        Args:
+            index (int): Clip index.
+            is_selected (bool): Whether the row is highlighted.
+        """
+        cmds = get_maya_cmds()
+        label_control = self.index_labels.get(index)
+        if not label_control:
+            return
+        try:
+            if not cmds.text(label_control, query=True, exists=True):
+                return
+        except RuntimeError:
+            return
+        number = str(index + 1)
+        if is_selected:
+            number = '<font color="{0}"><b>{1}</b></font>'.format(SELECTED_ROW_LABEL_COLOR, number)
+        cmds.text(label_control, edit=True, label=number)
+
+    def scroll_clip_row_into_view(self, selected_index):
+        """Scrolls the clip list so a row becomes visible.
+
+        Args:
+            selected_index (int): Clip index to reveal.
+        """
+        cmds = get_maya_cmds()
+        row_control = self.clip_rows.get(selected_index)
+        if not self.clips_scroll or not row_control:
+            return
+        try:
+            if not cmds.scrollLayout(self.clips_scroll, query=True, exists=True):
+                return
+            row_height = cmds.rowLayout(row_control, query=True, height=True) or 0
+            visible_height = cmds.scrollLayout(self.clips_scroll, query=True, height=True) or 0
+            # Scrolling is relative, so the list is moved back to the top first
+            cmds.scrollLayout(self.clips_scroll, edit=True, scrollByPixel=("up", MAX_SCROLL_PIXELS))
+            offset = int((selected_index * row_height) - (max(0, visible_height - row_height) / 2))
+            if offset > 0:
+                cmds.scrollLayout(self.clips_scroll, edit=True, scrollByPixel=("down", offset))
+        except RuntimeError:
+            return
+
+    def add_clips_popup(self, parent):
+        """Adds a popup menu with clip list shortcuts.
+
+        Args:
+            parent (str): Parent layout.
+        """
+        cmds = get_maya_cmds()
+        cmds.popupMenu(parent=parent)
+        cmds.menuItem(
+            label="Add New Clip",
+            command=lambda *args: self.controller.add_clip(),
+        )
+        cmds.menuItem(
+            label="Add Timeline Range as Clip",
+            command=lambda *args: self.controller.add_timeline_clip(),
+        )
+        cmds.menuItem(divider=True)
+        cmds.menuItem(
+            label="Refresh Clip List",
+            command=lambda *args: self.controller.refresh(force=True),
+        )
+
     def add_frame_popup(self, parent, index, key):
         """Adds a popup menu to a frame field.
 
@@ -504,6 +624,10 @@ class ClipTrackerView:
         cmds.menuItem(
             label="Set to Current Time",
             command=partial(self.controller.modify_frame_from_popup, index, key, "current", parent),
+        )
+        cmds.menuItem(
+            label="Go to Frame",
+            command=partial(self.controller.go_to_frame, index, key, parent),
         )
         cmds.menuItem(
             label="Increment",
@@ -533,6 +657,28 @@ class ClipTrackerView:
         except RuntimeError:
             return
 
+    def get_frame_field_value(self, index, key, field=None):
+        """Gets the value currently shown in a start or end frame field.
+
+        Args:
+            index (int): Clip index.
+            key (str): Clip key.
+            field (str, optional): Explicit Maya int field name to query.
+
+        Returns:
+            int or None: Field value, or None when the field is unavailable.
+        """
+        cmds = get_maya_cmds()
+        if not self.window_exists():
+            return None
+        field = field or self.frame_fields.get((index, key))
+        try:
+            if field and cmds.intField(field, query=True, exists=True):
+                return int(cmds.intField(field, query=True, value=True))
+        except RuntimeError:
+            return None
+        return None
+
     def update_duration_field(self, index, start_frame, end_frame):
         """Updates one duration field.
 
@@ -554,6 +700,7 @@ class ClipTrackerView:
         cmds = get_maya_cmds()
         if not self.window_exists():
             return
+        self.update_timeline()
         clips_data = self.controller.model.get_data()
         issues = self.controller.model.get_clip_issues()
         for index, field in enumerate(self.duration_fields):

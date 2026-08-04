@@ -1,6 +1,7 @@
 """
 Animation Clip Tracker Model
 """
+from gt.tools.anim_clip_tracker import clip_tracker_constants as clip_constants
 from gt.core.prefs import Prefs
 import datetime
 import json
@@ -11,6 +12,25 @@ PREFS_KEY_STATE = "state"
 CLIP_NODE_NAME = "animClipData"
 CLIP_ATTR_NAME = "clipData"
 CLIP_ATTR_EDITED = "clipDataLastEdited"
+PREFERENCE_KEYS = [
+    "preferences_collapsed",
+    "validate_min_frames",
+    "min_frames",
+    "validate_max_frames",
+    "max_frames",
+    "detect_overlaps",
+    "refresh_on_focus",
+    "auto_add_timeline_clip",
+    "sync_time_slider_bookmarks",
+    "auto_reorder_clips",
+    "confirm_delete_clip",
+    "new_clip_at_current_frame",
+    "show_timeline",
+    "timeline_mode",
+    "timeline_show_names",
+    "timeline_sync_time_edit",
+    "timeline_allow_outside_range",
+]
 
 
 def get_maya_cmds():
@@ -60,27 +80,22 @@ class ClipTrackerModel:
         self.sync_time_slider_bookmarks = False
         self.auto_reorder_clips = False
         self.confirm_delete_clip = True
+        self.new_clip_at_current_frame = True
+        self.show_timeline = False
+        self.timeline_mode = clip_constants.DEFAULT_TIMELINE_MODE
+        self.timeline_show_names = False
+        self.timeline_sync_time_edit = True
+        self.timeline_allow_outside_range = False
 
     def load_preferences(self):
         """Loads persistent tool preferences."""
         data = self.prefs.get_raw_preferences().get(PREFS_KEY_STATE) or {}
         if not isinstance(data, dict):
             return
-        for key in [
-            "preferences_collapsed",
-            "validate_min_frames",
-            "min_frames",
-            "validate_max_frames",
-            "max_frames",
-            "detect_overlaps",
-            "refresh_on_focus",
-            "auto_add_timeline_clip",
-            "sync_time_slider_bookmarks",
-            "auto_reorder_clips",
-            "confirm_delete_clip",
-        ]:
+        for key in PREFERENCE_KEYS:
             if key in data:
                 setattr(self, key, data.get(key))
+        self.timeline_mode = clip_constants.get_valid_mode(self.timeline_mode)
 
     def save_preferences(self):
         """Saves persistent tool preferences."""
@@ -96,8 +111,22 @@ class ClipTrackerModel:
             "sync_time_slider_bookmarks": bool(self.sync_time_slider_bookmarks),
             "auto_reorder_clips": bool(self.auto_reorder_clips),
             "confirm_delete_clip": bool(self.confirm_delete_clip),
+            "new_clip_at_current_frame": bool(self.new_clip_at_current_frame),
+            "show_timeline": bool(self.show_timeline),
+            "timeline_mode": clip_constants.get_valid_mode(self.timeline_mode),
+            "timeline_show_names": bool(self.timeline_show_names),
+            "timeline_sync_time_edit": bool(self.timeline_sync_time_edit),
+            "timeline_allow_outside_range": bool(self.timeline_allow_outside_range),
         }
         self.prefs.save()
+
+    def get_preference_values(self):
+        """Gets the current value of every tool preference.
+
+        Returns:
+            dict: Preference values keyed by preference name.
+        """
+        return {key: getattr(self, key) for key in PREFERENCE_KEYS}
 
     def log(self, message):
         """Prints an informational message through Maya.
@@ -142,6 +171,22 @@ class ClipTrackerModel:
         self.last_edited = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         cmds.setAttr("{0}.{1}".format(CLIP_NODE_NAME, CLIP_ATTR_EDITED), self.last_edited, type="string")
 
+    def delete_scene_data(self):
+        """Deletes the clip data node from the current scene.
+
+        Returns:
+            bool: True when a data node was deleted.
+        """
+        cmds = get_maya_cmds()
+        self.clips = []
+        self.last_edited = "Never"
+        if not cmds.objExists(CLIP_NODE_NAME):
+            self.log("No clip data node was found in this scene.")
+            return False
+        cmds.delete(CLIP_NODE_NAME)
+        self.log('Deleted clip data node: "{0}"'.format(CLIP_NODE_NAME))
+        return True
+
     def get_data(self):
         """Gets clip data.
 
@@ -151,15 +196,61 @@ class ClipTrackerModel:
         return self.clips
 
     def add_clip(self, active=True, name=""):
-        """Adds a clip from the current playback range.
+        """Adds a clip using the current preferences.
+
+        The playback range is used unless new clips are set to start at the current frame.
 
         Args:
             active (bool, optional): Whether the clip is active.
             name (str, optional): Clip name.
+
+        Returns:
+            dict: Created clip data.
+        """
+        start_frame, end_frame = self.get_new_clip_range()
+        return self.add_clip_range(start_frame=start_frame, end_frame=end_frame, active=active, name=name)
+
+    def add_timeline_clip(self, active=True, name=""):
+        """Adds a clip that matches the current playback range.
+
+        Args:
+            active (bool, optional): Whether the clip is active.
+            name (str, optional): Clip name.
+
+        Returns:
+            dict: Created clip data.
         """
         start_frame, end_frame = self.get_timeline_range()
-        self.clips.append({"active": active, "name": name, "start": start_frame, "end": end_frame})
+        return self.add_clip_range(start_frame=start_frame, end_frame=end_frame, active=active, name=name)
+
+    def add_clip_range(self, start_frame, end_frame, active=True, name=""):
+        """Adds a clip using explicit frame values.
+
+        Args:
+            start_frame (int): Start frame.
+            end_frame (int): End frame.
+            active (bool, optional): Whether the clip is active.
+            name (str, optional): Clip name.
+
+        Returns:
+            dict: Created clip data.
+        """
+        clip = {"active": bool(active), "name": name, "start": int(start_frame), "end": int(end_frame)}
+        self.clips.append(clip)
         self.save_data()
+        return clip
+
+    def get_new_clip_range(self):
+        """Gets the frame range used by newly created clips.
+
+        Returns:
+            tuple: Start and end frames.
+        """
+        start_frame, end_frame = self.get_timeline_range()
+        if not self.new_clip_at_current_frame:
+            return start_frame, end_frame
+        current_frame = self.get_current_frame()
+        return current_frame, max(current_frame, end_frame)
 
     def add_timeline_clip_if_missing(self):
         """Adds the current timeline range when it is not already represented."""
@@ -167,7 +258,7 @@ class ClipTrackerModel:
         for clip in self.clips:
             if int(clip.get("start")) == start_frame and int(clip.get("end")) == end_frame:
                 return
-        self.add_clip(name="Timeline")
+        self.add_timeline_clip(name="Timeline")
 
     def update_clip(self, index, key, value):
         """Updates one clip value.
@@ -181,6 +272,19 @@ class ClipTrackerModel:
             if key in ["start", "end"]:
                 value = int(value)
             self.clips[index][key] = value
+            self.save_data()
+
+    def update_clip_range(self, index, start_frame, end_frame):
+        """Updates the start and end frames of a clip in one operation.
+
+        Args:
+            index (int): Clip index.
+            start_frame (int): New start frame.
+            end_frame (int): New end frame.
+        """
+        if 0 <= index < len(self.clips):
+            self.clips[index]["start"] = int(start_frame)
+            self.clips[index]["end"] = int(end_frame)
             self.save_data()
 
     def delete_clip(self, index):
@@ -214,6 +318,14 @@ class ClipTrackerModel:
             int: Current frame.
         """
         return int(get_maya_cmds().currentTime(query=True))
+
+    def set_current_frame(self, frame):
+        """Sets the current Maya frame.
+
+        Args:
+            frame (int): Frame to set.
+        """
+        get_maya_cmds().currentTime(int(frame), edit=True)
 
     def set_playback_range(self, start_frame, end_frame):
         """Sets the Maya playback range.

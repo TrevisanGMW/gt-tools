@@ -126,6 +126,7 @@ class QtLib:
         AlignHCenter = None
         AlignVCenter = None
         AlignTop = None
+        AlignBottom = None
         if IS_PYSIDE6:  # PySide6
             AlignCenter = QtCore.Qt.AlignmentFlag.AlignCenter
             AlignLeft = QtCore.Qt.AlignmentFlag.AlignLeft
@@ -133,6 +134,7 @@ class QtLib:
             AlignHCenter = QtCore.Qt.AlignmentFlag.AlignHCenter
             AlignVCenter = QtCore.Qt.AlignmentFlag.AlignVCenter
             AlignTop = QtCore.Qt.AlignmentFlag.AlignTop
+            AlignBottom = QtCore.Qt.AlignmentFlag.AlignBottom
         else:  # PySide2
             AlignCenter = QtCore.Qt.AlignCenter
             AlignLeft = QtCore.Qt.AlignLeft
@@ -140,6 +142,83 @@ class QtLib:
             AlignHCenter = QtCore.Qt.AlignHCenter
             AlignVCenter = QtCore.Qt.AlignVCenter
             AlignTop = QtCore.Qt.AlignTop
+            AlignBottom = QtCore.Qt.AlignBottom
+
+    # ------------------------------------------ Mouse Buttons -----------------------------------------
+    class MouseButton:
+        LeftButton = None
+        RightButton = None
+        MiddleButton = None
+        if IS_PYSIDE6:  # PySide6
+            LeftButton = QtCore.Qt.MouseButton.LeftButton
+            RightButton = QtCore.Qt.MouseButton.RightButton
+            MiddleButton = QtCore.Qt.MouseButton.MiddleButton
+        else:  # PySide2
+            LeftButton = QtCore.Qt.LeftButton
+            RightButton = QtCore.Qt.RightButton
+            MiddleButton = QtCore.Qt.MiddleButton
+
+    # ------------------------------------------ Cursor Shapes -----------------------------------------
+    class CursorShape:
+        ArrowCursor = None
+        CrossCursor = None
+        SizeHorCursor = None
+        SplitHCursor = None
+        PointingHandCursor = None
+        if IS_PYSIDE6:  # PySide6
+            ArrowCursor = QtCore.Qt.CursorShape.ArrowCursor
+            CrossCursor = QtCore.Qt.CursorShape.CrossCursor
+            SizeHorCursor = QtCore.Qt.CursorShape.SizeHorCursor
+            SplitHCursor = QtCore.Qt.CursorShape.SplitHCursor
+            PointingHandCursor = QtCore.Qt.CursorShape.PointingHandCursor
+        else:  # PySide2
+            ArrowCursor = QtCore.Qt.ArrowCursor
+            CrossCursor = QtCore.Qt.CrossCursor
+            SizeHorCursor = QtCore.Qt.SizeHorCursor
+            SplitHCursor = QtCore.Qt.SplitHCursor
+            PointingHandCursor = QtCore.Qt.PointingHandCursor
+
+    # ------------------------------------------ Brush Styles ------------------------------------------
+    class BrushStyle:
+        SolidPattern = None
+        BDiagPattern = None
+        FDiagPattern = None
+        if IS_PYSIDE6:  # PySide6
+            SolidPattern = QtCore.Qt.BrushStyle.SolidPattern
+            BDiagPattern = QtCore.Qt.BrushStyle.BDiagPattern
+            FDiagPattern = QtCore.Qt.BrushStyle.FDiagPattern
+        else:  # PySide2
+            SolidPattern = QtCore.Qt.SolidPattern
+            BDiagPattern = QtCore.Qt.BDiagPattern
+            FDiagPattern = QtCore.Qt.FDiagPattern
+
+    # -------------------------------------------- Pen Styles ------------------------------------------
+    class PenStyle:
+        SolidLine = None
+        DashLine = None
+        DotLine = None
+        if IS_PYSIDE6:  # PySide6
+            SolidLine = QtCore.Qt.PenStyle.SolidLine
+            DashLine = QtCore.Qt.PenStyle.DashLine
+            DotLine = QtCore.Qt.PenStyle.DotLine
+        else:  # PySide2
+            SolidLine = QtCore.Qt.SolidLine
+            DashLine = QtCore.Qt.DashLine
+            DotLine = QtCore.Qt.DotLine
+
+    # --------------------------------------- Keyboard Modifiers ---------------------------------------
+    class KeyboardModifier:
+        ControlModifier = None
+        ShiftModifier = None
+        AltModifier = None
+        if IS_PYSIDE6:  # PySide6
+            ControlModifier = QtCore.Qt.KeyboardModifier.ControlModifier
+            ShiftModifier = QtCore.Qt.KeyboardModifier.ShiftModifier
+            AltModifier = QtCore.Qt.KeyboardModifier.AltModifier
+        else:  # PySide2
+            ControlModifier = QtCore.Qt.ControlModifier
+            ShiftModifier = QtCore.Qt.ShiftModifier
+            AltModifier = QtCore.Qt.AltModifier
 
     # ------------------------------------------- Font Weights -----------------------------------------
     class Font:
@@ -357,10 +436,16 @@ class QtLib:
     # ------------------------------------------- TextDocument ----------------------------------------
     class RenderHint:
         SmoothPixmapTransform = None
+        Antialiasing = None
+        TextAntialiasing = None
         if IS_PYSIDE6:  # PySide6
             SmoothPixmapTransform = QtGui.QPainter.RenderHint.SmoothPixmapTransform
+            Antialiasing = QtGui.QPainter.RenderHint.Antialiasing
+            TextAntialiasing = QtGui.QPainter.RenderHint.TextAntialiasing
         else:  # PySide2
             SmoothPixmapTransform = QtGui.QPainter.SmoothPixmapTransform
+            Antialiasing = QtGui.QPainter.Antialiasing
+            TextAntialiasing = QtGui.QPainter.TextAntialiasing
 
     # ------------------------------------------ Misc Overrides ----------------------------------------
     class QtCore:

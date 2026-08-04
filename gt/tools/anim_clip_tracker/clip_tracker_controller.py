@@ -1,6 +1,8 @@
 """
 Animation Clip Tracker Controller
 """
+from gt.tools.anim_clip_tracker import clip_tracker_constants as clip_constants
+from gt.tools.anim_clip_tracker import clip_tracker_preferences
 import gt.ui.qt_import as ui_qt
 
 
@@ -29,8 +31,10 @@ class ClipTrackerController:
         self.view = view
         self.view.controller = self
         self.playing_index = None
+        self.selected_index = -1
         self._focus_filter = None
         self._is_refreshing = False
+        self._timeline_timer = None
 
     def start(self):
         """Starts the tool."""
@@ -82,8 +86,21 @@ class ClipTrackerController:
             self.refresh(force=True)
 
     def add_clip(self, *args):
-        """Adds a clip."""
+        """Adds a clip using the current new-clip preferences.
+
+        Args:
+            *args: Optional Maya callback arguments.
+        """
         self.model.add_clip()
+        self.view.draw_clips(self.model.get_data(), self.playing_index)
+
+    def add_timeline_clip(self, *args):
+        """Adds a clip that matches the current timeline range.
+
+        Args:
+            *args: Optional Maya callback arguments.
+        """
+        self.model.add_timeline_clip()
         self.view.draw_clips(self.model.get_data(), self.playing_index)
 
     def update_clip_val(self, index, key, value):
@@ -142,6 +159,30 @@ class ClipTrackerController:
         self.view.refresh_duration_fields()
         self.view.update_top_info()
 
+    def go_to_frame(self, index, key, field=None, *args):
+        """Sets the current Maya frame to the value shown in a frame field.
+
+        The displayed value is used even when it was typed without being committed,
+        so the clip data is updated to match what the user sees.
+
+        Args:
+            index (int): Clip index.
+            key (str): Clip key.
+            field (str, optional): Maya int field holding the displayed value.
+            *args: Optional Maya callback arguments.
+        """
+        clips_data = self.model.get_data()
+        if index < 0 or index >= len(clips_data):
+            return
+        field_value = self.view.get_frame_field_value(index, key, field=field)
+        if field_value is None:
+            field_value = int(clips_data[index].get(key, 0))
+        if field_value != int(clips_data[index].get(key, 0)):
+            self.update_clip_val(index, key, field_value)
+        self.model.set_current_frame(field_value)
+        self.view.update_top_info()
+        self.view.update_timeline()
+
     def get_modified_frame_value(self, index, key, action):
         """Gets a new frame value for a frame-field action.
 
@@ -190,6 +231,10 @@ class ClipTrackerController:
                 self.playing_index = None
             elif self.playing_index is not None and self.playing_index > index:
                 self.playing_index -= 1
+            if self.selected_index == index:
+                self.selected_index = -1
+            elif self.selected_index > index:
+                self.selected_index -= 1
             if self.view.window_exists():
                 self.view.draw_clips(self.model.get_data(), self.playing_index)
 
@@ -261,7 +306,74 @@ class ClipTrackerController:
         """
         setattr(self.model, key, value)
         self.model.save_preferences()
+        if key == "show_timeline":
+            # The timeline changes the window structure, so the UI is rebuilt
+            get_maya_cmds().evalDeferred(self.rebuild_view)
+            return
+        timeline_only_keys = [
+            "timeline_mode",
+            "timeline_show_names",
+            "timeline_sync_time_edit",
+            "timeline_allow_outside_range",
+        ]
+        if key in timeline_only_keys:
+            # These preferences only affect the timeline, so clip rows are left alone
+            self.view.update_timeline()
+            return
         self.view.draw_clips(self.model.get_data(), self.playing_index)
+
+    def connect_preferences_panel(self, preferences_panel):
+        """Connects the preferences panel signals.
+
+        Args:
+            preferences_panel (ClipPreferencesPanel): Panel to connect.
+        """
+        preferences_panel.preference_changed.connect(self.update_preference)
+        preferences_panel.action_triggered.connect(self.run_preference_action)
+
+    def run_preference_action(self, action):
+        """Runs one preference panel action.
+
+        Args:
+            action (str): Action name reported by the panel.
+        """
+        actions = {
+            clip_tracker_preferences.ACTION_SYNC_BOOKMARKS: self.sync_bookmarks,
+            clip_tracker_preferences.ACTION_REORDER_CLIPS: self.reorder_clips,
+            clip_tracker_preferences.ACTION_IMPORT_DATA: self.import_data,
+            clip_tracker_preferences.ACTION_EXPORT_DATA: self.export_data,
+            clip_tracker_preferences.ACTION_RESET_PREFERENCES: self.reset_preferences,
+            clip_tracker_preferences.ACTION_DELETE_SCENE_DATA: self.delete_scene_data,
+        }
+        action_function = actions.get(action)
+        if not action_function:
+            self.model.log('Unknown preference action: "{0}"'.format(action))
+            return
+        action_function()
+
+    def delete_scene_data(self, *args):
+        """Deletes the clip data node from the scene after confirmation.
+
+        Args:
+            *args: Optional Maya callback arguments.
+        """
+        cmds = get_maya_cmds()
+        result = cmds.confirmDialog(
+            title="Delete Scene Data",
+            message="Delete the clip data node from this scene?\n"
+            "Every clip stored in the current scene will be removed.",
+            button=["Delete", "Cancel"],
+            defaultButton="Cancel",
+            cancelButton="Cancel",
+            dismissString="Cancel",
+        )
+        if result != "Delete":
+            return
+        self.model.delete_scene_data()
+        self.playing_index = None
+        self.selected_index = -1
+        if self.view.window_exists():
+            self.view.draw_clips(self.model.get_data(), self.playing_index)
 
     def set_preferences_collapsed(self, state):
         """Stores preferences collapsed state.
@@ -290,7 +402,102 @@ class ClipTrackerController:
         """
         self.model.reorder_clips()
         self.model.save_data()
+        # Clip indices change, so the previous timeline selection no longer applies
+        self.selected_index = -1
         self.view.draw_clips(self.model.get_data(), self.playing_index)
+
+    def connect_timeline(self, timeline_widget):
+        """Connects the timeline widget signals and starts its state sync.
+
+        Args:
+            timeline_widget (ClipTimelineWidget): Timeline widget to connect.
+        """
+        timeline_widget.frame_changed.connect(self.set_current_frame)
+        timeline_widget.clip_modified.connect(self.update_clip_range)
+        timeline_widget.clip_created.connect(self.create_clip_range)
+        timeline_widget.clip_selected.connect(self.select_clip)
+        timeline_widget.clip_delete_requested.connect(self.delete_clip)
+        timeline_widget.clip_range_requested.connect(self.set_range)
+        timeline_widget.clip_play_requested.connect(self.toggle_play)
+        timeline_widget.add_clip_requested.connect(self.add_clip)
+        timeline_widget.add_timeline_clip_requested.connect(self.add_timeline_clip)
+        timeline_widget.refresh_requested.connect(self.refresh_from_timeline)
+        self.start_timeline_sync()
+
+    def start_timeline_sync(self):
+        """Starts the timer that pushes Maya frame state into the timeline widget."""
+        self.stop_timeline_sync()
+        self._timeline_timer = ui_qt.QtCore.QTimer()
+        self._timeline_timer.setInterval(200)
+        self._timeline_timer.timeout.connect(self.sync_timeline_state)
+        self._timeline_timer.start()
+
+    def stop_timeline_sync(self):
+        """Stops the timeline state sync timer."""
+        if self._timeline_timer:
+            self._timeline_timer.stop()
+            self._timeline_timer = None
+
+    def sync_timeline_state(self):
+        """Pushes the playback range and current frame into the timeline widget."""
+        if not self.view.window_exists() or not self.view.timeline_widget_alive():
+            self.stop_timeline_sync()
+            return
+        range_start, range_end = self.model.get_timeline_range()
+        self.view.timeline_widget.set_frame_state(range_start, range_end, self.model.get_current_frame())
+
+    def set_current_frame(self, frame):
+        """Sets the current Maya frame.
+
+        Args:
+            frame (int): Frame to set.
+        """
+        self.model.set_current_frame(frame)
+
+    def refresh_from_timeline(self):
+        """Refreshes clip data from a timeline context-menu request."""
+        self.refresh(force=True)
+
+    def update_clip_range(self, index, start_frame, end_frame):
+        """Updates the start and end frames of a clip from the timeline widget.
+
+        Args:
+            index (int): Clip index.
+            start_frame (int): New start frame.
+            end_frame (int): New end frame.
+        """
+        self.model.update_clip_range(index, start_frame, end_frame)
+        if not self.view.window_exists():
+            return
+        self.view.draw_clips(self.model.get_data(), self.playing_index)
+
+    def create_clip_range(self, start_frame, end_frame):
+        """Creates a clip from a range drawn in the timeline widget.
+
+        Args:
+            start_frame (int): Start frame.
+            end_frame (int): End frame.
+        """
+        self.model.add_clip_range(start_frame=start_frame, end_frame=end_frame)
+        self.selected_index = len(self.model.get_data()) - 1
+        if not self.view.window_exists():
+            return
+        self.view.draw_clips(self.model.get_data(), self.playing_index)
+
+    def select_clip(self, index):
+        """Highlights the clip selected in the timeline widget.
+
+        The matching clip row is highlighted too, and it is scrolled into view while
+        the timeline is in "select" mode so long clip lists remain easy to navigate.
+
+        Args:
+            index (int): Clip index, or a negative value to clear the selection.
+        """
+        self.selected_index = int(index)
+        if not self.view.window_exists():
+            return
+        scroll_into_view = self.model.timeline_mode == clip_constants.MODE_SELECT
+        self.view.highlight_clip_row(self.selected_index, scroll_into_view=scroll_into_view)
 
     def install_focus_refresh_filter(self):
         """Installs a Qt event filter used for refresh-on-focus."""
