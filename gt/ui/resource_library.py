@@ -494,6 +494,8 @@ class Icon:
     ui_cursor = get_icon_path(r"ui_cursor.svg")
     ui_open_external = get_icon_path(r"ui_open_external.svg")
     ui_goto_location = get_icon_path(r"ui_goto_location.svg")
+    ui_lock_closed = get_icon_path(r"ui_lock_closed.svg")
+    ui_lock_open = get_icon_path(r"ui_lock_open.svg")
     # Branch/Hierarchy Lines
     ui_branch_closed = get_icon_path(r"ui_branch_closed.svg")
     ui_branch_end = get_icon_path(r"ui_branch_end.svg")
