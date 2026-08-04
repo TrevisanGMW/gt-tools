@@ -317,7 +317,7 @@ class TrackerTreeModel(ui_qt.QtCore.QAbstractItemModel):
             QIcon: Row icon.
         """
         if isinstance(item, tracker_model.TrackerJob):
-            path = ui_res_lib.Icon.batch_project if item.is_finalization else ui_res_lib.Icon.ui_progress
+            path = ui_res_lib.Icon.batch_project if item.is_finalization else ui_res_lib.Icon.batch_tracker
         else:
             path = item.icon or ui_res_lib.Icon.ui_progress
         return ui_qt.QtGui.QIcon(path)
