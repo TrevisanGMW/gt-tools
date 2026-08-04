@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150">
+  <style>
+    .film { fill: #df8388; stroke: #1d1d1d; stroke-width: 6; stroke-linejoin: round; }
+    .line { fill: none; stroke: #bdbdbd; stroke-width: 7; stroke-linecap: round; }
+  </style>
+  <rect class="film" x="18" y="28" width="114" height="94" rx="6"/>
+  <path class="line" d="M36 28v20M58 28v20M92 28v20M114 28v20M36 102v20M58 102v20M92 102v20M114 102v20"/>
+  <path d="M75 51v48" stroke="#1d1d1d" stroke-width="6" stroke-dasharray="7 7"/>
+  <path d="M65 68l10 10 10-10M65 82l10-10 10 10" fill="none" stroke="#bdbdbd" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150">
+  <style>
+    .surface { fill: #bdbdbd; stroke: #1d1d1d; stroke-width: 6; stroke-linejoin: round; }
+    .line { fill: none; stroke: #eeeeee; stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; }
+  </style>
+  <rect class="surface" x="15" y="27" width="83" height="76" rx="6"/>
+  <path class="line" d="M15 48h83M36 120h41M56 103v17"/>
+  <path class="line" d="M85 83l40-40M103 43h22v22"/>
+</svg>

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150">
+  <style>
+    .bin { fill: #bdbdbd; stroke: #1d1d1d; stroke-width: 6; stroke-linejoin: round; }
+    .accent { fill: #64b7a5; stroke: #1d1d1d; stroke-width: 6; stroke-linejoin: round; }
+  </style>
+  <path class="accent" d="M35 35h80l-6 91H41z"/>
+  <path class="bin" d="M27 25h96v16H27zM53 16h44v9H53z"/>
+  <path d="M57 53v55M75 53v55M93 53v55" stroke="#64b7a5" stroke-width="7" stroke-linecap="round"/>
+</svg>

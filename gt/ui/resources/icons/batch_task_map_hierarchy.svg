@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150">
+  <style>
+    .node { fill: #64b7a5; stroke: #1d1d1d; stroke-width: 5; }
+    .line { fill: none; stroke: #bdbdbd; stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; }
+  </style>
+  <path class="line" d="M75 35v31M75 66H39v30M75 66h36v30M39 96v18M111 96v18"/>
+  <rect class="node" x="57" y="17" width="36" height="26" rx="5"/>
+  <rect class="node" x="21" y="96" width="36" height="26" rx="5"/>
+  <rect class="node" x="93" y="96" width="36" height="26" rx="5"/>
+</svg>

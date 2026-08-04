@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150">
+  <style>
+    .surface { fill: #bdbdbd; stroke: #1d1d1d; stroke-width: 6; stroke-linejoin: round; }
+  </style>
+  <rect class="surface" x="16" y="34" width="118" height="82" rx="9"/>
+  <text x="75" y="92" text-anchor="middle" font-family="Arial, sans-serif" font-size="38" font-weight="700" letter-spacing="-2" fill="#1d1d1d"><tspan>H</tspan><tspan fill="#df8388">IK</tspan></text>
+</svg>

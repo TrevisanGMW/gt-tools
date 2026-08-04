@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150">
+  <style>
+    .top { fill: #d9d9d9; stroke: #1d1d1d; stroke-width: 6; stroke-linejoin: round; }
+    .side { fill: #9d9d9d; stroke: #1d1d1d; stroke-width: 6; stroke-linejoin: round; }
+    .front { fill: #bdbdbd; stroke: #1d1d1d; stroke-width: 6; stroke-linejoin: round; }
+  </style>
+  <path class="top" d="M75 15l57 31-57 31-57-31z"/>
+  <path class="side" d="M18 46l57 31v58l-57-31z"/>
+  <path class="front" d="M132 46L75 77v58l57-31z"/>
+  <path d="M75 77v58M46 61l58-31M104 61L46 30" fill="none" stroke="#4c4c4c" stroke-width="5"/>
+</svg>

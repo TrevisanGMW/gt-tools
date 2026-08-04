@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150">
+  <style>
+    .frame { fill: #75b9d1; stroke: #1d1d1d; stroke-width: 6; stroke-linejoin: round; }
+    .play { fill: #bdbdbd; stroke: #1d1d1d; stroke-width: 5; stroke-linejoin: round; }
+  </style>
+  <rect class="frame" x="18" y="18" width="114" height="114"/>
+  <path d="M18 48h114M18 102h114" stroke="#1d1d1d" stroke-width="5"/>
+  <path d="M48 18v30M102 18v30M48 102v30M102 102v30" stroke="#bdbdbd" stroke-width="8"/>
+  <path class="play" d="M61 57l38 18-38 18z"/>
+</svg>

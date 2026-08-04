@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150">
+  <style>
+    .surface { fill: #75b9d1; stroke: #1d1d1d; stroke-width: 6; stroke-linejoin: round; }
+    .arrow { fill: none; stroke: #bdbdbd; stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; }
+  </style>
+  <path class="surface" d="M23 19h72l32 32v80H23z"/>
+  <path d="M95 19v32h32" fill="#bdbdbd" stroke="#1d1d1d" stroke-width="6" stroke-linejoin="round"/>
+  <path class="arrow" d="M75 101V57M58 74l17-17 17 17"/>
+  <text x="107" y="119" text-anchor="middle" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#1d1d1d">FBX</text>
+</svg>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150">
+  <style>
+    .surface { fill: #bdbdbd; stroke: #1d1d1d; stroke-width: 6; stroke-linejoin: round; }
+    .mark { fill: none; stroke: #eeeeee; stroke-width: 10; stroke-linecap: round; stroke-linejoin: round; }
+  </style>
+  <path class="surface" d="M75 14l48 18v38c0 30-19 52-48 66-29-14-48-36-48-66V32z"/>
+  <path class="mark" d="M49 74l17 17 35-38"/>
+</svg>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150">
+  <style>
+    .surface { fill: #bdbdbd; stroke: #1d1d1d; stroke-width: 6; stroke-linejoin: round; }
+    .bright { fill: none; stroke: #eeeeee; stroke-width: 10; stroke-linecap: round; stroke-linejoin: round; }
+  </style>
+  <path class="surface" d="M18 94h114v34H18z"/>
+  <path class="bright" d="M75 20v57M56 58l19 19 19-19"/>
+</svg>

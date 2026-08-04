@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150">
+  <style>
+    .surface { fill: #75b9d1; stroke: #1d1d1d; stroke-width: 6; stroke-linejoin: round; }
+    .metal { fill: #bdbdbd; stroke: #1d1d1d; stroke-width: 6; stroke-linejoin: round; }
+  </style>
+  <path class="surface" d="M20 41h110v82H20z"/>
+  <path class="metal" d="M14 25h122v25H14z"/>
+  <path d="M52 67h46v16H52zM60 84h30v18H60z" fill="#bdbdbd" stroke="#1d1d1d" stroke-width="5"/>
+</svg>

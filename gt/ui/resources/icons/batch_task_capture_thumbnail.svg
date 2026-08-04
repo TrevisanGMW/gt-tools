@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150">
+  <style>
+    .frame { fill: #75b9d1; stroke: #1d1d1d; stroke-width: 6; stroke-linejoin: round; }
+    .lens { fill: #bdbdbd; stroke: #1d1d1d; stroke-width: 5; }
+  </style>
+  <rect class="frame" x="17" y="27" width="116" height="96" rx="7"/>
+  <path d="M32 27l10-16h28l10 16" fill="#bdbdbd" stroke="#1d1d1d" stroke-width="6" stroke-linejoin="round"/>
+  <circle class="lens" cx="75" cy="76" r="28"/>
+  <circle cx="75" cy="76" r="12" fill="#75b9d1" stroke="#1d1d1d" stroke-width="5"/>
+  <circle cx="115" cy="45" r="6" fill="#bdbdbd" stroke="#1d1d1d" stroke-width="4"/>
+</svg>
