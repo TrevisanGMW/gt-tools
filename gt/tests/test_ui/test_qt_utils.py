@@ -50,12 +50,17 @@ class TestQtUtilities(unittest.TestCase):
 
     @patch("gt.core.session.is_script_in_interactive_maya", MagicMock(return_value=True))
     def test_base_inheritance_widget(self):
-        from PySide2.QtWidgets import QWidget
+        widget_class = ui_qt.QtWidgets.QWidget
 
-        new_class = MayaWindowMeta(name="TestBaseInheritance", bases=(object,), attrs={}, base_inheritance=(QWidget,))
+        new_class = MayaWindowMeta(
+            name="TestBaseInheritance",
+            bases=(object,),
+            attrs={},
+            base_inheritance=(widget_class,),
+        )
         from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
 
-        self.assertEqual(new_class.__bases__, (MayaQWidgetDockableMixin, QWidget))
+        self.assertEqual(new_class.__bases__, (MayaQWidgetDockableMixin, widget_class))
 
     @patch("gt.utils.system.import_from_path")
     @patch("gt.ui.qt_utils.get_maya_main_window")
@@ -183,7 +188,7 @@ class TestQtUtilities(unittest.TestCase):
 
     @patch.object(ui_qt.QtGui.QCursor, "pos", return_value=ui_qt.QtCore.QPoint(100, 200))
     def test_get_cursor_position_no_offset(self, mock_cursor):
-        expected = ui_qt.QtGui.QPoint(100, 200)
+        expected = ui_qt.QtCore.QPoint(100, 200)
         result = qt_utils.get_cursor_position()
         self.assertEqual(expected, result)
 
@@ -306,16 +311,25 @@ class TestQtUtilities(unittest.TestCase):
         result = qt_utils.get_qt_color(resource_library.Color.RGB.red)
         self.assertEqual(expected, result)
 
-    @patch("gt.ui.qt_import.QtWidgets.QDesktopWidget")
-    def test_resize_to_screen_valid_percentage(self, mock_desktop_widget):
+    def test_resize_to_screen_valid_percentage(self):
+        mock_geometry = MagicMock()
+        mock_geometry.width.return_value = 100
+        mock_geometry.height.return_value = 200
         mock_screen = MagicMock()
-        mock_screen.width.return_value = 100
-        mock_screen.height.return_value = 200
-        mock_geo = MagicMock()
-        mock_geo.availableGeometry.return_value = mock_screen
-        mock_desktop_widget.return_value = mock_geo
+        mock_screen.availableGeometry.return_value = mock_geometry
         window = MagicMock()
-        qt_utils.resize_to_screen(window, percentage=50)
+
+        if ui_qt.IS_PYSIDE6:
+            with patch(
+                "gt.ui.qt_import.QtGui.QGuiApplication.primaryScreen",
+                return_value=mock_screen,
+            ):
+                qt_utils.resize_to_screen(window, percentage=50)
+        else:
+            with patch("gt.ui.qt_import.QtWidgets.QDesktopWidget") as mock_desktop_widget:
+                mock_desktop_widget.return_value = mock_screen
+                qt_utils.resize_to_screen(window, percentage=50)
+
         expected_width = 50
         expected_height = 100
         self.assertEqual(window.setGeometry.call_args[0][2], expected_width)
@@ -326,23 +340,52 @@ class TestQtUtilities(unittest.TestCase):
         with self.assertRaises(ValueError):
             qt_utils.resize_to_screen(window, percentage=110)
 
-    @patch("gt.ui.qt_import.QtWidgets.QApplication")
-    def test_get_main_window_screen_number(self, mock_instance):
-        mock_screen_number = MagicMock()
-        mock_screen_number.screenNumber.return_value = 10
-        mock_instance.instance.return_value = MagicMock()
-        mock_instance.desktop.return_value = mock_screen_number
-        result = qt_utils.get_main_window_screen_number()
-        expected = 10
+    def test_get_main_window_screen_number(self):
+        mock_app = MagicMock()
+        mock_main_window = MagicMock()
+        mock_app.activeWindow.return_value = mock_main_window
+
+        if ui_qt.IS_PYSIDE6:
+            mock_screen = MagicMock()
+            mock_main_window.geometry.return_value.center.return_value = ui_qt.QtCore.QPoint(0, 0)
+            with patch("gt.ui.qt_import.QtWidgets.QApplication") as mock_qapplication:
+                with patch("gt.ui.qt_import.QtGui.QGuiApplication") as mock_qgui_application:
+                    mock_qapplication.instance.return_value = mock_app
+                    mock_qgui_application.screenAt.return_value = mock_screen
+                    mock_qgui_application.screens.return_value = [mock_screen]
+                    result = qt_utils.get_main_window_screen_number()
+            expected = 0
+        else:
+            mock_screen_number = MagicMock()
+            mock_screen_number.screenNumber.return_value = 10
+            with patch("gt.ui.qt_import.QtWidgets.QApplication") as mock_qapplication:
+                mock_qapplication.instance.return_value = mock_app
+                mock_qapplication.desktop.return_value = mock_screen_number
+                result = qt_utils.get_main_window_screen_number()
+            expected = 10
+
         self.assertEqual(expected, result)
 
-    @patch("gt.ui.qt_import.QtWidgets.QDesktopWidget")
-    def test_get_window_screen_number(self, mock_desktop):
-        mock_screen_number = MagicMock()
-        mock_screen_number.screenNumber.return_value = 10
-        mock_desktop.return_value = mock_screen_number
-        result = qt_utils.get_window_screen_number(MagicMock())
-        expected = 10
+    def test_get_window_screen_number(self):
+        window = MagicMock()
+
+        if ui_qt.IS_PYSIDE6:
+            mock_screen = MagicMock()
+            mock_screen.geometry.return_value.contains.return_value = True
+            mock_app = MagicMock()
+            mock_app.screens.return_value = [mock_screen]
+            with patch("gt.ui.qt_import.QtGui.QGuiApplication") as mock_qgui_application:
+                mock_qgui_application.instance.return_value = mock_app
+                result = qt_utils.get_window_screen_number(window)
+            expected = 0
+        else:
+            mock_screen_number = MagicMock()
+            mock_screen_number.screenNumber.return_value = 10
+            with patch("gt.ui.qt_import.QtWidgets.QDesktopWidget") as mock_desktop_widget:
+                mock_desktop_widget.return_value = mock_screen_number
+                result = qt_utils.get_window_screen_number(window)
+            expected = 10
+
         self.assertEqual(expected, result)
 
     def test_center_window(self):
