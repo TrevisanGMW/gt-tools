@@ -213,7 +213,7 @@ class BatchProcessorController:
         menu_tasks = self.view.add_menu_parent("Tasks")
         category_icons = tasks.get_task_category_icons()
         for category_name, task_classes in tasks.get_task_categories().items():
-            category_icon = category_icons.get(category_name) or ui_res_lib.Icon.rigger_module_generic
+            category_icon = category_icons.get(category_name) or ui_res_lib.Icon.batch_task_generic
             category_menu = self.view.add_menu_submenu(
                 parent_menu=menu_tasks,
                 submenu_name=category_name,
@@ -247,7 +247,9 @@ class BatchProcessorController:
         action_get_environment_vars.triggered.connect(self.show_environment_variables)
         self.view.add_menu_action(parent_menu=menu_utils, action=action_get_environment_vars)
 
-        action_validate = self.create_action("Validate Project", icon_path=ui_res_lib.Icon.validator_pass)
+        action_validate = self.create_action(
+            "Validate Project", icon_path=ui_res_lib.Icon.batch_validator_pass
+        )
         action_validate.setToolTip("Validate the active batch project.")
         action_validate.triggered.connect(self.validate_project)
         self.view.add_menu_action(parent_menu=menu_utils, action=action_validate)
@@ -256,7 +258,7 @@ class BatchProcessorController:
 
         action_print_selected_index = self.create_action(
             "Print Selected Task Index",
-            icon_path=ui_res_lib.Icon.ui_progress,
+            icon_path=ui_res_lib.Icon.batch_task_log_print,
         )
         action_print_selected_index.setToolTip(
             "Print the selected task's project index and task-variable index."
@@ -264,12 +266,16 @@ class BatchProcessorController:
         action_print_selected_index.triggered.connect(self.print_selected_task_index)
         self.view.add_menu_action(parent_menu=menu_utils, action=action_print_selected_index)
 
-        action_run_selected = self.create_action("Run Selected Task", icon_path=ui_res_lib.Icon.ui_progress)
+        action_run_selected = self.create_action(
+            "Run Selected Task", icon_path=ui_res_lib.Icon.batch_task_log_print
+        )
         action_run_selected.setToolTip("Run only the selected task.")
         action_run_selected.triggered.connect(self.run_selected_task)
         self.view.add_menu_action(parent_menu=menu_utils, action=action_run_selected)
 
-        action_run_from_selected = self.create_action("Run From Selected Task", icon_path=ui_res_lib.Icon.ui_progress)
+        action_run_from_selected = self.create_action(
+            "Run From Selected Task", icon_path=ui_res_lib.Icon.batch_task_log_print
+        )
         action_run_from_selected.setToolTip("Run from the selected task through the end of the project.")
         action_run_from_selected.triggered.connect(self.run_from_selected)
         self.view.add_menu_action(parent_menu=menu_utils, action=action_run_from_selected)

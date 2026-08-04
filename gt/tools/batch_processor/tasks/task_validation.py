@@ -45,7 +45,7 @@ class TaskValidationMayaScene(task_base.BatchTask):
     default_target_path_template = VALIDATION_LOG_TARGET_PATH_TEMPLATE
     icon = ui_res_lib.Icon.tool_validator
     category = "Validation"
-    category_icon = ui_res_lib.Icon.tool_validator
+    category_icon = ui_res_lib.Icon.batch_category_validation
     is_indexless_task = True
 
     def __init__(self, *args, **kwargs):
@@ -222,7 +222,7 @@ class TaskValidationFileIntegrity(task_base.BatchTask):
     default_target_path_template = VALIDATION_LOG_TARGET_PATH_TEMPLATE
     icon = ui_res_lib.Icon.tool_validator
     category = "Validation"
-    category_icon = ui_res_lib.Icon.tool_validator
+    category_icon = ui_res_lib.Icon.batch_category_validation
     is_indexless_task = True
 
     def __init__(self, *args, **kwargs):
@@ -418,7 +418,7 @@ class TaskValidationFolderCompare(task_base.BatchTask):
     default_target_path_template = VALIDATION_LOG_TARGET_PATH_TEMPLATE
     icon = ui_res_lib.Icon.tool_validator
     category = "Validation"
-    category_icon = ui_res_lib.Icon.tool_validator
+    category_icon = ui_res_lib.Icon.batch_category_validation
     is_indexless_task = True
     is_aggregate_task = True
 

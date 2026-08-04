@@ -15,9 +15,9 @@ class TaskMayaSave(task_base.BatchTask):
     task_type = constants.TaskType.MAYA_SAVE
     default_display_name = "Save Maya File"
     default_target_path_template = "{project-dir}/{output-dir}"
-    icon = ui_res_lib.Icon.rigger_module_save_scene
+    icon = ui_res_lib.Icon.batch_task_save_maya
     category = "Outputs"
-    category_icon = ui_res_lib.Icon.rigger_module_save_scene
+    category_icon = ui_res_lib.Icon.batch_category_outputs
     is_output_task = True
 
     def get_default_settings(self):

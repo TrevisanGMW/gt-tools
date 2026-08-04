@@ -4,5 +4,5 @@
     .bright { fill: none; stroke: #eeeeee; stroke-width: 10; stroke-linecap: round; stroke-linejoin: round; }
   </style>
   <path class="surface" d="M18 94h114v34H18z"/>
-  <path class="bright" d="M75 119V62M56 81l19-19 19 19"/>
+  <path class="bright" d="M75 94V50M54 71l21-21 21 21"/>
 </svg>

@@ -64,7 +64,7 @@ class TaskPythonScript(task_base.BatchTask):
     task_type = constants.TaskType.PYTHON_SCRIPT
     default_display_name = "Python"
     default_target_path_template = "{project-dir}/{task-dir}/{task-idx}_python"
-    icon = ui_res_lib.Icon.rigger_module_python
+    icon = ui_res_lib.Icon.batch_task_python
     category = "Utilities"
     category_icon = ui_res_lib.Icon.root_utilities
     def __init__(self, *args, **kwargs):

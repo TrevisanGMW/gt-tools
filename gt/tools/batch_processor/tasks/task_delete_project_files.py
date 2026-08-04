@@ -16,7 +16,7 @@ class TaskDeleteProjectFiles(task_base.BatchTask):
     task_type = constants.TaskType.DELETE_PROJECT_FILES
     default_display_name = "Delete Project Files"
     default_target_path_template = "{previous-task-path}"
-    icon = ui_res_lib.Icon.ui_delete
+    icon = ui_res_lib.Icon.batch_task_delete_project_files
     category = "Utilities"
     category_icon = ui_res_lib.Icon.root_utilities
     is_aggregate_task = True

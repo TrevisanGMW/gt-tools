@@ -191,7 +191,7 @@ class AttrWidgetProject(attr_widget_base.AttrWidgetBase):
         layout.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignTop)
 
         icon_label = ui_qt.QtWidgets.QLabel()
-        icon_label.setPixmap(ui_qt.QtGui.QIcon(ui_res_lib.Icon.rigger_project).pixmap(32, 32))
+        icon_label.setPixmap(ui_qt.QtGui.QIcon(ui_res_lib.Icon.batch_project).pixmap(32, 32))
         icon_label.setToolTip("Batch Project")
         layout.addWidget(icon_label)
 

@@ -161,7 +161,7 @@ class TaskMotionBuilderScript(TaskPythonScript):
     default_target_path_template = "{project-dir}/{task-dir}/{task-idx}_motionbuilder"
     icon = ui_res_lib.Icon.app_mobu
     category = "External"
-    category_icon = ui_res_lib.Icon.root_miscellaneous
+    category_icon = ui_res_lib.Icon.batch_category_external
     metadata_scripts_key = "motionbuilder_scripts"
     temporary_file_prefix = "mobu"
 

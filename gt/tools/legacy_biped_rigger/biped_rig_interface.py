@@ -573,6 +573,7 @@ def _get_metadata(namespace):
 
 # Main Window ============================================================================
 def build_gui_custom_rig_interface():
+    """Builds the custom rig interface window for the current Maya scene."""
     # Retrieve Persistent Settings
     _get_persistent_settings_rig_interface()
 
@@ -885,8 +886,8 @@ def build_gui_custom_rig_interface():
         Creates a help window to display the provided text
 
         Args:
-            input_text (string): Text used as help, this is displayed in a scroll fields.
-            help_title (optional, string)
+        input_text (string): Text used as help, this is displayed in a scroll fields.
+        help_title (str): Title displayed on the help window.
         """
         window_name = help_title.replace(" ", "_").replace("-", "_").lower().strip() + "_help_window"
         if cmds.window(window_name, exists=True):
@@ -1489,7 +1490,7 @@ def fk_ik_switch(
         Commands were wrapped into a function to be used during the bake operation.
 
         Args:
-            match_only (optional, bool) If active (True) it will only match the pose, but not switch
+            match_only (bool): If active, only match the pose without switching.
 
         Returns:
             attr_value (float): Value which the influence attribute was set to. Either 1 (fk_to_ik) or 0 (ik_to_fk).
@@ -3226,6 +3227,13 @@ def anim_import(debugging=False, debugging_path="", namespace=""):
 
 
 def mirror_translate_rotate_values(obj_list, mirror_axis="x", to_invert="tr"):
+    """Mirrors translate and rotate values across the requested axis.
+
+    Args:
+        obj_list (list): Objects whose transform values should be mirrored.
+        mirror_axis (str): Axis used for the mirror operation.
+        to_invert (str): Transform channels whose values should be inverted.
+    """
 
     if not obj_list:
         logger.info("Provided object list is empty. Ignoring command")

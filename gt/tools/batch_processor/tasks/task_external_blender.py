@@ -134,7 +134,7 @@ class TaskBlenderScript(TaskMotionBuilderScript):
     default_target_path_template = "{project-dir}/{task-dir}/{task-idx}_blender"
     icon = ui_res_lib.Icon.app_blender
     category = "External"
-    category_icon = ui_res_lib.Icon.root_miscellaneous
+    category_icon = ui_res_lib.Icon.batch_category_external
     metadata_scripts_key = "blender_scripts"
     temporary_file_prefix = "blender"
 

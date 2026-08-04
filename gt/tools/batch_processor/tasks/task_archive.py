@@ -20,9 +20,9 @@ class TaskArchive(task_base.BatchTask):
     task_type = constants.TaskType.ZIP_COMPRESS
     default_display_name = "Archive"
     default_target_path_template = "{project-dir}/{output-dir}"
-    icon = ui_res_lib.Icon.rigger_module_generic
+    icon = ui_res_lib.Icon.batch_task_archive
     category = "Outputs"
-    category_icon = ui_res_lib.Icon.rigger_module_generic
+    category_icon = ui_res_lib.Icon.batch_category_outputs
     is_aggregate_task = True
     is_output_task = True
 

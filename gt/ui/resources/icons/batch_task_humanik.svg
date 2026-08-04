@@ -1,7 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150">
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150" version="1.1">
+  <title>HumanIK</title>
   <style>
-    .surface { fill: #bdbdbd; stroke: #1d1d1d; stroke-width: 6; stroke-linejoin: round; }
+    .letter { stroke: #1d1d1d; stroke-width: 5; paint-order: stroke; stroke-linejoin: round; }
   </style>
-  <rect class="surface" x="16" y="34" width="118" height="82" rx="9"/>
-  <text x="75" y="92" text-anchor="middle" font-family="Arial, sans-serif" font-size="38" font-weight="700" letter-spacing="-2" fill="#1d1d1d"><tspan>H</tspan><tspan fill="#df8388">IK</tspan></text>
+  <text x="75" y="103" text-anchor="middle" font-family="Arial, sans-serif" font-size="70" font-weight="700" letter-spacing="-10">
+    <tspan class="letter" fill="#bdbdbd">H</tspan><tspan class="letter" fill="#df8388">IK</tspan>
+  </text>
 </svg>

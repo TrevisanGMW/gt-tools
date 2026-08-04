@@ -28,7 +28,7 @@ def get_icon_path(icon_name, fallback=None):
         return getattr(ui_res_lib.Icon, icon_name)
     if fallback and hasattr(ui_res_lib.Icon, fallback):
         return getattr(ui_res_lib.Icon, fallback)
-    return ui_res_lib.Icon.rigger_module_generic
+    return ui_res_lib.Icon.batch_task_generic
 
 
 def configure_label_for_scaled_displays(label, minimum_width=None, word_wrap=False):

@@ -33,7 +33,7 @@ class TaskClipSplit(task_base.BatchTask):
     task_type = constants.TaskType.CLIP_SPLIT
     default_display_name = "Clip Split"
     default_target_path_template = "{project-dir}/{task-dir}/{task-idx}_clips"
-    icon = ui_res_lib.Icon.rigger_module_playblast_capture
+    icon = ui_res_lib.Icon.batch_task_clip_split
     category = "Animation"
     category_icon = ui_res_lib.Icon.root_animation
     def __init__(self, *args, **kwargs):
@@ -167,7 +167,7 @@ class TaskClipSnapshot(task_base.BatchTask):
     task_type = constants.TaskType.CLIP_SNAPSHOT
     default_display_name = "Clip Snapshot"
     default_target_path_template = "{project-dir}/{output-dir}"
-    icon = ui_res_lib.Icon.rigger_module_shapes_snapshot
+    icon = ui_res_lib.Icon.batch_task_clip_snapshot
     category = "Animation"
     category_icon = ui_res_lib.Icon.root_animation
     is_aggregate_task = True

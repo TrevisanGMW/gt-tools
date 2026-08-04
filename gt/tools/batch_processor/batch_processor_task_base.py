@@ -478,9 +478,9 @@ class BatchTask:
     default_source_path_template = "{previous-task-path}"
     default_target_path_template = "{project-dir}/{task-dir}/{task-idx}_{task-name}"
     default_task_path_template = default_target_path_template
-    icon = ui_res_lib.Icon.rigger_module_generic
+    icon = ui_res_lib.Icon.batch_task_generic
     category = "General"
-    category_icon = ui_res_lib.Icon.rigger_module_generic
+    category_icon = ui_res_lib.Icon.batch_task_generic
     default_segment_name = "New Segment"
     can_be_removed = True
     is_input_task = False

@@ -84,7 +84,7 @@ class BatchProcessorView(metaclass=MayaWindowMeta):
         self.run_selected_btn.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_progress))
         self.run_selected_btn.setToolTip("Run the active batch project from the selected task.")
         self.validate_btn = ui_qt.QtWidgets.QPushButton("Validate")
-        self.validate_btn.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.validator_pass))
+        self.validate_btn.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.batch_validator_pass))
         self.validate_btn.setToolTip("Validate the active batch project.")
 
         self.task_attr_area = ui_qt.QtWidgets.QScrollArea()
@@ -364,7 +364,7 @@ class BatchProcessorView(metaclass=MayaWindowMeta):
             self.clear_task_tree()
 
             self.project_item = ui_tree_enhanced.QTreeItemEnhanced([project.project_name])
-            self.project_item.setIcon(0, ui_qt.QtGui.QIcon(ui_res_lib.Icon.rigger_project))
+            self.project_item.setIcon(0, ui_qt.QtGui.QIcon(ui_res_lib.Icon.batch_project))
             self.project_item.setData(0, self.DATA_ROLE, "project")
             self.project_item.setFlags(self.project_item.flags() & ~ui_qt.QtLib.ItemFlag.ItemIsDragEnabled)
             self.add_item_to_task_tree(self.project_item)

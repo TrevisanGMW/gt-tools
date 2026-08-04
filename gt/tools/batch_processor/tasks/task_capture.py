@@ -15,9 +15,9 @@ class TaskCaptureThumbnail(task_base.BatchTask):
     task_type = constants.TaskType.THUMBNAIL_CAPTURE
     default_display_name = "Capture Thumbnail"
     default_target_path_template = "{project-dir}/{output-dir}/thumbnails"
-    icon = ui_res_lib.Icon.rigger_module_thumbnail_capture
+    icon = ui_res_lib.Icon.batch_task_capture_thumbnail
     category = "Outputs"
-    category_icon = ui_res_lib.Icon.rigger_module_thumbnail_capture
+    category_icon = ui_res_lib.Icon.batch_category_outputs
     is_output_task = True
 
     def get_default_settings(self):
@@ -138,9 +138,9 @@ class TaskCapturePlayblast(task_base.BatchTask):
     task_type = constants.TaskType.PLAYBLAST_CAPTURE
     default_display_name = "Capture Playblast"
     default_target_path_template = "{project-dir}/{output-dir}/playblasts"
-    icon = ui_res_lib.Icon.rigger_module_playblast_capture
+    icon = ui_res_lib.Icon.batch_task_capture_playblast
     category = "Outputs"
-    category_icon = ui_res_lib.Icon.rigger_module_playblast_capture
+    category_icon = ui_res_lib.Icon.batch_category_outputs
     is_output_task = True
 
     def get_default_settings(self):

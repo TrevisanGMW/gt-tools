@@ -36,9 +36,9 @@ class TaskMayaImport(task_base.BatchTask):
     task_type = constants.TaskType.MAYA_IMPORT
     default_display_name = "Import/Open Maya"
     default_target_path_template = "{project-dir}/{task-dir}/{task-idx}_import_maya"
-    icon = ui_res_lib.Icon.rigger_module_import_file
+    icon = ui_res_lib.Icon.batch_task_maya_import
     category = "Inputs"
-    category_icon = ui_res_lib.Icon.rigger_module_import_file
+    category_icon = ui_res_lib.Icon.batch_category_inputs
     def get_default_settings(self):
         """Gets default Maya import settings.
 

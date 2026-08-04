@@ -121,7 +121,7 @@ class TaskMapHierarchy(task_base.BatchTask):
     task_type = constants.TaskType.MAP_HIERARCHY
     default_display_name = "Map Hierarchy"
     default_target_path_template = "{project-dir}/{output-dir}"
-    icon = ui_res_lib.Icon.tool_outliner_sorter
+    icon = ui_res_lib.Icon.batch_task_map_hierarchy
     category = "Utilities"
     category_icon = ui_res_lib.Icon.root_utilities
     is_aggregate_task = True

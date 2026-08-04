@@ -15,9 +15,9 @@ class TaskInput(task_base.BatchTask):
 
     task_type = constants.TaskType.INPUT
     default_display_name = "Input Files"
-    icon = ui_res_lib.Icon.rigger_module_import_file
+    icon = ui_res_lib.Icon.batch_task_import_file
     category = "Inputs"
-    category_icon = ui_res_lib.Icon.rigger_module_import_file
+    category_icon = ui_res_lib.Icon.batch_category_inputs
     default_segment_name = "New Input Segment"
     is_input_task = True
 

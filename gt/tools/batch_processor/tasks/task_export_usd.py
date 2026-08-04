@@ -16,9 +16,9 @@ class TaskExportUsd(task_base.BatchTask):
     task_type = constants.TaskType.USD_EXPORT
     default_display_name = "USD Export"
     default_target_path_template = "{project-dir}/{output-dir}"
-    icon = ui_res_lib.Icon.rigger_module_export_sk
+    icon = ui_res_lib.Icon.batch_task_export_usd
     category = "Outputs"
-    category_icon = ui_res_lib.Icon.rigger_module_export_sk
+    category_icon = ui_res_lib.Icon.batch_category_outputs
     is_output_task = True
 
     def get_default_settings(self):

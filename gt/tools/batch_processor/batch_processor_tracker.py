@@ -10,6 +10,11 @@ class BatchProgressTracker:
     """Tracks progress for a batch processor run."""
 
     def __init__(self, message_callback=None):
+        """Initializes progress tracker.
+
+        Args:
+            message_callback (callable, optional): Callback for progress messages.
+        """
         """Initializes a progress tracker."""
         self.message_callback = message_callback
         self.reset()
