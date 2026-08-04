@@ -370,6 +370,11 @@ class PackageUpdaterModel:
         output_box_content = self.progress_win.get_output_box_plain_text()
 
         def print_download_progress(progress):
+            """Prints a concise package download progress message.
+
+            Args:
+                progress (float): Download progress value.
+            """
             output_box = output_box_content
             output_box += f"\nDownload progress: {progress:.2f}%"
             self.progress_win.clear_output_box()
@@ -389,6 +394,12 @@ class PackageUpdaterModel:
         output_box_content = self.progress_win.get_output_box_plain_text()
 
         def print_extract_progress(current_file, total_files):
+            """Prints a concise package extraction progress message.
+
+            Args:
+                current_file (int): Index of the file currently being extracted.
+                total_files (int): Total files expected during extraction.
+            """
             percent_complete = (current_file / total_files) * 100
             output_box = output_box_content
             output_box += f"\nExtract progress: {percent_complete:.2f}% ({current_file}/{total_files})"

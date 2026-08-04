@@ -63,6 +63,7 @@ gt_make_ik_stretchy_settings = {"ik_handle": "", "attr_holder": ""}
 
 # Main Form ============================================================================
 def build_gui_make_ik_stretchy():
+    """Builds the Make IK Stretchy tool window."""
     window_name = "build_gui_make_ik_stretchy"
     if cmds.window(window_name, exists=True):
         cmds.deleteUI(window_name)
@@ -461,7 +462,7 @@ def make_stretchy_ik(ik_handle, stretchy_name="temp", attribute_holder=None):
         Given an int32 number, returns an English word for it.
 
         Args:
-            num (int) and integer to be converted to English words.
+    num (int): Integer to convert to English words.
 
         Returns:
             number (string): The input number as words

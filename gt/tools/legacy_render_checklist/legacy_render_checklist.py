@@ -117,6 +117,7 @@ def reset_persistent_settings_render_checklist():
 
 # Build GUI - Main Function ==================================================================================
 def build_gui_gt_render_checklist():
+    """Builds the GT Render Checklist window."""
     window_name = "build_gui_gt_render_checklist"
     if cmds.window(window_name, exists=True):
         cmds.deleteUI(window_name, window=True)
@@ -162,6 +163,13 @@ def build_gui_gt_render_checklist():
     items_with_warnings = [3, 7, 8, 9, 10, 11]  # Allow users to update warning values too
 
     def create_settings_items(items, settings_items, warning_items):
+        """Creates checklist settings controls.
+
+        Args:
+            items (dict): Checklist item definitions.
+            settings_items (list): Settings controls collection to populate.
+            warning_items (list): Warning controls collection to populate.
+        """
         for item in items:
             cmds.text(l=checklist_items.get(item)[0] + ": ", align="left")
 
@@ -215,6 +223,11 @@ def build_gui_gt_render_checklist():
 
     # Build Checklist
     def create_checklist_items(items):
+        """Creates checklist item state from configured definitions.
+
+        Args:
+            items (dict): Checklist item definitions.
+        """
         for item in items:
             item_id = checklist_items.get(item)[0].lower().replace(" ", "_").replace("-", "_")
             cmds.text(l=checklist_items.get(item)[0] + ": ", align="left")
@@ -256,6 +269,7 @@ def build_gui_gt_render_checklist():
     cmds.separator(h=8, style="none", p=settings_buttons)
 
     def update_gui_settings():
+        """Applies current settings to the checklist interface."""
         if not checklist_settings.get("is_settings_visible"):
             checklist_settings["is_settings_visible"] = True
 
@@ -301,6 +315,7 @@ def build_gui_gt_render_checklist():
 
 
 def checklist_refresh():
+    """Refreshes checklist results for the current Maya scene."""
     # Save Current Selection For Later
     current_selection = cmds.ls(selection=True)
 
@@ -336,6 +351,7 @@ def checklist_refresh():
 
 
 def checklist_generate_report():
+    """Generates a report from the current checklist results."""
     # Save Current Selection For Later
     current_selection = cmds.ls(selection=True)
 
@@ -377,6 +393,7 @@ def checklist_generate_report():
 
 # Creates Help GUI
 def build_gui_help_gt_render_checklist():
+    """Builds the render checklist help window."""
     window_name = "build_gui_help_gt_render_checklist"
     if cmds.window(window_name, exists=True):
         cmds.deleteUI(window_name, window=True)
@@ -732,6 +749,7 @@ def build_gui_help_gt_render_checklist():
     widget.setWindowIcon(icon)
 
     def close_help_gui():
+        """Closes the render checklist help window."""
         if cmds.window(window_name, exists=True):
             cmds.deleteUI(window_name, window=True)
 
@@ -741,6 +759,7 @@ def build_gui_help_gt_render_checklist():
 
 # Item 0 - Frame Rate
 def check_frame_rate():
+    """Checks whether the scene frame rate matches the configured value."""
     item_name = checklist_items.get(0)[0]
     item_id = item_name.lower().replace(" ", "_").replace("-", "_")
     expected_value = checklist_items.get(0)[1]
@@ -763,6 +782,7 @@ def check_frame_rate():
 
     # Patch Function ----------------------
     def patch_frame_rate():
+        """Patches the scene frame rate to the configured value."""
         user_input = cmds.confirmDialog(
             title=item_name,
             message="Do you want to change your "
@@ -818,6 +838,7 @@ def check_frame_rate():
 
 # Item 1 - Scene Units =========================================================================
 def check_scene_units():
+    """Checks whether the scene units match the configured values."""
     item_name = checklist_items.get(1)[0]
     item_id = item_name.lower().replace(" ", "_").replace("-", "_")
     expected_value = checklist_items.get(1)[1]
@@ -840,6 +861,7 @@ def check_scene_units():
 
     # Patch Function ----------------------
     def patch_scene_units():
+        """Patches the scene units to the configured values."""
         user_input = cmds.confirmDialog(
             title=item_name,
             message="Do you want to change your "
@@ -895,6 +917,7 @@ def check_scene_units():
 
 # Item 2 - Output Resolution =========================================================================
 def check_output_resolution():
+    """Checks whether render resolution matches the configured values."""
     item_name = checklist_items[2][0]
     item_id = item_name.lower().replace(" ", "_").replace("-", "_")
     expected_value = checklist_items[2][1]
@@ -930,6 +953,7 @@ def check_output_resolution():
 
     # Patch Function ----------------------
     def patch_output_resolution():
+        """Patches render resolution to the configured values."""
         user_input = cmds.confirmDialog(
             title=item_name,
             message="Do you want to change your "
@@ -1025,6 +1049,7 @@ def check_output_resolution():
 
 # Item 3 - Total Texture Count =========================================================================
 def check_total_texture_count():
+    """Checks the total number of texture files used by the scene."""
     item_name = checklist_items.get(3)[0]
     item_id = item_name.lower().replace(" ", "_").replace("-", "_")
     expected_value = checklist_items.get(3)[1]
@@ -1101,6 +1126,7 @@ def check_total_texture_count():
 
     # Patch Function ----------------------
     def warning_total_texture_count():
+        """Builds the warning message for excessive texture usage."""
         user_input = cmds.confirmDialog(
             title=item_name,
             message=patch_message,
@@ -1155,6 +1181,7 @@ def check_total_texture_count():
 
 # Item 4 - Network File Paths =========================================================================
 def check_network_file_paths():
+    """Checks file nodes for network paths."""
     item_name = checklist_items.get(4)[0]
     item_id = item_name.lower().replace(" ", "_").replace("-", "_")
     expected_value = checklist_items.get(4)[1]
@@ -1189,6 +1216,7 @@ def check_network_file_paths():
 
     # Patch Function ----------------------
     def warning_network_file_paths():
+        """Builds the warning message for network file paths."""
         user_input = cmds.confirmDialog(
             title=item_name,
             message=str(len(incorrect_file_nodes)) + " of your file node paths aren't pointing to the network drive. "
@@ -1225,6 +1253,7 @@ def check_network_file_paths():
 
 # Item 5 - Network Reference Paths =========================================================================
 def check_network_reference_paths():
+    """Checks references for network paths."""
     item_name = checklist_items.get(5)[0]
     item_id = item_name.lower().replace(" ", "_").replace("-", "_")
     expected_value = checklist_items.get(5)[1]
@@ -1265,6 +1294,7 @@ def check_network_reference_paths():
 
     # Patch Function ----------------------
     def warning_network_reference_paths():
+        """Builds the warning message for network reference paths."""
         user_input = cmds.confirmDialog(
             title=item_name,
             message=str(len(incorrect_reference_nodes))
@@ -1301,6 +1331,7 @@ def check_network_reference_paths():
 
 # Item 6 - Unparented Objects =========================================================================
 def check_unparented_objects():
+    """Checks for scene objects that are not parented as expected."""
     item_name = checklist_items.get(6)[0]
     item_id = item_name.lower().replace(" ", "_").replace("-", "_")
     # expected_value = checklist_items.get(6)[1]
@@ -1333,6 +1364,7 @@ def check_unparented_objects():
 
     # Patch Function ----------------------
     def warning_unparented_objects():
+        """Builds the warning message for unparented objects."""
         user_input = cmds.confirmDialog(
             title=item_name,
             message=str(len(unparented_objects)) + " unparented object(s) found in this scene."
@@ -1369,6 +1401,7 @@ def check_unparented_objects():
 
 # Item 7 - Total Triangle Count =========================================================================
 def check_total_triangle_count():
+    """Checks the scene's total triangle count."""
     item_name = checklist_items.get(7)[0]
     item_id = item_name.lower().replace(" ", "_").replace("-", "_")
     expected_value = checklist_items.get(7)[1][1]
@@ -1442,6 +1475,7 @@ def check_total_triangle_count():
 
     # Patch Function ----------------------
     def warning_total_triangle_count():
+        """Builds the warning message for the triangle count."""
         user_input = cmds.confirmDialog(
             title=item_name,
             message=patch_message,
@@ -1508,6 +1542,7 @@ def check_total_triangle_count():
 
 # Item 8 - Total Poly Object Count =========================================================================
 def check_total_poly_object_count():
+    """Checks the scene's total polygon object count."""
     item_name = checklist_items.get(8)[0]
     item_id = item_name.lower().replace(" ", "_").replace("-", "_")
     expected_value = checklist_items.get(8)[1][1]
@@ -1558,6 +1593,7 @@ def check_total_poly_object_count():
 
     # Patch Function ----------------------
     def warning_total_poly_object_count():
+        """Builds the warning message for polygon object count."""
         user_input = cmds.confirmDialog(
             title=item_name,
             message=patch_message,
@@ -1621,6 +1657,7 @@ def check_total_poly_object_count():
 
 # Item 9 - Shadow Casting Light Count =========================================================================
 def check_shadow_casting_light_count():
+    """Checks the number of shadow-casting lights in the scene."""
     item_name = checklist_items.get(9)[0]
     item_id = item_name.lower().replace(" ", "_").replace("-", "_")
     expected_value = checklist_items.get(9)[1][1]
@@ -1680,6 +1717,7 @@ def check_shadow_casting_light_count():
 
     # Patch Function ----------------------
     def warning_shadow_casting_light_count():
+        """Builds the warning message for shadow-casting light count."""
         user_input = cmds.confirmDialog(
             title=item_name,
             message=patch_message,
@@ -1748,6 +1786,7 @@ def check_shadow_casting_light_count():
 
 # Item 10 - Redshift Shadow Casting Light Count =====================================================================
 def check_rs_shadow_casting_light_count():
+    """Checks the Redshift shadow-casting light count."""
     item_name = checklist_items.get(10)[0]
     item_id = item_name.lower().replace(" ", "_").replace("-", "_")
     expected_value = checklist_items.get(10)[1][1]
@@ -1837,6 +1876,7 @@ def check_rs_shadow_casting_light_count():
 
         # Patch Function ----------------------
         def warning_rs_shadow_casting_light_count():
+            """Builds the Redshift shadow-casting light warning."""
             user_input = cmds.confirmDialog(
                 title=item_name,
                 message=patch_message,
@@ -1924,6 +1964,7 @@ def check_rs_shadow_casting_light_count():
 
 # Item 11 - Arnold Shadow Casting Light Count =========================================================================
 def check_ai_shadow_casting_light_count():
+    """Checks the Arnold shadow-casting light count."""
     item_name = checklist_items.get(11)[0]
     item_id = item_name.lower().replace(" ", "_").replace("-", "_")
     expected_value = checklist_items.get(11)[1][1]
@@ -2010,6 +2051,7 @@ def check_ai_shadow_casting_light_count():
 
         # Patch Function ----------------------
         def warning_ai_shadow_casting_light_count():
+            """Builds the Arnold shadow-casting light warning."""
             user_input = cmds.confirmDialog(
                 title=item_name,
                 message=patch_message,
@@ -2096,6 +2138,7 @@ def check_ai_shadow_casting_light_count():
 
 # Item 12 - Default Object Names =========================================================================
 def check_default_object_names():
+    """Checks whether default Maya object names remain in the scene."""
     item_name = checklist_items.get(12)[0]
     item_id = item_name.lower().replace(" ", "_").replace("-", "_")
     # expected_value = checklist_items.get(12)[1]
@@ -2206,6 +2249,7 @@ def check_default_object_names():
 
     # Patch Function ----------------------
     def warning_default_object_names():
+        """Builds the warning message for default object names."""
         user_input = cmds.confirmDialog(
             title=item_name,
             message=patch_message,
@@ -2247,6 +2291,7 @@ def check_default_object_names():
 
 # Item 13 - Objects Assigned to lambert1 =========================================================================
 def check_objects_assigned_to_lambert1():
+    """Checks for objects still assigned to Maya's default lambert1 shader."""
     item_name = checklist_items.get(13)[0]
     item_id = item_name.lower().replace(" ", "_").replace("-", "_")
     # expected_value = checklist_items.get(13)[1]
@@ -2285,6 +2330,7 @@ def check_objects_assigned_to_lambert1():
 
     # Patch Function ----------------------
     def warning_objects_assigned_to_lambert1():
+        """Builds the warning message for lambert1 assignments."""
         user_input = cmds.confirmDialog(
             title=item_name,
             message=patch_message,
@@ -2318,6 +2364,7 @@ def check_objects_assigned_to_lambert1():
 
 # Item 14 - Ngons =========================================================================
 def check_ngons():
+    """Checks for polygon faces with more than four sides."""
     item_name = checklist_items.get(14)[0]
     item_id = item_name.lower().replace(" ", "_").replace("-", "_")
     # expected_value = checklist_items.get(14)[1]
@@ -2359,6 +2406,7 @@ def check_ngons():
 
     # Patch Function ----------------------
     def warning_ngons():
+        """Builds the warning message for detected ngons."""
         user_input = cmds.confirmDialog(
             title=item_name,
             message=patch_message,
@@ -2391,6 +2439,7 @@ def check_ngons():
 
 # Item 15 - Non-manifold Geometry =========================================================================
 def check_non_manifold_geometry():
+    """Checks for non-manifold geometry in the scene."""
     item_name = checklist_items.get(15)[0]
     item_id = item_name.lower().replace(" ", "_").replace("-", "_")
     # expected_value = checklist_items.get(15)[1]
@@ -2434,6 +2483,7 @@ def check_non_manifold_geometry():
 
     # Patch Function ----------------------
     def warning_non_manifold_geometry():
+        """Builds the warning message for non-manifold geometry."""
         user_input = cmds.confirmDialog(
             title=item_name,
             message=patch_message,
@@ -2467,6 +2517,7 @@ def check_non_manifold_geometry():
 
 # Item 16 - Empty UV Sets =========================================================================
 def check_empty_uv_sets():
+    """Checks for empty or invalid UV sets."""
     item_name = checklist_items.get(16)[0]
     item_id = item_name.lower().replace(" ", "_").replace("-", "_")
     # expected_value = checklist_items.get(16)[1]
@@ -2513,6 +2564,7 @@ def check_empty_uv_sets():
 
     # Patch Function ----------------------
     def warning_empty_uv_sets():
+        """Builds the warning message for empty UV sets."""
         user_input = cmds.confirmDialog(
             title=item_name,
             message=patch_message,
@@ -2550,6 +2602,7 @@ def check_empty_uv_sets():
 
 # Item 17 - Frozen Transforms =========================================================================
 def check_frozen_transforms():
+    """Checks whether transform channels are frozen as required."""
     item_name = checklist_items.get(17)[0]
     item_id = item_name.lower().replace(" ", "_").replace("-", "_")
     # expected_value = checklist_items.get(17)[1]
@@ -2600,6 +2653,7 @@ def check_frozen_transforms():
 
     # Patch Function ----------------------
     def warning_frozen_transforms():
+        """Builds the warning message for unfrozen transforms."""
         user_input = cmds.confirmDialog(
             title=item_name,
             message=patch_message,
@@ -2633,6 +2687,7 @@ def check_frozen_transforms():
 
 # Item 18 - Animated Visibility =========================================================================
 def check_animated_visibility():
+    """Checks for animated visibility attributes."""
     item_name = checklist_items.get(18)[0]
     item_id = item_name.lower().replace(" ", "_").replace("-", "_")
     # expected_value = checklist_items.get(18)[1]
@@ -2715,6 +2770,7 @@ def check_animated_visibility():
 
     # Patch Function ----------------------
     def warning_animated_visibility():
+        """Builds the warning message for animated visibility."""
         user_input = cmds.confirmDialog(
             title=item_name,
             message=patch_message,
@@ -2756,6 +2812,7 @@ def check_animated_visibility():
 
 # Item 19 - Non Deformer History =========================================================================
 def check_non_deformer_history():
+    """Checks for non-deformer construction history on scene meshes."""
     item_name = checklist_items.get(19)[0]
     item_id = item_name.lower().replace(" ", "_").replace("-", "_")
     # expected_value = checklist_items.get(19)[1]
@@ -2878,6 +2935,7 @@ def check_non_deformer_history():
 
     # Patch Function ----------------------
     def warning_non_deformer_history():
+        """Builds the warning message for non-deformer history paths."""
         user_input = cmds.confirmDialog(
             title=item_name,
             message=patch_message,
@@ -2919,6 +2977,7 @@ def check_non_deformer_history():
 
 # Item 20 - Textures Color Space =========================================================================
 def check_textures_color_space():
+    """Checks texture nodes for the expected color-space settings."""
     item_name = checklist_items.get(20)[0]
     item_id = item_name.lower().replace(" ", "_").replace("-", "_")
     # expected_value = checklist_items.get(20)[1]
@@ -3112,6 +3171,7 @@ def check_textures_color_space():
 
     # Patch Function ----------------------
     def warning_non_deformer_history():
+        """Builds the warning message for non-deformer history paths."""
         user_input = cmds.confirmDialog(
             title=item_name,
             message=patch_message + bottom_message,
@@ -3175,6 +3235,7 @@ def check_textures_color_space():
 
 # Item 21 - Network Paths (Miscellaneous) - Other Network Paths ====================================================
 def check_other_network_paths():
+    """Checks miscellaneous scene nodes for network paths."""
     item_name = checklist_items.get(21)[0]
     item_id = item_name.lower().replace(" ", "_").replace("-", "_")
     expected_value = checklist_items.get(21)[1]
@@ -3183,6 +3244,15 @@ def check_other_network_paths():
     def check_paths(
         node_type, path_attribute_name, accepts_empty=False, checks_multiple_paths=False, multiple_paths_spliter=";"
     ):
+        """Checks configured Maya nodes for invalid file paths.
+
+        Args:
+            node_type (str): Maya node type to inspect.
+            path_attribute_name (str): Path attribute on each node.
+            accepts_empty (bool): Whether an empty path is valid.
+            checks_multiple_paths (bool): Whether values contain multiple paths.
+            multiple_paths_spliter (str): Separator for multiple path values.
+        """
         try:
             all_provided_type_nodes = cmds.ls(type=node_type) or []
             for node in all_provided_type_nodes:
@@ -3290,6 +3360,7 @@ def check_other_network_paths():
 
     # Patch Function ----------------------
     def warning_other_network_paths():
+        """Builds the warning message for miscellaneous network paths."""
         user_input = cmds.confirmDialog(
             title=item_name,
             message=str(len(incorrect_path_nodes)) + string_message + " pointing to the network drive. \n"
@@ -3339,6 +3410,13 @@ def check_other_network_paths():
 
 
 def print_message(message, as_warning=False, as_heads_up_message=False):
+    """Prints a checklist status message with optional emphasis.
+
+    Args:
+        message (str): Message to display.
+        as_warning (bool): Whether to mark the message as a warning.
+        as_heads_up_message (bool): Whether to mark it as a heads-up message.
+    """
     if as_warning:
         cmds.warning(message)
     elif as_heads_up_message:
@@ -3348,6 +3426,11 @@ def print_message(message, as_warning=False, as_heads_up_message=False):
 
 
 def settings_apply_changes(reset_default=False):
+    """Applies checklist settings from the settings interface.
+
+    Args:
+        reset_default (bool): Whether to restore default settings first.
+    """
     settings_buffer = checklist_settings.get("settings_text_fields")
 
     # Resetting Fields
@@ -3422,6 +3505,11 @@ def settings_apply_changes(reset_default=False):
 
 # Used to Export Full Report:
 def export_report_to_txt(input_list):
+    """Exports checklist results to a text report.
+
+    Args:
+        input_list (list): Checklist result entries to write.
+    """
     temp_dir = cmds.internalVar(userTmpDir=True)
     txt_file = temp_dir + "tmp.txt"
 
@@ -3441,6 +3529,7 @@ def export_report_to_txt(input_list):
 
 # Import Settings
 def settings_import_state():
+    """Imports checklist settings from a saved state file."""
     file_handle = None
     file_name = (
         cmds.fileDialog2(
@@ -3484,6 +3573,7 @@ def settings_import_state():
 
 # Export Settings
 def settings_export_state():
+    """Exports current checklist settings to a state file."""
     file_handle = None
     file_name = (
         cmds.fileDialog2(
@@ -3529,11 +3619,13 @@ def settings_export_state():
 
 
 def get_short_name(obj):
-    """
-    Get the name of the objects without its path (Maya returns full path if name is not unique)
+    """Returns the short name of a Maya object.
 
     Args:
-            obj (string) - object to extract short name
+        obj (str): Maya object name or path.
+
+    Returns:
+        str: Object name without its hierarchy path.
     """
     short_name = ""
     if obj == "":

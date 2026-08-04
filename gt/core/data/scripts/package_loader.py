@@ -16,6 +16,12 @@ logger.setLevel(logging.INFO)
 
 
 def load_package_menu(package_path=None):
+    """Loads the GT Tools Maya menu and checks for package updates.
+
+    Args:
+        package_path (str, optional): Installed package directory. When omitted,
+            the default Maya preferences location is used.
+    """
     if not package_path:  # Find default install location
         maya_preferences = os.path.dirname(cmds.about(preferences=True))
         package_path = os.path.normpath(os.path.join(maya_preferences, "gt-tools"))

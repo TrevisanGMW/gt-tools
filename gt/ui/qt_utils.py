@@ -85,6 +85,13 @@ class MayaWindowMeta(type):
 
     @classmethod
     def _get_restore_key(mcs, module_name, class_name):
+        """Builds the key used to track a workspace-restored window.
+
+        Args:
+            mcs (object): Main-window or application context.
+            module_name (str): Module containing the window class.
+            class_name (str): Window class name.
+        """
         """Builds the key used to track a window while Maya restores it.
 
         Args:
@@ -101,6 +108,13 @@ class MayaWindowMeta(type):
         """Builds a stable Maya-safe object name for a window class.
 
         Args:
+            mcs (object): Main-window or application context.
+            module_name (str): Module containing the window class.
+            class_name (str): Window class name.
+        """
+        """Builds a stable Maya-safe object name for a window class.
+
+        Args:
             module_name (str): Module containing the window class.
             class_name (str): Name of the window class.
 
@@ -112,6 +126,14 @@ class MayaWindowMeta(type):
 
     @classmethod
     def _get_restore_script(mcs, module_name, class_name, workspace_control_name):
+        """Builds the script stored in a Maya workspace control.
+
+        Args:
+            mcs (object): Main-window or application context.
+            module_name (str): Module containing the window class.
+            class_name (str): Window class name.
+            workspace_control_name (str): Maya workspace control name.
+        """
         """Builds the Python script stored in Maya's workspace control.
 
         Args:
@@ -131,6 +153,13 @@ class MayaWindowMeta(type):
 
     @classmethod
     def _attach_restored_window(mcs, window, restore_parent):
+        """Attaches a recreated Qt window to Maya's workspace control.
+
+        Args:
+            mcs (object): Main-window or application context.
+            window (QWidget): Window being restored.
+            restore_parent (object): Maya restore-parent object.
+        """
         """Attaches a recreated Qt window to Maya's current workspace control.
 
         Args:
@@ -160,6 +189,13 @@ class MayaWindowMeta(type):
 
     @classmethod
     def _remove_retained_workspace_windows(mcs, window, restore_parent):
+        """Detaches retained window instances from a workspace control.
+
+        Args:
+            mcs (object): Main-window or application context.
+            window (QWidget): Current window instance.
+            restore_parent (object): Maya restore-parent object.
+        """
         """Detaches old window instances from a retained Maya workspace control.
 
         Maya can retain the contents of a closed workspace control. Attaching a
@@ -194,6 +230,12 @@ class MayaWindowMeta(type):
 
     @classmethod
     def _prepare_window_for_replacement(mcs, window):
+        """Prepares a window for automatic workspace replacement.
+
+        Args:
+            mcs (object): Main-window or application context.
+            window (QWidget): Window being replaced.
+        """
         """Disables callbacks that should not run during automatic UI replacement.
 
         Args:
@@ -207,6 +249,13 @@ class MayaWindowMeta(type):
 
     @classmethod
     def _widgets_share_identity(mcs, first_widget, second_widget):
+        """Checks whether two widgets share reloadable window identity.
+
+        Args:
+            mcs (object): Main-window or application context.
+            first_widget (QWidget): First widget to compare.
+            second_widget (QWidget): Second widget to compare.
+        """
         """Checks whether two widgets represent the same reloadable window class.
 
         Python module reloads create a new class object, so ``isinstance`` alone
@@ -232,6 +281,13 @@ class MayaWindowMeta(type):
 
     @classmethod
     def _reuse_workspace_control(mcs, window, restore_script):
+        """Reuses a retained Maya workspace control when reopening a tool.
+
+        Args:
+            mcs (object): Main-window or application context.
+            window (QWidget): Window being reopened.
+            restore_script (str): Script used to restore the workspace control.
+        """
         """Reuses a retained Maya workspace control when reopening a tool.
 
         Args:
@@ -265,6 +321,14 @@ class MayaWindowMeta(type):
 
     @classmethod
     def restore_window(mcs, module_name, class_name, workspace_control_name=None):
+        """Recreates a window inside Maya's restoring workspace control.
+
+        Args:
+            mcs (object): Main-window or application context.
+            module_name (str): Module containing the window class.
+            class_name (str): Window class name.
+            workspace_control_name (str, optional): Existing control name.
+        """
         """Recreates a window inside Maya's restoring workspace control.
 
         The tool package launcher is preferred so its model and controller are

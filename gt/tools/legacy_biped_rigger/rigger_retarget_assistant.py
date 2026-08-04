@@ -112,6 +112,11 @@ def get_hik_current_character():
 
 
 def hik_get_definition(character):
+    """Returns the HumanIK definition associated with a character.
+
+    Args:
+        character (str): HumanIK character node.
+    """
     hik_bones = {}
     hik_count = cmds.hikGetNodeCount()
     for i in range(hik_count):
@@ -123,6 +128,7 @@ def hik_get_definition(character):
 
 
 def hik_update_tool():
+    """Refreshes the HumanIK tool state from the current scene."""
     mel_code = """
         if ( hikIsCharacterizationToolUICmdPluginLoaded() )
         {
@@ -144,6 +150,7 @@ def hik_update_tool():
 
 
 def hik_bake_animation():
+    """Bakes the active HumanIK animation to its target rig."""
     mel_code = """
         hikUpdateCharacterMenu;
         hikUpdateBakeMenu;
@@ -159,6 +166,11 @@ def hik_bake_animation():
 
 
 def hik_set_current_character(character):
+    """Sets the active HumanIK character.
+
+    Args:
+        character (str): HumanIK character node to activate.
+    """
     mel.eval('hikSetCurrentCharacter("' + character + '")')
     mel.eval("hikUpdateCharacterList()")
     mel.eval('hikSetCurrentSourceFromCharacter("' + character + '")')
@@ -166,6 +178,12 @@ def hik_set_current_character(character):
 
 
 def hik_set_source(target_character, source_character):
+    """Assigns a HumanIK source character to a target character.
+
+    Args:
+        target_character (str): Target HumanIK character.
+        source_character (str): Source HumanIK character.
+    """
     hik_set_current_character(target_character)
     _HUMAN_IK_SOURCE_MENU = "hikSourceList"
     _HUMAN_IK_SOURCE_MENU_OPTION = _HUMAN_IK_SOURCE_MENU + "|OptionMenu"
@@ -189,6 +207,15 @@ def hik_set_source(target_character, source_character):
 
 
 def find_item_no_namespace(search_obj, obj_type="transform"):
+    """Finds a Maya item by short name without a namespace.
+
+    Args:
+        search_obj (str): Short name to locate.
+        obj_type (str): Maya node type to search.
+
+    Returns:
+        str: Matching node name, or an empty value when not found.
+    """
     found = []
     all_items = cmds.ls(type=obj_type)
     for obj in all_items:
@@ -399,10 +426,12 @@ def delete_toe_mocap_rig():
 
 
 def _btn_refresh_textfield_hik_data(*args):
+    """Refreshes the HumanIK data field from the current scene."""
     hik_character[args[0]] = args[1]
 
 
 def _btn_refresh_textfield_settings_data(*args):
+    """Refreshes the retarget settings field from the current scene."""
     settings[args[0]] = args[1]
 
     if settings.get("unlock_rotations"):
@@ -423,6 +452,7 @@ def hik_post_bake_mocap_rig(controls_to_bake):
 
 
 def transfer_fk_ik_toe_mocap_rig():
+    """Transfers FK/IK toe animation to the mocap rig."""
     left_ball_ctrl_ns = find_item_no_namespace("left_ball_ctrl")
     right_ball_ctrl_ns = find_item_no_namespace("right_ball_ctrl")
 
@@ -466,6 +496,11 @@ def transfer_fk_ik_toe_mocap_rig():
 
 
 def switch_to_fk_influence(switch_ctrls):
+    """Switches supplied controls to FK influence.
+
+    Args:
+        switch_ctrls (list): Controls whose FK influence should be enabled.
+    """
     for ctrl in switch_ctrls:
         attributes = cmds.listAttr(ctrl, userDefined=True)
         influence_switch_attr = "influenceSwitch"
@@ -477,6 +512,7 @@ def switch_to_fk_influence(switch_ctrls):
 
 
 def _btn_bake_mocap_with_fixes(*args):
+    """Bakes mocap animation using the configured corrective fixes."""
     if debugging_settings.get("is_debugging"):
         if debugging_settings.get("source"):
             hik_character["source"] = debugging_settings.get("source")
@@ -735,6 +771,11 @@ def _btn_bake_mocap_with_fixes(*args):
 
 
 def create_finger_mocap_rig(hik_source_definition):
+    """Creates a finger mocap rig from a HumanIK source definition.
+
+    Args:
+        hik_source_definition (dict): HumanIK source mapping data.
+    """
     fingers_dict = {
         "LeftHandIndex1": "left_index01_ctrl",
         "LeftHandIndex2": "left_index02_ctrl",
@@ -835,6 +876,11 @@ def create_finger_mocap_rig(hik_source_definition):
 
 
 def create_spine_mocap_rig(hik_source_definition):
+    """Creates a spine mocap rig from a HumanIK source definition.
+
+    Args:
+        hik_source_definition (dict): HumanIK source mapping data.
+    """
     # Necessary Ctrls
     chest_ctrl_ns = find_item_no_namespace("chest_ctrl")[0]
     spine02_ctrl_ns = find_item_no_namespace("spine02_ctrl")[0]
@@ -934,6 +980,14 @@ def create_spine_mocap_rig(hik_source_definition):
 
 
 def hik_find_highest_spine(hik_definition):
+    """Finds the highest spine entry in a HumanIK definition.
+
+    Args:
+        hik_definition (dict): HumanIK definition mapping.
+
+    Returns:
+        object: Highest spine entry, when available.
+    """
     spine_query = [
         hik_definition.get("Spine"),
         hik_definition.get("Spine1"),
@@ -977,6 +1031,11 @@ def build_gui_mocap_rig():
         cmds.textField(hik_source_textfield, e=True, text=hik_source)
 
     def _btn_select_properties(tf_source, *args):
+        """Selects the HumanIK properties node from a text field.
+
+        Args:
+            tf_source (QLineEdit): Text field containing the source node.
+        """
         logger.debug(str(args))
 
         char = cmds.textField(tf_source, q=True, text=True)
@@ -1256,6 +1315,12 @@ def build_gui_mocap_rig():
 
 
 def build_custom_help_window(input_text, help_title="", *args):
+    """Builds a custom HumanIK retargeting help window.
+
+    Args:
+        input_text (str): Help text displayed in the window.
+        help_title (str): Help window title.
+    """
     """
     Creates a help window to display the provided text
 
@@ -1318,6 +1383,12 @@ def build_custom_help_window(input_text, help_title="", *args):
 
 
 def build_fingers_help_window(input_text, help_title="", *args):
+    """Builds the finger mocap help window.
+
+    Args:
+        input_text (str): Help text displayed in the window.
+        help_title (str): Help window title.
+    """
     """
     Creates a help window to display the provided text
 
@@ -1330,11 +1401,13 @@ def build_fingers_help_window(input_text, help_title="", *args):
     """
 
     def invert_finger_orientation(*current_state):
+        """Toggles finger orientation inversion settings."""
         logger.debug("is_finger_inverted: " + str(current_state[0]))
         sys.stdout.write("\nInvert Finger Rotation Set To : " + str(current_state[0]))
         settings["is_finger_inverted"] = current_state[0]
 
     def invert_finger_only_z(*current_state):
+        """Toggles inversion of the finger Z orientation only."""
         logger.debug("is_finger_only_main: " + str(current_state[0]))
         sys.stdout.write("\nUse Only Main Finger Rotation Set To : " + str(current_state[0]))
         settings["is_finger_only_main"] = current_state[0]
@@ -1359,6 +1432,12 @@ def build_fingers_help_window(input_text, help_title="", *args):
 
 
 def build_spine_help_window(input_text, help_title="", *args):
+    """Builds the spine mocap help window.
+
+    Args:
+        input_text (str): Help text displayed in the window.
+        help_title (str): Help window title.
+    """
     """
     Creates a help window to display the provided text
 
@@ -1371,11 +1450,13 @@ def build_spine_help_window(input_text, help_title="", *args):
     """
 
     def set_spine_influence(*current_state):
+        """Toggles spine influence settings."""
         logger.debug("spine_influence: " + str(current_state[0]))
         sys.stdout.write("\nSpine Influence Set To : " + "% 6.2f" % current_state[0])
         settings["spine_influence"] = current_state[0]
 
     def set_spine_inversion(*current_state):
+        """Toggles spine inversion settings."""
         logger.debug(current_state[0] + ": " + str(current_state[1]))
         dimension = current_state[0].replace("is_spine_inverted_", "")
         sys.stdout.write("\nInvert Spine " + dimension.capitalize() + " Rotation Set To : " + str(current_state[1]))
@@ -1437,6 +1518,14 @@ def is_hik_character_valid(char):
 
 
 def get_hik_properties_node(char):
+    """Finds the HumanIK properties node for a character.
+
+    Args:
+        char (str): HumanIK character node.
+
+    Returns:
+        str: Properties node name.
+    """
     if not is_hik_character_valid(char):
         raise Exception("Couldn't find character definition for: \"" + char + '".')
     try:
@@ -1457,6 +1546,14 @@ def get_hik_properties_node(char):
 
 
 def get_hik_retarget_node(char):
+    """Finds the HumanIK retarget node for a character.
+
+    Args:
+        char (str): HumanIK character node.
+
+    Returns:
+        str: Retarget node name.
+    """
     if not is_hik_character_valid(char):
         raise Exception("Couldn't find character definition for: \"" + char + '".')
 
@@ -1474,6 +1571,14 @@ def get_hik_retarget_node(char):
 
 
 def get_hik_solver_node(char):
+    """Finds the HumanIK solver node for a character.
+
+    Args:
+        char (str): HumanIK character node.
+
+    Returns:
+        str: Solver node name.
+    """
     if not is_hik_character_valid(char):
         raise Exception("Couldn't find character definition for: \"" + char + '".')
 
@@ -1490,6 +1595,14 @@ def get_hik_solver_node(char):
 
 
 def get_hik_source(char):
+    """Returns the source character assigned to a HumanIK character.
+
+    Args:
+        char (str): HumanIK character node.
+
+    Returns:
+        str: Source character name.
+    """
     # Try to get it through the menu
     try:
         option_menu_group_list = cmds.lsUI(l=True, type="optionMenuGrp")
@@ -1529,6 +1642,12 @@ def get_hik_source(char):
 
 
 def get_orientation(obj, return_type="point"):
+    """Returns an object's world-space orientation representation.
+
+    Args:
+        obj (str): Maya object to inspect.
+        return_type (str): Orientation representation to return.
+    """
     """
     Get an objects' orientation WIP
 
@@ -1604,6 +1723,12 @@ def dist_center_to_center(obj_a, obj_b):
 
 
 def get_joint_orientation(obj, expected_up=(0, 1, 0)):
+    """Calculates a joint orientation from its scene transform.
+
+    Args:
+        obj (str): Joint object to inspect.
+        expected_up (tuple): Expected world-space up vector.
+    """
     unique_name = "_" + str(random.random())
     obj_child = cmds.listRelatives(obj, children=True, fullPath=True) or []
     if obj_child:

@@ -45,8 +45,15 @@ def _build_anchor_grid(vertical):
     from gt.core import transform as core_transform
 
     def _make_command(horizontal_anchor, depth_anchor):
+        """Creates a pivot-move command bound to specific anchors.
+
+        Args:
+            horizontal_anchor (str): Horizontal pivot anchor.
+            depth_anchor (str): Depth pivot anchor.
+        """
         """Creates a pivot-move command bound to specific anchors."""
         def _command():
+            """Moves selected objects to the configured pivot anchors."""
             core_transform.move_pivot_to_bounding_box_position(
                 horizontal=horizontal_anchor,
                 vertical=vertical,

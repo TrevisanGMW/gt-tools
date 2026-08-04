@@ -40,6 +40,7 @@ def build_package_updater_gui(model=None):
 
 
 def silently_check_for_updates():
+    """Checks for package updates without displaying an interactive dialog."""
     _model = package_updater_model.PackageUpdaterModel()
     if not _model.get_auto_check():
         return

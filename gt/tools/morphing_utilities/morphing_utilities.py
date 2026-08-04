@@ -32,6 +32,11 @@ morphing_util_settings = {
 
 
 def delete_blends_targets(blend_node):
+    """Deletes all targets from a blend shape node.
+
+    Args:
+        blend_node (str): Blend shape node to edit.
+    """
     """
     Delete all blend targets found in the provided blend shape node
 
@@ -71,6 +76,12 @@ def delete_all_blend_targets():
 
 
 def delete_blends_target(blend_node, target_name):
+    """Deletes one target from a blend shape node.
+
+    Args:
+        blend_node (str): Blend shape node to edit.
+        target_name (str): Target name to delete.
+    """
     """
     Deletes only the provided blend target
     Args:
@@ -276,6 +287,14 @@ def duplicate_blend_target(blend_node, blend_index):
 
 
 def duplicate_flip_blend_target(blend_node, target_name, duplicate_name=None, symmetry_axis="x"):
+    """Duplicates a blend target and flips it across an axis.
+
+    Args:
+        blend_node (str): Blend shape node containing the target.
+        target_name (str): Target to duplicate.
+        duplicate_name (str, optional): Name for the duplicate target.
+        symmetry_axis (str): Axis used for the flip.
+    """
     """
     Duplicates and flip targets matching the provided name
     Args:
@@ -322,6 +341,15 @@ def duplicate_flip_blend_target(blend_node, target_name, duplicate_name=None, sy
 def duplicate_mirror_blend_target(
     blend_node, target_name, duplicate_name=None, symmetry_axis="x", mirror_direction="-"
 ):
+    """Duplicates a blend target and mirrors it across an axis.
+
+    Args:
+        blend_node (str): Blend shape node containing the target.
+        target_name (str): Target to duplicate.
+        duplicate_name (str, optional): Name for the duplicate target.
+        symmetry_axis (str): Axis used for the mirror.
+        mirror_direction (str): Direction of the mirror operation.
+    """
     """
     Duplicates and mirror targets matching the provided name
     Args:
@@ -376,6 +404,14 @@ def duplicate_mirror_blend_target(
 
 
 def duplicate_flip_filtered_targets(blend_node, search_string, replace_string=None, symmetry_axis="x"):
+    """Duplicates and flips targets matching a search string.
+
+    Args:
+        blend_node (str): Blend shape node containing the targets.
+        search_string (str): Text used to filter target names.
+        replace_string (str, optional): Replacement text for generated names.
+        symmetry_axis (str): Axis used for the flip.
+    """
     """
     Duplicate targets that match search string and flip them
     Args:
@@ -416,6 +452,15 @@ def duplicate_flip_filtered_targets(blend_node, search_string, replace_string=No
 def duplicate_mirror_filtered_targets(
     blend_node, search_string, replace_string=None, symmetry_axis="x", mirror_direction="-"
 ):
+    """Duplicates and mirrors targets matching a search string.
+
+    Args:
+        blend_node (str): Blend shape node containing the targets.
+        search_string (str): Text used to filter target names.
+        replace_string (str, optional): Replacement text for generated names.
+        symmetry_axis (str): Axis used for the mirror.
+        mirror_direction (str): Direction of the mirror operation.
+    """
     """
     Duplicate targets that match the search string and mirror them
     Args:
@@ -457,12 +502,26 @@ def duplicate_mirror_filtered_targets(
 
 
 def rename_blend_target(blend_shape, target, new_name):
+    """Renames a target in a blend shape node.
+
+    Args:
+        blend_shape (str): Blend shape node containing the target.
+        target (str): Existing target name.
+        new_name (str): New target name.
+    """
     """Renames the provided blend shape target"""
     cmds.aliasAttr(new_name, blend_shape + "." + target)
     return new_name
 
 
 def search_replace_blend_targets(blend_node, search_string, replace_string):
+    """Replaces text in blend target names.
+
+    Args:
+        blend_node (str): Blend shape node to edit.
+        search_string (str): Text to find in target names.
+        replace_string (str): Text that replaces each match.
+    """
     blendshape_names = cmds.listAttr(blend_node + ".w", m=True) or []
     pairs_to_rename = {}
     logger.debug("search_string:" + search_string)
@@ -483,7 +542,9 @@ def search_replace_blend_targets(blend_node, search_string, replace_string):
 
 
 def build_gui_morphing_utilities():
+    """Builds the Morphing Utilities tool window."""
     def update_settings(*args):
+        """Updates stored settings from the Morphing Utilities controls."""
         logger.debug(str(args))
         search_string = cmds.textField(desired_filter_textfield, q=True, text=True)
         replace_string = cmds.textField(undesired_filter_textfield, q=True, text=True)
@@ -496,6 +557,7 @@ def build_gui_morphing_utilities():
         logger.debug("replace_string: " + str(morphing_util_settings.get("replace_string")))
 
     def select_blend_shape_node():
+        """Selects the active blend shape node in Maya."""
         error_message = "Unable to locate blend shape node. Please try again."
         blend_node = cmds.textScrollList(blend_nodes_scroll_list, q=True, selectItem=True) or []
         if blend_node:
@@ -518,6 +580,11 @@ def build_gui_morphing_utilities():
         """
 
         def failed_to_load_source(failed_message="Failed to Load"):
+            """Displays a warning when the requested source cannot be loaded.
+
+            Args:
+                failed_message (str): Warning text to display.
+            """
             cmds.button(source_object_status, l=failed_message, e=True, bgc=(1, 0.4, 0.4), w=130)
             cmds.textScrollList(blend_nodes_scroll_list, e=True, removeAll=True)
             morphing_util_settings["morphing_obj"] = ""
@@ -555,6 +622,11 @@ def build_gui_morphing_utilities():
                     cmds.textScrollList(blend_nodes_scroll_list, e=True, append=blendshape_nodes)
 
     def _validate_current_blend_settings(blend_node):
+        """Validates the active blend shape settings.
+
+        Args:
+            blend_node (str): Blend shape node being validated.
+        """
         """Checks if basic elements are available before running targeted operations"""
         if blend_node:
             if not cmds.objExists(blend_node):
@@ -566,6 +638,11 @@ def build_gui_morphing_utilities():
         return True
 
     def _validate_search_replace(operation="default"):
+        """Validates search-and-replace settings for an operation.
+
+        Args:
+            operation (str): Operation whose settings should be checked.
+        """
         """Checks elements one last time before running the script"""
         update_settings()
 
@@ -635,10 +712,12 @@ def build_gui_morphing_utilities():
                 cmds.select(current_selection)
 
     def _delete_all_blend_targets_btn():
+        """Handles the delete-all-targets button action."""
         removed_num = delete_all_blend_targets()
         operation_inview_feedback(removed_num, action="deleted")
 
     def _delete_all_blend_nodes_btn():
+        """Handles the delete-all-blend-nodes button action."""
         removed_num = delete_all_blend_nodes()
         operation_inview_feedback(removed_num, action="deleted")
 
@@ -934,6 +1013,14 @@ def bake_current_state(blend_node):
 
 
 def get_blend_mesh(blend_node):
+    """Finds the mesh driven by a blend shape node.
+
+    Args:
+        blend_node (str): Blend shape node to inspect.
+
+    Returns:
+        str: Driven mesh name, or an empty value when not found.
+    """
     if cmds.objectType(blend_node) != "blendShape":
         cmds.warning('Provided node "' + str(blend_node) + '" is not a blend shape node.')
         return
@@ -943,6 +1030,12 @@ def get_blend_mesh(blend_node):
 
 
 def build_custom_help_window(input_text, help_title="", *args):
+    """Builds a help window from supplied text.
+
+    Args:
+        input_text (str): Help text displayed in the window.
+        help_title (str): Window title.
+    """
     """
     Creates a help window to display the provided text
 

@@ -1,1 +1,1 @@
-﻿"""Auto Rigger attribute widget implementations."""
+"""Auto Rigger attribute widget implementations."""

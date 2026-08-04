@@ -155,6 +155,7 @@ class GTBipedRiggerData:
 
     # Store Default Values
     def __init__(self):
+        """Initializes persistent biped rigger data."""
         self.settings = {
             "using_no_ssc_skeleton": False,
             "offer_heel_roll_positioning": True,
@@ -267,6 +268,7 @@ class GTBipedRiggerFacialData:
 
     # Store Default Values
     def __init__(self):
+        """Initializes persistent facial rigger data."""
         self.settings = {
             "find_pre_existing_elements": True,
             "setup_nose_cheek": False,
@@ -370,6 +372,7 @@ class GTBipedRiggerCorrectiveData:
 
     # Store Default Values
     def __init__(self):
+        """Initializes persistent corrective rigger data."""
         self.settings = {
             "setup_wrists": True,
             "setup_elbows": True,
@@ -589,6 +592,7 @@ class GTBipedRiggerRebuildData:
 
     # Store Default Values
     def __init__(self):
+        """Initializes persistent rebuild data."""
         self.settings = {}  # 'setup_one': True,
         self.settings_default = copy.deepcopy(self.settings)
 

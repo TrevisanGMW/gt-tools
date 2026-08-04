@@ -540,6 +540,12 @@ class FbxExporter:
             self._export_fallback_without_sdk(path, current_selection)
 
     def _export_fallback_without_sdk(self, path, current_selection):
+        """Exports FBX through the hierarchy-preserving fallback workflow.
+
+        Args:
+            path (str): Destination FBX file path.
+            current_selection (list): Selected Maya nodes to export.
+        """
         """
         Fallback method that safely unparents top-level sub-groups to world
         (preserving internal hierarchy and scale), exports, and then undoes everything.
@@ -577,6 +583,14 @@ class FbxExporter:
 
             # Helper method to check if a node is driven by constraints (not raw keyframes)
             def has_complex_drivers(node_path):
+                """Checks whether a node has drivers requiring baked export handling.
+
+                Args:
+                    node_path (str): Maya node path to inspect.
+
+                Returns:
+                    bool: Whether complex drivers were found.
+                """
                 for attr in ["translate", "rotate", "scale"]:
                     for axis in ["x", "y", "z"]:
                         conns = cmds.listConnections(f"{node_path}.{attr}{axis.upper()}", s=True, d=False)

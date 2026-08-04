@@ -1,1 +1,1 @@
-﻿"""Auto Rigger module implementations."""
+"""Auto Rigger module implementations."""

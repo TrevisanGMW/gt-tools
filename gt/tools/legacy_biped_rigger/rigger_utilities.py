@@ -245,6 +245,14 @@ def make_stretchy_ik(ik_handle, stretchy_name='temp', attribute_holder=None, jnt
         return math.sqrt(dx * dx + dy * dy + dz * dz)
 
     def int_to_en(num):
+        """Converts an integer to its English word representation.
+
+        Args:
+            num (int): Integer to convert.
+
+        Returns:
+            str: English word representation.
+        """
         """
         Given an int32 number, returns an English word for it.
         
@@ -1712,6 +1720,13 @@ def create_text(text, font='MS Shell Dlg 2'):
 
 
 def rescale(obj, scale, freeze=True):
+    """Scales an object and optionally freezes its scale values.
+
+    Args:
+        obj (str): Name of the object to rescale.
+        scale (float): New scale value.
+        freeze (bool): Whether to freeze the resulting scale.
+    """
     """
     Sets the scaleXYZ to the provided scale value, then freezes the object, so it has a new scale
     Args:
@@ -2567,6 +2582,11 @@ def create_eye_controls():
 
 
 def create_facial_side_gui(add_nose_cheeks=False):
+    """Builds the facial side controls interface.
+
+    Args:
+        add_nose_cheeks (bool): Whether to include nose and cheek controls.
+    """
     selection = cmds.ls(selection=True)
     parent_grp = cmds.group(empty=True, world=True, name='facial_side_gui_grp')
     eyebrow_ctrls = create_eyebrow_controls()
@@ -2735,15 +2755,35 @@ def get_plus_minus_average_available_slot(node, input_type='input3D'):
 
 
 def select_items(*args):
+    """Selects the provided Maya items.
+
+    Args:
+        *args (str): Maya object names to select.
+    """
     to_select = make_flat_list(args)
     cmds.select(to_select)
 
 
 def get_children(root):
+    """Collects child transforms below a Maya root object.
+
+    Args:
+        root (str): Root Maya object to traverse.
+
+    Returns:
+        list: Child object names.
+    """
     return cmds.listRelatives(root, children=True)
 
 
 def create_pin_control(jnt_name, scale_offset, create_offset_grp=True):
+    """Creates a simple FK control for a joint.
+
+    Args:
+        jnt_name (str): Name of the joint to control.
+        scale_offset (float): Scale offset applied before freezing the control.
+        create_offset_grp (bool): Whether to create an offset group.
+    """
     """
     Creates a simple fk control. Used to quickly iterate through the creation of the finger controls
 
@@ -2823,6 +2863,14 @@ class StripNamespace(object):
 
     @classmethod
     def as_name(cls, uuid):
+        """Returns a Maya node name for a UUID.
+
+        Args:
+            uuid (str): UUID used to look up the node.
+
+        Returns:
+            str: Matching node name, or ``None`` when unavailable.
+        """
         """
         Convenience method to extract the name from uuid
 
@@ -2833,6 +2881,11 @@ class StripNamespace(object):
         return names[0] if names else None
 
     def __init__(self, namespace):
+        """Initializes a namespace-stripping context.
+
+        Args:
+            namespace (str): Namespace whose nodes will be temporarily renamed.
+        """
         if cmds.namespace(exists=namespace):
             self.original_names = {}  # (UUID, name_within_namespace)
             self.namespace = cmds.namespaceInfo(namespace, fn=True)
@@ -2840,6 +2893,11 @@ class StripNamespace(object):
             raise ValueError('Could not locate supplied namespace, "{0}"'.format(namespace))
 
     def __enter__(self):
+        """Temporarily strips the namespace from dependency nodes.
+
+        Returns:
+            StripNamespace: This context manager.
+        """
         for absolute_name in cmds.namespaceInfo(self.namespace, listOnlyDependencyNodes=True, fullName=True):
 
             # Ensure node was *not* auto-renamed (IE: shape nodes)
@@ -2864,6 +2922,13 @@ class StripNamespace(object):
         return [self.as_name(uuid) for uuid in self.original_names]
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """Restores original node names when leaving the context.
+
+        Args:
+            exc_type (type): Exception type, if raised in the context.
+            exc_val (Exception): Exception value, if raised in the context.
+            exc_tb (traceback): Exception traceback, if raised in the context.
+        """
         for uuid, original_name in self.original_names.items():
             current_name = self.as_name(uuid)
             api_obj = OpenMaya.MGlobal.getSelectionListByName(current_name).getDependNode(0)

@@ -1193,6 +1193,7 @@ def build_gui_help_startup_booster():
     widget.setWindowIcon(icon)
 
     def close_help_gui():
+        """Closes the Startup Booster help window."""
         if cmds.window(window_name, exists=True):
             cmds.deleteUI(window_name, window=True)
 

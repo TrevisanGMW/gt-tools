@@ -341,6 +341,11 @@ class AnimationLabelTrackerView(legacy_tracker.RangeToolWindow):
         self._apply_button_icons()
 
     def closeEvent(self, event):
+        """Persists preferences before closing tracker.
+
+        Args:
+            event (QCloseEvent): Qt close event.
+        """
         """Persists preferences before closing the tracker."""
         self.save_preferences()
         super().closeEvent(event)

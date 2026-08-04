@@ -779,6 +779,11 @@ def build_gui_auto_biped_rig():
 
 # Creates Help GUI
 def build_help_gui_auto_biped_rig(script_name):
+    """Builds the automatic biped rigger help window.
+
+    Args:
+        script_name (str): Script name shown in the help interface.
+    """
     """Creates the Help windows"""
     window_name = "build_help_gui_auto_biped_rig"
     if cmds.window(window_name, exists=True):
@@ -886,7 +891,7 @@ def build_custom_help_window(input_text, help_title=""):
 
     Args:
         input_text (string): Text used as help, this is displayed in a scroll fields.
-        help_title (optional, string)
+    help_title (str): Title displayed on the help window.
     """
     window_name = help_title.replace(" ", "_").replace("-", "_").lower().strip() + "_help_window"
     if cmds.window(window_name, exists=True):
@@ -1992,6 +1997,11 @@ def import_biped_proxy_pose(source_path=None, source_dict=None):
     """
 
     def import_biped_proxy_pose_json(json_data):
+        """Imports proxy pose transforms for the biped rig.
+
+        Args:
+            json_data (dict): Proxy pose data decoded from JSON.
+        """
         import_method = "object-space"
         try:
             is_valid_file = True
@@ -2171,6 +2181,11 @@ def import_facial_proxy_pose(source_path=None, source_dict=None):
     """
 
     def import_facial_proxy_pose_json(json_data):
+        """Imports proxy pose transforms for the facial rig.
+
+        Args:
+            json_data (dict): Facial proxy pose data decoded from JSON.
+        """
         try:
             is_valid_file = True
             import_method = "world-space"
@@ -2349,6 +2364,11 @@ def import_corrective_proxy_pose(source_path=None, source_dict=None):
     """
 
     def import_corrective_proxy_pose_json(json_data):
+        """Imports proxy pose transforms for the corrective rig.
+
+        Args:
+            json_data (dict): Corrective proxy pose data decoded from JSON.
+        """
         import_method = "world-space"
         try:
             is_valid_file = True

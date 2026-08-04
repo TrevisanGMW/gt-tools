@@ -99,6 +99,11 @@ class SelectionManagerController:
         self.sync_model_from_view(save=True)
 
     def sync_model_from_view(self, save=False):
+        """Synchronizes model settings with the current view.
+
+        Args:
+            save (bool): Whether to persist the synchronized settings.
+        """
         """Writes view values into the model."""
         if self._syncing_view:
             return

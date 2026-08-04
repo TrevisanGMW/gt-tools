@@ -71,6 +71,14 @@ class StripNamespace(object):
 
     @classmethod
     def as_name(cls, uuid):
+        """Builds a display name from a stored UUID.
+
+        Args:
+            uuid (str): UUID value used to derive the display name.
+
+        Returns:
+            str: Display name associated with the UUID.
+        """
         """
         Convenience method to extract the name from uuid
 
@@ -81,6 +89,11 @@ class StripNamespace(object):
         return names[0] if names else None
 
     def __init__(self, namespace):
+        """Initializes a namespace-stripping context.
+
+        Args:
+            namespace (str): Namespace removed while exporting.
+        """
         if cmds.namespace(exists=namespace):
             self.original_names = {}  # (UUID, name_within_namespace)
             self.namespace = cmds.namespaceInfo(namespace, fn=True)
@@ -88,6 +101,11 @@ class StripNamespace(object):
             raise ValueError('Could not locate supplied namespace, "{0}"'.format(namespace))
 
     def __enter__(self):
+        """Enters the namespace-stripping context.
+
+        Returns:
+            StripNamespace: This context manager.
+        """
         for absolute_name in cmds.namespaceInfo(self.namespace, listOnlyDependencyNodes=True, fullName=True):
 
             # Ensure node was *not* auto-renamed (IE: shape nodes)
@@ -112,6 +130,13 @@ class StripNamespace(object):
         return [self.as_name(uuid) for uuid in self.original_names]
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """Restores namespace state when leaving the context.
+
+        Args:
+            exc_type (type): Exception type, if an exception was raised.
+            exc_val (Exception): Exception value, if an exception was raised.
+            exc_tb (traceback): Exception traceback, if an exception was raised.
+        """
         for uuid, original_name in self.original_names.items():
             current_name = self.as_name(uuid)
             api_obj = OpenMaya.MGlobal.getSelectionListByName(current_name).getDependNode(0)
@@ -203,11 +228,18 @@ def fbx_plugin_loaded():
 
 
 def export_baked_animation():
+    """Exports the selected rig animation after baking its keyframes."""
     fbx_plugin_loaded()
     set_fbx_property("FBXExportBakeComplexAnimation", "true")
 
 
 def set_fbx_property(name, value):
+    """Sets a general FBX export property.
+
+    Args:
+        name (str): FBX property name.
+        value (object): Value assigned to the property.
+    """
     _propString = "{name} -v {value};".format(name=name, value=value)
     try:
         mel.eval(_propString)
@@ -218,16 +250,29 @@ def set_fbx_property(name, value):
 
 
 def set_fbx_geometry_property(name, value):
+    """Sets an FBX geometry export property.
+
+    Args:
+        name (str): FBX geometry property name.
+        value (object): Value assigned to the property.
+    """
     _fullname = "FBXProperty Export|IncludeGrp|Geometry|" + name
     set_fbx_property(name=_fullname, value=value)
 
 
 def set_fbx_export_property(name, value):
+    """Sets an FBX export option property.
+
+    Args:
+        name (str): FBX export option name.
+        value (object): Value assigned to the option.
+    """
     _fullname = "FBXExport" + name
     set_fbx_property(name=_fullname, value=value)
 
 
 def configure_fbx():
+    """Configures FBX plug-in settings for the export workflow."""
     fbx_plugin_loaded()
     # Configure FBX export settings
     # https://docs.unity3d.com/2017.4/Documentation/Manual/HOWTO-ArtAssetBestPracticeGuide.html
@@ -269,6 +314,11 @@ def configure_fbx():
 
 
 def find_root():
+    """Finds the root transform used by the current export selection.
+
+    Returns:
+        str: Root transform name, or an empty value when none is found.
+    """
     _root_joint = _get_skeleton_root_from_metadata()
     if not _root_joint:
         _root_joint = "root_jnt"
@@ -301,6 +351,11 @@ def _make_visible(*args):
 
 
 def _set_stored_attributes(attr_state_dict):
+    """Restores attributes from a stored state mapping.
+
+    Args:
+        attr_state_dict (dict): Mapping of attribute paths to saved values.
+    """
     """
     Sets the provided attributes (key) back to their stored values (value)
     According to the follow pattern: { 'object_name.attribute' : data }
@@ -344,6 +399,11 @@ def _validate_scene():
 
 
 def _export_fbx_file_dialog(caption_description="Model"):
+    """Opens the FBX export file dialog.
+
+    Args:
+        caption_description (str): Description used in the dialog caption.
+    """
     """
     Opens a dialog for exporting fbx files
 
@@ -365,6 +425,7 @@ def _export_fbx_file_dialog(caption_description="Model"):
 
 
 def _export_fbx_model(*args):
+    """Runs the model FBX export callback."""
     logger.debug(str(*args))
     fbx_path = _export_fbx_file_dialog()
     if fbx_path:
@@ -372,6 +433,7 @@ def _export_fbx_model(*args):
 
 
 def _export_fbx_animation(*args):
+    """Runs the animation FBX export callback."""
     logger.debug(str(*args))
     fbx_path = _export_fbx_file_dialog("Animation")
     if fbx_path:

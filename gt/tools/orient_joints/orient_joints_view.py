@@ -257,6 +257,14 @@ class OrientJointsView(metaclass=ui_qt_utils.MayaWindowMeta):
 
     @staticmethod
     def _get_mod_value_as_int(combobox):
+        """Converts a modifier combobox value to a signed integer.
+
+        Args:
+            combobox (QComboBox): Combobox containing the modifier value.
+
+        Returns:
+            int: Signed modifier value.
+        """
         """
         Converts the modifier combobox value into an integer
         Returns:

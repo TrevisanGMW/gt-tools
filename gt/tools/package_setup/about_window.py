@@ -82,5 +82,6 @@ def build_gui_about_gt_tools():
     widget.setWindowIcon(icon)
 
     def close_help_gui():
+        """Closes the package setup help window."""
         if cmds.window(window_name, exists=True):
             cmds.deleteUI(window_name, window=True)

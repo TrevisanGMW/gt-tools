@@ -320,6 +320,12 @@ def rename_definition(character_node, new_name):
 
 
 def set_definition_lock(character_node, lock_state=True):
+    """Locks or unlocks a HumanIK character definition.
+
+    Args:
+        character_node (str): HumanIK character definition node.
+        lock_state (bool): Whether the definition should be locked.
+    """
     """
     Locks or unlocks a HumanIK character definition.
     Safely simulates the exact native MEL UI button click to ensure all 

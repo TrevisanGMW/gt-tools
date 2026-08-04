@@ -591,6 +591,11 @@ def create_corrective_proxy(corrective_data):
 
 
 def create_corrective_setup(corrective_data):
+    """Creates Corrective Rig Setup.
+
+    Args:
+        corrective_data (dict): Corrective setup definition and source data.
+    """
     """ Creates Corrective Rig Setup """
 
     def rename_proxy(old_name):

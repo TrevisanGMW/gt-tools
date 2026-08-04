@@ -97,6 +97,11 @@ def evaluate_python_string(py_string, custom_error_message=None):
 
 
 def extract_proxy_metadata(data_object):
+    """Extracts rig metadata from a data object.
+
+    Args:
+        data_object (object): Object containing proxy metadata.
+    """
     """ Extracts Rig Metadata """
     proxy_source_obj_name = data_object.proxy_storage_variables.get('source_object_name')
     proxy_attr_name = data_object.proxy_storage_variables.get('attr_name')
@@ -198,8 +203,8 @@ def extract_dict_attributes(obj_list, default_channels=False, user_defined=True)
     Extracts attributes and store them in a dictionary
     Args:
         obj_list (list, none): List objects to extract the transform from (if empty, it will try to use selection)
-        default_channels (bool, optional) If it should include default channels (TRS)
-        user_defined (bool, optional) If it should include user-defined attributes
+    default_channels (bool, optional): Whether to include default channels (TRS).
+    user_defined (bool, optional): Whether to include user-defined attributes.
 
     Returns:
         dictionary with extracted values. Key = "object.attribute" Value = "attributeValue"

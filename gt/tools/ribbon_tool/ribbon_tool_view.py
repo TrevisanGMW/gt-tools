@@ -279,6 +279,11 @@ class RibbonToolView(metaclass=ui_qt_utils.MayaWindowMeta):
         main_layout.addLayout(bottom_layout)
 
     def update_ui_from_mode(self, index):
+        """Updates controls based on the selected ribbon mode.
+
+        Args:
+            index (int): Selected mode index.
+        """
         """
         Updates UI according to the selected mode.
         Args:

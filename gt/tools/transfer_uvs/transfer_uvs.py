@@ -382,6 +382,14 @@ def delete_temp_namespace(temp_namespace):
     default_namespaces = ["UI", "shared"]
 
     def num_children(namespace):
+        """Counts child nodes under a Maya namespace.
+
+        Args:
+            namespace (str): Namespace to inspect.
+
+        Returns:
+            int: Number of child nodes.
+        """
         """Used as a sort key, this will sort namespaces by how many children they have."""
         return namespace.count(":")
 
@@ -403,6 +411,14 @@ def open_transfer_uvs_docs():
 
 
 def get_uv_shells(obj):
+    """Returns UV shell identifiers for a mesh object.
+
+    Args:
+        obj (str): Mesh object to inspect.
+
+    Returns:
+        list: UV shell identifiers.
+    """
     """
     Returns a list with all UV sets
 
@@ -441,6 +457,15 @@ def get_uv_shells(obj):
 
 
 def are_uvs_identical(obj_a, obj_b):
+    """Checks whether two mesh objects have identical UV data.
+
+    Args:
+        obj_a (str): First mesh object.
+        obj_b (str): Second mesh object.
+
+    Returns:
+        bool: Whether the UV data matches.
+    """
     """
     Compares the UVs of objects A and B and returns True if they are different or False if they are not.
 
@@ -470,6 +495,7 @@ def are_uvs_identical(obj_a, obj_b):
 
 # Creates Help GUI
 def build_gui_help_uv_transfer():
+    """Builds the UV Transfer help window."""
     window_name = "build_gui_help_uv_transfer"
     if cmds.window(window_name, exists=True):
         cmds.deleteUI(window_name, window=True)
@@ -553,6 +579,7 @@ def build_gui_help_uv_transfer():
     widget.setWindowIcon(icon)
 
     def close_help_gui():
+        """Closes the UV Transfer help window."""
         if cmds.window(window_name, exists=True):
             cmds.deleteUI(window_name, window=True)
 
