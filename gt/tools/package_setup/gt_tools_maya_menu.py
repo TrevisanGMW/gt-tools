@@ -335,6 +335,10 @@ def load_menu(*args):
         command=IMPORT_UTIL + 'initialize_utility("scene", "force_reload_file")',
         tooltip="Forces the re-opening of an opened file. (Changes are ignored)",
         icon=ui_res_lib.Icon.util_reload_file,
+        option_box=True,
+        option_box_command=(
+            IMPORT_TOOL + 'initialize_tool("utility_options", "open_reload_file_options")'
+        ),
     )
     menu.add_menu_item(
         label="Open File Directory",
