@@ -1,0 +1,1 @@
+"""Animation Clip Tracker tests."""
