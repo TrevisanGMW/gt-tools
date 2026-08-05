@@ -1,18 +1,6 @@
 """
  Sine Attributes - Create Sine output attributes without using third-party plugins or expressions.
  github.com/TrevisanGMW/gt-tools - 2021-01-25
-
- 1.0 - 2021-01-25
- Initial Release
-
- 1.1 to 1.1.1 - 2021-05-10 to 2021-06-30
- Made script compatible with Python 3 (Maya 2022+)
- Added patch to version
- General cleanup
-
- 2.0.0 - 2026-07-17
- Refactored to MVC pattern.
- Added persistent settings.
 """
 # Tool Version
 __version_tuple__ = (2, 0, 0)
