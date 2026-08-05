@@ -124,6 +124,22 @@ class ClipTrackerView:
         if model.show_timeline:
             self.attach_timeline_widget()
 
+        # Fix: Ensure UI can be shrunk infinitely without breaking Qt layout minimums
+        try:
+            from maya import OpenMayaUI
+            win_ptr = OpenMayaUI.MQtUtil.findWindow(self.WINDOW_NAME)
+            if win_ptr:
+                win_wgt = ui_qt.shiboken.wrapInstance(int(win_ptr), ui_qt.QtWidgets.QWidget)
+                win_wgt.setMinimumHeight(10)
+
+            if self.clips_scroll:
+                scroll_ptr = OpenMayaUI.MQtUtil.findControl(self.clips_scroll)
+                if scroll_ptr:
+                    scroll_wgt = ui_qt.shiboken.wrapInstance(int(scroll_ptr), ui_qt.QtWidgets.QWidget)
+                    scroll_wgt.setMinimumHeight(0)
+        except Exception:
+            pass
+
     def window_exists(self):
         """Checks whether the tool window still exists.
 
@@ -214,12 +230,13 @@ class ClipTrackerView:
             str: Created layout.
         """
         cmds = get_maya_cmds()
-        host = cmds.columnLayout(parent=parent, adjustableColumn=True, height=TIMELINE_HEIGHT, rowSpacing=0)
+        host = cmds.columnLayout(parent=parent, adjustableColumn=True, rowSpacing=0)
         cmds.setParent(parent)
         return host
 
     def attach_timeline_widget(self):
         """Creates the Qt timeline widget inside the timeline host layout."""
+        cmds = get_maya_cmds()
         if not self.timeline_host:
             return
         try:
@@ -234,6 +251,18 @@ class ClipTrackerView:
             self.timeline_widget = widget
             self.controller.connect_timeline(widget)
             self.update_timeline()
+
+            # Dynamic DPI-aware height alignment
+            scale = 1.0
+            try:
+                scale = cmds.mayaDpiSetting(query=True, realScaleValue=True)
+            except Exception:
+                pass
+
+            widget_height = max(widget.sizeHint().height(), widget.minimumSizeHint().height())
+            if widget_height > 0:
+                cmds.columnLayout(self.timeline_host, edit=True, height=int(widget_height / scale))
+
         except Exception as exception:
             self.timeline_widget = None
             self.controller.model.log("Unable to build the timeline view: {0}".format(exception))
@@ -313,18 +342,40 @@ class ClipTrackerView:
         """
         cmds = get_maya_cmds()
         model = self.controller.model
+
+        def on_collapse(*args):
+            self.controller.set_preferences_collapsed(True)
+            if self.preferences_host and cmds.columnLayout(self.preferences_host, query=True, exists=True):
+                cmds.columnLayout(self.preferences_host, edit=True, height=1)
+
+        def on_expand(*args):
+            self.controller.set_preferences_collapsed(False)
+            if self.preferences_panel and self.preferences_host:
+                try:
+                    scale = 1.0
+                    try:
+                        scale = cmds.mayaDpiSetting(query=True, realScaleValue=True)
+                    except Exception:
+                        pass
+                    panel_height = max(self.preferences_panel.sizeHint().height(), self.preferences_panel.minimumSizeHint().height())
+                    cmds.columnLayout(self.preferences_host, edit=True, height=int(panel_height / scale) + 4)
+                except Exception:
+                    cmds.columnLayout(self.preferences_host, edit=True, height=PREFERENCES_HEIGHT)
+
         self.preferences_frame = cmds.frameLayout(
             parent=parent,
             label="Preferences",
             collapsable=True,
             collapse=bool(model.preferences_collapsed),
-            collapseCommand=lambda *args: self.controller.set_preferences_collapsed(True),
-            expandCommand=lambda *args: self.controller.set_preferences_collapsed(False),
+            collapseCommand=on_collapse,
+            expandCommand=on_expand,
         )
+
+        initial_height = 1 if model.preferences_collapsed else PREFERENCES_HEIGHT
         self.preferences_host = cmds.columnLayout(
             parent=self.preferences_frame,
             adjustableColumn=True,
-            height=PREFERENCES_HEIGHT,
+            height=initial_height,
             rowSpacing=0,
         )
         cmds.setParent(parent)
@@ -344,12 +395,36 @@ class ClipTrackerView:
                 preferences=self.controller.model.get_preference_values(),
                 parent=host_widget,
             )
-            host_layout.addWidget(panel)
+
+            # Fix: Wrap the injected Qt widget inside a QScrollArea.
+            # This completely prevents layout overlap. If Maya squashes the frame
+            # down to 0 space, the QScrollArea absorbs it and effortlessly clips the drawing
+            # without spilling outside its bounds.
+            scroll_area = ui_qt.QtWidgets.QScrollArea()
+            scroll_area.setWidget(panel)
+            scroll_area.setWidgetResizable(True)
+            scroll_area.setFrameShape(ui_qt.QtWidgets.QFrame.NoFrame)
+            scroll_area.setMinimumHeight(0)
+            scroll_area.setHorizontalScrollBarPolicy(ui_qt.QtCore.Qt.ScrollBarAlwaysOff)
+
+            host_layout.addWidget(scroll_area)
             panel.show()
+
             self.preferences_panel = panel
             self.controller.connect_preferences_panel(panel)
+
+            # Dynamic DPI-aware height calculation to prevent oversized Qt layouts inside Maya cmds.
+            scale = 1.0
+            try:
+                scale = cmds.mayaDpiSetting(query=True, realScaleValue=True)
+            except Exception:
+                pass
+
             panel_height = max(panel.sizeHint().height(), panel.minimumSizeHint().height())
-            cmds.columnLayout(self.preferences_host, edit=True, height=panel_height + 4)
+
+            if not self.controller.model.preferences_collapsed:
+                cmds.columnLayout(self.preferences_host, edit=True, height=int(panel_height / scale) + 4)
+
         except Exception as exception:
             self.preferences_panel = None
             self.controller.model.log("Unable to build the preferences panel: {0}".format(exception))
@@ -533,7 +608,6 @@ class ClipTrackerView:
             return
         selected_index = int(selected_index)
         if not self.controller.model.show_timeline:
-            # Without the timeline view there is no selection to mirror in the clip list
             selected_index = -1
             scroll_into_view = False
         for index, name_field in self.name_fields.items():
@@ -586,7 +660,6 @@ class ClipTrackerView:
                 return
             row_height = cmds.rowLayout(row_control, query=True, height=True) or 0
             visible_height = cmds.scrollLayout(self.clips_scroll, query=True, height=True) or 0
-            # Scrolling is relative, so the list is moved back to the top first
             cmds.scrollLayout(self.clips_scroll, edit=True, scrollByPixel=("up", MAX_SCROLL_PIXELS))
             offset = int((selected_index * row_height) - (max(0, visible_height - row_height) / 2))
             if offset > 0:
