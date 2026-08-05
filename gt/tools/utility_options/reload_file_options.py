@@ -32,7 +32,6 @@ def open_reload_file_options():
         icon=ui_res_lib.Icon.util_reload_file,
     )
     force_checkbox = ui_qt.QtWidgets.QCheckBox("Force Operation")
-    force_checkbox.setChecked(True)
     force_checkbox.setToolTip("Force the operation and discard unsaved changes.")
     loop_checkbox = ui_qt.QtWidgets.QCheckBox("Loop Directory")
     loop_checkbox.setChecked(False)

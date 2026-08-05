@@ -12,6 +12,7 @@ import math
 import sys
 import os
 import re
+import html
 
 # Logging Setup
 logging.basicConfig()
@@ -365,18 +366,22 @@ def open_adjacent_file(
     direction_label = "previous" if direction == -1 else "next"
     import gt.core.feedback as core_fback
 
+    filename = html.escape(os.path.basename(adjacent_file_path))
+    direction_style = "font-weight:bold;text-decoration:underline;"
+    filename_style = "color:#66CCFF;"
+    count_style = "color:#FFCC66;font-weight:bold;text-decoration:underline;"
+    feedback_message = (
+        "Open "
+        f'<span style="{direction_style}">{direction_label}</span> file '
+        f'<span style="{filename_style}">"{filename}"</span> - '
+        f'<span style="{count_style}">('
+        f'{adjacent_file_data["position"]} of {adjacent_file_data["total"]})</span>'
+    ).strip()
     feedback = core_fback.FeedbackMessage(
-        prefix=f"Opened {direction_label} file",
-        intro=f'"{os.path.basename(adjacent_file_path)}"',
-        quantity=adjacent_file_data["position"],
-        singular=f'of {adjacent_file_data["total"]} files.',
-        plural=f'of {adjacent_file_data["total"]} files.',
-        quantity_index=2,
-        style_intro="color:#66CCFF;",
-        style_quantity="color:#FFCC66;text-decoration:underline;",
-        style_pluralization="color:#FFCC66;text-decoration:underline;",
+        general_overwrite=feedback_message,
+        style_general=None,
     )
-    feedback.print_inview_message()
+    feedback.print_inview_message(stay_time=4000, system_write=False)
     return adjacent_file_data
 
 

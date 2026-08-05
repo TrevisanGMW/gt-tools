@@ -96,9 +96,8 @@ def _open_move_pivot_options(vertical, title, object_name, icon):
         title=title,
         object_name=object_name,
         icon=icon,
-        description=f"Move the pivot to a {vertical} anchor of each object's bounding box.",
     )
-    window.add_button_grid(_build_anchor_grid(vertical), label="Bounding Box Anchor (top-down view)")
+    window.add_button_grid(_build_anchor_grid(vertical))
     window.show_window()
     return window
 

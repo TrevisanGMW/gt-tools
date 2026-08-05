@@ -266,18 +266,20 @@ class TestSceneCore(unittest.TestCase):
             call(target_file_path, open=True, force=False),
                 mock_cmds.file.call_args_list[-1],
             )
-            expected_filename_style = "color:#66CCFF;"
-            expected_position_style = "color:#FFCC66;text-decoration:underline;"
-            self.assertEqual(
-                expected_filename_style,
-                mock_feedback.call_args.kwargs["style_intro"],
-            )
-            self.assertEqual(
-                expected_position_style,
-                mock_feedback.call_args.kwargs["style_quantity"],
-            )
-            self.assertEqual(
-                expected_position_style,
-                mock_feedback.call_args.kwargs["style_pluralization"],
-            )
-            mock_feedback.return_value.print_inview_message.assert_called_once()
+        expected_intro = (
+            '<span style="font-weight:bold;text-decoration:underline;">next</span> '
+            'file <span style="color:#66CCFF;">&quot;c.fbx&quot;.</span>'
+            '&nbsp;&nbsp;'
+            '<span style="color:#FFCC66;font-weight:bold;text-decoration:underline;">'
+            '(3 of 3)</span>'
+        )
+        expected_message = "Open " + expected_intro
+        self.assertEqual(
+            expected_message,
+            mock_feedback.call_args.kwargs["general_overwrite"],
+        )
+        self.assertIsNone(mock_feedback.call_args.kwargs["style_general"])
+        mock_feedback.return_value.print_inview_message.assert_called_once_with(
+            stay_time=4000,
+            system_write=False,
+        )

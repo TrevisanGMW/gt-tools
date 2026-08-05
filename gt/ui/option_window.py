@@ -431,7 +431,8 @@ class OptionWindow(metaclass=qt_utils.MayaWindowMeta):
             self.add_section(label)
         grid_layout = ui_qt.QtWidgets.QGridLayout()
         grid_layout.setContentsMargins(0, 0, 0, 0)
-        grid_layout.setSpacing(4)
+        grid_layout.setHorizontalSpacing(4)
+        grid_layout.setVerticalSpacing(4)
         buttons = []
         for row_index, row in enumerate(button_rows):
             for column_index, spec in enumerate(row):
