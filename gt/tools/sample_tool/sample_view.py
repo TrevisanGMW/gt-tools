@@ -1,89 +1,58 @@
 """
-Sample Tool View. (GUI)
-The View is responsible for presenting the data to the user in a human-readable format.
-It's what the users see and interact with. The View's primary role is to display the information from the Model and
-relay the user's actions (such as clicking buttons) back to the Controller.
-It should NOT be coupled to the controller. You should be able to run the View independently and all it would do is
-send signals.
+Sample Tool View
 
-It should be able to work independently of the view.
-One should be able to import it and run the tool without its GUI.
+Small GUI used as the package's MVC sample tool.
 """
 
-import gt.ui.resource_library as ui_res_lib
-import gt.ui.qt_utils as ui_qt_utils
+from gt.ui.qt_utils import MayaWindowMeta
+import gt.ui.qt_utils as qt_utils
 import gt.ui.qt_import as ui_qt
 
 
-class SampleToolWindow(metaclass=ui_qt_utils.MayaWindowMeta, base_inheritance=ui_qt.QtWidgets.QMainWindow):
-    def __init__(self, parent=None, controller=None):
-        """
-        Initialize the SampleToolWindow.
-        This window represents the main GUI window of the application.
-        It contains a list of items, along with buttons to add and remove items.
+class SampleToolWindow(metaclass=MayaWindowMeta):
+    """Main window for the sample text saver tool."""
+
+    def __init__(self, parent=None, controller=None, version=None):
+        """Initializes the SampleToolWindow.
 
         Args:
-            parent (str): Parent for this window
-            controller (SampleToolController): SampleToolController, not to be used, here so it's not deleted by
-                                                 the garbage collector.
+            parent (QWidget, optional): Parent for this window.
+            controller (SampleToolController, optional): Controller reference kept to avoid garbage collection.
+            version (str, optional): Optional version displayed in the title.
         """
         super().__init__(parent=parent)
+        self.controller = controller
+        self.text_field = None
+        self.save_button = None
 
-        self.controller = controller  # Only here so it doesn't get deleted by the garbage collectors
+        window_title = "Sample Tool"
+        if version:
+            window_title += " - (v{0})".format(str(version))
+        self.setWindowTitle(window_title)
+        self.setGeometry(100, 100, 300, 150)
 
-        self.setWindowTitle("Sample Tool")
-        self.setGeometry(100, 100, 400, 300)
+        self.text_field = ui_qt.QtWidgets.QLineEdit(self)
+        self.text_field.setPlaceholderText("Enter text to save...")
 
-        self.central_widget = ui_qt.QtWidgets.QWidget(self)
+        self.save_button = ui_qt.QtWidgets.QPushButton("Save to File")
 
-        self.setCentralWidget(self.central_widget)
+        main_layout = ui_qt.QtWidgets.QVBoxLayout(self)
+        main_layout.setContentsMargins(15, 15, 15, 15)
+        main_layout.addWidget(self.text_field)
+        main_layout.addWidget(self.save_button)
 
-        self.layout = ui_qt.QtWidgets.QVBoxLayout()
+        qt_utils.center_window(self)
 
-        self.central_widget.setLayout(self.layout)
+    def get_text(self):
+        """Gets the current text from the text field.
 
-        self.item_list = ui_qt.QtWidgets.QListWidget()
-
-        self.layout.addWidget(self.item_list)
-
-        self.add_button = ui_qt.QtWidgets.QPushButton("Add Item")
-        self.layout.addWidget(self.add_button)
-
-        self.remove_button = ui_qt.QtWidgets.QPushButton("Remove Item")
-        self.layout.addWidget(self.remove_button)
-
-        self.setWindowFlags(
-            self.windowFlags()
-            | ui_qt.QtLib.WindowFlag.WindowMaximizeButtonHint
-            | ui_qt.QtLib.WindowFlag.WindowMinimizeButtonHint
-        )
-        self.setWindowIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.dev_screwdriver))
-
-        sample_stylesheet = ui_res_lib.Stylesheet.scroll_bar_base
-        sample_stylesheet += ui_res_lib.Stylesheet.maya_dialog_base
-        sample_stylesheet += ui_res_lib.Stylesheet.list_widget_base
-        self.setStyleSheet(sample_stylesheet)
-
-    def update_view(self, items):
+        Returns:
+            str: Text entered by the user.
         """
-        Updates the view with the provided items.
-
-        Args:
-            items (list): A list of items to be displayed in the view.
-        """
-        self.item_list.clear()
-        for item in items:
-            self.item_list.addItem(item)
-
-    def center(self):
-        """Moves window to the center of the screen"""
-        rect = self.frameGeometry()
-        center_position = ui_qt_utils.get_screen_center()
-        rect.moveCenter(center_position)
-        self.move(rect.topLeft())
+        return self.text_field.text()
 
 
 if __name__ == "__main__":
-    with ui_qt_utils.QtApplicationContext():
-        window = SampleToolWindow()  # View
-        window.show()  # Open Window
+    with qt_utils.QtApplicationContext():
+        window = SampleToolWindow()
+        window.show()

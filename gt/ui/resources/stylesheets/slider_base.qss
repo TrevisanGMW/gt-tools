@@ -1,0 +1,40 @@
+QSlider {
+    background: transparent;
+}
+
+QSlider::groove:horizontal {
+    border: 1px solid @groove_color_border;
+    height: 8px;
+    background: @groove_color_background;
+    margin: 2px 0;
+}
+
+QSlider::handle:horizontal {
+    background: @handle_color;
+    border: 1px solid @handle_color_border;
+    width: 14px; /* Handle width */
+    margin: -4px 0; /* Negative margins to align handle with groove */
+    border-radius: 7px; /* Rounded corners */
+}
+
+QSlider::handle:horizontal:hover {
+    background: @handle_color_hover;
+}
+
+QSlider::sub-page:horizontal {
+    background: @sub_page_color_background;
+    border: 1px solid @sub_page_color_border;
+    height: 8px; /* Same height as the groove */
+    border-radius: 4px; /* Rounded corners for filled part */
+}
+
+QSlider::add-page:horizontal {
+    background: @add_page_color_background;
+    border: 1px solid @add_page_color_border;
+    height: 8px;
+    border-radius: 4px; /* Rounded corners for unfilled part */
+}
+
+QSlider::tickmarks {
+    background: @tickmarks_color;
+}

@@ -38,3 +38,8 @@ QSpinBox::down-button:pressed,
 QDoubleSpinBox::down-button:pressed {
 	background-color: @background_color_pressed;
 }
+QSpinBox:disabled,
+QDoubleSpinBox:disabled {
+    color: @text_color_disabled;;
+    background-color: @background_color_disabled;;
+}

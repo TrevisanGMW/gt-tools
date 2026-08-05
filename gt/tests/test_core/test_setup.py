@@ -1,4 +1,4 @@
-from unittest.mock import patch
+from unittest.mock import patch, Mock, call
 import unittest
 import logging
 import sys
@@ -488,6 +488,29 @@ class TestSetupCore(unittest.TestCase):
         result = core_setup.is_legacy_version_install_present()
         expected = False
         self.assertEqual(expected, result)
+
+    @patch("gt.core.setup.get_package_loaded_modules")
+    def test_reload_package_loaded_modules_uses_dependency_order_and_continues(self, mock_get_modules):
+        root_module = Mock()
+        root_module.__name__ = "gt"
+        failed_module = Mock()
+        failed_module.__name__ = "gt.core"
+        leaf_module = Mock()
+        leaf_module.__name__ = "gt.tools.batch_processor.batch_processor_view"
+        mock_get_modules.return_value = [leaf_module, failed_module, root_module]
+
+        with patch("importlib.reload") as mock_reload:
+            mock_reload.side_effect = [root_module, RuntimeError("reload failed"), leaf_module]
+            result = core_setup.reload_package_loaded_modules()
+
+        expected = ["gt", "gt.tools.batch_processor.batch_processor_view"]
+        self.assertEqual(expected, result)
+        expected = [
+            call(root_module),
+            call(failed_module),
+            call(leaf_module),
+        ]
+        self.assertEqual(expected, mock_reload.call_args_list)
 
     @patch("gt.core.setup.check_installation_integrity")
     @patch("gt.core.setup.remove_legacy_entry_point_from_maya_installs")

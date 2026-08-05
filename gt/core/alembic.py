@@ -1,8 +1,8 @@
 """
-Alembic Module
+Alembic Utilities
 
-Code Namespace:
-    core_alembic  # import gt.core.alembic as core_alembic
+Import Line:
+    import gt.core.alembic as core_alembic
 """
 
 from gt.core.transform import Transform, Vector3
@@ -90,6 +90,11 @@ class AlembicNode:
     # keyframes: Keyframes
 
     def __init__(self, alembic_node):
+        """Initializes an Alembic node data wrapper.
+
+        Args:
+            alembic_node (str): Name of the Alembic node to inspect.
+        """
         self.name = alembic_node
         self.time = cmds.getAttr(f"{alembic_node}.time")
         self.offset = cmds.getAttr(f"{alembic_node}.offset")
@@ -118,6 +123,14 @@ class AlembicNode:
         return root_node
 
     def get_root_transform(self, alembic_node):
+        """Builds a transform from the root Alembic node's scene values.
+
+        Args:
+            alembic_node (str): Name of the Alembic node to inspect.
+
+        Returns:
+            Transform: Transform data read from the Alembic root node.
+        """
         root = self.get_root_node(alembic_node)
         try:
             translation = cmds.xform(root, q=True, ws=True, translation=True)

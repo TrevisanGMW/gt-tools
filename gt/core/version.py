@@ -1,8 +1,8 @@
 """
 Version Module
 
-Code Namespace:
-    core_version # import gt.core.version as core_version
+Import Line
+    import gt.core.version as core_version
 """
 
 from gt.core.feedback import print_when_true

@@ -13,6 +13,8 @@ from . import test_feedback
 from . import test_hierarchy
 from . import test_iterable
 from . import test_joint
+from . import test_logger
+from . import test_material
 from . import test_math
 from . import test_mesh
 from . import test_namespace
@@ -22,12 +24,16 @@ from . import test_outliner
 from . import test_playblast
 from . import test_plugin
 from . import test_prefs
+from . import test_rbf
 from . import test_rigging
 from . import test_scene
+from . import test_selection
 from . import test_session
 from . import test_skin
 from . import test_str
 from . import test_surface
 from . import test_transform
+from . import test_undo
 from . import test_uuid
 from . import test_version
+from . import test_blendshape

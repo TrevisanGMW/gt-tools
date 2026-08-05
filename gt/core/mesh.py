@@ -1,8 +1,8 @@
 """
-Mesh (Geometry) Module
+Mesh (Geometry) Utilities
 
-Code Namespace:
-    core_mesh  # import gt.core.mesh as core_mesh
+Import Line:
+    import gt.core.mesh as core_mesh
 """
 
 from gt.core.data.py_meshes import scale_volume, scene_setup

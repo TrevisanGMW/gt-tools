@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="svg5" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:svg="http://www.w3.org/2000/svg" viewBox="0 0 150 150">
+  <!-- Generator: Adobe Illustrator 29.4.0, SVG Export Plug-In . SVG Version: 2.1.0 Build 152)  -->
+  <defs>
+    <style>
+      .st0 {
+        stroke-linejoin: round;
+      }
+
+      .st0, .st1 {
+        fill: #bdbdbd;
+        stroke: #2b2b2b;
+        stroke-width: 3px;
+      }
+
+      .st1 {
+        stroke-miterlimit: 10;
+      }
+    </style>
+  </defs>
+  <sodipodi:namedview id="namedview5" bordercolor="#000000" borderopacity="0.25" inkscape:current-layer="svg5" inkscape:cx="83.129153" inkscape:cy="57.781059" inkscape:deskcolor="#d1d1d1" inkscape:pagecheckerboard="0" inkscape:pageopacity="0.0" inkscape:showpageshadow="2" inkscape:window-height="1009" inkscape:window-maximized="1" inkscape:window-width="1920" inkscape:window-x="-8" inkscape:window-y="-8" inkscape:zoom="3.1757812" pagecolor="#ffffff"/>
+  <path class="st0" d="M43.61,92.81v-29.91c5.86-2.16,10.11-7.74,10.11-14.36,0-8.44-6.9-15.34-15.34-15.34s-15.34,6.9-15.34,15.34c0,6.62,4.25,12.2,10.11,14.36v29.91c-5.3,2.09-9.06,7.25-9.06,13.25,0,7.88,6.41,14.29,14.29,14.29s14.29-6.41,14.29-14.29c0-6-3.76-11.15-9.06-13.25Z"/>
+  <path class="st1" d="M123.8,44.01c0-7.88-6.41-14.29-14.29-14.29s-14.29,6.41-14.29,14.29c0,6,3.76,11.15,9.06,13.25v40.43c0,.98-.77,1.74-1.74,1.74h-7.88l1.46-1.19c2.23-1.88,2.58-5.16.7-7.39-1.05-1.25-2.58-1.88-4.04-1.88-1.19,0-2.37.35-3.35,1.19l-12.55,10.46c-1.19,1.05-1.88,2.44-1.88,4.04s.7,3.07,1.88,4.04l12.55,10.46c2.23,1.81,5.51,1.53,7.39-.7,1.81-2.23,1.53-5.51-.7-7.39l-1.46-1.19h7.88c6.69,0,12.2-5.51,12.2-12.2v-40.43c5.3-2.09,9.06-7.25,9.06-13.25Z"/>
+</svg>

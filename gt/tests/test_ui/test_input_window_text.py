@@ -1,4 +1,5 @@
 import gt.ui.qt_import as ui_qt
+
 import unittest
 import logging
 import sys
@@ -22,12 +23,27 @@ from gt.ui.input_window_text import InputWindowText
 class TestInputWindowText(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        app = ui_qt.QtWidgets.QApplication.instance()
-        if not app:
-            cls.app = ui_qt.QtWidgets.QApplication(sys.argv)
+        # 1. Store the app instance on the class so we can process events later
+        cls.app = ui_qt.QtWidgets.QApplication.instance()
+        if not cls.app:
+            # 2. NEVER pass sys.argv in a unit test. Pass an empty list.
+            cls.app = ui_qt.QtWidgets.QApplication([])
 
     def setUp(self):
         self.window = InputWindowText()
+
+    def tearDown(self):
+        """
+        Clean up the UI after every test to prevent C++ memory access violations.
+        """
+        self.window.close()
+        self.window.deleteLater()
+
+        # 3. CRITICAL: Sever the Python reference so the garbage collector ignores it
+        self.window = None
+
+        # 4. Flush the event loop
+        self.app.processEvents()
 
     def test_window_title(self):
         expected_title = "New Window Title"

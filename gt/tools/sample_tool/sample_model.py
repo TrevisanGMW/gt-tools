@@ -1,56 +1,37 @@
 """
-Sample Tool Model. (Logic, Database Access, Read/Write, Update Data)
-The Model represents the data and business logic of the application. It encapsulates the data, defines how it is
-structured, and provides methods to manipulate and access that data. The Model component is essentially responsible
-for the application's data layer. It does not know anything about the user interface or how the data is presented to
-the user. Instead, it focuses on managing data integrity, validation, and business rules.
+Sample Tool Model
 
-In the example below, it's adding, removing and getting items from a list.
-But it could be writing/reading a file or processing the data from a scene.
-
-Tests for this module can be found under "tests/test_sample_tool/test_sample_tool_model"
+This module contains the SampleToolModel class, which handles the data logic
+for saving text to a file. This tool is intentionally small so it can be used
+as a practical MVC example for new gt-tools tools.
 """
+
+import logging
+
+# Logging Setup
+logging.basicConfig()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 class SampleToolModel:
-    def __init__(self):
-        """
-        Initialize the SampleToolModel object.
-        """
-        self.items = []
+    """Model used by the sample text saver tool."""
 
-    def add_item(self, item):
-        """
-        Add an item to the list.
-        Args:
-            item: The item to be added.
-        """
-        self.items.append(item)
-
-    def remove_item(self, index):
-        """
-        Remove an item from the list based on its index.
+    def save_text_to_file(self, text, file_path):
+        """Saves text to a specified file path.
 
         Args:
-            index: The index of the item to be removed.
+            text (str): Text content to save.
+            file_path (str): Absolute path to the file.
 
-        """
-        if 0 <= index < len(self.items):
-            del self.items[index]
-
-    def get_items(self):
-        """
-        Get the list of items.
         Returns:
-            list: A list containing all the items in the SampleToolModel.
+            bool: True if successful, False otherwise.
         """
-        return self.items
-
-
-if __name__ == "__main__":
-    # The model should be able to work without the controller or view
-    model = SampleToolModel()
-    model.add_item("Test Item 1")
-    model.add_item("Test Item 2")
-    items = model.get_items()
-    print(items)
+        try:
+            with open(file_path, "w", encoding="utf-8") as file:
+                file.write(text)
+            logger.info('Successfully saved text to: "%s"', file_path)
+            return True
+        except Exception as exception:
+            logger.warning("Failed to save text. Issue: %s", exception)
+            return False

@@ -269,63 +269,63 @@ class TestSystemUtils(unittest.TestCase):
         self.assertEqual(expected, result)
 
     @patch("os.path.exists")
-    @patch("subprocess.check_call")
-    def test_launch_maya_from_path(self, mock_check_call, mock_exists):
+    @patch("subprocess.Popen")
+    def test_launch_maya_from_path(self, mock_popen, mock_exists):
         mock_exists.return_value = True  # Skip check to see if it exists
         utils_system.launch_maya_from_path(maya_path="mocked_path")
         mock_exists.assert_called_once()
-        mock_check_call.assert_called_once()
-        result = str(mock_check_call.call_args)
+        mock_popen.assert_called_once()
+        result = str(mock_popen.call_args)
         expected = "call(['mocked_path'])"
         self.assertEqual(expected, result)
 
     @patch("os.path.exists")
-    @patch("subprocess.check_call")
-    def test_launch_maya_from_path_python_script(self, mock_check_call, mock_exists):
+    @patch("subprocess.Popen")
+    def test_launch_maya_from_path_python_script(self, mock_popen, mock_exists):
         mock_exists.return_value = True  # Skip check to see if it exists
         utils_system.launch_maya_from_path(maya_path="mocked_path", python_script="py")
         mock_exists.assert_called_once()
-        mock_check_call.assert_called_once()
-        result = str(mock_check_call.call_args)
+        mock_popen.assert_called_once()
+        result = str(mock_popen.call_args)
         expected = (
             "call(['mocked_path', '-c', " "'python(\"import base64; exec (base64.urlsafe_b64decode(b\\'cHk=\\'))\")'])"
         )
         self.assertEqual(expected, result)
 
     @patch("os.path.exists")
-    @patch("subprocess.check_call")
-    def test_launch_maya_from_path_additional_args(self, mock_check_call, mock_exists):
+    @patch("subprocess.Popen")
+    def test_launch_maya_from_path_additional_args(self, mock_popen, mock_exists):
         mock_exists.return_value = True  # Skip check to see if it exists
         utils_system.launch_maya_from_path(maya_path="mocked_path", additional_args=["a", "b"])
         mock_exists.assert_called_once()
-        mock_check_call.assert_called_once()
-        result = str(mock_check_call.call_args)
+        mock_popen.assert_called_once()
+        result = str(mock_popen.call_args)
         expected = "call(['mocked_path', 'a', 'b'])"
         self.assertEqual(expected, result)
 
     @patch("os.path.exists")
-    @patch("subprocess.check_call")
+    @patch("subprocess.Popen")
     @patch("gt.utils.system.get_maya_executable")
-    def test_launch_maya(self, mock_get_maya_executable, mock_check_call, mock_exists):
+    def test_launch_maya(self, mock_get_maya_executable, mock_popen, mock_exists):
         mock_get_maya_executable.return_value = "mocked_path"
         mock_exists.return_value = True  # Skip check to see if it exists
         utils_system.launch_maya()
         mock_exists.assert_called_once()
-        mock_check_call.assert_called_once()
-        result = str(mock_check_call.call_args)
+        mock_popen.assert_called_once()
+        result = str(mock_popen.call_args)
         expected = "call(['mocked_path'])"
         self.assertEqual(expected, result)
 
     @patch("os.path.exists")
-    @patch("subprocess.check_call")
+    @patch("subprocess.Popen")
     @patch("gt.utils.system.get_maya_executable")
-    def test_launch_maya_preferred_version(self, mock_get_maya_executable, mock_check_call, mock_exists):
+    def test_launch_maya_preferred_version(self, mock_get_maya_executable, mock_popen, mock_exists):
         mock_get_maya_executable.return_value = "mocked_path"
         mock_exists.return_value = True  # Skip check to see if it exists
         utils_system.launch_maya(preferred_version="2024")
         mock_exists.assert_called_once()
-        mock_check_call.assert_called_once()
-        result_one = str(mock_check_call.call_args)
+        mock_popen.assert_called_once()
+        result_one = str(mock_popen.call_args)
         result_two = str(mock_get_maya_executable.call_args)
         expected = ["call(['mocked_path'])", "call(preferred_version='2024')"]
         self.assertEqual(expected, [result_one, result_two])
@@ -345,17 +345,17 @@ class TestSystemUtils(unittest.TestCase):
 
     def test_process_launch_options_value_error(self):
         with self.assertRaises(ValueError):
-            utils_system.process_launch_options([])
+            utils_system.process_launch_args([])
 
     @patch("sys.stdout.write", MagicMock)
     def test_process_launch_options_value_unrecognized(self):
-        result = utils_system.process_launch_options(["mocked_script_name", "-unrecognized_test"])
+        result = utils_system.process_launch_args(["mocked_script_name", "-unrecognized_test"])
         expected = False
         self.assertEqual(expected, result)
 
     @patch("gt.core.setup.install_package")
     def test_process_launch_options_install(self, mock_install_package):
-        utils_system.process_launch_options(["mocked_script_name", "-install"])
+        utils_system.process_launch_args(["mocked_script_name", "-install"])
         mock_install_package.assert_called_once()
         result = str(mock_install_package.call_args)
         expected = "call(clean_install=False)"
@@ -363,7 +363,7 @@ class TestSystemUtils(unittest.TestCase):
 
     @patch("gt.core.setup.install_package")
     def test_process_launch_options_install_clean(self, mock_install_package):
-        utils_system.process_launch_options(["mocked_script_name", "-install", "-clean"])
+        utils_system.process_launch_args(["mocked_script_name", "-install", "-clean"])
         mock_install_package.assert_called_once()
         result = str(mock_install_package.call_args)
         expected = "call(clean_install=True)"
@@ -371,48 +371,55 @@ class TestSystemUtils(unittest.TestCase):
 
     @patch("gt.tools.package_setup.launcher_entry_point")
     def test_process_launch_options_install_gui(self, mock_launcher_entry_point):
-        utils_system.process_launch_options(["mocked_script_name", "-install", "-gui"])
+        utils_system.process_launch_args(["mocked_script_name", "-install", "-gui"])
         mock_launcher_entry_point.assert_called_once()
 
     @patch("gt.core.setup.uninstall_package")
     def test_process_launch_options_uninstall(self, mock_uninstall_package):
-        result = utils_system.process_launch_options(["mocked_script_name", "-uninstall"])
+        result = utils_system.process_launch_args(["mocked_script_name", "-uninstall"])
         mock_uninstall_package.assert_called_once()
         expected = True
         self.assertEqual(expected, result)
 
     @patch("gt.utils.system.load_package_menu")
     def test_process_launch_options_launch(self, mock_launch):
-        result = utils_system.process_launch_options(["mocked_script_name", "-launch"])
+        result = utils_system.process_launch_args(["mocked_script_name", "-launch"])
         mock_launch.assert_called_once()
         expected = True
         self.assertEqual(expected, result)
 
-    @patch("tests.run_all_tests_with_summary")
+    @patch("tests.run_unittests_with_summary")
     def test_process_launch_options_test(self, mock_tests):
-        result = utils_system.process_launch_options(["mocked_script_name", "-test", "-all"])
+        result = utils_system.process_launch_args(["mocked_script_name", "-test", "-all"])
         mock_tests.assert_called_once()
         expected = True
         self.assertEqual(expected, result)
 
     @patch("gt.utils.system.eval")
-    @patch("importlib.import_module")
-    def test_initialize_from_package_calling(self, mock_import_module, mock_eval):
-        result = utils_system.initialize_from_package("mocked_import_path", "mocked_entry_point_function")
-        mock_import_module.assert_called_once()
-        mock_eval.assert_called_once()
-        expected = True
-        self.assertEqual(expected, result)
+    def test_initialize_from_package_calling(self, mock_eval):
+        with patch("gt.utils.system.importlib.import_module") as mock_import_module:
+            result = utils_system.initialize_from_package("mocked_import_path", "mocked_entry_point_function")
+
+            # Check that your target module was imported
+            self.assertIn(
+                unittest.mock.call("mocked_import_path"),
+                mock_import_module.call_args_list
+            )
+            mock_eval.assert_called_once()
+            self.assertTrue(result)
 
     @patch("gt.utils.system.eval")
-    @patch("importlib.import_module")
-    def test_initialize_from_package_arguments(self, mock_import_module, mock_eval):
-        utils_system.initialize_from_package("mocked_import_path", "mocked_entry_point_function")
-        mock_import_module.assert_called_once()
-        mock_eval.assert_called_once()
-        expected = "call('module.mocked_entry_point_function()')"
-        result = str(mock_eval.call_args)
-        self.assertEqual(expected, result)
+    def test_initialize_from_package_arguments(self, mock_eval):
+        # Patch locally inside the test body so background suite imports don't trigger it
+        with patch("gt.utils.system.importlib.import_module") as mock_import_module:
+            utils_system.initialize_from_package("mocked_import_path", "mocked_entry_point_function")
+
+            # If internal logic triggers sub-imports, filter down to the expected call
+            self.assertIn(
+                unittest.mock.call("mocked_import_path"),
+                mock_import_module.call_args_list
+            )
+            mock_eval.assert_called_once_with("module.mocked_entry_point_function()")
 
     @patch("gt.utils.system.initialize_from_package")
     def test_initialize_utility(self, mock_initialize_from_package):

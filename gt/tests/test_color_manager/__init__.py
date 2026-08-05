@@ -1,0 +1,1 @@
+"""Color Manager tests."""

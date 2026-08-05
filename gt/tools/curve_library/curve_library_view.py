@@ -1,14 +1,14 @@
 """
 Curve Library View - The main GUI window class for the Curve Library tool.
 """
-
-import gt.ui.resource_library as ui_res_lib
+import gt.ui.resource_library as resource_library
 from gt.ui.squared_widget import SquaredWidget
-import gt.ui.qt_utils as ui_qt_utils
+from gt.ui.qt_utils import MayaWindowMeta
+import gt.ui.qt_utils as qt_utils
 import gt.ui.qt_import as ui_qt
 
 
-class CurveLibraryView(metaclass=ui_qt_utils.MayaWindowMeta):
+class CurveLibraryView(metaclass=MayaWindowMeta):
     def __init__(self, parent=None, controller=None, version=None):
         """
         Initialize the CurveLibraryWindow.
@@ -44,18 +44,16 @@ class CurveLibraryView(metaclass=ui_qt_utils.MayaWindowMeta):
         self.create_widgets()
         self.create_layout()
         self.setWindowFlags(
-            self.windowFlags()
-            | ui_qt.QtLib.WindowFlag.WindowMaximizeButtonHint
-            | ui_qt.QtLib.WindowFlag.WindowMinimizeButtonHint
+            self.windowFlags() | ui_qt.QtLib.WindowFlag.WindowMaximizeButtonHint | ui_qt.QtLib.WindowFlag.WindowMinimizeButtonHint
         )
-        self.setWindowIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.tool_crv_library))
-
-        stylesheet = ui_res_lib.Stylesheet.scroll_bar_base
-        stylesheet += ui_res_lib.Stylesheet.maya_dialog_base
-        stylesheet += ui_res_lib.Stylesheet.list_widget_base
+        self.setWindowIcon(ui_qt.QtGui.QIcon(resource_library.Icon.tool_crv_library))
+        print(resource_library.Icon.tool_crv_library)
+        stylesheet = resource_library.Stylesheet.scroll_bar_base
+        stylesheet += resource_library.Stylesheet.maya_dialog_base
+        stylesheet += resource_library.Stylesheet.list_widget_base
         self.setStyleSheet(stylesheet)
-        ui_qt_utils.resize_to_screen(self, percentage=30)
-        ui_qt_utils.center_window(self)
+        qt_utils.resize_to_screen(self, percentage=30)
+        qt_utils.center_window(self)
         self.resize_splitter_to_screen()
 
     def update_preview_image(self, new_image_path=None):
@@ -69,7 +67,7 @@ class CurveLibraryView(metaclass=ui_qt_utils.MayaWindowMeta):
         if new_image_path:
             self.preview_image.set_pixmap(ui_qt.QtGui.QPixmap(new_image_path))
         else:
-            self.preview_image.set_pixmap(ui_qt.QtGui.QPixmap(ui_res_lib.Icon.library_missing_file))
+            self.preview_image.set_pixmap(ui_qt.QtGui.QPixmap(resource_library.Icon.library_missing_file))
 
     def create_widgets(self):
         """Create the widgets for the window."""
@@ -78,8 +76,8 @@ class CurveLibraryView(metaclass=ui_qt_utils.MayaWindowMeta):
         self.item_list = ui_qt.QtWidgets.QListWidget()
         self.item_list.setFont(font)
         self.build_button = ui_qt.QtWidgets.QPushButton("Build")
-        self.build_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.library_build))
-        self.build_button.setStyleSheet(ui_res_lib.Stylesheet.btn_push_bright)
+        self.build_button.setIcon(ui_qt.QtGui.QIcon(resource_library.Icon.library_build))
+        self.build_button.setStyleSheet(resource_library.Stylesheet.btn_push_bright)
         self.search_bar = ui_qt.QtWidgets.QLineEdit(self)
         self.search_bar.setFont(font)
         self.search_bar.setPlaceholderText("Search...")
@@ -88,20 +86,20 @@ class CurveLibraryView(metaclass=ui_qt_utils.MayaWindowMeta):
         self.add_custom_button = ui_qt.QtWidgets.QPushButton("Save Curve")
         add_custom_tooltip = "Saves a Maya selected Nurbs/Bezier element as a user-defined curve in the Curve Library"
         self.add_custom_button.setToolTip(add_custom_tooltip)
-        self.add_custom_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.library_add))
+        self.add_custom_button.setIcon(ui_qt.QtGui.QIcon(resource_library.Icon.library_add))
         self.delete_custom_button = ui_qt.QtWidgets.QPushButton("Delete Curve")
         self.delete_custom_button.setEnabled(False)
-        self.delete_custom_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.library_remove))
+        self.delete_custom_button.setIcon(ui_qt.QtGui.QIcon(resource_library.Icon.library_remove))
         self.description = ui_qt.QtWidgets.QLabel("<description>")
         self.description.setFont(font)
 
         self.description.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignCenter)
         self.snapshot_button = ui_qt.QtWidgets.QPushButton("Create Snapshot")
         self.snapshot_button.setEnabled(False)
-        self.snapshot_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.library_snapshot))
+        self.snapshot_button.setIcon(ui_qt.QtGui.QIcon(resource_library.Icon.library_snapshot))
         self.parameters_button = ui_qt.QtWidgets.QPushButton("Edit Parameters")
         self.parameters_button.setEnabled(False)
-        self.parameters_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.library_edit))
+        self.parameters_button.setIcon(ui_qt.QtGui.QIcon(resource_library.Icon.library_edit))
         # Initial Image Update
         self.update_preview_image()
 
@@ -148,6 +146,7 @@ class CurveLibraryView(metaclass=ui_qt_utils.MayaWindowMeta):
     def resize_splitter_to_screen(self, percentage=20):
         """
         Resizes the splitter to match a percentage of the screen size.
+        Compatible with both PySide2 (Maya 2024 and older) and PySide6 (Maya 2025+).
 
         Args:
             percentage (int, optional): The percentage of the screen size that the window should inherit.
@@ -158,13 +157,23 @@ class CurveLibraryView(metaclass=ui_qt_utils.MayaWindowMeta):
         """
         if not 0 <= percentage <= 100:
             raise ValueError("Percentage should be between 0 and 100")
-        if ui_qt.IS_PYSIDE6:
-            screen = ui_qt.QtGui.QGuiApplication.primaryScreen()
-            screen_geometry = screen.availableGeometry()
-        else:
+
+        # --- Backwards Compatibility Check ---
+        if hasattr(ui_qt.QtWidgets, "QDesktopWidget"):
+            # Qt 4 / Qt 5 approach (Maya 2024 and older)
             screen_geometry = ui_qt.QtWidgets.QDesktopWidget().availableGeometry(self)
-        width = screen_geometry.width() * percentage / 100
-        self.splitter.setSizes([width * 0.2, width * 0.60])
+        else:
+            # Qt 6 approach (Maya 2025 and newer)
+            # Check for self.screen() first, fallback to QGuiApplication
+            screen = self.screen() if hasattr(self, "screen") else None
+            if not screen:
+                screen = ui_qt.QtGui.QGuiApplication.primaryScreen()
+            screen_geometry = screen.availableGeometry()
+
+        width = screen_geometry.width() * (percentage / 100.0)
+
+        # Cast to integers to prevent PySide6 float type errors
+        self.splitter.setSizes([int(width * 0.70), int(width * 0.65)])
 
     def clear_view_library(self):
         """
@@ -232,7 +241,7 @@ class CurveLibraryView(metaclass=ui_qt_utils.MayaWindowMeta):
         if new_title and isinstance(new_title, str):
             _title = f"{new_title}: "
         if new_description:
-            ui_qt_utils.update_formatted_label(
+            qt_utils.update_formatted_label(
                 target_label=self.description,
                 text=_title,
                 text_size=3,
@@ -245,31 +254,45 @@ class CurveLibraryView(metaclass=ui_qt_utils.MayaWindowMeta):
 
     def moveEvent(self, event):
         """
-        Move Event, called when the window is moved (must use this name "moveEvent").
+        Move Event, called when the window is moved (must use this name "moveEvent")
         Updates the maximum size of the description according to the scale factor of the current screen.
+        On windows Settings > Display > Scale and layout > Change the size of text, apps, and other items > %
+        Args:
+            event (QMoveEvent): The move event.
         """
-        default_maximum_height_description = 20
-        scale_factor = 1  # Default scale factor if no screen is found
-
-        if ui_qt.IS_PYSIDE6:
-            screen = ui_qt.QtGui.QGuiApplication.screenAt(self.mapToGlobal(self.rect().center()))
-            if screen:
-                scale_factor = screen.devicePixelRatio()
-        else:
+        # --- Backwards Compatibility Check ---
+        if hasattr(ui_qt.QtWidgets, "QDesktopWidget"):
+            # Qt 4 / Qt 5 approach (Maya 2024 and older)
             desktop = ui_qt.QtWidgets.QDesktopWidget()
             screen_number = desktop.screenNumber(self)
-            scale_factor = ui_qt_utils.get_screen_dpi_scale(screen_number)
+        else:
+            # Qt 6 approach (Maya 2025 and newer)
+            screen = self.screen() if hasattr(self, "screen") else None
+            if not screen:
+                screen = ui_qt.QtGui.QGuiApplication.primaryScreen()
 
-        # Apply the scale factor to set the maximum height
-        self.description.setMaximumHeight(default_maximum_height_description * scale_factor)
+            # Get all available screens and find the index of the current one
+            screens = ui_qt.QtGui.QGuiApplication.screens()
+            try:
+                screen_number = screens.index(screen)
+            except ValueError:
+                screen_number = 0  # Fallback to the primary screen index
+        # -------------------------------------
+
+        scale_factor = qt_utils.get_screen_dpi_scale(screen_number)
+        default_maximum_height_description = 20
+
+        # Cast to integer to prevent PySide6 strict typing errors on geometry methods
+        self.description.setMaximumHeight(int(default_maximum_height_description * scale_factor))
 
 
 if __name__ == "__main__":
-    with ui_qt_utils.QtApplicationContext():
+    with qt_utils.QtApplicationContext():
         window = CurveLibraryView()
-        mocked_icon = ui_qt.QtGui.QIcon(ui_res_lib.Icon.curve_library_base_curve)
-        window.add_item_view_library("curve_one", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.curve_library_user_curve))
-        window.add_item_view_library("curve_two", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.curve_library_control))
-        for index in range(1, 101):
-            window.add_item_view_library(f"curve_with_a_very_long_name_for_testing_ui_{index}", icon=mocked_icon)
         window.show()
+        # mocked_icon = QIcon(resource_library.Icon.curve_library_base_curve)
+        # window.add_item_view_library("curve_one", icon=ui_qt.QtGui.QIcon(resource_library.Icon.curve_library_user_curve))
+        # window.add_item_view_library("curve_two", icon=ui_qt.QtGui.QIcon(resource_library.Icon.curve_library_control))
+        # for index in range(1, 101):
+        #     window.add_item_view_library(f"curve_with_a_very_long_name_for_testing_ui_{index}", icon=mocked_icon)
+        # window.show()

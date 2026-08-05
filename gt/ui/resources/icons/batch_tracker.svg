@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!-- Generator: Adobe Illustrator 27.9.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 512 512" style="enable-background:new 0 0 512 512;" xml:space="preserve">
+<g id="rigger_x5F_project">
+	<rect style="fill:none;" width="512" height="512"/>
+
+		<linearGradient id="secondary-fill_00000065758599734584396980000015431274563698173884_" gradientUnits="userSpaceOnUse" x1="256" y1="311.634" x2="444.3844" y2="311.634">
+		<stop  offset="0.0013" style="stop-color:#d6d6d6"/>
+		<stop  offset="1" style="stop-color:#bdbdbd"/>
+	</linearGradient>
+	<polygon id="secondary-fill" style="fill:url(#secondary-fill_00000065758599734584396980000015431274563698173884_);" points="
+		444.384,152.685 444.384,364.617 256,470.583 256,246.877 	"/>
+	<polygon id="secondary-fill_00000122684785525041696460000010250712226212454534_" style="fill:#9e9e9e;" points="72.715,152.685
+		72.715,364.617 255,470.583 255,246.877 	"/>
+	<polygon id="tertiary-fill" style="fill:#B7B7B7;" points="444.384,152.685 256,246.877 67.616,152.685 256,46.718 	"/>
+
+		<path id="primary-stroke" style="fill:none;stroke:#1D1D1D;stroke-width:20;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:133.3333;" d="
+		M256,246.877v223.707L67.616,364.617V152.685L256,246.877z M256,46.718L67.616,152.685L256,246.877l188.384-94.192L256,46.718z
+		 M256,246.877v223.707l188.384-105.966V152.685L256,246.877z M350.192,305.747V199.781L256,152.685"/>
+</g>
+<g id="Layer_1">
+</g>
+</svg>

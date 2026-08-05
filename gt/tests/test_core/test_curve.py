@@ -888,12 +888,12 @@ class TestCurveCore(unittest.TestCase):
         expected = (
             '# Curve data for "nurbsCircleShape1":\ncmds.curve(point=[[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], '
             "[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], "
-            "[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], degree=3, periodic=2, "
+            "[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], degree=3, periodic=True, "
             "knot=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0], "
             "name='nurbsCircleShape1_transform')\n\n# Curve data for \"nurbsCircleShape2\":\ncmds.curve("
             "point=[[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], "
             "[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], "
-            "[0.0, 0.0, 0.0]], degree=3, periodic=2, knot=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, "
+            "[0.0, 0.0, 0.0]], degree=3, periodic=True, knot=[-2.0, -1.0, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, "
             "7.0, 8.0, 9.0, 10.0], name='nurbsCircleShape2_transform')"
         )
         result = core_curve.get_python_curve_code(crv_list=items)

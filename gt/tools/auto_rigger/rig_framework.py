@@ -1,5 +1,5 @@
 """
-Auto Rigger Base Framework Module
+Auto Rigger Base Framework module.
 
 RigProject > Module > Proxy > Joint/Control
 
@@ -13,39 +13,45 @@ Rigging Steps:
         5: build_rig
         6: build_rig_post
 
-Code Namespace:
-    tools_rig_frm  # import gt.tools.auto_rigger.rig_framework as tools_rig_frm
+Import Line:
+    import gt.tools.auto_rigger.rig_framework as tools_rig_frm
 """
 
 import gt.tools.auto_rigger.rig_constants as tools_rig_const
 import gt.tools.auto_rigger.rig_utils as tools_rig_utils
 import gt.ui.resource_library as ui_res_lib
-import gt.utils.system as system_utils
-import gt.core.rigging as core_rigging
-import gt.core.hierarchy as core_hrchy
 import gt.core.transform as core_trans
 import gt.core.iterable as core_iter
+import gt.core.rigging as core_rigging
+import gt.core.hierarchy as core_hrchy
 import gt.core.naming as core_naming
+import gt.utils.system as utils_sys
 import gt.core.control as core_ctrl
 import gt.core.curve as core_curve
 import gt.core.joint as core_joint
+import gt.core.pose as core_pose
 import gt.core.color as core_color
+import gt.core.logger as core_log
 import gt.core.attr as core_attr
 import gt.core.node as core_node
 import gt.core.uuid as core_uuid
 import gt.core.str as core_str
 import gt.core.io as core_io
+from dataclasses import dataclass
 import maya.cmds as cmds
 import dataclasses
+import datetime
 import logging
+import socket
+import json
+import copy
 import re
 import os
-from dataclasses import dataclass
 
 # Logging Setup
-logging.basicConfig()
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger_name = core_log.get_logger_name(__name__)
+logger = core_log.setup_common_logger(name=logger_name, console_level=logging.INFO, propagate=False)
+core_log.add_custom_log_levels()
 
 
 # ----------------------------------------------- Data Objects -----------------------------------------------
@@ -131,11 +137,14 @@ class OrientationData:
     ):
         """
         Initializes an OrientationData object.
+
         Args:
+            method (Methods, optional): The method used for orientation calculation. Defaults to Methods.automatic.
             aim_axis (tuple, optional): The axis the joints should aim at in XYZ. Defaults to X+ (1, 0, 0).
-                                        Commonly used as twist joint (aims towards its child)
+                Commonly used as twist joint (aims towards its child).
             up_axis (tuple, optional): The axis pointing upwards for the joints. Defaults to (0, 1, 0).
             up_dir (tuple, optional): The up direction vector. Defaults to (0, 1, 0).
+            world_aligned (bool, optional): Whether the orientation should be world aligned. Defaults to False.
         """
         self.method = None
         self.aim_axis = None
@@ -366,6 +375,9 @@ class CodeData:
         # Build Skeleton Phase
         pre_skeleton = "pre_skeleton"
         post_skeleton = "post_skeleton"
+        # Build Pose Phase - Not executed if not applying control rig pose
+        pre_control_pose = "pre_control_pose"  # Original Pose
+        post_control_pose = "post_control_pose"  # Already set as Control Rig Pose
         # Build Control Rig Phase - Not executed if control rig is not created
         pre_control_rig = "pre_control_rig"
         post_control_rig = "post_control_rig"
@@ -374,7 +386,11 @@ class CodeData:
 
     def __init__(self, order=Order.pre_proxy, code=""):
         """
-        Initializes a CodeData object.
+        Initializes a CodeData object with the specified execution order and code.
+
+        Args:
+            order (Order, optional): The execution order for the code. Defaults to Order.pre_proxy.
+            code (str, optional): The code to execute. Defaults to an empty string.
         """
         self.order = None
         self.code = ""
@@ -448,7 +464,8 @@ class CodeData:
         """
         return self.code
 
-    def get_available_order_items(self):
+    @staticmethod
+    def get_available_order_items():
         """
         Gets a list of all available order items. These are the same as the attributes under the subclass "Order"
         Returns:
@@ -456,10 +473,10 @@ class CodeData:
                   Further description for each method can be found under the "Order" class.
         """
         order_items = []
-        attrs = vars(self.Order)
+        attrs = vars(CodeData.Order)
         attrs_keys = [attr for attr in attrs if not (attr.startswith("__") and attr.endswith("__"))]
         for key in attrs_keys:
-            order_items.append(getattr(self.Order, key))
+            order_items.append(getattr(CodeData.Order, key))
         return order_items
 
     def get_data_as_dict(self):
@@ -503,7 +520,7 @@ class CodeData:
         """
         if callable(self.code):
             return self.code()
-        system_utils.execute_python_code(
+        utils_sys.execute_python_code(
             code=self.code,
             custom_logger=logger,
             use_maya_warning=use_maya_warning,
@@ -521,7 +538,13 @@ class RigPreferencesData:
 
     build_control_rig: bool = dataclasses.field(default=True)  # If True, Control rig is built
     delete_proxy_after_build: bool = dataclasses.field(default=True)  # If True, proxy is deleted after build
+    apply_control_rig_pose: bool = dataclasses.field(default=True)  # If True, pose proxy/joints before building rig
+    hide_skeleton: bool = dataclasses.field(default=True)  # If True, hides skeleton group during build
+    view_fit_skeleton: bool = dataclasses.field(default=True)  # If True, viewFit the skeleton after creation
+    export_anim_blendshapes: bool = dataclasses.field(default=False)  # If True, include BS in the anim export process
+    control_rig_pose_name: str = dataclasses.field(default=core_naming.NamingConstants.Poses.TPOSE)
     project_dir: str = dataclasses.field(default=None)  # Path to the current project. (Used for environment variable)
+    alias: str = dataclasses.field(default=None)  # Project alias.
 
     def get_data_as_dict(self):
         """
@@ -554,7 +577,13 @@ class RigPreferencesData:
 # ------------------------------------------------- Framework -------------------------------------------------
 class Proxy:
     def __init__(self, name=None, uuid=None):
+        """
+        Initialize a Proxy object representing a proxy item in the rig.
 
+        Args:
+            name (str, optional): Name of the proxy. Defaults to "proxy" if not provided.
+            uuid (str, optional): UUID to assign to the proxy. Generated if not provided.
+        """
         # Default Values
         self.name = "proxy"
         self.transform = None
@@ -562,10 +591,14 @@ class Proxy:
         self.curve = core_curve.get_curve("_proxy_joint")
         self.curve.set_name(name=self.name)
         self.uuid = core_uuid.generate_uuid(remove_dashes=True)
+        # parent_uuid defines a parent relation, used to define the skeleton hierarchy later in the rig process.
         self.parent_uuid = None
         self.attr_dict = {}
         self.set_locator_scale(scale=1)  # 100% - Initial curve scale
         self.metadata = None
+        # _setup_driver_uuid defines the parent relation between the proxy items, according to how they drive
+        # each other. It doesn't need to be defined, in that case inherits the parent_uuid relation.
+        self._setup_driver_uuid = None
 
         if name:
             self.set_name(name)
@@ -584,7 +617,7 @@ class Proxy:
             return False
         return True
 
-    def build(self, prefix=None, suffix=None, apply_transforms=False, optimized=False):
+    def build(self, prefix=None, suffix=None, apply_transforms=False, use_naming_attrs=False, optimized=False):
         """
         Builds a proxy object.
         Args:
@@ -592,6 +625,8 @@ class Proxy:
             suffix (str, optional): If provided, this suffix will be added to the proxy when it's created.
             apply_transforms (bool, optional): If True, the creation of the proxy will apply transform values.
                                                Used by modules to only apply transforms after setup. (post script)
+            use_naming_attrs (bool, optional): If true, it will check the proxy data for a suffix and prefix
+                                               attribute, which allows for overrides.
             optimized (bool, optional): If True, the module will skip display operations, such as curve creation,
                                         the addition of a snapping shape or the scale cluster and others.
                                         Useful for when building a rig without adjusting the proxy.
@@ -602,16 +637,30 @@ class Proxy:
             logger.warning(f"Unable to build proxy. Invalid proxy object.")
             return
 
-        name = self.name
-
+        # Resolve Full Name
+        resolved_name = self.name
+        # Is using Proxy Unique prefix/suffix override?
+        unique_prefix = self.get_attr_dict_value(key="prefix")
+        if unique_prefix and use_naming_attrs is True:
+            prefix = unique_prefix
+        unique_suffix = self.get_attr_dict_value(key="suffix")
+        if unique_suffix and use_naming_attrs is True:
+            suffix = unique_suffix
+        # Is it using module prefix/suffix? (Unique prefix/suffix has priority.
         if prefix and isinstance(prefix, str):
-            name = f"{prefix}_{name}"
-            self.curve.set_name(name)
+            resolved_name = f"{prefix}_{resolved_name}"
+            self.curve.set_name(resolved_name)
         if suffix and isinstance(suffix, str):
-            name = f"{name}_{suffix}"
-            self.curve.set_name(name)
+            resolved_name = f"{resolved_name}_{suffix}"
+            self.curve.set_name(resolved_name)
 
-        proxy_offset = cmds.group(name=f"{name}_{core_naming.NamingConstants.Suffix.OFFSET}", world=True, empty=True)
+        # Create Offset
+        proxy_offset = cmds.group(
+            name=f"{resolved_name}_{core_naming.NamingConstants.Suffix.OFFSET}",
+            world=True,
+            empty=True,
+        )
+
         if optimized:
             proxy_crv = cmds.group(name=self.curve.get_name(), world=True, empty=True)
         else:
@@ -621,14 +670,44 @@ class Proxy:
             self.curve.set_name(self.name)  # Restore name without prefix
         proxy_crv = cmds.parent(proxy_crv, proxy_offset)[0]
         proxy_offset = core_naming.get_long_name(proxy_offset)
-        proxy_crv = core_naming.get_long_name(proxy_crv)
+        proxy_crv = core_node.Node(proxy_crv)
 
+        # Enforce Name (Fixes issues with merged shapes or reserved strings)
+        if resolved_name != proxy_crv.get_short_name():
+            proxy_crv.rename(resolved_name)
+            logger.debug(f'Curve was renamed to match proxy: From "{proxy_crv}" to "{resolved_name}".')
+
+        # Store Base Metadata ----------------------------------------------------------------------------------
+        core_attr.add_attr(
+            obj_list=proxy_crv,
+            attributes=tools_rig_const.RiggerConstants.ATTR_BASE_NAME,
+            attr_type="string",
+            verbose=False,
+            default=self.name,
+        )
+        core_attr.add_attr(
+            obj_list=proxy_crv,
+            attributes=tools_rig_const.RiggerConstants.ATTR_PREFIX,
+            attr_type="string",
+            verbose=False,
+            default=prefix or "",
+        )
+        core_attr.add_attr(
+            obj_list=proxy_crv,
+            attributes=tools_rig_const.RiggerConstants.ATTR_SUFFIX,
+            attr_type="string",
+            verbose=False,
+            default=suffix or "",
+        )
+        uuid_attrs = core_uuid.add_uuid_attr(
+            obj_list=str(proxy_crv),
+            attr_name=tools_rig_const.RiggerConstants.ATTR_PROXY_UUID,
+            set_initial_uuid_value=False,
+        )
+        # Keyable Attributes -------------------------------------------------------------------------------------
         core_attr.add_separator_attr(
             target_object=proxy_crv,
             attr_name=f"proxy{core_str.upper_first_char(core_rigging.RiggingConstants.SEPARATOR_CONTROL)}",
-        )
-        uuid_attrs = core_uuid.add_uuid_attr(
-            obj_list=proxy_crv, attr_name=tools_rig_const.RiggerConstants.ATTR_PROXY_UUID, set_initial_uuid_value=False
         )
         rot_order_attr = (
             core_attr.add_attr(
@@ -666,7 +745,7 @@ class Proxy:
             _locator_scale = self.get_locator_scale()
             core_attr.set_attr(scale_attr, _locator_scale)
 
-        return ProxyData(name=proxy_crv, offset=proxy_offset, setup=(loc_scale_cluster,), uuid=self.get_uuid())
+        return ProxyData(name=str(proxy_crv), offset=proxy_offset, setup=(loc_scale_cluster,), uuid=self.get_uuid())
 
     def apply_offset_transform(self):
         """
@@ -760,7 +839,7 @@ class Proxy:
             x (float, int, optional): X value for the position. If provided, you must provide Y and Z too.
             y (float, int, optional): Y value for the position. If provided, you must provide X and Z too.
             z (float, int, optional): Z value for the position. If provided, you must provide X and Y too.
-            xyz (Vector3, list, tuple) A Vector3 with the new position or a tuple/list with X, Y and Z values.
+            xyz (Vector3, list, tuple): A Vector3 with the new position or a tuple/list with X, Y and Z values.
         """
         self.set_position(x=x, y=y, z=z, xyz=xyz)
         self.set_offset_position(x=x, y=y, z=z, xyz=xyz)
@@ -782,7 +861,7 @@ class Proxy:
             x (float, int, optional): X value for the position. If provided, you must provide Y and Z too.
             y (float, int, optional): Y value for the position. If provided, you must provide X and Z too.
             z (float, int, optional): Z value for the position. If provided, you must provide X and Y too.
-            xyz (Vector3, list, tuple) A Vector3 with the new position or a tuple/list with X, Y and Z values.
+            xyz (Vector3, list, tuple): A Vector3 with the new position or a tuple/list with X, Y and Z values.
         """
         self._initialize_transform()
         self.transform.set_position(x=x, y=y, z=z, xyz=xyz)
@@ -794,7 +873,7 @@ class Proxy:
             x (float, int, optional): X value for the rotation. If provided, you must provide Y and Z too.
             y (float, int, optional): Y value for the rotation. If provided, you must provide X and Z too.
             z (float, int, optional): Z value for the rotation. If provided, you must provide X and Y too.
-            xyz (Vector3, list, tuple) A Vector3 with the new position or a tuple/list with X, Y and Z values.
+            xyz (Vector3, list, tuple): A Vector3 with the new position or a tuple/list with X, Y and Z values.
         """
         self._initialize_transform()
         self.transform.set_rotation(x=x, y=y, z=z, xyz=xyz)
@@ -806,7 +885,7 @@ class Proxy:
             x (float, int, optional): X value for the scale. If provided, you must provide Y and Z too.
             y (float, int, optional): Y value for the scale. If provided, you must provide X and Z too.
             z (float, int, optional): Z value for the scale. If provided, you must provide X and Y too.
-            xyz (Vector3, list, tuple) A Vector3 with the new position or a tuple/list with X, Y and Z values.
+            xyz (Vector3, list, tuple): A Vector3 with the new position or a tuple/list with X, Y and Z values.
         """
         self._initialize_transform()
         self.transform.set_scale(x=x, y=y, z=z, xyz=xyz)
@@ -831,7 +910,7 @@ class Proxy:
             x (float, int, optional): X value for the position. If provided, you must provide Y and Z too.
             y (float, int, optional): Y value for the position. If provided, you must provide X and Z too.
             z (float, int, optional): Z value for the position. If provided, you must provide X and Y too.
-            xyz (Vector3, list, tuple) A Vector3 with the new position or a tuple/list with X, Y and Z values.
+            xyz (Vector3, list, tuple): A Vector3 with the new position or a tuple/list with X, Y and Z values.
         """
         self._initialize_offset_transform()
         self.offset_transform.set_position(x=x, y=y, z=z, xyz=xyz)
@@ -843,7 +922,7 @@ class Proxy:
             x (float, int, optional): X value for the rotation. If provided, you must provide Y and Z too.
             y (float, int, optional): Y value for the rotation. If provided, you must provide X and Z too.
             z (float, int, optional): Z value for the rotation. If provided, you must provide X and Y too.
-            xyz (Vector3, list, tuple) A Vector3 with the new position or a tuple/list with X, Y and Z values.
+            xyz (Vector3, list, tuple): A Vector3 with the new position or a tuple/list with X, Y and Z values.
         """
         self._initialize_offset_transform()
         self.offset_transform.set_rotation(x=x, y=y, z=z, xyz=xyz)
@@ -855,7 +934,7 @@ class Proxy:
             x (float, int, optional): X value for the scale. If provided, you must provide Y and Z too.
             y (float, int, optional): Y value for the scale. If provided, you must provide X and Z too.
             z (float, int, optional): Z value for the scale. If provided, you must provide X and Y too.
-            xyz (Vector3, list, tuple) A Vector3 with the new position or a tuple/list with X, Y and Z values.
+            xyz (Vector3, list, tuple): A Vector3 with the new position or a tuple/list with X, Y and Z values.
         """
         self._initialize_offset_transform()
         self.offset_transform.set_scale(x=x, y=y, z=z, xyz=xyz)
@@ -864,7 +943,7 @@ class Proxy:
         """
         Sets the curve used to build the proxy element
         Args:
-            curve (Curve) A Curve object to be used for building the proxy element (its shape)
+            curve (Curve): A Curve object to be used for building the proxy element (its shape)
             inherit_curve_name (bool, optional): If active, this function try to extract the name of the curve and
                                                  change the name of the proxy to match it. Does nothing if name is None.
         """
@@ -1060,6 +1139,23 @@ class Proxy:
         else:
             logger.warning(error_message)
 
+    def set_setup_driver_uuid(self, uuid):
+        """
+        Sets a setup driver UUID for the proxy.
+        If a setup driver UUID is set, the hierarchy of the proxy items can be retrieved,
+        it describes how they are linked together.
+        Args:
+            uuid (str): the UUID of the setup driver of this proxy
+        """
+        error_message = f"Unable to set proxy setup driver UUID. Invalid UUID input."
+        if not uuid or not isinstance(uuid, str):
+            logger.warning(error_message)
+            return
+        if core_uuid.is_uuid_valid(uuid) or core_uuid.is_short_uuid_valid(uuid):
+            self._setup_driver_uuid = uuid
+        else:
+            logger.warning(error_message)
+
     def set_parent_uuid_from_proxy(self, parent_proxy):
         """
         Sets the provided proxy as the parent  of this proxy. Its UUID  is extracted as parent_UUID for this proxy.
@@ -1080,6 +1176,12 @@ class Proxy:
         Clears the parent UUID by setting the "parent_uuid" to None
         """
         self.parent_uuid = None
+
+    def clear_setup_driver_uuid(self):
+        """
+        Clears the driver UUID by setting the "driver_uuid" to None
+        """
+        self._setup_driver_uuid = None
 
     def set_meta_purpose(self, value):
         """
@@ -1133,11 +1235,14 @@ class Proxy:
             self.set_uuid(uuid=_uuid)
         return self
 
-    def read_data_from_scene(self):
+    def read_data_from_scene(self, obj_path=None):
         """
         Attempts to find the proxy in the scene. If found, it reads the data into the proxy object.
         e.g. The user moved the proxy, a new position will be read and saved to this proxy.
              New custom attributes or anything else added to the proxy will also be saved.
+        Args:
+            obj_path (str, optional): If provided, it reads the data from the provided object
+                                      instead of trying to find it in the scene.
         Returns:
             Proxy: This object (self)
         """
@@ -1147,6 +1252,8 @@ class Proxy:
         proxy = core_uuid.get_object_from_uuid_attr(
             uuid_string=self.uuid, attr_name=tools_rig_const.RiggerConstants.ATTR_PROXY_UUID
         )
+        if obj_path:
+            proxy = obj_path
         if proxy:
             try:
                 self._initialize_transform()
@@ -1222,6 +1329,14 @@ class Proxy:
             str: uuid string for the potential parent of this proxy.
         """
         return self.parent_uuid
+
+    def get_setup_driver_uuid(self):
+        """
+        Gets the driver uuid value of this proxy.
+        Returns:
+            str: uuid string for the potential driver of this proxy.
+        """
+        return self._setup_driver_uuid
 
     def get_attr_dict(self):
         """
@@ -1301,14 +1416,59 @@ class Proxy:
 
         return proxy_data
 
+    def get_mirrored_transform(self, plane="YZ", rotate_order="xyz", behaviour=True):
+        """
+        Gets the mirrored transform values in form of a Transform object.
+
+        Args:
+            plane (str): hyperplane used to mirror. Accepted values: "XY", "YZ", "XZ".
+            rotate_order (str): the rotate order used to decompose the matrix in euler rotations.
+                                Accepted values: "xyz", "yzx", "zxy", "xzy", "yxz", "zyx".
+            behaviour (bool): if True sets the opposite orientation
+
+        Returns:
+            Transform object: instance of Transform
+        """
+        if plane not in ["XY", "YZ", "XZ"]:
+            logger.warning("Given plane not valid. Please choose between 'XY', 'YZ', 'XZ'.")
+            return
+        if not rotate_order:
+            logger.warning("Given rotate order is empty.")
+            return
+        if not isinstance(rotate_order, str):
+            logger.warning("Given rotate order is not a string.")
+            return
+
+        rotate_order_options = ["xyz", "yzx", "zxy", "xzy", "yxz", "zyx"]
+        if rotate_order not in rotate_order_options:
+            logger.warning(f"Rotate order must be one of the following values: {str(rotate_order_options)}")
+            return
+
+        matrix = self.transform.to_matrix(rotate_order=rotate_order)
+        mirrored_matrix = core_trans.mirror_transform_matrix(matrix, plane=plane, behaviour=behaviour)
+        mirrored_transform = core_trans.get_transform_from_matrix(mirrored_matrix, rotate_order=rotate_order)
+
+        return mirrored_transform
+
 
 class ModuleGeneric:
-    __version__ = "0.1.1-beta"
+    __version__ = "1.0.0"
     icon = ui_res_lib.Icon.rigger_module_generic
     allow_parenting = True
     allow_multiple = True
+    bypass_activation = False  # If True, this module cannot be activated/deactivated.
 
     def __init__(self, name=None, prefix=None, suffix=None):
+        """
+        Initialize a new module instance with optional name, prefix, and suffix.
+        Sets default values for various attributes related to the module’s identity,
+        hierarchy, proxies, and state.
+
+        Args:
+            name (str, optional): Custom name for the module. Defaults to None.
+            prefix (str, optional): Prefix string for the module. Defaults to None.
+            suffix (str, optional): Suffix string for the module. Defaults to None.
+        """
         # Default Values
         self._project = None  # When assigned to a project. This becomes a reference to the project
         self.name = self.get_module_class_name(remove_module_prefix=True, formatted=True)
@@ -1317,10 +1477,12 @@ class ModuleGeneric:
         self.suffix = None
         self.proxies = []
         self.parent_uuid = None
+        self.mirror_uuid = None
         self.metadata = None
         self.active = True
         self.orientation = OrientationData()
         self.code = None
+        self.expanded = True  # Tree Item State Collapsed/Expanded
 
         if name:
             self.set_name(name)
@@ -1351,7 +1513,7 @@ class ModuleGeneric:
         Args:
             uuid (str): A new UUID for this module (12 length format)
         """
-        error_message = f"Unable to set proxy UUID. Invalid UUID input."
+        error_message = f"Unable to set module UUID. Invalid UUID input."
         if not uuid or not isinstance(uuid, str):
             logger.warning(error_message)
             return
@@ -1395,6 +1557,22 @@ class ModuleGeneric:
             return
         if core_uuid.is_uuid_valid(uuid) or core_uuid.is_short_uuid_valid(uuid):
             self.parent_uuid = uuid
+        else:
+            logger.warning(error_message)
+
+    def set_mirror_uuid(self, uuid):
+        """
+        Sets the module UUID used to mirror the proxies.
+
+        Args:
+            uuid (str): module UUID used to mirror
+        """
+        error_message = f"Unable to set the mirror module UUID. Invalid UUID input."
+        if not uuid or not isinstance(uuid, str):
+            logger.warning(error_message)
+            return
+        if core_uuid.is_uuid_valid(uuid) or core_uuid.is_short_uuid_valid(uuid):
+            self.mirror_uuid = uuid
         else:
             logger.warning(error_message)
 
@@ -1532,6 +1710,17 @@ class ModuleGeneric:
             _up_dir = self.orientation.get_up_dir()
             _up_dir = tuple(abs(value) * multiplier for value in _up_dir)
             self.orientation.set_up_dir(_up_dir)
+
+    def set_expanded_state(self, is_expanded):
+        """
+        Sets the "is_expanded" variable. This variable determines if the module tree item will expand when building UI.
+        Args:
+            is_expanded (bool): True if expanded, False if collapsed.
+        """
+        if not isinstance(is_expanded, bool):
+            logger.warning(f"Unable to set expanded state. " f'Expected a boolean, but got: "{str(type(is_expanded))}"')
+            return
+        self.expanded = is_expanded
 
     def set_code_data(self, code_data):
         """
@@ -1674,15 +1863,15 @@ class ModuleGeneric:
             self.set_uuid(uuid=_uuid)
 
         _prefix = module_dict.get("prefix")
-        if _prefix:
+        if _prefix is not None:
             self.set_prefix(prefix=_prefix)
 
         _suffix = module_dict.get("suffix")
-        if _suffix:
+        if _suffix is not None:
             self.set_suffix(suffix=_suffix)
 
         _parent = module_dict.get("parent")
-        if _parent:
+        if _parent is not None:
             self.set_parent_uuid(uuid=_parent)
 
         _orientation = module_dict.get("orientation")
@@ -1791,12 +1980,41 @@ class ModuleGeneric:
         """
         return self.parent_uuid
 
-    def get_proxies(self):
+    def get_proxies(self, sort_by=None):
         """
         Gets the proxies in this rig module.
+        Args:
+            sort_by (str): Accepted None, "parent" or "setup_driver". If parent the list will be sorted hierarchically.
         Returns:
             list: A list of proxies found in this rig module.
         """
+        if not self.proxies:
+            return self.proxies
+
+        if sort_by == "setup_driver":
+            driver_uuids = [prx.get_setup_driver_uuid() for prx in self.proxies]
+            if any(driver_uuids):
+                map_uuid_proxy = {prx.get_uuid(): prx for prx in self.proxies}
+                map_uuid_proxy_driver = {}
+                for prx in self.proxies:
+                    if prx.get_setup_driver_uuid():
+                        map_uuid_proxy_driver[prx.get_uuid()] = prx.get_setup_driver_uuid()
+                    else:  # inherit parent_uuid
+                        map_uuid_proxy_driver[prx.get_uuid()] = prx.get_parent_uuid()
+                uuids_sorted_by_parent = core_hrchy.dict_parent_sort(map_uuid_proxy_driver)
+                proxies_sorted_by_driver = [map_uuid_proxy[uuid] for uuid in uuids_sorted_by_parent]
+                return proxies_sorted_by_driver
+            else:
+                sort_by = "parent"
+
+        if sort_by == "parent":
+            parent_uuids = [prx.get_parent_uuid() for prx in self.proxies]
+            if any(parent_uuids):
+                map_uuid_proxy = {prx.get_uuid(): prx for prx in self.proxies}
+                map_uuid_proxy_parent = {prx.get_uuid(): prx.get_parent_uuid() for prx in self.proxies}
+                uuids_sorted_by_parent = core_hrchy.dict_parent_sort(map_uuid_proxy_parent)
+                proxies_sorted_by_parent = [map_uuid_proxy[uuid] for uuid in uuids_sorted_by_parent]
+                return proxies_sorted_by_parent
         return self.proxies
 
     def get_proxies_uuids(self):
@@ -1810,6 +2028,9 @@ class ModuleGeneric:
     def get_proxy_uuid_existence(self, uuid):
         """
         Gets if the provided proxy uuid is within this module or not.
+        Args:
+            uuid (str): The UUID to check.
+
         Returns:
             bool: True if found, False otherwise.
         """
@@ -1862,6 +2083,14 @@ class ModuleGeneric:
         else:
             return None
 
+    def is_expanded(self):
+        """
+        Gets the expanded state. (True or False)
+        Returns:
+            bool: True if module is expanded, False if not.
+        """
+        return self.expanded
+
     def get_code_data(self):
         """
         Gets the stored CodeData object.
@@ -1884,17 +2113,19 @@ class ModuleGeneric:
         if include_module_name:
             module_name = self.get_module_class_name(remove_module_prefix=False)
             module_data["module"] = module_name
-        if self.name:
+        if self.name is not None:
             module_data["name"] = self.name
         module_data["uuid"] = self.uuid
         module_data["active"] = self.active
-        if self.prefix:
+        if self.prefix is not None:
             module_data["prefix"] = self.prefix
-        if self.suffix:
+        if self.suffix is not None:
             module_data["suffix"] = self.suffix
-        if self.parent_uuid:
+        if self.parent_uuid is not None:
             module_data["parent"] = self.parent_uuid
-        if self.orientation:
+        if self.mirror_uuid:
+            module_data["mirror"] = self.mirror_uuid
+        if self.orientation is not None:
             module_data["orientation"] = self.orientation.get_data_as_dict()
         if self.code:
             module_data["code"] = self.code.get_data_as_dict()
@@ -2124,6 +2355,19 @@ class ModuleGeneric:
         # Assemble and Return
         return f"{_prefix}{name}{_suffix}"
 
+    def duplicate(self):
+        """
+        Duplicates the module by creating a copy of it and updating the proxy UUIDs while retaining their hierarchy.
+        Returns:
+            ModuleGeneric: Duplicated copy of the module with proxy UUIDs reinitialized.
+        """
+        _duplicated_mod = copy.deepcopy(self)
+        uuid_mapping = {proxy.uuid: core_uuid.generate_uuid(remove_dashes=True) for proxy in _duplicated_mod.proxies}
+        updated_data = tools_rig_utils.update_uuids_in_dict(self.get_module_as_dict(), uuid_mapping)
+        _duplicated_mod.read_data_from_dict(updated_data)  # Read updated data (Proxy UUIDs)
+        _duplicated_mod.set_uuid(core_uuid.generate_uuid(short=True, short_length=12))  # Randomized Duplicated UUID
+        return _duplicated_mod
+
     # --------------------------------------------------- Misc ---------------------------------------------------
     def apply_transforms(self, apply_offset=False):
         """
@@ -2132,8 +2376,94 @@ class ModuleGeneric:
         Args:
             apply_offset (bool, optional): If True, it will attempt to also apply the offset data. (Happens first)
         """
-        for proxy in self.proxies:
+        for proxy in self.get_proxies(sort_by="setup_driver"):
             proxy.apply_transforms(apply_offset=apply_offset)
+
+    def align_proxies_to_joints(self):
+        """
+        Aligns the proxies to the joints.
+        This operates with the hierarchy retrieved using get_proxies sort by "setup_driver".
+        This step runs after the execution of "build_control_rig_pose" is complete in all modules,
+        and after the creation of the rig dag pose.
+        It is necessary to ensure that the proxies are matching the rig pose.
+        """
+        proxies_sorted_by_driver = self.get_proxies(sort_by="setup_driver")
+        for prx in proxies_sorted_by_driver:
+            proxy_id = prx.get_uuid()
+            joint = tools_rig_utils.find_joint_from_uuid(proxy_id)
+            proxy_item = tools_rig_utils.find_proxy_from_uuid(proxy_id)
+            if joint:
+                core_trans.match_translate(source=joint, target_list=proxy_item)
+
+    def get_proxies_mirrored(self, plane="YZ", rotate_order="xyz", behaviour=False, specular=True):
+        """
+        Mirrors proxies through the self.mirror_uuid, if defined.
+
+        Args:
+            plane (str): hyperplane used to mirror. Accepted values: "XY", "YZ", "XZ".
+            rotate_order (str): the rotate order used to decompose the matrix in euler rotations.
+                                Accepted values: "xyz", "yzx", "zxy", "xzy", "yxz", "zyx".
+            behaviour (bool): if True sets the opposite orientation
+            specular (bool): if True sets a specular rotation
+        """
+        if not self.mirror_uuid:
+            logger.warning(f"Cannot mirror the module {self.name}, mirror_uuid not defined.")
+            return
+        if plane not in ["XY", "YZ", "XZ"]:
+            logger.warning("Given plane not valid. Please choose between 'XY', 'YZ', 'XZ'.")
+            return
+        if not rotate_order:
+            logger.warning("Given rotate order is empty.")
+            return
+        if not isinstance(rotate_order, str):
+            logger.warning("Given rotate order is not a string.")
+            return
+
+        # Get the proxies, sorted by driver_uuid in order to move them following the right sequence
+        target_proxies = self.get_proxies(sort_by="setup_driver")
+
+        # Mirror if there is a matching proxy
+        for target_proxy in target_proxies:
+            target_purpose = target_proxy.get_meta_purpose()
+            if not target_purpose:
+                # name fallback
+                target_purpose = target_proxy.name
+
+            # -- get the target proxy items from the module identified by mirror_uuid
+            item_to_use = tools_rig_utils.find_drivers_from_module(
+                source_uuid=self.mirror_uuid,
+                filter_driver_type=tools_rig_const.RiggerDriverTypes.PROXY,
+                filter_driver_purpose=target_purpose,
+            )
+            if not item_to_use:
+                logger.warning(
+                    f"Skipped mirror for '{target_proxy.name}', "
+                    f"no suitable item found in linked module '{self.mirror_uuid}'.",
+                )
+                continue
+
+            # -- calculate the mirrored transformations from the identified opposite item
+            item_to_use = item_to_use[0]
+            matrix_to_use = cmds.xform(item_to_use, q=True, m=True, ws=True)
+            mirrored_matrix = core_trans.mirror_transform_matrix(matrix_to_use, plane=plane, behaviour=behaviour)
+            mirrored_transform = core_trans.get_transform_from_matrix(mirrored_matrix, rotate_order=rotate_order)
+
+            # -- apply mirrored transforms to the main proxy
+            pos = mirrored_transform.position
+            rot = mirrored_transform.rotation
+
+            if specular:
+                rot.y = -rot.y
+                rot.z = -rot.z
+
+            target_proxy_item = tools_rig_utils.find_proxy_from_uuid(target_proxy.get_uuid())
+            if cmds.getAttr(target_proxy_item + ".rotate", l=True):
+                # apply only translation
+                cmds.xform(target_proxy_item, t=(pos.x, pos.y, pos.z), ws=True)
+            else:
+                # apply position and rotation
+                cmds.xform(target_proxy_item, t=(pos.x, pos.y, pos.z), ws=True)
+                cmds.xform(target_proxy_item, ro=(rot.x, rot.y, rot.z), ws=True)
 
     def is_valid(self):
         """
@@ -2184,14 +2514,30 @@ class ModuleGeneric:
             if drivers:
                 core_hrchy.parent(source_objects=self.module_children_drivers, target_parent=drivers[0])
 
-    def _parse_path(self, path, normalize_path=True):
+    def get_module_environment_variables(self):
+        """
+        Gets environment variables with their actual values. See "get_environment_variables" for more information
+        on what is being replaced, then adds the module data to it, so it's complete.
+
+        Returns:
+            dict: A dictionary where keys are variables and values are the paths.
+        """
+        environment_vars_dict = get_environment_variables(rig_project=self._project)
+        # Update Module Name vars
+        _mod_name = self.get_name()
+        environment_vars_dict["{module-name}"] = _mod_name
+        _lower_snake_name = _mod_name.lower().replace(" ", "_")
+        environment_vars_dict["{module-sanitized-name}"] = utils_sys.sanitize_filename(_lower_snake_name)
+        return environment_vars_dict
+
+    def parse_path(self, path, normalize_path=True):
         """
         Replaces environment variables with their actual values. See "get_environment_variables" for more information
         on what is being replaced.
 
         Args:
             path (str): A path that gets environment variables replaced with their actual values. For example:
-                        "$TEMP_DIR/dir" would become "C:/Users/<user>/AppData/Local/Temp/dir"
+                        "{temp-dir}/dir" would become "C:/Users/<user>/AppData/Local/Temp/dir"
             normalize_path (bool, optional): Normalizes the path by fixing all slashes according to the operating
                                              system's convention.
 
@@ -2201,11 +2547,62 @@ class ModuleGeneric:
         if path is None:
             logger.debug('"None" was parsed as a path for the environment variables.')
             return ""
-        environment_vars_dict = get_environment_variables(rig_project=self._project)
+        environment_vars_dict = self.get_module_environment_variables()
+        # Parse Path
         path = core_str.replace_keys_with_values(path, environment_vars_dict)  # Replace Variables with actual values
         if normalize_path:
             return os.path.normpath(path)
         return path
+
+    def parse_absolute_project_path_to_relative(self, absolute_path):
+        """
+        When receiving a path that starts with the same value as the resolved {project-dir}, it replaces the path with
+        the environment variables. See example below.
+
+        Args:
+            absolute_path (str): A path to have the project dir environment variable injected into.
+
+        Returns:
+            str: A path where the long path for the project directory is replaced by an env var "{project-dir}".
+                 This only happens if the long path matches (startswith) the resolved {project-dir} value.
+                 If None is provided, it simply returns the same value of None.
+                 Same thing in case a project is not available.
+
+        Example:
+            # {project-dir} = "C:/a_project"
+            my_path = "C:/a_project/folder"
+            output = self.parse_absolute_project_path_to_relative()
+            print(output)  # {project-dir}/folder
+        """
+        if not absolute_path:
+            return absolute_path
+        if not self._project:
+            return absolute_path
+        project_dir = self._project.get_project_dir_path(parse_vars=True)
+        if absolute_path.startswith(project_dir):
+            no_project_dir = core_str.remove_prefix(input_string=absolute_path, prefix=project_dir)
+            no_project_dir = no_project_dir.lstrip("\\/")  # Strip both backslash and forward slash
+            env_var_project_dir = os.path.join("{project-dir}", no_project_dir)
+            env_var_project_dir = env_var_project_dir.replace("\\", "/")
+            return env_var_project_dir
+        return absolute_path
+
+    def warn_if_path_outside_project(self, path):
+        """
+        Sends a warning when the provided path is outside the set project folder.
+        Args:
+            path (str): A path to check if it's inside or not the project directory.
+        """
+        if not path:
+            return
+        if not self._project:
+            return
+        project_dir = self._project.get_project_dir_path(parse_vars=True)
+        project_dir = os.path.abspath(project_dir)
+        project_dir = os.path.join(project_dir, "")  # Add trailing separator to ensure proper containment
+        check_path = os.path.abspath(path)
+        if not os.path.commonprefix([project_dir, check_path]) == project_dir:
+            logging.warning(f'Module "{self.get_name()}" is referencing a path outside the project directory.')
 
     def execute_module_python_code(self, required_order=None):
         """
@@ -2219,6 +2616,8 @@ class ModuleGeneric:
             self.code.execute_code()
         else:
             if self.code.get_order() == required_order:
+                pretty_order_name = core_str.snake_to_title(required_order)
+                logger.info(f"({pretty_order_name} Call): {self.get_name()}")
                 self.code.execute_code()
 
         # build_rig - build common elements --------------------
@@ -2323,8 +2722,8 @@ class ModuleGeneric:
             logger.warning(f"Skipped the creation of groups for {control}, given value is not a list.")
         else:
             for grp_suffix in suffix_list:
-                group_type = f"{control_base_name}_{grp_suffix}"
-                group_name = self._assemble_node_name(group_type, overwrite_prefix=overwrite_prefix)
+                group_name = self._assemble_node_name(control_base_name, overwrite_prefix=overwrite_prefix)
+                group_name = f"{group_name}_{grp_suffix}"
                 group = core_hrchy.create_group(name=group_name)
                 group = core_node.Node(group)
 
@@ -2421,9 +2820,14 @@ class ModuleGeneric:
         if separator_attr and isinstance(separator_attr, str):
             core_attr.add_separator_attr(target_object=control, attr_name=separator_attr)
 
+        # -- set rotation order
+        cmds.setAttr(f"{control}.rotateOrder", rot_order)
+        if rot_order_expose:
+            core_rigging.expose_rotation_order(control)
+            core_attr.set_attr_state(attribute_path=f"{control}.rotationOrder", locked=True)
+
         # -- match transformations
         core_trans.match_transform(source=match_obj, target_list=control)
-
         # -- match position
         if match_obj_pos:
             core_trans.match_translate(source=match_obj_pos, target_list=control)
@@ -2443,12 +2847,6 @@ class ModuleGeneric:
             core_color.set_color_viewport(obj_list=control, rgb_color=color)
         if isinstance(line_width, (int, float)):
             core_curve.set_curve_width(obj_list=control, line_width=line_width)
-
-        # -- set rotation order
-        cmds.setAttr(f"{control}.rotateOrder", rot_order)
-        if rot_order_expose:
-            core_rigging.expose_rotation_order(control)
-            core_attr.set_attr_state(attribute_path=f"{control}.rotationOrder", locked=True)
 
         # Create the default groups
         parent_grp_suffix_list = core_rigging.get_control_parent_group_name_list()
@@ -2507,7 +2905,7 @@ class ModuleGeneric:
         return control, control_parent_groups, offset_control, offset_data_group
 
     # --------------------------------------------------- Build ---------------------------------------------------
-    def build_proxy(self, project_prefix=None, optimized=False):
+    def build_proxy(self, project_prefix=None, optimized=False, use_naming_attrs=None):
         """
         Builds the proxy representation of the rig (for the user to adjust and determine the pose)
         Args:
@@ -2523,6 +2921,10 @@ class ModuleGeneric:
                                         Useful for when building a rig without adjusting the proxy.
                                         Note: This skips happen inside the "proxy.build()" function, the "optimized"
                                         arguments is only fed into this function during this step.
+            use_naming_attrs (bool, optional): If true, it will check the proxy for a suffix and prefix
+                                               attribute instead of the module, which allows for overrides.
+                                               If not provided, this defaults to True for ModuleGeneric and
+                                               False for inheriting modules.
         Returns:
             list: A list of ProxyData objects. These objects describe the created proxy elements.
         """
@@ -2531,16 +2933,40 @@ class ModuleGeneric:
         _prefix = ""
         prefix_list = []
 
+        # Define use of attribute names (data stored in the proxy object)
+        # If the default is used, determine the correct value based on the class type.
+        # This allows ModuleGeneric to behave differently than its children.
+        if use_naming_attrs is None:
+            use_naming_attrs = self.get_module_class_name() == "ModuleGeneric"
+
+        # Define Prefix
         if project_prefix and isinstance(project_prefix, str):
             prefix_list.append(project_prefix)
         if self.prefix and isinstance(self.prefix, str):
             prefix_list.append(self.prefix)
         if prefix_list:
             _prefix = "_".join(prefix_list)
+        # Build Proxies
         for proxy in self.proxies:
             proxy_data.append(
-                proxy.build(prefix=_prefix, suffix=self.suffix, apply_transforms=False, optimized=optimized)
+                proxy.build(
+                    prefix=_prefix,
+                    suffix=self.suffix,
+                    apply_transforms=False,
+                    use_naming_attrs=use_naming_attrs,
+                    optimized=optimized,
+                )
             )
+
+        # Add the driver uuid to identify the proxies through the module_uuid
+        for proxy in self.proxies:
+            proxy_item = tools_rig_utils.find_proxy_from_uuid(proxy.get_uuid())
+            self._add_driver_uuid_attr(
+                target_driver=proxy_item,
+                driver_type=tools_rig_const.RiggerDriverTypes.PROXY,
+                proxy_purpose=proxy.get_meta_purpose(),
+            )
+
         return proxy_data
 
     def build_proxy_setup(self):
@@ -2551,20 +2977,53 @@ class ModuleGeneric:
         """
         logger.debug(f'"build_proxy_setup" function for "{self.get_module_class_name()}" was called.')
         self.apply_transforms()
+        cmds.select(clear=True)
 
-    def build_skeleton_joints(self):
+    def build_skeleton_joints(self, use_naming_attrs=None):
         """
         Runs build skeleton joints script. Creates joints out of the proxy elements.
         This function should happen after "build_proxy_setup" as it expects proxy elements to be present in the scene.
+        Args:
+            use_naming_attrs (bool, optional): If true, it will check the proxy for a suffix and prefix
+                                               attribute instead of the module, which allows for overrides.
+                                               If not provided, this defaults to True for ModuleGeneric and
+                                               False for inheriting modules.
         """
+        _module_prefix = self.prefix
+        _module_suffix = self.suffix
+
+        # If the default is used, determine the correct value based on the class type.
+        # This allows ModuleGeneric to behave differently than its children.
+        if use_naming_attrs is None:
+            use_naming_attrs = self.get_module_class_name() == "ModuleGeneric"
+
         logger.debug(f'"build_skeleton" function from "{self.get_module_class_name()}" was called.')
         skeleton_grp = tools_rig_utils.find_skeleton_group()
         for proxy in self.proxies:
+            # If not found skip it
             proxy_node = tools_rig_utils.find_proxy_from_uuid(proxy.get_uuid())
             if not proxy_node:
                 continue
 
-            joint_name = f"{proxy_node.get_short_name()}_{core_naming.NamingConstants.Suffix.JNT}"
+            # Check for prefix/suffix attributes
+            if use_naming_attrs:
+                if proxy.get_attr_dict_value(key="prefix") and not None:
+                    self.prefix = proxy.get_attr_dict_value(key="prefix")
+                if proxy.get_attr_dict_value(key="suffix") and not None:
+                    self.suffix = proxy.get_attr_dict_value(key="suffix")
+
+            # Enforce Resolved Name (Fixes reserved strings issue)
+            resolved_name = proxy_node.get_short_name()
+            base_name_attr = f"{proxy_node}.{tools_rig_const.RiggerConstants.ATTR_BASE_NAME}"
+            prefix_attr = f"{proxy_node}.{tools_rig_const.RiggerConstants.ATTR_PREFIX}"
+            suffix_attr = f"{proxy_node}.{tools_rig_const.RiggerConstants.ATTR_SUFFIX}"
+            if all(cmds.objExists(attr) for attr in [base_name_attr, prefix_attr, suffix_attr]):
+                _base_name = str(cmds.getAttr(base_name_attr))
+                _prefix = self.prefix
+                _suffix = self.suffix
+                resolved_name = "_".join(filter(None, [_prefix, _base_name, _suffix]))
+
+            joint_name = f"{resolved_name}_{core_naming.NamingConstants.Suffix.JNT}"
             joint = core_node.create_node(node_type="joint", name=joint_name)
 
             _locator_scale = proxy.get_locator_scale()
@@ -2575,10 +3034,10 @@ class ModuleGeneric:
 
             # Add proxy base name - Proxy/Joint Name
             core_attr.add_attr(
-                obj_list=joint, attributes=tools_rig_const.RiggerConstants.ATTR_JOINT_BASE_NAME, attr_type="string"
+                obj_list=joint, attributes=tools_rig_const.RiggerConstants.ATTR_BASE_NAME, attr_type="string"
             )
             core_attr.set_attr(
-                obj_list=joint, attr_list=tools_rig_const.RiggerConstants.ATTR_JOINT_BASE_NAME, value=proxy.get_name()
+                obj_list=joint, attr_list=tools_rig_const.RiggerConstants.ATTR_BASE_NAME, value=proxy.get_name()
             )
             # Add proxy reference - Proxy/Joint UUID
             core_attr.add_attr(
@@ -2614,6 +3073,9 @@ class ModuleGeneric:
             core_color.set_color_viewport(obj_list=joint, rgb_color=core_color.ColorConstants.RigJoint.GENERAL)
             core_hrchy.parent(source_objects=joint, target_parent=str(skeleton_grp))
 
+            self.prefix = _module_prefix
+            self.suffix = _module_suffix
+
     def build_skeleton_hierarchy(self):
         """
         Runs post skeleton script. Joints are parented and oriented during this step.
@@ -2633,23 +3095,25 @@ class ModuleGeneric:
                 continue
 
             proxy_obj_path = tools_rig_utils.find_proxy_from_uuid(proxy.get_uuid())
-            # Inherit Orientation (Before Parenting)
-            if self.get_orientation_method() == OrientationData.Methods.inherit:
-                core_trans.match_rotate(source=proxy_obj_path, target_list=joint)
             # Inherit Rotation Order
             proxy_rotation_order = cmds.getAttr(f"{proxy_obj_path}.{tools_rig_const.RiggerConstants.ATTR_ROT_ORDER}")
             cmds.setAttr(f"{joint}.rotateOrder", proxy_rotation_order)
+            # Inherit Orientation (Before Parenting)
+            if self.get_orientation_method() == OrientationData.Methods.inherit:
+                cmds.delete(cmds.orientConstraint(proxy_obj_path, joint))
+        for proxy in self.proxies:
+            joint = tools_rig_utils.find_joint_from_uuid(proxy.get_uuid())
+            if not joint:
+                continue
             # Parent Joint (Internal Proxies)
             parent_uuid = proxy.get_parent_uuid()
             if parent_uuid in module_uuids:
                 parent_joint_node = tools_rig_utils.find_joint_from_uuid(parent_uuid)
                 core_hrchy.parent(source_objects=joint, target_parent=parent_joint_node)
             jnt_nodes.append(joint)
-
         # Auto Orientation (After Parenting)
         if self.get_orientation_method() == OrientationData.Methods.automatic:
             self.orientation.apply_automatic_orientation(joint_list=jnt_nodes)
-
         # Parent Joints (External Proxies)
         for proxy in self.proxies:
             parent_uuid = proxy.get_parent_uuid()
@@ -2658,6 +3122,17 @@ class ModuleGeneric:
                 parent_joint_node = tools_rig_utils.find_joint_from_uuid(parent_uuid)
                 core_hrchy.parent(source_objects=joint, target_parent=parent_joint_node)
         cmds.select(clear=True)
+
+    def build_control_rig_pose(self):
+        """
+        Build function used to pose the proxy/skeleton in a new pose before creating the control rig.
+        This allows for the bind pose to be different from the control rig pose.
+        e.g. A character could be bound in A pose, but the control rig is generated in T pose.
+
+        TODO: add an option to activate/deactivate it per module. For example, if we need to build three arms,
+              but we don't want to apply the rig pose on one of them.
+        """
+        logger.debug(f'"build_control_rig_pose" function from "{self.get_module_class_name()}" was called.')
 
     def build_rig(self, project_prefix=None):
         """
@@ -2677,9 +3152,9 @@ class ModuleGeneric:
 
     def build_rig_post(self):
         """
-        Runs post rig creation script.
-        This step runs after the execution of "build_rig" is complete in all modules.
-        Used to define automation or connections that require external elements to exist.
+        Runs post rig script phase.
+        This step runs after the execution of "build_rig" is completed.
+        Usually used to define automation or connections that require external elements to exist.
         """
         logger.debug(f'"build_rig" function from "{self.get_module_class_name()}" was called.')
         self._parent_module_children_drivers()
@@ -2689,7 +3164,16 @@ class RigProject:
     icon = ui_res_lib.Icon.rigger_project
 
     def __init__(self, name=None, prefix=None, preferences=None):
+        """
+        Initialize the object with optional name, prefix, and preferences.
+
+        Args:
+            name (str, optional): Name of the instance. Defaults to "Untitled" if not provided.
+            prefix (str, optional): Prefix string to set.
+            preferences (RigPreferencesData, optional): Preferences object to set.
+        """
         # Default Values
+        self.uuid = core_uuid.generate_uuid(short=True, short_length=6)
         self.name = "Untitled"
         self.prefix = None
         self.modules = []
@@ -2703,6 +3187,23 @@ class RigProject:
             self.set_preferences(preferences=preferences)
 
     # ------------------------------------------------- Setters -------------------------------------------------
+    def set_uuid(self, uuid):
+        """
+        Sets a new UUID for the project.
+        If no UUID is provided or set a new one will be generated automatically,
+        this function is used to force a specific value as UUID.
+        Args:
+            uuid (str): A new UUID for this module (6 length format)
+        """
+        error_message = f"Unable to set project UUID. Invalid UUID input."
+        if not uuid or not isinstance(uuid, str):
+            logger.warning(error_message)
+            return
+        if core_uuid.is_short_uuid_valid(uuid, length=6):
+            self.uuid = uuid
+        else:
+            logger.warning(error_message)
+
     def set_name(self, name):
         """
         Sets a new project name.
@@ -2736,6 +3237,17 @@ class RigProject:
             return
         self.modules = modules
         self.refresh_modules_project_reference()
+
+    def set_control_rig_pose_name(self, pose):
+        """
+        Sets the control rig pose name.
+        Args:
+            pose (str): name to use for the control rig dag pose.
+        """
+        if not isinstance(pose, str):
+            logger.warning(f'Unable to set the control rig pose name. Expected string but got "{str(type(pose))}"')
+            return
+        self.set_preference_value_using_key(key="control_rig_pose_name", value=pose)
 
     def add_to_modules(self, module, set_parent_project=True):
         """
@@ -2778,6 +3290,37 @@ class RigProject:
                 module.set_parent_project(rig_project=None)
                 return module
         logger.debug(f"Unable to remove module from project. Not found.")
+
+    def duplicate_module(self, module=None, must_be_present=True):
+        """
+                Duplicates a provided module
+                Args:
+                    module (ModuleGeneric): A module object to be duplicated.
+                    must_be_present (bool, optional): If True, only allow duplication if module is present in project.
+
+                Returns:
+        `           ModuleGeneric: The duplicated module object.
+        """
+        if not module or not isinstance(module, ModuleGeneric):
+            logger.warning(f"Unable to duplicate module. Incorrect data type provided.")
+            return
+        if must_be_present and module not in self.modules:
+            logger.warning(f"Module cannot be duplicated as it is not present in the project.")
+            return
+
+        # Create a new instance (assuming ModuleGeneric has a copy or clone method)
+        duplicated_module = module.duplicate()
+
+        # If the module is present, insert next to the original
+        if module in self.modules:
+            index = self.modules.index(module)
+            self.modules.insert(index + 1, duplicated_module)
+        else:
+            # If not present, append to the end
+            self.modules.append(duplicated_module)
+
+        logger.info(f"Module '{module.get_name()}' duplicated successfully.")
+        return duplicated_module
 
     def set_preferences(self, preferences):
         """
@@ -2831,6 +3374,36 @@ class RigProject:
             return
         self.set_preference_value_using_key(key="project_dir", value=dir_path)
 
+    def add_module_from_dict(self, module_dict, reinitialize_uuids=True):
+        """
+        Adds a module to the project from a dictionary description.
+        Args:
+            module_dict (dict): A dictionary describing a module.
+            reinitialize_uuids (bool, optional): If True, UUIDs are reinitialized, useful when copying & pasting data.
+                                                 (only the ones belonging to the module)
+        Returns:
+            ModuleGeneric: An object using module generic as a base. This is the module added from the dictionary.
+        """
+        if not module_dict or not isinstance(module_dict, dict) or not module_dict.get("module"):
+            return
+
+        from gt.tools.auto_rigger.rig_modules import RigModules
+
+        available_modules = RigModules.get_modules_dict()
+        class_name = module_dict.get("module")
+        if class_name in available_modules:
+            _module = available_modules.get(class_name)()
+        else:
+            _module = ModuleGeneric()
+        _module.read_data_from_dict(module_dict=module_dict)
+        # Reinitialize UUIDs
+        if reinitialize_uuids:
+            uuid_mapping = {proxy.uuid: core_uuid.generate_uuid(remove_dashes=True) for proxy in _module.proxies}
+            updated_data = tools_rig_utils.update_uuids_in_dict(module_dict, uuid_mapping)
+            _module.read_data_from_dict(module_dict=updated_data)
+        self.add_to_modules(_module)
+        return _module
+
     def read_modules_from_dict(self, modules_list):
         """
         Reads a proxy description dictionary and populates (after resetting) the proxies list with the dict proxies.
@@ -2845,7 +3418,7 @@ class RigProject:
         self.modules = []
         from gt.tools.auto_rigger.rig_modules import RigModules
 
-        available_modules = RigModules.get_dict_modules()
+        available_modules = RigModules.get_modules_dict()
         for module_description in modules_list:
             class_name = module_description.get("module")
             if class_name in available_modules:
@@ -2874,12 +3447,16 @@ class RigProject:
             logger.debug(f"Unable o read data from dict. Input must be a dictionary.")
             return
 
+        _uuid = module_dict.get("uuid")
+        if _uuid:
+            self.set_uuid(uuid=_uuid)
+
         _name = module_dict.get("name")
-        if _name:
+        if _name is not None:
             self.set_name(name=_name)
 
         _prefix = module_dict.get("prefix")
-        if _prefix:
+        if _prefix is not None:
             self.set_prefix(prefix=_prefix)
 
         _modules = module_dict.get("modules")
@@ -2905,6 +3482,14 @@ class RigProject:
         return self
 
     # ------------------------------------------------- Getters -------------------------------------------------
+    def get_uuid(self):
+        """
+        Gets the uuid value of this project.
+        Returns:
+            str: uuid string
+        """
+        return self.uuid
+
     def get_name(self):
         """
         Gets the name property of the rig project.
@@ -2932,6 +3517,8 @@ class RigProject:
     def get_module_from_proxy_uuid(self, uuid):
         """
         Returns a module in case a proxy with the provided UUID is found within this project.
+        Args:
+            uuid (str): The UUID of the proxy to search for.
         Returns:
             ModuleGeneric or None: The module that contains the provided UUID, None otherwise.
         """
@@ -2970,9 +3557,11 @@ class RigProject:
             project_modules.append(module.get_module_as_dict())
 
         project_data = {}
-        if self.name:
+        if self.uuid:
+            project_data["uuid"] = self.uuid
+        if self.name is not None:
             project_data["name"] = self.name
-        if self.prefix:
+        if self.prefix is not None:
             project_data["prefix"] = self.prefix
         project_data["modules"] = project_modules
         if self.preferences:
@@ -2986,9 +3575,9 @@ class RigProject:
         Args:
             parse_vars (bool, optional): If True, the returned path will have the environment variables replaced
                                          with actual values. e.g.
-                                         "$TEMP_DIR/dir" would become "C:/Users/<user>/AppData/Local/Temp/dir"
+                                         "{temp-dir}/dir" would become "C:/Users/<user>/AppData/Local/Temp/dir"
         Returns:
-            str: Path to the project directory. Empty string "" if never defined
+            str: Path to the project directory. Empty string "" if never defined.
         """
         _project_dir_path = self.get_preferences_dict_value(key="project_dir", default="")
         if _project_dir_path is None:
@@ -2997,6 +3586,118 @@ class RigProject:
             environment_vars_dict = get_environment_variables(rig_project=None)
             _project_dir_path = core_str.replace_keys_with_values(_project_dir_path, environment_vars_dict)
         return _project_dir_path
+
+    def get_alias(self):
+        """
+        Gets a project alias (alternative name)
+        Returns:
+            str: A project alias. Empty string "" if never defined.
+        """
+        _project_alias = self.get_preferences_dict_value(key="alias", default="")
+        if _project_alias is None:
+            _project_alias = ""
+        return _project_alias
+
+    def get_control_rig_pose_name(self):
+        """
+        Gets the control rig pose name. If not found a default value is returned instead.
+        Returns:
+            str: A name for the control rig pose.
+        """
+        _control_rig_pose_name = self.get_preferences_dict_value(
+            key="control_rig_pose_name", default=core_naming.NamingConstants.Poses.TPOSE
+        )
+        return _control_rig_pose_name
+
+    def get_modules_proxies(self):
+        """
+        Gets all proxies found in the project
+
+        Return:
+            list[Proxy]: A list of all proxies found in the project.
+        """
+        proxies = []
+        for module in self.modules:
+            proxies.extend(module.get_proxies())
+        return proxies
+
+    def get_potential_drivers(self, filter_modules=None, add_global_drivers=True):
+        """
+        Get potential drivers/controls that will be generated only after the build rig step.
+        This can be used to determine interactions between elements even before they were built.
+        Args:
+            filter_modules (ModuleGeneric, List[ModuleGeneric] optional): If provided only drivers from this module(s)
+                                                                         are returned.
+            add_global_drivers (bool, optional): If True, both global and global offset controls will be included.
+
+        Returns:
+            dict: A dictionary where the key is the source object (e.g. module or project), and the value is a list of
+                  potential drivers/controls. If not adding global all source objects will be Modules.
+                  e.g. { ModuleGeneric: ["module_uuid-fk-spine03", "module_uuid-ik-spine03", ...]}
+        """
+        _unacceptable_drivers = [tools_rig_const.RiggerDriverTypes.BLOCK]
+        driver_dict = {}
+        if add_global_drivers and filter_modules is None:
+            global_purpose = tools_rig_const.RiggerConstants.REF_VALUE_PURPOSE_GLOBAL
+            global_uuid = f"{self.get_uuid()}-{tools_rig_const.RiggerDriverTypes.FK}-{global_purpose}"
+            global_offset_uuid = f"{self.get_uuid()}-{tools_rig_const.RiggerDriverTypes.OFFSET}-{global_purpose}"
+            driver_dict[self] = [global_uuid, global_offset_uuid]
+        # All modules or only provided one?
+        _modules = self.modules
+        if filter_modules and isinstance(filter_modules, list):
+            _modules = filter_modules
+        if filter_modules and isinstance(filter_modules, ModuleGeneric):
+            _modules = [filter_modules]
+        for filter_modules in _modules:
+            # --- Proxies ---
+            proxies = filter_modules.get_proxies()
+            if not proxies:
+                continue  # No proxies, go to the next module...
+            # --- Drivers ---
+            module_drivers_uuids = []
+            for proxy in proxies:
+                purpose = proxy.get_meta_purpose()
+                driver_types = proxy.get_driver_types()
+                if driver_types is None:
+                    continue  # No drivers
+                for drv_type in driver_types:
+                    if drv_type in _unacceptable_drivers:
+                        continue  # Ignore unacceptable drivers
+                    driver_uuid = f"{filter_modules.get_uuid()}-{drv_type}-{purpose}"
+                    module_drivers_uuids.append(driver_uuid)
+            # -- Potential Controls Found ---
+            if module_drivers_uuids:
+                driver_dict[filter_modules] = module_drivers_uuids
+        return driver_dict
+
+    def get_built_drivers(self, filter_source=None, filter_driver_type=None, filter_driver_purpose=None):
+        """
+        Finds and returns a list of drivers found in this scene.
+        This function should be used only after the build otherwise it will always return an empty result.
+        Args:
+            filter_source (ModuleGeneric, RigProject, optional): If provided only drivers from this module are returned.
+            filter_driver_type (str, optional): If provided, only drivers of this type are returned.
+            filter_driver_purpose (str, optional): If provided, only drivers of this purpose are returned.
+
+        Returns:
+            List[Node]: A list of Node objects. Each object is the path to a found driver.
+        """
+        # Filters
+        _sources = self.modules + [self]  # All modules and the project (project carries the global controls)
+        if filter_source:
+            _sources = [filter_source]
+        if filter_source and isinstance(filter_source, list):
+            _sources = filter_source
+        # Lookup
+        found_drivers_list = []
+        for source in _sources:
+
+            detected_drivers = tools_rig_utils.find_drivers_from_module(
+                source_uuid=source, filter_driver_type=filter_driver_type, filter_driver_purpose=filter_driver_purpose
+            )
+            if detected_drivers:
+                found_drivers_list.extend(detected_drivers)
+        return found_drivers_list
 
     # --------------------------------------------------- Misc ---------------------------------------------------
     def is_valid(self):
@@ -3012,7 +3713,7 @@ class RigProject:
         """
         Tries to run any code that matches the required order.
         Args:
-            required_order (str, None) If provided, the code will only run when matching the provided order
+            required_order (str, None): If provided, the code will only run when matching the provided order
             according to the CodeData object.
         """
         for module in self.modules:
@@ -3048,6 +3749,15 @@ class RigProject:
                 updated_modules.insert(parent_index + 1, moving_module_popped)
         self.set_modules(updated_modules)
 
+    def align_module_proxies_to_joints(self):
+        """
+        Aligns the proxies to the joints.
+        """
+        for module in self.modules:
+            if not module.is_active():  # If not active, skip
+                continue
+            module.align_proxies_to_joints()
+
     def print_modules_order(self, get_name=True):
         """
         Utility function used to print the list of modules along with their index.
@@ -3057,7 +3767,7 @@ class RigProject:
         """
         _modules = self.get_modules()
         _index_width = len(str(len(_modules) - 1))  # -1 to account for 0 based array
-        _separator_line = f"{'#'*20} {self.get_name()} Modules: {'#'*20}"
+        _separator_line = f"{'#' * 20} {self.get_name()} Modules: {'#' * 20}"
         print(_separator_line)
         for index, module in enumerate(_modules):
             formatted_index = f"{str(index).zfill(_index_width)}"
@@ -3071,10 +3781,15 @@ class RigProject:
     def build_proxy(self, optimized=False):
         """
         Builds Proxy/Guide Armature. This later becomes the skeleton that is driven by the rig controls.
+        Args:
+            optimized (bool, optional):
+                If True, skips creating lines or shapes to speed up the build process.
+                This is useful when the user is actively building the rig rather than editing the proxy visually.
         """
         cmds.refresh(suspend=True)
         try:
             self.execute_modules_code(CodeData.Order.pre_proxy)  # Try to run any pre-proxy code.
+            logger.operation("Building Proxy" + (" (optimized)" if optimized else ""))
             root_group = tools_rig_utils.create_root_group(is_proxy=True)
             root_transform = tools_rig_utils.create_ctrl_proxy_global()
             core_hrchy.parent(source_objects=root_transform, target_parent=root_group)
@@ -3117,6 +3832,14 @@ class RigProject:
 
             cmds.select(clear=True)
             self.execute_modules_code(CodeData.Order.post_proxy)  # Try to run any post-proxy code.
+
+            # Fit View (Focus on Proxy)
+            if self.get_preferences_dict_value(key="view_fit_skeleton", default=True) and not optimized:
+                try:
+                    cmds.viewFit(all=True)
+                except Exception as e:
+                    logger.debug(e)
+
         except Exception as e:
             raise e
         finally:
@@ -3128,6 +3851,8 @@ class RigProject:
         Builds project skeleton.
         """
         self.execute_modules_code(CodeData.Order.pre_skeleton)  # Try to run any pre-skeleton code.
+
+        logger.operation("Building Skeleton")
 
         # builds module joints
         for module in self.modules:
@@ -3141,11 +3866,56 @@ class RigProject:
                 continue
             module.build_skeleton_hierarchy()
 
+        # Fit View (Focus on Created Skeleton)
+        if self.get_preferences_dict_value(key="view_fit_skeleton", default=True):
+            skeleton_grp = tools_rig_utils.find_skeleton_group()
+            if skeleton_grp:
+                children = cmds.listRelatives(skeleton_grp, allDescendents=True, fullPath=True) or []
+                try:
+                    cmds.viewFit(children)
+                except Exception as e:
+                    logger.warning(f"Unable to fit view for created skeleton. Issue: {e}")
+
+        # Freeze the rotations of the skeleton
+        cmds.select(tools_rig_utils.get_single_skeleton_root_joint(), hi=True)
+        joint_list = cmds.ls(sl=True, type="joint")
+        cmds.select(clear=True)
+        [cmds.makeIdentity(jnt, apply=True, rotate=True) for jnt in joint_list]
+
         self.execute_modules_code(CodeData.Order.post_skeleton)  # Try to run any post-skeleton code.
+
+        # build the control rig pose on the skeleton if needed
+        if self.get_preferences_dict_value(key="apply_control_rig_pose", default=True):
+
+            logger.operation("Applying Control Rig Pose")
+
+            # create the default dag pose (a.k.a. A-pose in relation to bipeds)
+            root_joint = tools_rig_utils.get_single_skeleton_root_joint()
+            core_pose.delete_dagpose()
+            core_pose.create_apose(root=root_joint)
+
+            # apply the automatic control rig pose
+            for module in self.modules:
+                if not module.is_active():  # If not active, skip
+                    continue
+                module.build_control_rig_pose()
+
+            # create the control rig dag pose (a.k.a. T-pose in relation to bipeds)
+            core_pose.create_dagpose(root=root_joint, pose_name=self.get_control_rig_pose_name())
+            # freeze rig pose and put values in a-pose
+            core_pose.zero_out_pose(root=root_joint)
+
+            # update all the proxies in order to match the joints transformations (rig pose)
+            self.align_module_proxies_to_joints()
+
+            core_pose.set_apose()
+            self.execute_modules_code(CodeData.Order.pre_control_pose)  # Try to run any pre-control-pose code.
+            core_pose.set_tpose()
+            self.execute_modules_code(CodeData.Order.post_control_pose)  # Try to run any post-control-pose code.
 
     def build_rig(self):
         """
-        Builds Rig using Proxy/Guide Armature/Skeleton (from previous step (build_proxy)
+        Builds Rig using Proxy/Guide Armature/Skeleton from previous step (build_proxy)
         """
         cmds.refresh(suspend=True)
         try:
@@ -3155,6 +3925,7 @@ class RigProject:
             category_groups = tools_rig_utils.create_utility_groups(
                 geometry=True, skeleton=True, control=True, setup=True, target_parent=root_group
             )
+            geometry_grp = category_groups.get(tools_rig_const.RiggerConstants.REF_ATTR_GEOMETRY)
             control_grp = category_groups.get(tools_rig_const.RiggerConstants.REF_ATTR_CONTROL)
             skeleton_grp = category_groups.get(tools_rig_const.RiggerConstants.REF_ATTR_SKELETON)
             setup_grp = category_groups.get(tools_rig_const.RiggerConstants.REF_ATTR_SETUP)
@@ -3162,39 +3933,145 @@ class RigProject:
             core_hrchy.parent(source_objects=global_ctrl, target_parent=control_grp)
             core_hrchy.parent(source_objects=global_offset_ctrl, target_parent=global_ctrl)
 
-            # connect Scale
+            # Geometry Selectable Behaviour
+            core_attr.add_separator_attr(target_object=geometry_grp, attr_name=f"geometryOptions")
+            block_sel_attr = tools_rig_const.RiggerConstants.ATTR_BLOCK_SELECTION
+            core_attr.add_attr(obj_list=geometry_grp, attr_type="bool", is_keyable=True, attributes=block_sel_attr)
+            cmds.setAttr(f"{geometry_grp}.{block_sel_attr}", 1)
+            cmds.setAttr(f"{geometry_grp}.overrideDisplayType", 2)
+            cmds.connectAttr(f"{geometry_grp}.{block_sel_attr}", f"{geometry_grp}.overrideEnabled")
+
+            # Add Project Metadata Attributes
+            _rig_meta_lookup_attr = tools_rig_const.RiggerConstants.REF_ATTR_ROOT_RIG
+            _rig_meta_attr_name = tools_rig_const.RiggerConstants.ATTR_RIG_PROJECT_NAME
+            _rig_meta_attr_data = tools_rig_const.RiggerConstants.ATTR_RIG_PROJECT_DATA
+            _rig_meta_attr_geo_grp = tools_rig_const.RiggerConstants.ATTR_RIG_GEOMETRY_GRP
+            _rig_meta_attr_sk_grp = tools_rig_const.RiggerConstants.ATTR_RIG_SKELETON_GRP
+            _rig_meta_attr_ctrl_grp = tools_rig_const.RiggerConstants.ATTR_RIG_CONTROL_GRP
+            _rig_meta_attr_setup_grp = tools_rig_const.RiggerConstants.ATTR_RIG_SETUP_GRP
+            _rig_meta_attr_tpose_data = tools_rig_const.RiggerConstants.ATTR_RIG_TPOSE_DATA
+            _rig_meta_attr_apose_data = tools_rig_const.RiggerConstants.ATTR_RIG_APOSE_DATA
+            _rig_meta_attr_export_anim_bs = tools_rig_const.RiggerConstants.ATTR_RIG_EXPORT_ANIM_BS
+            _meta_attrs = [
+                _rig_meta_attr_name,
+                _rig_meta_attr_data,
+                _rig_meta_attr_tpose_data,
+                _rig_meta_attr_apose_data,
+            ]
+            core_attr.add_attr(obj_list=root_group, attr_type="string", is_keyable=False, attributes=_meta_attrs)
+            core_attr.add_attr(
+                obj_list=root_group, attr_type="bool", is_keyable=False, attributes=_rig_meta_attr_export_anim_bs
+            )
+            cmds.addAttr(root_group, longName=_rig_meta_attr_geo_grp, attributeType="message")
+            cmds.addAttr(root_group, longName=_rig_meta_attr_sk_grp, attributeType="message")
+            cmds.addAttr(root_group, longName=_rig_meta_attr_ctrl_grp, attributeType="message")
+            cmds.addAttr(root_group, longName=_rig_meta_attr_setup_grp, attributeType="message")
+            # Set/Connect Project Metadata Attributes
+            _project_as_str = json.dumps(self.get_project_as_dict())
+            _root_joint = tools_rig_utils.get_single_skeleton_root_joint()
+            core_attr.set_attr(f"{root_group}.{_rig_meta_lookup_attr}", self.get_uuid())
+            core_attr.set_attr(f"{root_group}.{_rig_meta_attr_name}", self.get_name())
+            core_attr.set_attr(f"{root_group}.{_rig_meta_attr_data}", _project_as_str)
+            _export_anim_bs_value = self.get_preferences_dict_value(key="export_anim_blendshapes", default=False)
+            core_attr.set_attr(f"{root_group}.{_rig_meta_attr_export_anim_bs}", _export_anim_bs_value)
+            cmds.connectAttr(
+                f"{root_group}.{_rig_meta_attr_geo_grp}",
+                f"{geometry_grp}.{tools_rig_const.RiggerConstants.REF_ATTR_GEOMETRY}",
+            )
+            cmds.connectAttr(
+                f"{root_group}.{_rig_meta_attr_sk_grp}",
+                f"{skeleton_grp}.{tools_rig_const.RiggerConstants.REF_ATTR_SKELETON}",
+            )
+            cmds.connectAttr(
+                f"{root_group}.{_rig_meta_attr_ctrl_grp}",
+                f"{control_grp}.{tools_rig_const.RiggerConstants.REF_ATTR_CONTROL}",
+            )
+            cmds.connectAttr(
+                f"{root_group}.{_rig_meta_attr_setup_grp}",
+                f"{setup_grp}.{tools_rig_const.RiggerConstants.REF_ATTR_SETUP}",
+            )
+
+            # Connect Scale
             cmds.connectAttr(f"{global_ctrl}.scale", f"{skeleton_grp}.scale")
             cmds.connectAttr(f"{global_ctrl}.scale", f"{setup_grp}.scale")
 
-            # build skeleton
+            # Hide Skeleton
+            if self.get_preferences_dict_value(key="hide_skeleton", default=True):
+                cmds.setAttr(f"{skeleton_grp}.v", 0)
+
+            # Add Global Control Driver UUIDs
+            tools_rig_utils.add_driver_uuid_attr(
+                target_driver=global_ctrl,
+                module_uuid=self.get_uuid(),
+                driver_type=tools_rig_const.RiggerDriverTypes.FK,
+                proxy_purpose=tools_rig_const.RiggerConstants.REF_VALUE_PURPOSE_GLOBAL,
+            )
+            tools_rig_utils.add_driver_uuid_attr(
+                target_driver=global_offset_ctrl,
+                module_uuid=self.get_uuid(),
+                driver_type=tools_rig_const.RiggerDriverTypes.OFFSET,
+                proxy_purpose=tools_rig_const.RiggerConstants.REF_VALUE_PURPOSE_GLOBAL,
+            )
+
+            # Build Skeleton
             self.build_skeleton()
 
-            # build rig
+            # Build Rig
             if self.get_preferences_dict_value(key="build_control_rig", default=True):  # Key from RigPreferencesData
                 self.execute_modules_code(CodeData.Order.pre_control_rig)  # Try to run any pre-control-rig code.
 
+                logger.operation("Building Control Rig")
                 for module in self.modules:
                     if not module.is_active():  # If not active, skip
                         continue
+                    is_override = utils_sys.is_method_overridden(
+                        base_class=ModuleGeneric, target_class_or_instance=module, method_name="build_rig"
+                    )
+                    if is_override:
+                        logger.info(f"(Building): {module.get_name()}")
+                    else:
+                        logger.debug(f"(Building): {module.get_name()} (Not overridden, skipped)")
+
                     module.build_rig()
 
                 # build rig post
+                logger.operation("Building Control Rig (Post)")
                 for module in self.modules:
                     if not module.is_active():  # If not active, skip
                         continue
+                    is_override = utils_sys.is_method_overridden(
+                        base_class=ModuleGeneric, target_class_or_instance=module, method_name="build_rig_post"
+                    )
+                    if is_override:
+                        logger.info(f"(Post Script): {module.get_name()}")
+                    else:
+                        logger.debug(f"(Post Script): {module.get_name()} (Not overridden)")
                     module.build_rig_post()
 
                 self.execute_modules_code(CodeData.Order.post_control_rig)  # Try to run any pre-control-rig code.
 
-            # delete proxy
+            # Delete proxy
             if self.get_preferences_dict_value(key="delete_proxy_after_build", default=True):
                 proxy_root = tools_rig_utils.find_root_group_proxy()
                 if proxy_root:
                     cmds.delete(proxy_root)
+                    logger.operation(f"Deleting Proxy")
+
+            # Store the T-pose (a.k.a. rig-pose) and the A-pose (a.k.a. bind-pose) as metadata after the build-rig,
+            # the assumption is that at the end of the process the control rig is at rest, with the setups in FK and
+            # with the automations at zero. This pose is what we need to store.
+            generated_poses = tools_rig_utils.get_control_rig_tpose_and_apose_as_dict()
+            if generated_poses:
+                _tpose_as_dict, _apose_as_dict = generated_poses
+                _tpose_as_string = json.dumps(_tpose_as_dict)
+                _apose_as_string = json.dumps(_apose_as_dict)
+                core_attr.set_attr(f"{root_group}.{_rig_meta_attr_tpose_data}", _tpose_as_string)
+                core_attr.set_attr(f"{root_group}.{_rig_meta_attr_apose_data}", _apose_as_string)
 
             self.execute_modules_code(CodeData.Order.post_build)  # Try to run any post_build code.
 
         except Exception as e:
+            logger.critical(f"Error while building rig! Issue: {e}")
             raise e
         finally:
             cmds.refresh(suspend=False)
@@ -3206,45 +4083,75 @@ def get_environment_variables(rig_project=None):
     """
     Gets a dictionary where the keys are the variables and the values are the run-time determined paths.
     These are used to determine what variables should represent when updating a path. For example:
-    "$TEMP_DIR/dir" would become "C:/Users/<user>/AppData/Local/Temp/dir"
+    "{temp-dir}/dir" would become "C:/Users/<user>/AppData/Local/Temp/dir"
     Variables:
-        "$TEMP_DIR": is the "temp" folder
-        "$HOME_DIR": is the home folder. e.g. "Documents" on Windows.
-        "$DESKTOP_DIR": is the path to the desktop folder.
-        "$PROJECT_DIR": is the latest known project folder. (If not set, or missing project, it's empty. e.g. "")
-        "$SCENE_DIR": is the directory of the current scene. (Only available when saved, otherwise "")
+        "{project-name}": The name of the project.
+        "{project-alias}": An alias for the project. (if defined)
+        "{project-sanitized-name}": Sanitized name of project.
+        "{temp-dir}": is the "temp" folder.
+        "{home-dir}": is the home folder. e.g. "Documents" on Windows.
+        "{desktop-dir}": is the path to the desktop folder.
+        "{tests-data-dir}": The package "tests" folder.
+        "{project-dir}": is the latest known project folder. Empty when no project is available.
+        "{scene-dir}": is the directory of the current scene. (Only available when saved, otherwise "")
+        "{year}": Current year (e.g. 2025)
+        "{month}": Current month (e.g. 05)
+        "{day}": Current day (e.g. 15)
+        "{time}": Current time (e.g. 14-30-59)
+        "{hostname}": Name of the machine/host. (e.g. "My-PC")
+        "{module-name}": Name of the module (Only available when called from a module, not this function)
+        "{module-sanitized-name}": Sanitized name of module.
     Args:
         rig_project (RigProject, optional): If a rig project is provided, user-defined variables will be available.
-        For example, the "$PROJECT_DIR" is always empty when no project is available.
+        For example, the "{project-dir}" is always empty when no project is available.
     Returns:
         dict: A dictionary where keys are variables and values are the paths.
     """
     # Get Initial Values
+    now = datetime.datetime.now()
     environment_vars_dict = {
-        "$TEMP_DIR": system_utils.get_temp_dir(),
-        "$HOME_DIR": system_utils.get_home_dir(),
-        "$DESKTOP_DIR": system_utils.get_desktop_path(),
-        "$TESTS_DATA_DIR": "",
-        "$SCENE_DIR": "",
-        "$PROJECT_DIR": "",
+        "{project-name}": "",
+        "{project-alias}": "",
+        "{project-sanitized-name}": "",
+        "{temp-dir}": utils_sys.get_temp_dir(),
+        "{home-dir}": utils_sys.get_home_dir(),
+        "{desktop-dir}": utils_sys.get_desktop_path(),
+        "{tests-data-dir}": "",
+        "{scene-dir}": "",
+        "{project-dir}": "",
+        "{year}": now.strftime("%Y"),
+        "{month}": now.strftime("%m"),
+        "{day}": now.strftime("%d"),
+        "{time}": now.strftime("%H-%M-%S"),
+        "{hostname}": socket.gethostname(),
+        "{module-name}": "",  # Only available when called from a module (outside this function)
+        "{module-sanitized-name}": "",  # Only available when called from a module (outside this function)
     }
+    # Check Project Availability
+    if rig_project:
+        environment_vars_dict["{project-name}"] = rig_project.get_name()
+        environment_vars_dict["{project-alias}"] = rig_project.get_alias()
+        _lower_snake_name = rig_project.get_name().lower().replace(" ", "_")
+        environment_vars_dict["{project-sanitized-name}"] = utils_sys.sanitize_filename(_lower_snake_name)
+
     # Check Scene Availability
     _current_scene_file = cmds.file(query=True, sceneName=True) or ""
     if _current_scene_file:
-        environment_vars_dict["$SCENE_DIR"] = os.path.dirname(_current_scene_file)
+        environment_vars_dict["{scene-dir}"] = os.path.dirname(_current_scene_file)
     # Get Tests Data Dir
     import gt.tests.test_auto_rigger as test_auto_rigger
     import inspect
 
     _test_module_path = inspect.getfile(test_auto_rigger)
     _tests_dir = os.path.dirname(_test_module_path)
-    environment_vars_dict["$TESTS_DATA_DIR"] = os.path.join(_tests_dir, "data")
+    environment_vars_dict["{tests-data-dir}"] = os.path.join(_tests_dir, "data")
     # Check Project Availability
     if rig_project is not None and isinstance(rig_project, RigProject):
         _project_dir_path = rig_project.get_project_dir_path()
         _project_dir_path = core_str.replace_keys_with_values(_project_dir_path, environment_vars_dict)
         _project_dir_path = os.path.normpath(_project_dir_path)  # Normalize Path
-        environment_vars_dict["$PROJECT_DIR"] = _project_dir_path
+        environment_vars_dict["{project-dir}"] = _project_dir_path
+
     # Return Environment Variables Dictionary
     return environment_vars_dict
 
@@ -3253,7 +4160,7 @@ if __name__ == "__main__":
     # logger.setLevel(logging.DEBUG)
     cmds.file(new=True, force=True)
 
-    # from gt.tools.auto_rigger.template_biped import create_template_biped
+    # from gt.tools.auto_rigger.templates.template_biped import create_template_biped
     # a_biped_project = create_template_biped()
     # a_biped_project.build_proxy(optimized=True)
     # a_biped_project.build_rig()
@@ -3266,6 +4173,7 @@ if __name__ == "__main__":
     a_1st_proxy = Proxy(name="first")
     a_1st_proxy.set_position(z=1, x=-1)  # Actual position (user input in case they move it)
     a_1st_proxy.set_parent_uuid_from_proxy(root)  # Makes it a child of the previously created proxy
+    a_1st_proxy.add_to_attr_dict("prefix", "test")
 
     a_2nd_proxy = Proxy(name="second")  # If a name is not given it becomes the default "proxy"
     a_2nd_proxy.set_rotation_order("zxy")
@@ -3326,24 +4234,28 @@ if __name__ == "__main__":
 
     # -----------------------------------------------------------------------------------------------------
     # Project Example
+    import gt.tools.auto_rigger.modules.module_biped_arm as arm
+
     a_project = RigProject()
-    a_project.add_to_modules(a_1st_module)
-    a_project.add_to_modules(a_2nd_module)
-    a_project.add_to_modules(a_3rd_module)
     a_project.add_to_modules(a_root_module)
+    a_project.add_to_modules(a_1st_module)
+    # a_project.add_to_modules(a_2nd_module)
+    # a_project.add_to_modules(a_3rd_module)
+    # a_project.add_to_modules(a_root_module)
+    # a_project.add_to_modules(arm.ModuleBipedArmLeft())
 
     # Main functions
     a_project.build_proxy()
-    a_project.build_rig()
+    # a_project.build_rig()
 
-    # Misc
-    a_project.print_modules_order()
-    a_project_modules = a_project.get_modules()
-    a_project_as_dict = a_project.get_project_as_dict()
+    # # Misc
+    # a_project.print_modules_order()
+    # a_project_modules = a_project.get_modules()
+    # a_project_as_dict = a_project.get_project_as_dict()
 
-    # Rebuild Project
-    cmds.file(new=True, force=True)
-    a_project_2 = RigProject()
-    a_project_2.read_data_from_dict(a_project_as_dict)
-    a_project_2.build_proxy()
-    a_project_2.build_rig()
+    # # Rebuild Project
+    # cmds.file(new=True, force=True)
+    # a_project_2 = RigProject()
+    # a_project_2.read_data_from_dict(a_project_as_dict)
+    # a_project_2.build_proxy()
+    # a_project_2.build_rig()

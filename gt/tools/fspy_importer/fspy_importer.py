@@ -1,5 +1,5 @@
 """
- GT fSpy Importer - Imports a JSON file exported out of fSpy
+ fSpy Importer - Imports a JSON file exported out of fSpy
  github.com/TrevisanGMW/gt-tools -  2020-12-10
 """
 
@@ -216,7 +216,7 @@ def build_gui_fspy_importer():
 
 
 def build_gui_help_fspy_importer():
-    """Builds the Help UI for GT Maya to Discord"""
+    """Builds the Help UI for Maya to Discord"""
     window_name = "build_gui_help_fspy_importer"
     if cmds.window(window_name, exists=True):
         cmds.deleteUI(window_name, window=True)

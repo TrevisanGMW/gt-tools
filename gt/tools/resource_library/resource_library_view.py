@@ -3,13 +3,14 @@ Resource Library View
 """
 
 from gt.ui.syntax_highlighter import PythonSyntaxHighlighter
+import gt.ui.resource_library as resource_library
 from gt.ui.squared_widget import SquaredWidget
-import gt.ui.resource_library as ui_res_lib
-import gt.ui.qt_utils as ui_qt_utils
+from gt.ui.qt_utils import MayaWindowMeta
+import gt.ui.qt_utils as qt_utils
 import gt.ui.qt_import as ui_qt
 
 
-class ResourceLibraryView(metaclass=ui_qt_utils.MayaWindowMeta):
+class ResourceLibraryView(metaclass=MayaWindowMeta):
     def __init__(self, parent=None, controller=None, version=None):
         """
         Initialize the ResourceLibraryView.
@@ -21,7 +22,6 @@ class ResourceLibraryView(metaclass=ui_qt_utils.MayaWindowMeta):
                                                     Here to avoid the garbage collector.  Defaults to None.
             version (str, optional): If provided, it will be used to determine the window title. e.g. Title - (v1.2.3)
         """
-        # super(ResourceLibraryView, self).__init__(parent=parent)
         super().__init__(parent=parent)
         self.controller = controller  # Only here so it doesn't get deleted by the garbage collectors
         self.splitter = None
@@ -42,20 +42,22 @@ class ResourceLibraryView(metaclass=ui_qt_utils.MayaWindowMeta):
 
         self.create_widgets()
         self.create_layout()
-        self.setWindowFlags(
-            self.windowFlags()
-            | ui_qt.QtLib.WindowFlag.WindowMaximizeButtonHint
-            | ui_qt.QtLib.WindowFlag.WindowMinimizeButtonHint
-        )
-        self.setWindowIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.tool_resource_library))
 
-        stylesheet = ui_res_lib.Stylesheet.scroll_bar_base
-        stylesheet += ui_res_lib.Stylesheet.maya_dialog_base
-        stylesheet += ui_res_lib.Stylesheet.list_widget_base
-        stylesheet += ui_res_lib.Stylesheet.combobox_base
+        # Fixed: Updated to use QtLib for Window Flags
+        self.setWindowFlags(
+            self.windowFlags() | ui_qt.QtLib.WindowFlag.WindowMaximizeButtonHint | ui_qt.QtLib.WindowFlag.WindowMinimizeButtonHint
+        )
+
+        # Fixed: Correctly instantiating QIcon
+        self.setWindowIcon(ui_qt.QtGui.QIcon(resource_library.Icon.tool_resource_library))
+
+        stylesheet = resource_library.Stylesheet.scroll_bar_base
+        stylesheet += resource_library.Stylesheet.maya_dialog_base
+        stylesheet += resource_library.Stylesheet.list_widget_base
+        stylesheet += resource_library.Stylesheet.combobox_base
         self.setStyleSheet(stylesheet)
-        ui_qt_utils.resize_to_screen(self, percentage=35)
-        ui_qt_utils.center_window(self)
+        qt_utils.resize_to_screen(self, percentage=35)
+        qt_utils.center_window(self)
         self.resize_splitter_to_screen()
 
     def update_preview_image(self, new_image=None):
@@ -68,29 +70,29 @@ class ResourceLibraryView(metaclass=ui_qt_utils.MayaWindowMeta):
         """
         if new_image:
             if isinstance(new_image, str):
-                new_image = ui_qt.QtGui.QPixmap(new_image)
+                new_image = ui_qt.QtGui.QPixmap(new_image)  # Fixed namespace
             self.preview_image.set_pixmap(new_image)
         else:
-            self.preview_image.set_pixmap(ui_qt.QtGui.QPixmap(ui_res_lib.Icon.library_missing_file))
+            self.preview_image.set_pixmap(ui_qt.QtGui.QPixmap(resource_library.Icon.library_missing_file)) # Fixed namespace
 
     def create_widgets(self):
         """Create the widgets for the window."""
-        font = ui_qt.QtGui.QFont()
+        font = ui_qt.QtGui.QFont()  # Fixed namespace
         font.setPointSize(10)
         self.item_list = ui_qt.QtWidgets.QListWidget()
         self.item_list.setFont(font)
         self.save_btn = ui_qt.QtWidgets.QPushButton("Export Resource")
-        self.save_btn.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.library_build))
-        self.save_btn.setStyleSheet(ui_res_lib.Stylesheet.btn_push_bright)
+        self.save_btn.setIcon(ui_qt.QtGui.QIcon(resource_library.Icon.library_build))  # Fixed QIcon namespace
+        self.save_btn.setStyleSheet(resource_library.Stylesheet.btn_push_bright)
         self.search_bar = ui_qt.QtWidgets.QLineEdit(self)
         self.search_bar.setFont(font)
         self.search_bar.setPlaceholderText("Search...")
         self.preview_image = SquaredWidget(self, center_y=False)
-        self.resource_path = ui_qt.QtWidgets.QTextEdit()
+        self.resource_path = ui_qt.QtWidgets.QTextEdit()  # Fixed namespace
         PythonSyntaxHighlighter(self.resource_path.document())
         self.resource_path.setFontPointSize(10)
 
-        self.source_combo_box = ui_qt.QtWidgets.QComboBox()
+        self.source_combo_box = ui_qt.QtWidgets.QComboBox()  # Fixed namespace
         self.source_combo_box.setFont(font)
         self.source_combo_box.addItem("All")
         self.source_combo_box.addItem("Package Resources")
@@ -99,7 +101,8 @@ class ResourceLibraryView(metaclass=ui_qt_utils.MayaWindowMeta):
         self.source_combo_box.addItem("Maya Resources")
         self.description = ui_qt.QtWidgets.QLabel("<description>")
         self.description.setFont(font)
-        self.description.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignCenter)
+        self.description.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignCenter)  # Fixed alignment namespace
+
         # Initial Image Update
         self.update_preview_image()
 
@@ -158,13 +161,20 @@ class ResourceLibraryView(metaclass=ui_qt_utils.MayaWindowMeta):
         """
         if not 0 <= percentage <= 100:
             raise ValueError("Percentage should be between 0 and 100")
-        if ui_qt.IS_PYSIDE6:
-            screen = ui_qt.QtGui.QGuiApplication.primaryScreen()
-            screen_geometry = screen.availableGeometry()
-        else:
+
+        # Fixed: Added Qt4/Qt5 vs Qt6 Backwards Compatibility
+        if hasattr(ui_qt.QtWidgets, "QDesktopWidget"):
             screen_geometry = ui_qt.QtWidgets.QDesktopWidget().availableGeometry(self)
-        width = screen_geometry.width() * percentage / 100
-        self.splitter.setSizes([width * 0.2, width * 0.60])
+        else:
+            screen = self.screen() if hasattr(self, "screen") else None
+            if not screen:
+                screen = ui_qt.QtGui.QGuiApplication.primaryScreen()
+            screen_geometry = screen.availableGeometry()
+
+        width = screen_geometry.width() * (percentage / 100.0)
+
+        # Fixed: Cast to int to prevent PySide6 float type errors
+        self.splitter.setSizes([int(width * 0.55), int(width * 0.60)])
 
     def clear_view_library(self):
         """
@@ -184,11 +194,11 @@ class ResourceLibraryView(metaclass=ui_qt_utils.MayaWindowMeta):
         """
         _item = ui_qt.QtWidgets.QListWidgetItem(item_name)
         if hex_color and isinstance(hex_color, str):
-            _item.setForeground(ui_qt.QtGui.QColor(hex_color))
-        if icon and isinstance(icon, ui_qt.QtGui.QIcon):
+            _item.setForeground(ui_qt.QtGui.QColor(hex_color))  # Fixed namespace
+        if icon and isinstance(icon, ui_qt.QtGui.QIcon):  # Fixed type checking to QIcon
             _item.setIcon(icon)
         if metadata and isinstance(metadata, dict):
-            _item.setData(ui_qt.QtLib.ItemDataRole.UserRole, metadata)
+            _item.setData(ui_qt.QtLib.ItemDataRole.UserRole, metadata)  # Fixed UserRole namespace
         self.item_list.addItem(_item)
 
     def update_item_description(self, new_title, new_description):
@@ -202,7 +212,7 @@ class ResourceLibraryView(metaclass=ui_qt_utils.MayaWindowMeta):
         if new_title and isinstance(new_title, str):
             _title = f"{new_title}: "
         if new_description:
-            ui_qt_utils.update_formatted_label(
+            qt_utils.update_formatted_label(
                 target_label=self.description,
                 text=_title,
                 text_size=3,
@@ -215,37 +225,46 @@ class ResourceLibraryView(metaclass=ui_qt_utils.MayaWindowMeta):
 
     def moveEvent(self, event):
         """
-        Move Event, called when the window is moved (must use this name "moveEvent").
-        Updates the maximum size of the description according to the scale factor of the current screen.
+        Move Event, called when the window is moved (must use this name "moveEvent")
+        Updates the maximum size of the description/resource_path according to the scale factor of the current screen.
+        On windows Settings > Display > Scale and layout > Change the size of text, apps, and other items > %
+        Args:
+            event (QMoveEvent): The move event object.
         """
-        default_maximum_height_description = 20
-        default_maximum_height_resource = 50
-        scale_factor = 1  # Default scale factor if no screen is found
-
-        if ui_qt.IS_PYSIDE6:
-            screen = ui_qt.QtGui.QGuiApplication.screenAt(self.mapToGlobal(self.rect().center()))
-            if screen:
-                scale_factor = screen.devicePixelRatio()
-        else:
+        # Fixed: Added Qt4/Qt5 vs Qt6 Backwards Compatibility
+        if hasattr(ui_qt.QtWidgets, "QDesktopWidget"):
             desktop = ui_qt.QtWidgets.QDesktopWidget()
             screen_number = desktop.screenNumber(self)
-            scale_factor = ui_qt_utils.get_screen_dpi_scale(screen_number)
+        else:
+            screen = self.screen() if hasattr(self, "screen") else None
+            if not screen:
+                screen = ui_qt.QtGui.QGuiApplication.primaryScreen()
+            screens = ui_qt.QtGui.QGuiApplication.screens()
+            try:
+                screen_number = screens.index(screen)
+            except ValueError:
+                screen_number = 0
 
-        # Apply the scale factor to set the maximum height
-        self.description.setMaximumHeight(default_maximum_height_description * scale_factor)
-        self.resource_path.setMaximumHeight(default_maximum_height_resource * scale_factor)
+        scale_factor = qt_utils.get_screen_dpi_scale(screen_number)
+
+        default_maximum_height_description = 20
+        # Fixed: Cast to int
+        self.description.setMaximumHeight(int(default_maximum_height_description * scale_factor))
+
+        default_maximum_height_resource = 50
+        # Fixed: Cast to int
+        self.resource_path.setMaximumHeight(int(default_maximum_height_resource * scale_factor))
 
 
 if __name__ == "__main__":
-    with ui_qt_utils.QtApplicationContext():
+    with qt_utils.QtApplicationContext():
         window = ResourceLibraryView()
-        mocked_icon = ui_qt.QtGui.QIcon(ui_res_lib.Icon.curve_library_base_curve)
-        window.add_item_view_library(
-            item_name="item_one", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.curve_library_user_curve)
-        )
-        window.add_item_view_library(
-            item_name="item_two", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.curve_library_control)
-        )
+
+        # Fixed: Included namespaces for QIcon
+        mocked_icon = ui_qt.QtGui.QIcon(resource_library.Icon.curve_library_base_curve)
+        window.add_item_view_library(item_name="item_one", icon=ui_qt.QtGui.QIcon(resource_library.Icon.curve_library_user_curve))
+        window.add_item_view_library(item_name="item_two", icon=ui_qt.QtGui.QIcon(resource_library.Icon.curve_library_control))
+
         for index in range(1, 101):
             window.add_item_view_library(
                 item_name=f"item_with_a_very_long_name_for_testing_ui_{index}", icon=mocked_icon

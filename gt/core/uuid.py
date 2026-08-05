@@ -1,8 +1,8 @@
 """
-UUID Module
+UUID Utilities
 
-Code Namespace:
-    core_uuid # import gt.core.uuid as core_uuid
+Import Line:
+    import gt.core.uuid as core_uuid
 """
 
 from gt.core.attr import add_attr, set_attr
@@ -108,7 +108,7 @@ def get_object_from_uuid_attr(uuid_string, attr_name, obj_type="transform"):
     Args:
         uuid_string (string): UUID to look for (if it matches, then the object is found)
         attr_name (string): Name of the attribute where the UUID is stored.
-        obj_type (optional, string): Type of objects to look for (default is "transform")
+        obj_type (str, optional): Type of objects to look for (default is "transform")
     Returns:
         str, None: If found, the object with a matching UUID, otherwise None
     """

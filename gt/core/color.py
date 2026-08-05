@@ -1,8 +1,8 @@
 """
-Color Module
+Color Utilities
 
-Code Namespace:
-    core_color  # import gt.core.color as core_color
+Import Line:
+    import gt.core.color as core_color
 """
 
 import maya.cmds as cmds
@@ -422,7 +422,7 @@ def add_side_color_setup(
     This function sets up a side color setup for the specified object in the Maya scene.
     It creates connections and attributes to control the color of the object based on its position in the scene.
 
-    Parameters:
+    Args:
         obj (str): The name of the object to set up the color for.
         color_attr_name (str, optional): Name of the attribute used to determine if auto color is active or not.
         clr_default (tuple, optional): The RGB color for when the object is in the center or not automatically defined.

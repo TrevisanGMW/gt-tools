@@ -1,8 +1,8 @@
 """
-Namespace Module
+Namespace Utilities
 
-Code Namespace:
-    core_namespace  # import gt.core.namespace as core_namespace
+Import Line:
+    import gt.core.namespace as core_nspace
 """
 
 from gt.core.feedback import FeedbackMessage
@@ -111,7 +111,7 @@ def delete_namespaces(object_list=None):
     """
     Deletes all namespaces in the scene
     Args:
-        object_list (optional, list) A list of objects to affect. If not provided, entire scene is used instead.
+        object_list ( list, optional): A list of objects to affect. If not provided, entire scene is used instead.
     Returns:
         Number of namespaces deleted (int)
     """
@@ -131,7 +131,20 @@ def delete_namespaces(object_list=None):
         default_namespaces = ["UI", "shared"]
 
         def num_children(ns):
-            """Used as a sort key, this will sort namespaces by how many children they have."""
+            """
+            Used as a sort key, this will sort namespaces by how many children they have.
+            Sort key function to order namespaces by their depth.
+
+            Counts the number of colon separators to determine how many
+            child namespaces the given namespace has.
+
+            Args:
+                ns (str): The namespace string to evaluate.
+
+            Returns:
+                int: The count of colon characters in the namespace,
+                     representing its depth.
+            """
             return ns.count(":")
 
         namespaces = [
@@ -190,30 +203,65 @@ def apply_namespace_to_string(in_string, namespace=None):
     return out_string
 
 
+def strip_namespace(node_name):
+    """
+    Removes the namespace prefix from a Maya node's full name.
+
+    If the provided node name does not contain a namespace (a colon ':'),
+    the original name will be returned. This is a common utility for getting
+    the base name of an object.
+
+    Args:
+        node_name (str): The full name of the Maya node, potentially including
+                         a namespace (e.g., 'characterName:L_arm_jnt').
+
+    Returns:
+        str: The name of the node without any namespace prefix.
+    """
+    # Split by colon and return the last component
+    return node_name.split(":")[-1]
+
+
 class StripNamespace(object):
     """
-    Temporarily strip a namespace from all dependency nodes within a namespace.
+    Context manager to temporarily strip a namespace from all dependency nodes within a given namespace.
 
-    This allows nodes to masquerade as if they never had namespace, including those considered read-only
+    This allows nodes to behave as if they have no namespace, including nodes that are normally read-only
     due to file referencing.
 
-    Usage:
+    Example:
         with StripNamespace('someNamespace') as stripped_nodes:
             print(cmds.ls(stripped_nodes))
+
+    Attributes:
+        original_names (dict): Maps node UUIDs to their original names within the namespace.
+        namespace (str): The full namespace path being stripped.
     """
 
     @classmethod
     def as_name(cls, uuid):
         """
-        Convenience method to extract the name from uuid
+        Get the node name from its UUID.
 
-        type uuid: basestring
-        rtype: unicode|None
+        Args:
+            uuid (str): The unique identifier of the node.
+
+        Returns:
+            str or None: The name of the node if found, otherwise None.
         """
         names = cmds.ls(uuid)
         return names[0] if names else None
 
     def __init__(self, namespace):
+        """
+        Initialize the StripNamespace context manager.
+
+        Args:
+            namespace (str): The namespace to strip from dependency nodes.
+
+        Raises:
+            ValueError: If the provided namespace does not exist.
+        """
         if cmds.namespace(exists=namespace):
             self.original_names = {}  # (UUID, name_within_namespace)
             self.namespace = cmds.namespaceInfo(namespace, fn=True)
@@ -221,6 +269,15 @@ class StripNamespace(object):
             raise ValueError('Could not locate supplied namespace, "{0}"'.format(namespace))
 
     def __enter__(self):
+        """
+        Enter the context: strip the namespace from all dependency nodes.
+
+        Iterates over all dependency nodes within the namespace, renames them to remove the namespace prefix,
+        bypassing any read-only restrictions.
+
+        Returns:
+            list[str]: List of node names with the namespace stripped.
+        """
         for absolute_name in cmds.namespaceInfo(self.namespace, listOnlyDependencyNodes=True, fullName=True):
 
             # Ensure node was *not* auto-renamed (IE: shape nodes)
@@ -245,6 +302,16 @@ class StripNamespace(object):
         return [self.as_name(uuid) for uuid in self.original_names]
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """
+        Exit the context: restore original node names with namespaces.
+
+        Args:
+            exc_type (type or None): The exception type if an exception was raised, otherwise None.
+            exc_val (Exception or None): The exception instance if an exception was raised, otherwise None.
+            exc_tb (traceback or None): The traceback object if an exception was raised, otherwise None.
+
+        Restores the original names of all nodes that were renamed on entering the context.
+        """
         for uuid, original_name in self.original_names.items():
             current_name = self.as_name(uuid)
             api_obj = OpenMaya.MGlobal.getSelectionListByName(current_name).getDependNode(0)

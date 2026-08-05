@@ -1,5 +1,5 @@
 """
- GT Startup Booster - A script for managing which plugins get loaded when starting Maya.
+ Startup Booster - A script for managing which plugins get loaded when starting Maya.
  github.com/TrevisanGMW/gt-tools - 2020-11-20
 """
 
@@ -24,7 +24,7 @@ script_name = "Startup Booster"
 
 
 def build_gui_startup_booster():
-    """Builds the UI for GT Startup Booster"""
+    """Builds the UI for Startup Booster"""
     if cmds.window("build_gui_startup_booster", exists=True):
         cmds.deleteUI("build_gui_startup_booster")
 
@@ -603,10 +603,10 @@ def build_gui_startup_booster():
     def add_button_arnold():
         """Create a button for manually loading the Arnold plugin"""
         create_shelf_button(
-            '"""\n This button was generated using GT Startup Booster\n @Guilherme Trevisan - github.com/'
+            '"""\n This button was generated using Startup Booster\n @Guilherme Trevisan - github.com/'
             "TrevisanGMW\n\n This button will try to load a plugin in case it's not already loaded.\n "
             "This is used to make Maya open faster by not auto loading heavy plugins during startup.\n \n"
-            ' How to use it:\n 1. Use GT Startup Booster and turn off "Auto Load" for the plugins you want'
+            ' How to use it:\n 1. Use Startup Booster and turn off "Auto Load" for the plugins you want'
             ' to manually load.\n 2. Click on  "Add Shelf Button" so it creates a shortcut for loading the '
             'plugin.\n 3. When you need the plugin, use the shelf button to load it.\n \n"""\nplugins_to_load'
             " = ['mtoa']\n\ndef gtu_load_plugins(plugin_list):\n    ''' \n    Attempts to load provided plug-ins,"
@@ -651,10 +651,10 @@ def build_gui_startup_booster():
     def add_button_redshift():
         """Create a button for manually loading the Redshift plugin"""
         create_shelf_button(
-            '"""\n This button was generated using GT Startup Booster\n @Guilherme Trevisan - '
+            '"""\n This button was generated using Startup Booster\n @Guilherme Trevisan - '
             "github.com/TrevisanGMW\n\n This button will try to load a plugin in case it's not already "
             "loaded.\n This is used to make Maya open faster by not auto loading heavy plugins during "
-            'startup.\n \n How to use it:\n 1. Use GT Startup Booster and turn off "Auto Load" for the '
+            'startup.\n \n How to use it:\n 1. Use Startup Booster and turn off "Auto Load" for the '
             'plugins you want to manually load.\n 2. Click on  "Add Shelf Button" so it creates a shortcut for '
             'loading the plugin.\n 3. When you need the plugin, use the shelf button to load it.\n \n"""\n\n'
             "plugins_to_load = ['redshift4maya']\n\ndef gtu_load_plugins(plugin_list):\n    ''' \n    "
@@ -700,10 +700,10 @@ def build_gui_startup_booster():
     def add_button_bifrost():
         """Create a button for manually loading the Bifrost plugin"""
         create_shelf_button(
-            '"""\n This button was generated using GT Startup Booster\n @Guilherme Trevisan - '
+            '"""\n This button was generated using Startup Booster\n @Guilherme Trevisan - '
             "github.com/TrevisanGMW\n\n This button will try to load a plugin in case it's not already loaded."
             "\n This is used to make Maya open faster by not auto loading heavy plugins during startup.\n \n "
-            'How to use it:\n 1. Use GT Startup Booster and turn off "Auto Load" for the plugins you want to '
+            'How to use it:\n 1. Use Startup Booster and turn off "Auto Load" for the plugins you want to '
             'manually load.\n 2. Click on  "Add Shelf Button" so it creates a shortcut for loading the plugin.'
             '\n 3. When you need the plugin, use the shelf button to load it.\n \n"""\nimport maya.cmds as '
             "cmds\nimport sys\n\nplugins_to_load = ['bifmeshio', 'bifrostGraph', 'bifrostshellnode', "
@@ -751,10 +751,10 @@ def build_gui_startup_booster():
     def add_button_bullet():
         """Create a button for manually loading the Bullet plugin"""
         create_shelf_button(
-            '"""\n This button was generated using GT Startup Booster\n @Guilherme Trevisan - '
+            '"""\n This button was generated using Startup Booster\n @Guilherme Trevisan - '
             "github.com/TrevisanGMW\n\n This button will try to load a plugin in case it's not already loaded."
             "\n This is used to make Maya open faster by not auto loading heavy plugins during startup.\n \n "
-            'How to use it:\n 1. Use GT Startup Booster and turn off "Auto Load" for the plugins you want to '
+            'How to use it:\n 1. Use Startup Booster and turn off "Auto Load" for the plugins you want to '
             'manually load.\n 2. Click on  "Add Shelf Button" so it creates a shortcut for loading the plugin.'
             '\n 3. When you need the plugin, use the shelf button to load it.\n \n"""\nimport maya.cmds as '
             "cmds\nimport sys\n\nplugins_to_load = ['AbcBullet', 'bullet']\n\ndef gtu_load_plugins(plugin_list):"
@@ -800,10 +800,10 @@ def build_gui_startup_booster():
     def add_button_mash():
         """Create a button for manually loading the MASH plugin"""
         create_shelf_button(
-            '"""\n This button was generated using GT Startup Booster\n @Guilherme Trevisan - '
+            '"""\n This button was generated using Startup Booster\n @Guilherme Trevisan - '
             "github.com/TrevisanGMW\n\n This button will try to load a plugin in case it's not already loaded."
             "\n This is used to make Maya open faster by not auto loading heavy plugins during startup.\n \n "
-            'How to use it:\n 1. Use GT Startup Booster and turn off "Auto Load" for the plugins you want to '
+            'How to use it:\n 1. Use Startup Booster and turn off "Auto Load" for the plugins you want to '
             'manually load.\n 2. Click on  "Add Shelf Button" so it creates a shortcut for loading the plugin.'
             '\n 3. When you need the plugin, use the shelf button to load it.\n \n"""\nimport maya.cmds as cmds'
             "\nimport sys\n\nplugins_to_load = ['MASH']\n\ndef gtu_load_plugins(plugin_list):\n    ''' \n    "
@@ -849,10 +849,10 @@ def build_gui_startup_booster():
     def add_button_xgen():
         """Create a button for manually loading the xGen plugin"""
         create_shelf_button(
-            '"""\n This button was generated using GT Startup Booster\n @Guilherme Trevisan -'
+            '"""\n This button was generated using Startup Booster\n @Guilherme Trevisan -'
             " github.com/TrevisanGMW\n\n This button will try to load a plugin in case it's not "
             "already loaded.\n This is used to make Maya open faster by not auto loading heavy"
-            " plugins during startup.\n \n How to use it:\n 1. Use GT Startup Booster and turn "
+            " plugins during startup.\n \n How to use it:\n 1. Use Startup Booster and turn "
             'off "Auto Load" for the plugins you want to manually load.\n 2. Click on  '
             '"Add Shelf Button" so it creates a shortcut for loading the plugin.\n 3. When you '
             'need the plugin, use the shelf button to load it.\n \n"""\nimport maya.cmds as '
@@ -942,10 +942,10 @@ def build_gui_startup_booster():
                 )
             else:
                 create_shelf_button(
-                    '"""\n This button was generated using GT Startup Booster\n @Guilherme Trevisan - '
+                    '"""\n This button was generated using Startup Booster\n @Guilherme Trevisan - '
                     "github.com/TrevisanGMW\n\n This button will try to load a plugin in case it's not already "
                     "loaded.\n This is used to make Maya open faster by not auto loading heavy plugins during "
-                    'startup.\n \n How to use it:\n 1. Use GT Startup Booster and turn off "Auto Load" for the '
+                    'startup.\n \n How to use it:\n 1. Use Startup Booster and turn off "Auto Load" for the '
                     'plugins you want to manually load.\n 2. Click on  "Add Shelf Button" so it creates a shortcut'
                     "for loading the plugin.\n 3. When you need the plugin, use the shelf button to load it."
                     '\n \n"""\nimport maya.cmds as cmds\nimport sys\n\nplugins_to_load = '
@@ -1076,7 +1076,7 @@ def create_shelf_button(
 
 
 def build_gui_help_startup_booster():
-    """Builds the Help UI for GT Startup Booster"""
+    """Builds the Help UI for Startup Booster"""
     window_name = "build_gui_help_startup_booster"
     if cmds.window(window_name, exists=True):
         cmds.deleteUI(window_name, window=True)
@@ -1193,6 +1193,7 @@ def build_gui_help_startup_booster():
     widget.setWindowIcon(icon)
 
     def close_help_gui():
+        """Closes the Startup Booster help window."""
         if cmds.window(window_name, exists=True):
             cmds.deleteUI(window_name, window=True)
 

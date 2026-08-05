@@ -1,8 +1,8 @@
 """
-Joint Module
+Joint Utilities
 
-code namespace:
-    core_joint  # import gt.core.joint as core_joint
+Import Line:
+    import gt.core.joint as core_joint
 """
 
 import gt.core.math as core_math

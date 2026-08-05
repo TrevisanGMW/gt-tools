@@ -1,0 +1,80 @@
+{
+    "uuid": "9nwkn9ccdoqk",
+    "name": "retargeter_definition",
+    "source_path": "C:\\gt\\tests\\test_retargeter\\data\\cylinder_anim_d.mb",
+    "target_path": "C:\\gt\\tests\\test_retargeter\\data\\cylinder_rig.mb",
+    "source_namespace": "source",
+    "target_namespace": "target",
+    "reference_rig": true,
+    "delete_source": false,
+    "short_name_fallback": true,
+    "links": [
+        {
+            "source": "base_jnt",
+            "target": "base_ctrl",
+            "method": "absolute",
+            "target_data": {
+                "tx": 0.0,
+                "ty": 0.0,
+                "tz": 0.0,
+                "rx": 0.0,
+                "ry": 0.0,
+                "rz": 0.0,
+                "sx": 1.0,
+                "sy": 1.0,
+                "sz": 1.0,
+                "v": true
+            }
+        },
+        {
+            "source": "mid_jnt",
+            "target": "|mid_ctrl",
+            "method": "absolute",
+            "target_data": {
+                "tx": 0.0,
+                "ty": 0.0,
+                "tz": 0.0,
+                "rx": 0.0,
+                "ry": 0.0,
+                "rz": 0.0,
+                "sx": 1.0,
+                "sy": 1.0,
+                "sz": 1.0,
+                "v": true,
+                "testFloat": 1.23,
+                "testBool": true
+            }
+        }
+    ],
+    "addons": [
+        {
+            "addon": "AddonSceneOptions",
+            "name": "Scene Options",
+            "execution_order": "pre_retarget",
+            "scene_options": {
+                "linear_unit": "centimeter",
+                "angular_unit": "degree",
+                "frame_rate": "30fps",
+                "multi_sample": true,
+                "multi_sample_count": 8,
+                "persp_clip_plane_near": 1,
+                "persp_clip_plane_far": 10000.0,
+                "display_textures": true
+            }
+        },
+        {
+            "addon": "AddonSourceSetup",
+            "name": "Source Offset",
+            "execution_order": "post_import",
+            "transform_name": "transform_offset",
+            "transform_data": {
+                "sx": 5,
+                "sy": 5,
+                "sz": 5
+            },
+            "children": [
+                "|:root_jnt"
+            ]
+        }
+    ]
+}

@@ -2,9 +2,10 @@ import unittest
 import logging
 import sys
 import os
+import tempfile
 
 # Logging Setup
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 logging.basicConfig()
 logger = logging.getLogger(__name__)
@@ -35,10 +36,12 @@ class TestPrefsCore(unittest.TestCase):
     @patch('gt.core.prefs.get_maya_preferences_dir')
     def test_get_prefs_dir(self, mocked_get_prefs_dir):
         mocked_get_prefs_dir.return_value = "mocked_path"
-        result = core_prefs.get_prefs_dir()
-        from gt.core.setup import PACKAGE_NAME
-        expected = os.path.join("mocked_path", PACKAGE_NAME, core_prefs.PACKAGE_PREFS_DIR)
-        self.assertEqual(expected, result)
+
+        # Patch PACKAGE_NAME inside the core_prefs module where it is being used
+        with patch.object(core_prefs, 'PACKAGE_NAME', 'mocked_package_name', create=True):
+            result = core_prefs.get_prefs_dir()
+            expected = os.path.join("mocked_path", "mocked_package_name", core_prefs.PACKAGE_PREFS_DIR)
+            self.assertEqual(expected, result)
 
     def test_set_and_get_float(self):
         self.prefs = core_prefs.Prefs("mock_prefs")
@@ -235,3 +238,60 @@ class TestPrefsCore(unittest.TestCase):
             f.write('Test content')
         cache.add_path_to_cache_list([test_file1, test_file2])
         self.assertEqual(cache.cache_paths, [test_file1, test_file2])
+
+
+class TestRecentProjects(unittest.TestCase):
+    def setUp(self):
+        self.preferences = {}
+        self.prefs = MagicMock()
+        self.prefs.get_raw_preferences.return_value = self.preferences
+        self.recent_projects = core_prefs.RecentProjects(self.prefs, "recent_projects", max_count=5)
+
+    def test_add_path_keeps_newest_five(self):
+        paths = [os.path.join(tempfile.gettempdir(), f"project_{index}.rig") for index in range(6)]
+
+        for file_path in paths:
+            self.recent_projects.add_path(file_path)
+
+        expected = [os.path.normpath(os.path.abspath(path)) for path in reversed(paths[1:])]
+        self.assertEqual(expected, self.recent_projects.get_paths())
+
+    def test_add_path_moves_duplicate_to_front(self):
+        first_path = os.path.join(tempfile.gettempdir(), "first.rig")
+        second_path = os.path.join(tempfile.gettempdir(), "second.rig")
+        self.recent_projects.add_path(first_path)
+        self.recent_projects.add_path(second_path)
+
+        result = self.recent_projects.add_path(first_path)
+
+        expected = [os.path.normpath(os.path.abspath(first_path)),
+                    os.path.normpath(os.path.abspath(second_path))]
+        self.assertEqual(expected, result)
+
+    def test_get_paths_ignores_invalid_values_and_duplicates(self):
+        project_path = os.path.join(tempfile.gettempdir(), "project.rig")
+        self.preferences["recent_projects"] = [project_path, None, "", project_path]
+
+        result = self.recent_projects.get_paths()
+
+        expected = [os.path.normpath(os.path.abspath(project_path))]
+        self.assertEqual(expected, result)
+
+    def test_remove_path_saves_updated_preferences(self):
+        project_path = os.path.join(tempfile.gettempdir(), "project.rig")
+        self.recent_projects.add_path(project_path)
+        self.prefs.save.reset_mock()
+
+        result = self.recent_projects.remove_path(project_path)
+
+        self.assertEqual([], result)
+        self.assertEqual([], self.preferences["recent_projects"])
+        self.prefs.save.assert_called_once_with()
+
+    def test_clear_saves_empty_list(self):
+        self.preferences["recent_projects"] = ["project.rig"]
+
+        self.recent_projects.clear()
+
+        self.assertEqual([], self.preferences["recent_projects"])
+        self.prefs.save.assert_called_once_with()

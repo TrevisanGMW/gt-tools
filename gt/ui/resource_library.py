@@ -1,8 +1,8 @@
 """
-UI Resource Library module.
+UI Resource Library module
 
-Code Namespace:
-    ui_res_lib  # import gt.ui.resource_library as ui_res_lib
+Import Line:
+    import gt.ui.resource_library as ui_res_lib
 """
 
 from copy import deepcopy
@@ -22,7 +22,7 @@ def get_resource_path(resource_name, resource_folder, sub_folder=None):
     Args:
         resource_name (str): Name of the file. It should contain its extension as it may vary. For example "icon.svg"
         resource_folder (str): Path to the resource folder. Also used to determine the resource type.
-        sub_folder (optional, str): In case the icon exists inside a sub-folder, it can be provided as an argument.
+        sub_folder (str, optional): In case the icon exists inside a sub-folder, it can be provided as an argument.
                                     For example, if the icon is inside "../resource/icons/my_folder/icon.svg"
                                     One would call "get_icon_path("icon.svg", "my_folder")"
     Returns:
@@ -40,7 +40,7 @@ def get_icon_path(icon_name, sub_folder=None):
     Get the path to an icon file. This file should exist inside the resources/icons folder.
     Args:
         icon_name (str): Name of the file. It should contain its extension as it may vary. For example "icon.svg"
-        sub_folder (optional, str): In case the icon exists inside a sub-folder, it can be provided as an argument.
+        sub_folder (str, optional): In case the icon exists inside a sub-folder, it can be provided as an argument.
                                     For example, if the icon is inside "../resource/icons/my_folder/icon.svg"
                                     One would call "get_icon_path("icon.svg", "my_folder")"
     Returns:
@@ -57,7 +57,7 @@ def get_font_path(font_name, sub_folder=None):
     Get the path to a font file. This file should exist inside the resources/fonts folder.
     Args:
         font_name (str): Name of the file. It should contain its extension as it may vary. For example "font.ttf"
-        sub_folder (optional, str): In case the font exists inside a sub-folder, it can be provided as an argument.
+        sub_folder (str, optional): In case the font exists inside a sub-folder, it can be provided as an argument.
                                     For example, if the icon is inside "../resource/fonts/my_folder/font.ttf"
                                     One would call "get_icon_path("icon.svg", "my_folder")"
     Returns:
@@ -253,6 +253,7 @@ class Icon:
     root_help = get_icon_path(r"root_help.svg")
     root_dev = get_icon_path(r"root_dev.svg")
     # General
+    tool_batch_processor = get_icon_path(r"tool_batch_processor.svg")
     tool_renamer = get_icon_path(r"tool_renamer.svg")
     tool_outliner_sorter = get_icon_path(r"tool_outliner_sorter.svg")
     tool_selection_manager = get_icon_path(r"tool_selection_manager.svg")
@@ -261,10 +262,13 @@ class Icon:
     tool_color_manager_roller = get_icon_path(r"tool_color_manager_roller.svg")
     tool_transfer_transforms = get_icon_path(r"tool_transfer_transforms.svg")
     tool_world_space_baker = get_icon_path(r"tool_world_space_baker.svg")
+    tool_clip_tracker = get_icon_path(r"tool_clip_tracker.svg")
+    tool_label_tracker = get_icon_path(r"tool_label_tracker.svg")
     tool_attributes_to_python = get_icon_path(r"tool_attributes_to_python.svg")
     tool_render_checklist = get_icon_path(r"tool_render_checklist.svg")
     # Curves
     tool_crv_library = get_icon_path(r"tool_crv_library.svg")
+    tool_crv_library_red = get_icon_path(r"tool_crv_library_red.svg")
     tool_crv_python = get_icon_path(r"tool_crv_python.svg")
     tool_crv_text = get_icon_path(r"tool_crv_text.svg")
     tool_crv_extract_state = get_icon_path(r"tool_crv_extract_state.svg")
@@ -282,6 +286,7 @@ class Icon:
     tool_auto_rigger = get_icon_path(r"tool_auto_rigger.svg")
     tool_rig_interface = get_icon_path(r"tool_rig_interface.svg")
     tool_retarget_assistant = get_icon_path(r"tool_retarget_assistant.svg")
+    tool_control_picker = get_icon_path(r"tool_control_picker.svg")
     tool_game_fbx_exporter = get_icon_path(r"tool_game_fbx_exporter.svg")
     tool_influence_joints = get_icon_path(r"tool_influence_joints.svg")
     tool_add_inbetween = get_icon_path(r"tool_add_inbetween.svg")
@@ -295,6 +300,12 @@ class Icon:
     tool_morphing_utils = get_icon_path(r"tool_morphing_utils.svg")
     tool_orient_joints = get_icon_path(r"tool_orient_joints.svg")
     tool_ribbon = get_icon_path(r"tool_ribbon.svg")
+    tool_retargeter = get_icon_path(r"tool_retarget_animation.svg")
+    tool_mesh_morpher = get_icon_path(r"tool_mesh_morpher.svg")
+    tool_pose_wrangler = get_icon_path(r"tool_pose_wrangler.svg")
+    tool_dna_viewer = get_icon_path(r"tool_dna_viewer.svg")
+    tool_facial_rig = get_icon_path(r"tool_facial_rig.svg")
+    tool_validator = get_icon_path(r"tool_validator.svg")
     # Utils
     util_reload_file = get_icon_path(r"util_reload_file.svg")
     util_open_dir = get_icon_path(r"util_open_dir.svg")
@@ -327,11 +338,14 @@ class Icon:
     tool_fspy_importer = get_icon_path(r"tool_fspy_importer.svg")
     tool_render_calculator = get_icon_path(r"tool_render_calculator.svg")
     tool_startup_booster = get_icon_path(r"tool_startup_booster.svg")
+    tool_import_with_offset = get_icon_path(r"util_import_with_offset.svg")
     # Help
     tool_package_updater = get_icon_path(r"tool_check_for_updates.svg")
     misc_rebuild_menu = get_icon_path(r"misc_rebuild_menu.svg")
     misc_about = get_icon_path(r"misc_about.svg")
     misc_current_version = get_icon_path(r"misc_current_version.svg")
+    misc_pin = get_icon_path(r"misc_pin.svg")
+    misc_plug = get_icon_path(r"misc_plug.svg")
     # Dev
     tool_resource_library = get_icon_path(r"tool_resource_library.svg")
     dev_brain = get_icon_path(r"dev_brain.svg")
@@ -383,7 +397,22 @@ class Icon:
     rigger_proxy = get_icon_path(r"rigger_proxy.svg")
     rigger_project = get_icon_path(r"rigger_project.svg")
     rigger_module_generic = get_icon_path(r"rigger_module_generic.svg")
+    rigger_module_generic_bw = get_icon_path(r"rigger_module_generic_bw.svg")
+    rigger_module_generic_fk = get_icon_path(r"rigger_module_generic_fk.svg")
+    rigger_module_generic_ik = get_icon_path(r"rigger_module_generic_ik.svg")
     rigger_dict = get_icon_path(r"rigger_dict.svg")
+    rigger_action_duplicate = get_icon_path(r"rigger_action_duplicate.svg")
+    rigger_action_copy = get_icon_path(r"rigger_action_copy.svg")
+    rigger_action_paste = get_icon_path(r"rigger_action_paste.svg")
+    rigger_action_export = get_icon_path(r"rigger_action_export.svg")
+    rigger_action_import = get_icon_path(r"rigger_action_import.svg")
+    rigger_action_unparent = get_icon_path(r"rigger_action_unparent.svg")
+    rigger_action_expand = get_icon_path(r"rigger_action_expand.svg")
+    rigger_action_collapse = get_icon_path(r"rigger_action_collapse.svg")
+    rigger_action_up_arrow = get_icon_path(r"rigger_action_up_arrow.svg")
+    rigger_action_down_arrow = get_icon_path(r"rigger_action_down_arrow.svg")
+    rigger_action_left_arrow = get_icon_path(r"rigger_action_left_arrow.svg")
+    rigger_action_right_arrow = get_icon_path(r"rigger_action_right_arrow.svg")
     rigger_module_biped_arm = get_icon_path(r"rigger_module_biped_arm.svg")
     rigger_module_biped_fingers = get_icon_path(r"rigger_module_biped_fingers.svg")
     rigger_module_biped_leg = get_icon_path(r"rigger_module_biped_leg.svg")
@@ -391,22 +420,80 @@ class Icon:
     rigger_module_spine = get_icon_path(r"rigger_module_spine.svg")
     rigger_module_head = get_icon_path(r"rigger_module_head.svg")
     rigger_template_biped = get_icon_path(r"rigger_template_biped.svg")
+    rigger_template_quadruped = get_icon_path(r"rigger_template_quadruped.svg")
+    rigger_module_quad_front_leg = get_icon_path(r"rigger_module_quad_front_leg.svg")
+    rigger_module_quad_rear_leg = get_icon_path(r"rigger_module_quad_rear_leg.svg")
+    rigger_module_quad_spine = get_icon_path(r"rigger_module_quad_spine.svg")
     rigger_module_util = get_icon_path(r"rigger_module_util.svg")
     rigger_module_skin_weights = get_icon_path(r"rigger_module_skin_weights.svg")
+    rigger_module_ngskin_weights = get_icon_path(r"rigger_module_ngskin_weights.svg")
+    rigger_module_group = get_icon_path(r"rigger_module_group.svg")
+    rigger_module_playblast_capture = get_icon_path(r"rigger_module_playblast_capture.svg")
+    rigger_module_thumbnail_capture = get_icon_path(r"rigger_module_thumbnail_capture.svg")
     rigger_module_new_scene = get_icon_path(r"rigger_module_new_scene.svg")
+    rigger_module_notes = get_icon_path(r"rigger_module_notes.svg")
     rigger_module_save_scene = get_icon_path(r"rigger_module_save_scene.svg")
+    rigger_module_load_scene = get_icon_path(r"rigger_module_load_scene.svg")
     rigger_module_python = get_icon_path(r"rigger_module_python.svg")
     rigger_module_export_sk = get_icon_path(r"rigger_module_export_sk.svg")
+    rigger_module_shapes_snapshot = get_icon_path(r"rigger_module_shapes_snapshot.svg")
     rigger_module_attr_hub = get_icon_path(r"rigger_module_attr_hub.svg")
     rigger_module_import_file = get_icon_path(r"rigger_module_import_file.svg")
     rigger_module_socket = get_icon_path(r"rigger_module_socket.svg")
     rigger_module_facial_mh = get_icon_path(r"rigger_module_facial_mh.svg")
+    rigger_module_ribbon = get_icon_path(r"rigger_module_ribbon.svg")
+    rigger_module_chain = get_icon_path(r"rigger_module_chain.svg")
+    rigger_module_ref_mass = get_icon_path(r"rigger_module_ref_mass.svg")
+    rigger_module_piston = get_icon_path(r"rigger_module_piston.svg")
+    rigger_module_pivot = get_icon_path(r"rigger_module_pivot.svg")
+    rigger_category_probe = get_icon_path(r"rigger_category_probe.svg")
+    rigger_module_distance_probe = get_icon_path(r"rigger_module_distance_probe.svg")
+    rigger_module_rot_probe = get_icon_path(r"rigger_module_rot_probe.svg")
+    rigger_category_corrective = get_icon_path(r"rigger_category_corrective.svg")
+    rigger_module_corrective_generic = get_icon_path(r"rigger_module_corrective_generic.svg")
+    rigger_module_corrective_fk = get_icon_path(r"rigger_module_corrective_fk.svg")
+    rigger_extract_project = get_icon_path(r"rigger_extract_project.svg")
+    rigger_module_pose_wrangler = get_icon_path(r"rigger_module_pose_wrangler.svg")
+    rigger_module_rom_loader = get_icon_path(r"rigger_module_rom_loader.svg")
+    rigger_module_camera_setup = get_icon_path(r"rigger_module_camera_setup.svg")
+    rigger_module_enum_variants = get_icon_path(r"rigger_module_enum_variants.svg")
+    rigger_module_picker_data = get_icon_path(r"rigger_module_picker_data.svg")
+    rigger_module_collections = get_icon_path(r"rigger_module_collections.svg")
+    rigger_geo_preprocessor = get_icon_path(r"rigger_geo_preprocessor.svg")
+
+    # Batch Processor
+    batch_category_inputs = get_icon_path(r"batch_category_inputs.svg")
+    batch_category_outputs = get_icon_path(r"batch_category_outputs.svg")
+    batch_category_validation = get_icon_path(r"batch_category_validation.svg")
+    batch_category_external = get_icon_path(r"batch_category_external.svg")
+    batch_validator_pass = get_icon_path(r"batch_validator_pass.svg")
+    batch_task_log_print = get_icon_path(r"batch_task_log_print.svg")
+    batch_tracker = get_icon_path(r"batch_tracker.svg")
+    batch_task_import_file = get_icon_path(r"batch_task_import_file.svg")
+    batch_task_maya_import = get_icon_path(r"batch_task_maya_import.svg")
+    batch_task_python = get_icon_path(r"batch_task_python.svg")
+    batch_task_rename = get_icon_path(r"batch_task_rename.svg")
+    batch_task_delete_project_files = get_icon_path(r"batch_task_delete_project_files.svg")
+    batch_task_map_hierarchy = get_icon_path(r"batch_task_map_hierarchy.svg")
+    batch_task_save_maya = get_icon_path(r"batch_task_save_maya.svg")
+    batch_task_export_usd = get_icon_path(r"batch_task_export_usd.svg")
+    batch_task_export_fbx = get_icon_path(r"batch_task_export_fbx.svg")
+    batch_task_archive = get_icon_path(r"batch_task_archive.svg")
+    batch_task_capture_thumbnail = get_icon_path(r"batch_task_capture_thumbnail.svg")
+    batch_task_capture_playblast = get_icon_path(r"batch_task_capture_playblast.svg")
+    batch_task_humanik = get_icon_path(r"batch_task_humanik.svg")
+    batch_task_clip_split = get_icon_path(r"batch_task_clip_split.svg")
+    batch_task_clip_snapshot = get_icon_path(r"batch_task_clip_snapshot.svg")
+    batch_task_generic = get_icon_path(r"batch_task_generic.svg")
+    batch_project = get_icon_path(r"batch_project.svg")
+
     # User Interface
     ui_add = get_icon_path(r"ui_add.svg")
     ui_arrow_up = get_icon_path(r"ui_arrow_up.svg")
     ui_arrow_down = get_icon_path(r"ui_arrow_down.svg")
     ui_arrow_left = get_icon_path(r"ui_arrow_left.svg")
     ui_arrow_right = get_icon_path(r"ui_arrow_right.svg")
+    ui_thin_arrow_right = get_icon_path(r"ui_thin_arrow_right.svg")
     ui_exclamation = get_icon_path(r"ui_exclamation.svg")
     ui_checkbox_checked = get_icon_path(r"ui_checkbox_checked.svg")
     ui_checkbox_unchecked = get_icon_path(r"ui_checkbox_unchecked.svg")
@@ -419,8 +506,24 @@ class Icon:
     ui_trash = get_icon_path(r"ui_trash.svg")
     ui_new = get_icon_path(r"ui_new.svg")
     ui_open = get_icon_path(r"ui_open.svg")
+    ui_copy_text = get_icon_path(r"ui_copy_text.svg")
     ui_save = get_icon_path(r"ui_save.svg")
+    ui_env_var = get_icon_path(r"ui_env_var.svg")
     ui_templates = get_icon_path(r"ui_templates.svg")
+    ui_templates_python = get_icon_path(r"ui_templates_python.svg")
+    ui_red_circle = get_icon_path(r"ui_red_circle.svg")
+    ui_yellow_circle = get_icon_path(r"ui_yellow_circle.svg")
+    ui_green_circle = get_icon_path(r"ui_green_circle.svg")
+    ui_grey_circle = get_icon_path(r"ui_grey_circle.svg")
+    ui_plus = get_icon_path(r"ui_plus.svg")
+    ui_reset = get_icon_path(r"ui_reset.svg")
+    ui_read_only = get_icon_path(r"ui_read_only.svg")
+    ui_progress = get_icon_path(r"ui_progress.svg")
+    ui_cursor = get_icon_path(r"ui_cursor.svg")
+    ui_open_external = get_icon_path(r"ui_open_external.svg")
+    ui_goto_location = get_icon_path(r"ui_goto_location.svg")
+    ui_lock_closed = get_icon_path(r"ui_lock_closed.svg")
+    ui_lock_open = get_icon_path(r"ui_lock_open.svg")
     # Branch/Hierarchy Lines
     ui_branch_closed = get_icon_path(r"ui_branch_closed.svg")
     ui_branch_end = get_icon_path(r"ui_branch_end.svg")
@@ -430,6 +533,16 @@ class Icon:
     ui_branch_root_closed = get_icon_path(r"ui_branch_root_closed.svg")
     ui_branch_root_open = get_icon_path(r"ui_branch_root_open.svg")
     ui_branch_single = get_icon_path(r"ui_branch_single.svg")
+    # Validator
+    validator_not_run = get_icon_path(r"validator_not_run.svg")
+    validator_pass = get_icon_path(r"validator_pass.svg")
+    validator_warning = get_icon_path(r"validator_warning.svg")
+    validator_fail_soft = get_icon_path(r"validator_fail_soft.svg")
+    validator_fail_hard = get_icon_path(r"validator_fail_hard.svg")
+    # Apps
+    app_unreal = get_icon_path(r"app_unreal.svg")
+    app_blender = get_icon_path(r"app_blender.svg")
+    app_mobu = get_icon_path(r"app_mobu.svg")
 
 
 class Color:
@@ -927,7 +1040,10 @@ class StylesheetVariables:
     combobox_base = {
         # Colors
         "@text_color;": Color.RGB.gray_dark_silver,
+        "@text_color_disabled;": Color.RGB.gray_dim,
+        "@border_color_disabled;": Color.RGB.gray_darker_ghosted,
         "@background_color;": Color.RGB.gray_darker,
+        "@background_color_disabled;": Color.RGB.gray_much_darker,
         "@border_color;": Color.RGB.gray_much_darker,
         "@selection_background;": Color.RGB.blue_pastel,
         "@left_border_bg;": Color.RGB.gray_darker_mid,
@@ -980,7 +1096,7 @@ class StylesheetVariables:
     line_edit_base = {
         # Colors
         "@background_color;": Color.RGB.gray_darker,
-        "@background_selection_color;": Color.RGB.gray_darker,
+        "@background_selection_color;": Color.RGB.blue_pastel,
         "@background_disabled;": Color.RGB.gray_much_darker,
         "@hover_border_color;": Color.RGB.grey_light,
         "@focus_border_color;": Color.RGB.blue_corn_flower,
@@ -1014,7 +1130,9 @@ class StylesheetVariables:
     spin_box_base = {
         # Colors
         "@text_color;": Color.RGB.white,
+        "@text_color_disabled;": Color.RGB.gray_light,
         "@background_color;": Color.RGB.gray_darker,
+        "@background_color_disabled;": Color.RGB.gray_dim,
         "@background_color_pressed;": Color.RGB.gray_mid_dark,
         "@background_color_buttons;": Color.RGB.gray_mid_light,
         "@border_color;": Color.RGB.gray_mid_much_lighter,
@@ -1022,6 +1140,30 @@ class StylesheetVariables:
         # Images
         "@image_arrow_up;": f"url({Icon.ui_arrow_up})".replace("\\", "/"),
         "@image_arrow_down;": f"url({Icon.ui_arrow_down})".replace("\\", "/"),
+    }
+    slider_base = {
+        # Colors
+        "@groove_color_background;": Color.RGB.gray_light,
+        "@groove_color_border;": Color.RGB.gray_mid_dark,
+        "@handle_color;": Color.RGB.gray_light,
+        "@handle_color_border;": Color.RGB.gray_light,
+        "@handle_color_hover;": Color.RGB.white,
+        "@sub_page_color_background;": Color.RGB.gray_dark_silver,
+        "@sub_page_color_border;": Color.RGB.gray_dark_silver,
+        "@add_page_color_background;": Color.RGB.gray_darker,
+        "@add_page_color_border;": Color.RGB.gray_darker,
+        "@tickmarks_color;": Color.RGB.red,
+    }
+    tab_widget_base = {
+        # Colors
+        "@text_color;": Color.RGB.white,
+        "@background_color;": Color.RGB.gray_darker,
+        "@item_selected_background_color;": Color.RGB.gray_dim,
+        "@item_not_selected_background_color;": Color.RGB.gray_darker,
+        "@item_not_selected_hover_background_color;": Color.RGB.gray_mid_much_lighter,
+        "@border_color;": Color.RGB.gray_darker,
+        # Formatting
+        "@border_radius;": "5",
     }
     # Metro QToolButton Start ----------------------------------------------------------------
     btn_tool_metro_base = {
@@ -1095,6 +1237,12 @@ class Stylesheet:
     )
     spin_box_base = get_stylesheet_content(
         stylesheet_name="spin_box_base", stylesheet_variables=StylesheetVariables.spin_box_base
+    )
+    slider_base = get_stylesheet_content(
+        stylesheet_name="slider_base", stylesheet_variables=StylesheetVariables.slider_base
+    )
+    tab_widget_base = get_stylesheet_content(
+        stylesheet_name="tab_widget_base", stylesheet_variables=StylesheetVariables.tab_widget_base
     )
 
     # --------------------------------------------- Buttons ---------------------------------------------

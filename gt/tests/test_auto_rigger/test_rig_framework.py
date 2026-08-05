@@ -23,6 +23,7 @@ import gt.core.naming as core_naming
 from gt.tests import maya_test_tools
 import gt.core.curve as core_curve
 import gt.core.color as core_color
+import gt.core.uuid as core_uuid
 
 cmds = maya_test_tools.cmds
 
@@ -671,6 +672,21 @@ class TestRigFramework(unittest.TestCase):
         expected_dictionary = mocked_dict
         self.assertEqual(expected_dictionary, result)
 
+    def test_proxy_get_mirrored_transform(self):
+        self.proxy.set_position(x=6, y=10, z=2)
+        self.proxy.set_rotation(x=5, y=45, z=30)
+        self.proxy.set_scale(x=1.2, y=1.6, z=1.4)
+        mirrored_proxy = tools_rig_frm.Proxy(name="mirrored_proxy")
+        mirrored_transform = self.proxy.get_mirrored_transform()
+        mirrored_proxy.set_transform(mirrored_transform)
+        transform = mirrored_proxy.transform
+        position = [transform.position.x, transform.position.y, transform.position.z]
+        self.assertEqual([-6.0, 10.0, 2.0], position)
+        rotation = [transform.rotation.x, transform.rotation.y, transform.rotation.z]
+        self.assertEqual([-175.0, -45.0, -30.0], rotation)
+        scale = [transform.scale.x, transform.scale.y, transform.scale.z]
+        self.assertEqual([1.2, 1.6, 1.4], scale)
+
     # --------------------------------------------- ModuleGeneric ---------------------------------------------
     def test_module_set_proxies(self):
         a_1st_proxy = tools_rig_frm.Proxy(name="a_1st_proxy")
@@ -690,6 +706,86 @@ class TestRigFramework(unittest.TestCase):
         self.module.remove_from_proxies(a_2nd_proxy)
         result = self.module.get_proxies()
         expected = [a_1st_proxy, a_3rd_proxy]
+        self.assertEqual(expected, result)
+
+    def test_module_get_proxies(self):
+        a_1st_proxy = tools_rig_frm.Proxy(name="proxy_1")
+        a_2nd_proxy = tools_rig_frm.Proxy(name="proxy_2")
+        a_3rd_proxy = tools_rig_frm.Proxy(name="proxy_3")
+        a_4th_proxy = tools_rig_frm.Proxy(name="proxy_4")
+
+        a_module = tools_rig_frm.ModuleGeneric()
+        a_module.add_to_proxies(a_1st_proxy)
+        a_module.add_to_proxies(a_2nd_proxy)
+        a_module.add_to_proxies(a_3rd_proxy)
+        a_module.add_to_proxies(a_4th_proxy)
+        root_dummy = core_uuid.generate_uuid()
+
+        # test 00 - default without sorting, entry sequence
+        proxies = a_module.get_proxies()
+        expected = ["proxy_1", "proxy_2", "proxy_3", "proxy_4"]
+        result = [pp.name for pp in proxies]
+        self.assertEqual(expected, result)
+
+        # test 01 - set standard fk and proxies setup inverted
+        a_1st_proxy.set_parent_uuid(root_dummy)
+        a_2nd_proxy.set_parent_uuid(a_1st_proxy.get_uuid())
+        a_3rd_proxy.set_parent_uuid(a_2nd_proxy.get_uuid())
+        a_4th_proxy.set_parent_uuid(a_3rd_proxy.get_uuid())
+
+        a_1st_proxy.set_setup_driver_uuid(a_2nd_proxy.get_uuid())
+        a_2nd_proxy.set_setup_driver_uuid(a_3rd_proxy.get_uuid())
+        a_3rd_proxy.set_setup_driver_uuid(a_4th_proxy.get_uuid())
+        a_4th_proxy.set_setup_driver_uuid(root_dummy)
+
+        proxies_by_parent = a_module.get_proxies(sort_by="parent")
+        expected = ["proxy_1", "proxy_2", "proxy_3", "proxy_4"]
+        result = [pp.name for pp in proxies_by_parent]
+        self.assertEqual(expected, result)
+        proxies_by_driver = a_module.get_proxies(sort_by="setup_driver")
+        expected = ["proxy_4", "proxy_3", "proxy_2", "proxy_1"]
+        result = [pd.name for pd in proxies_by_driver]
+        self.assertEqual(expected, result)
+
+        # reset
+        [prx.clear_parent_uuid() for prx in a_module.get_proxies()]
+        [prx.clear_setup_driver_uuid() for prx in a_module.get_proxies()]
+
+        # test 02 - set standard fk and skip proxies setup hierarchy
+        a_1st_proxy.set_parent_uuid(root_dummy)
+        a_2nd_proxy.set_parent_uuid(a_1st_proxy.get_uuid())
+        a_3rd_proxy.set_parent_uuid(a_2nd_proxy.get_uuid())
+        a_4th_proxy.set_parent_uuid(a_3rd_proxy.get_uuid())
+
+        proxies_by_parent = a_module.get_proxies(sort_by="parent")
+        expected = ["proxy_1", "proxy_2", "proxy_3", "proxy_4"]
+        result = [pp.name for pp in proxies_by_parent]
+        self.assertEqual(expected, result)
+        proxies_by_driver = a_module.get_proxies(sort_by="setup_driver")
+        expected = ["proxy_1", "proxy_2", "proxy_3", "proxy_4"]
+        result = [pd.name for pd in proxies_by_driver]
+        self.assertEqual(expected, result)
+
+        # reset
+        [prx.clear_parent_uuid() for prx in a_module.get_proxies()]
+        [prx.clear_setup_driver_uuid() for prx in a_module.get_proxies()]
+
+        # test 03 - set standard fk and override one for proxies setup
+        a_1st_proxy.set_parent_uuid(root_dummy)
+        a_2nd_proxy.set_parent_uuid(a_1st_proxy.get_uuid())
+        a_3rd_proxy.set_parent_uuid(a_2nd_proxy.get_uuid())
+        a_4th_proxy.set_parent_uuid(a_3rd_proxy.get_uuid())
+
+        a_3rd_proxy.set_setup_driver_uuid(a_4th_proxy.get_uuid())
+        a_4th_proxy.set_setup_driver_uuid(a_1st_proxy.get_uuid())
+
+        proxies_by_parent = a_module.get_proxies(sort_by="parent")
+        expected = ["proxy_1", "proxy_2", "proxy_3", "proxy_4"]
+        result = [pp.name for pp in proxies_by_parent]
+        self.assertEqual(expected, result)
+        proxies_by_driver = a_module.get_proxies(sort_by="setup_driver")
+        expected = ["proxy_1", "proxy_2", "proxy_4", "proxy_3"]
+        result = [pd.name for pd in proxies_by_driver]
         self.assertEqual(expected, result)
 
     def test_module_set_orientation(self):
@@ -800,14 +896,23 @@ class TestRigFramework(unittest.TestCase):
         self.assertEqual(expected_2nd_proxy_transform, result_2nd_proxy_transform)
 
     def test_project_get_project_as_dict(self):
+        _uuid = "z56xvx"
+        self.project.uuid = _uuid
         result = self.project.get_project_as_dict()
         expected = {
             "name": "Untitled",
+            "uuid": _uuid,
             "modules": [],
             "preferences": {
+                "alias": None,
                 "build_control_rig": True,
+                "control_rig_pose_name": f"{core_naming.NamingConstants.Poses.TPOSE}",
                 "delete_proxy_after_build": True,
+                "export_anim_blendshapes": False,
+                "apply_control_rig_pose": True,
+                "hide_skeleton": True,
                 "project_dir": None,
+                "view_fit_skeleton": True,
             },
         }
         self.assertEqual(expected, result)
@@ -825,17 +930,17 @@ class TestRigFramework(unittest.TestCase):
         self.assertTrue(cmds.objExists(obj))
 
     def test_project_build_rig_check_elements(self):
-        a_1th_proxy = tools_rig_frm.Proxy(name="proxy_1")
-        a_2th_proxy = tools_rig_frm.Proxy()
-        a_1th_module = tools_rig_frm.ModuleGeneric()
-        a_2th_module = tools_rig_frm.ModuleGeneric(name="proxy_2")
-        a_1th_proxy.set_name(name="proxy_extra")
-        a_2th_module.set_prefix("mocked_second")
+        a_1st_proxy = tools_rig_frm.Proxy(name="proxy_1")
+        a_2nd_proxy = tools_rig_frm.Proxy()
+        a_1st_module = tools_rig_frm.ModuleGeneric()
+        a_2nd_module = tools_rig_frm.ModuleGeneric(name="proxy_2")
+        a_1st_proxy.set_name(name="proxy_extra")
+        a_2nd_module.set_prefix("mocked_second")
         a_project = tools_rig_frm.RigProject()
-        a_1th_module.add_to_proxies(a_1th_proxy)
-        a_2th_module.add_to_proxies(a_2th_proxy)
-        a_project.add_to_modules(a_1th_module)
-        a_project.add_to_modules(a_2th_module)
+        a_1st_module.add_to_proxies(a_1st_proxy)
+        a_2nd_module.add_to_proxies(a_2nd_proxy)
+        a_project.add_to_modules(a_1st_module)
+        a_project.add_to_modules(a_2nd_module)
         a_project.build_proxy()
         cmds.setAttr("proxy_extra.tx", 15)
         a_project.build_rig()

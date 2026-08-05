@@ -128,6 +128,14 @@ class MeshLibraryController:
         return metadata.get("object")
 
     def select_item_by_name(self, item_name):
+        """Selects an item in the library by name.
+
+        Args:
+            item_name (str): Name of the item to select.
+
+        Returns:
+            bool: Whether an item was found and selected.
+        """
         """
         Selects item based on its name
         Returns:

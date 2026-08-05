@@ -1,8 +1,8 @@
 """
-Math Module
+Math Utilities
 
-Code Namespace:
-    core_math  # import gt.core.math as core_math
+Import Line:
+    import gt.core.math as core_math
 """
 
 import maya.api.OpenMaya as OpenMaya
@@ -337,6 +337,165 @@ def remap_value(value, old_range, new_range):
         print(out)  # 0.5
     """
     return (value - old_range[0]) * (new_range[1] - new_range[0]) / (old_range[1] - old_range[0]) + new_range[0]
+
+
+def get_mvector(node):
+    """
+    Safely retrieves the world translation of a node as an OpenMaya MVector.
+
+    Args:
+        node (str): The name of the node (DAG path).
+
+    Returns:
+        OpenMaya.MVector: The world position vector. Returns (0,0,0) on failure.
+    """
+    try:
+        # Force a fresh read from the dependency graph
+        position = cmds.xform(node, query=True, worldSpace=True, translation=True)
+        return OpenMaya.MVector(position[0], position[1], position[2])
+    except Exception:
+        return OpenMaya.MVector(0, 0, 0)
+
+
+def get_matrix(node):
+    """
+    Returns OpenMaya MMatrix for a specific node.
+
+    Args:
+        node (str): The name of the node.
+
+    Returns:
+        OpenMaya.MMatrix: The world transformation matrix.
+    """
+    matrix_list = cmds.xform(node, query=True, worldSpace=True, matrix=True)
+    return OpenMaya.MMatrix(matrix_list)
+
+
+def get_distance(node_a, node_b):
+    """
+    Calculates Euclidean distance between two nodes.
+
+    Args:
+        node_a (str): The first node.
+        node_b (str): The second node.
+
+    Returns:
+        float: The distance between the two nodes.
+    """
+    vec_a = get_mvector(node_a)
+    vec_b = get_mvector(node_b)
+    return (vec_a - vec_b).length()
+
+
+def lerp(start_value, end_value, time):
+    """
+    Linear interpolation between two floats.
+
+    Args:
+        start_value (float): The start value.
+        end_value (float): The end value.
+        time (float): The interpolation factor (usually 0.0 to 1.0).
+
+    Returns:
+        float: The interpolated value.
+    """
+    return start_value * (1.0 - time) + end_value * time
+
+
+def get_angle(vector_a, vector_b):
+    """
+    Calculates the angle (in degrees) between two normalized vectors.
+
+    Args:
+        vector_a (OpenMaya.MVector): First vector.
+        vector_b (OpenMaya.MVector): Second vector.
+
+    Returns:
+        float: Angle in degrees.
+    """
+    _dot_product = vector_a * vector_b
+    # Clamp to prevent domain errors
+    _dot_product = max(-1.0, min(1.0, _dot_product))
+    return math.degrees(math.acos(_dot_product))
+
+
+def get_closest_point_on_segment(point, start, end):
+    """
+    Calculates the projection of a point onto the infinite line defined by a start and end point.
+
+    Args:
+        point (OpenMaya.MVector): The point to project.
+        start (OpenMaya.MVector): The start point of the line segment.
+        end (OpenMaya.MVector): The end point of the line segment.
+
+    Returns:
+        OpenMaya.MVector: The closest point on the line to the input point.
+    """
+    ap = point - start
+    ab = end - start
+    ab_len_sq = ab * ab
+
+    # Avoid divide by zero if start and end are the same
+    if ab_len_sq < 0.0001:
+        return start
+
+    t = (ap * ab) / ab_len_sq
+    return start + (ab * t)
+
+
+def get_bend_vector(start, mid, end):
+    """
+    Calculates the normalized vector pointing from the base line (start-to-end) towards the mid point.
+
+    This is commonly used to find the "Pole Vector" direction for an IK chain.
+
+    Args:
+        start (OpenMaya.MVector): The start position of the chain (e.g. Hip/Shoulder).
+        mid (OpenMaya.MVector): The middle position of the chain (e.g. Knee/Elbow).
+        end (OpenMaya.MVector): The end position of the chain (e.g. Foot/Wrist).
+
+    Returns:
+        tuple(OpenMayaMVector, float): A tuple containing:
+            - The normalized bend direction vector.
+            - The magnitude of the bend (distance from mid to the straight line).
+    """
+    proj = get_closest_point_on_segment(mid, start, end)
+    vec = mid - proj
+    mag = vec.length()
+
+    # If the chain is perfectly straight, return a default Up vector (Z-up fallback)
+    if mag < 0.0001:
+        return OpenMaya.MVector(0, 0, 1), 0.0
+
+    return vec.normal(), mag
+
+
+def get_rotation_from_vectors(source_vec, target_vec):
+    """
+    Calculates the shortest arc quaternion rotation to align the source vector to the target vector.
+
+    Args:
+        source_vec (OpenMaya.MVector): The vector to rotate.
+        target_vec (OpenMaya.MVector): The destination vector.
+
+    Returns:
+        OpenMaya.MQuaternion: The rotation needed to align source_vec to target_vec.
+    """
+    # Create copies to avoid modifying the input vectors in place
+    u = OpenMaya.MVector(source_vec).normal()
+    v = OpenMaya.MVector(target_vec).normal()
+
+    cross = u ^ v
+    dot = u * v
+
+    # Handle the case where vectors are directly opposite (180 degree flip)
+    if dot < -0.999:
+        return OpenMaya.MQuaternion(0, 0, 1, 0)
+
+    s = math.sqrt((1 + dot) * 2)
+    invs = 1.0 / s
+
+    return OpenMaya.MQuaternion(cross.x * invs, cross.y * invs, cross.z * invs, s * 0.5)
 
 
 if __name__ == "__main__":

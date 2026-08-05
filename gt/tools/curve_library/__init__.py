@@ -1,6 +1,6 @@
 """
  Curve Library
- github.com/TrevisanGMW/gt-tools - 2023-07-17
+ 2023-07-17
 """
 from gt.tools.curve_library import curve_library_controller
 from gt.tools.curve_library import curve_library_model

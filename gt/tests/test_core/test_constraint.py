@@ -1,3 +1,4 @@
+from unittest.mock import patch
 import unittest
 import logging
 import sys
@@ -17,6 +18,7 @@ for to_append in [package_root_dir, tests_dir]:
         sys.path.append(to_append)
 from gt.tests import maya_test_tools
 from gt.core import constraint as core_constraint
+
 cmds = maya_test_tools.cmds
 
 
@@ -52,23 +54,25 @@ class TestConstraintCore(unittest.TestCase):
         if tolerance > 1:
             tolerance = tolerance - 1
 
-        str_formatter = '{0:.' + str(tolerance) + 'e}'
-        significand_1 = float(str_formatter.format(arg1).split('e')[0])
-        significand_2 = float(str_formatter.format(arg2).split('e')[0])
+        str_formatter = "{0:." + str(tolerance) + "e}"
+        significand_1 = float(str_formatter.format(arg1).split("e")[0])
+        significand_2 = float(str_formatter.format(arg2).split("e")[0])
 
-        exponent_1 = int(str_formatter.format(arg1).split('e')[1])
-        exponent_2 = int(str_formatter.format(arg2).split('e')[1])
+        exponent_1 = int(str_formatter.format(arg1).split("e")[1])
+        exponent_2 = int(str_formatter.format(arg2).split("e")[1])
 
         self.assertEqual(significand_1, significand_2)
         self.assertEqual(exponent_1, exponent_2)
 
     def test_constraint_type_constants(self):
         attributes = vars(core_constraint.ConstraintTypes)
-        keys = [attr for attr in attributes if not (attr.startswith('__') and attr.endswith('__'))]
+        keys = [attr for attr in attributes if not (attr.startswith("__") and attr.endswith("__"))]
         for key in keys:
             constraint_type = getattr(core_constraint.ConstraintTypes, key)
+            if callable(constraint_type):
+                continue  # Ignore Functions
             if not constraint_type:
-                raise Exception(f'Missing constraint type: {key}')
+                raise Exception(f"Missing constraint type: {key}")
             if not isinstance(constraint_type, str):
                 raise Exception(f'Incorrect constraint type. Expected string, but got: "{type(constraint_type)}".')
 
@@ -152,39 +156,39 @@ class TestConstraintCore(unittest.TestCase):
 
     def test_create_rivet_poly_creation(self):
         cube = maya_test_tools.create_poly_cube()
-        edges = [f'{cube}.e[0]', f'{cube}.e[1]']
+        edges = [f"{cube}.e[0]", f"{cube}.e[1]"]
         result = core_constraint.create_rivet(source_components=edges)
-        expected = 'rivet1'
+        expected = "rivet1"
         self.assertEqual(expected, result)
 
     def test_create_rivet_surface_creation(self):
         sphere = cmds.sphere()[0]
-        point = [f'{sphere}.uv[0][0]']
+        point = [f"{sphere}.uv[0][0]"]
         result = core_constraint.create_rivet(source_components=point)
-        expected = 'rivet1'
+        expected = "rivet1"
         self.assertEqual(expected, result)
 
     def test_create_rivet_poly_pos(self):
         cube = maya_test_tools.create_poly_cube()
-        edges = [f'{cube}.e[0]', f'{cube}.e[1]']
+        edges = [f"{cube}.e[0]", f"{cube}.e[1]"]
         rivet = core_constraint.create_rivet(source_components=edges)
-        result = cmds.getAttr(f'{rivet}.ty')
+        result = cmds.getAttr(f"{rivet}.ty")
         expected = 0.0
         self.assertAlmostEqualSigFig(expected, result)
-        result = cmds.getAttr(f'{rivet}.tx')
+        result = cmds.getAttr(f"{rivet}.tx")
         expected = 0.0
         self.assertAlmostEqualSigFig(expected, result)
-        result = cmds.getAttr(f'{rivet}.tz')
+        result = cmds.getAttr(f"{rivet}.tz")
         expected = 0.5
         self.assertAlmostEqualSigFig(expected, result)
         cmds.move(1, 1, 1, cube)
-        result = cmds.getAttr(f'{rivet}.ty')
+        result = cmds.getAttr(f"{rivet}.ty")
         expected = 1.0
         self.assertAlmostEqualSigFig(expected, result)
-        result = cmds.getAttr(f'{rivet}.tx')
+        result = cmds.getAttr(f"{rivet}.tx")
         expected = 1.0
         self.assertAlmostEqualSigFig(expected, result)
-        result = cmds.getAttr(f'{rivet}.tz')
+        result = cmds.getAttr(f"{rivet}.tz")
         expected = 1.5
         self.assertAlmostEqualSigFig(expected, result)
 
@@ -202,12 +206,10 @@ class TestConstraintCore(unittest.TestCase):
         cmds.setAttr(f"{cube_end}.tz", 10)
         cmds.setAttr(f"{cube_end}.rx", 90)
 
-        constraints = core_constraint.equidistant_constraints(start=cube_start,
-                                                              end=cube_end,
-                                                              target_list=targets,
-                                                              skip_start_end=True,
-                                                              constraint='parent')
-        expected_constraints = ['pCube3_parentConstraint1', 'pCube4_parentConstraint1', 'pCube5_parentConstraint1']
+        constraints = core_constraint.equidistant_constraints(
+            start=cube_start, end=cube_end, target_list=targets, skip_start_end=True, constraint="parent"
+        )
+        expected_constraints = ["pCube3_parentConstraint1", "pCube4_parentConstraint1", "pCube5_parentConstraint1"]
         self.assertEqual(expected_constraints, constraints)
 
         weight_1 = [0.75, 0.25]
@@ -215,17 +217,16 @@ class TestConstraintCore(unittest.TestCase):
         weight_3 = [0.25, 0.75]
         weights = [weight_1, weight_2, weight_3]
         for index, constraint in enumerate(expected_constraints):
-            weight0 = cmds.getAttr(f'{constraint}.w0')
-            weight1 = cmds.getAttr(f'{constraint}.w1')
+            weight0 = cmds.getAttr(f"{constraint}.w0")
+            weight1 = cmds.getAttr(f"{constraint}.w1")
             self.assertEqual(weights[index][0], weight0)
             self.assertEqual(weights[index][1], weight1)
 
-        expected_values = {cube_one: [0, 2.5, 2.5,
-                                      21.59, 0, 0],
-                           cube_two: [0, 5, 5,
-                                      45, 0, 0],
-                           cube_three: [0, 7.5, 7.5,
-                                        68.4, 0, 0]}
+        expected_values = {
+            cube_one: [0, 2.5, 2.5, 21.59, 0, 0],
+            cube_two: [0, 5, 5, 45, 0, 0],
+            cube_three: [0, 7.5, 7.5, 68.4, 0, 0],
+        }
         for cube, expected in expected_values.items():
             tx = cmds.getAttr(f"{cube}.tx")
             ty = cmds.getAttr(f"{cube}.ty")
@@ -254,13 +255,11 @@ class TestConstraintCore(unittest.TestCase):
         cmds.setAttr(f"{cube_end}.tz", 10)
         cmds.setAttr(f"{cube_end}.rx", 90)
 
-        constraints = core_constraint.equidistant_constraints(start=cube_start,
-                                                              end=cube_end,
-                                                              target_list=targets,
-                                                              skip_start_end=False,
-                                                              constraint='parent')
+        constraints = core_constraint.equidistant_constraints(
+            start=cube_start, end=cube_end, target_list=targets, skip_start_end=False, constraint="parent"
+        )
 
-        expected_constraints = ['pCube3_parentConstraint1', 'pCube4_parentConstraint1', 'pCube5_parentConstraint1']
+        expected_constraints = ["pCube3_parentConstraint1", "pCube4_parentConstraint1", "pCube5_parentConstraint1"]
         self.assertEqual(expected_constraints, constraints)
 
         weight_1 = [1, 0]
@@ -268,17 +267,16 @@ class TestConstraintCore(unittest.TestCase):
         weight_3 = [0, 1]
         weights = [weight_1, weight_2, weight_3]
         for index, constraint in enumerate(expected_constraints):
-            weight0 = cmds.getAttr(f'{constraint}.w0')
-            weight1 = cmds.getAttr(f'{constraint}.w1')
+            weight0 = cmds.getAttr(f"{constraint}.w0")
+            weight1 = cmds.getAttr(f"{constraint}.w1")
             self.assertEqual(weights[index][0], weight0)
             self.assertEqual(weights[index][1], weight1)
 
-        expected_values = {cube_one: [0, 0, 0,
-                                      0, 0, 0],
-                           cube_two: [0, 5, 5,
-                                      45, 0, 0],
-                           cube_three: [0, 10, 10,
-                                        90, 0, 0]}
+        expected_values = {
+            cube_one: [0, 0, 0, 0, 0, 0],
+            cube_two: [0, 5, 5, 45, 0, 0],
+            cube_three: [0, 10, 10, 90, 0, 0],
+        }
         for cube, expected_constraints in expected_values.items():
             tx = cmds.getAttr(f"{cube}.tx")
             ty = cmds.getAttr(f"{cube}.ty")
@@ -294,7 +292,7 @@ class TestConstraintCore(unittest.TestCase):
             self.assertAlmostEqualSigFig(rz, expected_constraints[5])
 
     def test_equidistant_constraints_types(self):
-        types_to_test = ['parent', 'point', 'orient', 'scale']
+        types_to_test = ["parent", "point", "orient", "scale"]
         for typ in types_to_test:
             cube_start = maya_test_tools.create_poly_cube()
             cube_end = maya_test_tools.create_poly_cube()
@@ -309,15 +307,13 @@ class TestConstraintCore(unittest.TestCase):
             cmds.setAttr(f"{cube_end}.tz", 10)
             cmds.setAttr(f"{cube_end}.rx", 90)
 
-            constraints = core_constraint.equidistant_constraints(start=cube_start,
-                                                                  end=cube_end,
-                                                                  target_list=targets,
-                                                                  skip_start_end=False,
-                                                                  constraint=typ)
+            constraints = core_constraint.equidistant_constraints(
+                start=cube_start, end=cube_end, target_list=targets, skip_start_end=False, constraint=typ
+            )
 
             for constraint in constraints:
                 result = cmds.objectType(constraint)
-                expected = f'{typ}Constraint'
+                expected = f"{typ}Constraint"
                 self.assertEqual(expected, result)
 
             maya_test_tools.force_new_scene()
@@ -331,12 +327,10 @@ class TestConstraintCore(unittest.TestCase):
         cmds.setAttr(f"{cube_end}.tz", 10)
         cmds.setAttr(f"{cube_end}.rx", 90)
 
-        constraints = core_constraint.equidistant_constraints(start=cube_start,
-                                                              end=cube_end,
-                                                              target_list=cube_target,
-                                                              skip_start_end=True,
-                                                              constraint='parent')
-        expected_constraints = ['pCube3_parentConstraint1']
+        constraints = core_constraint.equidistant_constraints(
+            start=cube_start, end=cube_end, target_list=cube_target, skip_start_end=True, constraint="parent"
+        )
+        expected_constraints = ["pCube3_parentConstraint1"]
         self.assertEqual(expected_constraints, constraints)
 
     def test_constraint_targets_single_source_single_target(self):
@@ -348,18 +342,20 @@ class TestConstraintCore(unittest.TestCase):
         cmds.setAttr(f"{cube_source}.rx", 90)
 
         constraint_type = core_constraint.ConstraintTypes.PARENT
-        constraints = core_constraint.constraint_targets(source_driver=cube_source,
-                                                         target_driven=cube_target,
-                                                         constraint_type=constraint_type,
-                                                         maintain_offset=False,
-                                                         inter_type=0,
-                                                         rename_constraint=True)
+        constraints = core_constraint.constraint_targets(
+            source_driver=cube_source,
+            target_driven=cube_target,
+            constraint_type=constraint_type,
+            maintain_offset=False,
+            inter_type=0,
+            rename_constraint=True,
+        )
         expected_constraints = ["|cube_target|cube_target_parentConstraint"]
         self.assertEqual(expected_constraints, constraints)
 
-        tx = cmds.getAttr(f'{cube_target}.tx')
-        tz = cmds.getAttr(f'{cube_target}.tz')
-        rx = cmds.getAttr(f'{cube_target}.rx')
+        tx = cmds.getAttr(f"{cube_target}.tx")
+        tz = cmds.getAttr(f"{cube_target}.tz")
+        rx = cmds.getAttr(f"{cube_target}.rx")
         expected_tx = 10
         expected_tz = 10
         expected_rx = 90
@@ -376,20 +372,24 @@ class TestConstraintCore(unittest.TestCase):
         cmds.setAttr(f"{cube_source_one}.tx", 5)
 
         constraint_type = core_constraint.ConstraintTypes.PARENT
-        constraints = core_constraint.constraint_targets(source_driver=[cube_source_one, cube_source_two],
-                                                         target_driven=[cube_target_one, cube_target_two],
-                                                         constraint_type=constraint_type,
-                                                         maintain_offset=False,
-                                                         inter_type=0,
-                                                         rename_constraint=True)
-        expected_constraints = ["|cube_target_one|cube_target_one_parentConstraint",
-                                "|cube_target_two|cube_target_two_parentConstraint"]
+        constraints = core_constraint.constraint_targets(
+            source_driver=[cube_source_one, cube_source_two],
+            target_driven=[cube_target_one, cube_target_two],
+            constraint_type=constraint_type,
+            maintain_offset=False,
+            inter_type=0,
+            rename_constraint=True,
+        )
+        expected_constraints = [
+            "|cube_target_one|cube_target_one_parentConstraint",
+            "|cube_target_two|cube_target_two_parentConstraint",
+        ]
         self.assertEqual(expected_constraints, constraints)
 
-        tx = cmds.getAttr(f'{cube_target_one}.tx')
+        tx = cmds.getAttr(f"{cube_target_one}.tx")
         expected_tx = 2.5
         self.assertEqual(expected_tx, tx)
-        tx = cmds.getAttr(f'{cube_target_two}.tx')
+        tx = cmds.getAttr(f"{cube_target_two}.tx")
         expected_tx = 2.5
         self.assertEqual(expected_tx, tx)
 
@@ -400,15 +400,40 @@ class TestConstraintCore(unittest.TestCase):
         cmds.setAttr(f"{cube_source_one}.tx", 5)
 
         constraint_type = core_constraint.ConstraintTypes.POINT
-        constraints = core_constraint.constraint_targets(source_driver=cube_source_one,
-                                                         target_driven=cube_target_one,
-                                                         constraint_type=constraint_type,
-                                                         maintain_offset=True,
-                                                         inter_type=0,
-                                                         rename_constraint=False)
+        constraints = core_constraint.constraint_targets(
+            source_driver=cube_source_one,
+            target_driven=cube_target_one,
+            constraint_type=constraint_type,
+            maintain_offset=True,
+            inter_type=0,
+            rename_constraint=False,
+        )
         expected_constraints = ["|cube_target|cube_target_pointConstraint1"]
         self.assertEqual(expected_constraints, constraints)
 
-        tx = cmds.getAttr(f'{cube_target_one}.tx')
+        tx = cmds.getAttr(f"{cube_target_one}.tx")
         expected_tx = 0
         self.assertEqual(expected_tx, tx)
+
+    @patch("maya.cmds.refresh")
+    @patch("maya.cmds.dgdirty")
+    @patch("maya.cmds.ls")
+    @patch("gt.core.constraint.ConstraintTypes.get_available_constraints")
+    def test_evaluate_constraints(self, mock_get_available_constraints, mock_ls, mock_dgdirty, mock_refresh):
+        """
+        Tests the evaluate_constraints function to ensure it collects the correct constraints,
+        marks them as dirty, and refreshes the scene.
+        """
+        # Set up mock return values
+        mock_get_available_constraints.return_value = ["parentConstraint", "pointConstraint"]
+        mock_ls.side_effect = [["parentConstraint1"], ["pointConstraint1"]]
+
+        # Call the function without a filter
+        core_constraint.evaluate_constraints()
+
+        # Assert that the correct calls were made
+        mock_get_available_constraints.assert_called_once_with(add_constraint_suffix=True)
+        mock_ls.assert_any_call(typ="parentConstraint", long=True)
+        mock_ls.assert_any_call(typ="pointConstraint", long=True)
+        mock_dgdirty.assert_called_once_with(["parentConstraint1", "pointConstraint1"])
+        mock_refresh.assert_called_once()

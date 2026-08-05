@@ -22,12 +22,124 @@ cmds = maya_test_tools.cmds
 
 
 class TestRiggingCore(unittest.TestCase):
-    def setUp(self):
-        maya_test_tools.force_new_scene()
+    temp_dir = ""
+    test_fbx_path = ""
+    test_ma_path = ""
+    test_ma_no_transforms_path = ""
 
     @classmethod
     def setUpClass(cls):
-        maya_test_tools.import_maya_standalone(initialize=True)  # Start Maya Headless (mayapy.exe)
+        """Initializes Maya Standalone and creates temporary files for testing."""
+        maya_test_tools.import_maya_standalone(initialize=True)
+        cls.temp_dir = maya_test_tools.generate_test_temp_dir()
+
+        # Create a simple FBX file with a sphere
+        cmds.file(new=True, force=True)
+        cmds.polySphere(name="test_sphere")
+        cls.test_fbx_path = os.path.join(cls.temp_dir, "test_sphere.fbx")
+        cmds.loadPlugin("fbxmaya.mll", quiet=True)
+        cmds.file(cls.test_fbx_path, force=True, options="v=0;", type="FBX export", es=True)
+
+        # Create a simple MA file with a cube
+        cmds.file(new=True, force=True)
+        cmds.polyCube(name="test_cube")
+        cls.test_ma_path = os.path.join(cls.temp_dir, "test_cube.ma")
+        cmds.file(rename=cls.test_ma_path)
+        cmds.file(save=True, type="mayaAscii")
+
+        # Create a MA file with no transforms
+        cmds.file(new=True, force=True)
+        cmds.shadingNode("lambert", asShader=True, name="test_material")
+        cls.test_ma_no_transforms_path = os.path.join(cls.temp_dir, "no_transforms.ma")
+        cmds.file(rename=cls.test_ma_no_transforms_path)
+        cmds.file(save=True, type="mayaAscii")
+
+    @classmethod
+    def tearDownClass(cls):
+        """Cleans up the temporary directory."""
+        maya_test_tools.delete_test_temp_dir()
+
+    def setUp(self):
+        """Resets the Maya scene before each individual test runs."""
+        maya_test_tools.force_new_scene()
+
+    def test_create_twist_extraction_network(self):
+        """Tests that twist extraction creates only the expected native Maya nodes."""
+        driver = cmds.createNode("transform", name="driver")
+        driven = cmds.createNode("joint", name="driven")
+
+        setup_node = core_rigging.create_twist_extraction_network(
+            driver=driver,
+            driven=driven,
+            twist_weight=0.5,
+        )
+
+        expected = "driven_twistNode"
+        self.assertEqual(expected, str(setup_node))
+        self.assertEqual("network", cmds.nodeType(str(setup_node)))
+        self.assertEqual(str(setup_node), core_rigging.get_twist_setup_from_target(driven))
+        self.assertEqual("multMatrix", cmds.nodeType("driven_twistLocal"))
+        self.assertEqual("decomposeMatrix", cmds.nodeType("driven_twistDecompose"))
+        self.assertEqual("multiplyDivide", cmds.nodeType("driven_twistNegate"))
+        self.assertEqual("condition", cmds.nodeType("driven_twistSign"))
+        self.assertEqual("composeMatrix", cmds.nodeType("driven_twistCompose"))
+        self.assertEqual("blendMatrix", cmds.nodeType("driven_twistBlend"))
+        self.assertEqual("multMatrix", cmds.nodeType("driven_twistOutput"))
+
+    def test_create_twist_extraction_network_positive_and_negative_weight(self):
+        """Tests positive and negative fractional twist extraction."""
+        driver = cmds.createNode("transform", name="driver")
+        driven = cmds.createNode("joint", name="driven")
+        setup_node = core_rigging.create_twist_extraction_network(
+            driver=driver,
+            driven=driven,
+            twist_weight=0.5,
+        )
+        output_decompose = cmds.createNode("decomposeMatrix")
+        cmds.connectAttr(f"{driven}.offsetParentMatrix", f"{output_decompose}.inputMatrix")
+        cmds.setAttr(f"{driver}.rotateX", 90)
+
+        expected = 45.0
+        result = cmds.getAttr(f"{output_decompose}.outputRotateX")
+        self.assertAlmostEqual(expected, result, places=5)
+
+        cmds.setAttr(f"{setup_node}.twist", -0.5)
+        expected = -45.0
+        result = cmds.getAttr(f"{output_decompose}.outputRotateX")
+        self.assertAlmostEqual(expected, result, places=5)
+
+    def test_create_twist_extraction_network_with_driver_rest_offset(self):
+        """Tests the optional driver rest offset matrix wiring."""
+        driver = cmds.createNode("transform", name="driver")
+        driven = cmds.createNode("joint", name="driven")
+        rest_offset_matrix = (-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, 0, 1)
+
+        core_rigging.create_twist_extraction_network(
+            driver=driver,
+            driven=driven,
+            driver_rest_offset_matrix=rest_offset_matrix,
+        )
+
+        expected = list(rest_offset_matrix)
+        result = cmds.getAttr("driven_twistLocal.matrixIn[1]")
+        self.assertEqual(expected, result)
+        expected = f"{driver}.parentInverseMatrix"
+        result = cmds.listConnections(
+            "driven_twistLocal.matrixIn[2]", source=True, destination=False, plugs=True
+        )[0]
+        self.assertEqual(expected, result)
+
+    def test_create_twist_extraction_network_rejects_invalid_axis(self):
+        """Tests that an invalid twist axis is rejected."""
+        driver = cmds.createNode("transform", name="driver")
+        driven = cmds.createNode("joint", name="driven")
+
+        with self.assertRaises(ValueError):
+            core_rigging.create_twist_extraction_network(
+                driver=driver,
+                driven=driven,
+                twist_axis="invalid",
+            )
 
     def test_duplicate_joint_for_automation(self):
         joint_one = cmds.joint(name="one_jnt")
@@ -1074,3 +1186,183 @@ class TestRiggingCore(unittest.TestCase):
             max_limit_en = cmds.getAttr(f"{cube_one}.maxRot{dimension.upper()}LimitEnable")
             expected = False
             self.assertEqual(expected, max_limit_en)
+
+    def test_create_enum_switch_creates_enum_attribute(self):
+        ctrl = cmds.circle(name="Test_CTRL")[0]
+        cube = cmds.polyCube(name="TestCube")[0]
+
+        core_rigging.create_enum_switch(
+            attribute_holder=ctrl, targets=[cube], display_names=["One"], attr_name="testEnum"
+        )
+
+        self.assertTrue(cmds.attributeQuery("testEnum", node=ctrl, exists=True))
+
+    def test_create_enum_switch_enum_controls_visibility(self):
+        ctrl = cmds.circle(name="Switch_CTRL")[0]
+        red = cmds.polyCube(name="Red")[0]
+        green = cmds.polyCube(name="Green")[0]
+        blue = cmds.polyCube(name="Blue")[0]
+
+        targets = [[red], [green, blue]]
+
+        core_rigging.create_enum_switch(
+            attribute_holder=ctrl,
+            targets=targets,
+            display_names=["RedOnly", "GreenBlue"],
+            attr_name="visMode",
+            controlled_attrs="visibility",
+        )
+
+        attr = f"{ctrl}.visMode"
+
+        # Check state 0 (Red only visible)
+        cmds.setAttr(attr, 0)
+        self.assertEqual(cmds.getAttr(f"{red}.visibility"), True)
+        self.assertEqual(cmds.getAttr(f"{green}.visibility"), False)
+        self.assertEqual(cmds.getAttr(f"{blue}.visibility"), False)
+
+        # Check state 1 (Green+Blue visible)
+        cmds.setAttr(attr, 1)
+        self.assertEqual(cmds.getAttr(f"{red}.visibility"), False)
+        self.assertEqual(cmds.getAttr(f"{green}.visibility"), True)
+        self.assertEqual(cmds.getAttr(f"{blue}.visibility"), True)
+
+    def test_create_enum_switch_supports_multiple_controlled_attrs(self):
+        ctrl = cmds.circle(name="MultiAttr_CTRL")[0]
+        cube1 = cmds.polyCube(name="Cube1")[0]
+        cube2 = cmds.polyCube(name="Cube2")[0]
+
+        cmds.setAttr(f"{cube1}.translateX", lock=False)
+        cmds.setAttr(f"{cube2}.translateX", lock=False)
+
+        core_rigging.create_enum_switch(
+            attribute_holder=ctrl,
+            targets=[[cube1], [cube2]],
+            display_names=["One", "Two"],
+            attr_name="mode",
+            controlled_attrs=["visibility"],
+        )
+
+        self.assertTrue(cmds.attributeQuery("mode", node=ctrl, exists=True))
+
+    def test_create_enum_switch_default_index_applied(self):
+        ctrl = cmds.circle(name="Default_CTRL")[0]
+        red = cmds.polyCube(name="RedCube")[0]
+        green = cmds.polyCube(name="GreenCube")[0]
+
+        core_rigging.create_enum_switch(
+            attribute_holder=ctrl,
+            targets=[[red], [green]],
+            display_names=["Red", "Green"],
+            attr_name="colorMode",
+            controlled_attrs="visibility",
+            default_index=1,
+        )
+
+        self.assertEqual(cmds.getAttr(f"{ctrl}.colorMode"), 1)
+        self.assertEqual(cmds.getAttr(f"{green}.visibility"), True)
+        self.assertEqual(cmds.getAttr(f"{red}.visibility"), False)
+
+    def test_create_enum_switch_raises_if_attr_exists(self):
+        ctrl = cmds.circle(name="Duplicate_CTRL")[0]
+        cube = cmds.polyCube(name="CubeX")[0]
+
+        # First creation should work
+        core_rigging.create_enum_switch(
+            attribute_holder=ctrl, targets=[cube], display_names=["Only"], attr_name="dupAttr"
+        )
+
+        # Second attempt with same attr should fail
+        with self.assertRaises(ValueError):
+            core_rigging.create_enum_switch(
+                attribute_holder=ctrl, targets=[cube], display_names=["Only"], attr_name="dupAttr"
+            )
+
+    def test_create_enum_switch_raises_on_invalid_object(self):
+        ctrl = cmds.circle(name="Bad_CTRL")[0]
+
+        with self.assertRaises(ValueError):
+            core_rigging.create_enum_switch(
+                attribute_holder=ctrl, targets=["nonExistentObject"], display_names=["Fake"]
+            )
+
+    def test_create_enum_switch_raises_on_mismatched_display_names(self):
+        ctrl = cmds.circle(name="Mismatch_CTRL")[0]
+        a = cmds.polyCube(name="A")[0]
+        b = cmds.polyCube(name="B")[0]
+
+        with self.assertRaises(ValueError):
+            core_rigging.create_enum_switch(attribute_holder=ctrl, targets=[[a], [b]], display_names=["OnlyOne"])
+
+    def test_import_with_offset_fbx_creates_group_and_applies_offset(self):
+        """Tests successful FBX import, group creation, and default offset."""
+        # 1. Assign expected value
+        expected_group_name = "imported"
+        expected_rotation_y = -90.0
+
+        # 2. Assign result value
+        result_group_name = core_rigging.import_with_offset(self.test_fbx_path, rotate_offset=[0, -90, 0])
+
+        # 3. Assert equality and conditions
+        self.assertEqual(result_group_name, expected_group_name)
+        self.assertTrue(cmds.objExists(expected_group_name))
+
+        children = cmds.listRelatives(expected_group_name, children=True, type="transform")
+        self.assertIn("test_sphere", children)
+
+        result_rotation_y = cmds.getAttr("test_sphere.rotateY")
+        self.assertAlmostEqual(result_rotation_y, expected_rotation_y, places=3)
+
+    def test_import_with_offset_group_is_reused_on_second_import(self):
+        """Tests that the tracking group is found and reused."""
+        # Run the import twice with different files
+        core_rigging.import_with_offset(self.test_fbx_path)
+        core_rigging.import_with_offset(self.test_ma_path)
+
+        # 1. Assign expected value
+        expected_group_count = 1
+        expected_child_count = 2
+
+        # 2. Assign result value
+        _ref_attr = core_rigging.RiggingConstants.ATTR_IMPORT_OFFSET_REF
+        result_groups = [n for n in cmds.ls(type="transform") if cmds.attributeQuery(_ref_attr, node=n, exists=True)]
+        result_children = cmds.listRelatives(result_groups[0], children=True, type="transform")
+
+        # 3. Assert equality
+        self.assertEqual(len(result_groups), expected_group_count)
+        self.assertEqual(len(result_children), expected_child_count)
+
+    def test_import_with_offset_custom_offset_is_applied_correctly(self):
+        """Tests that custom translate and rotate offsets are applied."""
+        # 1. Assign expected value
+        expected_translate = (10.0, 20.0, 30.0)
+        expected_rotate = (15.0, 45.0, 60.0)
+
+        # 2. Assign result value
+        group = core_rigging.import_with_offset(
+            self.test_ma_path, translate_offset=expected_translate, rotate_offset=expected_rotate
+        )
+        child_node = cmds.listRelatives(group, children=True, type="transform")[0]
+        result_translate = cmds.getAttr(f"{child_node}.translate")[0]
+        result_rotate = cmds.getAttr(f"{child_node}.rotate")[0]
+
+        # 3. Assert equality (using assertAlmostEqual for float comparisons)
+        for i in range(3):
+            self.assertAlmostEqual(result_translate[i], expected_translate[i], places=3)
+            self.assertAlmostEqual(result_rotate[i], expected_rotate[i], places=3)
+
+    def test_import_with_offset_import_with_no_transforms_returns_none(self):
+        """Tests that importing a file with no transforms fails gracefully."""
+        # 1. Assign expected value
+        expected = None
+
+        # 2. Assign result value
+        result = core_rigging.import_with_offset(self.test_ma_no_transforms_path)
+
+        # 3. Assert equality
+        self.assertEqual(result, expected)
+
+        # Verify that no group was created
+        _ref_attr = core_rigging.RiggingConstants.ATTR_IMPORT_OFFSET_REF
+        groups = [n for n in cmds.ls(type="transform") if cmds.attributeQuery(_ref_attr, node=n, exists=True)]
+        self.assertEqual(len(groups), 0)

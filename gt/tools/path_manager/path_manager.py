@@ -59,12 +59,17 @@ def list_reference_pairs():
 
 
 class GTPathManagerDialog(ui_qt.QtWidgets.QDialog):
-    """Main GT Path Manager Class"""
+    """Main Path Manager Class"""
 
     ATTR_ROLE = ui_qt.QtLib.ItemDataRole.UserRole
     VALUE_ROLE = ui_qt.QtLib.ItemDataRole.UserRole + 1
 
     def __init__(self, parent=maya_main_window()):
+        """Initializes the path manager dialog.
+
+        Args:
+            parent (QWidget, optional): Parent Maya window.
+        """
         """Create main dialog, set title and run other UI calls"""
         super(GTPathManagerDialog, self).__init__(parent)
 
@@ -200,6 +205,11 @@ class GTPathManagerDialog(ui_qt.QtWidgets.QDialog):
             self.filepath_le.setText(file_path[0])
 
     def set_cell_changed_connection_enabled(self, enabled):
+        """Enables or disables table cell-change handling.
+
+        Args:
+            enabled (bool): Whether cell-change handling should be active.
+        """
         """To turn on and off the connection, so it doesn't update unnecessarily"""
         if enabled:
             self.table_wdg.cellChanged.connect(self.on_cell_changed)
@@ -207,6 +217,11 @@ class GTPathManagerDialog(ui_qt.QtWidgets.QDialog):
             self.table_wdg.cellChanged.disconnect(self.on_cell_changed)
 
     def select_clicked_item(self, row):
+        """Selects the Maya node represented by a table row.
+
+        Args:
+            row (int): Table row to select.
+        """
         """
         Executed when clicking on a table item, it tries to select the node clicked
         """
@@ -219,11 +234,21 @@ class GTPathManagerDialog(ui_qt.QtWidgets.QDialog):
             logger.debug(str(e))
 
     def showEvent(self, e):
+        """Refreshes the dialog when it becomes visible.
+
+        Args:
+            e (QShowEvent): Qt show event.
+        """
         """Cause it to refresh when opening. I might have to change this for heavy projects"""
         super(GTPathManagerDialog, self).showEvent(e)
         self.refresh_table
 
     def keyPressEvent(self, e):
+        """Handles keyboard actions for the path table.
+
+        Args:
+            e (QKeyEvent): Qt key event.
+        """
         """Key presses should not be passed to the parent"""
         super(GTPathManagerDialog, self).keyPressEvent(e)
         e.accept()
@@ -388,6 +413,12 @@ class GTPathManagerDialog(ui_qt.QtWidgets.QDialog):
             return None
 
     def refresh_table(self, is_repair_attempt=False, is_search_replace=False):
+        """Refreshes table rows from current Maya path data.
+
+        Args:
+            is_repair_attempt (bool): Whether this refresh follows a repair.
+            is_search_replace (bool): Whether this refresh follows replacement.
+        """
         """
         Main Refresh Function
 
@@ -631,6 +662,18 @@ class GTPathManagerDialog(ui_qt.QtWidgets.QDialog):
         self.set_cell_changed_connection_enabled(True)
 
     def insert_item(self, row, column, node_name, attr, value, icon_path="", editable=True, centered=True):
+        """Inserts a configured path item into the table.
+
+        Args:
+            row (int): Destination table row.
+            column (int): Destination table column.
+            node_name (str): Maya node name.
+            attr (str): Attribute name.
+            value (object): Cell value.
+            icon_path (str): Optional icon path.
+            editable (bool): Whether the cell can be edited.
+            centered (bool): Whether text should be centered.
+        """
         item = ui_qt.QtWidgets.QTableWidgetItem(node_name)
         self.set_item_value(item, value)
         self.set_item_attr(item, attr)
@@ -647,6 +690,13 @@ class GTPathManagerDialog(ui_qt.QtWidgets.QDialog):
         self.table_wdg.setItem(row, column, item)
 
     def insert_icon(self, row, column, icon_path):
+        """Inserts an icon into a table cell.
+
+        Args:
+            row (int): Destination table row.
+            column (int): Destination table column.
+            icon_path (str): Icon file path.
+        """
         item = ui_qt.QtWidgets.QWidget()
         label = ui_qt.QtWidgets.QLabel()
         label.setScaledContents(True)
@@ -663,24 +713,72 @@ class GTPathManagerDialog(ui_qt.QtWidgets.QDialog):
         self.table_wdg.setCellWidget(row, column, item)
 
     def set_item_text(self, item, text):
+        """Sets the display text stored in a table item.
+
+        Args:
+            item (QTableWidgetItem): Table item to update.
+            text (str): Text to assign.
+        """
         item.setText(text)
 
     def get_item_text(self, item):
+        """Returns display text stored in a table item.
+
+        Args:
+            item (QTableWidgetItem): Table item to read.
+
+        Returns:
+            str: Item display text.
+        """
         return item.text()
 
     def set_item_attr(self, item, attr):
+        """Stores a Maya attribute name on a table item.
+
+        Args:
+            item (QTableWidgetItem): Table item to update.
+            attr (str): Attribute name to store.
+        """
         item.setData(self.ATTR_ROLE, attr)
 
     def get_item_attr(self, item):
+        """Returns the Maya attribute stored on a table item.
+
+        Args:
+            item (QTableWidgetItem): Table item to read.
+
+        Returns:
+            str: Stored attribute name.
+        """
         return item.data(self.ATTR_ROLE)
 
     def set_item_value(self, item, value):
+        """Stores an underlying value on a table item.
+
+        Args:
+            item (QTableWidgetItem): Table item to update.
+            value (object): Value to store.
+        """
         item.setData(self.VALUE_ROLE, value)
 
     def get_item_value(self, item):
+        """Returns the underlying value stored on a table item.
+
+        Args:
+            item (QTableWidgetItem): Table item to read.
+
+        Returns:
+            object: Stored item value.
+        """
         return item.data(self.VALUE_ROLE)
 
     def on_cell_changed(self, row, column):
+        """Processes edits made to a path table cell.
+
+        Args:
+            row (int): Edited table row.
+            column (int): Edited table column.
+        """
         self.set_cell_changed_connection_enabled(False)
 
         item = self.table_wdg.item(row, column)
@@ -693,6 +791,11 @@ class GTPathManagerDialog(ui_qt.QtWidgets.QDialog):
         self.set_cell_changed_connection_enabled(True)
 
     def rename(self, item):
+        """Renames the Maya node represented by a table item.
+
+        Args:
+            item (QTableWidgetItem): Item representing the node to rename.
+        """
         old_name = self.get_item_value(item)
         new_name = self.get_item_text(item)
         if old_name != new_name:
@@ -702,6 +805,11 @@ class GTPathManagerDialog(ui_qt.QtWidgets.QDialog):
             self.set_item_value(item, actual_new_name)
 
     def repath(self, item):
+        """Repairs a Maya path represented by a table item.
+
+        Args:
+            item (QTableWidgetItem): Item representing the path to repair.
+        """
         old_path = self.get_item_value(item)
         new_path = self.get_item_text(item)
         attr_to_change = self.get_item_attr(item)
@@ -817,6 +925,12 @@ class GTPathManagerDialog(ui_qt.QtWidgets.QDialog):
         cmds.showWindow(prog_window)
 
     def move_progress_bar(self, prog_win_name, step_size):
+        """Advances a progress window used during path operations.
+
+        Args:
+            prog_win_name (str): Progress window name.
+            step_size (float): Progress increment.
+        """
         cmds.progressBar(prog_win_name + "_progress", edit=True, step=step_size)
 
     def kill_progress_window(self, prog_win_name):
@@ -832,7 +946,7 @@ class GTPathManagerDialog(ui_qt.QtWidgets.QDialog):
             cmds.windowPref(prog_win_name, r=1)
 
     def build_gui_help_path_manager(self):
-        """Creates the Help GUI for GT Path Manager"""
+        """Creates the Help GUI for Path Manager"""
         window_name = "build_gui_help_path_manager"
         if cmds.window(window_name, exists=True):
             cmds.deleteUI(window_name, window=True)

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150" version="1.1">
+  <title>HumanIK</title>
+  <style>
+    .letter { stroke: #1d1d1d; stroke-width: 5; paint-order: stroke; stroke-linejoin: round; }
+  </style>
+  <text x="75" y="103" text-anchor="middle" font-family="Arial, sans-serif" font-size="70" font-weight="700" letter-spacing="-10">
+    <tspan class="letter" fill="#bdbdbd">H</tspan><tspan class="letter" fill="#df8388">IK</tspan>
+  </text>
+</svg>

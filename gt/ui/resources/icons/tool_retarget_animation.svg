@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+	<g id="tool_x5F_retarget_x5F_animation">
+		<!-- Directional arc communicates animation transfer. -->
+		<path d="M112,118 C184,35 319,28 397,96" style="fill:none;stroke:#1D1D1D;stroke-width:38;stroke-linecap:round;"/>
+		<path d="M112,118 C184,35 319,28 397,96" style="fill:none;stroke:#FF6A6A;stroke-width:20;stroke-linecap:round;"/>
+		<path d="M376,55 L438,107 L368,139 Z" style="fill:#FF6A6A;stroke:#1D1D1D;stroke-width:16;stroke-linejoin:round;"/>
+
+		<!-- Neutral source pose. -->
+		<circle cx="145" cy="185" r="43" style="fill:#BDBDBD;stroke:#1D1D1D;stroke-width:18;"/>
+		<g style="fill:none;stroke-linecap:round;stroke-linejoin:round;">
+			<path d="M145,244 L145,345 M145,268 L72,302 M145,268 L218,302 M145,345 L92,443 M145,345 L198,443"
+				  style="stroke:#1D1D1D;stroke-width:52;"/>
+			<path d="M145,244 L145,345 M145,268 L72,302 M145,268 L218,302 M145,345 L92,443 M145,345 L198,443"
+				  style="stroke:#BDBDBD;stroke-width:28;"/>
+		</g>
+
+		<!-- Red target pose shows the transferred motion. -->
+		<circle cx="354" cy="185" r="43" style="fill:#FF6A6A;stroke:#1D1D1D;stroke-width:18;"/>
+		<g style="fill:none;stroke-linecap:round;stroke-linejoin:round;">
+			<path d="M354,244 L344,344 M350,272 L291,220 M350,272 L423,246 M344,344 L279,421 M344,344 L420,423"
+				  style="stroke:#1D1D1D;stroke-width:52;"/>
+			<path d="M354,244 L344,344 M350,272 L291,220 M350,272 L423,246 M344,344 L279,421 M344,344 L420,423"
+				  style="stroke:#FF6A6A;stroke-width:28;"/>
+		</g>
+
+		<!-- Keyframe diamonds reinforce the animation context. -->
+		<rect x="229" y="279" width="38" height="38" transform="rotate(45 248 298)"
+			  style="fill:#FF6A6A;stroke:#1D1D1D;stroke-width:12;"/>
+		<rect x="234" y="366" width="28" height="28" transform="rotate(45 248 380)"
+			  style="fill:#BDBDBD;stroke:#1D1D1D;stroke-width:10;"/>
+	</g>
+</svg>

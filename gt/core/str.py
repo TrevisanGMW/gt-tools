@@ -1,9 +1,9 @@
 """
-String (str) Module
+String Utilities - Utilities used for dealing with strings
 This script should not import "maya.cmds" as it's also intended to be used outside of Maya.
 
-Code Namespace:
-    core_str  # import gt.core.str as core_str
+Import Line:
+    import gt.core.str as core_str
 """
 
 import logging
@@ -52,23 +52,14 @@ def string_list_to_snake_case(string_list, separating_string="_", force_lowercas
     Merges strings from a list of strings into one single string separating the strings with a character
     Args:
         string_list (list): A list of strings with combined words
-        separating_string (optional, str): String used to separate words. (Default: "_")
-        force_lowercase (optional, bool): If it should force all words to be lowercase (default: True)
+        separating_string (str, optional): String used to separate words. (Default: "_")
+        force_lowercase (bool, optional): If it should force all words to be lowercase (default: True)
 
     Returns:
         str: Combined string: e.g. "camelCase" becomes "camel_case"
     """
-    if not string_list:
-        return ""
-    result_string = ""
-    for index in range(len(string_list)):
-        if force_lowercase:
-            result_string += string_list[index].lower()
-        else:
-            result_string += string_list[index]
-        if index != len(string_list) - 1:  # Last word doesn't need separating string
-            result_string += separating_string
-    return result_string
+    result = f"{separating_string}".join(string_list)
+    return result if not force_lowercase else result.lower()
 
 
 def camel_to_snake(camel_case_string):
@@ -82,23 +73,25 @@ def camel_to_snake(camel_case_string):
     return string_list_to_snake_case(camel_case_split(camel_case_string))
 
 
-def camel_case_split(input_string):
+def camel_case_split(input_string, preserve_acronyms=True):
     """
-    Splits camelCase strings into a list of words
+    Splits camelCase or PascalCase strings into a list of words.
+
     Args:
-        input_string (str): camel case string to be separated into a
+        input_string (str): The input string in camelCase or PascalCase.
+        preserve_acronyms (bool): Whether to preserve acronyms as single words (e.g., 'IK').
+
     Returns:
-        list: A list with words
+        list: A list of split words.
     """
-    words = [[input_string[0]]]
+    if preserve_acronyms:
+        # Preserves acronyms: ['Generic', 'IK', 'Left']
+        pattern = r"[A-Z]+(?=[A-Z][a-z]|$)|[A-Z]?[a-z]+"
+    else:
+        # Splits at every lowercase to uppercase transition: ['Generic', 'I', 'K', 'Left']
+        pattern = r"[A-Z]?[a-z]+|[A-Z]+(?![a-z])"
 
-    for char in input_string[1:]:
-        if words[-1][-1].islower() and char.isupper():
-            words.append(list(char))
-        else:
-            words[-1].append(char)
-
-    return ["".join(word) for word in words]
+    return re.findall(pattern, input_string)
 
 
 def remove_digits(input_string):
@@ -171,9 +164,10 @@ def snake_to_camel(snake_case_str):
     Converts a string from snake_case to camelCase.
 
     Snake case is a convention where words are separated by underscores, e.g., "hello_world".
-    Camel case is a convention where words are joined together, and each word starts with a capital letter except the first one, e.g., "helloWorld".
+    Camel case is a convention where words are joined together, and each word starts with a capital letter except the
+    first one, e.g., "helloWorld".
 
-    Parameters:
+    Args:
         snake_case_str (str): The input string in snake_case format.
 
     Returns:
@@ -302,7 +296,7 @@ def get_int_as_en(num):
     Given an integer number, returns an English word for it.
 
     Args:
-        num (int) and integer to be converted to English words.
+        num (int): and integer to be converted to English words.
 
     Returns:
         number (str): The input number as English words.
@@ -531,18 +525,15 @@ def replace_keys_with_values(input_string, replacements_dict, case_sensitive=Tru
         # Create a case-insensitive version of the replacements dictionary
         replacements_dict = {key.lower(): value for key, value in replacements_dict.items()}
         lower_input_string = input_string.lower()
-        output_string = input_string
-
         for key, value in replacements_dict.items():
-            start = 0
-            while start != -1:
-                start = lower_input_string.find(key, start)
-                if start != -1:
+            if key in lower_input_string:
+                # This replacement needs to handle multiple occurrences
+                start = 0
+                while (start := lower_input_string.find(key, start)) != -1:
                     end = start + len(key)
-                    output_string = output_string[:start] + value + output_string[end:]
+                    input_string = input_string[:start] + value + input_string[end:]
                     lower_input_string = lower_input_string[:start] + value.lower() + lower_input_string[end:]
-                    start += len(value)
-        return output_string
+                    start = end
     else:
         for key, value in replacements_dict.items():
             input_string = input_string.replace(key, value)

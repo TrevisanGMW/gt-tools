@@ -1,6 +1,7 @@
 # gitignore
 .DS_Store
 /workbench
+/graphify-out
 Thumbs.db
 *__pycache__
 *pyc

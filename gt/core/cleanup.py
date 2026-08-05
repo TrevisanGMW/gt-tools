@@ -1,10 +1,9 @@
 """
-Cleanup Module
+Cleanup Utilities
 
-Code Namespace:
-    core_clean  # import gt.core.cleanup as core_clean
+Import Line:
+    import gt.core.cleanup as core_clean
 """
-
 from gt.core.feedback import FeedbackMessage
 import maya.cmds as cmds
 import maya.mel as mel
@@ -25,15 +24,13 @@ def delete_unused_nodes(verbose=True):
     Returns:
         int: Number of unused deleted nodes.
     """
-    num_deleted_nodes = mel.eval("MLdeleteUnused();")
+    num_deleted_nodes = mel.eval('MLdeleteUnused();')
     if verbose:
-        feedback = FeedbackMessage(
-            quantity=num_deleted_nodes,
-            singular="unused node was",
-            plural="unused nodes were",
-            conclusion="deleted.",
-            zero_overwrite_message="No unused nodes found in this scene.",
-        )
+        feedback = FeedbackMessage(quantity=num_deleted_nodes,
+                                   singular='unused node was',
+                                   plural='unused nodes were',
+                                   conclusion='deleted.',
+                                   zero_overwrite_message='No unused nodes found in this scene.')
         feedback.print_inview_message()
     return num_deleted_nodes
 
@@ -47,42 +44,40 @@ def delete_nucleus_nodes(verbose=True, include_fields=True):
     Returns:
         int: Number of nucleus deleted nodes.
     """
-    errors = ""
-    function_name = "Delete Nucleus Nodes"
+    errors = ''
+    function_name = 'Delete Nucleus Nodes'
     deleted_counter = 0
     try:
         cmds.undoInfo(openChunk=True, chunkName=function_name)
 
         # Without Transform Types
-        no_transform_types = ["nucleus", "pointEmitter", "instancer"]
+        no_transform_types = ['nucleus',
+                              'pointEmitter',
+                              'instancer']
         # Fields/Solvers Types
         if include_fields:
-            field_types = [
-                "airField",
-                "dragField",
-                "newtonField",
-                "radialField",
-                "turbulenceField",
-                "uniformField",
-                "vortexField",
-                "volumeAxisField",
-            ]
+            field_types = ['airField',
+                           'dragField',
+                           'newtonField',
+                           'radialField',
+                           'turbulenceField',
+                           'uniformField',
+                           'vortexField',
+                           'volumeAxisField']
             no_transform_types += field_types
         no_transforms = []
         for node_type in no_transform_types:
             no_transforms += cmds.ls(typ=node_type) or []
 
         # With Transform
-        with_transform_types = [
-            "nParticle",
-            "spring",
-            "particle",
-            "nRigid",
-            "nCloth",
-            "pfxHair",
-            "hairSystem",
-            "dynamicConstraint",
-        ]
+        with_transform_types = ['nParticle',
+                                'spring',
+                                'particle',
+                                'nRigid',
+                                'nCloth',
+                                'pfxHair',
+                                'hairSystem',
+                                'dynamicConstraint']
         with_transforms = []
         for transform_node_type in with_transform_types:
             with_transforms += cmds.ls(typ=transform_node_type) or []
@@ -101,22 +96,20 @@ def delete_nucleus_nodes(verbose=True, include_fields=True):
             except Exception as e:
                 logger.debug(str(e))
         if verbose:
-            feedback = FeedbackMessage(
-                quantity=deleted_counter,
-                singular="object was",
-                plural="objects were",
-                conclusion="deleted.",
-                zero_overwrite_message="No nucleus nodes found in this scene.",
-            )
+            feedback = FeedbackMessage(quantity=deleted_counter,
+                                       singular='object was',
+                                       plural='objects were',
+                                       conclusion='deleted.',
+                                       zero_overwrite_message='No nucleus nodes found in this scene.')
             feedback.print_inview_message()
 
     except Exception as e:
-        errors += str(e) + "\n"
-        cmds.warning("An error occurred. Open the script editor for more information.")
+        errors += str(e) + '\n'
+        cmds.warning('An error occurred. Open the script editor for more information.')
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
-    if errors != "":
-        print("######## Errors: ########")
+    if errors != '':
+        print('######## Errors: ########')
         print(errors)
     return deleted_counter
 
@@ -131,14 +124,14 @@ def delete_locators(verbose=True, filter_str=None):
     Returns:
         int: Number of deleted locators
     """
-    errors = ""
-    function_name = "Delete Locators"
+    errors = ''
+    function_name = 'Delete Locators'
     deleted_counter = 0
     try:
         cmds.undoInfo(openChunk=True, chunkName=function_name)
 
         # With Transform
-        locators = cmds.ls(typ="locator")
+        locators = cmds.ls(typ='locator')
 
         filtered_locators = []
         if filter_str and isinstance(filter_str, str):
@@ -156,22 +149,20 @@ def delete_locators(verbose=True, filter_str=None):
             except Exception as e:
                 logger.debug(str(e))
         if verbose:
-            feedback = FeedbackMessage(
-                quantity=deleted_counter,
-                singular="locator was",
-                plural="locators were",
-                conclusion="deleted.",
-                zero_overwrite_message="No locators found in this scene.",
-            )
+            feedback = FeedbackMessage(quantity=deleted_counter,
+                                       singular='locator was',
+                                       plural='locators were',
+                                       conclusion='deleted.',
+                                       zero_overwrite_message='No locators found in this scene.')
             feedback.print_inview_message()
 
     except Exception as e:
-        errors += str(e) + "\n"
-        cmds.warning("An error occurred when deleting locators. Open the script editor for more information.")
+        errors += str(e) + '\n'
+        cmds.warning('An error occurred when deleting locators. Open the script editor for more information.')
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
-    if errors != "":
-        print("######## Errors: ########")
+    if errors != '':
+        print('######## Errors: ########')
         print(errors)
     return deleted_counter
 

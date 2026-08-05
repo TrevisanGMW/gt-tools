@@ -1,4 +1,4 @@
-<!-- GT Tools Docs -->
+﻿<!-- GT Tools Docs -->
 
 <body>
 
@@ -11,60 +11,74 @@
 <ul>
   <li><a href="#package-setup">Package Setup</a></li>
   <li><a href="#gt-menu">GT Menu</a></li>
-  <li><a href="#gt-check-for-updates">GT Check for Updates</a></li>
+  <li><a href="#gt-check-for-updates">Check for Updates</a></li>
 </ul>
 <h3><b>Tools:</b></h3>
 <ul>
-  <li><a href="#gt-renamer">GT Renamer</a></li>
-  <li><a href="#gt-outliner-sorter">GT Outliner Sorter</a></li>
-  <li><a href="#gt-selection-manager">GT Selection Manager</a></li>
-  <li><a href="#gt-path-manager">GT Path Manager</a></li>
-  <li><a href="#gt-color-manager">GT Color Manager</a></li>
-  <li><a href="#gt-transfer-transforms">GT Transfer Transforms</a></li>
-  <li><a href="#gt-world-space-baker">GT World Space Baker</a></li>
-  <li><a href="#gt-render-checklist">GT Render Checklist</a></li>
+  <li><a href="#batch-processor">Batch Processor</a></li>
+  <li><a href="#attributes-to-python">Attributes to Python</a></li>
+  <li><a href="#renamer">Renamer</a></li>
+  <li><a href="#outliner-sorter">Outliner Sorter</a></li>
+  <li><a href="#selection-manager">Selection Manager</a></li>
+  <li><a href="#path-manager">Path Manager</a></li>
+  <li><a href="#color-manager">Color Manager</a></li>
+  <li><a href="#transfer-transforms">Transfer Transforms</a></li>
+  <li><a href="#world-space-baker">World Space Baker</a></li>
 </ul>
 <h3><b>Curves:</b></h3>
 <ul>
-  <li><a href="#gt-extract-python-curve">GT Extract Python Curve</a></li>
-  <li><a href="#gt-generate-text-curve">GT Generate Text Curve</a></li>
-  <li><a href="#gt-extract-curve-state">GT Extract Curve State</a></li>
+  <li><a href="#curve-library">Curve Library</a></li>
+  <li><a href="#extract-python-curve">Extract Python Curve</a></li>
+  <li><a href="#generate-text-curve">Generate Text Curve</a></li>
+  <li><a href="#extract-curve-state">Extract Curve State</a></li>
 </ul>
 <h3><b>Modeling:</b></h3>
 <ul>
-  <li><a href="#gt-transfer-uvs">GT Transfer UVs</a></li>
-  <li><a href="#gt-sphere-types">GT Sphere Types</a></li>
+  <li><a href="#mesh-library">Mesh Library</a></li>
+  <li><a href="#transfer-uvs">Transfer UVs</a></li>
+  <li><a href="#sphere-types">Sphere Types</a></li>
 </ul>
 
 <div>
 <h3><b>Rigging:</b></h3>
 <ul>
-  <li><a href="#gt-biped-auto-rigger">GT Biped Auto Rigger</a></li>
-  <li><a href="#gt-biped-rig-interface">GT Biped Rig Interface</a></li>
-  <li><a href="#gt-retarget-assistant">GT Retarget Assistant</a></li>
-  <li><a href="#gt-game-fbx-exporter">GT Game FBX Exporter</a></li>
-  <li><a href="#gt-extract-bound-joints">GT Extract Bound Joints</a></li>
-  <li><a href="#gt-connect-attributes">GT Connect Attributes</a></li>
-  <li><a href="#gt-morphing-utilities">GT Morphing Utilities</a></li>
-  <li><a href="#gt-morphing-attributes">GT Morphing Attributes</a></li>
-  <li><a href="#gt-mirror-cluster-tool">GT Mirror Cluster Tool</a></li>
-  <li><a href="#gt-generate-in-between">GT Generate In-Between</a></li>
-  <li><a href="#gt-create-auto-fk">GT Create Auto FK</a></li>
-  <li><a href="#gt-create-testing-keys">GT Create Testing Keys</a></li>
-  <li><a href="#gt-make-ik-stretchy">GT Make IK Stretchy</a></li>
-  <li><a href="#gt-add-sine-attributes">GT Add Sine Attributes</a></li>
-  <li><a href="#gt-ribbon-tool">GT Ribbon Tool</a></li>
+  <li><a href="#auto-rigger">Auto Rigger</a></li>
+  <li><a href="#extract-bound-joints">Extract Bound Joints</a></li>
+  <li><a href="#connect-attributes">Connect Attributes</a></li>
+  <li><a href="#morphing-utilities">Morphing Utilities</a></li>
+  <li><a href="#morphing-attributes">Morphing Attributes</a></li>
+  <li><a href="#mirror-cluster-tool">Mirror Cluster Tool</a></li>
+  <li><a href="#add-offset-transform">Add Offset Transform</a></li>
+  <li><a href="#create-fk-driver">Create FK Driver</a></li>
+  <li><a href="#create-testing-keys">Create Testing Keys</a></li>
+  <li><a href="#make-ik-stretchy">Make IK Stretchy</a></li>
+  <li><a href="#add-sine-attributes">Add Sine Attributes</a></li>
+  <li><a href="#ribbon-tool">Ribbon Tool</a></li>
+  <li><a href="#orient-joints">Orient Joints</a></li>
+</ul>
+<h3><b>Animation:</b></h3>
+<ul>
+  <li><a href="#retargeter">Retargeter</a></li>
+  <li><a href="#animation-clip-tracker">Animation Clip Tracker</a></li>
 </ul>
 <h3><b>Utilities:</b></h3>
 <ul>
-  <li><a href="#gt-utilities">GT Utilities</a></li>
+  <li><a href="#utilities">Utilities</a></li>
 </ul>
 <h3><b>Miscellaneous:</b></h3>
 <ul>
-  <li><a href="#gt-startup-booster">GT Startup Booster</a></li>
-  <li><a href="#gt-fspy-importer">GT fSpy Importer</a></li>
-  <li><a href="#gt-maya-to-discord">GT Maya to Discord</a></li>
-  <li><a href="#gt-render-calculator">GT Render Calculator</a></li>
+  <li><a href="#startup-booster">Startup Booster</a></li>
+  <li><a href="#fspy-importer">fSpy Importer</a></li>
+  <li><a href="#maya-to-discord">Maya to Discord</a></li>
+  <li><a href="#render-calculator">Render Calculator</a></li>
+</ul>
+<h3><b>Legacy Tools:</b></h3>
+<ul>
+  <li><a href="#render-checklist">Render Checklist</a></li>
+  <li><a href="#biped-auto-rigger">Biped Auto Rigger</a></li>
+  <li><a href="#biped-rig-interface">Biped Rig Interface</a></li>
+  <li><a href="#retarget-assistant">Retarget Assistant</a></li>
+  <li><a href="#game-fbx-exporter">Game FBX Exporter</a></li>
 </ul>
 </div>
 </div>
@@ -88,11 +102,11 @@ Select the option "Install", "Uninstall" or "Run Only"; Enjoy! <br></p>
 <br>How to run it step by step:</p>
 
 <ol>
-	<li>Open Maya (in case it's closed).</li>
+	<li>Open Maya if it is closed.</li>
 	<li>Download the latest release (or clone this repository).</li>
-	<li>Un-zip (Decompress) the file you downloaded. (the setup won't work if it's still compressed)</li>
-	<li>Drag and drop "setup_drag_drop_maya.py" on to your Maya viewport.</li>
-    <li>An user interface with the setup options will open.</li>
+	<li>Extract the downloaded archive. Setup cannot run from the compressed file.</li>
+	<li>Drag and drop "setup_drag_drop_maya.py" onto the Maya viewport.</li>
+    <li>A user interface with the setup options will open.</li>
 	<li>Select the desired operation. E.g. "Install", "Uninstall", or "Run Only"</li>
 	<li>Enjoy!</li>
 </ol>
@@ -134,8 +148,7 @@ After installing, you can delete the downloaded/extracted files (as they have al
 <img src="./media/gt_menu.jpg" align="right"
      alt="GT Dropdown Menu and Help">
 
-<p>The package adds a dropdown menu to the main Maya window. It provides the user with easy access to the other scripts based on categories. 
-<br>This menu contains sub-menus that have been organized to contain related tools. For example: modeling, rigging, utilities, etc...</p>
+<p>The package adds a dropdown menu to the main Maya window. It provides easy access to scripts grouped by purpose, such as modeling, rigging, animation, and utilities. Most tool controls include tooltips, so hover over an unfamiliar field or button for a short explanation of what it does.</p>
 
 <p><b>How does Maya know to run the script and create the menu?:</b>
 <br>When you install the script package, it adds a line of code to the "userSetup.mel" file. This file gets executed every time Maya opens.</p>
@@ -147,33 +160,37 @@ After installing, you can delete the downloaded/extracted files (as they have al
 
 <p><b>Help > Check for Updates: </b><br>Opens the script "gt_check_for_updates" to compare your version with the latest release.</p>
 
-<p><b>Help > Toggle Develop Mode: </b>Toggles the state of development mode. When active a new sub-menu "Develop" appears under the main drop-down menu. This sub-menu contains tools and functions used for the development of new tools.</p>
+<p><b>Help > Toggle > Toggle Develop Menu: </b>Shows or hides the Develop submenu. Its checked state indicates whether the menu is active. Develop contains tools and functions used while creating or maintaining GT Tools.</p>
+
+<p><b>Help > Toggle > Toggle Legacy Menu: </b>Shows or hides the Legacy submenu. It is hidden by default and contains older tools kept for compatibility with established workflows.</p>
+
+<p><b>Help > Toggle > Toggle Automatic Dependency Installation: </b>Controls whether a tool can immediately install a missing Python package. When disabled, the dependency window waits for confirmation before installing anything.</p>
 
 <p><b>Help > Installed Version: </b>What version is currently installed.</p>
 <br>
 </div>
 
-<!-- GT Check for Updates -->
+<!-- Check for Updates -->
 <div>
-<h1>GT Check for Updates</h1>
+<h1>Check for Updates</h1>
 <img src="./media/gt_check_for_updates.jpg" align="right"
-     alt="GT Check for Updates UI">
+     alt="Check for Updates UI">
 
-<p>This script compares your current GT Tools version with the latest release from Github. In case the version installed is older than the latest release, an option to update becomes available.<br>In this window you can also control how often the script will automatically check for updates.</p>
+<p>This script compares your current GT Tools version with the latest release on GitHub. If the installed version is older, an update option becomes available.<br>You can also control how often the script automatically checks for updates.</p>
 
 <p><b>Status: </b><br>Result from the comparison. In case you have an older version it will let you know that the script package can be updated.</p>
 
-<p><b>Web Response: </b><br>The script needs to ask Github for the latest release to be able to compare with the one you have. In case internet is not available or a firewall blocked the connection you will see the error code here. (These are HTTP status codes)</p>
+<p><b>Web Response: </b><br>The script requests the latest release information from GitHub. If the internet is unavailable or a firewall blocks the connection, the HTTP status code appears here.</p>
 
 <p><b>Re-Build Menu: </b>It re-creates the GT Tools menu, and does a rehash to pick up any new scripts. (Good for when updating, so you don't need to restart Maya)</p>
 
 <p><b>Installed Version: </b><br>Version currently installed on your computer. In case you never installed the menu, it will be (v0.0.0).</p>
 
-<p><b>Latest Release: </b>Latest version available on Github.</p>
+<p><b>Latest Release: </b>Latest version available on GitHub.</p>
 
 <p><b>Latest Release Changelog: </b>Here you can find a list showing all the main changes applied to the three latest versions. The version number can be found on the top left corner and the release date on the top right corner.</p>
 
-<p><b>Auto Check For Updates: </b>This function controls the behavior of the auto updater. In case active, it will use the interval value to determine if it should check for new releases. The user will only see the update window in case there is an actual update. (This function has no impact in your Maya startup time as it only gets executed only when necessary and it waits for the program to be idle. Click on the button to toggle between Activated/Deactivated</p>
+<p><b>Auto Check For Updates: </b>This controls the automatic update check. When active, it uses the interval value to decide when to look for a new release. The update window appears only when an update is available. The check waits until Maya is idle and does not add work to the initial startup. Click the button to switch between Activated and Deactivated.</p>
 
 <p><b>Interval: </b>This is how often the script will auto check for updates. Click on the button to change between the available intervals. (5 day, 15 days, 30 days, 3 months, 6 months, 1 year)</p>
 
@@ -193,13 +210,27 @@ After installing, you can delete the downloaded/extracted files (as they have al
 <br>
 </div>
 
-<!-- GT Renamer -->
+<!-- Batch Processor -->
 <div>
-<h1>GT Renamer</h1>
+<h1>Batch Processor</h1>
+<p>Batch Processor runs a configurable sequence of tasks across multiple Maya scene files. Tasks cover common operations such as validation, Python execution, retargeting, and export. Processing can be previewed and tracked, while source scenes remain separate from generated output.</p>
+
+<p>Build a task list, configure each task, choose the input and output locations, then validate the setup before starting a batch. Hover over task fields for their accepted values and file-handling behavior.</p>
+</div>
+
+<!-- Attributes to Python -->
+<div>
+<h1>Attributes to Python</h1>
+<p>Attributes to Python converts channel box values and user-defined attributes into reusable Python commands. It is useful for recording a setup, reproducing attribute values on another object, or learning the equivalent <code>maya.cmds</code> operations.</p>
+</div>
+
+<!-- Renamer -->
+<div>
+<h1>Renamer</h1>
 <img src="./media/gt_renamer.jpg" align="right"
-     alt="GT Renamer GUI">
+     alt="Renamer GUI">
 <img src="./media/gt_renamer_sample.gif" align="right"
-     alt="GT Renamer Sample">
+     alt="Renamer Sample">
 
 <p>Script for quickly renaming multiple objects.<br>Feedback is given through inView messages at the left bottom corner.</p>
 
@@ -220,11 +251,11 @@ After installing, you can delete the downloaded/extracted files (as they have al
 <br>
 </div>
 
-<!-- GT Outliner Sorter -->
+<!-- Outliner Sorter -->
 <div>
-<h1>GT Outliner Sorter</h1>
+<h1>Outliner Sorter</h1>
 <img src="./media/gt_outliner_sorter.jpg" align="right"
-     alt="GT Renamer GUI">
+     alt="Renamer GUI">
 
 <p>Script for sorting outliner hierarchies. Options will not re-parent objects, only change their order.</p>
 
@@ -255,14 +286,14 @@ After installing, you can delete the downloaded/extracted files (as they have al
 
 </div>
 
-<!-- GT Selection Manager-->
+<!-- Selection Manager-->
 <div>
-<h1>GT Selection Manager</h1>
+<h1>Selection Manager</h1>
 <img src="./media/gt_selection_manager.jpg" align="right"
-     alt="GT Selection Manager GUI">
+     alt="Selection Manager GUI">
 
 <p>This script allows you to update selections to contain (or not) filtered elements. You can also save and load previous selections.</p>	 
-<p><b>Element Name: </b>This option allows you to check if the string used for the object name contains or doesn't contain the, the provided strings (parameters).</p>
+<p><b>Element Name: </b>This option checks whether an object name contains or does not contain the provided text.</p>
 <p><b>Element Type:  </b>This filter will check the type of the element to determine if it should be part of the selection or not.</p>
 <p><b>Element Type > Behavior (Dropdown Menu): </b>Since most elements are transforms, you can use the dropdown menu "Behavior" to determine how to filter the shape element (usually hidden inside the transform). <br>(You can consider transform, shape, both or ignore it)</p>
 
@@ -278,11 +309,11 @@ After installing, you can delete the downloaded/extracted files (as they have al
 <br>
 </div>
 
-<!-- GT Path Manager -->
+<!-- Path Manager -->
 <div>
-<h1>GT Path Manager</h1>
+<h1>Path Manager</h1>
 <img src="./media/gt_path_manager.gif" align="right"
-     alt="GT Path Manager GUI">
+     alt="Path Manager GUI">
 	 
 <p>This script displays a list with the name, type and path of any common nodes found in Maya.<br><br>You can select the node listed by clicking on it or change its name or path by double clicking the cell.
 
@@ -303,12 +334,12 @@ The icon on the left describes the validity of the path. If the file or director
 
 </div>
 
-<!-- GT Color Manager -->
+<!-- Color Manager -->
 <div>
-<h1>GT Color Manager</h1>
+<h1>Color Manager</h1>
 
 <img src="./media/gt_color_manager.jpg" align="right"
-     alt="GT Color Manager GUI">
+     alt="Color Manager GUI">
 
 <p>Script for quickly coloring elements in Maya.<br>Feedback is given through inView messages at the left bottom corner.</p>
 <br>
@@ -318,9 +349,9 @@ The icon on the left describes the validity of the path. If the file or director
 <br>
 
 <img src="./media/gt_color_manager_sample_b.gif" align="right"
-	 alt="GT Path Manager Sample B">
+	 alt="Path Manager Sample B">
 <img src="./media/gt_color_manager_sample_a.gif" align="right"
-	 alt="GT Path Manager Sample A">
+	 alt="Path Manager Sample A">
 
 <p><b>Current Color: </b><br>The color used in the operation. Click on the color to open Maya's color picker.</p>
 
@@ -332,12 +363,12 @@ The icon on the left describes the validity of the path. If the file or director
 
 </div>
 
-<!-- GT Transfer Transforms -->
+<!-- Transfer Transforms -->
 <div>
-<h1>GT Transfer Transforms</h1>
+<h1>Transfer Transforms</h1>
 
 <img src="./media/gt_transfer_transforms.jpg" align="right"
-     alt="GT Transfer Transforms GUI">
+     alt="Transfer Transforms GUI">
 
 <p>Script for transferring translate, rotate or scale data from one object to another.</p>
 
@@ -364,12 +395,12 @@ with the provided prefix "Left Side Tag".</p>
 
 </div>
 
-<!-- GT World Space Baker -->
+<!-- World Space Baker -->
 <div>
-<h1>GT World Space Baker</h1>
+<h1>World Space Baker</h1>
 
 <img src="./media/gt_world_space_baker.jpg" align="right"
-     alt="GT World Space Baker GUI">
+     alt="World Space Baker GUI">
 
 <p>Script for storing then baking transforms using world-space data.</p>
 
@@ -389,12 +420,14 @@ with the provided prefix "Left Side Tag".</p>
 
 </div>
 
-<!-- GT Render Checklist -->
+<!-- Render Checklist -->
 <div>
-<h1>GT Render Checklist</h1>
+<h1>Render Checklist</h1>
+
+<p><b>Legacy Tool:</b> Enable it from <b>GT Tools > Help > Toggle > Toggle Legacy Menu</b>, then open it from <b>GT Tools > Legacy > Render Checklist</b>.</p>
 
 <img src="./media/gt_render_checklist.gif" align="right"
-     alt="GT Render Checklist GUI">
+     alt="Render Checklist GUI">
 
 <p>This script performs a series of checks to detect common issues that are often accidentally ignored/unnoticed.</p>
 
@@ -483,12 +516,18 @@ with the provided prefix "Left Side Tag".</p>
 <br>
 </div>
 
-<!-- GT Extract Python Curve -->
+<!-- Curve Library -->
 <div>
-<h1>GT Extract Python Curve</h1>
+<h1>Curve Library</h1>
+<p>Curve Library browses the packaged control shapes and user-created curves as a visual catalog. Use it to create a curve, add selected curves to a custom library, edit metadata, and manage thumbnails without rebuilding shapes by hand.</p>
+</div>
+
+<!-- Extract Python Curve -->
+<div>
+<h1>Extract Python Curve</h1>
 
 <img src="./media/gt_extract_python_curve.jpg" align="right"
-     alt="GT Generate Python Curve GUI">
+     alt="Generate Python Curve GUI">
 
 <p>This script generates the Python code necessary to create a selected curve.<br>Helpful for when you want to save a curve to your shelf or to add it to a script.</p>
 
@@ -510,12 +549,12 @@ with the provided prefix "Left Side Tag".</p>
 
 </div>
 
-<!-- GT Generate Text Curve -->
+<!-- Generate Text Curve -->
 <div>
-<h1>GT Generate Text Curve</h1>
+<h1>Generate Text Curve</h1>
 
 <img src="./media/gt_generate_text_curve.jpg" align="right"
-     alt="GT Generate Text Curve GUI">
+     alt="Generate Text Curve GUI">
 
 <p>This script creates merged curves containing the input text from the text field. <br>(All shapes go under one transform)</p>
 
@@ -532,12 +571,12 @@ with the provided prefix "Left Side Tag".</p>
 
 </div>
 
-<!-- GT Extract Curve State -->
+<!-- Extract Curve State -->
 <div>
-<h1>GT Extract Curve State</h1>
+<h1>Extract Curve State</h1>
 
 <img src="./media/gt_extract_shape_state.jpg" align="right"
-     alt="GT Extract Curve State GUI">
+     alt="Extract Curve State GUI">
 
 <p>This script generates the Python code necessary to recreate a curve shape state.</p>
 
@@ -554,12 +593,18 @@ with the provided prefix "Left Side Tag".</p>
 
 </div>
 
+<!-- Mesh Library -->
+<div>
+<h1>Mesh Library</h1>
+<p>Mesh Library provides a thumbnail browser for packaged and user-created mesh assets. It can import a stored mesh into the current scene and manage custom library entries for geometry that is reused frequently.</p>
+</div>
+
 <!-- Transfer UVs -->
 <div>
-<h1>GT Transfer UVs</h1>
+<h1>Transfer UVs</h1>
 
 <img src="./media/gt_transfer_uvs.jpg" align="right"
-     alt="GT Transfer UVs GUI">
+     alt="Transfer UVs GUI">
 
 <p>Script used to quickly transfer UVs between objects. It allows you to export or import UVs or transfer them from an object to other objects in the scene.<br> This script automatically bakes the UVs onto the intermediate object allowing you to transfer UVs without generating history.</p>
 
@@ -571,12 +616,12 @@ with the provided prefix "Left Side Tag".</p>
 
 </div>
 
-<!-- GT Sphere Types -->
+<!-- Sphere Types -->
 <div>
-<h1>GT Sphere Types</h1>
+<h1>Sphere Types</h1>
 
 <img src="./media/gt_create_sphere_types.jpg" align="right"
-     alt="GT Sphere Types GUI">
+     alt="Sphere Types GUI">
 
 <p>Quite simple script used as a reminder that the standard sphere is not the only sphere option.</p>
 
@@ -589,12 +634,38 @@ with the provided prefix "Left Side Tag".</p>
 
 </div>
 
-<!-- GT Biped Auto Rigger -->
+<!-- Auto Rigger -->
 <div>
-<h1>GT Biped Auto Rigger</h1>
+<h1>Auto Rigger</h1>
+<p>Auto Rigger is the current modular rig-building system. A project stores an ordered set of modules, their proxy placement, and build settings. Templates provide useful starting points, but modules can also be combined into custom character or prop rigs. The usual workflow is to create or load a project, position its proxies, validate the setup, and build the rig.</p>
+
+<p><b>Core structure modules:</b> Root establishes the rig hierarchy and global controls. Spine creates a biped torso, while Quad Spine creates a quadruped torso. Head builds the neck, head, jaw, and related controls. Socket provides an attachment point for another module. Collections groups modules for organization, and Attribute Hub gathers animator-facing attributes in one place.</p>
+
+<p><b>Limb modules:</b> Arm builds a general arm chain. Biped Arm adds the expected clavicle, arm, and hand behavior for a biped. Biped Leg builds a leg and foot setup, and Biped Fingers creates configurable finger chains. Quad Front Leg and Quad Rear Leg provide the different joint and control behavior needed by quadruped limbs.</p>
+
+<p><b>General mechanism modules:</b> Chain creates a flexible joint chain. Generic FK and Generic IK build reusable forward or inverse-kinematic systems. Ribbon creates a distributed ribbon rig, Piston creates a two-ended mechanical linkage, and Pivot creates a controllable pivot setup. Corrective FK adds driven corrective behavior to an FK chain.</p>
+
+<p><b>Data and deformation modules:</b> Skin Weights imports or exports skinning data during the build. Shapes Snapshot preserves control-shape changes. Picker Data stores picker information with the rig. RBF Pose Loader restores pose-reader data, MetaHuman Face connects supported facial rig data, and ROM Loader works with range-of-motion poses. Animation Mass References creates reference geometry used to judge movement and volume.</p>
+
+<p><b>Build and scene modules:</b> New Scene starts from a clean scene, while Load Scene and Import File bring scene content into the process. Save Scene writes the current build result. Export Skeletal Mesh prepares skeletal output. Python runs a custom build script, Group organizes project steps, Notes records project information, and Validation checks the scene or project at a chosen point.</p>
+
+<p><b>Presentation and diagnostics modules:</b> Thumbnail Capture, Playblast Capture, and Camera Setup create consistent project previews. Distance Probe and Rotation Probe measure changes during a build. Enum Variants manages named configuration choices that can alter project behavior.</p>
+
+<p>Many modules expose specialized options that depend on the chosen rig and build stage. Hover over a field to read its tooltip before changing an unfamiliar setting.</p>
+</div>
+
+<!-- Legacy Tools -->
+<div>
+<h1>Legacy Tools</h1>
+<p>These tools predate the current Auto Rigger and Retargeter. They remain available for older rigs and established workflows, but the Legacy menu is hidden by default. Enable it from <b>GT Tools > Help > Toggle > Toggle Legacy Menu</b>.</p>
+</div>
+
+<!-- Biped Auto Rigger -->
+<div>
+<h1>Biped Auto Rigger</h1>
 
 <img src="./media/gt_auto_biped_rigger.jpg" align="right"
-     alt="GT Biped Auto Rigger GUI">
+     alt="Biped Auto Rigger GUI">
 
 <p>Script for quickly generating an advanced biped rig.
 <br>For more predictable results execute the script in a new scene containing only the geometry of the desired character. This solves most naming conflicts and data loss issues. In case you want the auto rigger to manage your geometry, parent it under a group called "geometry_grp".
@@ -656,7 +727,7 @@ Pose the proxy (guide) to match your character.
 <br>This function will delete the proxy. Make sure you export it first if you plan to reuse it later. </p>
 
 <p><h3>Step 4:</h3>
-Now that the rig has been created,  it's time to to attach it to the geometry.
+Now that the rig has been created, it is time to attach it to the geometry.
 <br><b>- Select Skinning Joints:</b>  Select only joints that should  be used when skinning the character. This means that it will not include end or toe joints. If you don't plan to include the eyes joints in the influences of the character's body, simply unselect them before skinning.
 <br><b>- Bind Skin Options:</b>  Opens the options for the function "Bind Skin" so the desired geometry can attached to the skinning joints. Make sure to set the option "Bind to" as "Selected Joints" to guarantee that only the desired joints are part of the influence. </p>
 <br>
@@ -664,7 +735,7 @@ Now that the rig has been created,  it's time to to attach it to the geometry.
 <p><h3>Utilities:</h3>
 
 <img src="./media/gt_auto_biped_rigger_fkik.jpg" align="right"
-     alt="GT Seamless FK/IK Switcher for Biped Auto Rigger GUI">
+     alt="Seamless FK/IK Switcher for Biped Auto Rigger GUI">
 
 These are utilities and extra functions that you can use after creating your rig.
 <br>
@@ -682,7 +753,7 @@ These are utilities and extra functions that you can use after creating your rig
 <br>
 <h3>Example of seamless FK/IK switch being used:</h3>
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_fkik.gif?raw=true"
-     alt="GT Seamless FK/IK Switcher for Biped Auto Rigger Example">
+     alt="Seamless FK/IK Switcher for Biped Auto Rigger Example">
 
 <p><br><br><h3>How to attach motion capture data to the rig through HumanIK:</h3>
 <b>- 1.</b> Start by defining a character and assigning all bones to the definition (You can do that in one click using the utility "Attach to HumanIK")
@@ -695,7 +766,7 @@ These are utilities and extra functions that you can use after creating your rig
 <br>Feel free to delete the HumanIK character definition and mocap data after that as the keyframes are now already baked to the controls.
 </p>
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_hik.gif?raw=true"
-     alt="GT Auto Biped attached to HumanIK Example">
+     alt="Auto Biped attached to HumanIK Example">
 
 <p><h3>Lock Attribute and Follow Object:</h3>
 This rig comes with many custom attributes so you can tweak how much stability/flexibility you want and how the systems should behave.</p>
@@ -703,14 +774,14 @@ This rig comes with many custom attributes so you can tweak how much stability/f
 <p><b>- Follow Object</b>: A few controls give you the option to follow other controls or move on their own. These are the pole vector controls (such as the IK knees and IK elbows) and the eye controls. Below you can see an example of the eye controls following or not the head. </p>
 
 <img src="./media/gt_auto_biped_rigger_lock_attr.jpg"
-     alt="GT Auto Biped Lock Attribute Example">
+     alt="Auto Biped Lock Attribute Example">
 <img src="./media/gt_auto_biped_rigger_follow_attr.jpg" align="right"
-     alt="GT Auto Biped Follow Attribute Example">
+     alt="Auto Biped Follow Attribute Example">
 
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_foot.gif?raw=true"
-     alt="GT Auto Biped Foot Rolls Example">
+     alt="Auto Biped Foot Rolls Example">
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_eyes.gif?raw=true" align="right"
-     alt="GT Auto Biped Follow Eye Example">
+     alt="Auto Biped Follow Eye Example">
 
 <p><h3>FK/IK Switch Control, Stretchy System, and Finger Automation:</h3><b>- FK/IK Switch</b>: To control which system is currently active, just change the value in the attribute "Influence Switch" (".influenceSwitch"), when set to "0" (Zero) the rig uses forward kinematics (FK) when set to "1" (One) it uses inverse kinematics (IK). By default the visibility of the controls is automatically managed, but in case you want to control it manually, you can deactivate the attribute "Auto Visibility" and pick which one you want to see through the attribute "System Visibility". </p>
 <p><b>- Stretchy Attributes</b>: The custom attributes to control how the stretchy system behaves can be found under the FK/IK Switch Controls. In order to use the stretchy system the rig must be configured to to "IK".
@@ -732,14 +803,14 @@ This rig comes with many custom attributes so you can tweak how much stability/f
 <br>
 
 <img src="./media/gt_auto_biped_rigger_stretchy_system.jpg"
-     alt="GT Auto Biped Stretchy Attributes Example">
+     alt="Auto Biped Stretchy Attributes Example">
 <img src="./media/gt_auto_biped_rigger_finger_attr.jpg" align="right"
-     alt="GT Auto Biped Follow Attribute Example">
+     alt="Auto Biped Follow Attribute Example">
 
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_fingers.gif?raw=true" align="right"
-     alt="GT Auto Biped Finger Automation Example">
+     alt="Auto Biped Finger Automation Example">
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_stretchy.gif?raw=true"
-     alt="GT Auto Biped Stretchy System Example">
+     alt="Auto Biped Stretchy System Example">
 
 <br>
 <p><h3>Auto Breathing, Abduction/Adduction, and Knuckles Compression Systems:</h3>
@@ -771,14 +842,14 @@ This rig comes with many custom attributes so you can tweak how much stability/f
 <br>
 
 <img src="./media/gt_auto_biped_rigger_abduction_system.jpg" 
-     alt="GT Auto Biped Abduction Attribute Example">
+     alt="Auto Biped Abduction Attribute Example">
 <img src="./media/gt_auto_biped_rigger_breathing_system.jpg" align="right"
-     alt="GT Auto Biped Auto Breathing Attributes Example">
+     alt="Auto Biped Auto Breathing Attributes Example">
 
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_breathing.gif?raw=true" align="right"
-     alt="GT Auto Biped Breathing Automation Example">
+     alt="Auto Biped Breathing Automation Example">
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_knuckles.gif?raw=true"
-     alt="GT Auto Biped Abduction/Adduction System Example">
+     alt="Auto Biped Abduction/Adduction System Example">
 
 <h3>Settings:</h3>
 <ul>
@@ -795,8 +866,8 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 <br>
 <p><h3>Auto Rigger Work Sample:</h3></p>
-<p>Below you can watch a few animations that used GT Biped Auto Rigger to rig their characters.</p>
-<img src="./media/gt_auto_rigger_home_remedy.jpg" alt="GT Biped Auto Rigger Home Remedy Promo">
+<p>Below you can watch a few animations that used Biped Auto Rigger to rig their characters.</p>
+<img src="./media/gt_auto_rigger_home_remedy.jpg" alt="Biped Auto Rigger Home Remedy Promo">
 
 <p>
 <ul>
@@ -811,12 +882,12 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 </div>
 
-<!-- GT Biped Rig Interface -->
+<!-- Biped Rig Interface -->
 <div>
-<h1>GT Biped Rig Interface</h1>
+<h1>Biped Rig Interface</h1>
 
 <img src="./media/gt_custom_rig_interface.jpg" align="right"
-     alt="GT Biped Rig Interface GUI">
+     alt="Biped Rig Interface GUI">
 
 <p>Extra functions and automation for rigs generated using GT Biped Auto Rigger.
 <br>This script includes FK/IK Switchers, Pose managers, Animation managers and more.</p>
@@ -880,14 +951,14 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 <br>
 </div>
 
-<!-- GT Retarget Assistant -->
+<!-- Retarget Assistant -->
 <div>
-<h1>GT Retarget Assistant</h1>
+<h1>Retarget Assistant</h1>
 
 <img src="./media/gt_retarget_assistant.jpg" align="right"
      alt="GT Retarget Assistant GUI">
 
-<p>This script applies patches to a HumanIK Mocap character while it's been transferred to a Biped Rig (Created using GT Biped Auto Rigger)
+<p>This script applies patches while HumanIK motion capture animation is transferred to a rig created with GT Biped Auto Rigger.
 <br>For this script to work, the target rig should have a custom rig defined under HumanIK.</p>
 
 <ul>
@@ -926,9 +997,9 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 </div>
 
-<!-- GT Game FBX Exporter -->
+<!-- Game FBX Exporter -->
 <div>
-<h1>GT Game FBX Exporter</h1>
+<h1>Game FBX Exporter</h1>
 
 <img src="./media/gt_game_fbx_exporter.jpg" align="right"
      alt="GT Game FBX Exporter GUI">
@@ -946,9 +1017,21 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 </div>
 
-<!-- GT Extract Bound Joints -->
+<!-- Retargeter -->
 <div>
-<h1>GT Extract Bound Joints</h1>
+<h1>Retargeter</h1>
+<p>Retargeter transfers animation between compatible source and target skeletons through a configurable mapping. It supports reusable templates, scene preparation and cleanup add-ons, animation baking, and batch processing for multiple files. Validate mappings and output paths before a long batch; detailed field behavior is available in the tooltips.</p>
+</div>
+
+<!-- Animation Clip Tracker -->
+<div>
+<h1>Animation Clip Tracker</h1>
+<p>Animation Clip Tracker stores named frame ranges for the current animation scene. It helps animators define, reorder, duplicate, and review clips without relying on handwritten frame notes, and keeps clip data available for later export or processing workflows.</p>
+</div>
+
+<!-- Extract Bound Joints -->
+<div>
+<h1>Extract Bound Joints</h1>
 
 <img src="./media/gt_extract_bound_joints.jpg" align="right"
      alt="GT Extract Bound Joints GUI">
@@ -969,9 +1052,9 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 </div>
 
-<!-- GT Connect Attributes -->
+<!-- Connect Attributes -->
 <div>
-<h1>GT Connect Attributes</h1>
+<h1>Connect Attributes</h1>
 
 <img src="./media/gt_connect_attributes.jpg" align="right"
      alt="GT Connect Attributes GUI">
@@ -1003,9 +1086,9 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 </div>
 
-<!-- GT Morphing Utilities -->
+<!-- Morphing Utilities -->
 <div>
-<h1>GT Morphing Utilities</h1>
+<h1>Morphing Utilities</h1>
 
 <img src="./media/gt_morphing_utilities.jpg" align="right"
      alt="GT Morphing Attributes GUI">
@@ -1037,9 +1120,9 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 <br>
 
-<!-- GT Morphing Attributes -->
+<!-- Morphing Attributes -->
 <div>
-<h1>GT Morphing Attributes</h1>
+<h1>Morphing Attributes</h1>
 
 <img src="./media/gt_morphing_attributes.jpg" align="right"
      alt="GT Morphing Attributes GUI">
@@ -1097,9 +1180,9 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 <br>
 
 </div>
-<!-- GT Mirror Cluster Tool -->
+<!-- Mirror Cluster Tool -->
 <div>
-<h1>GT Mirror Cluster Tool</h1>
+<h1>Mirror Cluster Tool</h1>
 
 <img src="./media/gt_mirror_cluster_tool.jpg" align="right"
      alt="GT Mirror Cluster Tool GUI">
@@ -1125,12 +1208,12 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 </div>
 
-<!-- GT Generate In-Between -->
+<!-- Add Offset Transform -->
 <div>
-<h1>GT Generate In-Between</h1>
+<h1>Add Offset Transform</h1>
 
 <img src="./media/gt_generate_inbetween.jpg" align="right"
-     alt="GT Generate In-Between GUI">
+     alt="GT Add Offset Transform GUI">
 
 <p>This script creates a inbetween transform for the selected elements.</p>
 
@@ -1150,12 +1233,12 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 </div>
 
-<!-- GT Create Auto FK -->
+<!-- Create FK Driver -->
 <div>
-<h1>GT Create Auto FK</h1>
+<h1>Create FK Driver</h1>
 
 <img src="./media/gt_create_auto_fk.jpg" align="right"
-     alt="GT GT Create Auto FK GUI">
+     alt="GT Create FK Driver GUI">
 
 <p>This script generates FK controls for joints while storing their transforms in groups.
 <br>Just select the desired joints and run the script.</p>
@@ -1186,9 +1269,9 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 </div>
 
-<!-- GT Create Testing Keys -->
+<!-- Create Testing Keys -->
 <div>
-<h1>GT Create Testing Keys</h1>
+<h1>Create Testing Keys</h1>
 
 <img src="./media/gt_create_testing_keys.jpg" align="right"
      alt="GT Create Testing Keys GUI">
@@ -1229,7 +1312,7 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 <!-- GT Make Stretchy Legs -->
 <div>
-<h1>GT Make IK Stretchy</h1>
+<h1>Make IK Stretchy</h1>
 
 <img src="./media/gt_make_ik_stretchy.jpg" align="right"
      alt="GT Make IK Stretchy GUI">
@@ -1266,9 +1349,9 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 </div>
 
-<!-- GT Add Sine Attributes -->
+<!-- Add Sine Attributes -->
 <div>
-<h1>GT Add Sine Attributes</h1>
+<h1>Add Sine Attributes</h1>
 
 <img src="./media/gt_add_sine_attributes.jpg" align="right"
      alt="GT Add Sine Attributes GUI">
@@ -1294,9 +1377,9 @@ Added attributes don't affect your attribute holder in any way, it's up to you d
 
 <br><br>
 
-<!-- GT Ribbon Tool -->
+<!-- Ribbon Tool -->
 <div>
-<h1>GT Ribbon Tool</h1>
+<h1>Ribbon Tool</h1>
 
 <img src="./media/gt_ribbon_tool.jpg" align="right"
      alt="GT Ribbon Tool GUI">
@@ -1337,9 +1420,15 @@ Ribbon rigging is particularly useful for creating smooth and natural-looking de
 
 </div>
 
-<!-- GT Utilities -->
+<!-- Orient Joints -->
 <div>
-<h1>GT Utilities</h1>
+<h1>Orient Joints</h1>
+<p>Orient Joints provides predictable joint orientation controls for a selected hierarchy. It can aim joints using chosen primary and secondary axes while accounting for hierarchy direction, making it useful before rig construction or skin binding.</p>
+</div>
+
+<!-- Utilities -->
+<div>
+<h1>Utilities</h1>
 
 <img src="./media/gt_utilities.jpg" align="right"
      alt="GT Utilities Menu">
@@ -1456,9 +1545,9 @@ Ribbon rigging is particularly useful for creating smooth and natural-looking de
 
 </div>
 
-<!-- GT Startup Booster -->
+<!-- Startup Booster -->
 <div>
-<h1>GT Startup Booster</h1>
+<h1>Startup Booster</h1>
 
 <img src="./media/gt_startup_booster.jpg" align="right"
      alt="GT Startup Booster GUI">
@@ -1493,9 +1582,9 @@ Ribbon rigging is particularly useful for creating smooth and natural-looking de
 
 </div>
 
-<!-- GT fSpy Importer -->
+<!-- fSpy Importer -->
 <div>
-<h1>GT fSpy Importer</h1>
+<h1>fSpy Importer</h1>
 
 <img src="./media/gt_fspy_importer.jpg" align="right"
      alt="GT fSpy Importer GUI">
@@ -1538,9 +1627,9 @@ Do not change the resolution of the image file or crop the image or it might not
 
 </div>
 
-<!-- GT Maya to Discord -->
+<!-- Maya to Discord -->
 <div>
-<h1>GT Maya to Discord</h1>
+<h1>Maya to Discord</h1>
 
 <img src="./media/gt_maya_to_discord.jpg" align="right"
      alt="GT Maya to Discord GUI">
@@ -1602,9 +1691,9 @@ Do not change the resolution of the image file or crop the image or it might not
 
 </div>
 
-<!-- GT Render Calculator -->
+<!-- Render Calculator -->
 <div>
-<h1>GT Render Calculator</h1>
+<h1>Render Calculator</h1>
 
 <img src="./media/gt_render_calculator.jpg" align="right"
      alt="GT Render Calculator GUI">

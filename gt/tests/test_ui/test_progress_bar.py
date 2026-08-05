@@ -1,3 +1,4 @@
+import gt.ui.qt_import as ui_qt
 import unittest
 import logging
 import sys
@@ -16,7 +17,6 @@ for to_append in [package_root_dir, tests_dir]:
     if to_append not in sys.path:
         sys.path.append(to_append)
 from gt.ui.progress_bar import ProgressBarWindow
-import gt.ui.qt_import as ui_qt
 
 
 class TestProgressBar(unittest.TestCase):

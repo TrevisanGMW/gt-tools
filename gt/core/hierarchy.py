@@ -1,8 +1,8 @@
 """
-Hierarchy Module
+Hierarchy module
 
-Code Namespace:
-    core_hrchy  # import gt.core.hierarchy as core_hrchy
+Import Line:
+    import gt.core.hierarchy as core_hrchy
 """
 
 import gt.core.transform as core_trans
@@ -267,7 +267,6 @@ def get_dagpath(object_name=None):
     if object_name:
         sel = om.MSelectionList()
         sel.add(object_name)
-
     else:
         sel = om.MSelectionList()
         om.MGlobal.getActiveSelectionList(sel)
@@ -283,14 +282,15 @@ def get_dagpath(object_name=None):
     return dagpath
 
 
-def get_hierarchy(root=None, maya_type=None, remove_parent=False):
+def get_hierarchy(root=None, maya_type=None, remove_parent=False, full_path=False):
     """
     Performs a Dag Iteration on everything underneath the supplied root scene object.
 
     Args:
-        root (str): root name. If not supplied the entire scene is traversed
-        maya_type (API type): if not None, it returns the passed type
-        remove_parent (bool): return the list without the parent
+        root (str): root name. If not supplied the entire scene is traversed.
+        maya_type (API type): if not None, it returns the passed type.
+        remove_parent (bool): return the list without the parent.
+        full_path (bool): return the full path name instead of the short one.
 
     Returns:
         List[str]: list of scene objects sorted by hierarchy
@@ -313,13 +313,122 @@ def get_hierarchy(root=None, maya_type=None, remove_parent=False):
     while not dag_it.isDone():
         path = om.MDagPath()
         dag_it.getPath(path)
-        hierarchy.append(path.partialPathName())
+        if full_path:
+            hierarchy.append(path.fullPathName())
+        else:
+            hierarchy.append(path.partialPathName())
         dag_it.next()
 
     if remove_parent:
         hierarchy.remove(root)
 
     return hierarchy
+
+
+def dict_parent_sort(map_item_parent):
+    """
+    Sorts by parent relation a given string dictionary in which the keys are the main items and
+    the values are the parents. This can be useful with UUID relation.
+
+    Args:
+        map_item_parent (dict): keys are the main items, values are the related parents.
+                                Example: {"seed": "apple", "apple": "branch", "branch": "tree"}
+    Returns:
+        list: sorted list by parent, from roots to leaves. Roots are items with no parent or with
+              a parent that is not one of the items. Leaves are items that are not parent of
+              another item inside the given dictionary.
+    """
+    item_list = list(map_item_parent.keys())
+    parent_list = list(map_item_parent.values())
+    sorted_list = []
+
+    # cycle check
+    for i_id, p_id in zip(item_list, parent_list):
+        for i_it, p_it in zip(item_list, parent_list):
+            if i_id == p_it and i_it == p_id:
+                logger.warning("Sort skipped, cycle, the following item is the parent of its parent:")
+                logger.warning(f"<{i_id}> is child of <{p_id}>, and <{i_it}> is child of <{p_it}>.")
+                return item_list
+
+    while len(sorted_list) != len(item_list):
+        for i_id, p_id in zip(item_list, parent_list):
+            if p_id not in item_list and i_id not in sorted_list:
+                sorted_list.insert(0, i_id)
+            if p_id in sorted_list and i_id not in sorted_list:
+                sorted_list.append(i_id)
+
+    return sorted_list
+
+
+def list_hierarchy_path(start_object, end_object):
+    """
+    Lists the hierarchy path from the start object to the end object.
+
+    Args:
+        start_object (str): The starting object in the hierarchy.
+        end_object (str): The target object in the hierarchy.
+
+    Returns:
+        list[str]: A list of object names from start to end if the end object is within the hierarchy,
+                   otherwise an empty list.
+
+    Raises:
+        ValueError: If the start or end object does not exist.
+    """
+    if not cmds.objExists(start_object) or not cmds.objExists(end_object):
+        raise ValueError("Start or end object does not exist.")
+
+    # Convert to full paths if given as short names
+    start_object = cmds.ls(start_object, long=True)[0]
+    end_object = cmds.ls(end_object, long=True)[0]
+
+    # Check hierarchy by comparing names
+    if not end_object.startswith(start_object):
+        return []  # End object is not within the hierarchy
+
+    # Traverse from start to end object
+    path = []
+    current = end_object
+    while current:
+        path.append(current)
+        if current == start_object:
+            break
+        current = cmds.listRelatives(current, parent=True, fullPath=True)
+        current = current[0] if current else None
+
+    return path[::-1]  # Reverse to get start -> ... -> end
+
+
+def find_top_parent(obj, target_type=None):
+    """
+    Finds the topmost parent of a given object.
+    If a target_type is provided, only parents of that type are considered.
+
+    Args:
+        obj (str): The name of the object to start from.
+        target_type (str, optional): The Maya node type to filter by (e.g., 'joint').
+                                     If None, returns the topmost parent regardless of type.
+
+    Returns:
+        str or None: The topmost parent (of the given type if specified), or None if none is found.
+    """
+    if not cmds.objExists(obj):
+        cmds.warning(f"Object '{obj}' does not exist.")
+        return None
+
+    current = obj
+    top_match = current if (target_type is None or cmds.nodeType(current) == target_type) else None
+
+    while True:
+        found_parent = cmds.listRelatives(current, parent=True)
+        if not found_parent:
+            break
+        found_parent = found_parent[0]
+        if target_type is None or cmds.nodeType(found_parent) == target_type:
+            top_match = found_parent
+        current = found_parent
+
+    return top_match
 
 
 if __name__ == "__main__":

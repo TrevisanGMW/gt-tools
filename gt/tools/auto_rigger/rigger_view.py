@@ -6,10 +6,13 @@ import gt.ui.tree_widget_enhanced as ui_tree_enhanced
 import gt.ui.resource_library as ui_res_lib
 import gt.core.session as core_session
 import gt.ui.qt_utils as ui_qt_utils
+import gt.ui.qt_utils as qt_utils
 import gt.ui.qt_import as ui_qt
 
 
 class RiggerView(metaclass=ui_qt_utils.MayaWindowMeta):
+    TOOL_NAME = "Auto Rigger"
+
     def __init__(self, parent=None, controller=None, version=None):
         """
         Initialize the RiggerView (Auto Rigger View)
@@ -21,8 +24,8 @@ class RiggerView(metaclass=ui_qt_utils.MayaWindowMeta):
                                                     Here to avoid the garbage collector.  Defaults to None.
             version (str, optional): If provided, it will be used to determine the window title. e.g. Title - (v1.2.3)
         """
-        # super(ResourceLibraryView, self).__init__(parent=parent)
         super().__init__(parent=parent)
+        self.close_func = None
         self.controller = controller  # Only here so it doesn't get deleted by the garbage collectors
         self.menu_top = None
         self.menu_items = []  # To avoid garbage collection
@@ -37,10 +40,8 @@ class RiggerView(metaclass=ui_qt_utils.MayaWindowMeta):
         self.grp_box_logger = None
         self.logger_txt_field = None
 
-        window_title = "Auto Rigger"
-        if version:
-            window_title += f" - (v{str(version)})"
-        self.setWindowTitle(window_title)
+        self._version = version
+        self.set_window_title()
         self.setGeometry(100, 100, 400, 300)
         self.setWindowFlags(
             self.windowFlags()
@@ -62,6 +63,7 @@ class RiggerView(metaclass=ui_qt_utils.MayaWindowMeta):
         stylesheet += ui_res_lib.Stylesheet.checkbox_base
         stylesheet += ui_res_lib.Stylesheet.line_edit_base
         stylesheet += ui_res_lib.Stylesheet.spin_box_base
+        stylesheet += ui_res_lib.Stylesheet.slider_base
         if not core_session.is_script_in_interactive_maya():
             stylesheet += ui_res_lib.Stylesheet.menu_base
         self.setStyleSheet(stylesheet)
@@ -71,8 +73,8 @@ class RiggerView(metaclass=ui_qt_utils.MayaWindowMeta):
         self.module_attr_area.setStyleSheet(ui_res_lib.Stylesheet.scroll_area_base)
 
         # Final Adjustments
-        ui_qt_utils.resize_to_screen(self, percentage=30)
-        ui_qt_utils.center_window(self)
+        qt_utils.resize_to_screen(self, percentage=45)
+        qt_utils.center_window(self)
 
         self.resize_splitter_to_screen()
 
@@ -170,19 +172,55 @@ class RiggerView(metaclass=ui_qt_utils.MayaWindowMeta):
         width = screen_geometry.width() * percentage / 100
         self.splitter.setSizes([width * 0.2, width * 0.60])
 
+    def set_window_title(self, prefix=None, add_tool_name=True, add_version=True):
+        """
+        Sets the window title for this tool.
+        Args:
+            prefix (str, optional): A new prefix for the tool title.
+            add_tool_name (bool, optional): If True, the name of the tool is added to the title (after prefix)
+            add_version (bool, optional): If True, the tool version is added to the end of the title.
+        """
+        _window_title = ""
+        if prefix is not None:
+            _window_title = f"{str(prefix)} - "
+        if add_tool_name:
+            _window_title += RiggerView.TOOL_NAME
+        if self._version and add_version:
+            _window_title += f" - (v{str(self._version)})"
+        self.setWindowTitle(_window_title)
+
     def clear_module_widget(self):
+        """Clears the module attribute area by setting an empty widget."""
         self.module_attr_area.setWidget(ui_qt.QtWidgets.QWidget())
 
     def set_module_widget(self, widget):
+        """Sets the given widget into the module attribute area.
+        Args:
+            widget (QWidget): The widget to set in the module attribute area.
+        """
         self.module_attr_area.setWidget(widget)
 
+    def get_module_widget(self):
+        """Sets the given widget into the module attribute area.
+        Returns:
+            widget (QWidget): The widget assigned to the "module_attr_area" variable.
+        """
+        return self.module_attr_area.widget()
+
     def add_item_to_module_tree(self, item):
+        """
+        Adds a top-level item to the module tree.
+        Args:
+            item (QTreeWidgetItem): The item to add to the module tree.
+        """
         self.module_tree.addTopLevelItem(item)
 
     def expand_all_module_tree_items(self):
+        """Expands all items in the module tree."""
         self.module_tree.expandAll()
 
     def clear_module_tree(self):
+        """Clears all items from the module tree."""
         self.module_tree.clear()
 
     def add_menu_parent(self, item_name):
@@ -223,9 +261,41 @@ class RiggerView(metaclass=ui_qt_utils.MayaWindowMeta):
         parent_menu.addMenu(submenu)
         return submenu
 
+    def set_close_event_function(self, func):
+        """
+        Sets function to run when trying to close the view window.
+        This function will receive two keyword arguments. Window, which is self (this window) and the close QEvent.
+        Args:
+            func (callable): A function to be called when a user try to close the window.
+        """
+        if callable(func):
+            self.close_func = func
+            return
+
+    def closeEvent(self, event):
+        """
+        This is an override, name of the function cannot be changed.
+        Runs a custom function (if available) when trying to close the rigger view (UI)
+        The event is ignored. It also passes a keyword arguments with the window (self).
+
+        Args:
+            event (QEvent): Closing event that comes with the click of the "X" (close) button.
+        """
+        # event.ignore()
+        if self.close_func and callable(self.close_func):
+            self.close_func(self, event)
+
+    def dockCloseEventTriggered(self):
+        """
+        This is an override, name of the function cannot be changed.
+        Function called when in Maya using the dockable version of the window.
+        """
+        if self.close_func and callable(self.close_func):
+            self.close_func(window=self)
+
 
 if __name__ == "__main__":
-    with ui_qt_utils.QtApplicationContext():
+    with qt_utils.QtApplicationContext():
         window = RiggerView()
 
         from gt.tools.auto_rigger.rig_framework import ModuleGeneric

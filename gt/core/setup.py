@@ -1,8 +1,8 @@
 """
 Setup Module - install/uninstall package from system
 
-Code Namespace:
-    core_setup  # import gt.core.setup as core_setup
+Import Line:
+    import gt.core.setup as core_setup
 """
 
 from gt.core.session import is_script_in_py_maya, filter_loaded_modules_path_containing
@@ -94,7 +94,7 @@ def copy_package_requirements(target_folder, package_requirements):
                 src=requirement_path,
                 dst=os.path.join(target_folder, requirement),
                 # dirs_exist_ok=True,  # Not needed + Only available on Python 3.8+
-                ignore=shutil.ignore_patterns("*.pyc", "__pycache__", "tests"),
+                ignore=shutil.ignore_patterns("*.pyc", "__pycache__"),
             )
         elif os.path.isfile(requirement_path):  # Files
             shutil.copy(requirement_path, target_folder)
@@ -383,15 +383,25 @@ def reload_package_loaded_modules():
     Reloads modules containing the package fragment path in it.
     For example, if a module contains "package-name//requirement" it gets reloaded.
     e.g. "gt-tools/tools" is the fragment, if the module is "gt-tools/tools/package_setup/script.py" then it reloads.
+
+    Returns:
+        list: Names of modules successfully reloaded in dependency-first order.
     """
     filtered_modules = get_package_loaded_modules()
     import importlib
 
-    try:
-        for module in filtered_modules:
+    reloaded_modules = []
+    sorted_modules = sorted(
+        filtered_modules,
+        key=lambda module: (module.__name__.count("."), module.__name__),
+    )
+    for module in sorted_modules:
+        try:
             importlib.reload(module)
-    except Exception as e:
-        logger.debug(e)
+            reloaded_modules.append(module.__name__)
+        except Exception as e:
+            logger.debug(f'Unable to reload package module "{module.__name__}". Issue: {e}')
+    return reloaded_modules
 
 
 def remove_package_loaded_modules():

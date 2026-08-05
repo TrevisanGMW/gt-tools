@@ -1,15 +1,17 @@
 """
 Auto Rigger Model
 """
-from gt.tools.auto_rigger.template_biped import create_template_biped
-from gt.core.io import write_json, read_json_dict
-from gt.tools.auto_rigger.rig_framework import RigProject
+
+import gt.tools.auto_rigger.rig_framework as tools_rig_frm
+import gt.core.logger as core_log
+import gt.core.io as core_io
 import logging
 
 # Logging Setup
-logging.basicConfig()
-logger = logging.getLogger(__name__)
+logger_name = core_log.get_logger_name(__name__)
+logger = core_log.setup_common_logger(name=logger_name, propagate=False)
 logger.setLevel(logging.INFO)
+core_log.add_custom_log_levels()
 
 
 class RiggerModel:
@@ -17,14 +19,13 @@ class RiggerModel:
         """
         Initialize the RiggerModel object.
         """
-        self.project = create_template_biped()  # TODO TEMP
-        # self.project = RigProject()  # TODO TEMP
+        self.project = tools_rig_frm.RigProject()
 
     def clear_project(self):
         """
         Re-initializes the project to an empty one.
         """
-        self.project = RigProject()
+        self.project = tools_rig_frm.RigProject()
 
     def set_project(self, project):
         """
@@ -32,8 +33,8 @@ class RiggerModel:
         Args:
             project (RigProject): A new project to be stored in "self.project"
         """
-        if not project or not isinstance(project, RigProject):
-            logger.debug(f'Unable to set project. Invalid input.')
+        if not project or not isinstance(project, tools_rig_frm.RigProject):
+            logger.debug(f"Unable to set project. Invalid input.")
             return
         self.project = project
 
@@ -72,9 +73,11 @@ class RiggerModel:
     def save_project_to_file(self, path):
         """
         Save the current project to the provided path (JSON format)
+        Args:
+            path (str): The file path where the project data will be saved.
         """
         data = self.project.get_project_as_dict()
-        write_json(path=path, data=data)
+        core_io.write_json(path=path, data=data)
 
     def load_project_from_file(self, path):
         """
@@ -82,9 +85,10 @@ class RiggerModel:
         Args:
             path (str): Path to the project description (JSON format)
         """
-        self.project = RigProject()
-        data = read_json_dict(path)
-        self.project.read_data_from_dict(data)
+        data = core_io.read_json_dict(path)
+        loaded_project = tools_rig_frm.RigProject()
+        loaded_project.read_data_from_dict(data)
+        self.project = loaded_project
 
 
 if __name__ == "__main__":

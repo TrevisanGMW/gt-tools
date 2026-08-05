@@ -1,8 +1,8 @@
 """
-Session Module
+Session Utilities
 
-Code Namespace:
-    core_session  # import gt.core.session as core_session
+Import Line:
+    import gt.core.session as core_session
 """
 
 from gt.core.io import write_json, read_json_dict
@@ -63,7 +63,7 @@ def get_loaded_modules(state=None):
     """
     Get modules that are currently loaded in "sys.modules"
     Args:
-        state (optional, list):  If a state is provided, it will be returned as the loaded_modules result.
+        state ( list, optional):  If a state is provided, it will be returned as the loaded_modules result.
     Returns:
         List of modules
     """
@@ -300,7 +300,9 @@ def get_loaded_package_module_paths():
     Errors are handled inside the function. A list will be returned even if it gets an error.
     Returns:
         list: List of "sys.path" paths that are related to the currently loaded package.
-             e.g. ["Documents/maya/gt-tools/gt/__init__.py", "Documents/maya/gt-tools/gt/", "Documents/maya/gt-tools/"]
+             e.g. ["Documents/maya/gt_tools/gt/__init__.py",
+                   "Documents/maya/gt_tools/gt/",
+                   "Documents/maya/gt_tools/"]
     """
     try:
         from gt.core.setup import PACKAGE_MAIN_MODULE, PACKAGE_NAME

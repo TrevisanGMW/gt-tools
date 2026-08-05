@@ -1,8 +1,8 @@
 """
-Display Module - Update how you see elements in the viewport
+Display Utilities - Update how you see elements in the viewport
 
-Code Namespace:
-    core_display  # import gt.core.display as core_display
+Import Line:
+    import gt.core.display as core_display
 """
 
 from gt.core.feedback import FeedbackMessage
@@ -562,6 +562,35 @@ def delete_display_layers(layer_list=None, verbose=True):
     finally:
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
     return deleted_counter
+
+
+def set_grid_divisions(grid_size=12.0, grid_spacing=5.0, grid_divisions=5):
+    """
+    Sets Maya's grid configuration, allowing customization of size, spacing, and divisions.
+    Optionally resets other grid-related visual display options to Maya's default values.
+
+    Args:
+        grid_size (float, optional): The total visible grid size (default is 12.0).
+        grid_spacing (float, optional): The distance between grid lines (default is 1.0).
+        grid_divisions (int, optional): Number of subdivisions per grid square (default is 5).
+    """
+    # Apply grid size, spacing, and divisions
+    kwargs = {}
+    if grid_size is not None:
+        kwargs["size"] = grid_size
+    if grid_spacing is not None:
+        kwargs["spacing"] = grid_spacing
+    if grid_divisions is not None:
+        kwargs["divisions"] = grid_divisions
+
+    if kwargs:
+        cmds.grid(**kwargs)
+
+    # Force a viewport refresh
+    try:
+        cmds.refresh()
+    except RuntimeError:
+        pass  # Safe in batch/headless mode
 
 
 if __name__ == "__main__":

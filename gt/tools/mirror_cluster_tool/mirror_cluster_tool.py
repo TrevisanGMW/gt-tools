@@ -1,5 +1,5 @@
 """
- GT Mirror Cluster Tool - Tool to mirror cluster weights.
+ Mirror Cluster Tool - Tool to mirror cluster weights.
  github.com/TrevisanGMW/gt-tools -  2020-06-16
 """
 
@@ -28,6 +28,7 @@ global_settings = {
 
 
 def build_gui_mirror_cluster_tool():
+    """Builds the Mirror Cluster Tool window."""
     window_name = "build_gui_mirror_cluster_tool"
     if cmds.window(window_name, exists=True):
         cmds.deleteUI(window_name, window=True)
@@ -117,6 +118,11 @@ def build_gui_mirror_cluster_tool():
 
     # Check Selection and Update Buttons
     def update_stored_objects(expected_type):
+        """Refreshes the stored object list for the selected type.
+
+        Args:
+            expected_type (str): Maya node type accepted by the list.
+        """
         # Check If Selection is Valid
         received_valid_object = False
 
@@ -185,6 +191,7 @@ def build_gui_mirror_cluster_tool():
 
 # Creates Help GUI
 def build_gui_help_mirror_cluster_tool():
+    """Builds the Mirror Cluster Tool help window."""
     window_name = "build_gui_help_mirror_cluster_tool"
     if cmds.window(window_name, exists=True):
         cmds.deleteUI(window_name, window=True)
@@ -249,12 +256,14 @@ def build_gui_help_mirror_cluster_tool():
     widget.setWindowIcon(icon)
 
     def close_help_gui():
+        """Closes the Mirror Cluster Tool help window."""
         if cmds.window(window_name, exists=True):
             cmds.deleteUI(window_name, window=True)
 
 
 # Start of Main Function ===============================================================
 def mirror_cluster():
+    """Mirrors the configured cluster weights and membership."""
     is_current_setup_valid = True
     mesh_transform = global_settings.get("loaded_mesh")
     cluster_handle = global_settings.get("loaded_cluster_handle")

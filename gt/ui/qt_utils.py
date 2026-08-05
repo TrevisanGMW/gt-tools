@@ -1,5 +1,12 @@
-import gt.utils.system as utils_system
+"""
+Qt Utilities
+
+Import Line:
+    import gt.ui.qt_utils as ui_qt_utils
+"""
+
 import gt.core.session as core_session
+import gt.utils.system as utils_sys
 import gt.ui.qt_import as ui_qt
 import logging
 import sys
@@ -12,15 +19,369 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
+class StatusLine:
+    """Shared status-line color values."""
+
+    INFO = "info"
+    SUCCESS = "success"
+    WARNING = "warning"
+    ERROR = "error"
+
+
+def set_status_line_text(line_edit, text, status=StatusLine.INFO):
+    """Sets text and color for a QLineEdit used as a compact status line.
+
+    Args:
+        line_edit (QLineEdit): Line edit to update.
+        text (str): Status text.
+        status (str, optional): Status level. Supported: info, success, warning, error.
+    """
+    if not line_edit:
+        return
+    status_colors = {
+        StatusLine.INFO: "#8f8f8f",
+        StatusLine.SUCCESS: "#7cae7a",
+        StatusLine.WARNING: "#d6b656",
+        StatusLine.ERROR: "#d66a6a",
+    }
+    color = status_colors.get(str(status or StatusLine.INFO).lower(), status_colors.get(StatusLine.INFO))
+    line_edit.setStyleSheet("QLineEdit { color: " + color + "; }")
+    line_edit.setText(str(text or ""))
+
+
+def is_qt_object_valid(qt_object):
+    """Checks whether a Qt wrapper still owns a live C++ object.
+
+    Args:
+        qt_object (QObject): Qt wrapper to inspect.
+
+    Returns:
+        bool: True when the wrapper can be used safely.
+    """
+    if qt_object is None:
+        return False
+    try:
+        is_valid = getattr(ui_qt.shiboken, "isValid", None)
+        if callable(is_valid):
+            return bool(is_valid(qt_object))
+        qt_object.objectName()
+        return True
+    except (AttributeError, RuntimeError, TypeError):
+        return False
+
+
 class MayaWindowMeta(type):
     """
     Maya Window Metaclass. Used to make a QT Windows in Maya with extra functionalities such as docking and overwrites.
-    It also handles the Singleton and Mac focus behaviour of the window (when in Maya)
+    It also handles the Singleton and Mac focus behavior of the window (when in Maya)
 
     This metaclass modifies the base class of a QT object class to enable the dock ability in Maya.
     It dynamically adjusts the class inheritance to include "MayaQWidgetDockableMixin" based on the context
     (interactive Maya session or not).
     """
+
+    _pending_restores = {}
+    _restored_windows = {}
+
+    @classmethod
+    def _get_restore_key(mcs, module_name, class_name):
+        """Builds the key used to track a workspace-restored window.
+
+        Args:
+            mcs (object): Main-window or application context.
+            module_name (str): Module containing the window class.
+            class_name (str): Window class name.
+        """
+        """Builds the key used to track a window while Maya restores it.
+
+        Args:
+            module_name (str): Module containing the window class.
+            class_name (str): Name of the window class.
+
+        Returns:
+            str: Unique key for the window class.
+        """
+        return f"{module_name}.{class_name}"
+
+    @classmethod
+    def _get_stable_object_name(mcs, module_name, class_name):
+        """Builds a stable Maya-safe object name for a window class.
+
+        Args:
+            mcs (object): Main-window or application context.
+            module_name (str): Module containing the window class.
+            class_name (str): Window class name.
+        """
+        """Builds a stable Maya-safe object name for a window class.
+
+        Args:
+            module_name (str): Module containing the window class.
+            class_name (str): Name of the window class.
+
+        Returns:
+            str: Stable object name used by Maya's workspace control.
+        """
+        raw_name = f"{module_name}_{class_name}"
+        return re.sub(r"[^a-zA-Z0-9_]", "_", raw_name)
+
+    @classmethod
+    def _get_restore_script(mcs, module_name, class_name, workspace_control_name):
+        """Builds the script stored in a Maya workspace control.
+
+        Args:
+            mcs (object): Main-window or application context.
+            module_name (str): Module containing the window class.
+            class_name (str): Window class name.
+            workspace_control_name (str): Maya workspace control name.
+        """
+        """Builds the Python script stored in Maya's workspace control.
+
+        Args:
+            module_name (str): Module containing the window class.
+            class_name (str): Name of the window class.
+            workspace_control_name (str): Name of the workspace control Maya will restore.
+
+        Returns:
+            str: Deferred Python script Maya can execute while restoring its workspace.
+        """
+        restore_command = (
+            f"from gt.ui.qt_utils import MayaWindowMeta; "
+            f"MayaWindowMeta.restore_window("
+            f"{module_name!r}, {class_name!r}, {workspace_control_name!r})"
+        )
+        return f"import maya.cmds as cmds\ncmds.evalDeferred({restore_command!r}, lowestPriority=True)"
+
+    @classmethod
+    def _attach_restored_window(mcs, window, restore_parent):
+        """Attaches a recreated Qt window to Maya's workspace control.
+
+        Args:
+            mcs (object): Main-window or application context.
+            window (QWidget): Window being restored.
+            restore_parent (object): Maya restore-parent object.
+        """
+        """Attaches a recreated Qt window to Maya's current workspace control.
+
+        Args:
+            window (QWidget): Recreated window to attach.
+            restore_parent (int): Pointer to Maya's restoring workspace control.
+
+        Returns:
+            bool: True when the window was successfully attached.
+        """
+        try:
+            from maya import OpenMayaUI as OpenMayaUI
+
+            if restore_parent is None:
+                return False
+            mcs._remove_retained_workspace_windows(window, restore_parent)
+            window_pointer = ui_qt.shiboken.getCppPointer(window)[0]
+            if window_pointer is None:
+                return False
+            OpenMayaUI.MQtUtil.addWidgetToMayaLayout(int(window_pointer), int(restore_parent))
+            ui_qt.QtWidgets.QWidget.setVisible(window, True)
+            return True
+        except Exception as e:
+            logger.warning(
+                f'Unable to restore Maya window "{type(window).__name__}". Issue: "{e}".'
+            )
+            return False
+
+    @classmethod
+    def _remove_retained_workspace_windows(mcs, window, restore_parent):
+        """Detaches retained window instances from a workspace control.
+
+        Args:
+            mcs (object): Main-window or application context.
+            window (QWidget): Current window instance.
+            restore_parent (object): Maya restore-parent object.
+        """
+        """Detaches old window instances from a retained Maya workspace control.
+
+        Maya can retain the contents of a closed workspace control. Attaching a
+        replacement without first detaching those contents causes every reopen
+        to add another copy of the window's widgets.
+
+        Args:
+            window (QWidget): New window that will replace retained instances.
+            restore_parent (int): Pointer to the Maya workspace control.
+        """
+        if restore_parent is None:
+            return
+        try:
+            workspace_widget = ui_qt.shiboken.wrapInstance(
+                int(restore_parent),
+                ui_qt.QtWidgets.QWidget,
+            )
+            retained_windows = workspace_widget.findChildren(ui_qt.QtWidgets.QWidget)
+            for retained_window in retained_windows:
+                if retained_window is window:
+                    continue
+                if not mcs._widgets_share_identity(retained_window, window):
+                    continue
+                mcs._prepare_window_for_replacement(retained_window)
+                retained_window.setParent(None)
+                retained_window.close()
+                retained_window.deleteLater()
+        except Exception as e:
+            logger.debug(
+                f'Unable to clear retained "{type(window).__name__}" windows. Issue: "{e}".'
+            )
+
+    @classmethod
+    def _prepare_window_for_replacement(mcs, window):
+        """Prepares a window for automatic workspace replacement.
+
+        Args:
+            mcs (object): Main-window or application context.
+            window (QWidget): Window being replaced.
+        """
+        """Disables callbacks that should not run during automatic UI replacement.
+
+        Args:
+            window (QWidget): Existing tool window being replaced.
+        """
+        try:
+            if hasattr(window, "close_func"):
+                window.close_func = None
+        except RuntimeError as exception:
+            logger.debug(f'Unable to prepare stale window for replacement. Issue: "{exception}".')
+
+    @classmethod
+    def _widgets_share_identity(mcs, first_widget, second_widget):
+        """Checks whether two widgets share reloadable window identity.
+
+        Args:
+            mcs (object): Main-window or application context.
+            first_widget (QWidget): First widget to compare.
+            second_widget (QWidget): Second widget to compare.
+        """
+        """Checks whether two widgets represent the same reloadable window class.
+
+        Python module reloads create a new class object, so ``isinstance`` alone
+        cannot identify a retained instance created before a package reinstall.
+
+        Args:
+            first_widget (QWidget): First widget to compare.
+            second_widget (QWidget): Second widget to compare.
+
+        Returns:
+            bool: True when the widgets have the same stable window identity.
+        """
+        first_name = first_widget.objectName()
+        second_name = second_widget.objectName()
+        if first_name and second_name and first_name == second_name:
+            return True
+        first_type = type(first_widget)
+        second_type = type(second_widget)
+        return (
+            first_type.__name__ == second_type.__name__
+            and first_type.__module__ == second_type.__module__
+        )
+
+    @classmethod
+    def _reuse_workspace_control(mcs, window, restore_script):
+        """Reuses a retained Maya workspace control when reopening a tool.
+
+        Args:
+            mcs (object): Main-window or application context.
+            window (QWidget): Window being reopened.
+            restore_script (str): Script used to restore the workspace control.
+        """
+        """Reuses a retained Maya workspace control when reopening a tool.
+
+        Args:
+            window (QWidget): Newly created window to attach.
+            restore_script (str): Script stored for future Maya workspace restores.
+
+        Returns:
+            bool: True when an existing workspace control was reused.
+        """
+        try:
+            from maya import cmds
+            from maya import OpenMayaUI as OpenMayaUI
+
+            control_name = f"{window.objectName()}WorkspaceControl"
+            if not cmds.workspaceControl(control_name, query=True, exists=True):
+                return False
+            restore_parent = OpenMayaUI.MQtUtil.findControl(control_name)
+            if not mcs._attach_restored_window(window, restore_parent):
+                return False
+            cmds.workspaceControl(control_name, edit=True, uiScript=restore_script)
+            if cmds.workspaceControl(control_name, query=True, visible=True):
+                cmds.workspaceControl(control_name, edit=True, restore=True)
+            else:
+                cmds.workspaceControl(control_name, edit=True, visible=True)
+            return True
+        except Exception as e:
+            logger.debug(
+                f'Unable to reuse Maya workspace control for "{type(window).__name__}". Issue: "{e}".'
+            )
+            return False
+
+    @classmethod
+    def restore_window(mcs, module_name, class_name, workspace_control_name=None):
+        """Recreates a window inside Maya's restoring workspace control.
+
+        Args:
+            mcs (object): Main-window or application context.
+            module_name (str): Module containing the window class.
+            class_name (str): Window class name.
+            workspace_control_name (str, optional): Existing control name.
+        """
+        """Recreates a window inside Maya's restoring workspace control.
+
+        The tool package launcher is preferred so its model and controller are
+        reconstructed along with the view. If no launcher creates the requested
+        class, the view is instantiated directly as a compatibility fallback.
+
+        Args:
+            module_name (str): Module containing the window class.
+            class_name (str): Name of the window class.
+            workspace_control_name (str, optional): Maya workspace control receiving the recreated window.
+        """
+        import importlib
+
+        try:
+            from maya import OpenMayaUI as OpenMayaUI
+
+            restore_parent = None
+            if workspace_control_name:
+                restore_parent = OpenMayaUI.MQtUtil.findControl(workspace_control_name)
+            if restore_parent is None:
+                restore_parent = OpenMayaUI.MQtUtil.getCurrentParent()
+            restore_key = mcs._get_restore_key(module_name, class_name)
+            mcs._pending_restores[restore_key] = restore_parent
+
+            window_module = importlib.import_module(module_name)
+            package_name = module_name.rpartition(".")[0]
+            package_module = importlib.import_module(package_name) if package_name else None
+            launch_tool = getattr(package_module, "launch_tool", None)
+            if callable(launch_tool):
+                try:
+                    launch_tool()
+                except Exception as e:
+                    logger.warning(
+                        f'Unable to launch package "{package_name}" while restoring '
+                        f'"{class_name}". Issue: "{e}".'
+                    )
+
+            if restore_key in mcs._pending_restores:
+                window_class = getattr(window_module, class_name)
+                window = window_class()
+                window.show()
+
+            if restore_key in mcs._pending_restores:
+                mcs._pending_restores.pop(restore_key, None)
+                logger.warning(
+                    f'Maya window "{class_name}" could not be attached during workspace restore.'
+                )
+        except Exception as e:
+            restore_key = mcs._get_restore_key(module_name, class_name)
+            mcs._pending_restores.pop(restore_key, None)
+            logger.warning(
+                f'Unable to restore Maya window "{class_name}". Issue: "{e}".'
+            )
 
     def __new__(mcs, name, bases, attrs, base_inheritance=None, dockable=True):
         """
@@ -54,7 +415,7 @@ class MayaWindowMeta(type):
             dockable = False
         if not base_inheritance:
             base_inheritance = (ui_qt.QtWidgets.QDialog,)
-            if utils_system.is_system_macos():
+            if utils_sys.is_system_macos():
                 base_inheritance = (ui_qt.QtWidgets.QDialog,)
         if not isinstance(base_inheritance, tuple):
             base_inheritance = (base_inheritance,)
@@ -70,6 +431,9 @@ class MayaWindowMeta(type):
         base_class_vars = vars(new_class)
         if "__init__" in base_class_vars:
             original_init = base_class_vars["__init__"]
+            module_name = attrs.get("__module__", "")
+            restore_key = mcs._get_restore_key(module_name, name)
+            stable_object_name = mcs._get_stable_object_name(module_name, name)
 
             def custom_init(self, *args, **kwargs):
                 """
@@ -78,7 +442,10 @@ class MayaWindowMeta(type):
                 It also overwrites the "show" function when using the dockable version of this metaclass.
                 """
                 try:
-                    found_elements = get_maya_main_window_qt_elements(type(self))
+                    found_elements = get_maya_main_window_qt_elements(
+                        type(self),
+                        object_name=stable_object_name,
+                    )
                     close_ui_elements(found_elements)
                 except Exception as e:
                     logger.debug(f'Unable to close previous QT elements. Issue: "{str(e)}".')
@@ -96,13 +463,30 @@ class MayaWindowMeta(type):
                             *args_show: Additional positional arguments for the "show" method.
                             **kwargs_show: Additional keyword arguments for the "show" method.
                         """
+                        workspace_control_name = f"{self.objectName()}WorkspaceControl"
+                        restore_script = mcs._get_restore_script(
+                            module_name, name, workspace_control_name
+                        )
+                        restore_parent = mcs._pending_restores.pop(restore_key, None)
+                        if restore_parent is not None:
+                            if mcs._attach_restored_window(self, restore_parent):
+                                mcs._restored_windows[restore_key] = self
+                            return
+                        if not args_show and not kwargs_show:
+                            if mcs._reuse_workspace_control(self, restore_script):
+                                mcs._restored_windows[restore_key] = self
+                                return
                         if not hasattr(self, "_original_geometry"):
                             width = self.geometry().width()
                             height = self.geometry().height()
                             pos_x = self.pos().x()
                             pos_y = self.pos().y()
                             self._original_geometry = [pos_x, pos_y, width, height]
-                        original_show(*args_show, **kwargs_show, dockable=True)
+                        if not args_show and "dockable" not in kwargs_show:
+                            kwargs_show["dockable"] = True
+                        kwargs_show.setdefault("retain", True)
+                        kwargs_show.setdefault("uiScript", restore_script)
+                        original_show(*args_show, **kwargs_show)
                         try:
                             window_parent = self.parent().parent().parent().parent().parent()
                             ui_qt.QtWidgets.QWidget.setWindowIcon(window_parent, self.windowIcon())
@@ -116,10 +500,15 @@ class MayaWindowMeta(type):
                     self.show = custom_show
                 # Call Original Init
                 original_init(self, *args, **kwargs)
+                if dockable:
+                    current_object_name = self.objectName()
+                    generated_name_prefix = f"{name}_"
+                    if current_object_name.startswith(generated_name_prefix):
+                        self.setObjectName(stable_object_name)
                 # Stay On Top macOS Tool Modality
                 try:
-                    if utils_system.is_system_macos() and not dockable:
-                        self.setWindowFlag(ui_qt.QtLib.WindowFlag.Tool, True)
+                    if utils_sys.is_system_macos() and not dockable:
+                        self.setWindowFlag(ui_qt.QtCore.Qt.Tool, True)
                 except Exception as e:
                     logger.debug(f'Unable to set MacOS Tool Modality. Issue: "{str(e)}".')
 
@@ -127,15 +516,16 @@ class MayaWindowMeta(type):
         return new_class
 
 
-def get_maya_main_window_qt_elements(class_object):
+def get_maya_main_window_qt_elements(class_object, object_name=None):
     """
-    Get QtWidgets.QWidget elements of a specific class from the main Maya window.
+    Get PySide2.QtWidgets.QWidget elements of a specific class from the main Maya window.
 
     Args:
         class_object (type or str): The class type or fully qualified string name of the class.
+        object_name (str, optional): Stable object name used to match instances created before a module reload.
 
     Returns:
-        list: A list of QtWidgets.QWidget elements matching the given class in the Maya window.
+        list: A list of PySide2.QtWidgets.QWidget elements matching the given class in the Maya window.
     """
     if isinstance(class_object, str):
         from gt.utils.system import import_from_path
@@ -148,7 +538,24 @@ def get_maya_main_window_qt_elements(class_object):
     if not maya_win:
         logger.debug(f"Maya window was not found.")
         return []
-    return maya_win.findChildren(class_object)
+    found_elements = list(maya_win.findChildren(class_object))
+    target_module = getattr(class_object, "__module__", "")
+    target_name = getattr(class_object, "__name__", "")
+    for child in maya_win.findChildren(ui_qt.QtWidgets.QWidget):
+        try:
+            child_type = type(child)
+            matches_class_identity = (
+                target_module
+                and target_name
+                and child_type.__module__ == target_module
+                and child_type.__name__ == target_name
+            )
+            matches_object_name = bool(object_name and child.objectName() == object_name)
+        except (AttributeError, RuntimeError):
+            continue
+        if (matches_class_identity or matches_object_name) and child not in found_elements:
+            found_elements.append(child)
+    return found_elements
 
 
 def close_ui_elements(obj_list):
@@ -160,6 +567,7 @@ def close_ui_elements(obj_list):
     """
     for obj in obj_list:
         try:
+            MayaWindowMeta._prepare_window_for_replacement(obj)
             obj.close()
             obj.deleteLater()
         except Exception as e:
@@ -215,7 +623,7 @@ def load_custom_font(font_path, point_size=-1, weight=-1, italic=False):
     if ui_qt.QtWidgets.QApplication.instance():
         # Open the font file using QFile
         file = ui_qt.QtCore.QFile(font_path)
-        if file.open(ui_qt.QtLib.OpenModeFlag.ReadOnly):
+        if file.open(ui_qt.QtCore.QIODevice.ReadOnly):
             data = file.readAll()
             file.close()
 
@@ -273,26 +681,81 @@ def get_maya_main_window():
     Returns:
         QWidget: The main maya widget
     """
+    try:
+        from shiboken2 import wrapInstance
+    except ImportError:
+        from shiboken6 import wrapInstance
     from maya import OpenMayaUI as OpenMayaUI
 
     ptr = OpenMayaUI.MQtUtil.mainWindow()
-    maya_window = ui_qt.shiboken.wrapInstance(int(ptr), ui_qt.QtWidgets.QWidget)
+    maya_window = wrapInstance(int(ptr), ui_qt.QtWidgets.QWidget)
     return maya_window
 
 
 def get_qt_color(color):
+    """
+    Converts various input formats to a QColor instance.
+
+    Args:
+        color (str or QColor or None): The input color, which can be:
+            - A hex color string (e.g., "#FF0000" or "#F00").
+            - A color name string recognized by QColor (e.g., "red").
+            - An existing QColor instance.
+            - None or other types (which will be logged as errors).
+
+    Returns:
+        QColor or None: A valid QColor instance if conversion succeeds;
+        otherwise, None.
+    """
     if isinstance(color, str):
-        if re.match(r"^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$", color):  # Hex pattern (e.g. "#FF0000"):
-            return ui_qt.QtGui.QColor(color)
-        else:
-            try:
-                return ui_qt.QtGui.QColor(color)
-            except Exception as e:
-                logger.error(f"Unable to create QColor. Issue: {e}")
+
+        rgb_pattern = re.compile(
+            r"^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$"
+        )
+
+        rgba_pattern = re.compile(
+            r"^rgba\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$"
+        )
+
+        # rgb(...)
+        rgb_match = rgb_pattern.match(color)
+        if rgb_match:
+            r, g, b = map(int, rgb_match.groups())
+
+            if all(0 <= value <= 255 for value in (r, g, b)):
+                return ui_qt.QtGui.QColor(r, g, b)
+
+        # rgba(...)
+        rgba_match = rgba_pattern.match(color)
+        if rgba_match:
+            r, g, b, a = map(int, rgba_match.groups())
+
+            if all(0 <= value <= 255 for value in (r, g, b, a)):
+                return ui_qt.QtGui.QColor(r, g, b, a)
+
+        # Standard Qt parsing
+        qt_color = ui_qt.QtGui.QColor(color)
+
+        if qt_color.isValid():
+            return qt_color
+
+        logger.error(f'Unable to create QColor from string: "{color}"')
+
     elif isinstance(color, ui_qt.QtGui.QColor):
-        return color
+
+        if color.isValid():
+            return color
+
+        logger.error("Received an invalid QColor instance.")
+
     elif color is not None:
-        logger.error(f'Unable to create QColor. Unrecognized object type received: "{type(color)}"')
+
+        logger.error(
+            f'Unable to create QColor. '
+            f'Unrecognized object type received: "{type(color)}"'
+        )
+
+    return None
 
 
 def resize_to_screen(
@@ -513,13 +976,13 @@ def load_and_scale_pixmap(image_path, scale_percentage=100, exact_height=None, e
     if exact_width and isinstance(exact_width, int):
         scaled_width = exact_width
 
-    scaled_pixmap = pixmap.scaled(scaled_width, scaled_height, mode=ui_qt.QtLib.TransformationMode.SmoothTransformation)
+    scaled_pixmap = pixmap.scaled(scaled_width, scaled_height, mode=ui_qt.QtCore.Qt.SmoothTransformation)
     return scaled_pixmap
 
 
 class QtApplicationContext:
     """
-    A context manager for managing a QtWidgets.QApplication.
+    A context manager for managing a PySide2 QtWidgets.QApplication.
 
     Usage:
     with QtContext() as context:
@@ -528,7 +991,7 @@ class QtApplicationContext:
     When the context is exited, the Qt application will be properly closed.
 
     Attributes:
-        app (QtWidgets.QApplication): The QApplication instance.
+        app (QtWidgets.QApplication): The PySide2 QApplication instance.
     """
 
     def __init__(self):
@@ -743,6 +1206,12 @@ class ConfirmableQLineEdit(ui_qt.QtWidgets.QLineEdit):
     """
 
     def keyPressEvent(self, event: ui_qt.QtGui.QKeyEvent):
+        """
+        Handles key press events, specifically intercepting Enter and Return keys.
+
+        Args:
+            event (QKeyEvent): The key press event to handle.
+        """
         if event.key() == ui_qt.QtLib.Key.Key_Enter or event.key() == ui_qt.QtLib.Key.Key_Return:
             event.accept()  # Prevent the default behavior of the Enter key
             self.editingFinished.emit()
@@ -976,6 +1445,447 @@ class QDoubleSlider(ui_qt.QtWidgets.QSlider):
             self.linked_spin_box.setValue(self.double_value())
 
 
+class TablePlaceholderDelegate(ui_qt.QtWidgets.QStyledItemDelegate):
+    """
+    A delegate for QTableWidget that displays placeholder text in specific columns.
+
+    Attributes:
+        placeholder_text (str): The placeholder text to display in empty cells.
+        target_columns (list[int]): List of column indices to apply the placeholder.
+        placeholder_color (QColor): Color of the placeholder text.
+        placeholder_alignment (Qt.AlignmentFlag): Alignment of the placeholder text.
+    """
+
+    def __init__(
+        self,
+        placeholder_text,
+        target_columns=None,
+        placeholder_color=None,
+        placeholder_alignment=None,
+        parent=None,
+    ):
+        """
+        Initializes the TablePlaceholderDelegate.
+
+        Args:
+            placeholder_text (str): The placeholder text to display.
+            target_columns (list[int], optional): List of column indices to apply the placeholder.
+            placeholder_color (QColor, optional): Color of the placeholder text.
+            placeholder_alignment (Qt.AlignmentFlag, optional): Alignment of the placeholder text.
+            parent (QObject, optional): Parent object.
+        """
+        super().__init__(parent)
+        self.placeholder_text = placeholder_text
+        self.target_columns = target_columns if target_columns is not None else []
+        self.placeholder_color = placeholder_color or ui_qt.QtGui.QColor(150, 150, 150)
+        self.placeholder_alignment = placeholder_alignment or (
+            ui_qt.QtLib.AlignmentFlag.AlignLeft | ui_qt.QtLib.AlignmentFlag.AlignVCenter
+        )
+
+    def set_placeholder_color(self, color):
+        """
+        Sets the color of the placeholder text.
+
+        Args:
+            color (QColor): The color to set for the placeholder text.
+        """
+        self.placeholder_color = color
+
+    def set_placeholder_alignment(self, alignment):
+        """
+        Sets the alignment of the placeholder text.
+
+        Args:
+            alignment (Qt.AlignmentFlag): The alignment to set for the placeholder text.
+        """
+        self.placeholder_alignment = alignment
+
+    def paint(self, painter, option, index):
+        """
+        Paints the placeholder text in the specified columns if cells are empty.
+
+        Args:
+            painter (QPainter): The painter used for rendering.
+            option (QStyleOptionViewItem): Options for rendering.
+            index (QModelIndex): Index of the cell being painted.
+        """
+        if index.column() in self.target_columns:
+            value = index.data(ui_qt.QtCore.Qt.DisplayRole)
+            if not value:
+                painter.save()
+                painter.setPen(self.placeholder_color)
+                painter.drawText(option.rect, self.placeholder_alignment, self.placeholder_text)
+                painter.restore()
+                return
+
+        super().paint(painter, option, index)
+
+
+def set_table_column_width_by_text(table, column_index, header_text, padding_factor=2):
+    """
+    Sets the column width based on the width of the header text.
+
+    Args:
+        table (QTableWidget): The QTableWidget instance.
+        column_index (int): The index of the column to adjust.
+        header_text (str): The text of the column header.
+        padding_factor (int, optional): Multiplier for padding around the text. Defaults to 2.
+    """
+    font_metrics = ui_qt.QtGui.QFontMetrics(table.font())
+    text_width = font_metrics.horizontalAdvance(header_text)
+    padding = font_metrics.height() // 2  # Approximate padding
+    table.setColumnWidth(column_index, text_width + padding * padding_factor)
+
+
+def add_labeled_separator(
+    menu,
+    text=None,
+    alignment="center",
+    text_alignment="center",
+    font_size=12,
+    color=None,
+    spacing=5,
+    margins=(2, 2, 2, 2),
+):
+    """
+    Adds a horizontal separator to a QMenu, optionally with a label.
+
+    Args:
+        menu (QMenu): The menu to which the separator will be added.
+        text (str, optional): The text label to display within the separator. Defaults to None.
+        alignment (str, optional): Position of the text relative to the lines.
+            - 'left': Text appears before the line.
+            - 'center': Text appears between the lines (default).
+            - 'right': Text appears after the line.
+        text_alignment (str, optional): Alignment of the text label itself within the separator.
+            - 'left': Text aligned to the left.
+            - 'center': Text centered (default).
+            - 'right': Text aligned to the right.
+        font_size (int, optional): Font size of the label text. Defaults to 12.
+        color (str, optional): Color of the label text (e.g., 'red', '#123456'). Defaults to None (inherits theme).
+        spacing (int, optional): Space between the text and the lines. Defaults to 5.
+        margins (tuple, optional): Margins around the separator (left, top, right, bottom). Defaults to (2, 2, 2, 2).
+
+    Returns:
+        QWidgetAction: The separator action added to the menu.
+    """
+    widget = ui_qt.QtWidgets.QWidget()
+    layout = ui_qt.QtWidgets.QHBoxLayout(widget)
+    layout.setContentsMargins(*margins)
+    layout.setSpacing(spacing)
+
+    # Create separator lines and label
+    left_line = ui_qt.QtWidgets.QFrame()
+    left_line.setFrameShape(ui_qt.QtWidgets.QFrame.HLine)
+    left_line.setFrameShadow(ui_qt.QtWidgets.QFrame.Sunken)
+
+    label = None
+    if text:
+        label = ui_qt.QtWidgets.QLabel(text)
+        label.setStyleSheet(f"font-size: {font_size}px;" + (f" color: {color};" if color else ""))
+        label.setAlignment(
+            {
+                "left": ui_qt.QtLib.AlignmentFlag.AlignLeft,
+                "center": ui_qt.QtLib.AlignmentFlag.AlignCenter,
+                "right": ui_qt.QtLib.AlignmentFlag.AlignRight,
+            }.get(text_alignment, ui_qt.QtLib.AlignmentFlag.AlignCenter)
+        )  # Default to center alignment
+
+    right_line = ui_qt.QtWidgets.QFrame()
+    right_line.setFrameShape(ui_qt.QtWidgets.QFrame.HLine)
+    right_line.setFrameShadow(ui_qt.QtWidgets.QFrame.Sunken)
+
+    # Arrange based on alignment
+    if text:
+        if alignment == "left":
+            layout.addWidget(label)
+            layout.addWidget(right_line)
+        elif alignment == "right":
+            layout.addWidget(left_line)
+            layout.addWidget(label)
+        else:  # Default to center
+            layout.addWidget(left_line)
+            layout.addWidget(label)
+            layout.addWidget(right_line)
+    else:
+        # Plain separator
+        layout.addWidget(left_line)
+
+    # Create a QWidgetAction to insert into the menu
+    separator_action = ui_qt.QtWidgets.QWidgetAction(menu)
+    separator_action.setDefaultWidget(widget)
+    menu.addAction(separator_action)
+
+    return separator_action
+
+
+class ColorSquareDelegate(ui_qt.QtWidgets.QStyledItemDelegate):
+    """
+    Custom delegate to paint color squares next to combobox items.
+
+    This delegate is responsible for rendering the color square next to the text
+    in each item of the combobox dropdown list.
+    """
+
+    COLOR_DATA_IDX = ui_qt.QtLib.ItemDataRole.UserRole + 1
+
+    def paint(self, painter, option, index):
+        """Override paint method to draw the color square next to the item text.
+
+        Args:
+            painter (QPainter): The painter used to draw the item.
+            option (QStyleOptionViewItem): Contains the visual options for the item.
+            index (QModelIndex): The model index of the item being painted.
+        """
+        super().paint(painter, option, index)
+
+        # Get the color data from the combobox item
+        color = index.data(ColorSquareDelegate.COLOR_DATA_IDX)
+
+        if isinstance(color, ui_qt.QtGui.QColor):
+            rect = option.rect
+            square_size = rect.height() * 0.6  # Set square size based on item height (60% of height)
+            square_x = rect.right() - square_size - 5  # Position square to the right with a 5px margin
+            square_y = rect.top() + (rect.height() - square_size) / 2  # Center the square vertically
+
+            color_square_rect = ui_qt.QtCore.QRect(square_x, square_y, square_size, square_size)
+
+            painter.save()
+            painter.setBrush(color)
+            painter.setPen(ui_qt.QtCore.Qt.NoPen)
+            painter.drawRect(color_square_rect)  # Draw the color square
+            painter.restore()
+
+
+class ColorSquareComboBox(ui_qt.QtWidgets.QComboBox):
+    """Custom combobox that displays a color square next to the selected item.
+
+    This combobox uses a custom delegate to paint a color square next to the text
+    of each item in the dropdown list. The selected item's color square is also shown
+    at the top of the combobox when it is collapsed.
+    """
+
+    def __init__(self):
+        """Initialize the combobox and populate it with color items.
+
+        Sets up the combobox with a custom delegate for drawing color squares and
+        adds items with specific RGB color values.
+        """
+        super().__init__()
+        self.setItemDelegate(ColorSquareDelegate(self))  # Set custom delegate
+
+    def paintEvent(self, event):
+        """Override paintEvent to draw the color square on top of the combobox.
+
+        Args:
+            event (QPaintEvent): The event that triggers the painting of the combobox.
+        """
+        super().paintEvent(event)
+
+        # Paint the color square on top of the combobox (not expanded)
+        color = self.itemData(self.currentIndex(), ColorSquareDelegate.COLOR_DATA_IDX)  # Get color of selected item
+
+        if isinstance(color, ui_qt.QtGui.QColor):
+            rect = self.rect()
+            square_size = rect.height() * 0.6  # Set square size based on combobox height (60% of height)
+            square_x = rect.right() - square_size - 5  # Position square to the right with a 5px margin
+            square_y = rect.top() + (rect.height() - square_size) / 2  # Center the square vertically
+
+            color_square_rect = ui_qt.QtCore.QRect(square_x, square_y, square_size, square_size)
+
+            painter = ui_qt.QtGui.QPainter(self)
+            painter.setBrush(color)
+            painter.setPen(ui_qt.QtCore.Qt.NoPen)
+            painter.drawRect(color_square_rect)  # Draw the color square
+            painter.end()
+
+
+class ColorTextDelegate(ui_qt.QtWidgets.QStyledItemDelegate):
+    """
+    Custom delegate to change the text color of combobox items.
+
+    This delegate sets the text color of each item based on a provided QColor.
+    """
+
+    COLOR_DATA_IDX = ui_qt.QtCore.Qt.UserRole + 1
+
+    def paint(self, painter, option, index):
+        """
+        Paints the item text with a custom color.
+
+        Args:
+            painter (QtGui.QPainter): The painter used to draw the item.
+            option (QtWidgets.QStyleOptionViewItem): The visual options for the item.
+            index (QtCore.QModelIndex): The model index of the item being painted.
+        """
+        color = index.data(ColorTextDelegate.COLOR_DATA_IDX)
+
+        if isinstance(color, ui_qt.QtGui.QColor):
+            option.palette.setColor(ui_qt.QtGui.QPalette.Text, color)
+
+        super().paint(painter, option, index)
+
+
+class ColorTextComboBox(ui_qt.QtWidgets.QComboBox):
+    """
+    A custom QComboBox that allows modifying text colors for items.
+
+    The selected item's text color is also applied when the combobox is closed.
+    """
+
+    def __init__(self):
+        """Initializes the ColorTextComboBox with a custom item delegate."""
+        super().__init__()
+        self.setItemDelegate(ColorTextDelegate())
+
+        self.tooltip_condition = None  # Condition for displaying the tooltip
+        self.tooltip_text = ""  # The tooltip text
+
+        # Connect the index change signal to update the tooltip dynamically
+        self.currentIndexChanged.connect(self.update_tooltip)
+
+    def set_item_color(self, index, color):
+        """
+        Sets the text color of an existing item.
+
+        Args:
+            index (int): The index of the item to modify.
+            color (QtGui.QColor): The color to apply to the item's text.
+        """
+        if 0 <= index < self.count():
+            self.setItemData(index, color, ColorTextDelegate.COLOR_DATA_IDX)
+
+    def set_tooltip(self, text, condition):
+        """
+        Sets the tooltip text and condition for when to show the tooltip.
+
+        Args:
+            text (str): The tooltip text to display when the condition is met.
+            condition (callable): A function that takes the current text and returns a boolean.
+                This function will determine whether the tooltip is displayed.
+        """
+        self.tooltip_text = text
+        self.tooltip_condition = condition
+        self.update_tooltip()  # Ensure the tooltip is updated immediately
+
+    def update_tooltip(self):
+        """
+        Updates the tooltip based on the selected item and condition.
+        If the current item meets the condition, the tooltip text is shown.
+        Otherwise, the tooltip is cleared.
+        """
+        current_text = self.currentText()
+        if self.tooltip_condition and self.tooltip_condition(current_text):
+            self.setToolTip(self.tooltip_text)
+        else:
+            self.setToolTip("")  # Clear the tooltip if the condition is not met
+
+    def paintEvent(self, event):
+        """
+        Overrides the paint event to apply the selected item's color when closed.
+
+        This ensures that the selected text appears in the correct color even
+        when the combobox is not expanded.
+
+        Args:
+            event (QtGui.QPaintEvent): The paint event object.
+        """
+        painter = ui_qt.QtGui.QPainter(self)
+        option = ui_qt.QtWidgets.QStyleOptionComboBox()
+        self.initStyleOption(option)
+
+        # Retrieve the color of the currently selected item
+        color = self.currentData(ColorTextDelegate.COLOR_DATA_IDX)
+
+        # Draw the combo box normally
+        self.style().drawComplexControl(ui_qt.QtWidgets.QStyle.CC_ComboBox, option, painter, self)
+
+        # Manually draw the text with the correct color
+        if isinstance(color, ui_qt.QtGui.QColor):
+            painter.setPen(color)
+        else:
+            painter.setPen(option.palette.color(ui_qt.QtGui.QPalette.Text))
+
+        text_rect = option.rect.adjusted(5, 0, -20, 0)  # Adjust text position
+        font_metrics = painter.fontMetrics()
+        elided_text = font_metrics.elidedText(self.currentText(), ui_qt.QtCore.Qt.ElideRight, text_rect.width())
+
+        painter.drawText(text_rect, ui_qt.QtCore.Qt.AlignVCenter | ui_qt.QtCore.Qt.TextSingleLine, elided_text)
+
+    def showEvent(self, event):
+        """
+        Override the show event to update the tooltip when the combo box is shown.
+
+        Args:
+            event (QEvent): The show event.
+        """
+        super().showEvent(event)
+        self.update_tooltip()
+
+
+def populate_line_edit_with_selection(
+    target_text_field, selection_limit=1, require_exact_count=True, separator=", ", verbose=True
+):
+    """
+    Populates a QLineEdit with the names of selected Maya objects.
+
+    Args:
+        target_text_field (QLineEdit): A QLineEdit object to be populated.
+        selection_limit (int, None, optional): Maximum number of objects allowed. Defaults to 1. (None = no limit)
+        require_exact_count (bool, optional): Requires exactly selection_limit if True. Defaults to True.
+        separator (str, optional): The string used to join the names of
+            multiple selected objects. If set to None, a list converted to string is used instead.
+        verbose (bool, optional): Logs errors and warnings if True. Defaults to True.
+
+    Returns:
+        list: List of selected objects, or empty list if validation fails.
+    """
+    import gt.core.selection as core_sel
+
+    selection = core_sel.ensure_selection_count(
+        selection_limit=selection_limit,
+        require_exact_count=require_exact_count,
+        verbose=verbose,
+    )
+    if not selection:
+        return
+    selection_str = separator.join(selection) if separator else str(selection)
+    target_text_field.setText(selection_str)
+    return selection
+
+
+def get_all_tree_item_children(tree_item):
+    """
+    Recursively collects all child items of the given QTreeWidgetItem.
+
+    Args:
+        tree_item (QTreeWidgetItem): The parent item.
+
+    Returns:
+        list[QTreeWidgetItem]: A list of all child items under the given item.
+    """
+    children = []
+
+    def collect_children(item):
+        """
+        Recursively collects all children of the given item into a global list.
+
+        Traverses all descendants of `item` by recursively visiting each child
+        and appending them to the global `children` list.
+
+        Args:
+            item: The parent item whose children are to be collected. Must have
+                  `childCount()` and `child(index)` methods.
+        """
+        for i in range(item.childCount()):
+            child = item.child(i)
+            children.append(child)
+            collect_children(child)
+
+    collect_children(tree_item)
+    return children
+
+
 if __name__ == "__main__":
     with QtApplicationContext():
         a_window = ui_qt.QtWidgets.QMainWindow()
@@ -983,5 +1893,6 @@ if __name__ == "__main__":
         center_window(a_window)
         print(get_main_window_screen_number())
         print(get_screen_center())
+
         a_window.show()
         # close_ui_elements([a_window])  # Working, as it closes

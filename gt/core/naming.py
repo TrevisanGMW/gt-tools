@@ -1,8 +1,8 @@
 """
-Naming Module
+Naming module
 
-code namespace:
-    core_naming  # import gt.core.naming as core_naming
+Import Line:
+    import gt.core.naming as core_naming
 """
 
 import maya.cmds as cmds
@@ -51,15 +51,15 @@ class NamingConstants:
         LEFT = "L"
         RIGHT = "R"
         CENTER = "C"
+        MAT = "M"  # Material
 
     class Suffix:
         # Main Elements
         CTRL = "CTRL"  # Control
         JNT = "JNT"  # Joint
-        MAT = "MAT"  # Material
-        END = "END"  # Last object in a hierarchy TODO
+        END = "END"  # Last object in a hierarchy
         # Auxiliary Elements
-        GRP = "grp"  # Group TODO
+        GRP = "grp"  # Group
         CRV = "crv"  # Curve
         LOC = "loc"  # Locator
         SUR = "sur"  # Surface
@@ -96,19 +96,29 @@ class NamingConstants:
         OUTER = "outer"  # <
         OUTER_UP = "outUp"  # <^
 
+    class Poses:
+        APOSE = "apose"
+        TPOSE = "tpose"
+        NPOSE = "npose"
 
-def get_long_name(short_name):
+
+def get_long_name(short_name, absolute=False):
     """
     Returns the long name of the object based on its short name.
 
     Args:
         short_name (str): The short name of the object.
-
+        absolute (bool): cmds.ls absoluteName option.
+                         The absolute name of the namespace is a full namespace path,
+                         starting from the root namespace ":" and including all parent namespaces.
+                         For example ":ns:ball" is an absolute namespace name while "ns:ball" is not.
+                         The absolute namespace name is invariant and is not affected by the current
+                         namespace or relative namespace modes.
     Returns:
         str: The long name of the object.
     """
     try:
-        long_name = cmds.ls(short_name, long=True)[0]
+        long_name = cmds.ls(short_name, long=True, absoluteName=absolute)[0]
         return long_name
     except (IndexError, RuntimeError) as e:
         logger.debug(f"Unable to retrieve long name. Issue: {str(e)}")

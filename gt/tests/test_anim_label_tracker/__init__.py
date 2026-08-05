@@ -1,0 +1,1 @@
+"""Animation Label Tracker tests."""

@@ -1,16 +1,18 @@
 """
-IO/Data Module - Reading and Writing data (JSONs, TXT, etc..)
+Data Utilities - Reading and Writing data (JSONs, TXT, etc..)
 This script should not import "maya.cmds" as it's also intended to be used outside of Maya.
 
-Code Namespace:
-    core_io  # import gt.core.io as core_io
+Import Line:
+    import gt.core.io as core_io
 """
 
+from pathlib import Path
 import zipfile
 import logging
 import shutil
 import stat
 import json
+import sys
 import os
 
 # Logging Setup
@@ -107,7 +109,7 @@ def write_json(path, data):
         path (str): The file path where the JSON data will be saved.
                     If a file exists at this path, its content will be overwritten.
                     The path must be accessible, and the necessary permissions must be granted.
-        data (dict): A Python dictionary to be converted into JSON data.
+        data (dict, list): A Python dictionary to be converted into JSON data.
 
     Returns:
         str or None: If successful, returns the path where the JSON data was saved.
@@ -130,7 +132,7 @@ def write_json(path, data):
             print(f"JSON data written to: {result}")
     """
     try:
-        if not isinstance(data, dict):
+        if not isinstance(data, (dict, list)):
             raise ValueError("Data must be a valid Python dictionary.")
 
         json_data = json.dumps(data, indent=4, ensure_ascii=False)
@@ -247,8 +249,8 @@ def set_file_permissions(file_path, permission_bits, keep_current=False):
 def set_file_permission_read_only(file_path):
     """
     Remove write permissions from this path, while keeping all other permissions intact.
-    Params:
-        path:  The path whose permissions to alter.
+    Args:
+        file_path:  The path whose permissions to alter.
     """
     set_file_permissions(file_path, PermissionBits.READ_ONLY)
 
@@ -256,8 +258,8 @@ def set_file_permission_read_only(file_path):
 def set_file_permission_modifiable(file_path):
     """
     Remove write permissions from this path, while keeping all other permissions intact.
-    Params:
-        path:  The path whose permissions to alter.
+    Args:
+        file_path:  The path whose permissions to alter.
     """
     set_file_permissions(file_path, PermissionBits.ALL_PERMISSIONS)
 
@@ -351,6 +353,35 @@ def delete_paths(paths):
         return False
 
 
+def delete_dir_files(directory_path, file_extension=None, override_permissions=True):
+    """
+    Deletes files in the specified directory. If a file extension is provided,
+    only files matching that extension will be deleted.
+
+    Args:
+        directory_path (str): Path to the directory to clean.
+        file_extension (str or None): Extension to filter by (e.g., '.json').
+                                       If None, all files will be deleted.
+        override_permissions (bool, optional): If set to true, files will be deleted regardless of their permissions.
+    Returns:
+        list: A list of the deleted files.
+    """
+    deleted_list = []
+    for filename in os.listdir(directory_path):
+        file_path = os.path.join(directory_path, filename)
+
+        if not os.path.isfile(file_path):
+            continue
+
+        _, ext = os.path.splitext(filename)
+        if file_extension is None or ext == file_extension:
+            if override_permissions:
+                set_file_permission_modifiable(file_path)
+            delete_paths(file_path)
+            deleted_list.append(file_path)
+    return deleted_list
+
+
 def query_files_in_directory(root_dir):
     """
     Query and return a list of all files in the specified directory and its subdirectories.
@@ -431,6 +462,64 @@ def is_json_serializable(data, allow_none=True):
         return True
     except (TypeError, OverflowError):
         return False
+
+
+def copy_directory(source_path, target_path, overwrite=False, verbose=False):
+    """
+    Copies all files and folders from source_path to target_path with a simple progress indicator.
+
+    Args:
+        source_path (str): Path to the source directory.
+        target_path (str): Path to the destination directory.
+        overwrite (bool, optional): Whether to overwrite existing files and folders. Defaults to False.
+        verbose (bool, optional): Whether to display progress updates. Defaults to False.
+    """
+    source = Path(source_path)
+    target = Path(target_path)
+
+    # Validate source directory
+    if not source.exists() or not source.is_dir():
+        if verbose:
+            sys.stdout.write(f"Source path '{source_path}' does not exist or is not a directory.")
+        return
+
+    # Create target directory if it doesn't exist
+    target.mkdir(parents=True, exist_ok=True)
+
+    # Get all files and directories in the source directory
+    files = list(source.rglob("*"))  # Get all files and directories
+    total_files = len(files)
+    copied_files = 0
+    skipped_files = 0
+
+    # Start copying files
+    for item in files:
+        rel_path = item.relative_to(source)
+        dest = target / rel_path
+
+        # Handle directories
+        if item.is_dir():
+            if not dest.exists():
+                dest.mkdir(parents=True)
+                copied_files += 1
+                if verbose:
+                    sys.stdout.write(f"Created directory: {dest}")
+        # Handle files
+        else:
+            if not dest.exists() or overwrite:
+                shutil.copy2(item, dest)
+                copied_files += 1
+                if verbose:
+                    sys.stdout.write(f"Copied file: {item} -> {dest}")
+            else:
+                skipped_files += 1
+                if verbose:
+                    sys.stdout.write(f"Skipped file (already exists, no overwrite): {item}")
+
+        # Print progress during the copy
+        if verbose:
+            sys.stdout.write(f"Progress: {copied_files}/{total_files} files copied, {skipped_files} skipped.\r")
+            sys.stdout.flush()
 
 
 if __name__ == "__main__":

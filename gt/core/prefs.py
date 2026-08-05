@@ -1,9 +1,9 @@
 """
-Preferences Module - Settings and Getting persistent settings using JSONs
+Preferences Utilities - Settings and Getting persistent settings using JSONs
 This script should not directly import "maya.cmds" as it's also intended to be used outside of Maya.
 
-Code Namespace:
-    core_prefs  # import gt.core.prefs as core_prefs
+Import Line:
+    import gt.core.prefs as core_prefs
 """
 
 from gt.utils.system import get_maya_preferences_dir, get_system, get_temp_dir
@@ -20,21 +20,9 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 # Constants
-PACKAGE_GLOBAL_PREFS = "package_prefs"
+PACKAGE_GLOBAL_PREFS = "gt"
 PACKAGE_PREFS_DIR = "prefs"
 PACKAGE_PREFS_EXT = "json"
-
-
-def get_prefs_dir():
-    """
-    Gets the path to the package prefs (preferences) directory. e.g. ".../Documents/maya/gt-tools/prefs"
-    Returns:
-        str: Path to package prefs dir. e.g. ".../Documents/maya/gt-tools/prefs"
-    """
-    _maya_preferences_dir = get_maya_preferences_dir(get_system())
-    _package_parent_dir = os.path.join(_maya_preferences_dir, PACKAGE_NAME)
-    _prefs_dir = os.path.join(_package_parent_dir, PACKAGE_PREFS_DIR)
-    return _prefs_dir
 
 
 class Prefs:
@@ -47,7 +35,7 @@ class Prefs:
                               This name should ideally end with the suffix "_prefs" to clarify its use.
             location_dir (str, optional): Path to a folder where it should save the JSON file.
                                           By default, preferences are saved in the package installation path.
-                                          e.g. "Documents/maya/gt-tools/prefs"
+                                          e.g. "Documents/maya/gt_tools/prefs"
         """
         self.prefs_name = prefs_name
         self.sub_folder = prefs_name
@@ -224,6 +212,14 @@ class Prefs:
         write_json(path=self.file_name, data=self.preferences)
 
     # ------------------------------------ Utilities ------------------------------------
+    def get_dir_path(self):
+        """
+        Returns the directory path where the preference file is stored.
+
+        Returns:
+            str: The path to the directory containing the preferences file.
+        """
+        return os.path.dirname(self.file_name)
 
     def delete_all(self):
         """
@@ -282,6 +278,8 @@ class Prefs:
 
     def set_user_files_sub_folder(self, sub_folder_name):
         """
+        Sets the user files sub folder name.
+        Args:
         sub_folder_name (str): Name of the sub-folder created for the user file.
                                If not provided, it will use the preferences name as the name of the sub-folder.
                                This variable will also be stored in "self.user_files_sub_folders" used to later
@@ -295,6 +293,9 @@ class Prefs:
     def get_user_files_dir_path(self, create_if_missing=True):
         """
         Returns the full path to the user files directory
+        Args:
+            create_if_missing (bool, optional): Whether to create the directory if it does not exist.
+                                                Defaults to True.
 
         Returns:
             str: Path to the user files directory
@@ -362,6 +363,8 @@ class Prefs:
     def get_all_user_files(self, verbose=False):
         """
         Returns a list of all user files (custom files stored in prefs/sub_folder)
+        Args:
+            verbose (bool, optional): If true, the function will log warnings when failing to find the user files.
         Returns:
             dict: A dictionary of files in the preferences sub-folder. Dictionary pattern: {"file_name.ext": "path"}
         """
@@ -409,6 +412,41 @@ class PackagePrefs(Prefs):
         """
         return self.get_bool("dev_menu_visible", default=False)
 
+    def set_legacy_menu_visibility(self, legacy_menu_state):
+        """Sets the visibility state of the legacy tools menu.
+
+        Args:
+            legacy_menu_state (bool): New visibility state for the legacy menu.
+        """
+        self.set_bool("legacy_menu_visible", legacy_menu_state)
+
+    def is_legacy_menu_visible(self):
+        """Gets the visibility state of the legacy tools menu.
+
+        Returns:
+            bool: Stored legacy menu visibility. Defaults to False.
+        """
+        return self.get_bool("legacy_menu_visible", default=False)
+
+    def set_dependency_auto_install(self, auto_install_state):
+        """Sets whether missing Python dependencies install automatically.
+
+        Args:
+            auto_install_state (bool): New automatic installation state.
+        """
+        self.set_bool("dependency_auto_install", auto_install_state)
+
+    def is_dependency_auto_install_enabled(self, default=True):
+        """Gets whether missing Python dependencies install automatically.
+
+        Args:
+            default (bool, optional): State returned when no preference exists.
+
+        Returns:
+            bool: Stored automatic installation state.
+        """
+        return self.get_bool("dependency_auto_install", default=default)
+
     def set_skip_menu_creation(self, skip_menu_creation):
         """
         Sets preference that determines if menu will be created when initializing package.
@@ -431,6 +469,13 @@ class PackagePrefs(Prefs):
 
 class PackageCache:
     def __init__(self, custom_cache_dir=None):
+        """
+        Initialize the PackageCache.
+
+        Args:
+            custom_cache_dir (str or None): Optional custom directory to use for caching.
+                If provided and exists, it overrides the default cache location.
+        """
         _package_installation_dir = os.path.dirname(get_prefs_dir())
         if os.path.exists(_package_installation_dir):
             _cache_dir = os.path.join(_package_installation_dir, "cache")
@@ -491,6 +536,135 @@ class PackageCache:
         delete_paths(self.cache_dir)
 
 
+class RecentProjects:
+    """Maintains a most-recently-used list of project paths in Prefs."""
+
+    def __init__(self, prefs, key, max_count=5):
+        """Initializes the recent-project list.
+
+        Args:
+            prefs (Prefs): Preference object used for persistence.
+            key (str): Preference key used to store the path list.
+            max_count (int, optional): Maximum number of paths to retain.
+        """
+        self.prefs = prefs
+        self.key = key
+        self.max_count = max(1, int(max_count))
+
+    @staticmethod
+    def normalize_path(file_path):
+        """Normalizes a project path for persistent storage.
+
+        Args:
+            file_path (str): Project file path.
+
+        Returns:
+            str: Absolute normalized path, or an empty string for invalid input.
+        """
+        if not isinstance(file_path, str) or not file_path.strip():
+            return ""
+        return os.path.normpath(os.path.abspath(os.path.expanduser(file_path.strip())))
+
+    @staticmethod
+    def _comparison_key(file_path):
+        """Builds a platform-aware key used to compare project paths.
+
+        Args:
+            file_path (str): Normalized project file path.
+
+        Returns:
+            str: Normalized comparison key.
+        """
+        return os.path.normcase(file_path)
+
+    def get_paths(self):
+        """Gets normalized, de-duplicated recent project paths.
+
+        Returns:
+            list: Recent project paths ordered from newest to oldest.
+        """
+        raw_paths = self.prefs.get_raw_preferences().get(self.key, [])
+        if not isinstance(raw_paths, list):
+            return []
+        recent_paths = []
+        known_paths = set()
+        for raw_path in raw_paths:
+            normalized_path = self.normalize_path(raw_path)
+            comparison_key = self._comparison_key(normalized_path)
+            if not normalized_path or comparison_key in known_paths:
+                continue
+            known_paths.add(comparison_key)
+            recent_paths.append(normalized_path)
+            if len(recent_paths) >= self.max_count:
+                break
+        return recent_paths
+
+    def add_path(self, file_path):
+        """Adds a path to the front of the recent-project list and saves it.
+
+        Args:
+            file_path (str): Project file path to add.
+
+        Returns:
+            list: Updated recent project paths.
+        """
+        normalized_path = self.normalize_path(file_path)
+        if not normalized_path:
+            return self.get_paths()
+        comparison_key = self._comparison_key(normalized_path)
+        recent_paths = [
+            path for path in self.get_paths() if self._comparison_key(path) != comparison_key
+        ]
+        recent_paths.insert(0, normalized_path)
+        return self._store_paths(recent_paths[: self.max_count])
+
+    def remove_path(self, file_path):
+        """Removes a path from the recent-project list and saves it.
+
+        Args:
+            file_path (str): Project file path to remove.
+
+        Returns:
+            list: Updated recent project paths.
+        """
+        normalized_path = self.normalize_path(file_path)
+        comparison_key = self._comparison_key(normalized_path)
+        recent_paths = [
+            path for path in self.get_paths() if self._comparison_key(path) != comparison_key
+        ]
+        return self._store_paths(recent_paths)
+
+    def clear(self):
+        """Clears and saves the recent-project list."""
+        self._store_paths([])
+
+    def _store_paths(self, paths):
+        """Stores project paths in the associated preference object.
+
+        Args:
+            paths (list): Project paths to store.
+
+        Returns:
+            list: Stored project paths.
+        """
+        preferences = self.prefs.get_raw_preferences()
+        preferences[self.key] = list(paths)
+        self.prefs.save()
+        return list(paths)
+
+
+def get_prefs_dir():
+    """
+    Gets the path to the package prefs (preferences) directory. e.g. ".../Documents/maya/gt_tools/prefs"
+    Returns:
+        str: Path to package prefs dir. e.g. ".../Documents/maya/gt-tools/prefs"
+    """
+    _maya_preferences_dir = get_maya_preferences_dir(get_system())
+    _package_parent_dir = os.path.join(_maya_preferences_dir, PACKAGE_NAME)
+    _prefs_dir = os.path.join(_package_parent_dir, PACKAGE_PREFS_DIR)
+    return _prefs_dir
+
+
 def toggle_dev_sub_menu():
     """
     Toggles development mode preference.
@@ -502,6 +676,37 @@ def toggle_dev_sub_menu():
     prefs.save()
     feedback = FeedbackMessage(
         intro="Development Menu Visibility set to:",
+        conclusion=str(inverted_state),
+        style_conclusion="color:#FF0000;text-decoration:underline;",
+    )
+    feedback.print_inview_message()
+
+
+def toggle_legacy_sub_menu():
+    """Toggles the legacy tools menu preference."""
+    prefs = PackagePrefs()
+    inverted_state = not prefs.is_legacy_menu_visible()
+    prefs.set_legacy_menu_visibility(inverted_state)
+    prefs.save()
+    feedback = FeedbackMessage(
+        intro="Legacy Menu Visibility set to:",
+        conclusion=str(inverted_state),
+        style_conclusion="color:#FF0000;text-decoration:underline;",
+    )
+    feedback.print_inview_message()
+
+
+def toggle_dependency_auto_install():
+    """Toggles automatic installation of missing Python dependencies."""
+    from gt.utils.dependency import DEFAULT_AUTO_INSTALL
+
+    prefs = PackagePrefs()
+    current_state = prefs.is_dependency_auto_install_enabled(default=DEFAULT_AUTO_INSTALL)
+    inverted_state = not current_state
+    prefs.set_dependency_auto_install(inverted_state)
+    prefs.save()
+    feedback = FeedbackMessage(
+        intro="Automatic Dependency Installation set to:",
         conclusion=str(inverted_state),
         style_conclusion="color:#FF0000;text-decoration:underline;",
     )

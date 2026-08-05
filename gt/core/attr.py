@@ -1,8 +1,8 @@
 """
-Attributes Module
+Attribute Utilities
 
-Code Namespace:
-    core_attr  # import gt.core.attr as core_attr
+Import Line:
+    import gt.core.attr as core_attr
 """
 
 import gt.core.feedback as core_fback
@@ -302,10 +302,10 @@ def rescale(obj, scale, freeze=True):
     Sets the scaleXYZ to the provided scale value.
     It's also possible to freeze the object, so its components receive a new scale instead.
     Args:
-        obj (string) Name of the object, for example "pSphere1"
-        scale (float) The new scale value, for example 0.5
+        obj (str): Name of the object, for example "pSphere1"
+        scale (float): The new scale value, for example 0.5
                       (this would cause it to be half of its initial size in case it was previously one)
-        freeze: (bool) Determines if the object scale should be frozen after updated
+        freeze: (bool, optional): Determines if the object scale should be frozen after updated.
     """
     cmds.setAttr(obj + ".scaleX", scale)
     cmds.setAttr(obj + ".scaleY", scale)
@@ -461,7 +461,10 @@ def get_attr(
         attribute_path = f"{obj_name}.{attr_name}"
 
     if attribute_path and not cmds.objExists(attribute_path):
-        message = f"Unable to get attribute. Missing source attribute or non-unique name conflict."
+        message = (
+            f"Unable to get attribute. "
+            f'Missing source attribute or non-unique name conflict. Attribute Path: "{attribute_path}".'
+        )
         core_fback.log_when_true(logger, message, do_log=verbose, level=log_level)
         return None
 
@@ -548,6 +551,75 @@ def get_multiple_attr(
                         raise e
 
     return attribute_values
+
+
+def get_attrs_as_dict(
+    obj,
+    filter_locked=True,
+    filter_connected=True,
+    filter_non_keyable=True,
+    full_attr_path=True,
+    get_default=True,
+    get_user_defined=True,
+):
+    """
+    Get all attributes and values from an object as dictionary
+    Using the following format: {"object_name.attr_name": "value"}
+    Args:
+        obj (str, Node): Name, Node or Path for a maya object.
+        filter_locked (bool, optional): If True, locked attributes are ignored.
+        filter_connected (bool, optional): If True, attributes with incoming connections are ignored.
+        filter_non_keyable (bool, optional): If True, non-keyable attributes are ignored.
+        full_attr_path (bool, optional): Includes the name of the object in the key. e.g. {"pSphere.v": True}
+        get_default (bool, optional): If True, it includes translate, rotate, scale and visibility channels.
+        get_user_defined (bool, optional): If True, it includes user-defined attributes.
+
+    Returns:
+        dict: A dictionary where the attributes are the keys and the values are the current value of the attribute.
+             e.g. {"pSphere.tx": 15} or {"tx": 15} when
+    """
+    # # List all user-defined attributes
+    attr_list = []
+    if get_default:
+        attr_list += DEFAULT_ATTRS
+    if get_user_defined:
+        attr_list += list_user_defined_attr(obj=obj) or []
+
+    # Filter Locked
+    if filter_locked:
+        unlocked_attrs = []
+        for attr in attr_list:
+            if not cmds.getAttr(f"{obj}.{attr}", lock=True):
+                unlocked_attrs.append(attr)
+        attr_list = unlocked_attrs
+
+    # Filter Incoming Connections
+    if filter_connected:
+        disconnected_attrs = []
+        for attr in attr_list:
+            if not cmds.listConnections(f"{obj}.{attr}", source=True, destination=False):
+                disconnected_attrs.append(attr)
+        attr_list = disconnected_attrs
+
+    # Filter Non-Keyable
+    if filter_non_keyable:
+        visible_attrs = []
+        for attr in attr_list:
+            if cmds.getAttr(f"{obj}.{attr}", keyable=True):
+                visible_attrs.append(attr)
+        attr_list = visible_attrs
+
+    # Get attributes and their values
+    attr_data = {}
+    for attr in attr_list:
+        attr_full = f"{obj}.{attr}"
+        attr_value = cmds.getAttr(attr_full)
+        if full_attr_path:
+            attr_data[attr_full] = attr_value
+        else:
+            attr_data[attr] = attr_value
+
+    return attr_data
 
 
 def get_trs_attr_as_list(obj, verbose=True):
@@ -637,9 +709,9 @@ def get_trs_attr_as_python(obj_list, use_loop=False, decimal_place=2, strip_zero
     """
     Args:
         obj_list (list, str): List objects to extract the transform from (If a string, it gets auto converted to list)
-        use_loop (optional, bool): If active, it will use a for loop in the output code (instead of simple lines)
-        decimal_place (optional, int): How precise you want the extracted values to be (formats the float it gets)
-        strip_zeroes (optional, bool): If active, it will remove unnecessary zeroes (e.g. 0.0 -> 0)
+        use_loop ( bool, optional): If active, it will use a for loop in the output code (instead of simple lines)
+        decimal_place ( int, optional): How precise you want the extracted values to be (formats the float it gets)
+        strip_zeroes ( bool, optional): If active, it will remove unnecessary zeroes (e.g. 0.0 -> 0)
 
     Returns:
         str: Python code used to set translate, rotate, and scale attributes.
@@ -821,7 +893,7 @@ def add_attr(
                          For a full list see the documentation for "cmds.addAttr".
         minimum: Minimum value for the attribute. Optional.
         maximum: Maximum value for the attribute. Optional.
-        enum (string, optional): A string with a list of potential enums. e.g. "Option1:Option2:Option3"
+        enum (str, optional): A string with a list of potential enums. e.g. "Option1:Option2:Option3"
         default: Default value for the attribute. Optional.
         is_keyable (bool, optional): Whether the attribute should be keyable. Default is True.
         verbose (bool, optional): If active, this function will alert the user in case there were errors.
@@ -1083,27 +1155,101 @@ def connect_attr(
                 raise e
 
 
+def disconnect_attr(
+    attribute_path=None, obj_list=None, attr_list=None, source=True, destination=True, keep_unlocked=False
+):
+    """
+    Disconnects the supplied attributes. This operation unlocks the attribute and remove all the connections.
+
+    Args:
+        attribute_path (str, optional): A single-line object attribute path in the format "object.attribute".
+        obj_list (str ,list, optional): The name of the object or a list of object names. e.g. ["cube1", "cube2"]
+        attr_list (str ,list, optional): The name of the attribute or a list of attribute names. e.g. ["tx", "ty"]
+        source (bool): Give the attributes/objects that are on the "source" side of connection to the given object.
+        destination (bool): Give the attributes/objects that are on the "destination" side of conn to the given object.
+        keep_unlocked (bool): if the attr is locked, it will be unlocked to disconnect, it won't be re-locked after.
+    """
+    attributes_to_set = set()
+    # Add One Line Attribute
+    if attribute_path and isinstance(attribute_path, str):
+        attributes_to_set.add(attribute_path)
+
+    # Add object and attribute lists
+    if isinstance(obj_list, str):
+        obj_list = [obj_list]
+    if isinstance(attr_list, str):
+        attr_list = [attr_list]
+    if obj_list and attr_list and isinstance(obj_list, list) and isinstance(attr_list, list):  # Exists and is list
+        for attr in attr_list:
+            for obj in obj_list:
+                attributes_to_set.add(f"{obj}.{attr}")
+
+    for attr_path in attributes_to_set:
+        node, attr = attr_path.split(".")
+
+        if cmds.attributeQuery(attr, node=node, ex=True):
+            connection_pairs = []
+            if source:
+                conns = cmds.listConnections(attr_path, plugs=True, connections=True, destination=False)
+                if conns:
+                    connection_pairs.extend(zip(conns[1::2], conns[::2]))
+            if destination:
+                conns = cmds.listConnections(attr_path, plugs=True, connections=True, source=False)
+                if conns:
+                    connection_pairs.extend(zip(conns[::2], conns[1::2]))
+
+            for first_plug, second_plug in connection_pairs:
+
+                # check lock
+                first_plug_locked = False
+                second_plug_locked = False
+                if cmds.getAttr(first_plug, lock=True):
+                    first_plug_locked = True
+                    cmds.setAttr(first_plug, lock=False)
+                if cmds.getAttr(second_plug, lock=True):
+                    second_plug_locked = True
+                    cmds.setAttr(second_plug, lock=False)
+
+                # disconnect pairs
+                try:
+                    cmds.disconnectAttr(first_plug, second_plug)
+                except Exception as e:
+                    logger.warning(
+                        f"Cannot disconnect the following connected attributes: {first_plug}, {second_plug}."
+                        f"Error occurred: {str(e)}"
+                    )
+
+                # re-enable lock
+                if not keep_unlocked:
+                    if first_plug_locked:
+                        cmds.setAttr(first_plug, lock=True)
+                    if second_plug_locked:
+                        cmds.setAttr(second_plug, lock=True)
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    sel = cmds.ls(selection=True)
+    # sel = cmds.ls(selection=True)
     # add_attr(obj_list=sel, attributes=["custom_attr_one", "custom_attr_two"])
     # delete_user_defined_attrs(sel)
-    cmds.file(new=True, force=True)
-    cube_one = cmds.polyCube(ch=False)[0]
-    cube_two = cmds.polyCube(ch=False)[0]
-    add_attr(cube_one, attr_type="double", attributes="doubleAttr")
-    add_attr(cube_one, attr_type="long", attributes="intAttr")
-    add_attr(cube_one, attr_type="enum", attributes="enumAttr", enum="Option1:Option2:Option3")
-    add_attr(cube_one, attr_type="bool", attributes="boolAttr")
-    add_attr(cube_one, attr_type="string", attributes="stringAttr")
-
-    reroute_attr(
-        source_attrs=[
-            f"{cube_one}.doubleAttr",
-            f"{cube_one}.intAttr",
-            f"{cube_one}.enumAttr",
-            f"{cube_one}.boolAttr",
-            f"{cube_one}.stringAttr",
-        ],
-        target_obj=cube_two,
-    )
+    # cmds.file(new=True, force=True)
+    # cube_one = cmds.polyCube(ch=False)[0]
+    # cube_two = cmds.polyCube(ch=False)[0]
+    # add_attr(cube_one, attr_type="double", attributes="doubleAttr")
+    # add_attr(cube_one, attr_type="long", attributes="intAttr")
+    # add_attr(cube_one, attr_type="enum", attributes="enumAttr", enum="Option1:Option2:Option3")
+    # add_attr(cube_one, attr_type="bool", attributes="boolAttr")
+    # add_attr(cube_one, attr_type="string", attributes="stringAttr")
+    # set_attr_state(attribute_path=f"{cube_one}.")
+    #
+    # reroute_attr(
+    #     source_attrs=[
+    #         f"{cube_one}.doubleAttr",
+    #         f"{cube_one}.intAttr",
+    #         f"{cube_one}.enumAttr",
+    #         f"{cube_one}.boolAttr",
+    #         f"{cube_one}.stringAttr",
+    #     ],
+    #     target_obj=cube_two,
+    # )
+    print(get_attrs_as_dict("target:L_leg_CTRL", filter_non_keyable=False))

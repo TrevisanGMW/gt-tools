@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+	<g id="tool_x5F_batch_x5F_processor">
+		<!-- Three lively source cards form the incoming batch. -->
+		<g transform="rotate(-12 113 126)">
+			<rect x="55" y="55" width="116" height="142" rx="16" style="fill:#6BBE66;stroke:#1D1D1D;stroke-width:16;"/>
+			<path d="M127,55 L171,99 H127 Z" style="fill:#A5E39F;stroke:#1D1D1D;stroke-width:12;stroke-linejoin:round;"/>
+			<line x1="78" y1="130" x2="145" y2="130" style="stroke:#1D1D1D;stroke-width:14;stroke-linecap:round;"/>
+			<line x1="78" y1="160" x2="128" y2="160" style="stroke:#1D1D1D;stroke-width:14;stroke-linecap:round;"/>
+		</g>
+		<g>
+			<rect x="198" y="31" width="116" height="142" rx="16" style="fill:#7DD875;stroke:#1D1D1D;stroke-width:16;"/>
+			<path d="M270,31 L314,75 H270 Z" style="fill:#B7EDB2;stroke:#1D1D1D;stroke-width:12;stroke-linejoin:round;"/>
+			<line x1="221" y1="106" x2="288" y2="106" style="stroke:#1D1D1D;stroke-width:14;stroke-linecap:round;"/>
+			<line x1="221" y1="136" x2="271" y2="136" style="stroke:#1D1D1D;stroke-width:14;stroke-linecap:round;"/>
+		</g>
+		<g transform="rotate(12 399 126)">
+			<rect x="341" y="55" width="116" height="142" rx="16" style="fill:#6BBE66;stroke:#1D1D1D;stroke-width:16;"/>
+			<path d="M413,55 L457,99 H413 Z" style="fill:#A5E39F;stroke:#1D1D1D;stroke-width:12;stroke-linejoin:round;"/>
+			<line x1="364" y1="130" x2="431" y2="130" style="stroke:#1D1D1D;stroke-width:14;stroke-linecap:round;"/>
+			<line x1="364" y1="160" x2="414" y2="160" style="stroke:#1D1D1D;stroke-width:14;stroke-linecap:round;"/>
+		</g>
+
+		<!-- A friendly funnel combines the batch into one processed result. -->
+		<path d="M62,225 Q62,205 82,205 H430 Q450,205 450,225 L321,349 V430 L256,474 L191,430 V349 Z"
+			  style="fill:#BDBDBD;stroke:#1D1D1D;stroke-width:20;stroke-linejoin:round;"/>
+		<path d="M88,225 H424 L302,341 V416 L256,447 L210,416 V341 Z" style="fill:#6BBE66;"/>
+
+		<!-- Sparkles make the processing action feel active and playful. -->
+		<path d="M256,241 L270,278 L307,292 L270,306 L256,343 L242,306 L205,292 L242,278 Z"
+			  style="fill:#D9F4D6;stroke:#1D1D1D;stroke-width:12;stroke-linejoin:round;"/>
+		<circle cx="156" cy="273" r="16" style="fill:#7DD875;stroke:#1D1D1D;stroke-width:10;"/>
+		<circle cx="356" cy="271" r="16" style="fill:#7DD875;stroke:#1D1D1D;stroke-width:10;"/>
+		<path d="M239,413 L256,430 L285,397" style="fill:none;stroke:#1D1D1D;stroke-width:16;stroke-linecap:round;stroke-linejoin:round;"/>
+	</g>
+</svg>

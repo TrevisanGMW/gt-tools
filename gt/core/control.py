@@ -1,8 +1,8 @@
 """
-Control Utilities (a.k.a. Complex Curves)
+Control Utilities (Complex Curves with Logic)
 
-Code Namespace:
-    core_cnstr  # import gt.core.constraint as core_cnstr
+Import Line:
+    import gt.core.control as core_ctrl
 """
 
 from gt.core.color import set_color_viewport, get_directional_color

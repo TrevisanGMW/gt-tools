@@ -58,6 +58,12 @@ class TestStringCore(unittest.TestCase):
         result = core_str.camel_case_split(input_string=string_to_test)
         self.assertEqual(expected, result)
 
+    def test_camel_case_split_acronym(self):
+        string_to_test = "oneTwoIKThree"
+        expected = ["one", "Two", "IK", "Three"]
+        result = core_str.camel_case_split(input_string=string_to_test)
+        self.assertEqual(expected, result)
+
     def test_string_list_to_snake_case(self):
         string_list = ["one", "Two", "Three"]
         expected = "one_two_three"

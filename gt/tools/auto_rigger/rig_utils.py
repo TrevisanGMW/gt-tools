@@ -1,34 +1,82 @@
 """
 Auto Rigger Utilities
 
-Code Namespace:
-    tools_rig_utils # import gt.tools.auto_rigger.rig_utils as tools_rig_utils
+Import Line:
+    import gt.tools.auto_rigger.rig_utils as tools_rig_utils
 """
 
 import gt.tools.auto_rigger.rig_constants as tools_rig_const
 import gt.tools.auto_rigger.rig_framework as tools_rig_frm
-import gt.core.transform as core_trans
 import gt.core.constraint as core_cnstr
-import gt.core.rigging as core_rigging
+import gt.core.namespace as core_nspace
+import gt.core.transform as core_trans
 import gt.core.hierarchy as core_hrchy
+import gt.core.rigging as core_rigging
 import gt.core.naming as core_naming
+import gt.core.iterable as core_iter
 import gt.core.curve as core_curve
 import gt.core.color as core_color
-import gt.core.str as core_str
+import gt.core.logger as core_log
 import gt.core.attr as core_attr
 import gt.core.node as core_node
 import gt.core.uuid as core_uuid
+import gt.core.str as core_str
+import gt.core.pose as core_pose
+import maya.api.OpenMaya as OpenMayaApi
+import maya.OpenMaya as OpenMaya
 import maya.cmds as cmds
 import logging
 import json
+import copy
+import os
 
 # Logging Setup
-logging.basicConfig()
-logger = logging.getLogger(__name__)
+logger_name = core_log.get_logger_name(__name__)
+logger = core_log.setup_common_logger(name=logger_name, propagate=True)
 logger.setLevel(logging.INFO)
+core_log.add_custom_log_levels()
 
 
 # ------------------------------------------ Lookup functions ------------------------------------------
+def cache_driver_uuids_to_dict():
+    """
+    Collects all transform nodes in the Maya scene that have the driver UUID attribute
+    and groups them by their UUID.
+
+    This function scans the scene for all objects of type "transform" and checks if they
+    contain the attribute defined by `tools_rig_const.RiggerConstants.ATTR_DRIVER_UUID`.
+    If present, the attribute's value (UUID) is retrieved, and the object is stored in a
+    dictionary keyed by that UUID.
+
+    Returns:
+        dict[str, list[str]]:
+            A dictionary mapping each found UUID (as a string) to a list of full
+            object paths (long names) that share that UUID.
+            - Keys: UUID strings.
+            - Values: Lists of object long paths that have this UUID.
+            If multiple objects share the same UUID, they are grouped in the same list.
+
+    Example:
+        {
+            "ekmnpw3tuk6f-fk-lowerArm": [
+                "|group1|driver1",
+                "|group2|driver2"
+            ],
+            "ekmnpw3tuk6f-fk-hand": [
+                "|group3|driver3"
+            ]
+        }
+    """
+    obj_list = cmds.ls(typ="transform", long=True) or []
+    uuid_path_pairs = {}
+    for obj in obj_list:
+        attr_path = f"{obj}.{tools_rig_const.RiggerConstants.ATTR_DRIVER_UUID}"
+        if cmds.objExists(attr_path):
+            uuid = cmds.getAttr(attr_path)
+            uuid_path_pairs.setdefault(uuid, []).append(obj)
+    return uuid_path_pairs
+
+
 def find_proxy_from_uuid(uuid_string):
     """
     Return a proxy if the provided UUID is present in the attribute RiggerConstants.PROXY_ATTR_UUID
@@ -293,38 +341,81 @@ def find_or_create_joint_automation_group():
     return get_automation_group(name="jointAutomation", rgb_color=core_color.ColorConstants.RigOutliner.GRP_SKELETON)
 
 
-def find_drivers_from_module(module_uuid, filter_driver_type=None, filter_driver_purpose=None):
+def find_drivers_from_module(
+    source_uuid, filter_driver_type=None, filter_driver_purpose=None, cached_driver_uuids=None
+):
     """
     Finds all drivers belonging to a module.
     Args:
-        module_uuid (str, ModuleGeneric): The UUID to use when filtering all existing drivers.
-        filter_driver_type (str, optional): If provided, only drivers of this type are returned.
-        filter_driver_purpose (str, optional): If provided, only drivers of this purpose are returned.
+        source_uuid (str, ModuleGeneric, RigProject): The used when filtering all existing drivers.
+        filter_driver_type (str, list, optional): If provided, only drivers of this type are returned.
+        filter_driver_purpose (str, list, optional): If provided, only drivers of this purpose are returned.
+        cached_driver_uuids (dict, optional): If provided, this dictionary will be used to determine which objects
+                                              are available in the scene. This is for optimizing the amount of checks
+                                              required to find all drivers. Use "cache_driver_uuids_to_dict()" for that.
     Returns:
         list: A list of Nodes, each one is a driver belonging to the module uuid provided as argument.
     """
-    from gt.tools.auto_rigger.rig_framework import ModuleGeneric
-
-    if module_uuid and isinstance(module_uuid, ModuleGeneric):
-        module_uuid = module_uuid.get_uuid()
+    if source_uuid and not isinstance(source_uuid, str):
+        source_uuid = source_uuid.get_uuid()
     module_drivers = []
     transforms = cmds.ls(typ="transform", long=True) or []
-    for obj in transforms:
-        attr_path = f"{obj}.{tools_rig_const.RiggerConstants.ATTR_DRIVER_UUID}"
+
+    # Normalize filter parameters to lists for easier processing
+    if isinstance(filter_driver_type, str):
+        filter_driver_type = [filter_driver_type]
+    if isinstance(filter_driver_purpose, str):
+        filter_driver_purpose = [filter_driver_purpose]
+
+    # Cached solution (Fast)
+    if cached_driver_uuids and isinstance(cached_driver_uuids, dict):
+        for drv_uuid, long_paths in cached_driver_uuids.items():
+            # Split the attribute value into components
+            attr_components = str(drv_uuid).split("-")
+            if len(attr_components) != 3:
+                continue  # Invalid UUID structure, skip it
+            attr_type, attr_purpose = attr_components[1], attr_components[2]
+            for path in long_paths:
+                if attr_purpose == "unknown":
+                    base_name_path = f"{path}.{tools_rig_const.RiggerConstants.ATTR_BASE_NAME}"
+                    base_name_value = core_attr.get_attr(attribute_path=base_name_path, verbose=False)
+                    attr_purpose = base_name_value
+                # Filter by type
+                if filter_driver_type and attr_type not in filter_driver_type:
+                    continue  # Not of the desired type, skip it
+                # Filter by purpose
+                if filter_driver_purpose and attr_purpose not in filter_driver_purpose:
+                    continue  # Not of the desired purpose, skip it
+                if drv_uuid.startswith(source_uuid):
+                    # for obj in long_paths:
+                    module_drivers.append(core_node.Node(path))
+        return module_drivers
+
+    # Full Walkthrough (Slow)
+    for trans in transforms:
+        attr_path = f"{trans}.{tools_rig_const.RiggerConstants.ATTR_DRIVER_UUID}"
         if cmds.objExists(attr_path):
             attr_value = core_attr.get_attr(attribute_path=attr_path)
             if not attr_value:
                 continue  # Missing UUID driver data, skip it
-            if filter_driver_type and isinstance(filter_driver_type, str):
-                # Check if it has valid content
-                if len(str(attr_value).split("-")) == 3 and str(attr_value).split("-")[1] != filter_driver_type:
-                    continue  # Not of the desired type, skip it
-            if filter_driver_purpose and isinstance(filter_driver_purpose, str):
-                # Check if it has valid content
-                if len(str(attr_value).split("-")) == 3 and str(attr_value).split("-")[2] != filter_driver_purpose:
-                    continue  # Not of the desired purpose, skip it
-            if attr_value.startswith(module_uuid):
-                module_drivers.append(core_node.Node(obj))
+            # Split the attribute value into components
+            attr_components = str(attr_value).split("-")
+            if len(attr_components) != 3:
+                continue  # Invalid UUID structure, skip it
+            attr_type, attr_purpose = attr_components[1], attr_components[2]
+            if attr_purpose == "unknown":
+                base_name_path = f"{trans}.{tools_rig_const.RiggerConstants.ATTR_BASE_NAME}"
+                base_name_value = core_attr.get_attr(attribute_path=base_name_path, verbose=False)
+                attr_purpose = base_name_value
+            # Filter by type
+            if filter_driver_type and attr_type not in filter_driver_type:
+                continue  # Not of the desired type, skip it
+            # Filter by purpose
+            if filter_driver_purpose and attr_purpose not in filter_driver_purpose:
+                continue  # Not of the desired purpose, skip it
+            if attr_value.startswith(source_uuid):
+                module_drivers.append(core_node.Node(trans))
+
     # Find Supporting Drivers
     for driver in module_drivers:
         if not cmds.objExists(f"{driver}.{tools_rig_const.RiggerConstants.ATTR_DRIVER_UUID}"):
@@ -522,6 +613,8 @@ def create_ctrl_global(prefix=core_naming.NamingConstants.Prefix.CENTER):
 def create_ctrl_global_offset(prefix=core_naming.NamingConstants.Prefix.CENTER):
     """
     Creates a curve to be used as the offset of the root/global control of a rig skeleton
+    Args:
+        prefix (str, optional): Defines a prefix for the created control.
     Returns:
         Node, str: A Node containing the generated root curve
     """
@@ -741,6 +834,11 @@ def get_drivers_list_from_joint(source_joint):
     Gets the list of drivers that are stored in a joint drivers attribute.
     If missing the attribute, it will return an empty list.
     If the string data stored in the attribute is corrupted, it will return an empty list.
+    Args:
+        source_joint (str): The name of the joint from which to read the drivers attribute.
+
+    Returns:
+        list: List of drivers or empty list if none found or invalid.
     """
     drivers = core_attr.get_attr(obj_name=source_joint, attr_name=tools_rig_const.RiggerConstants.ATTR_JOINT_DRIVERS)
     if drivers:
@@ -872,15 +970,14 @@ def add_driver_uuid_attr(target_driver, module_uuid, driver_type=None, proxy_pur
              Pattern: "<module_uuid>-<driver_type>-<proxy_purpose>" e.g. "abcdef123456-fk-shoulder"
     """
     if not module_uuid or not isinstance(module_uuid, str):
-        logger.warning(f"Unable to add UUID attribute. Module UUID is missing.")
-        return
+        module_uuid = "unknown"
     uuid = f"{module_uuid}"
     # Add Driver Type
     if not driver_type:
         driver_type = "unknown"  # Unknown driver / Missing
     uuid = f"{uuid}-{driver_type}"
     # Add Purpose
-    if proxy_purpose and isinstance(proxy_purpose, tools_rig_frm.Proxy):
+    if proxy_purpose and hasattr(proxy_purpose, "get_meta_purpose") and callable(proxy_purpose.get_meta_purpose):
         proxy_purpose = proxy_purpose.get_meta_purpose()
     if not proxy_purpose:
         proxy_purpose = "unknown"  # Unknown purpose / Missing
@@ -1024,6 +1121,112 @@ def create_twist_joints(
     return twist_joints
 
 
+def create_twist_setup(twist_jnt_list, mid_joints, side, reverse=False, reverse_matrix=False):
+    """Creates native Maya twist extraction networks for a joint chain.
+
+    Args:
+        twist_jnt_list (list): List of all the joints.
+        mid_joints (float): Number of joints that are not a duplicate of the start/end of the chain.
+        side (str): Side of the operation.
+        reverse (bool): Reverse the twist (usually for upperArm / upperLeg behaviour).
+        reverse_matrix (bool): Additional operation for reversing the matrix (Usually for upperLeg).
+
+    Returns:
+        list: Native twist setup network nodes created for the joints.
+    """
+    twist_setup_nodes = []
+    reverse_joints = list(reversed(twist_jnt_list))
+    for index, jnt in enumerate(twist_jnt_list):
+        twist_value = (index + 1) * (1 / (mid_joints + 1))
+        driver_joint = cmds.listRelatives(cmds.listRelatives(jnt, p=True, fullPath=True))[0]
+        if reverse:
+            driver_joint = cmds.listRelatives(jnt, p=True, fullPath=True)[0]
+            twist_value = -(reverse_joints.index(jnt) + 1) * (1 / (mid_joints + 1))
+
+        driver_rest_offset_matrix = None
+        if reverse_matrix:
+            twist_value = -(reverse_joints.index(jnt) + 1) * (1 / (mid_joints + 1))
+            if core_naming.NamingConstants.Prefix.RIGHT in side:
+                driver_rest_offset_matrix = (
+                    -1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    -1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    1,
+                )
+            elif core_naming.NamingConstants.Prefix.LEFT in side:
+                twist_value = (reverse_joints.index(jnt) + 1) * (1 / (mid_joints + 1))
+                driver_rest_offset_matrix = (
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    -1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    1,
+                )
+
+        twist_setup = core_rigging.create_twist_extraction_network(
+            driver=driver_joint,
+            driven=jnt,
+            twist_weight=twist_value,
+            twist_axis=0,
+            driver_rest_offset_matrix=driver_rest_offset_matrix,
+            name=f"{jnt}_twistNode",
+        )
+        twist_setup_nodes.append(twist_setup)
+    return twist_setup_nodes
+
+
+def extract_twist_rotation(twist_jnt_list):
+    """
+    Resets the twist rotation targets for a list of twist joints by setting their
+    corresponding native setup's targetRestMatrix attribute.
+
+    This function temporarily suspends viewport refresh for performance,
+    sets the character to A-pose, updates each twist setup's targetRestMatrix
+    using the inverse of the joint's offsetParentMatrix, then resets the character
+    to T-pose and resumes refresh.
+
+    Args:
+        twist_jnt_list (list[str]): List of twist joint names to process.
+    """
+    cmds.refresh(suspend=True)
+    core_pose.set_apose()
+    rest_mat = OpenMayaApi.MMatrix()
+    for jnt in twist_jnt_list:
+        twist_setup = core_rigging.get_twist_setup_from_target(jnt)
+        if not twist_setup:
+            cmds.warning(f'Unable to extract twist rotation. No twist setup found for "{jnt}".')
+            continue
+        cmds.setAttr(f"{twist_setup}.targetRestMatrix", rest_mat, type="matrix")
+        twist_offset_parent_mat = cmds.getAttr(f"{jnt}.offsetParentMatrix")
+        inverse_twist_offset_parent_mat = OpenMayaApi.MMatrix(twist_offset_parent_mat).inverse()
+        cmds.setAttr(f"{twist_setup}.targetRestMatrix", inverse_twist_offset_parent_mat, type="matrix")
+    core_pose.set_tpose()
+    cmds.refresh(suspend=False)
+
+
 def get_world_ref_loc(name=f"world_ref_{core_naming.NamingConstants.Suffix.LOC}"):
     """
     Gets the path to a world reference group or create it in case it can't be found.
@@ -1064,6 +1267,8 @@ def create_follow_setup(
         orders).
         default_value (int): 0 or 1, the default value of the attribute.
         constraint_type (str): "orient" by default, the other accepted values are "parent" and "point"
+    Returns:
+        str: Path to  the generated constraint.
     """
     if not isinstance(constraint_type, str):
         logger.warning(
@@ -1110,8 +1315,8 @@ def create_follow_setup(
     else:
         source_cnstr = ctrl_parent
 
-    constraint_string = f"cmds.{constraint_type}Constraint(source_cnstr, world_loc, parent_offset, mo=True)"
-    follow_constraint = eval(constraint_string)[0]
+    _constraint_func = core_cnstr.get_constraint_function(constraint_type)
+    follow_constraint = _constraint_func(source_cnstr, world_loc, parent_offset, maintainOffset=True)[0]
     cmds.connectAttr(f"{control}.{attr_name}", f"{follow_constraint}.w0")
     cmds.connectAttr(f"{ref_rev}.outputX", f"{follow_constraint}.w1")
 
@@ -1131,11 +1336,11 @@ def create_follow_enum_setup(
     Args:
         control (Node): Control to follow the parent/world orientation.
         parent_list (list): List of objects that will be driving the ctrl.
-        attribute_item(str): Where do we want the attribute.
+        attribute_item (str, optional): Object that should receive the follow attribute. If None, control is used.
         ref_loc (bool): If reference groups are being used instead of direct constraint (useful for different rotation
         orders).
         default_value (int): 0 or 1, the default value of the attribute.
-        constraint_type (str): "orient" by default, the other accepted values are "parent" and "point"
+        constraint_type (str): "parent" by default, other accepted values are "parent" and "point".
     """
 
     if not isinstance(constraint_type, str):
@@ -1153,7 +1358,7 @@ def create_follow_enum_setup(
     parent_grps = ["World"]
     for parent in parent_list:
         if cmds.nodeType(parent) == "joint":
-            name = cmds.getAttr(f"{parent}.{tools_rig_const.RiggerConstants.ATTR_JOINT_BASE_NAME}")
+            name = cmds.getAttr(f"{parent}.{tools_rig_const.RiggerConstants.ATTR_BASE_NAME}")
         elif (
             len(core_naming.get_short_name(parent).split("_")) <= 2
             or core_naming.get_short_name(parent).split("_")[1] == ""
@@ -1162,7 +1367,10 @@ def create_follow_enum_setup(
         else:
             name = core_naming.get_short_name(parent).split("_")[1].capitalize()
         parent_grps.append(name)
-    attr_names = ":".join(parent_grps)
+    caps_parent_grps = []
+    for grp in parent_grps:
+        caps_parent_grps.append(grp.capitalize())
+    attr_names = ":".join(caps_parent_grps)
     if not attribute_item:
         attribute_item = control
     core_attr.add_attr(
@@ -1201,7 +1409,7 @@ def create_follow_enum_setup(
                 value = 0
             cmds.setDrivenKeyframe(
                 f"{follow_constraint}.w{parent_grps.index(parent)}",
-                cd=f"{core_naming.get_short_name(attribute_item)}.space",
+                cd=f"{attribute_item}.space",
                 dv=number,
                 v=value,
             )
@@ -1209,28 +1417,169 @@ def create_follow_enum_setup(
     return follow_constraint
 
 
-def get_export_skeleton_root_joint():
+def get_skeleton_joints(full_hierarchy=True, top_level_fallback=True):
     """
-    Gets the root joint. The first joint in world or the first joint under the main skeleton group.
+    Gets all joints found in the skeleton group of a rig (or alternatively joints found in the scene root/assemblies)
+    Args:
+        full_hierarchy (bool, optional): When True, the entire hierarchy of joints is returned, (a.k.a. their children)
+                                         When False, only immediate children of the skeleton group is returned.
+        top_level_fallback (bool, optional): If True, it will return top level (assemblies) joints when no joints
+                                             are found inside the rig skeleton group.
+
+    Returns:
+        list: A list of joints found in the skeleton group for a rig or as top parents.
+    """
+    joints = []
+    skl_grp = find_skeleton_group()
+
+    # Rig Joints
+    scene_joints = [jnt for jnt in cmds.ls(long=True) if cmds.nodeType(jnt) == "joint"]
+    if scene_joints:
+        for jnt in scene_joints:
+            parent = cmds.listRelatives(jnt, p=True, fullPath=True)
+            if parent and parent[0].endswith(str(skl_grp)):
+                joints.append(jnt)
+
+    # Top Level Fallback
+    if top_level_fallback and not joints:
+        joints = [jnt for jnt in cmds.ls(assemblies=True, long=True) if cmds.nodeType(jnt) == "joint"]
+
+    # Full Hierarchy
+    if full_hierarchy:
+        descendants = []
+        for jnt in joints:
+            descendants += core_hrchy.get_hierarchy(root=jnt, maya_type=OpenMaya.MFn.kJoint, full_path=True)
+        return descendants
+
+    return joints
+
+
+def get_single_skeleton_root_joint(top_level_fallback=True):
+    """
+    Gets the root joint. The first joint found in the skeleton group or the first joint found in the world.
+
+    Args:
+        top_level_fallback (bool, optional): If True, it will return top level (assemblies) joints when no joints
+                                             are found inside the rig skeleton group.
 
     Returns:
         str: the root joint of the export skeleton.
     """
-    root_joint = None
-    skl_grp = tools_rig_const.RiggerConstants.GRP_SKELETON_NAME
-    top_joints = [jnt for jnt in cmds.ls(assemblies=True) if cmds.nodeType(jnt) == "joint"]
+    joints = get_skeleton_joints(full_hierarchy=False, top_level_fallback=top_level_fallback)
+    if joints:
+        return joints[0]
 
-    if not top_joints:
-        scene_joints = [jnt for jnt in cmds.ls() if cmds.nodeType(jnt) == "joint"]
-        if scene_joints:
-            top_joints = [
-                jnt for jnt in scene_joints if cmds.listRelatives(jnt, p=True, fullPath=True)[0].endswith(skl_grp)
-            ]
 
-    if top_joints:
-        root_joint = top_joints[0]
+def get_control_rig_tpose_and_apose_as_dict():
+    """
+    Gets the control rig T-pose values and A-pose values in two dictionaries.
+    This is supposed to be called at the end of the control rig building process, when it is in a "vanilla"
+    state, without extra keys, ready for Animation. That's the state (T-pose/rig pose) that we want to store.
 
-    return root_joint
+    Returns:
+        list of two dicts: all the attributes of all the controls of the rig in T-pose and A-pose.
+    """
+
+    # T-POSE ---------------------------------------------------------------
+    # Get rig controls from metadata
+    _rigs_metadata = get_rigs_metadata()
+    if not _rigs_metadata:
+        logger.debug("Couldn't find the rig metadata in the scene.")
+        return
+    rig_uuid, rig_metadata = next(iter(_rigs_metadata.items()))
+    controls = get_drivers_from_rig_metadata(rig_metadata=rig_metadata)
+    if not controls:
+        return
+
+    # Get the dictionary of the attributes of the rig controls
+    t_pose_controls_attrs_dict = {}
+    for ctrl in controls:
+        attr_dict = core_attr.get_attrs_as_dict(ctrl)
+        t_pose_controls_attrs_dict.update(attr_dict)
+
+    # A-POSE ---------------------------------------------------------------
+    # Get mapping between joints and FK control drivers from metadata
+    joint_control_map = {}
+    rig_joints = get_joints_from_rig_metadata(rig_metadata, top_parents_only=False)
+    for jnt in rig_joints:
+        if cmds.attributeQuery(tools_rig_const.RiggerConstants.ATTR_JOINT_PURPOSE, node=jnt, ex=True):
+            jnt_drivers = find_drivers_from_joint(jnt)
+            if jnt_drivers:
+                if tools_rig_const.RiggerDriverTypes.FK in jnt_drivers.keys():
+                    joint_control_map[jnt] = jnt_drivers.get(tools_rig_const.RiggerDriverTypes.FK)
+
+    # Set Global and COG special cases
+    global_purpose_ctrl = get_drivers_from_rig_metadata(
+        rig_metadata=rig_metadata, filter_driver_purpose=tools_rig_const.RiggerConstants.REF_VALUE_PURPOSE_GLOBAL
+    )
+    global_fk_ctrl = get_drivers_from_rig_metadata(
+        rig_metadata=rig_metadata, filter_driver_type=tools_rig_const.RiggerDriverTypes.FK
+    )
+    global_ctrl = list(set(global_purpose_ctrl) & set(global_fk_ctrl))  # intersection of Global type and Fk purpose
+    cog_ctrl = get_drivers_from_rig_metadata(
+        rig_metadata=rig_metadata,
+        filter_driver_type=tools_rig_const.RiggerDriverTypes.COG,
+    )
+    _attr_jnt_purpose = tools_rig_const.RiggerConstants.ATTR_JOINT_PURPOSE
+    _joints_with_attributes = [jnt for jnt in rig_joints if cmds.attributeQuery(_attr_jnt_purpose, node=jnt, ex=True)]
+    root_jnts = [jnt for jnt in _joints_with_attributes if cmds.getAttr(f"{jnt}.{_attr_jnt_purpose}") == "root"]
+    hips_jnts = [jnt for jnt in _joints_with_attributes if cmds.getAttr(f"{jnt}.{_attr_jnt_purpose}") == "hips"]
+    if global_ctrl:
+        if root_jnts:
+            joint_control_map[root_jnts[0]] = global_ctrl[0]
+    if cog_ctrl:
+        if hips_jnts:
+            joint_control_map[hips_jnts[0]] = cog_ctrl[0]
+
+    # Get T-pose translations
+    # - We need the delta between T-pose and A-pose.
+    # - Translations between T-pose and A-pose are supposed to happen only on main controls
+    # - this is due to the preservation of the proportions between bind/rest/a-pose and the rig/t-pose
+    # - for animation. With this assumption and the fact that the main Global control should remain at the origin,
+    # - we target specifically the hips joint (biped pattern), the only one that could be moved to perhaps
+    # - align better with the model, or for other character placement purposes.
+    hips_t_pos = [0.0, 0.0, 0.0]
+    if hips_jnts:
+        hips_t_pos = cmds.xform(hips_jnts[0], query=True, translation=True, os=True)
+        hips_t_pos = [float(format(p, ".4f")) for p in hips_t_pos]
+
+    # Set Skeleton A-pose
+    cmds.refresh(suspend=True)
+    core_pose.set_apose()
+
+    # Get A-pose rotations
+    controls_rotations_dict = {}
+    for jnt, control in joint_control_map.items():
+        jnt_rot = cmds.xform(jnt, query=True, rotation=True, os=True)
+        jnt_rot = [float(format(r, ".4f")) for r in jnt_rot]
+        controls_rotations_dict[control] = jnt_rot
+
+    # Get Delta translations
+    hips_a_pos = [0.0, 0.0, 0.0]
+    if hips_jnts:
+        hips_a_pos = cmds.xform(hips_jnts[0], query=True, translation=True, os=True)
+        hips_a_pos = [float(format(p, ".4f")) for p in hips_a_pos]
+    hips_delta_pos = [hips_a_pos[i] - hips_t_pos[i] for i in range(len(hips_a_pos))]
+    cmds.refresh(suspend=False)
+
+    # Get the dictionary of the attributes of the rig controls
+    a_pose_controls_attrs_dict = copy.deepcopy(t_pose_controls_attrs_dict)
+    for jnt, control in joint_control_map.items():
+        for ir, r_axis in enumerate(["rx", "ry", "rz"]):
+            rot_attr = f"{control}.{r_axis}"
+            a_pose_controls_attrs_dict[rot_attr] = controls_rotations_dict[control][ir]
+
+    if hips_delta_pos != [0.0, 0.0, 0.0]:
+        # The orientation is not the same between the hips_joint and the COG in the biped.
+        # TODO: find another way, not hard-coded to get the right axis delta
+        hips_delta_pos = [hips_delta_pos[2], hips_delta_pos[0], hips_delta_pos[1]]
+        for ip, p_axis in enumerate(["tx", "ty", "tz"]):
+            pos_attr = f"{joint_control_map[hips_jnts[0]]}.{p_axis}"
+            a_pose_controls_attrs_dict[pos_attr] = hips_delta_pos[ip]
+
+    core_pose.set_tpose()
+
+    return t_pose_controls_attrs_dict, a_pose_controls_attrs_dict
 
 
 def create_control_visualization_line(control, end_obj):
@@ -1281,13 +1630,1145 @@ def create_control_visualization_line(control, end_obj):
     return line_curve
 
 
+def get_rigs_metadata(namespace=None):
+    """
+    Looks for the rig root transforms (group) by searching for objects containing the expected lookup attribute.
+    Not to be confused with the root control curve. This is the parent TRANSFORM.
+    This function return all detected groups with such attribute. This is used to find all rigs in the scene.
+    Args:
+        namespace (str): by default None. If None, it returns all the rigs_metadata in the scene.
+                         If a namespace is provided, it returns only the matching one.
+                         If the namespace is an empty string ("") it returns only the rigs without namespace.
+    Returns:
+        dict: A dictionary with metadata about all rigs detected in the scene.
+              Key is the UUID of the rig project, value is another dictionary metadata related to the rig.
+              e.g.
+              {"dz88fm": {"name": "My Character",
+                          "project": {},
+                          "meshes": "|rig|geometry_grp",
+                          "skeleton": "|rig|skeleton_grp",
+                          "controls": "|rig|control_grp",
+                          "setup": "|rig|setup_grp",
+                          "tPose": {},
+                         }
+              }
+    """
+    import json
+
+    _lookup_attr = tools_rig_const.RiggerConstants.REF_ATTR_ROOT_RIG
+    _attr_name = tools_rig_const.RiggerConstants.ATTR_RIG_PROJECT_NAME
+    _attr_data = tools_rig_const.RiggerConstants.ATTR_RIG_PROJECT_DATA
+    _attr_tpose_data = tools_rig_const.RiggerConstants.ATTR_RIG_TPOSE_DATA
+    _attr_apose_data = tools_rig_const.RiggerConstants.ATTR_RIG_APOSE_DATA
+    _attr_collections = tools_rig_const.RiggerConstants.ATTR_RIG_COLLECTIONS
+
+    _attr_geo_grp = tools_rig_const.RiggerConstants.ATTR_RIG_GEOMETRY_GRP
+    _attr_skm_grp = tools_rig_const.RiggerConstants.ATTR_RIG_SKELETON_GRP
+    _attr_ctrl_grp = tools_rig_const.RiggerConstants.ATTR_RIG_CONTROL_GRP
+    _attr_setup_grp = tools_rig_const.RiggerConstants.ATTR_RIG_SETUP_GRP
+    dest_attrs = [_attr_geo_grp, _attr_skm_grp, _attr_ctrl_grp, _attr_setup_grp]
+
+    obj_list = cmds.ls(typ="transform", long=True) or []
+
+    rigs_metadata_dict = {}
+
+    for obj in obj_list:
+        if cmds.objExists(f"{obj}.{_lookup_attr}"):  # If missing this, it's a rig root group
+            if namespace is not None:
+                _obj_namespace = core_nspace.get_namespace(obj)
+                if _obj_namespace != namespace:
+                    continue
+
+            metadata_dict = {}
+            _uuid = core_attr.get_attr(attribute_path=f"{obj}.{_lookup_attr}")
+            _name = core_attr.get_attr(attribute_path=f"{obj}.{_attr_name}")
+            _data = core_attr.get_attr(attribute_path=f"{obj}.{_attr_data}")
+            _tpose = None
+            _apose = None
+            if cmds.attributeQuery(_attr_tpose_data, node=obj, ex=True):  # backward compatibility
+                _tpose = core_attr.get_attr(attribute_path=f"{obj}.{_attr_tpose_data}")
+            if cmds.attributeQuery(_attr_apose_data, node=obj, ex=True):  # backward compatibility
+                _apose = core_attr.get_attr(attribute_path=f"{obj}.{_attr_apose_data}")
+
+            metadata_dict[_attr_name] = _name
+
+            for _dest_attr in dest_attrs:
+                metadata_dict[_dest_attr] = ""  # Initialize Attr
+                dest_connections = cmds.listConnections(f"{obj}.{_dest_attr}", destination=True, plugs=True)
+                if dest_connections:
+                    for connection in dest_connections:
+                        destination_object = connection.split(".")[0]
+                        metadata_dict[_dest_attr] = destination_object
+
+            metadata_dict[_attr_data] = json.loads(_data)
+            metadata_dict[_attr_tpose_data] = {}
+            metadata_dict[_attr_apose_data] = {}
+            if _tpose:
+                metadata_dict[_attr_tpose_data] = json.loads(_tpose)
+            if _apose:
+                metadata_dict[_attr_apose_data] = json.loads(_apose)
+
+            # Collections
+            metadata_dict[_attr_collections] = {}  # Initialize empty for backward compatibility
+            if cmds.attributeQuery(_attr_collections, node=obj, ex=True):
+                _collections = core_attr.get_attr(attribute_path=f"{obj}.{_attr_collections}")
+                if _collections:  # Empty cannot be parsed
+                    metadata_dict[_attr_collections] = json.loads(_collections)
+
+            core_iter.add_unique_dict_key(input_dict=rigs_metadata_dict, new_key=_uuid, new_value=metadata_dict)
+
+    return rigs_metadata_dict
+
+
+def get_joints_from_rig_metadata(rig_metadata, top_parents_only=True):
+    """
+    Gets joints from a rig metadata (rigs found in the scene)
+    Args:
+        rig_metadata (dict): A rig metadata. This is the value stored in a dict generated using "get_rigs_metadata".
+        top_parents_only (bool, optional): If True, only top parent joints (usually just one, the root) is returned.
+                                           If False, all "rig|skeleton" joints (including children) are returned.
+
+    Returns:
+        list: The long path to the joints found in the skeleton group (these are the joints exported to another app)
+
+    Example:
+        rigs_metadata = get_rigs_metadata()
+        rig_uuid, rig_metadata = next(iter(rigs_metadata.items()))
+        joints_to_export = get_joints_from_rig_metadata(rig_metadata)
+    """
+    skeleton_grp = rig_metadata.get(tools_rig_const.RiggerConstants.ATTR_RIG_SKELETON_GRP)
+
+    if not skeleton_grp or not cmds.objExists(skeleton_grp):
+        return []
+
+    if top_parents_only:
+        # List only top parent joints in the skeleton group
+        parent_joints = cmds.listRelatives(skeleton_grp, type="joint", children=True, fullPath=True) or []
+        return parent_joints
+    else:
+        # List all joints under the skeleton group
+        all_joints = cmds.listRelatives(skeleton_grp, type="joint", allDescendents=True, fullPath=True) or []
+        return all_joints
+
+
+def get_meshes_from_rig_metadata(rig_metadata, skinned_only=True):
+    """
+    Gets meshes from a rig metadata (rigs found in the scene)
+    Args:
+        rig_metadata (dict): A rig metadata. This is the value stored in a dict generated using "get_rigs_metadata".
+        skinned_only (bool, optional): If True, only return transforms whose meshes are bound to joints.
+
+    Returns:
+        list: The long path to the joints found in the skeleton group (these are the joints exported to another app)
+
+    Example:
+        rigs_metadata = get_rigs_metadata()
+        rig_uuid, rig_metadata = next(iter(rigs_metadata.items()))
+        meshes_to_export = get_meshes_from_rig_metadata(a_rig_metadata, skinned_only=True)
+    """
+    geometry_grp = rig_metadata.get(tools_rig_const.RiggerConstants.ATTR_RIG_GEOMETRY_GRP)
+
+    if not geometry_grp or not cmds.objExists(geometry_grp):
+        return []
+
+    descendants = cmds.listRelatives(geometry_grp, allDescendents=True, fullPath=True) or []
+
+    # Filter out the meshes
+    meshes = cmds.ls(descendants, type="mesh", long=True)
+
+    if not meshes:
+        return []
+
+    # Get the transform nodes of the meshes
+    transforms = cmds.listRelatives(meshes, parent=True, fullPath=True)
+
+    if skinned_only:
+        # Filter transforms whose meshes are skinned (bound to joints)
+        skinned_transforms = []
+        for mesh, transform in zip(meshes, transforms):
+            # Get skin cluster associated with the mesh
+            skin_clusters = cmds.ls(cmds.listHistory(mesh), type="skinCluster")
+            if skin_clusters:
+                skinned_transforms.append(transform)
+        return skinned_transforms
+    else:
+        return list(set(transforms))
+
+
+def get_module_uuids_from_rig_metadata(rig_metadata):
+    """
+    Gets a list of UUIDs from a rig metadata (rigs found in the scene)
+    Args:
+        rig_metadata (dict): A rig metadata. This is the value stored in a dict generated using "get_rigs_metadata".
+
+    Returns:
+        list: A list of module UUIDs. e.g. [""]
+
+    Example:
+        rigs_metadata = get_rigs_metadata()
+        rig_uuid, rig_metadata = next(iter(rigs_metadata.items()))
+        module_uuids = get_module_uuids_from_rig_metadata(a_rig_metadata)
+    """
+    project_dict = rig_metadata.get(tools_rig_const.RiggerConstants.ATTR_RIG_PROJECT_DATA)
+
+    if "modules" not in project_dict.keys():
+        logger.warning(f'Unable to get modules UUIDs. Rig metadata is missing the "modules" key.')
+        return []
+
+    modules = project_dict.get("modules")
+    if not isinstance(modules, list):
+        logger.warning(f'Unable to get modules UUIDs. Rig metadata "modules" is not carrying a list of modules.')
+        return []
+
+    uuids = []
+    for module in modules:
+        _uuid = module.get("uuid")
+        if _uuid and isinstance(_uuid, str):
+            uuids.append(_uuid)
+
+    return uuids
+
+
+def get_collections_from_rig_metadata(rig_metadata, exclude_private=False):
+    """
+    Gets a dictionary describing the collections defined for this rig.
+    If nothing was defined, this will be an empty dictionary.
+
+    If exclude_private is True, collections whose keys start with an underscore
+    ('_') will be removed from the returned dictionary.
+
+    Args:
+        rig_metadata (dict): A rig metadata. This is the value stored in a dict
+                             generated using "get_rigs_metadata".
+        exclude_private (bool, optional): If True, filters out collections whose
+                                          keys start with an underscore. Defaults to False.
+
+    Returns:
+        dict: A dictionary containing the collections defined for this rig,
+              otherwise an empty dictionary.
+    """
+    # 1. Retrieve the base collections dictionary
+    base_collections = rig_metadata.get(tools_rig_const.RiggerConstants.ATTR_RIG_COLLECTIONS, {})
+
+    if not exclude_private:
+        # If no exclusion is needed, return the base dictionary directly.
+        return base_collections
+
+    # 2. Filter out private collections using a dictionary comprehension
+    # We copy the non-private items (keys that do NOT start with '_')
+    filtered_collections = {key: value for key, value in base_collections.items() if not key.startswith("_")}
+    return filtered_collections
+
+
+def get_project_name_from_metadata(rig_metadata):
+    """
+    Gets the project name from the rig metadata. (The entire project JSON is stored in the metadata)
+    Args:
+        rig_metadata (dict): A rig metadata. This is the value stored in a dict generated using "get_rigs_metadata".
+
+    Returns:
+        str: The project name as it's stored in the rig metadata.
+
+    Example:
+        rigs_metadata = get_rigs_metadata()
+        rig_uuid, rig_metadata = next(iter(rigs_metadata.items()))
+        project_name = get_project_name_from_metadata(a_rig_metadata)
+    """
+    project_dict = rig_metadata.get(tools_rig_const.RiggerConstants.ATTR_RIG_PROJECT_DATA)
+
+    key_name = "name"
+    if key_name not in project_dict.keys():
+        logger.warning(f'Unable to get project name. Rig metadata is missing the "{key_name}" key.')
+        return ""
+
+    return project_dict.get(key_name) or ""
+
+
+def get_project_alias_from_metadata(rig_metadata, project_name_fallback=True):
+    """
+    Gets a list of UUIDs from a rig metadata (rigs found in the scene)
+    Args:
+        rig_metadata (dict): A rig metadata. This is the value stored in a dict generated using "get_rigs_metadata".
+        project_name_fallback (bool, optional): If True, this function will return the project name when a project
+                                                alias is not available or an empty string.
+
+    Returns:
+        str: The project alias as it's stored in the rig metadata or the project name when alias is not available.
+
+    Example:
+        rigs_metadata = get_rigs_metadata()
+        rig_uuid, rig_metadata = next(iter(rigs_metadata.items()))
+        project_alias = get_project_alias_from_metadata(a_rig_metadata, project_name_fallback=True)
+    """
+    project_dict = rig_metadata.get(tools_rig_const.RiggerConstants.ATTR_RIG_PROJECT_DATA)
+    # Get Project Preferences
+    project_prefs = {}
+    key_prefs = "preferences"
+    if key_prefs not in project_dict.keys():
+        logger.warning(f'Unable to get project preferences. Rig metadata is missing the "{project_prefs}" key.')
+    else:
+        project_prefs = project_dict.get(key_prefs) or {}
+    # Get Project Alias
+    _alias = ""
+    key_alias = "alias"
+    if key_alias not in project_prefs.keys():  # Backwards compatibility (That's why the log is "debug")
+        logger.debug(f'Unable to get project alias. Project data found in metadata is missing the "{key_alias}" key.')
+    else:
+        _alias = project_prefs.get(key_alias) or ""
+    # Project Name Fallback
+    if project_name_fallback and not _alias:
+        _alias = get_project_name_from_metadata(rig_metadata=rig_metadata)
+
+    return _alias
+
+
+def get_drivers_from_rig_metadata(
+    rig_metadata=None,
+    filter_driver_type=None,
+    filter_driver_purpose=None,
+    filter_prefix=None,
+    attr_selection=False,
+    attr_keyable_only=True,
+    controls_only=True,
+    cache_driver_uuids=True,
+):
+    """
+    Gets a list of detected drivers from a rig metadata (rigs found in the scene)
+    Args:
+        rig_metadata (dict, optional): A rig metadata. This is the value stored in a dict generated using
+                                       "get_rigs_metadata". If None, it attempts to get the first rig in the scene.
+        filter_driver_type (str, list, optional): If provided, only drivers of this type are returned.
+        filter_driver_purpose (str, list, optional): If provided, only drivers of this purpose are returned.
+        filter_prefix (str, list, optional): If provided, only elements containing the prefix are selected.
+                                             The short name is used during filtering.
+        attr_selection (bool): If True, retrieves attributes instead of objects.
+        attr_keyable_only (bool): If True, retrieves only keyable attributes only. If False, retrieves all attributes.
+        controls_only (bool): If True, retrieves only objects that have shapes.
+        cache_driver_uuids (bool, optional): When True, this function becomes more optimized through the use of a
+                                             caching system that reduces the needed maya calls during query.
+
+    Returns:
+        list: A list of Nodes (str) matching the drivers from the rig metadata. (Essentially the rig controls)
+
+    Example:
+        rigs_metadata = get_rigs_metadata()
+        rig_uuid, rig_metadata = next(iter(rigs_metadata.items()))
+        drivers_to_select = get_module_uuids_from_rig_metadata(a_rig_metadata)
+    """
+    if not rig_metadata:
+        _rigs_metadata_list = get_rigs_metadata()
+        if not _rigs_metadata_list:
+            return []
+        rig_uuid, rig_metadata = next(iter(_rigs_metadata_list.items()))
+
+    # Initialize list with the controls connected directly to the rig (usually the globals)
+    drivers = []
+    project_data = rig_metadata.get(tools_rig_const.RiggerConstants.ATTR_RIG_PROJECT_DATA)
+    project_uuid = project_data.get("uuid")
+
+    # Get Cache
+    _cached_driver_uuids = None
+    if cache_driver_uuids:
+        _cached_driver_uuids = cache_driver_uuids_to_dict()
+
+    if project_uuid:
+        drivers += find_drivers_from_module(
+            source_uuid=project_uuid,
+            filter_driver_type=filter_driver_type,
+            filter_driver_purpose=filter_driver_purpose,
+            cached_driver_uuids=_cached_driver_uuids,
+        )
+
+    # Add the modules controls
+    module_uuids = get_module_uuids_from_rig_metadata(rig_metadata)
+    for uuid in module_uuids:
+        drivers += find_drivers_from_module(
+            source_uuid=uuid,
+            filter_driver_type=filter_driver_type,
+            filter_driver_purpose=filter_driver_purpose,
+            cached_driver_uuids=_cached_driver_uuids,
+        )
+
+    # Filters
+    if filter_prefix:
+        if isinstance(filter_prefix, str):
+            filter_prefix = [filter_prefix]  # Convert to list for consistency
+        _prefix_filtered = []
+        for driver in drivers:
+            # Get the short name (ignores hierarchy)
+            short_name = core_naming.get_short_name(driver)
+
+            # Remove the namespace if present
+            if ":" in short_name:
+                short_name = short_name.split(":")[-1]
+
+            # Check if the short name starts with any of the prefixes
+            if any(short_name.startswith(prefix) for prefix in filter_prefix):
+                _prefix_filtered.append(driver)
+        drivers = _prefix_filtered
+
+    # Controls only
+    if controls_only:
+        if drivers:
+            for driver in reversed(drivers):
+                driver_shapes = cmds.listRelatives(driver, shapes=True, fullPath=True) or []
+                if not driver_shapes:
+                    drivers.remove(driver)
+
+    # Filter Descendants inside rig parent (Fixes issues where rigs with the same UUID are loaded in the scene)
+    controls_grp = rig_metadata.get(tools_rig_const.RiggerConstants.ATTR_RIG_CONTROL_GRP)
+    if controls_grp and cmds.objExists(controls_grp):
+        controls_grp = core_naming.get_long_name(controls_grp)
+        drivers = [drv for drv in drivers if str(drv).startswith(f"{controls_grp}|")]
+
+    # Not Attribute, return objects
+    if not attr_selection:
+        return drivers
+    # Query type was attributes
+    _attrs = []
+    for obj in drivers:
+        if not cmds.objExists(obj):
+            cmds.warning(f"Object '{obj}' does not exist. Skipping...")
+            continue
+        # Retrieve attributes based on the keyable_only flag
+        if attr_keyable_only:
+            attrs = cmds.listAttr(obj, keyable=True)
+        else:
+            attrs = cmds.listAttr(obj)
+        if attrs:
+            # Create the object.attribute strings
+            _attrs.extend([f"{obj}.{attr}" for attr in attrs])
+    if not _attrs:
+        return
+    return _attrs
+
+
+def get_tpose_from_rig_metadata(rig_metadata=None):
+    """
+    Gets the T-pose of the rig from the metadata (rigs found in the scene).
+    Args:
+        rig_metadata (dict, optional): A rig metadata. This is the value stored in a dict generated using
+                                       "get_rigs_metadata". If None, it attempts to get the first rig in the scene.
+    Returns:
+        dict: The T-pose dictionary with the controls attributes and their values to set.
+    """
+    if not rig_metadata:
+        _rigs_metadata = get_rigs_metadata()
+        if not _rigs_metadata:
+            return
+        rig_uuid, rig_metadata = next(iter(_rigs_metadata.items()))
+    if not isinstance(rig_metadata, dict):
+        logger.debug("Given rig metadata must be a dict.")
+        return
+    if tools_rig_const.RiggerConstants.ATTR_RIG_TPOSE_DATA not in rig_metadata.keys():
+        logger.debug("T-pose key missing from the given dictionary.")
+        return
+
+    tpose_dict = rig_metadata.get(tools_rig_const.RiggerConstants.ATTR_RIG_TPOSE_DATA)
+
+    return tpose_dict
+
+
+def get_apose_from_rig_metadata(rig_metadata=None):
+    """
+    Gets the A-pose of the rig from the metadata (rigs found in the scene).
+    Args:
+        rig_metadata (dict, optional): A rig metadata. This is the value stored in a dict generated using
+                                       "get_rigs_metadata". If None, it attempts to get the first rig in the scene.
+    Returns:
+        dict: The A-pose dictionary with the controls attributes and their values to set.
+    """
+    if not rig_metadata:
+        _rigs_metadata = get_rigs_metadata()
+        if not _rigs_metadata:
+            return
+        rig_uuid, rig_metadata = next(iter(_rigs_metadata.items()))
+    if not isinstance(rig_metadata, dict):
+        logger.debug("Given rig metadata must be a dict.")
+        return
+    if tools_rig_const.RiggerConstants.ATTR_RIG_APOSE_DATA not in rig_metadata.keys():
+        logger.debug("A-pose key missing from the given dictionary.")
+        return
+
+    apose_dict = rig_metadata.get(tools_rig_const.RiggerConstants.ATTR_RIG_APOSE_DATA)
+
+    return apose_dict
+
+
+def filter_elements_by_collection(
+    elements_to_filter,
+    collections_data,
+    filter_query=None,
+    ignore_namespaces=True,
+    exclude_private=False,
+    isolate_collections=False,
+):
+    """
+    Filters a list of elements based on a query against named collections, supporting
+    inclusion, exclusion, wildcard, private exclusion, and multi-collection isolation.
+
+    Args:
+        elements_to_filter (list[str]): A list of element names to be filtered.
+        collections_data (dict): The dictionary containing all collection data.
+        filter_query (str or list[str], optional): The query defining the rules.
+        ignore_namespaces (bool, optional): If True, compares the short name of elements,
+                                            ignoring namespaces. Defaults to True.
+        exclude_private (bool, optional): If True, automatically excludes all collections
+                                          whose keys in `collections_data` start with an
+                                          underscore '_'. Defaults to False.
+        isolate_collections (bool, optional): If True, and the `filter_query`
+                                              all other collections are automatically
+                                              added to the exclusion list. Defaults to False.
+
+    Returns:
+        list[str]: The filtered list of element names, preserving original order.
+    """
+    # 0. Initial checks and setup
+    if not filter_query or filter_query == "*" or filter_query == ["*"]:
+        if not exclude_private:
+            return list(elements_to_filter)
+
+    def _get_short_name_no_ns(node_name):
+        """
+        Strips namespace and gets short name.
+        Args:
+            node_name (str): Name of the node potentially with namespace and long.
+
+        Returns:
+            str: No namespace short version of the name.
+        """
+        no_ns = core_nspace.strip_namespace(node_name)
+        return core_naming.get_short_name(no_ns)
+
+    get_name = _get_short_name_no_ns if ignore_namespaces else core_naming.get_short_name
+    initial_elements_set = {get_name(elem) for elem in elements_to_filter}
+
+    # --- 1. Parse the filter query into tokens ---
+    tokens = []
+    if isinstance(filter_query, str):
+        normalized_string = filter_query.replace(",", " ")
+        tokens = [token for token in normalized_string.split(" ") if token]
+    elif isinstance(filter_query, list):
+        tokens = filter_query
+    else:
+        logger.warning(
+            f"Invalid filter_query type: {type(filter_query)}. " "Expected str or list. Returning original list."
+        )
+        return list(elements_to_filter)
+
+    # --- 2. Separate tokens into inclusion and exclusion collections ---
+    include_collection_names = set()
+    exclude_collection_names = set()
+    is_wildcard_included = False
+
+    for token in tokens:
+        if token == "*":
+            is_wildcard_included = True
+        elif token.startswith("-"):
+            has_exclusion_tokens = True  # Set flag if any exclusion token is found
+            collection_name = token[1:]
+            if collection_name:
+                exclude_collection_names.add(collection_name)
+        else:
+            include_collection_names.add(token)
+
+    # --- Isolation Filter Mode (isolate_collections) ---
+    if isolate_collections and not is_wildcard_included and include_collection_names:
+        # Isolation is activated if:
+        # 1. The flag is True.
+        # 2. No wildcard is present.
+        # 3. At least one inclusion token is present.
+
+        all_collection_keys = set(collections_data.keys())
+
+        # Add all collections EXCEPT those being explicitly included to the exclusion set.
+        collections_to_exclude = all_collection_keys.difference(include_collection_names)
+
+        exclude_collection_names.update(collections_to_exclude)
+
+    # --- 2.2 Existing Feature: Automatically exclude private collections ---
+    if exclude_private:
+        private_collections = {key for key in collections_data if key.startswith("_")}
+        exclude_collection_names.update(private_collections)
+
+        if is_wildcard_included and not include_collection_names:
+            pass
+
+            # --- 3. Build element sets from collections_data ---
+    inclusion_sets = []
+    elements_to_exclude = set()
+
+    for name in include_collection_names:
+        members = collections_data.get(name)
+        if members:
+            inclusion_sets.append({get_name(member) for member in members})
+        else:
+            logger.warning(f"Include collection '{name}' not found in metadata.")
+
+    for name in exclude_collection_names:
+        members = collections_data.get(name)
+        if members:
+            elements_to_exclude.update(get_name(member) for member in members)
+        else:
+            logger.warning(f"Exclude collection '{name}' not found in metadata.")
+
+    # --- 4. Determine the final set of elements based on the logic ---
+    working_set = set()
+
+    if is_wildcard_included:
+        # Scenario 1: Wildcard Mode
+        working_set = initial_elements_set
+
+        if inclusion_sets:
+            inclusion_union = set.union(*inclusion_sets)
+            working_set = working_set.intersection(inclusion_union)
+
+    elif inclusion_sets:
+        # Scenario 2: Inclusion Mode (This covers the 'isolate' case)
+        inclusion_union = set.union(*inclusion_sets)
+        working_set = inclusion_union.intersection(initial_elements_set)
+
+    else:
+        # Scenario 3: Exclusion-Only Mode
+        all_collection_sets = []
+        for name, members in collections_data.items():
+            # Only use collections not destined for exclusion to build the base intersection.
+            if name not in exclude_collection_names:
+                all_collection_sets.append({get_name(member) for member in members})
+
+        if all_collection_sets:
+            base_set_all_collections = set.intersection(*all_collection_sets)
+            working_set = initial_elements_set.intersection(base_set_all_collections)
+        else:
+            working_set = set()
+
+    # Apply final exclusions (difference)
+    final_set = working_set.difference(elements_to_exclude)
+
+    # --- 5. Rebuild list, preserving original order ---
+    return [elem for elem in elements_to_filter if get_name(elem) in final_set]
+
+
+def filter_rig_joints_by_collection(
+    rig_metadata, filter_query=None, ignore_namespaces=True, exclude_private=False, isolate_collections=False
+):
+    """
+    Gets bind joints from rig metadata and filters them using a collection query.
+
+    Args:
+        rig_metadata (dict): The rig metadata dictionary.
+        filter_query (str or list[str], optional): The query defining the inclusion and
+                                                   exclusion rules. Defaults to None.
+        ignore_namespaces (bool, optional): If True, namespaces are ignored during
+                                            comparison. Defaults to True.
+        exclude_private (bool, optional): When active, it will automatically ignore elements from private collections.
+        isolate_collections (bool, optional): If True, and the `filter_query`
+                                              all other collections are automatically
+                                              added to the exclusion list. Defaults to False.
+    Returns:
+        list[str]: The filtered list of joint names. Returns an empty list if
+                   no bind joints are found in the metadata.
+    """
+    all_bind_joints = get_joints_from_rig_metadata(rig_metadata=rig_metadata, top_parents_only=False)
+    collections_data = get_collections_from_rig_metadata(rig_metadata=rig_metadata)
+
+    if not all_bind_joints:
+        return []
+
+    return filter_elements_by_collection(
+        elements_to_filter=all_bind_joints,
+        collections_data=collections_data,
+        filter_query=filter_query,
+        ignore_namespaces=ignore_namespaces,
+        exclude_private=exclude_private,
+        isolate_collections=isolate_collections,
+    )
+
+
+def selected_joints_to_module_generic(auto_include_children=True):
+    """
+    Converts selected joints into
+    Args:
+        auto_include_children (bool, optional): If active, children joints will be automatically included.
+    Returns:
+        ModuleGeneric: A generic module containing selected joints.
+    """
+    # Manage Selection
+    initial_selection = cmds.ls(selection=True, long=True)
+    if auto_include_children:
+        cmds.select(hierarchy=True)
+    selection_joints = cmds.ls(selection=True, typ="joint", long=True)
+
+    # Define UUIDs:
+    jnt_mapping = {}
+    for jnt in selection_joints:
+        uuid_attr = f"{jnt}.{tools_rig_const.RiggerConstants.ATTR_JOINT_UUID}"
+        _uuid = core_uuid.generate_uuid(remove_dashes=True)
+        if cmds.objExists(uuid_attr):
+            _uuid = cmds.getAttr(uuid_attr)
+        jnt_mapping[jnt] = _uuid
+
+    # Create Module and Proxies
+    a_generic_module = tools_rig_frm.ModuleGeneric()
+
+    # Set Orientation Method to "inherit"
+    a_generic_module.set_orientation_method(method="inherit")
+
+    for jnt, uuid in jnt_mapping.items():
+        new_proxy = a_generic_module.add_new_proxy()
+        new_proxy.set_uuid(uuid)
+        new_proxy.set_name(core_naming.get_short_name(jnt))
+
+        # Joint Parent (Maya Side)
+        parent = cmds.listRelatives(jnt, parent=True, fullPath=True)
+        if parent:
+            parent_uuid = jnt_mapping.get(parent[0])
+            new_proxy.set_parent_uuid(parent_uuid)
+
+        new_proxy.read_data_from_scene(obj_path=jnt)
+
+        _radius = cmds.getAttr(f"{jnt}.radius")
+        new_proxy.set_locator_scale(_radius)
+
+    # Recover Initial Selection
+    if initial_selection:
+        try:
+            cmds.select(initial_selection)
+        except Exception as e:
+            logger.debug(f"Unable to recover initial selection. Issue: {e}")
+
+    return a_generic_module
+
+
+def set_rig_pose(namespace=None, pose="t"):
+    """Sets the control rig with the given namespace in T-pose using the stored metadata values.
+    Args:
+        namespace (str, optional): the rig namespace.
+                                   If Namespace is None, the code attempts to get it from the first element selected.
+                                   Then if nothing is selected it sets the first of all the rigs in the scene.
+                                   If Namespace is "", it sets the first of all the rigs without namespace.
+                                   If Namespace is a string, it sets the matching rig, if it exists.
+        pose (str, optional): it accepts only "t" or "a". "t" by default.
+    """
+    if namespace is False:
+        namespace = None
+    if namespace is None:
+        _selection = cmds.ls(sl=True)
+        if _selection:
+            namespace = core_nspace.get_namespace(_selection[0])
+
+    rigs_metadata = get_rigs_metadata(namespace=namespace)
+    if not rigs_metadata:
+        namespace_string = "without (empty string)" if namespace == "" else namespace
+        logger.warning(f"Cannot retrieve metadata for the given namespace: {namespace_string}")
+        return
+
+    if pose != "a" and pose != "t":
+        pose = "t"
+
+    # Get rig metadata
+    rig_uuid, rig_metadata = next(iter(rigs_metadata.items()))
+    # Get the namespace from metadata Controls message
+    controls_grp = rig_metadata.get(tools_rig_const.RiggerConstants.ATTR_RIG_CONTROL_GRP)
+    controls_namespace = core_nspace.get_namespace(controls_grp)
+    missing_attributes = []
+
+    # Get pose attributes dictionary
+    pose_dict = {}
+    if pose == "t":
+        pose_dict = get_tpose_from_rig_metadata(rig_metadata=rig_metadata)
+        if not pose_dict:
+            logger.warning("T-pose data retrieved by the rig metadata is empty.")
+            return
+    elif pose == "a":
+        pose_dict = get_apose_from_rig_metadata(rig_metadata=rig_metadata)
+        if not pose_dict:
+            logger.warning("A-pose data retrieved by the rig metadata is empty.")
+            return
+    if not pose_dict:
+        return
+
+    # Set the pose
+    cmds.undoInfo(openChunk=True)
+    for attr_path, attr_value in pose_dict.items():
+        if controls_namespace:
+            attr_path = attr_path.replace("|", f"|{controls_namespace}:")
+        if cmds.objExists(attr_path):
+            core_attr.set_attr(attr_path, attr_value)
+        else:
+            missing_attributes.append(attr_path)
+    if missing_attributes:
+        _missing_string = "\n".join(attr for attr in missing_attributes)
+        logger.warning(f"The following attributes are missing and won't be set for the T-pose:{missing_attributes}")
+    cmds.undoInfo(closeChunk=True)
+
+
+def set_rig_tpose(namespace=None):
+    """Sets the control rig with the given namespace in T-pose using the stored metadata values.
+    Args:
+        namespace (str, optional): the rig namespace.
+                                   If Namespace is None, the code attempts to get it from the first element selected.
+                                   Then if nothing is selected it sets the first of all the rigs in the scene.
+                                   If Namespace is "", it sets the first of all the rigs without namespace.
+                                   If Namespace is a string, it sets the matching rig, if it exists.
+    """
+    set_rig_pose(namespace=namespace, pose="t")
+
+
+def set_rig_apose(namespace=None):
+    """Sets the control rig with the given namespace in A-pose using the stored metadata values.
+    Args:
+        namespace (str, optional): the rig namespace.
+                                   If Namespace is None, the code attempts to get it from the first element selected.
+                                   Then if nothing is selected it sets the first of all the rigs in the scene.
+                                   If Namespace is "", it sets the first of all the rigs without namespace.
+                                   If Namespace is a string, it sets the matching rig, if it exists.
+    """
+    set_rig_pose(namespace=namespace, pose="a")
+
+
+def update_uuids_in_dict(data, uuid_mapping):
+    """
+    Recursively updates UUIDs in a nested dictionary using the given UUID mapping.
+    Args:
+        data (dict): The original dictionary with UUIDs.
+        uuid_mapping (dict): A dictionary where keys are old UUIDs, and values are the new UUIDs to replace them with.
+
+    Returns:
+        dict: Updated dictionary with replaced UUIDs.
+    """
+    if isinstance(data, dict):
+        updated_dict = {}
+        for key, value in data.items():
+            # Recursively update nested dictionaries
+            updated_key = uuid_mapping.get(key, key)
+            updated_value = update_uuids_in_dict(value, uuid_mapping)
+
+            # Check if the value is a string UUID and replace it
+            if isinstance(updated_value, str):
+                updated_value = uuid_mapping.get(updated_value, updated_value)
+
+            updated_dict[updated_key] = updated_value
+        return updated_dict
+
+    elif isinstance(data, list):
+        # Recursively handle lists
+        return [update_uuids_in_dict(item, uuid_mapping) for item in data]
+
+    elif isinstance(data, str):
+        # Replace strings directly if they match a UUID
+        return uuid_mapping.get(data, data)
+
+    # Return the value unchanged if not dict, list, or string
+    return data
+
+
+def reference_and_attach_rig(file_path, target):
+    """
+    References a file and attaches it to the attachment target object
+    Args:
+        file_path (str): Path to the file that will be referenced.
+        target (str): Path to the object that will drive the reference rig. e.g. a hand joint
+    Returns:
+        str: Path to the created constraints, None otherwise.
+    """
+    if not os.path.exists(file_path):
+        logging.warning(f"Unable to reference file. File not found: {file_path}")
+        return
+
+    rigs_metadata = get_rigs_metadata()
+
+    # Import Reference
+    namespace = os.path.splitext(os.path.basename(file_path))[0]  # Filename as namespace
+    _imported_cache = cmds.file(file_path, returnNewNodes=True, reference=True, namespace=namespace)
+
+    # Get Global Control from Imported Rig
+    updated_rigs_metadata = get_rigs_metadata()
+    actual_new = {key: value for key, value in updated_rigs_metadata.items() if key not in rigs_metadata}
+    imported_rig_uuid, imported_rig_metadata = next(iter(actual_new.items()))  # Grab first new rig metadata available
+    _driver_purpose = tools_rig_const.RiggerConstants.REF_VALUE_PURPOSE_GLOBAL
+    _driver_type = tools_rig_const.RiggerDriverTypes.FK
+    global_control = get_drivers_from_rig_metadata(
+        rig_metadata=imported_rig_metadata,
+        controls_only=True,
+        filter_driver_purpose=_driver_purpose,
+        filter_driver_type=_driver_type,
+    )
+
+    if not global_control:
+        logging.warning(f"Referenced file missing global control. Constraint operation was skipped. File: {file_path}")
+        return
+    global_control = global_control[0]
+    if not target:
+        logging.warning(f"Target attach object not found. Constraint operation was skipped. File: {file_path}")
+        return
+
+    return cmds.parentConstraint(target, global_control, maintainOffset=False)
+
+
+def reference_and_attach_rig_to_driver(
+    file_path,
+    filter_prefix,
+    filter_driver_type,
+    filter_driver_purpose,
+    use_multi_rig_qt_dialog=True,
+):
+    """
+    References a file and attaches it to the first filtered object.
+    Args:
+        file_path (str): Path to the file that will be referenced.
+        filter_driver_type (str, list): If provided, only drivers of this type are returned.
+        filter_driver_purpose (str, list): If provided, only drivers of this purpose are returned.
+        filter_prefix (str, list): If provided, only elements containing the prefix are selected.
+                                             The short name is used during filtering.
+        use_multi_rig_qt_dialog (bool, optional): If True, this function will show a dialog when multiple target rigs
+                                                  are detected in the scene. When off, the first detected rig will be
+                                                  automatically used for the attachment.
+    Returns:
+        str: Path to the created constraints, None otherwise.
+    """
+    if not os.path.exists(file_path):
+        logging.warning(f"Unable to reference file. File not found: {file_path}")
+        return
+
+    rigs_metadata = get_rigs_metadata()
+    rig_metadata = None  # Target rig
+
+    if len(rigs_metadata) == 0:
+        logging.warning(f"Unable to processed with operation. No rigs detected in the scene.")
+        return
+
+    if not use_multi_rig_qt_dialog and len(rigs_metadata) > 1:
+        rig_uuid, rig_metadata = next(iter(rigs_metadata.items()))
+
+    if len(rigs_metadata) > 1:
+        try:
+            import gt.ui.qt_import as ui_qt
+            import gt.ui.qt_utils as ui_qt_utils
+
+            maya_window = ui_qt_utils.get_maya_main_window()
+            if not maya_window:
+                raise Exception("No Maya window detected")
+
+            # Show Save Dialog
+            message_box = ui_qt.QtWidgets.QMessageBox(maya_window)
+            message_box.setWindowTitle("Warning: Multiple rigs detected!")
+            message_box.setText(
+                "Multiple rigs were detected in the scene.\n"
+                "Which rig would you like to use for the attach operation?"
+            )
+
+            metadata_button_pairs = {}
+            for uuid, metadata in rigs_metadata.items():
+                rig_name = metadata.get(f"name")
+                if rig_name:
+                    rig_button = message_box.addButton(rig_name, ui_qt.QtWidgets.QMessageBox.AcceptRole)
+                    metadata_button_pairs[rig_button] = metadata
+
+            # Add buttons
+            cancel_button = message_box.addButton("Cancel", ui_qt.QtWidgets.QMessageBox.DestructiveRole)
+
+            # Execute the message box and get the user response
+            message_box.exec_()
+
+            if message_box.clickedButton() in metadata_button_pairs:
+                rig_metadata = metadata_button_pairs.get(message_box.clickedButton())
+
+            elif message_box.clickedButton() == cancel_button:
+                logging.info(f"Reference and attach operation was cancelled.")
+                return
+        except Exception as e:
+            logging.warning(f"Unable to display rig selection dialog. Using first detected rig instead. Issue: {e}")
+            rig_uuid, rig_metadata = next(iter(rigs_metadata.items()))
+    else:
+        rig_uuid, rig_metadata = next(iter(rigs_metadata.items()))
+
+    if not rig_metadata:
+        logging.warning(f"Unable to processed with operation. Rigs were detected but were missing metadata.")
+        return
+
+    target_driver = get_drivers_from_rig_metadata(
+        rig_metadata=rig_metadata,
+        controls_only=True,
+        filter_prefix=filter_prefix,
+        filter_driver_type=filter_driver_type,
+        filter_driver_purpose=filter_driver_purpose,
+    )
+
+    if target_driver:
+        target_driver = target_driver[0]
+    else:
+        logging.warning(
+            f"Unable to find attachment target. Driver query didn't return anything. "
+            f"(Prefix: {filter_prefix}, Type: {filter_driver_type}, Purpose: {filter_driver_purpose})"
+        )
+
+    return reference_and_attach_rig(file_path=file_path, target=target_driver)
+
+
+def reference_and_attach_rig_to_selection(file_path):
+    """
+    Attaches a reference rig to a selected object. Operation is cancelled if nothing is selected.
+    Args:
+        file_path (str): Path to the file that will be referenced.
+
+    Returns:
+        str: Path to the created constraints, None otherwise.
+    """
+    selection = cmds.ls(selection=True)
+    if not selection or len(selection) > 1:
+        logging.warning(f"Please select one target object and try again.")
+        return
+
+    return reference_and_attach_rig(file_path=file_path, target=selection[0])
+
+
+def reference_and_attach_rig_to_socket(file_path, side_prefix="L"):
+    """
+    Attaches a reference rig to a selected object. Operation is cancelled if nothing is selected.
+    Args:
+        file_path (str): Path to the file that will be referenced.
+        side_prefix (str, optional): Used to define what side to look for when detecting the hand driver.
+                                     In most cases, it can only be "L" for left, or "R" for right.
+                                     The only exceptions would be complex creatures with more than two arms.
+
+    Returns:
+        str: Path to the created constraints, None otherwise.
+    """
+    import gt.tools.auto_rigger.modules.module_socket as tools_mod_socket
+
+    return reference_and_attach_rig_to_driver(
+        file_path=file_path,
+        filter_prefix=side_prefix,
+        filter_driver_type=tools_rig_const.RiggerDriverTypes.FK,
+        filter_driver_purpose=[tools_mod_socket.PURPOSE_SOCKET_PARENT, tools_mod_socket.PURPOSE_SOCKET_CHILD],
+    )
+
+
+def show_dialog_reference_and_attach(ref_function, kwargs=None):
+    """
+    Shows a dialog asking for a rig file.
+    If one is provided, it's reference and attached using the provided reference functions (ref_function)
+
+    Args:
+        ref_function (callable): A reference and attach functions to be used with the selected file.
+                                 The only functions compatible with this are the ones named "reference_and_attach_*".
+        kwargs (dict, optional): Keyword Arguments used by the callable reference and attach function.
+    """
+    import gt.ui.file_dialog as ui_file_dialog
+
+    # File Path
+    file_path = ui_file_dialog.file_dialog(
+        write_mode=False,
+        file_filter=tools_rig_const.RiggerConstants.MAYA_FILE_FILTER,
+        ok_caption="Rig Maya File",
+        cancel_caption="Cancel",
+    )
+    if not file_path:
+        return  # Cancel operation
+
+    if not kwargs:
+        kwargs = {}
+
+    ref_function(file_path=file_path, **kwargs)
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    # cmds.file(new=True, force=True)
-    # create_direction_curve()
-    # create_proxy_root_curve()
-    # out = get_generic_driver("chest")
-    # out = find_drivers_from_joint("hip")
-    # create_ctrl_global()
-    # cmds.select(out)
-    cmds.viewFit(all=True)
+    print("#" * 80)  # Separator
+    scene_rigs_metadata = get_rigs_metadata()
+    print(f"Number of detected rigs: {len(scene_rigs_metadata)}")
+    a_rig_uuid, a_rig_metadata = next(iter(scene_rigs_metadata.items()))  # Grab first available rig
+    print(f"Rig Metadata Keys: {len(a_rig_metadata)}")
+    # joints_to_export = get_joints_from_rig_metadata(a_rig_metadata, top_parents_only=False)
+    # print(f"Joint to Export: {joints_to_export}")
+    # meshes_to_export = get_meshes_from_rig_metadata(a_rig_metadata, skinned_only=True)
+    # print(f"Meshes to Export: {meshes_to_export}")
+    # module_uuids_list = get_module_uuids_from_rig_metadata(a_rig_metadata)
+    # print(f"Module UUIDs: {module_uuids_list}")
+    # rig_drivers = get_drivers_from_rig_metadata(a_rig_metadata, controls_only=True)
+    # print(f"Rig Drivers: {rig_drivers}")
+    # cmds.select(rig_drivers)
+
+    # New Collections Data and Query functions
+    collections = get_collections_from_rig_metadata(a_rig_metadata)
+    print(f"Collection Keys: {len(collections)}")
+
+    # # ----------------------- Ignore Filter (All Joints) -----------------------
+    # filtered_all_joints = filter_rig_joints_by_collection(
+    #     rig_metadata=a_rig_metadata,
+    #     filter_query=None,  # Can be none, string or List[str]
+    # )
+    # # print(f"Filtered (All Joints): {filtered_all_joints}")
+    # print(f"Length Filtered (All Joints): {len(filtered_all_joints)}")  # When None or "*" it returns all elements.
+    #
+    # # --------------------- Ignore Filter (Include Filter) ---------------------
+    # filtered_face_joints = filter_rig_joints_by_collection(
+    #     rig_metadata=a_rig_metadata,
+    #     filter_query="face",
+    # )
+    # # print(f"Filtered (Facial Joints Only): {filtered_face_joints}")
+    # print(f"Length Filtered (Facial Joints Only): {len(filtered_face_joints)}")
+    #
+    # # ------------ Ignore Filter (Include Filter, Comma Separated) --------------
+    # filtered_twist_corrective_joints = filter_rig_joints_by_collection(
+    #     rig_metadata=a_rig_metadata,
+    #     filter_query="twist, corrective",
+    # )
+    # # print(f"Filtered (Facial Joints Only): {filtered_twist_corrective_joints}")
+    # print(f"Length Filtered (Twist and Corrective Joints Only): {len(filtered_twist_corrective_joints)}")
+    #
+    # # --------------------- Ignore Filter (Exclude Filter) ---------------------
+    # filtered_body_joints = filter_rig_joints_by_collection(
+    #     rig_metadata=a_rig_metadata,
+    #     filter_query="-face -twist -corrective",
+    # )
+    # # print(f"Filtered (Body Joints Only): {filtered_body_joints}")
+    # print(f"Length Filtered (Body Joints Only): {len(filtered_body_joints)}")
+    #
+    # # ------------------ Mixed Filter (Other Data Type Filter) ------s------------
+    # filtered_body_joints_list = filter_rig_joints_by_collection(
+    #     rig_metadata=a_rig_metadata,
+    #     filter_query=["-face", "-_twist", "-_corrective"],
+    # )
+    # # print(f"Filtered From List (Body Joints Only): {filtered_body_joints_list}")
+    # print(f"Length Filtered From List (Body Joints Only): {len(filtered_body_joints_list)}")
+    #
+    # # Check Length
+    # result = f"Add numbers to check lengths: "
+    # result += f"{len(filtered_face_joints)} + {len(filtered_twist_corrective_joints)} + {len(filtered_body_joints)}"
+    # result += f" = {len(filtered_face_joints) + len(filtered_twist_corrective_joints) + len(filtered_body_joints)}"
+    # print(result)
+
+    # # ------------------------------ Collection Features ------------------------------
+    # # --- Public/Private Collections ---
+    # collections_all = get_collections_from_rig_metadata(a_rig_metadata, exclude_private=False)
+    # print(f"All Collections: {list(collections_all.keys())}")  # = ['face', '_twist', '_corrective', 'body']
+    #
+    # collections_public = get_collections_from_rig_metadata(a_rig_metadata, exclude_private=True)
+    # print(f"Public Collections: {list(collections_public.keys())}")  # = ['face', 'body']
+    #
+    # # --- Auto Exclude Private and Isolate Collections ---
+    # # BODY ONLY
+    # filtered_body_joints_list = filter_rig_joints_by_collection(
+    #     rig_metadata=a_rig_metadata,
+    #     filter_query="body",
+    #     exclude_private=True,
+    # )
+    # print(f"Body Joints Only: {len(filtered_body_joints_list)}")  # No twist, corrective, or face joints
+    #
+    # # FACE ONLY
+    # filtered_face_joints_list = filter_rig_joints_by_collection(
+    #     rig_metadata=a_rig_metadata,
+    #     filter_query="face",
+    #     exclude_private=True,
+    # )
+    # print(f"Face Joints Only: {len(filtered_face_joints_list)}")  # No twist, corrective, or body joints
+
+    # ------------------------------ Rig Alias ------------------------------
+    project_name = get_project_name_from_metadata(a_rig_metadata)
+    print(f'project_name: "{project_name}"')
+    project_alias = get_project_alias_from_metadata(a_rig_metadata, project_name_fallback=True)
+    print(f'project_alias: "{project_alias}"')
+    project_alias = get_project_alias_from_metadata(a_rig_metadata, project_name_fallback=False)
+    print(f'project_alias: "{project_alias}" (No project name fallback)')

@@ -194,6 +194,11 @@ class PackageUpdaterController:
             sys.stdout.write("Auto Check For Updates: Deactivated\n")
 
     def update_package(self, cache=None):
+        """Updates the installed package using the latest release metadata.
+
+        Args:
+            cache (dict, optional): Cached update data to reuse.
+        """
         """
         Updates package to the latest version found on GitHub
         """

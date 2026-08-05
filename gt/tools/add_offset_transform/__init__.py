@@ -1,46 +1,25 @@
-"""
- Add Offset Transform - Script used to create In-between Transforms (Offsets: An object in-between the hierarchy)
- github.com/TrevisanGMW/gt-tools -  2020-02-04
+"""Add Offset Transform tool entry point."""
 
- ATTENTION!!: This is a legacy tool. It was created before version "3.0.0" and it should NOT be used as an example of
- how to create new tools. As a legacy tool, its code and structure may not align with the current package standards.
- Please read the "CONTRIBUTING.md" file for more details and examples on how to create new tools.
-
- 1.1 - 2020-02-18
- Added Color Picker
-
- 1.2 - 2020-06-07
- Updated naming convention to make it clearer. (PEP8)
- Changed Script Name. (Previously rigLayer Generator)
- Fixed random window widthHeight issue.
-
- 1.3 - 2020-06-16
- Updated UI
- Added icon
- Added help menu
-
- 1.4 - 2020-11-15
- Tweaked the color and text for the title and help menu
-
- 1.5 to 1.5.2 - 2021-05-12 to 2022-07-21
- Made script compatible with Python 3.0 (Maya 2022+)
- Changed default suffix from "_rigLayer" to "_offset"
- PEP8 Cleanup
-"""
-# Tool Version
-__version_tuple__ = (1, 5, 3)
-__version_suffix__ = ''
-__version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
+__version_tuple__ = (2, 0, 0)
+__version_suffix__ = ""
+__version__ = ".".join(str(number) for number in __version_tuple__) + __version_suffix__
 
 
 def launch_tool():
+    """Builds and launches the Add Offset Transform MVC tool.
+
+    Returns:
+        AddOffsetTransformController: Launched controller.
     """
-    Launch user interface and create any necessary connections for the tool to function.
-    Entry point for when using the tool GT Generate Inbetween.
-    """
-    from gt.tools.add_offset_transform import add_offset_transform
-    add_offset_transform.script_version = __version__
-    add_offset_transform.build_gui_add_offset_transform()
+    from gt.tools.add_offset_transform.add_offset_transform_controller import AddOffsetTransformController
+    from gt.tools.add_offset_transform.add_offset_transform_model import AddOffsetTransformModel
+    from gt.tools.add_offset_transform.add_offset_transform_view import AddOffsetTransformView
+    from gt.ui import qt_utils
+
+    with qt_utils.QtApplicationContext() as context:
+        model = AddOffsetTransformModel()
+        view = AddOffsetTransformView(parent=context.get_parent(), version=__version__)
+        return AddOffsetTransformController(model=model, view=view)
 
 
 if __name__ == "__main__":

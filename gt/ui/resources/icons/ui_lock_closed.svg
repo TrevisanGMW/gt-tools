@@ -1,0 +1,7 @@
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 512 512" style="enable-background:new 0 0 512 512;" xml:space="preserve">
+	<path style="fill:none;stroke:#1D1D1D;stroke-width:48;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" d="M176,224v-80c0-44.183,35.817-80,80-80s80,35.817,80,80v80"/>
+	<path style="fill:none;stroke:#BDBDBD;stroke-width:24;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" d="M176,224v-80c0-44.183,35.817-80,80-80s80,35.817,80,80v80"/>
+	<path style="fill:#1D1D1D;" d="M128,200h256c26.51,0,48,21.49,48,48v176c0,26.51-21.49,48-48,48H128c-26.51,0-48-21.49-48-48V248C80,221.49,101.49,200,128,200z"/>
+	<path style="fill:#BDBDBD;" d="M128,224h256c13.255,0,24,10.745,24,24v176c0,13.255-10.745,24-24,24H128c-13.255,0-24-10.745-24-24V248C104,234.745,114.745,224,128,224z"/>
+	<path style="fill:#1D1D1D;" d="M256,276c-22.091,0-40,17.909-40,40c0,14.656,7.892,27.466,19.655,34.41L232,392h48l-3.655-41.59C288.108,343.466,296,330.656,296,316C296,293.909,278.091,276,256,276z"/>
+</svg>

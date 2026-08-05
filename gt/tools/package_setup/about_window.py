@@ -5,7 +5,7 @@ import maya.cmds as cmds
 
 
 def build_gui_about_gt_tools():
-    """Creates "About" window for the GT Tools menu"""
+    """Creates "About" window for the Tools menu"""
 
     gt_version = core_version.get_installed_version()
 
@@ -82,5 +82,6 @@ def build_gui_about_gt_tools():
     widget.setWindowIcon(icon)
 
     def close_help_gui():
+        """Closes the package setup help window."""
         if cmds.window(window_name, exists=True):
             cmds.deleteUI(window_name, window=True)

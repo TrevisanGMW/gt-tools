@@ -77,7 +77,7 @@ gt_mtod_settings_default = copy.deepcopy(gt_mtod_settings)
 
 def get_persistent_settings_maya_to_discord():
     """
-    Checks if persistent settings for GT Maya to Discord exists and transfer them to the settings dictionary.
+    Checks if persistent settings for Maya to Discord exists and transfer them to the settings dictionary.
     It assumes that persistent settings were stored using the cmds.optionVar function.
     """
 
@@ -139,7 +139,7 @@ def set_persistent_settings_maya_to_discord(
     custom_username, webhook, image_format, video_format, video_scale, video_compression, video_output_type
 ):
     """
-    Stores persistent settings for GT Maya to Discord.
+    Stores persistent settings for Maya to Discord.
     It assumes that persistent settings were stored using the cmds.optionVar function.
 
     Args:
@@ -199,7 +199,7 @@ def set_persistent_settings_maya_to_discord(
 
 
 def reset_persistent_settings_maya_to_discord():
-    """Resets persistent settings for GT Maya to Discord"""
+    """Resets persistent settings for Maya to Discord"""
     cmds.optionVar(remove="gt_maya_to_discord_webhook")
     cmds.optionVar(remove="gt_maya_to_discord_webhook_name")
     cmds.optionVar(remove="gt_maya_to_discord_custom_username")
@@ -586,6 +586,7 @@ def build_gui_maya_to_discord():
                     if upload_message.strip() != "":
 
                         def threaded_upload():
+                            """Uploads a prepared playblast payload in a worker thread."""
                             try:
                                 discord_post_message(
                                     get_username(), upload_message, gt_mtod_settings.get("discord_webhook")
@@ -648,6 +649,7 @@ def build_gui_maya_to_discord():
                     upload_message = ""
 
                 def threaded_upload():
+                    """Uploads a prepared playblast payload in a worker thread."""
                     try:
                         utils.executeDeferred(disable_buttons)
                         response = discord_post_attachment(
@@ -690,6 +692,7 @@ def build_gui_maya_to_discord():
                     upload_message = ""
 
                 def threaded_upload():
+                    """Uploads a prepared playblast payload in a worker thread."""
                     try:
                         utils.executeDeferred(disable_buttons)
                         response = discord_post_attachment(
@@ -731,6 +734,7 @@ def build_gui_maya_to_discord():
                     upload_message = ""
 
                 def threaded_upload():
+                    """Uploads a prepared playblast payload in a worker thread."""
                     try:
                         utils.executeDeferred(disable_buttons)
                         response = discord_post_attachment(
@@ -783,6 +787,7 @@ def build_gui_maya_to_discord():
                     upload_message = ""
 
                 def threaded_upload():
+                    """Uploads a prepared playblast payload in a worker thread."""
                     try:
                         response = discord_post_attachment(
                             get_username(), upload_message, temp_playblast_file, gt_mtod_settings.get("discord_webhook")
@@ -821,6 +826,7 @@ def build_gui_maya_to_discord():
                     update_text_status()
 
                     def threaded_upload():
+                        """Uploads a prepared playblast payload in a worker thread."""
                         try:
                             utils.executeDeferred(disable_buttons)
                             response = discord_post_message(
@@ -888,6 +894,7 @@ def build_gui_maya_to_discord():
                         upload_message = ""
 
                     def threaded_upload():
+                        """Uploads a prepared playblast payload in a worker thread."""
                         try:
                             response = discord_post_attachment(
                                 get_username(),
@@ -946,6 +953,7 @@ def build_gui_maya_to_discord():
                         upload_message = ""
 
                     def threaded_upload():
+                        """Uploads a prepared playblast payload in a worker thread."""
                         try:
                             response = discord_post_attachment(
                                 get_username(), upload_message, temp_path, gt_mtod_settings.get("discord_webhook")
@@ -989,7 +997,7 @@ def build_gui_maya_to_discord():
 
 # Creates Help GUI
 def build_gui_help_maya_to_discord():
-    """Builds the Help UI for GT Maya to Discord"""
+    """Builds the Help UI for Maya to Discord"""
     window_name = "build_gui_help_maya_to_discord"
     if cmds.window(window_name, exists=True):
         cmds.deleteUI(window_name, window=True)
@@ -1099,12 +1107,13 @@ def build_gui_help_maya_to_discord():
     widget.setWindowIcon(icon)
 
     def close_help_gui():
+        """Closes the Maya to Discord help window."""
         if cmds.window(window_name, exists=True):
             cmds.deleteUI(window_name, window=True)
 
 
 def build_gui_settings_maya_to_discord():
-    """Builds the Settings UI for GT Maya to Discord"""
+    """Builds the Settings UI for Maya to Discord"""
     window_name = "build_gui_settings_maya_to_discord"
     if cmds.window(window_name, exists=True):
         cmds.deleteUI(window_name, window=True)
@@ -1290,6 +1299,7 @@ def build_gui_settings_maya_to_discord():
             cmds.deleteUI(window_name, window=True)
 
     def update_checkbox_settings_data():
+        """Updates persisted settings from the checkbox controls."""
         feedback_visibility = cmds.checkBox(feedback_visibility_chk, q=True, value=True)
         timestamp_visibility = cmds.checkBox(timestamp_visibility_chk, q=True, value=True)
 
@@ -1464,6 +1474,16 @@ def discord_post_message(username, message, webhook_url):
 
 
 def encode_multipart(fields, files, boundary=None):
+    """Encodes fields and files as a multipart/form-data payload.
+
+    Args:
+        fields (dict): Form fields and their values.
+        files (dict): File names and binary contents.
+        boundary (str, optional): Multipart boundary string.
+
+    Returns:
+        bytes: Encoded multipart request body.
+    """
     """
     Encode dict of form fields and dict of files as multipart/form-data.
     Return tuple of (body_string, headers_dict). Each value in files is a dict
@@ -1488,6 +1508,14 @@ def encode_multipart(fields, files, boundary=None):
     """
 
     def escape_quote(s):
+        """Escapes quote characters for a command or serialized value.
+
+        Args:
+            s (str): String to escape.
+
+        Returns:
+            str: Escaped string.
+        """
         return s.replace('"', '\\"')
 
     if boundary is None:
@@ -1631,6 +1659,14 @@ def capture_playblast_animation(video_file, scale_pct, compression, video_format
 
 
 def get_available_playblast_compressions(input_format):
+    """Returns codecs available for a Maya playblast format.
+
+    Args:
+        input_format (str): Playblast image or movie format.
+
+    Returns:
+        list: Compression names supported for the format.
+    """
     return mel.eval('playblast -format "{0}" -q -compression;'.format(input_format))
 
 

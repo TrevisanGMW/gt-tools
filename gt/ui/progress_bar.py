@@ -16,7 +16,20 @@ MIN_HEIGHT_OUTPUT_TEXT = 400
 class ProgressBarWindow(ui_qt.QtWidgets.QMainWindow):
     CloseParentView = ui_qt.QtCore.Signal()
 
-    def __init__(self, parent=None, output_text=True, has_second_button=False):
+    def __init__(self, parent=None, output_text=True, has_second_button=False, on_top=True):
+        """
+        Initializes the progress bar window with optional output text area and buttons.
+
+        Sets up a window containing a progress bar, an optional read-only text output,
+        and one or two buttons ("OK" and optionally "Cancel"). Configures window
+        size, layout, styles, and modality.
+
+        Args:
+            parent (QWidget, optional): The parent widget for this window. Defaults to None.
+            output_text (bool, optional): Whether to include a read-only text output box. Defaults to True.
+            has_second_button (bool, optional): Whether to include a second button labeled "Cancel". Defaults to False.
+            on_top (bool, optional): Whether the window should stay on top of others. Defaults to True.
+        """
         super().__init__(parent=parent)
 
         # Basic Variables
@@ -71,8 +84,10 @@ class ProgressBarWindow(ui_qt.QtWidgets.QMainWindow):
         progress_bar_stylesheet += ui_res_lib.Stylesheet.scroll_bar_base
         progress_bar_stylesheet += ui_res_lib.Stylesheet.text_edit_base
         self.setStyleSheet(progress_bar_stylesheet)
-        self.set_window_icon(ui_res_lib.Icon.package_icon)
-        self.setWindowFlags(ui_qt.QtLib.WindowFlag.WindowStaysOnTopHint)  # Stay On Top Modality
+        self.set_window_icon(ui_res_lib.Icon.ui_progress)
+
+        if on_top:
+            self.setWindowFlags(ui_qt.QtLib.WindowFlag.WindowStaysOnTopHint)  # Stay On Top Modality
 
     def set_window_icon(self, icon_path):
         """
@@ -243,12 +258,28 @@ class ProgressBarWindow(ui_qt.QtWidgets.QMainWindow):
         self.edit_text_color_of_first_match(color=color, target_text=last_line, start_from_bottom=True)
 
     def get_latest_raw_line(self):
+        """
+        Retrieves the last line of text from the output textbox.
+
+        Returns:
+            str or None: The last line of text if any lines exist; otherwise, None.
+        """
         raw_text = self.output_textbox.toPlainText()
         lines = raw_text.split("\n")
         if lines:
             return lines[-1]
 
     def set_line_color(self, line, color):
+        """
+        Sets the text color of a specific line in the output textbox.
+
+        Searches the textbox for a line matching the given text and applies the
+        specified color to it.
+
+        Args:
+            line (str): The exact text of the line to color.
+            color (str or QColor): The color to apply to the line text.
+        """
         cursor = self.output_textbox.textCursor()
         cursor.movePosition(ui_qt.QtLib.TextCursor.Start)
         while cursor.movePosition(ui_qt.QtLib.TextCursor.NextBlock):
@@ -280,6 +311,10 @@ if __name__ == "__main__":
     window.first_button.clicked.connect(window.close_window)
 
     window.set_progress_bar_max_value(8)
+    # window.set_progress_bar_done()
+    # import core.setup_utils as setup_utils
+    # setup_utils.install_package(passthrough_functions=[window.append_text_to_output_box,
+    #                                                    window.increase_progress_bar_value])
 
     index = 0
     import time

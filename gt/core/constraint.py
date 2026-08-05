@@ -1,12 +1,13 @@
 """
-Constraint Module
+Constraint Utilities
 
-Code Namespace:
-    core_cnstr  # import gt.core.constraint as core_cnstr
+Import Line:
+    import gt.core.constraint as core_cnstr
 """
 
 import maya.cmds as cmds
 import logging
+import re
 
 # Logging Setup
 logging.basicConfig()
@@ -29,6 +30,30 @@ class ConstraintTypes:
     NORMAL = "normal"  # normalConstraint
     TANGENT = "tangent"  # tangentConstraint
     POLE_VECTOR = "poleVector"  # poleVectorConstraint
+
+    @staticmethod
+    def get_available_constraints(add_constraint_suffix=False):
+        """
+        Gets a list of all available constraint types. These are the same as the string attributes found above.
+        Args:
+            add_constraint_suffix (bool, optional): If True, it will add a "Constraint" suffix to the attribute name.
+                                                    e.g. "parent" becomes "parentConstraint"
+        Returns:
+            list: A list of available constraints (strings)
+                  Further description for each method can be found next to each method as a comment.
+        """
+        constraints = []
+        attrs = vars(ConstraintTypes)
+        attrs_keys = [attr for attr in attrs if not (attr.startswith("__") and attr.endswith("__"))]
+
+        for key in attrs_keys:
+            attr_value = getattr(ConstraintTypes, key)
+            if isinstance(attr_value, str) and not callable(attr_value):
+                if add_constraint_suffix:
+                    constraints.append(f"{attr_value}Constraint")
+                else:
+                    constraints.append(attr_value)
+        return constraints
 
 
 def get_constraint_function(constraint_type):
@@ -167,7 +192,14 @@ def create_rivet(source_components=None, verbose=True):
     return locator_name
 
 
-def equidistant_constraints(start, end, target_list, skip_start_end=True, constraint=ConstraintTypes.PARENT):
+def equidistant_constraints(
+    start,
+    end,
+    target_list,
+    skip_start_end=True,
+    constraint=ConstraintTypes.PARENT,
+    maintain_offset=False,
+):
     """
     Sets equidistant transforms for a list of objects between a start and end point.
     Args:
@@ -177,42 +209,64 @@ def equidistant_constraints(start, end, target_list, skip_start_end=True, constr
         skip_start_end (bool, optional): If True, it will skip the start and end points, which means objects will be
                                          in-between start and end points, but not on top of start/end points.
         constraint (str): Which constraint type should be created. Supported: "parent", "point", "orient", "scale".
+        maintain_offset (bool, optional): Default is False, if True it will retain the initial offset.
     Returns:
         list: A list of the created constraints. Empty if something went wrong
     """
     if not target_list:
-        return
-    if target_list and isinstance(target_list, str):
+        return []
+
+    if isinstance(target_list, str):
         target_list = [target_list]
 
     if skip_start_end:
-        target_list.insert(0, "")  # Skip start point.
-        steps = 1.0 / len(target_list)  # How much it should increase % by each iteration.
+        target_list.insert(0, "")  # Placeholder to offset first element
+        steps = 1.0 / len(target_list)
     else:
-        steps = 1.0 / (len(target_list) - 1)  # -1 to reach both end point.
-    percentage = 0  # Influence: range of 0.0 to 1.0
+        steps = 1.0 / (len(target_list) - 1)
 
-    # Determine Constraint Type
-    _func = None
-    _valid_constraint_types = ["parent", "point", "orient", "scale"]
-    if constraint not in _valid_constraint_types:
-        logger.warning(f'Unable to create equidistant constraints. Invalid constraint type: "{str(constraint)}".')
-        return []
-    _func = get_constraint_function(constraint_type=constraint)
-    if not _func:
-        logger.warning(
-            f"Unable to create equidistant constraints. "
-            f'Failed to get constraint function using type: "{str(constraint)}".'
-        )
-        return []
-
-    # Create Constraints
+    percentage = 0.0
     constraints = []
-    for index, obj in enumerate(target_list):
-        if obj and cmds.objExists(obj):
-            constraints.append(_func(start, obj, weight=1.0 - percentage)[0])
-            _func(end, obj, weight=percentage)
-        percentage += steps  # Increase percentage for next iteration.
+
+    valid_types = [ConstraintTypes.PARENT, ConstraintTypes.POINT, ConstraintTypes.ORIENT, ConstraintTypes.SCALE]
+    if constraint not in valid_types:
+        logger.warning(f'Invalid constraint type: "{constraint}".')
+        return []
+
+    _func = get_constraint_function(constraint)
+    if not _func:
+        logger.warning(f"Failed to get constraint function for type: {constraint}")
+        return []
+
+    for obj in target_list:
+        if not obj or not cmds.objExists(obj):
+            percentage += steps
+            continue
+
+        weight_start = 1.0 - percentage
+        weight_end = percentage
+
+        # Create constraint with both targets
+        constraint_nodes = _func(start, end, obj, maintainOffset=maintain_offset)
+        if isinstance(constraint_nodes, list):
+            constraint_node = constraint_nodes[0]
+        else:
+            constraint_node = constraint_nodes
+
+        # Get target aliases (e.g. "startW0", "endW1")
+        all_attrs = cmds.listAttr(constraint_node, m=True) or []
+        aliases = sorted(
+            [attr for attr in all_attrs if re.match(r"^.*W\d+$", attr)],
+            key=lambda x: int(re.search(r"W(\d+)$", x).group(1)),
+        )
+
+        # Assign custom weights
+        cmds.setAttr(f"{constraint_node}.{aliases[0]}", max(0.0, weight_start))
+        cmds.setAttr(f"{constraint_node}.{aliases[1]}", max(0.0, weight_end))
+
+        constraints.append(constraint_node)
+        percentage += steps
+
     return constraints
 
 
@@ -247,7 +301,7 @@ def constraint_targets(
 
     # Basic Checks
     if not source_driver:
-        logger.warning(f"Unable to constraint control. Missing provided path: {str(source_driver)}")
+        logger.warning(f"Unable to create constraint. Missing provided path: {str(source_driver)}")
         return []
     if target_driven and isinstance(target_driven, str):
         target_driven = [target_driven]
@@ -276,7 +330,154 @@ def constraint_targets(
     return constraints
 
 
+def evaluate_constraints(constraint_types=None):
+    """
+    Forces Maya to evaluate and refresh constraints of specific types.
+
+    This function collects constraints based on a specified filter or all available
+    constraint types if no filter is provided. It then marks these constraints as
+    dirty, forcing Maya's dependency graph to update them. Finally, it refreshes the viewport.
+
+    Args:
+        constraint_types (list, optional): A list of constraint types to filter by. If provided, only constraints
+                                           of these types will be evaluated. If `None`, all available constraint
+                                           types will be considered.
+
+    Example Usage:
+    - Evaluate all constraints:
+      evaluate_constraints()
+
+    - Evaluate only parent and point constraints:
+      evaluate_constraints(['parentConstraint', 'pointConstraint'])
+    """
+    _constraints = []
+    _constraint_types = ConstraintTypes.get_available_constraints(add_constraint_suffix=True)
+    if constraint_types:
+        _constraint_types = constraint_types
+    for cons_type in _constraint_types:
+        _constraints += cmds.ls(typ=cons_type, long=True)
+    if _constraints:
+        cmds.dgdirty(_constraints)
+        cmds.refresh()
+
+
+def blend_constraints_with_influence(
+    constraint_nodes,
+    influence_attr,
+    fallback_name="fallback",
+    per_constraint_fallback=True,
+    create_influence_attr_if_missing=True,
+):
+    """
+    Adds fallback transform(s) to constraints with optional shared or per-constraint behavior.
+    Blends between start/end weights and the fallback based on an influence attribute.
+
+    Args:
+        constraint_nodes (list of str): Constraint nodes to modify.
+        influence_attr (str): A float attribute (0-1) controlling the blending.
+        fallback_name (str): Base name for fallback transform(s).
+        per_constraint_fallback (bool): If True, creates a unique fallback for each constraint.
+        create_influence_attr_if_missing (bool): If True, attempts to create the influence_attr if it doesn't exist.
+
+    Returns:
+        dict: Dictionary mapping each constraint node to its fallback transform.
+    """
+    if not constraint_nodes:
+        return {}
+
+    # Handle creation of the influence attribute if requested
+    if create_influence_attr_if_missing and not cmds.objExists(influence_attr):
+        if "." in influence_attr:
+            node, attr = influence_attr.split(".", 1)
+            if cmds.objExists(node):
+                cmds.addAttr(node, ln=attr, at="double", min=0.0, max=1.0, dv=0.0, keyable=True)
+        else:
+            cmds.warning(f"Cannot create attribute '{influence_attr}': must be in 'node.attribute' format.")
+
+    fallbacks = {}
+
+    if not per_constraint_fallback:
+        if not cmds.objExists(fallback_name):
+            shared_fallback = cmds.createNode("transform", name=fallback_name)
+        else:
+            shared_fallback = fallback_name
+
+    for constraint_node in constraint_nodes:
+        if not cmds.objExists(constraint_node):
+            continue
+
+        constraint_type = cmds.nodeType(constraint_node)
+        constrained_objs = cmds.listConnections(constraint_node, d=True, s=False, type="transform") or []
+        if not constrained_objs:
+            continue
+        constrained_obj = constrained_objs[0]
+
+        # Determine fallback for this constraint
+        if per_constraint_fallback:
+            fallback = cmds.createNode("transform", name=f"{fallback_name}_{constraint_node}")
+            matrix = cmds.xform(constrained_obj, q=True, ws=True, matrix=True)
+            cmds.xform(fallback, ws=True, matrix=matrix)
+        else:
+            fallback = shared_fallback
+
+        fallbacks[constraint_node] = fallback
+
+        # Add fallback to constraint
+        maintain_offset = not per_constraint_fallback
+        if constraint_type == "parentConstraint":
+            cmds.parentConstraint(fallback, constraint_node, e=True, weight=0, maintainOffset=maintain_offset)
+        elif constraint_type == "pointConstraint":
+            cmds.pointConstraint(fallback, constraint_node, e=True, weight=0, maintainOffset=maintain_offset)
+        elif constraint_type == "orientConstraint":
+            cmds.orientConstraint(fallback, constraint_node, e=True, weight=0, maintainOffset=maintain_offset)
+        elif constraint_type == "scaleConstraint":
+            cmds.scaleConstraint(fallback, constraint_node, e=True, weight=0, maintainOffset=maintain_offset)
+        else:
+            continue
+
+        # Find all weight attributes (aliases)
+        all_attrs = cmds.listAttr(constraint_node, m=True) or []
+        weight_attrs = sorted(
+            [a for a in all_attrs if re.match(r".*W\d+$", a)], key=lambda x: int(re.search(r"W(\d+)$", x).group(1))
+        )
+
+        if len(weight_attrs) < 3:
+            continue
+
+        start_attr, end_attr, fallback_attr = weight_attrs
+
+        # Get static original weights
+        start_weight = cmds.getAttr(f"{constraint_node}.{start_attr}")
+        end_weight = cmds.getAttr(f"{constraint_node}.{end_attr}")
+
+        # Reverse influence: 1 - influence_attr
+        rev = cmds.createNode("reverse", name=f"{constraint_node}_revInfluence")
+        cmds.connectAttr(influence_attr, f"{rev}.inputX", force=True)
+
+        # Multiply start/end by influence
+        md_start = cmds.createNode("multiplyDivide", name=f"{constraint_node}_start_md")
+        md_end = cmds.createNode("multiplyDivide", name=f"{constraint_node}_end_md")
+
+        cmds.setAttr(f"{md_start}.input1X", start_weight)
+        cmds.setAttr(f"{md_end}.input1X", end_weight)
+        cmds.connectAttr(influence_attr, f"{md_start}.input2X", force=True)
+        cmds.connectAttr(influence_attr, f"{md_end}.input2X", force=True)
+
+        # Connect final outputs
+        cmds.connectAttr(f"{md_start}.outputX", f"{constraint_node}.{start_attr}", force=True)
+        cmds.connectAttr(f"{md_end}.outputX", f"{constraint_node}.{end_attr}", force=True)
+        cmds.connectAttr(f"{rev}.outputX", f"{constraint_node}.{fallback_attr}", force=True)
+
+    return fallbacks
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    # equidistant_constraints(start="locator1", end="locator2", target_list=["pCube1", "pCube2", "pCube3"])
-    equidistant_constraints(start="locator1", end="locator2", target_list="pCube1")
+    test_constraints = equidistant_constraints(
+        start="locator1",
+        end="locator2",
+        target_list=["pCube1", "pCube2", "pCube3", "pCube4"],
+        maintain_offset=True,
+        skip_start_end=False,
+    )
+    blend_constraints_with_influence(test_constraints, "pSphere1.test")

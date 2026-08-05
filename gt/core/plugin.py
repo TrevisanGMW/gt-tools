@@ -1,10 +1,9 @@
 """
-Plugin Module
+Plugin Utilities
 
-Code Namespace:
-    core_plugin  # import gt.core.plugin as core_plugin
+Import Line:
+    import gt.core.plugin as core_plugin
 """
-
 import maya.cmds as cmds
 import logging
 
@@ -98,4 +97,4 @@ def unload_plugins(plugin_names):
 
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
-    print(load_plugin("objExport"))
+    print(load_plugin('objExport'))

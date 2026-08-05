@@ -244,6 +244,11 @@ class MeshLibraryView(metaclass=ui_qt_utils.MayaWindowMeta):
             )
 
     def moveEvent(self, event):
+        """Updates scaled description sizing after the window moves.
+
+        Args:
+            event (QMoveEvent): Qt move event.
+        """
         """
         Move Event, called when the window is moved (must use this name "moveEvent").
         Updates the maximum size of the description according to the scale factor of the current screen.

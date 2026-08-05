@@ -1,3 +1,4 @@
+import gt.ui.qt_import as ui_qt
 import unittest
 import logging
 import sys
@@ -16,7 +17,6 @@ for to_append in [package_root_dir, tests_dir]:
     if to_append not in sys.path:
         sys.path.append(to_append)
 from gt.ui.line_text_widget import LineTextWidget
-import gt.ui.qt_import as ui_qt
 
 
 class TestLineTextWidget(unittest.TestCase):
@@ -38,7 +38,6 @@ class TestLineTextWidget(unittest.TestCase):
 
     def test_dialog_with_syntax_highlighter(self):
         from gt.ui.syntax_highlighter import PythonSyntaxHighlighter
-
         dialog = ui_qt.QtWidgets.QDialog()
         layout = ui_qt.QtWidgets.QVBoxLayout(dialog)
         line_text_widget = LineTextWidget()

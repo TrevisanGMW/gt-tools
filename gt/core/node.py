@@ -1,8 +1,8 @@
 """
-Node Module
+Node Utilities
 
-Code Namespace:
-    core_node  # import gt.core.node as core_node
+Import Line:
+    import gt.core.node as core_node
 """
 
 from gt.core.namespace import get_namespace_hierarchy_list

@@ -5,13 +5,16 @@ OrientationData View
 import gt.tools.auto_rigger.rig_framework as tools_rig_frm
 import gt.ui.resource_library as ui_res_lib
 import gt.ui.qt_utils as ui_qt_utils
+import gt.ui.qt_utils as qt_utils
+import gt.core.logger as core_log
 import gt.ui.qt_import as ui_qt
 import logging
 
 # Logging Setup
-logging.basicConfig()
-logger = logging.getLogger(__name__)
+logger_name = core_log.get_logger_name(__name__)
+logger = core_log.setup_common_logger(name=logger_name, propagate=False)
 logger.setLevel(logging.INFO)
+core_log.add_custom_log_levels()
 
 
 class RiggerOrientView(metaclass=ui_qt_utils.MayaWindowMeta):
@@ -88,8 +91,8 @@ class RiggerOrientView(metaclass=ui_qt_utils.MayaWindowMeta):
         # Initial Selection (Default)
         self.set_view_to_module_data()
 
-        ui_qt_utils.resize_to_screen(self, percentage=5, width_percentage=30)
-        ui_qt_utils.center_window(self)
+        qt_utils.resize_to_screen(self, percentage=5, width_percentage=30)
+        qt_utils.center_window(self)
 
     def create_widgets(self):
         """Create the widgets for the window."""
@@ -106,7 +109,7 @@ class RiggerOrientView(metaclass=ui_qt_utils.MayaWindowMeta):
             f"font-weight: bold; font-size: 8; margin-top: 0; " f"color: {ui_res_lib.Color.RGB.gray_lighter};"
         )
         self.settings_label.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignCenter)
-        self.settings_label.setFont(ui_qt_utils.get_font(ui_res_lib.Font.roboto))
+        self.settings_label.setFont(qt_utils.get_font(ui_res_lib.Font.roboto))
         self.settings_label.setFixedHeight(self.settings_label.sizeHint().height())
 
         self.aim_axis_label = ui_qt.QtWidgets.QLabel("Aim Axis:")
@@ -200,7 +203,9 @@ class RiggerOrientView(metaclass=ui_qt_utils.MayaWindowMeta):
     @staticmethod
     def _get_mod_value_as_int(combobox):
         """
-        Converts the modifier combobox value into an integer
+        Converts the modifier combobox value into an integer.
+        Args:
+            combobox (QComboBox): The combobox widget whose current text will be converted.
         Returns:
             int: An integer representing the value to be used in the vector.
                  If "+" = 1, if "-" = -1
@@ -331,6 +336,12 @@ class RiggerOrientView(metaclass=ui_qt_utils.MayaWindowMeta):
         self.close_view()
 
     def close_view(self):
+        """
+        Closes the current view or window.
+
+        Args:
+            self: The instance of the class with the view to be closed.
+        """
         self.close()
 
 
@@ -347,6 +358,6 @@ if __name__ == "__main__":
     )
     _a_module.set_orientation(orientation_data=_an_orientation)
 
-    with ui_qt_utils.QtApplicationContext():
+    with qt_utils.QtApplicationContext():
         window = RiggerOrientView(module=_a_module)  # View
         window.show()

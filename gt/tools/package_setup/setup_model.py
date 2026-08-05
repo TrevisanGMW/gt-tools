@@ -128,7 +128,7 @@ class PackageSetupModel(ui_qt.QtCore.QObject):
         """
         Injects the necessary code to import the package from location and create its maya menu. (Do not copy any files)
         """
-        utils_system.process_launch_options(["", "-launch"])
+        utils_system.process_launch_args(["", "-launch"])
         feedback = core_feedback.FeedbackMessage(
             intro="GT-Tools",
             style_intro=f"color:{self.package_name_color};" f"text-decoration:underline;",

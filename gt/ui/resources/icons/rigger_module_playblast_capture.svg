@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="svg5" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:svg="http://www.w3.org/2000/svg" viewBox="0 0 150 150">
+  <!-- Generator: Adobe Illustrator 29.4.0, SVG Export Plug-In . SVG Version: 2.1.0 Build 152)  -->
+  <defs>
+    <style>
+      .st0 {
+        stroke: #1d1d1d;
+        stroke-linecap: round;
+        stroke-miterlimit: 10;
+        stroke-width: 5px;
+      }
+
+      .st0, .st1 {
+        fill: none;
+      }
+
+      .st2 {
+        fill: #1d1d1d;
+      }
+
+      .st3 {
+        fill: #5bba47;
+      }
+    </style>
+  </defs>
+  <g>
+    <rect class="st3" x="18" y="18.6" width="114" height="114"/>
+    <g>
+      <polygon class="st2" points="133.3 37.3 114.2 18.5 93.8 18.3 113.4 37.8 93.8 57.4 114.2 57.3 133.3 38.4 116.5 37.8 133.3 37.3"/>
+      <polygon class="st2" points="77.5 37.8 94.3 37.3 75.2 18.5 54.8 18.3 74.4 37.8 54.8 57.4 75.2 57.3 94.3 38.4 77.5 37.8"/>
+      <polygon class="st2" points="39.3 37.8 56.1 37.3 37 18.5 16.6 18.3 36.2 37.8 16.6 57.4 37 57.3 56.1 38.4 39.3 37.8"/>
+    </g>
+    <path class="st2" d="M129.6,21v109.1H20.4V21h109.1M133.9,16.7H16.1v117.9h117.9V16.7h0Z"/>
+    <line class="st0" x1="18.4" y1="56.9" x2="131.6" y2="56.9"/>
+    <line class="st0" x1="18.4" y1="37.8" x2="131.6" y2="37.8"/>
+  </g>
+  <rect class="st1" x="9.5" y="10.1" width="131" height="131"/>
+</svg>

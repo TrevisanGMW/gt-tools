@@ -1,8 +1,3 @@
-"""
- Core Modules
- github.com/TrevisanGMW - 2020-09-13
-"""
-
 import sys
 import os
 

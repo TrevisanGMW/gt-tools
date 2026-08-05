@@ -1,3 +1,4 @@
+import gt.ui.qt_import as ui_qt
 import unittest
 import logging
 import sys
@@ -17,7 +18,6 @@ for to_append in [package_root_dir, tests_dir]:
         sys.path.append(to_append)
 from gt.ui.maya_menu import MayaMenu, MenuItem
 from gt.tests import maya_test_tools
-import gt.ui.qt_import as ui_qt
 
 
 class TestMayaMenu(unittest.TestCase):
@@ -61,21 +61,20 @@ class TestMayaMenu(unittest.TestCase):
 
     def test_get_item_parameters(self):
         # Test the get_item_parameters method
-        item = MenuItem(
-            label="label",
-            command="command",
-            tooltip="tooltip",
-            icon="icon",
-            enable=True,
-            parent="parent",
-            divider=True,
-            divider_label="divider_label",
-            sub_menu=False,
-            tear_off=False,
-            enable_command_repeat=False,
-            option_box=False,
-            option_box_icon="",
-        )
+        item = MenuItem(label="label",
+                        command='command',
+                        tooltip='tooltip',
+                        icon='icon',
+                        enable=True,
+                        parent="parent",
+                        divider=True,
+                        divider_label="divider_label",
+                        sub_menu=False,
+                        tear_off=False,
+                        enable_command_repeat=False,
+                        option_box=False,
+                        option_box_icon='',
+                        check_box=None)
         params = self.menu.get_item_parameters(item)
         self.assertEqual(params["label"], "label")
         self.assertEqual(params["command"], "command")
@@ -89,3 +88,9 @@ class TestMayaMenu(unittest.TestCase):
         self.assertEqual(params.get("tearOff"), None)
         self.assertEqual(params["enableCommandRepeat"], False)
         self.assertEqual(params.get("optionBox"), None)
+
+    def test_get_item_parameters_with_check_box(self):
+        """Tests that checkable menu items expose their current state."""
+        self.menu.add_menu_item(label="Checked Item", check_box=True)
+        params = self.menu.get_item_parameters(self.menu.menu_items[-1])
+        self.assertEqual(True, params.get("checkBox"))

@@ -16,7 +16,7 @@ package_root_dir = os.path.dirname(tests_dir)
 for to_append in [package_root_dir, tests_dir]:
     if to_append not in sys.path:
         sys.path.append(to_append)
-import gt.tools.auto_rigger.module_root as tools_mod_root
+import gt.tools.auto_rigger.modules.module_root as tools_mod_root
 import gt.tools.auto_rigger.rig_framework as tools_rig_frm
 import gt.tools.auto_rigger.rig_constants as tools_rig_const
 import gt.tools.auto_rigger.rig_utils as tools_rig_utils
@@ -90,7 +90,7 @@ class TestModuleRoot(unittest.TestCase):
         a_root_module = tools_mod_root.ModuleRoot()
         an_orientation_data = a_root_module.get_orientation_data()
         result = an_orientation_data.get_method()
-        expected = "world"
+        expected = "inherit"
         self.assertEqual(expected, result)
 
     def test_module_root_default_proxy_name(self):
@@ -132,7 +132,21 @@ class TestModuleRoot(unittest.TestCase):
         a_root_module = tools_mod_root.ModuleRoot()
         a_root_as_dict = a_root_module.get_module_as_dict()
         self.assertIsInstance(a_root_as_dict, dict)
-        expected_keys = sorted(["active", "module", "name", "orientation", "prefix", "proxies", "uuid"])
+        expected_keys = sorted(
+            [
+                "active",
+                "code",
+                "enable_scale",
+                "expanded",
+                "matches_proxy_rot",
+                "module",
+                "name",
+                "orientation",
+                "prefix",
+                "proxies",
+                "uuid",
+            ]
+        )
         result_keys = sorted(list(a_root_as_dict.keys()))
         self.assertEqual(expected_keys, result_keys)
         expected_module_value = "ModuleRoot"
@@ -373,12 +387,12 @@ class TestModuleRoot(unittest.TestCase):
 
         expected = ["|rig|controls|C_global_CTRL|C_globalOffset_CTRL|C_root_offset|C_root_parentOffset|C_root_CTRL"]
         result = tools_rig_utils.find_drivers_from_module(
-            module_uuid=a_1st_root_module.get_uuid(), filter_driver_type=None  # No filter means all types
+            source_uuid=a_1st_root_module.get_uuid(), filter_driver_type=None  # No filter means all types
         )
         self.assertEqual(expected, result)
         # Check what you get when filtering by type. The root only has one type, FK so that's the only test.
         expected = ["|rig|controls|C_global_CTRL|C_globalOffset_CTRL|C_root_offset|C_root_parentOffset|C_root_CTRL"]
         result = tools_rig_utils.find_drivers_from_module(
-            module_uuid=a_1st_root_module.get_uuid(), filter_driver_type=tools_rig_const.RiggerDriverTypes.FK
+            source_uuid=a_1st_root_module.get_uuid(), filter_driver_type=tools_rig_const.RiggerDriverTypes.FK
         )
         self.assertEqual(expected, result)

@@ -1,14 +1,13 @@
 """
-Transform Module
+Transform Utilities
 
-Code Namespace:
-    core_trans  # import gt.core.transform as core_trans
+Import Line:
+    import gt.core.transform as core_trans
 """
 
-import gt.core.attr as core_attr
-import gt.core.math as core_math
 import gt.core.feedback as core_fback
 import gt.core.constraint as core_cnstr
+import gt.core.attr as core_attr
 import maya.cmds as cmds
 import logging
 import sys
@@ -391,7 +390,7 @@ class Transform:
             x (float, int, optional): X value for the position. If provided, you must provide Y and Z too.
             y (float, int, optional): Y value for the position. If provided, you must provide X and Z too.
             z (float, int, optional): Z value for the position. If provided, you must provide X and Y too.
-            xyz (Vector3, list, tuple) A Vector3 with the new position or a tuple/list with X, Y and Z values.
+            xyz (Vector3, list, tuple): A Vector3 with the new position or a tuple/list with X, Y and Z values.
         """
         if xyz and isinstance(xyz, Vector3):
             self.position = xyz
@@ -423,7 +422,7 @@ class Transform:
             x (float, int, optional): X value for the rotation. If provided, you must provide Y and Z too.
             y (float, int, optional): Y value for the rotation. If provided, you must provide X and Z too.
             z (float, int, optional): Z value for the rotation. If provided, you must provide X and Y too.
-            xyz (Vector3, list, tuple) A Vector3 with the new rotation or a tuple/list with X, Y and Z values.
+            xyz (Vector3, list, tuple): A Vector3 with the new rotation or a tuple/list with X, Y and Z values.
         """
         if xyz and isinstance(xyz, Vector3):
             self.rotation = xyz
@@ -455,7 +454,7 @@ class Transform:
             x (float, int, optional): X value for the scale. If provided, you must provide Y and Z too.
             y (float, int, optional): Y value for the scale. If provided, you must provide X and Z too.
             z (float, int, optional): Z value for the scale. If provided, you must provide X and Y too.
-            xyz (Vector3, list, tuple) A Vector3 with the new scale or a tuple/list with X, Y and Z values.
+            xyz (Vector3, list, tuple): A Vector3 with the new scale or a tuple/list with X, Y and Z values.
         """
         if xyz and isinstance(xyz, Vector3):
             self.scale = xyz
@@ -479,27 +478,63 @@ class Transform:
                 return
         logger.warning(f"Unable to set scale. Invalid input.")
 
-    def to_matrix(self):
+    def to_matrix(self, rotate_order="xyz"):
         """
-        Convert the Transform object to a transformation matrix.
+        Convert the Transform object to a Maya transformation matrix in world space.
+
+        Note: Maya transform matrix is built by post-multiplying the matrices in specific given order
+              ([M]  = [sp]x[s]x[sh]x[sp]x[st]x[rp]x[ar]x[ro]x[rp]x[rt]x[t]), for more information see Maya
+              xform documentation. Maya api ensure a correct composition and decomposition.
+
+        Args:
+            rotate_order (str): the rotate order used to decompose the matrix in euler rotations.
+                                Accepted values: "xyz", "yzx", "zxy", "xzy", "yxz", "zyx".
 
         Returns:
-            list of lists: A 4x4 transformation matrix representing the combined transformations.
+            list: matrix list represented by 16 floats, Maya composite transformation matrix.
         """
-        translation_matrix = [
-            [1, 0, 0, self.position.x],
-            [0, 1, 0, self.position.y],
-            [0, 0, 1, self.position.z],
-            [0, 0, 0, 1],
-        ]
 
-        rotation_matrix = self.rotation.to_rotation_matrix()  # You'll need to implement this method in Vector3
+        import maya.api.OpenMaya as om2
+        import math
 
-        scale_matrix = [[self.scale.x, 0, 0, 0], [0, self.scale.y, 0, 0], [0, 0, self.scale.z, 0], [0, 0, 0, 1]]
+        if not rotate_order:
+            logger.warning("Given rotate order is empty.")
+            return
+        if not isinstance(rotate_order, str):
+            logger.warning("Given rotate order is not a string.")
+            return
 
-        transformation_matrix = core_math.matrix_mult(translation_matrix, rotation_matrix)
-        transformation_matrix = core_math.matrix_mult(transformation_matrix, scale_matrix)
-        return transformation_matrix
+        rotate_order_options = ["xyz", "yzx", "zxy", "xzy", "yxz", "zyx"]
+        if rotate_order not in rotate_order_options:
+            logger.warning(f"Rotate order must be one of the following values: {str(rotate_order_options)}")
+            return
+        rotate_order_id = rotate_order_options.index(rotate_order)
+
+        # Instantiate transformation matrix
+        m_matrix = om2.MMatrix()
+        m_transform_matrix = om2.MTransformationMatrix(m_matrix)
+        # Set translation
+        m_translation = om2.MVector(self.position.x, self.position.y, self.position.z)
+        m_transform_matrix.setTranslation(m_translation, om2.MSpace.kWorld)
+        # Set rotation
+        euler_rotation = om2.MEulerRotation(
+            (
+                math.radians(self.rotation.x),
+                math.radians(self.rotation.y),
+                math.radians(self.rotation.z),
+            )
+        )
+        euler_rotation.reorderIt(rotate_order_id)
+        m_transform_matrix.setRotation(euler_rotation)
+        # Set scale
+        m_scale = om2.MVector(self.scale.x, self.scale.y, self.scale.z)
+        m_transform_matrix.setScale(m_scale, om2.MSpace.kWorld)
+        # Get MMatrix
+        m_matrix = m_transform_matrix.asMatrix()
+        matrix = list(m_matrix)
+        matrix = [round(comp, 8) for comp in matrix]
+
+        return matrix
 
     def set_from_tuple(self, position_tuple, rotation_tuple, scale_tuple):
         """
@@ -623,6 +658,15 @@ class Transform:
         self.set_scale(xyz=scale)
 
     def apply_transform(self, target_object, world_space=True, object_space=False, relative=False):
+        """
+        Applies the stored transform (position, rotation, and scale) to the specified object.
+
+        Args:
+            target_object (str): The name of the Maya object to apply the transform to.
+            world_space (bool, optional): If True, applies the transform in world space.
+            object_space (bool, optional): If True, applies the transform in object space.
+            relative (bool, optional): If True, applies the transform relative to the current values.
+        """
         if not target_object or not cmds.objExists(target_object):
             logger.warning(f'Unable to apply transform. Missing object: "{target_object}".')
             return
@@ -658,7 +702,10 @@ class Transform:
 
     def get_position(self, as_tuple=False):
         """
-        Gets the transform position
+        Gets the transform position.
+        Args:
+            as_tuple (bool, optional): If True, returns the position as a tuple (x, y, z).
+                                       If False, returns the position as a Vector3 object.
         Returns:
             Vector3 or tuple: Position value stored in this transform
         """
@@ -668,7 +715,10 @@ class Transform:
 
     def get_rotation(self, as_tuple=False):
         """
-        Gets the transform rotation
+        Gets the transform rotation.
+        Args:
+            as_tuple (bool, optional): If True, returns the rotation as a tuple (x, y, z).
+                                       If False, returns the rotation as a Vector3 object.
         Returns:
             Vector3 or tuple: Rotation value stored in this transform
         """
@@ -678,7 +728,10 @@ class Transform:
 
     def get_scale(self, as_tuple=False):
         """
-        Gets the transform scale
+        Gets the transform scale.
+        Args:
+            as_tuple (bool, optional): If True, returns the scale as a tuple (x, y, z).
+                                       If False, returns the scale as a Vector3 object.
         Returns:
             Vector3 or tuple: Scale value stored in this transform
         """
@@ -704,95 +757,143 @@ class Transform:
 
 
 # ------------------------------------------------- Utilities Start -----------------------------------------------
-def move_pivot_top():
-    """Moves pivot point to the top of the boundary box"""
-    selection = cmds.ls(selection=True, long=True)
-    selection_short = cmds.ls(selection=True)
+def get_bounding_box_pivot(bounding_box, horizontal="center", vertical="base", depth="center"):
+    """
+    Computes a world-space anchor position inside a bounding box.
 
-    if not selection:
+    This is a pure helper (no Maya calls). The bounding box format matches the output of
+    "cmds.exactWorldBoundingBox": [x_min, y_min, z_min, x_max, y_max, z_max].
+
+    The three axes are addressed independently so any corner, edge, face-center or the
+    volume center can be requested:
+        - horizontal (X): "left" (x_min), "center" (mid), "right" (x_max)
+        - vertical   (Y): "base" (y_min), "middle" (mid), "top" (y_max)
+        - depth      (Z): "front" (z_max), "center" (mid), "back" (z_min)
+
+    Args:
+        bounding_box (list): Six values [x_min, y_min, z_min, x_max, y_max, z_max].
+        horizontal (str, optional): X anchor. Defaults to "center".
+        vertical (str, optional): Y anchor. Defaults to "base".
+        depth (str, optional): Z anchor. Defaults to "center".
+
+    Returns:
+        list: World-space position [x, y, z] for the requested anchor.
+
+    Raises:
+        ValueError: If an unknown anchor keyword is provided for any axis.
+    """
+    x_min, y_min, z_min, x_max, y_max, z_max = bounding_box
+
+    horizontal_map = {"left": x_min, "center": (x_min + x_max) / 2, "right": x_max}
+    vertical_map = {"base": y_min, "middle": (y_min + y_max) / 2, "top": y_max}
+    depth_map = {"front": z_max, "center": (z_min + z_max) / 2, "back": z_min}
+
+    if horizontal not in horizontal_map:
+        raise ValueError(f'Invalid horizontal anchor "{horizontal}". Expected: {list(horizontal_map)}.')
+    if vertical not in vertical_map:
+        raise ValueError(f'Invalid vertical anchor "{vertical}". Expected: {list(vertical_map)}.')
+    if depth not in depth_map:
+        raise ValueError(f'Invalid depth anchor "{depth}". Expected: {list(depth_map)}.')
+
+    return [horizontal_map[horizontal], vertical_map[vertical], depth_map[depth]]
+
+
+def move_pivot_to_bounding_box_position(obj_list=None, horizontal="center", vertical="base", depth="center"):
+    """
+    Moves the pivot of each object to an anchor point of its world bounding box.
+
+    Args:
+        obj_list (list, optional): Objects to affect. If None, the current selection is
+            used.
+        horizontal (str, optional): X anchor ("left", "center", "right"). Default "center".
+        vertical (str, optional): Y anchor ("base", "middle", "top"). Default "base".
+        depth (str, optional): Z anchor ("front", "center", "back"). Default "center".
+
+    Returns:
+        int: number of objects whose pivot was moved.
+    """
+    if obj_list is None:
+        obj_list = cmds.ls(selection=True, long=True)
+    elif isinstance(obj_list, str):
+        obj_list = [obj_list]
+
+    if not obj_list:
         cmds.warning("Nothing selected. Please select at least one object and try again.")
-        return
+        return 0
 
+    function_name = "Move Pivot To Bounding Box Position"
+    cmds.undoInfo(openChunk=True, chunkName=function_name)
     counter = 0
     errors = ""
-    for obj in selection:
-        try:
-            bbox = cmds.exactWorldBoundingBox(obj)  # extracts bounding box
-            top = [(bbox[0] + bbox[3]) / 2, bbox[4], (bbox[2] + bbox[5]) / 2]  # find top
-            cmds.xform(obj, piv=top, ws=True)
-            counter += 1
-        except Exception as e:
-            errors += str(e) + "\n"
+    try:
+        for obj in obj_list:
+            try:
+                bbox = cmds.exactWorldBoundingBox(obj)
+                position = get_bounding_box_pivot(bbox, horizontal=horizontal, vertical=vertical, depth=depth)
+                cmds.xform(obj, piv=position, ws=True)
+                counter += 1
+            except Exception as e:
+                errors += str(e) + "\n"
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
     if errors:
         print(("#" * 50) + "\n")
         print(errors)
         print("#" * 50)
 
-    pivot_pos = "top"
+    _print_move_pivot_feedback(obj_list, counter, vertical=vertical, horizontal=horizontal, depth=depth)
+    return counter
+
+
+def _print_move_pivot_feedback(obj_list, counter, vertical="base", horizontal="center", depth="center"):
+    """
+    Prints an in-view feedback message describing a pivot move.
+
+    Args:
+        obj_list (list): Objects that were processed.
+        counter (int): Number of pivots successfully moved.
+        vertical (str, optional): Y anchor used. Defaults to "base".
+        horizontal (str, optional): X anchor used. Defaults to "center".
+        depth (str, optional): Z anchor used. Defaults to "center".
+    """
+    # Build a concise, human-readable anchor label (e.g. "base", "top left", "base back right")
+    parts = [vertical]
+    if depth != "center":
+        parts.append(depth)
+    if horizontal != "center":
+        parts.append(horizontal)
+    pivot_pos = " ".join(parts)
+
     highlight_style = "color:#FF0000;text-decoration:underline;"
-    feedback = core_fback.FeedbackMessage(
-        quantity=counter,
-        singular="pivot was",
-        plural="pivots were",
-        conclusion="moved to the",
-        suffix=pivot_pos,
-        style_suffix=highlight_style,
-    )
     if counter == 1:
         feedback = core_fback.FeedbackMessage(
-            intro=f'"{selection_short[0]}"',
+            intro=f'"{obj_list[0].split("|")[-1]}"',
             style_intro=highlight_style,
             conclusion="pivot was moved to the",
             suffix=pivot_pos,
             style_suffix=highlight_style,
         )
+    else:
+        feedback = core_fback.FeedbackMessage(
+            quantity=counter,
+            singular="pivot was",
+            plural="pivots were",
+            conclusion="moved to the",
+            suffix=pivot_pos,
+            style_suffix=highlight_style,
+        )
     feedback.print_inview_message()
+
+
+def move_pivot_top():
+    """Moves pivot point to the top-center of the bounding box of every selected object."""
+    return move_pivot_to_bounding_box_position(horizontal="center", vertical="top", depth="center")
 
 
 def move_pivot_base():
-    """Moves pivot point to the base of the boundary box"""
-    selection = cmds.ls(selection=True, long=True)
-    selection_short = cmds.ls(selection=True)
-
-    if not selection:
-        cmds.warning("Nothing selected. Please select at least one object and try again.")
-        return
-
-    counter = 0
-    errors = ""
-    for obj in selection:
-        try:
-            bbox = cmds.exactWorldBoundingBox(obj)  # extracts bounding box
-            bottom = [(bbox[0] + bbox[3]) / 2, bbox[1], (bbox[2] + bbox[5]) / 2]  # find bottom
-            cmds.xform(obj, piv=bottom, ws=True)  # sends pivot to bottom
-            counter += 1
-        except Exception as e:
-            errors += str(e) + "\n"
-
-    if errors:
-        print(("#" * 50) + "\n")
-        print(errors)
-        print("#" * 50)
-    pivot_pos = "base"
-    highlight_style = "color:#FF0000;text-decoration:underline;"
-    feedback = core_fback.FeedbackMessage(
-        quantity=counter,
-        singular="pivot was",
-        plural="pivots were",
-        conclusion="moved to the",
-        suffix=pivot_pos,
-        style_suffix=highlight_style,
-    )
-    if counter == 1:
-        feedback = core_fback.FeedbackMessage(
-            intro=f'"{selection_short[0]}"',
-            style_intro=highlight_style,
-            conclusion="pivot was moved to the",
-            suffix=pivot_pos,
-            style_suffix=highlight_style,
-        )
-    feedback.print_inview_message()
+    """Moves pivot point to the base-center of the bounding box of every selected object."""
+    return move_pivot_to_bounding_box_position(horizontal="center", vertical="base", depth="center")
 
 
 def move_to_origin(obj):
@@ -873,6 +974,18 @@ def reset_transforms():
         return
 
     def reset_trans(selection):
+        """
+        Resets the translation, rotation, and scale attributes of selected Maya objects to their default values,
+        if those attributes are not locked and have no incoming connections.
+
+        Args:
+            selection (list of str): List of Maya object names to reset transforms on.
+
+        Returns:
+            tuple:
+                errors (str): Concatenated error messages encountered during the operation.
+                counter (int): Number of objects successfully processed.
+        """
         errors = ""
         counter = 0
         for obj in selection:
@@ -880,48 +993,40 @@ def reset_transforms():
                 type_check = cmds.listRelatives(obj, children=True) or []
 
                 if len(type_check) > 0 and cmds.objectType(type_check) != "joint":
-                    obj_connection_tx = cmds.listConnections(obj + ".tx", d=False, s=True) or []
-                    if not len(obj_connection_tx) > 0:
-                        if cmds.getAttr(obj + ".tx", lock=True) is False:
-                            cmds.setAttr(obj + ".tx", 0)
-                    obj_connection_ty = cmds.listConnections(obj + ".ty", d=False, s=True) or []
-                    if not len(obj_connection_ty) > 0:
-                        if cmds.getAttr(obj + ".ty", lock=True) is False:
-                            cmds.setAttr(obj + ".ty", 0)
-                    obj_connection_tz = cmds.listConnections(obj + ".tz", d=False, s=True) or []
-                    if not len(obj_connection_tz) > 0:
-                        if cmds.getAttr(obj + ".tz", lock=True) is False:
-                            cmds.setAttr(obj + ".tz", 0)
+                    if not cmds.listConnections(f"{obj}.tx", d=False, s=True):
+                        if not cmds.getAttr(f"{obj}.tx", lock=True):
+                            cmds.setAttr(f"{obj}.tx", 0)
+                    if not cmds.listConnections(f"{obj}.ty", d=False, s=True):
+                        if not cmds.getAttr(f"{obj}.ty", lock=True):
+                            cmds.setAttr(f"{obj}.ty", 0)
+                    if not cmds.listConnections(f"{obj}.tz", d=False, s=True):
+                        if not cmds.getAttr(f"{obj}.tz", lock=True):
+                            cmds.setAttr(f"{obj}.tz", 0)
 
-                obj_connection_rx = cmds.listConnections(obj + ".rotateX", d=False, s=True) or []
-                if not len(obj_connection_rx) > 0:
-                    if cmds.getAttr(obj + ".rotateX", lock=True) is False:
-                        cmds.setAttr(obj + ".rotateX", 0)
-                obj_connection_ry = cmds.listConnections(obj + ".rotateY", d=False, s=True) or []
-                if not len(obj_connection_ry) > 0:
-                    if cmds.getAttr(obj + ".rotateY", lock=True) is False:
-                        cmds.setAttr(obj + ".rotateY", 0)
-                obj_connection_rz = cmds.listConnections(obj + ".rotateZ", d=False, s=True) or []
-                if not len(obj_connection_rz) > 0:
-                    if cmds.getAttr(obj + ".rotateZ", lock=True) is False:
-                        cmds.setAttr(obj + ".rotateZ", 0)
+                if not cmds.listConnections(f"{obj}.rotateX", d=False, s=True):
+                    if not cmds.getAttr(f"{obj}.rotateX", lock=True):
+                        cmds.setAttr(f"{obj}.rotateX", 0)
+                if not cmds.listConnections(f"{obj}.rotateY", d=False, s=True):
+                    if not cmds.getAttr(f"{obj}.rotateY", lock=True):
+                        cmds.setAttr(f"{obj}.rotateY", 0)
+                if not cmds.listConnections(f"{obj}.rotateZ", d=False, s=True):
+                    if not cmds.getAttr(f"{obj}.rotateZ", lock=True):
+                        cmds.setAttr(f"{obj}.rotateZ", 0)
 
-                obj_connection_sx = cmds.listConnections(obj + ".scaleX", d=False, s=True) or []
-                if not len(obj_connection_sx) > 0:
-                    if cmds.getAttr(obj + ".scaleX", lock=True) is False:
-                        cmds.setAttr(obj + ".scaleX", 1)
-                obj_connection_sy = cmds.listConnections(obj + ".scaleY", d=False, s=True) or []
-                if not len(obj_connection_sy) > 0:
-                    if cmds.getAttr(obj + ".scaleY", lock=True) is False:
-                        cmds.setAttr(obj + ".scaleY", 1)
-                obj_connection_sz = cmds.listConnections(obj + ".scaleZ", d=False, s=True) or []
-                if not len(obj_connection_sz) > 0:
-                    if cmds.getAttr(obj + ".scaleZ", lock=True) is False:
-                        cmds.setAttr(obj + ".scaleZ", 1)
+                if not cmds.listConnections(f"{obj}.scaleX", d=False, s=True):
+                    if not cmds.getAttr(f"{obj}.scaleX", lock=True):
+                        cmds.setAttr(f"{obj}.scaleX", 1)
+                if not cmds.listConnections(f"{obj}.scaleY", d=False, s=True):
+                    if not cmds.getAttr(f"{obj}.scaleY", lock=True):
+                        cmds.setAttr(f"{obj}.scaleY", 1)
+                if not cmds.listConnections(f"{obj}.scaleZ", d=False, s=True):
+                    if not cmds.getAttr(f"{obj}.scaleZ", lock=True):
+                        cmds.setAttr(f"{obj}.scaleZ", 1)
+
                 counter += 1
             except Exception as exception:
                 logger.debug(str(exception))
-                errors += str(exception) + "\n"
+                errors += f"{exception}\n"
         return errors, counter
 
     try:
@@ -948,12 +1053,14 @@ def reset_transforms():
 def convert_transforms_to_locators():
     """
     Converts transforms to locators without deleting them.
-    Essentially places a locator where every transform is.
+    Places a locator where every transform is.
+    Returns:
+        list: A list of generated locators.
     """
     selection = cmds.ls(selection=True, long=True)
     selection_short = cmds.ls(selection=True)
     errors = ""
-    counter = 0
+    locators = []
     if not selection:
         cmds.warning("Nothing selected. Please select at least one object and try again.")
         return
@@ -968,7 +1075,7 @@ def convert_transforms_to_locators():
             cmds.parent(loc, locators_grp)
             cmds.delete(cmds.parentConstraint(obj, loc))
             cmds.delete(cmds.scaleConstraint(obj, loc))
-            counter += 1
+            locators.append(loc)
         except Exception as exception:
             errors += str(exception) + "\n"
 
@@ -977,6 +1084,7 @@ def convert_transforms_to_locators():
         print(errors)
         print("#" * 50)
 
+    counter = len(locators)
     if counter > 0:
         cmds.select(selection)
         feedback = core_fback.FeedbackMessage(
@@ -990,7 +1098,8 @@ def convert_transforms_to_locators():
             )
         feedback.print_inview_message(system_write=False)
         feedback.conclusion = f'created. Find generated elements in the group "{str(locators_grp)}".'
-        sys.stdout.write(f"\n{feedback.get_string_message()}")
+        sys.stdout.write(f"\n{feedback.get_string_message()}\n")
+    return locators
 
 
 def overwrite_xyz_values(passthrough_xyz, overwrite_xyz=(0, 0, 0), overwrite_dimensions=None):
@@ -1105,7 +1214,14 @@ def match_scale(source, target_list, skip=None):
 
 
 def match_transform(
-    source, target_list, translate=True, rotate=True, scale=True, skip_translate=None, skip_rotate=None, skip_scale=None
+    source,
+    target_list,
+    translate=True,
+    rotate=True,
+    scale=True,
+    skip_translate=None,
+    skip_rotate=None,
+    skip_scale=None,
 ):
     """
     Match the transform attributes of the target object to the source object.
@@ -1333,6 +1449,185 @@ def get_directional_position(object_name, axis="X", tolerance=0.001):
         return 1
     else:
         return center
+
+
+def mirror_transform_matrix(matrix, plane="YZ", behaviour=True):
+    """
+    Mirrors transform across hyperplane.
+    It returns the mirror matrix that can be used with xform.
+
+    Note: Maya transform matrix is built by post-multiplying the matrices in specific given order
+          ([M]  = [sp]x[s]x[sh]x[sp]x[st]x[rp]x[ar]x[ro]x[rp]x[rt]x[t]), for more information see Maya
+          xform documentation. Maya api ensure a correct composition and decomposition.
+
+    Args:
+        matrix (list): list represented by 16 floats, Maya composite transformation matrix.
+        plane (str): hyperplane used to mirror. Accepted values: "XY", "YZ", "XZ".
+        behaviour (bool): if True sets the opposite orientation
+
+    Returns:
+        mirrored matrix (transform matrix): list represented by 16 floats, Maya composite transformation matrix.
+    """
+    import copy
+
+    if not matrix:
+        logger.warning("Given matrix is empty.")
+        return
+
+    if plane not in ["XY", "YZ", "XZ"]:
+        logger.warning("Given plane not valid. Please choose between 'XY', 'YZ', 'XZ'.")
+        return
+
+    # Get inverted rotations and translations
+    rx = [n * -1 for n in matrix[0:9:4]]
+    ry = [n * -1 for n in matrix[1:10:4]]
+    rz = [n * -1 for n in matrix[2:11:4]]
+    t = [n * -1 for n in matrix[12:15]]
+
+    # Set mirrored matrix according to the given plane and behaviour
+    mirrored_matrix = copy.deepcopy(matrix)
+    if plane == "XY":
+        mirrored_matrix[14] = t[2]  # invert Z translation
+        if behaviour:
+            mirrored_matrix[0:9:4] = rx
+            mirrored_matrix[1:10:4] = ry
+
+    elif plane == "YZ":
+        mirrored_matrix[12] = t[0]  # invert X translation
+        if behaviour:
+            mirrored_matrix[1:10:4] = ry
+            mirrored_matrix[2:11:4] = rz
+
+    elif plane == "XZ":
+        mirrored_matrix[13] = t[1]  # invert Y translation
+        if behaviour:
+            mirrored_matrix[0:9:4] = rx
+            mirrored_matrix[2:11:4] = rz
+
+    mirrored_matrix = [round(comp, 8) for comp in mirrored_matrix]
+
+    return mirrored_matrix
+
+
+def get_transform_from_matrix(matrix, rotate_order="xyz"):
+    """
+    Gets the transform object (with translation, rotation and scale) from a Maya matrix in world space.
+
+    Note: Maya transform matrix is built by post-multiplying the matrices in specific given order
+          ([M]  = [sp]x[s]x[sh]x[sp]x[st]x[rp]x[ar]x[ro]x[rp]x[rt]x[t]), for more information see Maya
+          xform documentation. Maya api ensure a correct composition and decomposition.
+
+    Args:
+        matrix (list): list represented by 16 floats, Maya composite transformation matrix.
+        rotate_order (str): the rotate order used to decompose the matrix in euler rotations.
+                            Accepted values: "xyz", "yzx", "zxy", "xzy", "yxz", "zyx".
+
+    Returns:
+        Transform object: instance of Transform
+    """
+    import maya.api.OpenMaya as om2
+    import math
+
+    if not matrix:
+        logger.warning("Given matrix is empty.")
+        return
+    if not isinstance(matrix, list):
+        logger.warning("Given matrix is not a list.")
+        return
+    if len(matrix) != 16:
+        logger.warning("Given matrix is not made by 16 items.")
+        return
+    if not all(isinstance(num, float) for num in matrix):
+        logger.warning("The items of the given matrix are not all floats.")
+        return
+
+    if not rotate_order:
+        logger.warning("Given rotate order is empty.")
+        return
+    if not isinstance(rotate_order, str):
+        logger.warning("Given rotate order is not a string.")
+        return
+
+    rotate_order_options = ["xyz", "yzx", "zxy", "xzy", "yxz", "zyx"]
+    if rotate_order not in rotate_order_options:
+        logger.warning(f"Rotate order must be one of the following values: {str(rotate_order_options)}")
+        return
+    rotate_order_id = rotate_order_options.index(rotate_order)
+
+    # Get transformation matrix
+    m_matrix = om2.MMatrix(matrix)
+    m_transform_matrix = om2.MTransformationMatrix(m_matrix)
+    # Translation
+    position = list(m_transform_matrix.translation(om2.MSpace.kWorld))
+    position = [round(pos, 4) for pos in position]
+    # Rotation in radians
+    euler_rotation = m_transform_matrix.rotation()
+    # Apply rotation order
+    euler_rotation.reorderIt(rotate_order_id)
+    # Rotation in euler
+    rotation = [math.degrees(angle) for angle in (euler_rotation.x, euler_rotation.y, euler_rotation.z)]
+    rotation = [round(rot, 4) for rot in rotation]
+    # Scale
+    scale = m_transform_matrix.scale(om2.MSpace.kWorld)
+    scale = [round(scl, 4) for scl in scale]
+    # Instantiate Transform
+    transform = Transform(position=position, rotation=rotation, scale=scale)
+
+    return transform
+
+
+def align_object_to_vector(start_obj, end_obj, target_obj, aim_axis="x", up_axis="y", world_up=(0, 1, 0)):
+    """
+    Aligns target_obj to face from start_obj toward end_obj.
+
+    Args:
+        start_obj (str): Name of the starting object.
+        end_obj (str): Name of the ending object.
+        target_obj (str): Object to orient in line with the direction from start to end.
+        aim_axis (str): Axis of target_obj to point towards the end (default: 'x').
+        up_axis (str): Axis of target_obj to be aligned with world up (default: 'y').
+        world_up (tuple): The world up vector (default: (0, 1, 0)).
+    """
+    import maya.api.OpenMaya as OpenMaya
+
+    def get_world_position(obj):
+        """
+        Gets the world-space position of a given Maya object.
+
+        Args:
+            obj (str): The name of the Maya object.
+
+        Returns:
+            OpenMaya.MVector: The world-space position of the object as an MVector.
+        """
+        pos = cmds.xform(obj, q=True, ws=True, t=True)
+        return OpenMaya.MVector(pos)
+
+    # Get the direction vector from start to end
+    start_pos = get_world_position(start_obj)
+    end_pos = get_world_position(end_obj)
+
+    # Create a temporary object to help align the rotation
+    temp_locator = cmds.spaceLocator()[0]
+    cmds.xform(temp_locator, ws=True, t=start_pos)
+
+    # Determine aim and up vector mapping
+    aim_vector = {"x": (1, 0, 0), "y": (0, 1, 0), "z": (0, 0, 1)}[aim_axis]
+    up_vector = {"x": (1, 0, 0), "y": (0, 1, 0), "z": (0, 0, 1)}[up_axis]
+
+    # Use aimConstraint to orient the temporary locator
+    aim_target = cmds.spaceLocator()[0]
+    cmds.xform(aim_target, ws=True, t=end_pos)
+    cmds.aimConstraint(
+        aim_target, temp_locator, aimVector=aim_vector, upVector=up_vector, worldUpVector=world_up, worldUpType="vector"
+    )
+
+    # Match rotation to target_obj
+    rotation = cmds.xform(temp_locator, q=True, ws=True, ro=True)
+    cmds.xform(target_obj, ws=True, ro=rotation)
+
+    # Clean up
+    cmds.delete(temp_locator, aim_target)
 
 
 if __name__ == "__main__":
