@@ -11,7 +11,7 @@
 <ul>
   <li><a href="#package-setup">Package Setup</a></li>
   <li><a href="#gt-menu">GT Menu</a></li>
-  <li><a href="#gt-check-for-updates">Check for Updates</a></li>
+  <li><a href="#check-for-updates">Check for Updates</a></li>
 </ul>
 <h3><b>Tools:</b></h3>
 <ul>
@@ -28,12 +28,13 @@
 <h3><b>Curves:</b></h3>
 <ul>
   <li><a href="#curve-library">Curve Library</a></li>
-  <li><a href="#extract-python-curve">Extract Python Curve</a></li>
+  <li><a href="#curve-to-python">Curve to Python</a></li>
   <li><a href="#generate-text-curve">Generate Text Curve</a></li>
   <li><a href="#extract-curve-state">Extract Curve State</a></li>
 </ul>
 <h3><b>Modeling:</b></h3>
 <ul>
+  <li><a href="#mesh-morpher">Mesh Morpher</a></li>
   <li><a href="#mesh-library">Mesh Library</a></li>
   <li><a href="#transfer-uvs">Transfer UVs</a></li>
   <li><a href="#sphere-types">Sphere Types</a></li>
@@ -45,6 +46,7 @@
   <li><a href="#auto-rigger">Auto Rigger</a></li>
   <li><a href="#extract-bound-joints">Extract Bound Joints</a></li>
   <li><a href="#connect-attributes">Connect Attributes</a></li>
+  <li><a href="#influences-python">Influences Python</a></li>
   <li><a href="#morphing-utilities">Morphing Utilities</a></li>
   <li><a href="#morphing-attributes">Morphing Attributes</a></li>
   <li><a href="#mirror-cluster-tool">Mirror Cluster Tool</a></li>
@@ -60,6 +62,7 @@
 <ul>
   <li><a href="#retargeter">Retargeter</a></li>
   <li><a href="#animation-clip-tracker">Animation Clip Tracker</a></li>
+  <li><a href="#animation-label-tracker">Animation Label Tracker</a></li>
 </ul>
 <h3><b>Utilities:</b></h3>
 <ul>
@@ -213,6 +216,31 @@ After installing, you can delete the downloaded/extracted files (as they have al
 <!-- Batch Processor -->
 <div>
 <h1>Batch Processor</h1>
+<p><b>Available tasks:</b></p>
+<ul>
+  <li><b>Input Files:</b> Defines the files or folders that enter the process.</li>
+  <li><b>Import/Open Maya:</b> Opens source content in Maya for later tasks.</li>
+  <li><b>Python:</b> Runs inline Python or configured Python scripts.</li>
+  <li><b>Rename:</b> Applies consistent names to generated work items.</li>
+  <li><b>Map Hierarchy:</b> Records or applies relationships between source and target hierarchies.</li>
+  <li><b>MotionBuilder:</b> Runs a MotionBuilder script in the batch flow.</li>
+  <li><b>Blender:</b> Runs a Blender script in the batch flow.</li>
+  <li><b>Save Maya File:</b> Saves the current Maya result to an output file.</li>
+  <li><b>USD Export:</b> Exports the current scene or result as USD.</li>
+  <li><b>FBX Export:</b> Exports the current scene or result as FBX.</li>
+  <li><b>Retarget:</b> Applies a Retargeter definition to animation.</li>
+  <li><b>HumanIK:</b> Retargets animation through Maya HumanIK.</li>
+  <li><b>Build Auto Rig:</b> Builds an Auto Rigger project as a batch step.</li>
+  <li><b>Clip Split:</b> Separates an animation range into individual clips.</li>
+  <li><b>Clip Snapshot:</b> Creates a saved snapshot of an animation clip.</li>
+  <li><b>Delete Project Files:</b> Removes selected generated project files.</li>
+  <li><b>Archive:</b> Compresses selected results into an archive.</li>
+  <li><b>Validate Maya Scene:</b> Runs the configured scene validators.</li>
+  <li><b>Validate Integrity:</b> Checks files for expected integrity and availability.</li>
+  <li><b>Validate Parity:</b> Compares folders for matching contents.</li>
+  <li><b>Capture Thumbnail:</b> Saves a representative image of the result.</li>
+  <li><b>Capture Playblast:</b> Creates a playblast from the processed scene.</li>
+</ul>
 <p>Batch Processor runs a configurable sequence of tasks across multiple Maya scene files. Tasks cover common operations such as validation, Python execution, retargeting, and export. Processing can be previewed and tracked, while source scenes remain separate from generated output.</p>
 
 <p>Build a task list, configure each task, choose the input and output locations, then validate the setup before starting a batch. Hover over task fields for their accepted values and file-handling behavior.</p>
@@ -524,7 +552,7 @@ with the provided prefix "Left Side Tag".</p>
 
 <!-- Extract Python Curve -->
 <div>
-<h1>Extract Python Curve</h1>
+<h1>Curve to Python</h1>
 
 <img src="./media/gt_extract_python_curve.jpg" align="right"
      alt="Generate Python Curve GUI">
@@ -593,6 +621,11 @@ with the provided prefix "Left Side Tag".</p>
 
 </div>
 
+<!-- Mesh Morpher -->
+<div>
+<h1>Mesh Morpher</h1>
+<p>Mesh Morpher generates reshaped meshes from saved morph definitions and cached data. Load definitions, choose the subject meshes and optional post-processing, then generate the result. The tool can request NumPy and SciPy when launched.</p>
+</div>
 <!-- Mesh Library -->
 <div>
 <h1>Mesh Library</h1>
@@ -639,13 +672,57 @@ with the provided prefix "Left Side Tag".</p>
 <h1>Auto Rigger</h1>
 <p>Auto Rigger is the current modular rig-building system. A project stores an ordered set of modules, their proxy placement, and build settings. Templates provide useful starting points, but modules can also be combined into custom character or prop rigs. The usual workflow is to create or load a project, position its proxies, validate the setup, and build the rig.</p>
 
-<p><b>Core structure modules:</b> Root establishes the rig hierarchy and global controls. Spine creates a biped torso, while Quad Spine creates a quadruped torso. Head builds the neck, head, jaw, and related controls. Socket provides an attachment point for another module. Collections groups modules for organization, and Attribute Hub gathers animator-facing attributes in one place.</p>
+<p><b>Available modules:</b></p>
+<ul>
+  <li><b>Generic:</b> Provides a flexible base module for custom rig elements.</li>
+  <li><b>Generic FK:</b> Builds a reusable forward-kinematics control chain.</li>
+  <li><b>Generic IK:</b> Builds a reusable inverse-kinematics control chain.</li>
+  <li><b>Root:</b> Establishes the rig hierarchy and global controls.</li>
+  <li><b>Spine:</b> Creates a biped-style torso and spine controls.</li>
+  <li><b>Head:</b> Builds neck, head, jaw, and related controls.</li>
+  <li><b>Arm:</b> Creates a general-purpose arm chain.</li>
+  <li><b>Attribute Hub:</b> Collects animator-facing attributes in one place.</li>
+  <li><b>Socket:</b> Provides an attachment point for another module.</li>
+  <li><b>Chain:</b> Builds a flexible multi-joint chain.</li>
+  <li><b>Ribbon:</b> Creates a distributed ribbon-based rig system.</li>
+  <li><b>Piston:</b> Builds a two-ended mechanical linkage.</li>
+  <li><b>Pivot:</b> Adds a controllable pivot setup.</li>
+  <li><b>Biped Arm:</b> Adds biped clavicle, arm, and hand behavior.</li>
+  <li><b>Biped Fingers:</b> Creates configurable finger chains.</li>
+  <li><b>Biped Leg:</b> Builds a biped leg and foot setup.</li>
+  <li><b>MetaHuman Face:</b> Connects supported MetaHuman facial rig data.</li>
+  <li><b>Animation Mass References:</b> Creates reference geometry for judging movement volume.</li>
+  <li><b>Quad Front Leg:</b> Builds a quadruped front-leg setup.</li>
+  <li><b>Quad Rear Leg:</b> Builds a quadruped rear-leg setup.</li>
+  <li><b>Quad Spine:</b> Creates a quadruped-style torso and spine.</li>
+  <li><b>Corrective Generic:</b> Adds a general corrective deformation setup.</li>
+  <li><b>Corrective FK:</b> Adds driven corrective behavior to an FK chain.</li>
+  <li><b>RBF Pose Loader:</b> Restores pose-reader data from an RBF setup.</li>
+  <li><b>Distance Probe:</b> Measures distance changes during the build.</li>
+  <li><b>Rotation Probe:</b> Measures rotation changes during the build.</li>
+  <li><b>Group:</b> Organizes related modules in the project.</li>
+  <li><b>Notes:</b> Stores project-specific information alongside the rig.</li>
+  <li><b>New Scene:</b> Starts the build from a clean Maya scene.</li>
+  <li><b>Import File:</b> Brings external scene content into the build.</li>
+  <li><b>Skin Weights:</b> Imports or exports skinning data.</li>
+  <li><b>NG Skin Weights:</b> Handles ngSkinTools2 weight data.</li>
+  <li><b>Python:</b> Runs a custom Python step during the build.</li>
+  <li><b>Export Skeletal Mesh:</b> Prepares skeletal mesh output.</li>
+  <li><b>Save Scene:</b> Writes the current build result to a scene file.</li>
+  <li><b>Load Scene:</b> Loads a scene as part of the build process.</li>
+  <li><b>Shapes Snapshot:</b> Preserves control-shape changes.</li>
+  <li><b>Camera Setup:</b> Creates or configures a project camera.</li>
+  <li><b>Thumbnail Capture:</b> Captures a project preview image.</li>
+  <li><b>Playblast Capture:</b> Captures a project preview movie.</li>
+  <li><b>ROM Loader:</b> Loads range-of-motion poses.</li>
+  <li><b>Enum Variants:</b> Manages named configuration choices.</li>
+  <li><b>Picker Data:</b> Stores picker information for the rig.</li>
+  <li><b>Collections:</b> Groups modules for organization.</li>
+  <li><b>Validation:</b> Checks the project or scene at a chosen point.</li>
+</ul>
 
-<p><b>Limb modules:</b> Arm builds a general arm chain. Biped Arm adds the expected clavicle, arm, and hand behavior for a biped. Biped Leg builds a leg and foot setup, and Biped Fingers creates configurable finger chains. Quad Front Leg and Quad Rear Leg provide the different joint and control behavior needed by quadruped limbs.</p>
 
-<p><b>General mechanism modules:</b> Chain creates a flexible joint chain. Generic FK and Generic IK build reusable forward or inverse-kinematic systems. Ribbon creates a distributed ribbon rig, Piston creates a two-ended mechanical linkage, and Pivot creates a controllable pivot setup. Corrective FK adds driven corrective behavior to an FK chain.</p>
 
-<p><b>Data and deformation modules:</b> Skin Weights imports or exports skinning data during the build. Shapes Snapshot preserves control-shape changes. Picker Data stores picker information with the rig. RBF Pose Loader restores pose-reader data, MetaHuman Face connects supported facial rig data, and ROM Loader works with range-of-motion poses. Animation Mass References creates reference geometry used to judge movement and volume.</p>
 
 <p><b>Build and scene modules:</b> New Scene starts from a clean scene, while Load Scene and Import File bring scene content into the process. Save Scene writes the current build result. Export Skeletal Mesh prepares skeletal output. Python runs a custom build script, Group organizes project steps, Notes records project information, and Validation checks the scene or project at a chosen point.</p>
 
@@ -1029,6 +1106,11 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 <p>Animation Clip Tracker stores named frame ranges for the current animation scene. It helps animators define, reorder, duplicate, and review clips without relying on handwritten frame notes, and keeps clip data available for later export or processing workflows.</p>
 </div>
 
+<!-- Animation Label Tracker -->
+<div>
+<h1>Animation Label Tracker</h1>
+<p>Animation Label Tracker stores descriptive labels and metadata for animation ranges. Schemas define the available fields, while validation helps keep labels consistent across clips.</p>
+</div>
 <!-- Extract Bound Joints -->
 <div>
 <h1>Extract Bound Joints</h1>
@@ -1052,6 +1134,11 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 </div>
 
+<!-- Influences Python -->
+<div>
+<h1>Influences Python</h1>
+<p>Influences Python turns selected skin influences into reusable Python code or influence sets. It can also run or save the generated code and provides quick bind and unbind actions.</p>
+</div>
 <!-- Connect Attributes -->
 <div>
 <h1>Connect Attributes</h1>
