@@ -44,9 +44,8 @@
 <h3><b>Rigging:</b></h3>
 <ul>
   <li><a href="#auto-rigger">Auto Rigger</a></li>
-  <li><a href="#extract-bound-joints">Extract Bound Joints</a></li>
+  <li><a href="#influences-to-python">Influences to Python</a></li>
   <li><a href="#connect-attributes">Connect Attributes</a></li>
-  <li><a href="#influences-python">Influences Python</a></li>
   <li><a href="#morphing-utilities">Morphing Utilities</a></li>
   <li><a href="#morphing-attributes">Morphing Attributes</a></li>
   <li><a href="#mirror-cluster-tool">Mirror Cluster Tool</a></li>
@@ -731,369 +730,6 @@ with the provided prefix "Left Side Tag".</p>
 <p>Many modules expose specialized options that depend on the chosen rig and build stage. Hover over a field to read its tooltip before changing an unfamiliar setting.</p>
 </div>
 
-<!-- Legacy Tools -->
-<div>
-<h1>Legacy Tools</h1>
-<p>These tools predate the current Auto Rigger and Retargeter. They remain available for older rigs and established workflows, but the Legacy menu is hidden by default. Enable it from <b>GT Tools > Help > Toggle > Toggle Legacy Menu</b>.</p>
-</div>
-
-<!-- Biped Auto Rigger -->
-<div>
-<h1>Biped Auto Rigger</h1>
-
-<img src="./media/gt_auto_biped_rigger.jpg" align="right"
-     alt="Biped Auto Rigger GUI">
-
-<p>Script for quickly generating an advanced biped rig.
-<br>For more predictable results execute the script in a new scene containing only the geometry of the desired character. This solves most naming conflicts and data loss issues. In case you want the auto rigger to manage your geometry, parent it under a group called "geometry_grp".
-<br>In case you experience any issues with the rig, let me know through the "Issues" tab on Github. 
-<br>
-<p>Here are some highlights of what it creates: 
-<ul>
-	<li> FK/IK switches with automated control visibility.</li>
-	<li> Automated finger posing with offset (for a natural motion) </li>
-	<li> A knuckle compression system so there are no gaps between the fingers.</li>
-	<li> Abduction and Adduction for the fingers.</li>
-	<li> Foot rolls (with manual limiters for more flexibility) </li>
-	<li> Options to have pole vectors, IK controls and eyes follow parts of the body (like effectors) </li>
-	<li> Stretchy and squash for the arms and legs (with automatic volume preservation) </li>
-	<li> Automatic forearm rotation with support for stretched limbs.</li>
-	<li> Shelf button with Seamless FK/IK Switch for arms and legs.</li>
-	<li> Scalable controls that inflate/deflate the joints without affecting their children.</li>
-	<li> Automatic HumanIK character definition with custom rig profiles for retargeting (mocap)</li>
-	<li> Automatic breathing system without using expressions.</li>
-</ul>
-</p>
-
-<p>Tabs: <br>The tabs "Facial", "Corrective" and  "Settings" control optional rigging steps and work in a similar way to the base rig.</p>
-
-<p><h3>Step 1:</h3>
-<b>- Create Proxy:</b><br>
-This button will create many temporary curves that will later be used to generate the rig. 
-<br>In case you want to re-scale the proxy, use the root proxy control for that.
-<br>The initial scale is the average height of a woman (160cm) but you can download proxy presets (poses) for other scales from the  <a href="./assets">assets folder</a>.
-<br>
-<br> The arrow found in the shape of the clavicles, hands and finger proxies indicate their up position. 
-<br>The bigger arrows in the shape of the knees and elbows show the direction of their up vector constraint. (that's the direction they will bend)
-<br>
-<br>To position the eye proxies: Center the pivot point of the eye geometry then display its Local Rotation Axes then snap the proxy to its center.
-<br>To center the pivot of eye geometry go to <b>"Modify > Center Pivot"</b> (It's often already in the center, check it first)
-<br>To show the Local Rotation Axes (so you have a point to snap it to) go to <b>"Display > Transform Display > Local Rotation Axes"</b>
-<br>Hold "V" while moving the eye proxy to snap it to points. 
-<br>
-<br>Some proxy curves have custom attributes on them that allow you to tweak their posing behavior or visibility. 
-<br>The ankle proxy curves have an attribute called "Follow Hip" when activated, they will follow the position of the hip allowing you to pose the character a bit faster while keeping a hip and ankle perfectly aligned.
-<br>The Root proxy has an attribute called "Lines Visibility" that allows you to turn off the visibility of the lines
-<br>
-<br>Proxy curves are not joints. Please don't delete or rename them. 
-<br>For tips on how to position every proxy curve, open the attribute editor and read the information under "Transform Node > Notes:"
-</p>
-
-<p><h3>Step 2:</h3>
-Pose the proxy (guide) to match your character. 
-<br><b>- Reset Proxy:</b>  Resets the position and rotation of the proxy elements, essentially "recreating" the proxy.  
-<br><b>- Mirror Right to Left:</b> Copies the transform data from the right side to the left side, mirroring the pose.
-<br><b>- Mirror Left to Right:</b> Copies the transform data from one left side to the right side, mirroring the pose.
-<br><b>- Import Pose:</b> Imports a JSON file containing the transforms of the proxy elements. This file is generated  using the "Export Pose" function. 
-<br><b>- Export Pose:</b> Exports a JSON file containing the transforms of the proxy elements. 
-<br><b>- Delete Proxy:</b> Simply deletes the proxy in case you no longer need it.</p>
-
-<p><h3>Step 3:</h3>
-<b>- Create Rig:</b> This button uses the proxy elements to automatically create the control rig.
-<br>It uses the transform data found in the proxy to determine how to position, orient and setup the skeleton and controls.
-<br>This function will delete the proxy. Make sure you export it first if you plan to reuse it later. </p>
-
-<p><h3>Step 4:</h3>
-Now that the rig has been created, it is time to attach it to the geometry.
-<br><b>- Select Skinning Joints:</b>  Select only joints that should  be used when skinning the character. This means that it will not include end or toe joints. If you don't plan to include the eyes joints in the influences of the character's body, simply unselect them before skinning.
-<br><b>- Bind Skin Options:</b>  Opens the options for the function "Bind Skin" so the desired geometry can attached to the skinning joints. Make sure to set the option "Bind to" as "Selected Joints" to guarantee that only the desired joints are part of the influence. </p>
-<br>
-
-<p><h3>Utilities:</h3>
-
-<img src="./media/gt_auto_biped_rigger_fkik.jpg" align="right"
-     alt="Seamless FK/IK Switcher for Biped Auto Rigger GUI">
-
-These are utilities and extra functions that you can use after creating your rig.
-<br>
-<br><b>- Add Seamless FK/IK Switch to Shelf:</b> Adds a new button to your current shelf. This button allows the animator to seamlessly switch between FK and IK for the arms and legs.
-<br><b> - Toggle:</b> Seamlessly Toggles between FK and IK.
-<br><b> - FK to IK:</b> Switches to IK and copies the FK pose into it.
-<br><b> - IK to FK:</b> Switches to FK and copies the IK pose into it.
-<br>
-<br><b>- Toggle Label Visibility:</b> Uniformly toggles the option "Joint > Joint Labelling > Draw Label" (".drawLabel") for all joints in the scene (according to the state of the majority of them).
-<br>
-<br><b>- Attach to HumanIK:</b> Automatically creates a HumanIK character definition called "auto_biped" and assign all the available joints/bones to it. In case a character with the same name is already present in the scene, it will be overwritten.
-<br>
-<br><b>- Extract Proxy Pose From Generated Rig:</b> Attempts to extract the proxy pose from a generated rig. This function can't account for the scale set to the "root_proxy" as it gets baked when the rig is generated, so it should only be used in case you forgot to export the proxy pose during the creation of the character.</p>
-
-<br>
-<h3>Example of seamless FK/IK switch being used:</h3>
-<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_fkik.gif?raw=true"
-     alt="Seamless FK/IK Switcher for Biped Auto Rigger Example">
-
-<p><br><br><h3>How to attach motion capture data to the rig through HumanIK:</h3>
-<b>- 1.</b> Start by defining a character and assigning all bones to the definition (You can do that in one click using the utility "Attach to HumanIK")
-<br><b>2.</b> Create a custom rig by clicking on the custom rig button. <img src="./media//human_ik_custom_rig_btn.jpg" alt="HumanIK Custom Rig Button">
-<br><b>3.</b> Assign the desired controls or use one of the provided templates so HumanIK knows what controls to update. 
-<br>You can load a template by clicking on the button "Load Custom Rig Mapping". <img src="./media/human_ik_load_mapping_btn.jpg" alt="HumanIK Load Custom Rig Mapping Button"> Templates can be found in the <a href="./assets">assets folder</a>.
-<br><b>4.</b> Now you can source the motion from another character like you would normally do in HumanIK and it should automatically reverse engineer the control position to match the mocap data.
-<br>In case the elbows or knees pole vector controls give you trouble, you might be able to fix it using their custom attribute "Follow Foot" or "Follow Wrist" instead of relying on HumanIK to position it. <a href="https://youtu.be/eBwYi8FeK3I">This video</a> explains in more details how this process works.
-<br><b>5.</b> Now you can bake the movements to the custom rig by going to "HumanIK Button (blue button) > Bake > Bake to Custom Rig".
-<br>Feel free to delete the HumanIK character definition and mocap data after that as the keyframes are now already baked to the controls.
-</p>
-<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_hik.gif?raw=true"
-     alt="Auto Biped attached to HumanIK Example">
-
-<p><h3>Lock Attribute and Follow Object:</h3>
-This rig comes with many custom attributes so you can tweak how much stability/flexibility you want and how the systems should behave.</p>
-<p><b>- Lock Attribute</b>: Many controls come with channels automatically locked so they behave in an expected way, but in certain situations you might want to unlock these so you have more flexibility. For this, you can just change the "Lock ATTR" (ATTR could be channels TRS, XYZ) custom attribute. A good example is the foot rolls. They have their Y and Z rotations locked by default, but in case you want to rotate the foot in another direction you can change "Lock YZ" to "Off". </p>
-<p><b>- Follow Object</b>: A few controls give you the option to follow other controls or move on their own. These are the pole vector controls (such as the IK knees and IK elbows) and the eye controls. Below you can see an example of the eye controls following or not the head. </p>
-
-<img src="./media/gt_auto_biped_rigger_lock_attr.jpg"
-     alt="Auto Biped Lock Attribute Example">
-<img src="./media/gt_auto_biped_rigger_follow_attr.jpg" align="right"
-     alt="Auto Biped Follow Attribute Example">
-
-<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_foot.gif?raw=true"
-     alt="Auto Biped Foot Rolls Example">
-<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_eyes.gif?raw=true" align="right"
-     alt="Auto Biped Follow Eye Example">
-
-<p><h3>FK/IK Switch Control, Stretchy System, and Finger Automation:</h3><b>- FK/IK Switch</b>: To control which system is currently active, just change the value in the attribute "Influence Switch" (".influenceSwitch"), when set to "0" (Zero) the rig uses forward kinematics (FK) when set to "1" (One) it uses inverse kinematics (IK). By default the visibility of the controls is automatically managed, but in case you want to control it manually, you can deactivate the attribute "Auto Visibility" and pick which one you want to see through the attribute "System Visibility". </p>
-<p><b>- Stretchy Attributes</b>: The custom attributes to control how the stretchy system behaves can be found under the FK/IK Switch Controls. In order to use the stretchy system the rig must be configured to to "IK".
-<ul>
-	<li><b>Stretch:</b> Controls the amount of influence the stretch system has.</li>
-	<li><b>Squash:</b> Controls the amount of influence the squash system has. If activated the IK joints will no longer bend as they will become smaller.</li>
-	<li><b>Stretch From Source:</b> Whether or not the system should stretch from the base of the IK system.</li>
-	<li><b>Save Volume:</b> This will automatically attempt to shrink or inflate the joints in the middle of the IK system to simulate the loss or gain of volume.</li>
-	<li><b>Base Volume Multiplier:</b> Controls how much of the "Save Volume" output should be transferred to the base of the IK system.</li>
-	<li><b>Minimum Volume:</b> Controls the minimum save volume scale value allowed for the joints in the stretchy system. "0.4" would be 40% of its original scale.</li>
-	<li><b>Maximum Volume:</b> Controls the maximum save volume scale value allowed for the joints in the stretchy system. "2" would be double of its original scale.</li>
-</ul></p>
-<p><b>- Finger Automation</b>: To pose the fingers more conveniently, you can use the finger controls. These will automatically rotate all the fingers according to the provided parameters.
-<ul>
-	<li><b>Activate System:</b> Simply turn the automatic rotation of the fingers on or off.</li>
-	<li><b>Fist Pose Limit + Finger Name:</b> Determines the rotation considered the fist pose. It limits the rotation of the fingers so it stops at this value.</li>
-	<li><b>Rot Multiplier + Finger Name:</b> How much of the rotation will be transferred to the finger. This offset helps create a more natural motion.</li>
-</ul></p>
-<br>
-
-<img src="./media/gt_auto_biped_rigger_stretchy_system.jpg"
-     alt="Auto Biped Stretchy Attributes Example">
-<img src="./media/gt_auto_biped_rigger_finger_attr.jpg" align="right"
-     alt="Auto Biped Follow Attribute Example">
-
-<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_fingers.gif?raw=true" align="right"
-     alt="Auto Biped Finger Automation Example">
-<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_stretchy.gif?raw=true"
-     alt="Auto Biped Stretchy System Example">
-
-<br>
-<p><h3>Auto Breathing, Abduction/Adduction, and Knuckles Compression Systems:</h3>
-<b>- Auto Breathing</b>: Causes the spine and clavicles joints to scale/translate up and down in a breathing rhythm. To control this system you can use the attributes found under the "main_ctrl". 
-<ul>
-	<li><b>Breathing Time:</b> Amount of time transferred to the auto breathing system.</li>
-	<li><b>Breathing Amplitude:</b> Maximum amount of air going in (peak of the wave).</li>
-	<li><b>Breathing Frequency:</b> How often the character breaths in and out.</li>
-	<li><b>Breathing Offset:</b> Value added after operation is calculated.</li>
-	<li><b>Max Scale + Spine Joint:</b> Maximum value allow for the scale .</li>
-	<li><b>Max Scale + Clavicle Joint:</b> Maximum value allow for the translation Y of the clavicles .</li>
-</ul></p>
-<br>
-<p><b>- Abduction/Adduction System:</b>: You can control the abduction and adduction actions for the fingers by scaling the "finger_ctrl" in "Z".
-<ul>
-	<li><b>Arrow Visibility:</b> Whether or not the template arrow (abduction/adduction feedback) is visible.</li>
-	<li><b>Abduction Influence:</b> How much influence the system has over the fingers.</li>
-	<li><b>Rot Multiplier + Finger:</b> Direction and amount of rotation.</li>
-</ul></p>
-<br>
-<p><b>- Auto Knuckles Compression:</b>: The auto knuckles compression system will make the knuckle joints (thumb01, index01...) move closer to one another as the hand closes in order to prevent gaps between the fingers.
-<ul>
-	<li><b>Auto Compression:</b> Influence of the knuckles auto compression system.</li>
-	<li><b>Compression Amount:</b> Multiplier for the knuckles compression system.</li>
-	<li><b>Trans Multiplier + Finger:</b> Direction and amount of translation.</li>
-</ul>
-</p>
-
-<br>
-
-<img src="./media/gt_auto_biped_rigger_abduction_system.jpg" 
-     alt="Auto Biped Abduction Attribute Example">
-<img src="./media/gt_auto_biped_rigger_breathing_system.jpg" align="right"
-     alt="Auto Biped Auto Breathing Attributes Example">
-
-<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_breathing.gif?raw=true" align="right"
-     alt="Auto Biped Breathing Automation Example">
-<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_knuckles.gif?raw=true"
-     alt="Auto Biped Abduction/Adduction System Example">
-
-<h3>Settings:</h3>
-<ul>
-	<li><b>Use Real-time Skeleton:</b><br> Creates another skeleton without the parameter "Segment Scale Compensate" being active. This skeleton inherits the transforms from the controls while mimicking the behavior of the "Segment Scale Compensate" option, essentially creating a baked version of this Maya depended system.
-	As this baked version does not yet fully support non-uniform scaling, it's recommended that you only use it if you are planning to later send this rig into a game engine or another 3d application. This will allow you to preserve the stretchy settings even in programs that do not support it.</li>
-</ul>
-
-<p><h3>Imports/Exporting Skin Weights:</h3>
-This might be obvious, but when exporting and importing skin weights, don't forget to include all influences before importing it. This can be done by clicking on "Select Skinning Joints" then adding them as influences through "Rigging > Skin > Edit Influences > Add Influence"
-<br></p>
-
-<p><h3>Mirror Skin Weights with ngSkinTools:</h3>
-If painting the skin weights with "ngSkinTools" (third party plugin) you might have to manually map some of the finger influences before mirroring it. This can be done through "ngSkinTools > Mirror > Influences Mapping > Edit influence associations... > Link, both ways" </p>
-
-<br>
-<p><h3>Auto Rigger Work Sample:</h3></p>
-<p>Below you can watch a few animations that used Biped Auto Rigger to rig their characters.</p>
-<img src="./media/gt_auto_rigger_home_remedy.jpg" alt="Biped Auto Rigger Home Remedy Promo">
-
-<p>
-<ul>
-	<li><b>Home Remedy - Animated Short Film:</b><br><a href="https://vimeo.com/579130303">vimeo.com/579130303</a></li>
-	<li><b>Art in the time of Corona:</b><br><a href="https://youtu.be/TtYRudIZBGQ?t=2023">youtu.be/TtYRudIZBGQ</a><br></li>
-	<li><b>Short Horror Animation:</b><br><a href="https://youtu.be/pH62aGjf9-Y?t=1198">youtu.be/pH62aGjf9-Y</a></li>
-</ul></p>
-
-<p>Do you want to share your animation here? Send me a message!<br></p>
-
-<br>
-
-</div>
-
-<!-- Biped Rig Interface -->
-<div>
-<h1>Biped Rig Interface</h1>
-
-<img src="./media/gt_custom_rig_interface.jpg" align="right"
-     alt="Biped Rig Interface GUI">
-
-<p>Extra functions and automation for rigs generated using GT Biped Auto Rigger.
-<br>This script includes FK/IK Switchers, Pose managers, Animation managers and more.</p>
-
-<p><b>How to use it:</b>
-<br>1. Under "Namespace:" click on "Get" to use the character's namespace.<br>(In case you're not using a namespace, just click on "Clear")
-<br>2. If the character is found, the FK/IK buttons will light up according to the current state.
-<br>3. Use the desired function to animate or pose your character.</p>
-
-<h3>FK/IK Tab:</h3>
-<ul>
-	<li><p>This is the FK/IK Switcher. When a button is colored light grey, it means that the system recognized its current state as FK or IK. Use Switch to toggle or click on the desired system to force it into that state. (Whatever pose found in one system will be copied into the other) 
-	</li>
-	<li><b>Auto Key:</b> When transitioning from one system to the other you might want an animation to drive the transition. That's what this button will help you accomplish.<br>
-	<b>Bake:</b> Uses the provided range to bake every frame while rematching one system into the other
-	<br><b>Sparse:</b> Creates the first and last keys necessary to transition from one system to the other.
-	<br><b>Get Selection Range (Button):</b> Gets the range of your current selection (from the timeline).
-	<br><b>Get Timeline Range:</b> Gets the start and end frame from the beginning and ending of the timeline. Helpful when trying to transfer all data from one system to the other. When used in conjunction with the option "Key FK/IK Influence" (Under the Tab "Settings")</p>
-	</li>
-</ul>
-
-<h3>Pose Tab:</h3>
-<ul>
-	<p>Used to manage static poses. It doesn't key the character, only poses it.</p>
-	<li><b>Mirror:</b> Copies the transform data from one side of the rig into the other, mirroring its current pose.</li>
-	<li><b>Reset Pose:</b> Resets the pose back to the rig default values.</li>
-	<li><b>Import/Export Pose:</b> Allows you to import/export the current pose from/to a file.</li>
-
-</ul>
-
-<h3>Animation Tab:</h3>
-<ul>
-	<p>Used to manage static poses. It doesn't key the character, only poses it.</p>
-	<li>
-		<b>Mirror:</b> Copies the animation data from one side of the rig into the other, mirroring its values.
-	</li>
-	<li>
-		<b>Reset Animation:</b> Deletes keyframes and Resets the pose back to the rig default values.
-	</li>
-	<li>
-		<b>Import/Export Animation:</b> Allows you to import/export the current animation from/to a file.
-	</li>
-</ul>
-
-<h3>Settings Tab:</h3>
-<ul>
-	<p>Overall Settings for this script. These are persistent and will retain their values in between sessions.</p>
-	<li>
-		<b>Allow Multiple Instances:</b> When active, you may open multiple instances of this script. Useful for when animating multiple character in the same scene.
-	</li>
-	<li>
-		<b>Transfer Data to Offset Control:</b> Determines if the bake FK/IK data is transferred to the default Wrist/Ankle controls or their offset controls.
-	</li>
-	<li>
-		<b>Key FK/IK Influence:</b> Creates a key in the influence values when switching between systems (FK/IK).
-	</li>
-	<li>
-		<b>Reset Persistent Settings:</b> Resets current settings back to their default values.
-	</li>
-</ul>
-<br>
-</div>
-
-<!-- Retarget Assistant -->
-<div>
-<h1>Retarget Assistant</h1>
-
-<img src="./media/gt_retarget_assistant.jpg" align="right"
-     alt="GT Retarget Assistant GUI">
-
-<p>This script applies patches while HumanIK motion capture animation is transferred to a rig created with GT Biped Auto Rigger.
-<br>For this script to work, the target rig should have a custom rig defined under HumanIK.</p>
-
-<ul>
-	<p><b>Patches:</b></p>
-	<li>
-		<b>Connect Toes:</b> Uses the HumanIK data to create a constraint connection between the source ball joint and the biped rig ball joint. Essentially transferring the ball joint motion from the source (mocap) to the target (rig)
-	</li>
-	<li>
-		<b>Reconnect Spine:</b>This option will replace the data received from HumanIK and transfer the rotation directly from the spine joints to the rig controls. 
-		<br>WARNING: It might sometimes look funny or exaggerated because there is no scale compensation happening.
-		To fix that, you can use the influence slider or compress/expand the entire animation till the desired result is achieved. (Found inside the "?" button)
-	</li>
-	<li>
-		<b>Connect Fingers:</b>This option will extract the rotation of the finger joints that were defined through the HumanIK definition. If nothing was defined, nothing will be transferred. Much like the toe option, this option extracts whatever pose was left under the first frame of your timeline.<br>Invert Finger Rotation: Makes the main rotation (usually "Z") rotate in the opposite direction, which can help motion capture skeletons with unexpected orientations become compatible. (Found inside the "?" button)
-	</li>
-	<li>
-		<b>Leg Stabilization:</b>This option will use the IK rig to collect the correct rotation data from the position of the mocap skeleton. This helps enforce the correct foot placement.
-	</li>
-	<li>
-		<b>Unlock Rotations:</b>WARNING: This option should not be used for all bakes.
-		It will unlock all rotations allowing for the knee and elbow to receive rotation data into any axis. This might be desired in some cases when counter rotation is happening, but keep in mind that the data will lose some precision when transferred to IK,due to plane rotation nature of the IK solver. Consider using the option "Merge FK axis" to re-bake the FK controls back into one single plane rotation.
-	</li>
-	<li>
-		<b>Merge FX Axis:</b>This patch can only be used when "Unlock Rotations" options is active. It transfers the data to IK causing the channels to merge and then transfer it back into FK, making the animation live into only one channel instead of multiple channels.
-		Even though it might look slightly incorrect, it might give you data that is easier to handle, essentially eliminating some counter rotations.
-	</li>
-</ul>
-
-<p><b>HIK Character/Target Text Field </b><br> This is your final rigged character that will receive the animation. </p>
-<p><b>HIK Mocap / Source Text Field </b><br> This is the motion capture skeleton to be sourced into the rig. </p>
-<p><b>"P" (Properties) buttons </b><br> Selects the HumanIK properties of the character found in the text field. </p>
-<p><b>Get Current Target/Source: </b><br>Populates the "HIK Character/Target" and "HIK Mocap / Source" text fields with the same data found under the HumanIK menu. </p>
-<p><b>Bake Mocap with Fixes: </b><br>Bakes the Source character animation into the Target character while applying the active patches to the characters. </p>
-
-<br>
-
-</div>
-
-<!-- Game FBX Exporter -->
-<div>
-<h1>Game FBX Exporter</h1>
-
-<img src="./media/gt_game_fbx_exporter.jpg" align="right"
-     alt="GT Game FBX Exporter GUI">
-
-<p>This script exports a biped rig into FBX while including only the necessary data for animation or model to work in a real-time engine. Any namespaces included in animation files (due to being references) are automatically stripped before exporting.</p>
-<p>Generated FBX file uses real-time properties such as triangulation and SmoothingGroups and ContainerObjects</p>
-
-<ul>
-	<li><b>Export Model FBX File:</b> Exports the main skeleton (joints under "root_jnt") and skinned geometry (found under "geometry_grp")
-	<br>This option is equivalent to exporting the skinned version of the model without animation into a real-time engine. It includes some keyframe data into it to be used a neutral pose.</li>
-	<li><b>Export Animation FBX File:</b> Exports the main skeleton (joints under "root_jnt") after baking any interpolating keyframe data into individual keyframes.
-	<br>This option doesn't include the model, only the root skeleton. It should be used to export animation only. Any namespaces will be automatically stripped from the rig in the export.</li>
-</ul>
-<br>
-
-</div>
-
 <!-- Retargeter -->
 <div>
 <h1>Retargeter</h1>
@@ -1111,21 +747,21 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 <h1>Animation Label Tracker</h1>
 <p>Animation Label Tracker stores descriptive labels and metadata for animation ranges. Schemas define the available fields, while validation helps keep labels consistent across clips.</p>
 </div>
-<!-- Extract Bound Joints -->
+<!-- Influences to Python -->
 <div>
-<h1>Extract Bound Joints</h1>
+<h1>Influences to Python</h1>
 
 <img src="./media/gt_extract_bound_joints.jpg" align="right"
-     alt="GT Extract Bound Joints GUI">
+     alt="GT Influences to Python GUI">
 
 <p>This script generates the Python code necessary to select all joints influencing a skinCluster node.</p>
 
 <p><b>How to use it:</b>
 <br>1. Select bound meshes or surfaces.
-<br>2. Click on the "Extract Bound Joints" button to generate the code.</p>
+<br>2. Click on the "Influences to Python" button to generate the code.</p>
 
-<p><b>"Extract Bound Joints to Python" button:</b><br>Outputs the python code necessary to reselect the joints into the "Output PYthon Curve" box.</p>
-<p><b>"Extract Bound Joints to Selection Sets" button:</b><br>Saves the bound joints as selection sets instead of Python. One set per mesh. (May or may not include mesh, according to checkbox settings.</p>
+<p><b>"Extract Influence Python" button:</b><br>Outputs the python code necessary to reselect the joints into the "Output PYthon Curve" box.</p>
+<p><b>"Extract Influence Selection Sets" button:</b><br>Saves the bound joints as selection sets instead of Python. One set per mesh. (May or may not include mesh, according to checkbox settings.</p>
 
 <p><b>Run Code: </b><br>Attempts to run the code (or anything written) inside  "Output Selection Command" box  </p>
 <p><b>Save to Shelf: </b><br>Saves the code (or anything written) inside "Output Selection Command" box as a shelf button.</p>
@@ -1134,11 +770,6 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 
 </div>
 
-<!-- Influences Python -->
-<div>
-<h1>Influences Python</h1>
-<p>Influences Python turns selected skin influences into reusable Python code or influence sets. It can also run or save the generated code and provides quick bind and unbind actions.</p>
-</div>
 <!-- Connect Attributes -->
 <div>
 <h1>Connect Attributes</h1>
@@ -1626,8 +1257,6 @@ Ribbon rigging is particularly useful for creating smooth and natural-looking de
 
 <h3>Separate Curves</h3>
 <p>Parents every curve shape of the selection under a new transform, causing them to be separated.</p>
-	 
-	 
 <br>
 
 </div>
@@ -1801,5 +1430,369 @@ Do not change the resolution of the image file or crop the image or it might not
 <br>
 
 </div>
+
+<!-- Legacy Tools -->
+<div>
+<h1>Legacy Tools</h1>
+<p>These tools predate the current Auto Rigger and Retargeter. They remain available for older rigs and established workflows, but the Legacy menu is hidden by default. Enable it from <b>GT Tools > Help > Toggle > Toggle Legacy Menu</b>.</p>
+</div>
+
+<!-- Biped Auto Rigger -->
+<div>
+<h1>Biped Auto Rigger</h1>
+
+<img src="./media/gt_auto_biped_rigger.jpg" align="right"
+     alt="Biped Auto Rigger GUI">
+
+<p>Script for quickly generating an advanced biped rig.
+<br>For more predictable results execute the script in a new scene containing only the geometry of the desired character. This solves most naming conflicts and data loss issues. In case you want the auto rigger to manage your geometry, parent it under a group called "geometry_grp".
+<br>In case you experience any issues with the rig, let me know through the "Issues" tab on Github.
+<br>
+<p>Here are some highlights of what it creates:
+<ul>
+	<li> FK/IK switches with automated control visibility.</li>
+	<li> Automated finger posing with offset (for a natural motion) </li>
+	<li> A knuckle compression system so there are no gaps between the fingers.</li>
+	<li> Abduction and Adduction for the fingers.</li>
+	<li> Foot rolls (with manual limiters for more flexibility) </li>
+	<li> Options to have pole vectors, IK controls and eyes follow parts of the body (like effectors) </li>
+	<li> Stretchy and squash for the arms and legs (with automatic volume preservation) </li>
+	<li> Automatic forearm rotation with support for stretched limbs.</li>
+	<li> Shelf button with Seamless FK/IK Switch for arms and legs.</li>
+	<li> Scalable controls that inflate/deflate the joints without affecting their children.</li>
+	<li> Automatic HumanIK character definition with custom rig profiles for retargeting (mocap)</li>
+	<li> Automatic breathing system without using expressions.</li>
+</ul>
+</p>
+
+<p>Tabs: <br>The tabs "Facial", "Corrective" and  "Settings" control optional rigging steps and work in a similar way to the base rig.</p>
+
+<p><h3>Step 1:</h3>
+<b>- Create Proxy:</b><br>
+This button will create many temporary curves that will later be used to generate the rig.
+<br>In case you want to re-scale the proxy, use the root proxy control for that.
+<br>The initial scale is the average height of a woman (160cm) but you can download proxy presets (poses) for other scales from the  <a href="./assets">assets folder</a>.
+<br>
+<br> The arrow found in the shape of the clavicles, hands and finger proxies indicate their up position.
+<br>The bigger arrows in the shape of the knees and elbows show the direction of their up vector constraint. (that's the direction they will bend)
+<br>
+<br>To position the eye proxies: Center the pivot point of the eye geometry then display its Local Rotation Axes then snap the proxy to its center.
+<br>To center the pivot of eye geometry go to <b>"Modify > Center Pivot"</b> (It's often already in the center, check it first)
+<br>To show the Local Rotation Axes (so you have a point to snap it to) go to <b>"Display > Transform Display > Local Rotation Axes"</b>
+<br>Hold "V" while moving the eye proxy to snap it to points.
+<br>
+<br>Some proxy curves have custom attributes on them that allow you to tweak their posing behavior or visibility.
+<br>The ankle proxy curves have an attribute called "Follow Hip" when activated, they will follow the position of the hip allowing you to pose the character a bit faster while keeping a hip and ankle perfectly aligned.
+<br>The Root proxy has an attribute called "Lines Visibility" that allows you to turn off the visibility of the lines
+<br>
+<br>Proxy curves are not joints. Please don't delete or rename them.
+<br>For tips on how to position every proxy curve, open the attribute editor and read the information under "Transform Node > Notes:"
+</p>
+
+<p><h3>Step 2:</h3>
+Pose the proxy (guide) to match your character.
+<br><b>- Reset Proxy:</b>  Resets the position and rotation of the proxy elements, essentially "recreating" the proxy.
+<br><b>- Mirror Right to Left:</b> Copies the transform data from the right side to the left side, mirroring the pose.
+<br><b>- Mirror Left to Right:</b> Copies the transform data from one left side to the right side, mirroring the pose.
+<br><b>- Import Pose:</b> Imports a JSON file containing the transforms of the proxy elements. This file is generated  using the "Export Pose" function.
+<br><b>- Export Pose:</b> Exports a JSON file containing the transforms of the proxy elements.
+<br><b>- Delete Proxy:</b> Simply deletes the proxy in case you no longer need it.</p>
+
+<p><h3>Step 3:</h3>
+<b>- Create Rig:</b> This button uses the proxy elements to automatically create the control rig.
+<br>It uses the transform data found in the proxy to determine how to position, orient and setup the skeleton and controls.
+<br>This function will delete the proxy. Make sure you export it first if you plan to reuse it later. </p>
+
+<p><h3>Step 4:</h3>
+Now that the rig has been created, it is time to attach it to the geometry.
+<br><b>- Select Skinning Joints:</b>  Select only joints that should  be used when skinning the character. This means that it will not include end or toe joints. If you don't plan to include the eyes joints in the influences of the character's body, simply unselect them before skinning.
+<br><b>- Bind Skin Options:</b>  Opens the options for the function "Bind Skin" so the desired geometry can attached to the skinning joints. Make sure to set the option "Bind to" as "Selected Joints" to guarantee that only the desired joints are part of the influence. </p>
+<br>
+
+<p><h3>Utilities:</h3>
+
+<img src="./media/gt_auto_biped_rigger_fkik.jpg" align="right"
+     alt="Seamless FK/IK Switcher for Biped Auto Rigger GUI">
+
+These are utilities and extra functions that you can use after creating your rig.
+<br>
+<br><b>- Add Seamless FK/IK Switch to Shelf:</b> Adds a new button to your current shelf. This button allows the animator to seamlessly switch between FK and IK for the arms and legs.
+<br><b> - Toggle:</b> Seamlessly Toggles between FK and IK.
+<br><b> - FK to IK:</b> Switches to IK and copies the FK pose into it.
+<br><b> - IK to FK:</b> Switches to FK and copies the IK pose into it.
+<br>
+<br><b>- Toggle Label Visibility:</b> Uniformly toggles the option "Joint > Joint Labelling > Draw Label" (".drawLabel") for all joints in the scene (according to the state of the majority of them).
+<br>
+<br><b>- Attach to HumanIK:</b> Automatically creates a HumanIK character definition called "auto_biped" and assign all the available joints/bones to it. In case a character with the same name is already present in the scene, it will be overwritten.
+<br>
+<br><b>- Extract Proxy Pose From Generated Rig:</b> Attempts to extract the proxy pose from a generated rig. This function can't account for the scale set to the "root_proxy" as it gets baked when the rig is generated, so it should only be used in case you forgot to export the proxy pose during the creation of the character.</p>
+
+<br>
+<h3>Example of seamless FK/IK switch being used:</h3>
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_fkik.gif?raw=true"
+     alt="Seamless FK/IK Switcher for Biped Auto Rigger Example">
+
+<p><br><br><h3>How to attach motion capture data to the rig through HumanIK:</h3>
+<b>- 1.</b> Start by defining a character and assigning all bones to the definition (You can do that in one click using the utility "Attach to HumanIK")
+<br><b>2.</b> Create a custom rig by clicking on the custom rig button. <img src="./media//human_ik_custom_rig_btn.jpg" alt="HumanIK Custom Rig Button">
+<br><b>3.</b> Assign the desired controls or use one of the provided templates so HumanIK knows what controls to update.
+<br>You can load a template by clicking on the button "Load Custom Rig Mapping". <img src="./media/human_ik_load_mapping_btn.jpg" alt="HumanIK Load Custom Rig Mapping Button"> Templates can be found in the <a href="./assets">assets folder</a>.
+<br><b>4.</b> Now you can source the motion from another character like you would normally do in HumanIK and it should automatically reverse engineer the control position to match the mocap data.
+<br>In case the elbows or knees pole vector controls give you trouble, you might be able to fix it using their custom attribute "Follow Foot" or "Follow Wrist" instead of relying on HumanIK to position it. <a href="https://youtu.be/eBwYi8FeK3I">This video</a> explains in more details how this process works.
+<br><b>5.</b> Now you can bake the movements to the custom rig by going to "HumanIK Button (blue button) > Bake > Bake to Custom Rig".
+<br>Feel free to delete the HumanIK character definition and mocap data after that as the keyframes are now already baked to the controls.
+</p>
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_hik.gif?raw=true"
+     alt="Auto Biped attached to HumanIK Example">
+
+<p><h3>Lock Attribute and Follow Object:</h3>
+This rig comes with many custom attributes so you can tweak how much stability/flexibility you want and how the systems should behave.</p>
+<p><b>- Lock Attribute</b>: Many controls come with channels automatically locked so they behave in an expected way, but in certain situations you might want to unlock these so you have more flexibility. For this, you can just change the "Lock ATTR" (ATTR could be channels TRS, XYZ) custom attribute. A good example is the foot rolls. They have their Y and Z rotations locked by default, but in case you want to rotate the foot in another direction you can change "Lock YZ" to "Off". </p>
+<p><b>- Follow Object</b>: A few controls give you the option to follow other controls or move on their own. These are the pole vector controls (such as the IK knees and IK elbows) and the eye controls. Below you can see an example of the eye controls following or not the head. </p>
+
+<img src="./media/gt_auto_biped_rigger_lock_attr.jpg"
+     alt="Auto Biped Lock Attribute Example">
+<img src="./media/gt_auto_biped_rigger_follow_attr.jpg" align="right"
+     alt="Auto Biped Follow Attribute Example">
+
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_foot.gif?raw=true"
+     alt="Auto Biped Foot Rolls Example">
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_eyes.gif?raw=true" align="right"
+     alt="Auto Biped Follow Eye Example">
+
+<p><h3>FK/IK Switch Control, Stretchy System, and Finger Automation:</h3><b>- FK/IK Switch</b>: To control which system is currently active, just change the value in the attribute "Influence Switch" (".influenceSwitch"), when set to "0" (Zero) the rig uses forward kinematics (FK) when set to "1" (One) it uses inverse kinematics (IK). By default the visibility of the controls is automatically managed, but in case you want to control it manually, you can deactivate the attribute "Auto Visibility" and pick which one you want to see through the attribute "System Visibility". </p>
+<p><b>- Stretchy Attributes</b>: The custom attributes to control how the stretchy system behaves can be found under the FK/IK Switch Controls. In order to use the stretchy system the rig must be configured to to "IK".
+<ul>
+	<li><b>Stretch:</b> Controls the amount of influence the stretch system has.</li>
+	<li><b>Squash:</b> Controls the amount of influence the squash system has. If activated the IK joints will no longer bend as they will become smaller.</li>
+	<li><b>Stretch From Source:</b> Whether or not the system should stretch from the base of the IK system.</li>
+	<li><b>Save Volume:</b> This will automatically attempt to shrink or inflate the joints in the middle of the IK system to simulate the loss or gain of volume.</li>
+	<li><b>Base Volume Multiplier:</b> Controls how much of the "Save Volume" output should be transferred to the base of the IK system.</li>
+	<li><b>Minimum Volume:</b> Controls the minimum save volume scale value allowed for the joints in the stretchy system. "0.4" would be 40% of its original scale.</li>
+	<li><b>Maximum Volume:</b> Controls the maximum save volume scale value allowed for the joints in the stretchy system. "2" would be double of its original scale.</li>
+</ul></p>
+<p><b>- Finger Automation</b>: To pose the fingers more conveniently, you can use the finger controls. These will automatically rotate all the fingers according to the provided parameters.
+<ul>
+	<li><b>Activate System:</b> Simply turn the automatic rotation of the fingers on or off.</li>
+	<li><b>Fist Pose Limit + Finger Name:</b> Determines the rotation considered the fist pose. It limits the rotation of the fingers so it stops at this value.</li>
+	<li><b>Rot Multiplier + Finger Name:</b> How much of the rotation will be transferred to the finger. This offset helps create a more natural motion.</li>
+</ul></p>
+<br>
+
+<img src="./media/gt_auto_biped_rigger_stretchy_system.jpg"
+     alt="Auto Biped Stretchy Attributes Example">
+<img src="./media/gt_auto_biped_rigger_finger_attr.jpg" align="right"
+     alt="Auto Biped Follow Attribute Example">
+
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_fingers.gif?raw=true" align="right"
+     alt="Auto Biped Finger Automation Example">
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_stretchy.gif?raw=true"
+     alt="Auto Biped Stretchy System Example">
+
+<br>
+<p><h3>Auto Breathing, Abduction/Adduction, and Knuckles Compression Systems:</h3>
+<b>- Auto Breathing</b>: Causes the spine and clavicles joints to scale/translate up and down in a breathing rhythm. To control this system you can use the attributes found under the "main_ctrl".
+<ul>
+	<li><b>Breathing Time:</b> Amount of time transferred to the auto breathing system.</li>
+	<li><b>Breathing Amplitude:</b> Maximum amount of air going in (peak of the wave).</li>
+	<li><b>Breathing Frequency:</b> How often the character breaths in and out.</li>
+	<li><b>Breathing Offset:</b> Value added after operation is calculated.</li>
+	<li><b>Max Scale + Spine Joint:</b> Maximum value allow for the scale .</li>
+	<li><b>Max Scale + Clavicle Joint:</b> Maximum value allow for the translation Y of the clavicles .</li>
+</ul></p>
+<br>
+<p><b>- Abduction/Adduction System:</b>: You can control the abduction and adduction actions for the fingers by scaling the "finger_ctrl" in "Z".
+<ul>
+	<li><b>Arrow Visibility:</b> Whether or not the template arrow (abduction/adduction feedback) is visible.</li>
+	<li><b>Abduction Influence:</b> How much influence the system has over the fingers.</li>
+	<li><b>Rot Multiplier + Finger:</b> Direction and amount of rotation.</li>
+</ul></p>
+<br>
+<p><b>- Auto Knuckles Compression:</b>: The auto knuckles compression system will make the knuckle joints (thumb01, index01...) move closer to one another as the hand closes in order to prevent gaps between the fingers.
+<ul>
+	<li><b>Auto Compression:</b> Influence of the knuckles auto compression system.</li>
+	<li><b>Compression Amount:</b> Multiplier for the knuckles compression system.</li>
+	<li><b>Trans Multiplier + Finger:</b> Direction and amount of translation.</li>
+</ul>
+</p>
+
+<br>
+
+<img src="./media/gt_auto_biped_rigger_abduction_system.jpg"
+     alt="Auto Biped Abduction Attribute Example">
+<img src="./media/gt_auto_biped_rigger_breathing_system.jpg" align="right"
+     alt="Auto Biped Auto Breathing Attributes Example">
+
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_breathing.gif?raw=true" align="right"
+     alt="Auto Biped Breathing Automation Example">
+<img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_knuckles.gif?raw=true"
+     alt="Auto Biped Abduction/Adduction System Example">
+
+<h3>Settings:</h3>
+<ul>
+	<li><b>Use Real-time Skeleton:</b><br> Creates another skeleton without the parameter "Segment Scale Compensate" being active. This skeleton inherits the transforms from the controls while mimicking the behavior of the "Segment Scale Compensate" option, essentially creating a baked version of this Maya depended system.
+	As this baked version does not yet fully support non-uniform scaling, it's recommended that you only use it if you are planning to later send this rig into a game engine or another 3d application. This will allow you to preserve the stretchy settings even in programs that do not support it.</li>
+</ul>
+
+<p><h3>Imports/Exporting Skin Weights:</h3>
+This might be obvious, but when exporting and importing skin weights, don't forget to include all influences before importing it. This can be done by clicking on "Select Skinning Joints" then adding them as influences through "Rigging > Skin > Edit Influences > Add Influence"
+<br></p>
+
+<p><h3>Mirror Skin Weights with ngSkinTools:</h3>
+If painting the skin weights with "ngSkinTools" (third party plugin) you might have to manually map some of the finger influences before mirroring it. This can be done through "ngSkinTools > Mirror > Influences Mapping > Edit influence associations... > Link, both ways" </p>
+
+<br>
+<p><h3>Auto Rigger Work Sample:</h3></p>
+<p>Below you can watch a few animations that used Biped Auto Rigger to rig their characters.</p>
+<img src="./media/gt_auto_rigger_home_remedy.jpg" alt="Biped Auto Rigger Home Remedy Promo">
+
+<p>
+<ul>
+	<li><b>Home Remedy - Animated Short Film:</b><br><a href="https://vimeo.com/579130303">vimeo.com/579130303</a></li>
+	<li><b>Art in the time of Corona:</b><br><a href="https://youtu.be/TtYRudIZBGQ?t=2023">youtu.be/TtYRudIZBGQ</a><br></li>
+	<li><b>Short Horror Animation:</b><br><a href="https://youtu.be/pH62aGjf9-Y?t=1198">youtu.be/pH62aGjf9-Y</a></li>
+</ul></p>
+
+<p>Do you want to share your animation here? Send me a message!<br></p>
+
+<br>
+
+</div>
+
+<!-- Biped Rig Interface -->
+<div>
+<h1>Biped Rig Interface</h1>
+
+<img src="./media/gt_custom_rig_interface.jpg" align="right"
+     alt="Biped Rig Interface GUI">
+
+<p>Extra functions and automation for rigs generated using GT Biped Auto Rigger.
+<br>This script includes FK/IK Switchers, Pose managers, Animation managers and more.</p>
+
+<p><b>How to use it:</b>
+<br>1. Under "Namespace:" click on "Get" to use the character's namespace.<br>(In case you're not using a namespace, just click on "Clear")
+<br>2. If the character is found, the FK/IK buttons will light up according to the current state.
+<br>3. Use the desired function to animate or pose your character.</p>
+
+<h3>FK/IK Tab:</h3>
+<ul>
+	<li><p>This is the FK/IK Switcher. When a button is colored light grey, it means that the system recognized its current state as FK or IK. Use Switch to toggle or click on the desired system to force it into that state. (Whatever pose found in one system will be copied into the other)
+	</li>
+	<li><b>Auto Key:</b> When transitioning from one system to the other you might want an animation to drive the transition. That's what this button will help you accomplish.<br>
+	<b>Bake:</b> Uses the provided range to bake every frame while rematching one system into the other
+	<br><b>Sparse:</b> Creates the first and last keys necessary to transition from one system to the other.
+	<br><b>Get Selection Range (Button):</b> Gets the range of your current selection (from the timeline).
+	<br><b>Get Timeline Range:</b> Gets the start and end frame from the beginning and ending of the timeline. Helpful when trying to transfer all data from one system to the other. When used in conjunction with the option "Key FK/IK Influence" (Under the Tab "Settings")</p>
+	</li>
+</ul>
+
+<h3>Pose Tab:</h3>
+<ul>
+	<p>Used to manage static poses. It doesn't key the character, only poses it.</p>
+	<li><b>Mirror:</b> Copies the transform data from one side of the rig into the other, mirroring its current pose.</li>
+	<li><b>Reset Pose:</b> Resets the pose back to the rig default values.</li>
+	<li><b>Import/Export Pose:</b> Allows you to import/export the current pose from/to a file.</li>
+
+</ul>
+
+<h3>Animation Tab:</h3>
+<ul>
+	<p>Used to manage static poses. It doesn't key the character, only poses it.</p>
+	<li>
+		<b>Mirror:</b> Copies the animation data from one side of the rig into the other, mirroring its values.
+	</li>
+	<li>
+		<b>Reset Animation:</b> Deletes keyframes and Resets the pose back to the rig default values.
+	</li>
+	<li>
+		<b>Import/Export Animation:</b> Allows you to import/export the current animation from/to a file.
+	</li>
+</ul>
+
+<h3>Settings Tab:</h3>
+<ul>
+	<p>Overall Settings for this script. These are persistent and will retain their values in between sessions.</p>
+	<li>
+		<b>Allow Multiple Instances:</b> When active, you may open multiple instances of this script. Useful for when animating multiple character in the same scene.
+	</li>
+	<li>
+		<b>Transfer Data to Offset Control:</b> Determines if the bake FK/IK data is transferred to the default Wrist/Ankle controls or their offset controls.
+	</li>
+	<li>
+		<b>Key FK/IK Influence:</b> Creates a key in the influence values when switching between systems (FK/IK).
+	</li>
+	<li>
+		<b>Reset Persistent Settings:</b> Resets current settings back to their default values.
+	</li>
+</ul>
+<br>
+</div>
+
+<!-- Retarget Assistant -->
+<div>
+<h1>Retarget Assistant</h1>
+
+<img src="./media/gt_retarget_assistant.jpg" align="right"
+     alt="GT Retarget Assistant GUI">
+
+<p>This script applies patches while HumanIK motion capture animation is transferred to a rig created with GT Biped Auto Rigger.
+<br>For this script to work, the target rig should have a custom rig defined under HumanIK.</p>
+
+<ul>
+	<p><b>Patches:</b></p>
+	<li>
+		<b>Connect Toes:</b> Uses the HumanIK data to create a constraint connection between the source ball joint and the biped rig ball joint. Essentially transferring the ball joint motion from the source (mocap) to the target (rig)
+	</li>
+	<li>
+		<b>Reconnect Spine:</b>This option will replace the data received from HumanIK and transfer the rotation directly from the spine joints to the rig controls.
+		<br>WARNING: It might sometimes look funny or exaggerated because there is no scale compensation happening.
+		To fix that, you can use the influence slider or compress/expand the entire animation till the desired result is achieved. (Found inside the "?" button)
+	</li>
+	<li>
+		<b>Connect Fingers:</b>This option will extract the rotation of the finger joints that were defined through the HumanIK definition. If nothing was defined, nothing will be transferred. Much like the toe option, this option extracts whatever pose was left under the first frame of your timeline.<br>Invert Finger Rotation: Makes the main rotation (usually "Z") rotate in the opposite direction, which can help motion capture skeletons with unexpected orientations become compatible. (Found inside the "?" button)
+	</li>
+	<li>
+		<b>Leg Stabilization:</b>This option will use the IK rig to collect the correct rotation data from the position of the mocap skeleton. This helps enforce the correct foot placement.
+	</li>
+	<li>
+		<b>Unlock Rotations:</b>WARNING: This option should not be used for all bakes.
+		It will unlock all rotations allowing for the knee and elbow to receive rotation data into any axis. This might be desired in some cases when counter rotation is happening, but keep in mind that the data will lose some precision when transferred to IK,due to plane rotation nature of the IK solver. Consider using the option "Merge FK axis" to re-bake the FK controls back into one single plane rotation.
+	</li>
+	<li>
+		<b>Merge FX Axis:</b>This patch can only be used when "Unlock Rotations" options is active. It transfers the data to IK causing the channels to merge and then transfer it back into FK, making the animation live into only one channel instead of multiple channels.
+		Even though it might look slightly incorrect, it might give you data that is easier to handle, essentially eliminating some counter rotations.
+	</li>
+</ul>
+
+<p><b>HIK Character/Target Text Field </b><br> This is your final rigged character that will receive the animation. </p>
+<p><b>HIK Mocap / Source Text Field </b><br> This is the motion capture skeleton to be sourced into the rig. </p>
+<p><b>"P" (Properties) buttons </b><br> Selects the HumanIK properties of the character found in the text field. </p>
+<p><b>Get Current Target/Source: </b><br>Populates the "HIK Character/Target" and "HIK Mocap / Source" text fields with the same data found under the HumanIK menu. </p>
+<p><b>Bake Mocap with Fixes: </b><br>Bakes the Source character animation into the Target character while applying the active patches to the characters. </p>
+
+<br>
+
+</div>
+
+<!-- Game FBX Exporter -->
+<div>
+<h1>Game FBX Exporter</h1>
+
+<img src="./media/gt_game_fbx_exporter.jpg" align="right"
+     alt="GT Game FBX Exporter GUI">
+
+<p>This script exports a biped rig into FBX while including only the necessary data for animation or model to work in a real-time engine. Any namespaces included in animation files (due to being references) are automatically stripped before exporting.</p>
+<p>Generated FBX file uses real-time properties such as triangulation and SmoothingGroups and ContainerObjects</p>
+
+<ul>
+	<li><b>Export Model FBX File:</b> Exports the main skeleton (joints under "root_jnt") and skinned geometry (found under "geometry_grp")
+	<br>This option is equivalent to exporting the skinned version of the model without animation into a real-time engine. It includes some keyframe data into it to be used a neutral pose.</li>
+	<li><b>Export Animation FBX File:</b> Exports the main skeleton (joints under "root_jnt") after baking any interpolating keyframe data into individual keyframes.
+	<br>This option doesn't include the model, only the root skeleton. It should be used to export animation only. Any namespaces will be automatically stripped from the rig in the export.</li>
+</ul>
+<br>
+
+</div>
+
 
 </body>
