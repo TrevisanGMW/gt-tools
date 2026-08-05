@@ -8,15 +8,17 @@ from gt.tools.anim_clip_tracker import clip_tracker_controller
 class FakeModel:
     """Minimal stand-in for the clip tracker model."""
 
-    def __init__(self, clips=None, timeline_mode=clip_constants.MODE_SELECT):
+    def __init__(self, clips=None, timeline_mode=clip_constants.MODE_SELECT, show_timeline=True):
         """Initializes the fake model.
 
         Args:
             clips (list, optional): Clip dictionaries.
             timeline_mode (str, optional): Timeline interaction mode.
+            show_timeline (bool, optional): Whether the timeline view is visible.
         """
         self.clips = list(clips or [])
         self.timeline_mode = timeline_mode
+        self.show_timeline = show_timeline
         self.confirm_delete_clip = False
         self.auto_reorder_clips = False
         self.saved = False
@@ -97,17 +99,18 @@ class FakeView:
         self.highlight_calls.append((selected_index, scroll_into_view))
 
 
-def build_controller(clips=None, timeline_mode=clip_constants.MODE_SELECT):
+def build_controller(clips=None, timeline_mode=clip_constants.MODE_SELECT, show_timeline=True):
     """Builds a controller wired to fake collaborators.
 
     Args:
         clips (list, optional): Clip dictionaries.
         timeline_mode (str, optional): Timeline interaction mode.
+        show_timeline (bool, optional): Whether the timeline view is visible.
 
     Returns:
         ClipTrackerController: Controller using the fake model and view.
     """
-    model = FakeModel(clips=clips, timeline_mode=timeline_mode)
+    model = FakeModel(clips=clips, timeline_mode=timeline_mode, show_timeline=show_timeline)
     view = FakeView()
     return clip_tracker_controller.ClipTrackerController(model=model, view=view)
 
@@ -142,7 +145,16 @@ class TestClipTrackerControllerSelection(unittest.TestCase):
         controller.select_clip(-1)
 
         self.assertEqual(-1, controller.selected_index)
-        self.assertEqual([(-1, True)], controller.view.highlight_calls)
+        self.assertEqual([(-1, False)], controller.view.highlight_calls)
+
+    def test_select_clip_is_ignored_without_the_timeline_view(self):
+        """Checks no row is highlighted while the timeline view is hidden."""
+        controller = build_controller(clips=[{"start": 1, "end": 5}], show_timeline=False)
+
+        controller.select_clip(0)
+
+        self.assertEqual(-1, controller.selected_index)
+        self.assertEqual([(-1, False)], controller.view.highlight_calls)
 
     def test_delete_clip_shifts_selection(self):
         """Checks the highlight follows a clip after earlier clips are removed."""

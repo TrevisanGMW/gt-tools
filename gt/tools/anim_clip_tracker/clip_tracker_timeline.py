@@ -130,6 +130,63 @@ def get_clamped_move_delta(delta, start_frame, end_frame, min_frame, max_frame):
     return max(lowest_delta, min(highest_delta, int(delta)))
 
 
+def get_snap_frame(proposed_frame, is_low_edge, clips, ignore_index, threshold):
+    """Finds the closest frame that makes a clip edge touch another clip without overlapping.
+
+    Args:
+        proposed_frame (int): Frame the edge is being moved to.
+        is_low_edge (bool): True when the edge is the lowest frame of its clip.
+        clips (list): Clip dictionaries.
+        ignore_index (int): Index of the clip being edited.
+        threshold (int): Maximum snapping distance in frames.
+
+    Returns:
+        int or None: Snapped frame, or None when no target is close enough.
+    """
+    snapped_frame = None
+    closest_distance = int(threshold) + 1
+    for index, clip in enumerate(clips or []):
+        if index == int(ignore_index):
+            continue
+        clip_low, clip_high = get_clip_span(clip)
+        target_frame = clip_high + 1 if is_low_edge else clip_low - 1
+        distance = abs(target_frame - int(proposed_frame))
+        if distance <= int(threshold) and distance < closest_distance:
+            closest_distance = distance
+            snapped_frame = target_frame
+    return snapped_frame
+
+
+def get_snapped_move_delta(delta, start_frame, end_frame, clips, ignore_index, threshold):
+    """Adjusts a move offset so the clip snaps to the closest neighboring clip edge.
+
+    Both edges are considered and the closest snapping target wins, so a clip can be
+    dropped right after or right before another clip without overlapping it.
+
+    Args:
+        delta (int): Requested frame offset.
+        start_frame (int): Clip start frame before the move.
+        end_frame (int): Clip end frame before the move.
+        clips (list): Clip dictionaries.
+        ignore_index (int): Index of the clip being moved.
+        threshold (int): Maximum snapping distance in frames.
+
+    Returns:
+        int: Offset adjusted by the closest snapping target.
+    """
+    clip_low = min(int(start_frame), int(end_frame)) + int(delta)
+    clip_high = max(int(start_frame), int(end_frame)) + int(delta)
+    low_target = get_snap_frame(clip_low, True, clips, ignore_index, threshold)
+    high_target = get_snap_frame(clip_high, False, clips, ignore_index, threshold)
+    low_distance = abs(low_target - clip_low) if low_target is not None else None
+    high_distance = abs(high_target - clip_high) if high_target is not None else None
+    if low_distance is not None and (high_distance is None or low_distance <= high_distance):
+        return int(delta) + (low_target - clip_low)
+    if high_distance is not None:
+        return int(delta) + (high_target - clip_high)
+    return int(delta)
+
+
 def get_display_bounds(clips, range_start, range_end):
     """Gets the frame bounds the timeline should display.
 
@@ -166,8 +223,11 @@ def pack_clip_lanes(clips):
     """
     lane_ends = []
     lanes = {}
-    for index, clip in enumerate(clips or []):
-        clip_low, clip_high = get_clip_span(clip)
+    clips = list(clips or [])
+    # Lanes are filled in frame order so an unsorted clip list still uses as few lanes as possible
+    ordered_indices = sorted(range(len(clips)), key=lambda index: get_clip_span(clips[index]))
+    for index in ordered_indices:
+        clip_low, clip_high = get_clip_span(clips[index])
         target_lane = None
         for lane_index, lane_end in enumerate(lane_ends):
             if clip_low > lane_end:
@@ -271,6 +331,8 @@ class ClipTimelineWidget(ui_qt.QtWidgets.QWidget):
         self.show_names = False
         self.sync_time_on_edit = True
         self.allow_outside_range = False
+        self.magnet_enabled = True
+        self.snap_tolerance = 10
         self.interaction_state = None
         self.interaction_index = -1
         self.press_x = 0
@@ -315,6 +377,16 @@ class ClipTimelineWidget(ui_qt.QtWidgets.QWidget):
         """
         self.allow_outside_range = bool(state)
         self.update()
+
+    def set_magnet_state(self, magnet_enabled, snap_tolerance):
+        """Sets the magnet snapping options.
+
+        Args:
+            magnet_enabled (bool): True to snap clip edges to nearby clips.
+            snap_tolerance (int): Maximum snapping distance in frames.
+        """
+        self.magnet_enabled = bool(magnet_enabled)
+        self.snap_tolerance = max(1, int(snap_tolerance))
 
     def get_range_bounds(self):
         """Gets the lowest and highest frames clips may use.
@@ -706,10 +778,19 @@ class ClipTimelineWidget(ui_qt.QtWidgets.QWidget):
         delta = int(raw_delta * 0.2) if is_precision else raw_delta
         min_frame, max_frame = self.get_range_bounds()
         if self.interaction_state == "resize_start":
-            clip["start"] = self.limit_frame(self.initial_start + delta)
+            clip["start"] = self.limit_frame(self.snap_edge_frame(self.initial_start + delta, clip.get("end")))
         elif self.interaction_state == "resize_end":
-            clip["end"] = self.limit_frame(self.initial_end + delta)
+            clip["end"] = self.limit_frame(self.snap_edge_frame(self.initial_end + delta, clip.get("start")))
         elif self.interaction_state == "move":
+            if self.magnet_enabled:
+                delta = get_snapped_move_delta(
+                    delta,
+                    self.initial_start,
+                    self.initial_end,
+                    self.clips,
+                    self.interaction_index,
+                    self.snap_tolerance,
+                )
             if not self.allow_outside_range:
                 delta = get_clamped_move_delta(
                     delta,
@@ -806,6 +887,28 @@ class ClipTimelineWidget(ui_qt.QtWidgets.QWidget):
         """Starts scrubbing the current frame from the last press position."""
         self.interaction_state = "scrub"
         self.set_current_frame_from_interaction(self.press_frame)
+
+    def snap_edge_frame(self, proposed_frame, opposite_frame):
+        """Snaps a resized clip edge to the closest neighboring clip.
+
+        Args:
+            proposed_frame (int): Frame the edited edge is being moved to.
+            opposite_frame (int): Frame of the edge that is not being edited.
+
+        Returns:
+            int: Snapped frame, or the proposed frame when snapping is off or too far.
+        """
+        if not self.magnet_enabled:
+            return int(proposed_frame)
+        is_low_edge = int(proposed_frame) <= int(opposite_frame)
+        snapped_frame = get_snap_frame(
+            proposed_frame,
+            is_low_edge,
+            self.clips,
+            self.interaction_index,
+            self.snap_tolerance,
+        )
+        return int(proposed_frame) if snapped_frame is None else int(snapped_frame)
 
     def limit_frame(self, frame):
         """Keeps a frame inside the timeline range when required.

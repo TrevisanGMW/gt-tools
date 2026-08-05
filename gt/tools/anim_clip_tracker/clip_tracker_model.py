@@ -30,6 +30,8 @@ PREFERENCE_KEYS = [
     "timeline_show_names",
     "timeline_sync_time_edit",
     "timeline_allow_outside_range",
+    "timeline_magnet_enabled",
+    "timeline_snap_tolerance",
 ]
 
 
@@ -86,6 +88,8 @@ class ClipTrackerModel:
         self.timeline_show_names = False
         self.timeline_sync_time_edit = True
         self.timeline_allow_outside_range = False
+        self.timeline_magnet_enabled = True
+        self.timeline_snap_tolerance = 10
 
     def load_preferences(self):
         """Loads persistent tool preferences."""
@@ -117,6 +121,8 @@ class ClipTrackerModel:
             "timeline_show_names": bool(self.timeline_show_names),
             "timeline_sync_time_edit": bool(self.timeline_sync_time_edit),
             "timeline_allow_outside_range": bool(self.timeline_allow_outside_range),
+            "timeline_magnet_enabled": bool(self.timeline_magnet_enabled),
+            "timeline_snap_tolerance": int(self.timeline_snap_tolerance),
         }
         self.prefs.save()
 

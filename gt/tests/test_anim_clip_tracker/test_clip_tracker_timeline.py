@@ -45,6 +45,12 @@ class TestClipTrackerTimeline(unittest.TestCase):
         expected = {0: 0, 1: 1}
         self.assertEqual(expected, clip_timeline.pack_clip_lanes(clips))
 
+    def test_pack_clip_lanes_ignores_clip_list_order(self):
+        """Checks clips that do not overlap share a lane even when listed out of order."""
+        clips = [{"start": 100, "end": 140}, {"start": 50, "end": 70}]
+        expected = {0: 0, 1: 0}
+        self.assertEqual(expected, clip_timeline.pack_clip_lanes(clips))
+
     def test_get_lane_count_defaults_to_one_lane(self):
         """Checks the lane count of an empty timeline."""
         self.assertEqual(1, clip_timeline.get_lane_count({}))

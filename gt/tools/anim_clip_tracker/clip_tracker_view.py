@@ -10,7 +10,7 @@ import os
 
 
 TIMELINE_HEIGHT = 110
-PREFERENCES_HEIGHT = 310
+PREFERENCES_HEIGHT = 320
 SELECTED_ROW_COLOR = [0.30, 0.26, 0.12]
 SELECTED_ROW_LABEL_COLOR = "#FFC832"
 MAX_SCROLL_PIXELS = 100000
@@ -82,7 +82,7 @@ class ClipTrackerView:
         self.timeline_widget = None
         self.preferences_host = None
         self.preferences_panel = None
-        cmds.window(self.WINDOW_NAME, title=title, widthHeight=(780, 700))
+        cmds.window(self.WINDOW_NAME, title=title, widthHeight=(780, 710))
         main_form = cmds.formLayout()
         top_form = self.build_top_toolbar(parent=main_form)
         clips_frame = self.build_clips_frame(parent=main_form)
@@ -260,6 +260,7 @@ class ClipTrackerView:
         self.timeline_widget.set_show_names(model.timeline_show_names)
         self.timeline_widget.set_sync_time_on_edit(model.timeline_sync_time_edit)
         self.timeline_widget.set_allow_outside_range(model.timeline_allow_outside_range)
+        self.timeline_widget.set_magnet_state(model.timeline_magnet_enabled, model.timeline_snap_tolerance)
         self.timeline_widget.set_clips(model.get_data())
         self.timeline_widget.set_selected_index(self.controller.selected_index)
 
@@ -531,6 +532,10 @@ class ClipTrackerView:
         if not self.window_exists():
             return
         selected_index = int(selected_index)
+        if not self.controller.model.show_timeline:
+            # Without the timeline view there is no selection to mirror in the clip list
+            selected_index = -1
+            scroll_into_view = False
         for index, name_field in self.name_fields.items():
             try:
                 if not cmds.textField(name_field, query=True, exists=True):

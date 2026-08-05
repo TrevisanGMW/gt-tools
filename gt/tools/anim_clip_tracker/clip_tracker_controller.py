@@ -307,6 +307,9 @@ class ClipTrackerController:
         setattr(self.model, key, value)
         self.model.save_preferences()
         if key == "show_timeline":
+            # Row highlights only mirror a timeline selection, so they are dropped with the timeline
+            if not value:
+                self.selected_index = -1
             # The timeline changes the window structure, so the UI is rebuilt
             get_maya_cmds().evalDeferred(self.rebuild_view)
             return
@@ -315,6 +318,8 @@ class ClipTrackerController:
             "timeline_show_names",
             "timeline_sync_time_edit",
             "timeline_allow_outside_range",
+            "timeline_magnet_enabled",
+            "timeline_snap_tolerance",
         ]
         if key in timeline_only_keys:
             # These preferences only affect the timeline, so clip rows are left alone
@@ -493,10 +498,11 @@ class ClipTrackerController:
         Args:
             index (int): Clip index, or a negative value to clear the selection.
         """
-        self.selected_index = int(index)
+        self.selected_index = int(index) if self.model.show_timeline else -1
         if not self.view.window_exists():
             return
-        scroll_into_view = self.model.timeline_mode == clip_constants.MODE_SELECT
+        is_select_mode = self.model.timeline_mode == clip_constants.MODE_SELECT
+        scroll_into_view = self.selected_index >= 0 and is_select_mode
         self.view.highlight_clip_row(self.selected_index, scroll_into_view=scroll_into_view)
 
     def install_focus_refresh_filter(self):

@@ -65,6 +65,16 @@ TOOLTIP_ALLOW_OUTSIDE_RANGE = (
     "When off, those areas are hidden and clips stop at the\n"
     "start and end of the timeline range."
 )
+TOOLTIP_MAGNET = (
+    "Snaps clip edges to nearby clips while moving or resizing them\n"
+    "in the timeline view.\n"
+    "A dragged clip lands right after or right before its neighbor\n"
+    "without overlapping it."
+)
+TOOLTIP_MAGNET_TOLERANCE = (
+    "Largest distance, in frames, at which magnet snapping happens.\n"
+    "Bigger values snap from farther away."
+)
 TOOLTIP_TIMELINE_MODE = (
     "Controls what the left mouse button does in the timeline view.\n"
     "Navigate: drag anywhere to change the current frame.\n"
@@ -137,6 +147,7 @@ class ClipPreferencesPanel(ui_qt.QtWidgets.QWidget):
         self.preferences = dict(preferences or {})
         self.mode_buttons = {}
         self.mode_button_group = None
+        self.snap_tolerance_spin = None
         self.timeline_dependent_widgets = []
         main_layout = ui_qt.QtWidgets.QVBoxLayout(self)
         main_layout.setContentsMargins(4, 2, 4, 4)
@@ -180,19 +191,21 @@ class ClipPreferencesPanel(ui_qt.QtWidgets.QWidget):
         check_box.toggled.connect(lambda state, name=key: self.preference_changed.emit(name, bool(state)))
         return check_box
 
-    def build_spin_box(self, key, tooltip):
+    def build_spin_box(self, key, tooltip, minimum=1, maximum=100000):
         """Builds a frame count spin box bound to a preference.
 
         Args:
             key (str): Preference key.
             tooltip (str): Spin box tooltip.
+            minimum (int, optional): Lowest accepted value.
+            maximum (int, optional): Highest accepted value.
 
         Returns:
             QSpinBox: Created spin box.
         """
         spin_box = ui_qt.QtWidgets.QSpinBox()
         spin_box.setToolTip(tooltip)
-        spin_box.setRange(1, 100000)
+        spin_box.setRange(int(minimum), int(maximum))
         spin_box.setMaximumWidth(70)
         # Typed values are only reported once editing finishes
         spin_box.setKeyboardTracking(False)
@@ -269,16 +282,44 @@ class ClipPreferencesPanel(ui_qt.QtWidgets.QWidget):
             "timeline_allow_outside_range",
             TOOLTIP_ALLOW_OUTSIDE_RANGE,
         )
-        self.timeline_dependent_widgets.extend([names_check_box, sync_check_box, outside_check_box])
+        magnet_check_box = self.build_check_box("Magnet Snapping", "timeline_magnet_enabled", TOOLTIP_MAGNET)
+        magnet_check_box.toggled.connect(self.on_magnet_toggled)
+        tolerance_label = ui_qt.QtWidgets.QLabel("Tolerance:")
+        tolerance_label.setToolTip(TOOLTIP_MAGNET_TOLERANCE)
+        self.snap_tolerance_spin = self.build_spin_box(
+            "timeline_snap_tolerance",
+            TOOLTIP_MAGNET_TOLERANCE,
+            minimum=1,
+            maximum=100,
+        )
+        self.timeline_dependent_widgets.extend(
+            [
+                names_check_box,
+                sync_check_box,
+                outside_check_box,
+                magnet_check_box,
+                tolerance_label,
+                self.snap_tolerance_spin,
+            ]
+        )
+        tolerance_layout = ui_qt.QtWidgets.QHBoxLayout()
+        tolerance_layout.setSpacing(4)
+        tolerance_layout.addWidget(tolerance_label)
+        tolerance_layout.addWidget(self.snap_tolerance_spin)
+
         first_row = self.build_row(group_layout)
         first_row.addWidget(show_check_box)
         first_row.addStretch()
         first_row.addWidget(names_check_box)
+        first_row.addStretch()
+        first_row.addWidget(sync_check_box)
 
         second_row = self.build_row(group_layout)
-        second_row.addWidget(sync_check_box)
-        second_row.addStretch()
         second_row.addWidget(outside_check_box)
+        second_row.addStretch()
+        second_row.addWidget(magnet_check_box)
+        second_row.addStretch()
+        second_row.addLayout(tolerance_layout)
 
         third_row = self.build_row(group_layout)
         mode_label = ui_qt.QtWidgets.QLabel("Mode:")
@@ -364,6 +405,15 @@ class ClipPreferencesPanel(ui_qt.QtWidgets.QWidget):
         if state:
             self.preference_changed.emit("timeline_mode", mode)
 
+    def on_magnet_toggled(self, state):
+        """Enables the snapping tolerance only while magnet snapping is on.
+
+        Args:
+            state (bool): Whether magnet snapping is enabled.
+        """
+        self.preferences["timeline_magnet_enabled"] = bool(state)
+        self.update_timeline_dependent_widgets()
+
     def on_show_timeline_toggled(self, state):
         """Updates the widgets that only apply while the timeline is visible.
 
@@ -378,3 +428,6 @@ class ClipPreferencesPanel(ui_qt.QtWidgets.QWidget):
         is_enabled = bool(self.preferences.get("show_timeline"))
         for widget in self.timeline_dependent_widgets:
             widget.setEnabled(is_enabled)
+        if self.snap_tolerance_spin:
+            magnet_enabled = bool(self.preferences.get("timeline_magnet_enabled"))
+            self.snap_tolerance_spin.setEnabled(is_enabled and magnet_enabled)
