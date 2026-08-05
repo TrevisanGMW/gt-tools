@@ -40,7 +40,30 @@ class ClipTrackerController:
         """Starts the tool."""
         self.view.build_ui()
         self.install_focus_refresh_filter()
+        self.setup_scene_callbacks()
         self.refresh(force=True)
+
+    def setup_scene_callbacks(self):
+        """Creates event listeners that die automatically when the UI is closed."""
+        cmds = get_maya_cmds()
+        if not self.view.window_exists():
+            return
+
+        # Triggers when the user opens an existing file
+        cmds.scriptJob(
+            event=["SceneOpened", self._deferred_scene_refresh],
+            parent=self.view.WINDOW_NAME
+        )
+
+        # Triggers when the user clicks File > New Scene
+        cmds.scriptJob(
+            event=["NewSceneOpened", self._deferred_scene_refresh],
+            parent=self.view.WINDOW_NAME
+        )
+
+    def _deferred_scene_refresh(self, *args):
+        """Safely triggers a refresh after Maya finishes loading."""
+        get_maya_cmds().evalDeferred(lambda *args: self.refresh(force=True))
 
     def refresh(self, force=False):
         """Reloads scene data and redraws the clip list.
@@ -83,6 +106,7 @@ class ClipTrackerController:
         if self.view.window_exists():
             self.view.build_ui()
             self.install_focus_refresh_filter()
+            self.setup_scene_callbacks()
             self.refresh(force=True)
 
     def add_clip(self, *args):
