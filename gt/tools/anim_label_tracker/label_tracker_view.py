@@ -87,6 +87,11 @@ class AnimationLabelTrackerView(legacy_tracker.RangeToolWindow):
         self._set_icon_button(self.btn_add_auto, ui_res_lib.Icon.ui_add, "Create sample automation")
         self._set_icon_button(self.btn_load_auto, ui_res_lib.Icon.ui_open, "Browse automations")
         self._set_icon_button(self.delete_btn, ui_res_lib.Icon.ui_delete, "Delete range")
+        self._set_icon_button(
+            self.btn_select_node,
+            ui_res_lib.Icon.ui_cursor,
+            "Select scene data node",
+        )
         active_range = getattr(self.timeline, "active_range", None)
         lock_icon = (
             ui_res_lib.Icon.ui_lock_closed

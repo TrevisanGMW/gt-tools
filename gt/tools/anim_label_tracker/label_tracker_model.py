@@ -7,6 +7,7 @@ from gt.core.prefs import Prefs
 
 
 PREFS_FILENAME = "anim_label_tracker"
+LAST_USED_DATA_KEY = "last_used_data"
 
 DEFAULT_PREFERENCES = {
     "schema_path": "",
@@ -26,6 +27,7 @@ DEFAULT_PREFERENCES = {
     "run_all_automations": True,
     "show_validation_status": True,
     "write_scene_node": True,
+    LAST_USED_DATA_KEY: {},
 }
 
 
@@ -272,6 +274,25 @@ class AnimationLabelTrackerModel:
             object: Stored or fallback value.
         """
         return self.preferences.get(key, default)
+
+    def get_last_used_data(self):
+        """Gets a copy of the most recently saved tracker data.
+
+        Returns:
+            dict: Last-used range and file metadata, or an empty dictionary.
+        """
+        return copy.deepcopy(self.preferences.get(LAST_USED_DATA_KEY, {}))
+
+    def set_last_used_data(self, data, save=True):
+        """Stores a copy of tracker data for reuse by later files.
+
+        Args:
+            data (dict): JSON-compatible range and file metadata.
+            save (bool, optional): Whether to immediately persist preferences.
+        """
+        self.preferences[LAST_USED_DATA_KEY] = copy.deepcopy(data or {})
+        if save:
+            self.save_preferences()
 
     def set_preference(self, key, value, save=True):
         """Sets one preference value.

@@ -13,12 +13,25 @@
       "description": "Defines overall animation fidelity and usability."
     },
     {
-      "type": "string",
-      "name": "source",
-      "label": "Source",
-      "required": true,
-      "placeholder": "e.g. mocap_shoot_01",
-      "description": "Identifies the origin animation or dataset."
+      "type": "row",
+      "items": [
+        {
+          "type": "string",
+          "name": "source",
+          "label": "Source",
+          "required": true,
+          "placeholder": "e.g. mocap_shoot_01",
+          "description": "Identifies the origin animation or dataset."
+        },
+        {
+          "type": "enum",
+          "name": "gender",
+          "label": "Gender",
+          "options": ["male", "female"],
+          "required": false,
+          "description": "The apparent gender of the character when it can be determined clearly."
+        }
+      ]
     },
     {
       "type": "separator"
@@ -39,6 +52,13 @@
           "label": "Labelled",
           "required": true,
           "description": "True when frame-range metadata is verified."
+        },
+        {
+          "type": "boolean",
+          "name": "commercial_use",
+          "label": "Commercial Use",
+          "required": true,
+          "description": "True when this file is cleared for commercial use."
         }
       ]
     }

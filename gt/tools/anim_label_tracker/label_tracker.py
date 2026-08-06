@@ -2,6 +2,7 @@ try:
     import maya.cmds as cmds
 except ImportError:
     cmds = None
+import copy
 import uuid
 import random
 import json
@@ -33,10 +34,21 @@ EXAMPLE_SCHEMA = """{
       "description": "Defines the overall animation fidelity and usability.\\n'high' means polished, clean mocap ready for production.\\n'medium' indicates acceptable data that requires some animation cleanup.\\n'low' means blocky, rough motion, significant foot sliding, or missing marker data."
     },
     {
-      "type": "string", "name": "source", "label": "Source", 
-      "required": true, 
-      "placeholder": "e.g. mocap_shoot_01",
-      "description": "Identifies the origin of the animation.\\nThis could be a specific mocap shoot (e.g., 'mocap_shoot_01'), a dataset name, a vendor pipeline, or the intended game/cinematic project use-case."
+      "type": "row",
+      "items": [
+        {
+          "type": "string", "name": "source", "label": "Source",
+          "required": true,
+          "placeholder": "e.g. mocap_shoot_01",
+          "description": "Identifies the origin of the animation.\\nThis could be a specific mocap shoot (e.g., 'mocap_shoot_01'), a dataset name, a vendor pipeline, or the intended game/cinematic project use-case."
+        },
+        {
+          "type": "enum", "name": "gender", "label": "Gender",
+        "options": ["male", "female"],
+        "required": false,
+          "description": "The apparent gender of the character when it can be determined clearly."
+        }
+      ]
     },
     {"type": "separator"},
     {
@@ -51,6 +63,11 @@ EXAMPLE_SCHEMA = """{
           "type": "boolean", "name": "labelled", "label": "Labelled", 
           "required": true, 
           "description": "Set to true once a human animator or an automated script has fully populated, verified, and signed off on the frame-range metadata for this file."
+        },
+        {
+            "type": "boolean", "name": "commercial_use", "label": "Commercial Use",
+            "required": true,
+            "description": "Set to true when this file is cleared for commercial use."
         }
       ]
     }
@@ -139,6 +156,7 @@ context["field_name"]           # Name of the specific field this script was tri
 context["set_value"](val)       # Sets the UI value for the triggering field directly
 
 # Advanced API functions:
+context["get_last_used_data"]() # Returns the last tracker data stored in Prefs
 context["create_range"](name, start, end, color)         # Creates, automatically selects, and returns a new RangeItem
 context["get_file_data"](field)                          # Returns the current value of a File Data field
 context["update_file_data"](field, val)                  # Updates File Data
@@ -149,10 +167,16 @@ context["refresh_ui"]()                                  # Forces the UI to upda
 # =====================================================================
 # 1. Update File Data
 # =====================================================================
+last_used_data = context["get_last_used_data"]()
+print("Last used tracker data from Prefs:")
+print(last_used_data)
+
 context["update_file_data"]("quality", "high")
 context["update_file_data"]("source", "mocap_shoot_01")
 context["update_file_data"]("clipped", True)
 context["update_file_data"]("labelled", True)
+context["update_file_data"]("commercial_use", True)
+context["update_file_data"]("gender", "male")
 
 # =====================================================================
 # 2. Automatically generate a full-coverage range
@@ -190,6 +214,32 @@ class DataManager:
     ATTR_EDITED = "lastEdited"
 
     @classmethod
+    def build_payload(cls, ranges, file_data):
+        """Builds JSON-compatible tracker data without touching Maya.
+
+        Args:
+            ranges (list): Range items to serialize.
+            file_data (dict): File-level metadata to serialize.
+
+        Returns:
+            dict: JSON-compatible tracker data.
+        """
+        range_data = []
+        for range_item in ranges:
+            range_data.append(
+                {
+                    "id": range_item.id,
+                    "name": range_item.name,
+                    "start": range_item.start,
+                    "end": range_item.end,
+                    "color": range_item.color,
+                    "locked": range_item.locked,
+                    "custom_data": range_item.custom_data,
+                }
+            )
+        return {"ranges": range_data, "file_data": copy.deepcopy(file_data)}
+
+    @classmethod
     def save_data(cls, ranges, file_data):
         """Serializes range and file metadata to tracker scene data.
 
@@ -209,19 +259,7 @@ class DataManager:
         if not cmds.attributeQuery(cls.ATTR_EDITED, node=cls.NODE_NAME, exists=True):
             cmds.addAttr(cls.NODE_NAME, ln=cls.ATTR_EDITED, dataType="string")
             
-        r_data = []
-        for r in ranges:
-            r_data.append({
-                "id": r.id,
-                "name": r.name,
-                "start": r.start,
-                "end": r.end,
-                "color": r.color,
-                "locked": r.locked,
-                "custom_data": r.custom_data
-            })
-        
-        payload = {"ranges": r_data, "file_data": file_data}
+        payload = cls.build_payload(ranges, file_data)
         json_str = json.dumps(payload)
         cmds.setAttr(f"{cls.NODE_NAME}.{cls.ATTR_DATA}", json_str, type="string")
         
@@ -692,7 +730,11 @@ class RangeToolWindow(QtWidgets.QDialog):
         self.setWindowTitle("Animation Label Tracker")
         self.resize(900, 450)
         self.setWindowFlags(QtCore.Qt.WindowType.WindowStaysOnTopHint)
-        self.sj_id = None 
+        self.sj_id = None
+        if not getattr(self, "model", None):
+            self.model = label_tracker_model.AnimationLabelTrackerModel()
+        self._suspend_last_used_data = False
+        self._is_loading_data = False
         
         self.schema = {}
         self.file_data = {}
@@ -1011,12 +1053,16 @@ class RangeToolWindow(QtWidgets.QDialog):
         btn_del_node.setStyleSheet("background-color: #c94c4c; color: white;")
         btn_del_node.clicked.connect(self.delete_scene_node)
         data_mng_layout.addWidget(btn_del_node)
-        
-        btn_import = QtWidgets.QPushButton("Import JSON...")
+        self.btn_select_node = QtWidgets.QPushButton()
+        self.btn_select_node.setToolTip("Select scene data node")
+        self.btn_select_node.clicked.connect(self.select_scene_node)
+        data_mng_layout.addWidget(self.btn_select_node)
+
+        btn_import = QtWidgets.QPushButton("Import JSON")
         btn_import.clicked.connect(self.import_data)
         data_mng_layout.addWidget(btn_import)
         
-        btn_export = QtWidgets.QPushButton("Export JSON...")
+        btn_export = QtWidgets.QPushButton("Export JSON")
         btn_export.clicked.connect(self.export_data)
         data_mng_layout.addWidget(btn_export)
         
@@ -1041,6 +1087,19 @@ class RangeToolWindow(QtWidgets.QDialog):
         self.refresh_from_maya()
 
     # --- SAVE / EXPORT / IMPORT LOGIC ---
+    def select_scene_node(self):
+        """Selects the tracker data node in the current Maya scene."""
+        node_name = DataManager.NODE_NAME
+        if not cmds.objExists(node_name):
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Select Node",
+                f"Node '{node_name}' not found in scene.",
+            )
+            return
+        cmds.select(node_name, replace=True)
+        self.status_bar.setText(f"Selected scene data node: {node_name}")
+
     def delete_scene_node(self):
         """Deletes the tracker data node from the current Maya scene."""
         node_name = DataManager.NODE_NAME
@@ -1062,6 +1121,9 @@ class RangeToolWindow(QtWidgets.QDialog):
     def save_to_scene(self):
         """Persists the current tracker ranges and metadata to the scene."""
         if getattr(self, '_is_building_ui', False): return
+        payload = DataManager.build_payload(self.timeline.ranges, self.file_data)
+        if not self._suspend_last_used_data and not self._is_loading_data:
+            self.model.set_last_used_data(payload)
         if not self.chk_write_node.isChecked(): return
         DataManager.save_data(self.timeline.ranges, self.file_data)
         
@@ -1083,10 +1145,7 @@ class RangeToolWindow(QtWidgets.QDialog):
         """Exports tracker data to a user-selected JSON file."""
         path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Export JSON", "timeline_data.json", "JSON Files (*.json)")
         if path:
-            r_data = []
-            for r in self.timeline.ranges:
-                r_data.append({"id": r.id, "name": r.name, "start": r.start, "end": r.end, "color": r.color, "locked": r.locked, "custom_data": r.custom_data})
-            payload = {"ranges": r_data, "file_data": self.file_data}
+            payload = DataManager.build_payload(self.timeline.ranges, self.file_data)
             try:
                 with open(path, 'w') as f: json.dump(payload, f, indent=2)
                 cmds.warning(f"Data exported successfully to {path}")
@@ -1120,6 +1179,8 @@ class RangeToolWindow(QtWidgets.QDialog):
             loaded_ranges (list): Ranges read from the input data.
             loaded_file_data (dict): File metadata read from the input data.
         """
+        previous_loading = self._is_loading_data
+        self._is_loading_data = True
         while True:
             if not self.check_schema_mismatch(loaded_ranges, loaded_file_data):
                 break
@@ -1149,7 +1210,8 @@ class RangeToolWindow(QtWidgets.QDialog):
         self.timeline.ranges = loaded_ranges
         self.scene_file_data_cache = loaded_file_data
         self.rebuild_schema_ui()
-        self.timeline.rangesChanged.emit() 
+        self.timeline.rangesChanged.emit()
+        self._is_loading_data = previous_loading
         
     def check_schema_mismatch(self, loaded_ranges, loaded_file_data):
         """Checks imported data against the active schema definition.
@@ -1253,9 +1315,16 @@ class RangeToolWindow(QtWidgets.QDialog):
         else:
             self.build_dynamic_ui(self.schema.get("frame_range", []), self.dynamic_range_layout, self.ui_widgets_range, self.on_dynamic_range_data_changed)
         
+        default_values = {
+            item.get("name"): item.get("default")
+            for item in self._flatten_schema(self.schema.get("file_level", []))
+            if item.get("name") and "default" in item
+        }
         for name, widget in self.ui_widgets_file.items():
             widget.blockSignals(True)
             val = self.scene_file_data_cache.get(name)
+            if val in (None, ""):
+                val = default_values.get(name, val)
             if val is not None:
                 if isinstance(widget, QtWidgets.QComboBox): widget.setCurrentText(str(val))
                 elif isinstance(widget, QtWidgets.QLineEdit): widget.setText(str(val))
@@ -1263,7 +1332,12 @@ class RangeToolWindow(QtWidgets.QDialog):
             widget.blockSignals(False)
 
         self._is_building_ui = False
-        self.on_file_data_changed() 
+        previous_suspend = self._suspend_last_used_data
+        self._suspend_last_used_data = True
+        try:
+            self.on_file_data_changed()
+        finally:
+            self._suspend_last_used_data = previous_suspend
         
         self.populate_edit_area(self.timeline.active_range)
         self.highlight_validation()
@@ -1322,6 +1396,9 @@ class RangeToolWindow(QtWidgets.QDialog):
                     widget = QtWidgets.QComboBox()
                     widget.addItem("---")
                     widget.addItems(item.get("options", []))
+                    default_value = item.get("default")
+                    if default_value is not None:
+                        widget.setCurrentText(str(default_value))
                     widget.currentIndexChanged.connect(callback)
                 elif itype == "string":
                     widget = QtWidgets.QLineEdit()
@@ -1527,7 +1604,15 @@ class RangeToolWindow(QtWidgets.QDialog):
             self.timeline.active_range = nr 
             self.timeline.rangesChanged.emit()
             return nr
-            
+
+        def get_last_used_data():
+            """Gets a copy of the last tracker data stored in tool preferences.
+
+            Returns:
+                dict: Previously saved range and file metadata.
+            """
+            return self.model.get_last_used_data()
+
         def refresh_ui():
             """Refreshes the timeline and dynamic editor controls."""
             self.timeline.update()
@@ -1542,6 +1627,7 @@ class RangeToolWindow(QtWidgets.QDialog):
             "update_range_data": update_range_data,
             "update_file_data": update_file_data,
             "get_file_data": get_file_data,
+            "get_last_used_data": get_last_used_data,
             "create_range": create_range,
             "refresh_ui": refresh_ui
         }

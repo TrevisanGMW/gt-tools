@@ -18,6 +18,42 @@ class TestLabelTrackerModel(unittest.TestCase):
         self.assertEqual("high", schema["file_level"][0]["options"][2])
         self.assertTrue(schema["validation"]["full_coverage"])
 
+    def test_sample_schema_contains_commercial_and_gender_fields(self):
+        """Checks the example file metadata fields and gender options."""
+        with open(label_tracker_model.get_sample_schema_path(), encoding="utf-8") as schema_file:
+            schema = json.load(schema_file)
+
+        file_fields = label_tracker_model.flatten_schema_items(schema["file_level"])
+        self.assertEqual(
+            ["quality", "source", "gender", "clipped", "labelled", "commercial_use"],
+            [field["name"] for field in file_fields],
+        )
+        commercial_field = next(
+            field for field in file_fields if field["name"] == "commercial_use"
+        )
+        gender_field = next(field for field in file_fields if field["name"] == "gender")
+        self.assertEqual("boolean", commercial_field["type"])
+        self.assertTrue(commercial_field["required"])
+        self.assertEqual("enum", gender_field["type"])
+        self.assertFalse(gender_field["required"])
+        self.assertNotIn("default", gender_field)
+        self.assertEqual(["male", "female"], gender_field["options"])
+
+    def test_last_used_data_is_stored_as_a_copy(self):
+        """Checks last-used data is isolated from caller mutations."""
+        model = label_tracker_model.AnimationLabelTrackerModel.__new__(
+            label_tracker_model.AnimationLabelTrackerModel
+        )
+        model.preferences = {}
+        data = {"ranges": [], "file_data": {"source": "previous_file"}}
+
+        model.set_last_used_data(data, save=False)
+        data["file_data"]["source"] = "mutated"
+        stored_data = model.get_last_used_data()
+        stored_data["file_data"]["source"] = "changed_after_read"
+
+        self.assertEqual("previous_file", model.get_last_used_data()["file_data"]["source"])
+
     def test_flatten_schema_items_keeps_nested_fields_in_order(self):
         """Checks row items are flattened in display order."""
         schema_items = [
