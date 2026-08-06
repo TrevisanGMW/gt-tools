@@ -2380,8 +2380,17 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertIn("-verbosePython", motionbuilder_task.settings.get("motionbuilder_arguments"))
         expected = ""
         self.assertEqual(expected, motionbuilder_task.settings.get("script_flag"))
-        expected = "External File"
+        expected = "Inline"
         self.assertEqual(expected, motionbuilder_task.settings.get("script_mode"))
+
+    def test_external_script_tasks_share_external_task_base(self):
+        from gt.tools.batch_processor.tasks.task_external_script import TaskExternalScript
+
+        self.assertTrue(issubclass(modules.TaskMotionBuilderScript, TaskExternalScript))
+        self.assertTrue(issubclass(modules.TaskBlenderScript, TaskExternalScript))
+        self.assertFalse(
+            issubclass(modules.TaskBlenderScript, modules.TaskMotionBuilderScript)
+        )
 
     def test_motionbuilder_command_omits_batch_context_cli_arguments(self):
         motionbuilder_task = modules.create_task(constants.TaskType.MOTIONBUILDER_SCRIPT)

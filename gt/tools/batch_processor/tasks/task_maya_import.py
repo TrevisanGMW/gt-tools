@@ -10,24 +10,7 @@ from gt.tools.batch_processor.tasks import task_utils
 import os
 
 
-DEFAULT_POST_SCRIPT_TEXT = """# Optional Import/Open Maya cleanup pass.
-# Available values:
-#   context / batch_context: Full runtime dictionary.
-#   arguments / args: input, output, project, project_dir, task, task_id, etc.
-#   environment_variables / env: Project environment variables.
-#   project, task, work_item, output_path, imported_nodes.
-import pprint
-import sys
-import maya.cmds as cmds
-
-sys.stdout.write("Import/Open Maya post script\\n")
-sys.stdout.write("Input: {0}\\n".format(args.get("input") or context.get("source_path")))
-sys.stdout.write("Output: {0}\\n".format(args.get("output") or output_path))
-sys.stdout.write("Arguments:\\n")
-pprint.pprint(arguments)
-sys.stdout.write("Environment Variables:\\n")
-pprint.pprint(environment_variables)
-"""
+DEFAULT_POST_SCRIPT_TEXT = task_utils.load_script("script_post_maya_import.py")
 
 
 class TaskMayaImport(task_base.BatchTask):

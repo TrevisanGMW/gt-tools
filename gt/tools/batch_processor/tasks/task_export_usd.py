@@ -3,8 +3,8 @@ Batch Processor USD Export Task
 """
 
 from gt.tools.batch_processor import batch_processor_constants as constants
-from gt.tools.batch_processor import batch_processor_maya
 from gt.tools.batch_processor import batch_processor_task_base as task_base
+from gt.tools.batch_processor import batch_processor_maya
 import gt.ui.resource_library as ui_res_lib
 import gt.utils.usd as utils_usd
 import os

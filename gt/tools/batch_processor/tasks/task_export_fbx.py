@@ -4,8 +4,8 @@ Batch Processor FBX Export Task
 
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_task_base as task_base
-import gt.ui.resource_library as ui_res_lib
 from gt.tools.batch_processor.tasks import task_utils
+import gt.ui.resource_library as ui_res_lib
 import os
 
 

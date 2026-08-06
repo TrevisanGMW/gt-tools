@@ -3,10 +3,10 @@ Batch Processor HumanIK Task
 """
 
 from gt.tools.batch_processor import batch_processor_constants as constants
-from gt.tools.batch_processor import batch_processor_maya
 from gt.tools.batch_processor import batch_processor_task_base as task_base
-import gt.ui.resource_library as ui_res_lib
+from gt.tools.batch_processor import batch_processor_maya
 from gt.tools.batch_processor.tasks import task_utils
+import gt.ui.resource_library as ui_res_lib
 import os
 import sys
 
@@ -21,44 +21,8 @@ HIK_BAKE_TARGETS = [
     HIK_BAKE_TARGET_CONTROL_RIG,
     HIK_BAKE_TARGET_CUSTOM_CONTROL_RIG,
 ]
-DEFAULT_PRE_BAKE_SCRIPT_TEXT = """# Optional HumanIK pre-bake pass.
-# Available values:
-#   context / batch_context: Full runtime dictionary.
-#   arguments / args: input, output, project, project_dir, task, task_id, etc.
-#   environment_variables / env: Project environment variables.
-#   project, task, work_item, output_path, source_character, target_character,
-#   imported_source_nodes, imported_target_nodes.
-import pprint
-import sys
-import maya.cmds as cmds
-
-sys.stdout.write("HumanIK pre-bake script\\n")
-sys.stdout.write("Input: {0}\\n".format(args.get("input") or context.get("source_path")))
-sys.stdout.write("Output: {0}\\n".format(args.get("output") or output_path))
-sys.stdout.write("Arguments:\\n")
-pprint.pprint(arguments)
-sys.stdout.write("Environment Variables:\\n")
-pprint.pprint(environment_variables)
-"""
-DEFAULT_POST_SCRIPT_TEXT = """# Optional HumanIK cleanup pass.
-# Available values:
-#   context / batch_context: Full runtime dictionary.
-#   arguments / args: input, output, project, project_dir, task, task_id, etc.
-#   environment_variables / env: Project environment variables.
-#   project, task, work_item, output_path, source_character, target_character,
-#   imported_source_nodes, imported_target_nodes.
-import pprint
-import sys
-import maya.cmds as cmds
-
-sys.stdout.write("HumanIK post script\\n")
-sys.stdout.write("Input: {0}\\n".format(args.get("input") or context.get("source_path")))
-sys.stdout.write("Output: {0}\\n".format(args.get("output") or output_path))
-sys.stdout.write("Arguments:\\n")
-pprint.pprint(arguments)
-sys.stdout.write("Environment Variables:\\n")
-pprint.pprint(environment_variables)
-"""
+DEFAULT_PRE_BAKE_SCRIPT_TEXT = task_utils.load_script("script_pre_bake_hik_retarget.py")
+DEFAULT_POST_SCRIPT_TEXT = task_utils.load_script("script_post_hik_retarget.py")
 
 
 class TaskRetargetHumanIK(task_base.BatchTask):
