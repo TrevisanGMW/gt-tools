@@ -446,14 +446,17 @@ class MayaWindowMeta(type):
                 It attempts to first close existing QT view of the same class type before opening a new one.
                 It also overwrites the "show" function when using the dockable version of this metaclass.
                 """
-                try:
-                    found_elements = get_maya_main_window_qt_elements(
-                        type(self),
-                        object_name=stable_object_name,
-                    )
-                    close_ui_elements(found_elements)
-                except Exception as e:
-                    logger.debug(f'Unable to close previous QT elements. Issue: "{str(e)}".')
+                if not getattr(self, "allow_multiple_instances", False):
+                    try:
+                        found_elements = get_maya_main_window_qt_elements(
+                            type(self),
+                            object_name=stable_object_name,
+                        )
+                        close_ui_elements(found_elements)
+                    except Exception as e:
+                        logger.debug(
+                            f'Unable to close previous QT elements. Issue: "{str(e)}".'
+                        )
 
                 # Overwrite Show
                 _class_dir = dir(self)

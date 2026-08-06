@@ -41,9 +41,11 @@ class OptionWindow(metaclass=qt_utils.MayaWindowMeta):
     per ``object_name`` is kept alive at a time, so reopening replaces the old one.
 
     Attributes:
+        allow_multiple_instances (bool): Allows different option windows to coexist.
         controls (dict): Map of control key to the created widget for later lookup.
     """
 
+    allow_multiple_instances = True
     LABEL_WIDTH = 110
     CONTROL_HEIGHT = 24
     BUTTON_HEIGHT = 28
@@ -175,6 +177,8 @@ class OptionWindow(metaclass=qt_utils.MayaWindowMeta):
                 variant (str, optional): One of BUTTON_VARIANTS. Defaults to "normal".
                 tooltip (str, optional): Tooltip text.
                 icon (str, optional): Path to an icon resource shown on the button.
+                flexible (bool, optional): Whether the button expands to use
+                    available layout space. Defaults to True.
 
         Returns:
             QPushButton: The created button.
@@ -186,6 +190,7 @@ class OptionWindow(metaclass=qt_utils.MayaWindowMeta):
         button = ui_qt.QtWidgets.QPushButton(spec.get("label", ""))
         button.setObjectName(f"option_{variant}_button")
         button.setMinimumHeight(self.BUTTON_HEIGHT)
+        self.set_button_flexible(button, spec.get("flexible", True))
         if spec.get("icon"):
             button.setIcon(ui_qt.QtGui.QIcon(spec.get("icon")))
         if spec.get("tooltip"):
@@ -194,6 +199,22 @@ class OptionWindow(metaclass=qt_utils.MayaWindowMeta):
         if callable(command):
             button.clicked.connect(lambda: self._run_command(command))
         return button
+
+    @staticmethod
+    def set_button_flexible(button, flexible=True):
+        """Configures whether a button expands to use available layout space.
+
+        Args:
+            button (QPushButton): Button to configure.
+            flexible (bool, optional): Whether the button should expand. Defaults
+                to True.
+        """
+        size_policy = (
+            ui_qt.QtLib.SizePolicy.Expanding
+            if flexible
+            else ui_qt.QtLib.SizePolicy.Fixed
+        )
+        button.setSizePolicy(size_policy, size_policy)
 
     @staticmethod
     def _run_command(command):
@@ -373,7 +394,15 @@ class OptionWindow(metaclass=qt_utils.MayaWindowMeta):
         self.controls[key or label] = checkbox
         return checkbox
 
-    def add_button(self, label, command, variant="normal", tooltip=None, icon=None):
+    def add_button(
+        self,
+        label,
+        command,
+        variant="normal",
+        tooltip=None,
+        icon=None,
+        flexible=True,
+    ):
         """
         Adds a single full-width button.
 
@@ -383,12 +412,21 @@ class OptionWindow(metaclass=qt_utils.MayaWindowMeta):
             variant (str, optional): One of BUTTON_VARIANTS. Defaults to "normal".
             tooltip (str, optional): Tooltip text.
             icon (str, optional): Path to an icon resource shown on the button.
+            flexible (bool, optional): Whether the button expands to use available
+                layout space. Defaults to True.
 
         Returns:
             QPushButton: The created button.
         """
         button = self._create_button(
-            {"label": label, "command": command, "variant": variant, "tooltip": tooltip, "icon": icon}
+            {
+                "label": label,
+                "command": command,
+                "variant": variant,
+                "tooltip": tooltip,
+                "icon": icon,
+                "flexible": flexible,
+            }
         )
         self._main_layout.addWidget(button)
         return button
@@ -409,7 +447,8 @@ class OptionWindow(metaclass=qt_utils.MayaWindowMeta):
         buttons = []
         for spec in specs:
             button = self._create_button(spec)
-            row_layout.addWidget(button)
+            stretch = 1 if spec.get("flexible", True) else 0
+            row_layout.addWidget(button, stretch=stretch)
             buttons.append(button)
         self._main_layout.addLayout(row_layout)
         return buttons
@@ -440,6 +479,9 @@ class OptionWindow(metaclass=qt_utils.MayaWindowMeta):
                     continue
                 button = self._create_button(spec)
                 grid_layout.addWidget(button, row_index, column_index)
+                if spec.get("flexible", True):
+                    grid_layout.setRowStretch(row_index, 1)
+                    grid_layout.setColumnStretch(column_index, 1)
                 buttons.append(button)
         self._main_layout.addLayout(grid_layout)
         return buttons
