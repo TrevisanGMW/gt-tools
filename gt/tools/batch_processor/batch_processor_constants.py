@@ -49,6 +49,7 @@ class TaskType:
     PYTHON_SCRIPTS_FOLDER = "python_scripts_folder"
     MOTIONBUILDER_SCRIPT = "motionbuilder_script"
     BLENDER_SCRIPT = "blender_script"
+    UNREAL_SCRIPT = "unreal_script"
     MAYA_SAVE = "output_maya_save"
     USD_EXPORT = "output_usd_export"
     FBX_EXPORT = "output_fbx_export"

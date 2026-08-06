@@ -3190,7 +3190,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         result = copy_task.validate(model)
         self.assertFalse(result.is_valid())
 
-    def test_delete_project_files_task_blocks_outside_project(self):
+    def test_delete_path_task_blocks_outside_project_by_default(self):
         outside_dir = tempfile.mkdtemp(prefix="gt_batch_processor_outside_")
         model = batch_processor_model.BatchProcessorModel()
         model.project_file_path = os.path.join(self.temp_dir, "project.batch")
@@ -3201,9 +3201,31 @@ class TestBatchProcessorModel(unittest.TestCase):
             shutil.rmtree(outside_dir)
 
         self.assertFalse(result.is_valid())
-        self.assertTrue(any("outside the project path" in error for error in result.errors))
+        self.assertTrue(any("outside of the project directory" in error for error in result.errors))
 
-    def test_delete_project_files_task_dry_run_preserves_files(self):
+    def test_delete_path_task_allows_outside_project_when_enabled(self):
+        outside_dir = tempfile.mkdtemp(prefix="gt_batch_processor_outside_")
+        file_path = os.path.join(outside_dir, "temp.cache")
+        self._write_file(file_path, "delete me")
+        model = batch_processor_model.BatchProcessorModel()
+        model.project_file_path = os.path.join(self.temp_dir, "project.batch")
+        task = modules.TaskDeleteProjectFiles(
+            settings={
+                "delete_path": outside_dir,
+                "allow_out_of_project_deletion": True,
+                "dry_run": False,
+                "write_report": False,
+            }
+        )
+        try:
+            result = task.validate(model)
+            self.assertTrue(result.is_valid())
+            task.execute(None, model, self.temp_dir, context={"work_items": []})
+            self.assertFalse(os.path.isfile(file_path))
+        finally:
+            shutil.rmtree(outside_dir)
+
+    def test_delete_path_task_dry_run_preserves_files(self):
         delete_dir = os.path.join(self.temp_dir, "generated")
         os.makedirs(delete_dir)
         file_path = os.path.join(delete_dir, "temp.cache")
@@ -3226,7 +3248,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertTrue(os.path.isfile(file_path))
         self.assertTrue(os.path.isfile(report_path))
 
-    def test_delete_project_files_task_can_run_selected_without_work_items(self):
+    def test_delete_path_task_can_run_selected_without_work_items(self):
         delete_dir = os.path.join(self.temp_dir, "generated")
         os.makedirs(delete_dir)
         file_path = os.path.join(delete_dir, "temp.cache")

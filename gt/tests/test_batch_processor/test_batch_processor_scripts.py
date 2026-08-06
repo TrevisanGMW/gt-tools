@@ -5,6 +5,7 @@ import unittest
 from gt.tools.batch_processor.tasks import task_utils
 from gt.tools.batch_processor.tasks.task_external_blender import DEFAULT_BLENDER_INLINE_SCRIPT
 from gt.tools.batch_processor.tasks.task_external_mobu import DEFAULT_MOBU_INLINE_SCRIPT
+from gt.tools.batch_processor.tasks.task_external_unreal import DEFAULT_UNREAL_INLINE_SCRIPT
 from gt.tools.batch_processor.tasks.task_hik_retarget import DEFAULT_POST_SCRIPT_TEXT as HIK_POST_SCRIPT_TEXT
 from gt.tools.batch_processor.tasks.task_hik_retarget import DEFAULT_PRE_BAKE_SCRIPT_TEXT
 from gt.tools.batch_processor.tasks.task_maya_import import DEFAULT_POST_SCRIPT_TEXT as MAYA_POST_SCRIPT_TEXT
@@ -24,6 +25,10 @@ class TestBatchProcessorScripts(unittest.TestCase):
             (
                 "script_inline_external_mobu.py",
                 DEFAULT_MOBU_INLINE_SCRIPT,
+            ),
+            (
+                "script_inline_external_unreal.py",
+                DEFAULT_UNREAL_INLINE_SCRIPT,
             ),
             (
                 "script_pre_bake_hik_retarget.py",

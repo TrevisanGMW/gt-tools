@@ -33,11 +33,14 @@ from gt.tools.batch_processor.tasks.task_auto_rig_build import TaskAutoRigBuild
 from gt.tools.batch_processor.tasks.task_external_blender import TaskBlenderScript
 from gt.tools.batch_processor.tasks.task_external_blender import find_blender_executable
 from gt.tools.batch_processor.tasks.task_external_blender import get_blender_executable_candidates
+from gt.tools.batch_processor.tasks.task_external_unreal import TaskUnrealScript
+from gt.tools.batch_processor.tasks.task_external_unreal import find_unreal_executable
+from gt.tools.batch_processor.tasks.task_external_unreal import get_unreal_executable_candidates
 from gt.tools.batch_processor.tasks.task_capture import TaskCapturePlayblast
 from gt.tools.batch_processor.tasks.task_capture import TaskCaptureThumbnail
 from gt.tools.batch_processor.tasks.task_clip import TaskClipSnapshot
 from gt.tools.batch_processor.tasks.task_clip import TaskClipSplit
-from gt.tools.batch_processor.tasks.task_delete_project_files import TaskDeleteProjectFiles
+from gt.tools.batch_processor.tasks.task_delete_path import TaskDeleteProjectFiles
 from gt.tools.batch_processor.tasks.task_export_fbx import TaskExportFbx
 from gt.tools.batch_processor.tasks.task_hik_retarget import HIK_BAKE_TARGET_NONE
 from gt.tools.batch_processor.tasks.task_hik_retarget import TaskRetargetHumanIK
@@ -66,6 +69,7 @@ TASK_TYPES = {
     constants.TaskType.MAP_HIERARCHY: TaskMapHierarchy,
     constants.TaskType.MOTIONBUILDER_SCRIPT: TaskMotionBuilderScript,
     constants.TaskType.BLENDER_SCRIPT: TaskBlenderScript,
+    constants.TaskType.UNREAL_SCRIPT: TaskUnrealScript,
     constants.TaskType.MAYA_SAVE: TaskMayaSave,
     constants.TaskType.USD_EXPORT: TaskExportUsd,
     constants.TaskType.FBX_EXPORT: TaskExportFbx,

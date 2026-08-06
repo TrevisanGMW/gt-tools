@@ -1,5 +1,5 @@
 """
-Batch Processor Delete Project Files Task
+Batch Processor Delete Path Task
 """
 
 from gt.tools.batch_processor import batch_processor_constants as constants
@@ -11,10 +11,10 @@ import os
 
 
 class TaskDeleteProjectFiles(task_base.BatchTask):
-    """Task that safely deletes generated files inside the active project folder."""
+    """Task that deletes generated files from a configured path."""
 
     task_type = constants.TaskType.DELETE_PROJECT_FILES
-    default_display_name = "Delete Project Files"
+    default_display_name = "Delete Path"
     default_target_path_template = "{previous-task-path}"
     icon = ui_res_lib.Icon.batch_task_delete_project_files
     category = "Utilities"
@@ -35,11 +35,12 @@ class TaskDeleteProjectFiles(task_base.BatchTask):
             "include_subdirectories": True,
             "delete_files": True,
             "delete_empty_dirs": True,
+            "allow_out_of_project_deletion": False,
             "patterns": ["*"],
             "exclude_patterns": [],
             "dry_run": True,
             "write_report": True,
-            "report_path": "{project-dir}/logs/delete_project_files_{task-idx}.json",
+            "report_path": "{project-dir}/logs/delete_path_{task-idx}.json",
         }
 
     def validate(self, project):
@@ -57,7 +58,7 @@ class TaskDeleteProjectFiles(task_base.BatchTask):
         result.errors.extend(safety_result.errors)
         result.warnings.extend(safety_result.warnings)
         if not self.settings.get("delete_files") and not self.settings.get("delete_empty_dirs"):
-            result.add_warning("Delete Project Files has both file and empty-directory deletion disabled.")
+            result.add_warning("Delete Path has both file and empty-directory deletion disabled.")
         return result
 
     def execute(self, work_item, project, step_output_dir, context=None):
@@ -140,10 +141,10 @@ class TaskDeleteProjectFiles(task_base.BatchTask):
         result = task_base.ValidationResult()
         project_dir = project.get_project_dir()
         if not project_dir:
-            result.add_error("Delete Project Files requires a saved or configured project directory.")
+            result.add_error("Delete Path requires a saved, configured project directory.")
             return result
         if not delete_path:
-            result.add_error("Delete Project Files path is empty.")
+            result.add_error("Delete Path is empty.")
             return result
         project_dir = os.path.abspath(project_dir)
         delete_path = os.path.abspath(delete_path)
@@ -152,12 +153,17 @@ class TaskDeleteProjectFiles(task_base.BatchTask):
         except ValueError:
             common_path = ""
         if os.path.normcase(common_path) != os.path.normcase(project_dir):
-            result.add_error("Delete Project Files cannot delete outside the project path: {0}".format(delete_path))
-            return result
+            if not self.settings.get("allow_out_of_project_deletion", False):
+                result.add_error(
+                    "Delete Path cannot delete files outside of the project directory: {0}".format(
+                        delete_path
+                    )
+                )
+                return result
         if os.path.normcase(project_dir) == os.path.normcase(delete_path):
-            result.add_error("Delete Project Files cannot target the project root folder.")
+            result.add_error("Delete Path cannot target the project root folder.")
         if not os.path.isdir(delete_path):
-            result.add_warning("Delete Project Files path does not exist yet: {0}".format(delete_path))
+            result.add_warning("Delete Path does not exist yet: {0}".format(delete_path))
         return result
 
     def collect_files(self, delete_path):

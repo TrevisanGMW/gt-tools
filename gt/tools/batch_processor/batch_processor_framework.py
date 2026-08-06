@@ -89,6 +89,7 @@ TaskRename = batch_processor_tasks.TaskRename
 TaskPythonScript = batch_processor_tasks.TaskPythonScript
 TaskMotionBuilderScript = batch_processor_tasks.TaskMotionBuilderScript
 TaskBlenderScript = batch_processor_tasks.TaskBlenderScript
+TaskUnrealScript = batch_processor_tasks.TaskUnrealScript
 TaskMayaSave = batch_processor_tasks.TaskMayaSave
 TaskExportUsd = batch_processor_tasks.TaskExportUsd
 TaskExportFbx = batch_processor_tasks.TaskExportFbx
