@@ -543,7 +543,9 @@ class RigPreferencesData:
     view_fit_skeleton: bool = dataclasses.field(default=True)  # If True, viewFit the skeleton after creation
     export_anim_blendshapes: bool = dataclasses.field(default=False)  # If True, include BS in the anim export process
     control_rig_pose_name: str = dataclasses.field(default=core_naming.NamingConstants.Poses.TPOSE)
-    project_dir: str = dataclasses.field(default=None)  # Path to the current project. (Used for environment variable)
+    project_dir: str = dataclasses.field(
+        default="{project-file-dir}"
+    )  # Path to the current project. (Used for environment variable)
     alias: str = dataclasses.field(default=None)  # Project alias.
 
     def get_data_as_dict(self):
@@ -562,6 +564,8 @@ class RigPreferencesData:
                         e.g. {"build_control_rig": True}
         """
         for key, value in data.items():
+            if key == "project_dir" and not value:
+                value = "{project-file-dir}"
             if hasattr(self, key):
                 setattr(self, key, value)
 
@@ -3174,6 +3178,7 @@ class RigProject:
         """
         # Default Values
         self.uuid = core_uuid.generate_uuid(short=True, short_length=6)
+        self.project_file_path = None
         self.name = "Untitled"
         self.prefix = None
         self.modules = []
@@ -3570,22 +3575,42 @@ class RigProject:
 
     def get_project_dir_path(self, parse_vars=False):
         """
-        Gets the latest defined project directory. If not defined, it returns an empty string.
+        Gets the configured project directory. Defaults to the loaded project
+        file directory through the {project-file-dir} environment variable.
         This path is often used to replace environment variables and automatically parse paths.
         Args:
             parse_vars (bool, optional): If True, the returned path will have the environment variables replaced
                                          with actual values. e.g.
                                          "{temp-dir}/dir" would become "C:/Users/<user>/AppData/Local/Temp/dir"
         Returns:
-            str: Path to the project directory. Empty string "" if never defined.
+            str: Path to the configured project directory or its environment
+                variable template.
         """
-        _project_dir_path = self.get_preferences_dict_value(key="project_dir", default="")
-        if _project_dir_path is None:
-            _project_dir_path = ""
+        _project_dir_path = self.get_preferences_dict_value(
+            key="project_dir", default="{project-file-dir}"
+        )
+        if not _project_dir_path:
+            _project_dir_path = "{project-file-dir}"
         if parse_vars:
-            environment_vars_dict = get_environment_variables(rig_project=None)
+            environment_vars_dict = get_environment_variables(rig_project=self)
             _project_dir_path = core_str.replace_keys_with_values(_project_dir_path, environment_vars_dict)
         return _project_dir_path
+
+    def get_project_file_dir_path(self):
+        """Gets the directory containing the current rig project file.
+
+        Returns:
+            str: Existing rig project file directory, or an empty string when
+                the project has not been saved or its file no longer exists.
+        """
+        if not self.project_file_path:
+            return ""
+
+        project_file_path = os.path.abspath(str(self.project_file_path))
+        if not os.path.isfile(project_file_path):
+            return ""
+
+        return os.path.normpath(os.path.dirname(project_file_path))
 
     def get_alias(self):
         """
@@ -4093,6 +4118,7 @@ def get_environment_variables(rig_project=None):
         "{desktop-dir}": is the path to the desktop folder.
         "{tests-data-dir}": The package "tests" folder.
         "{project-dir}": is the latest known project folder. Empty when no project is available.
+        "{project-file-dir}": is the directory containing the loaded rig project file.
         "{scene-dir}": is the directory of the current scene. (Only available when saved, otherwise "")
         "{year}": Current year (e.g. 2025)
         "{month}": Current month (e.g. 05)
@@ -4119,6 +4145,7 @@ def get_environment_variables(rig_project=None):
         "{tests-data-dir}": "",
         "{scene-dir}": "",
         "{project-dir}": "",
+        "{project-file-dir}": "",
         "{year}": now.strftime("%Y"),
         "{month}": now.strftime("%m"),
         "{day}": now.strftime("%d"),
@@ -4147,9 +4174,12 @@ def get_environment_variables(rig_project=None):
     environment_vars_dict["{tests-data-dir}"] = os.path.join(_tests_dir, "data")
     # Check Project Availability
     if rig_project is not None and isinstance(rig_project, RigProject):
+        project_file_dir = rig_project.get_project_file_dir_path()
+        environment_vars_dict["{project-file-dir}"] = project_file_dir
         _project_dir_path = rig_project.get_project_dir_path()
         _project_dir_path = core_str.replace_keys_with_values(_project_dir_path, environment_vars_dict)
-        _project_dir_path = os.path.normpath(_project_dir_path)  # Normalize Path
+        if _project_dir_path:
+            _project_dir_path = os.path.normpath(_project_dir_path)  # Normalize Path
         environment_vars_dict["{project-dir}"] = _project_dir_path
 
     # Return Environment Variables Dictionary
