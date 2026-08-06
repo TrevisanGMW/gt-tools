@@ -259,13 +259,24 @@ class RiggerController:
             item_func = partial(self.replace_project, project=template_func)
             action_template.triggered.connect(item_func)
             self.view.add_menu_action(parent_menu=menu_templates, action=action_template)
-        # Open Templates Dir ---
+        # Open Template Directories ---
         ui_qt_utils.add_labeled_separator(menu=menu_templates, text="Template Resources")
-        action_open_resources = ui_qt.QtLib.QtGui.QAction(
+        action_open_templates = ui_qt.QtLib.QtGui.QAction(
             "Open Templates Folder", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.util_open_dir)
         )
-        _save_as_func = lambda *args: self.open_or_create_directory(tools_rig_templates.get_template_source_dir())
-        action_open_resources.triggered.connect(_save_as_func)
+        _open_templates_func = lambda *args: self.open_or_create_directory(
+            tools_rig_templates.get_template_source_dir()
+        )
+        action_open_templates.triggered.connect(_open_templates_func)
+        self.view.add_menu_action(parent_menu=menu_templates, action=action_open_templates)
+
+        action_open_resources = ui_qt.QtLib.QtGui.QAction(
+            "Open Resources Folder", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.util_open_dir)
+        )
+        _open_resources_func = lambda *args: self.open_or_create_directory(
+            tools_rig_templates.get_template_resources_dir()
+        )
+        action_open_resources.triggered.connect(_open_resources_func)
         self.view.add_menu_action(parent_menu=menu_templates, action=action_open_resources)
 
     def refresh_recent_projects_menu(self):
@@ -298,6 +309,24 @@ class RiggerController:
         self._recent_projects.clear()
         self.refresh_recent_projects_menu()
         logger.info("Cleared recent projects.")
+
+    def open_project_folder(self, *args):
+        """Opens the current project folder in the system file browser.
+
+        Args:
+            *args: Optional Qt signal arguments.
+        """
+        project_path = ""
+        if self._opened_project:
+            project_path = os.path.normpath(os.path.dirname(self._opened_project))
+        if project_path and os.path.isdir(project_path):
+            utils_system.open_file_dir(project_path)
+            return
+        ui_qt.QtWidgets.QMessageBox.warning(
+            self.view,
+            "Project Folder Unavailable",
+            f"The project folder could not found:\n{project_path or 'No project folder configured.'}",
+        )
 
     @staticmethod
     def open_or_create_directory(directory_path, *args):
@@ -357,6 +386,13 @@ class RiggerController:
         Adds utils menu bar to the view
         """
         menu_utils = self.view.add_menu_parent("Utilities")
+
+        # Open Project Folder ------------------------------------------------------------------
+        action_open_project_folder = ui_qt.QtLib.QtGui.QAction(
+            "Open Project Folder", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_open_external)
+        )
+        action_open_project_folder.triggered.connect(self.open_project_folder)
+        self.view.add_menu_action(parent_menu=menu_utils, action=action_open_project_folder)
 
         # Get Env Vars -------------------------------------------------------------------------------
         action_get_environment_vars = ui_qt.QtLib.QtGui.QAction(
