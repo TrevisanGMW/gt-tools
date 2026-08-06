@@ -6406,7 +6406,10 @@ class AttrWidgetModuleNotes(AttrWidget):
         font.setPointSize(size)
         font_metrics = ui_qt.QtGui.QFontMetrics(font)
         space_width = font_metrics.horizontalAdvance(" ")
-        self.notes_edit.setTabStopWidth(space_width * 4)
+        try:
+            self.notes_edit.setTabStopWidth(space_width * 4)
+        except AttributeError:
+            self.notes_edit.setTabStopDistance(space_width * 4)
 
 
 # Corrective Base (Used by other AttrWidgets)
