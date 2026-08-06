@@ -21,7 +21,6 @@ import os
 
 # File Templates Source Folders
 _PREFS_FILENAME = tools_rig_const.RiggerConstants.PREFS_FILENAME
-_PREFS_DIR = core_prefs.Prefs(_PREFS_FILENAME).get_dir_path()
 
 
 def get_template_source_dir():
@@ -34,8 +33,18 @@ def get_template_source_dir():
     return os.path.join(prefs_dir, f"{_PREFS_FILENAME}_templates")
 
 
+def get_template_resources_dir():
+    """Gets the auto rigger template resources directory.
+
+    Returns:
+        str: Auto rigger template resources directory.
+    """
+    prefs_dir = core_prefs.Prefs(_PREFS_FILENAME).get_dir_path()
+    return os.path.join(prefs_dir, f"{_PREFS_FILENAME}_resources")
+
+
 TEMPLATE_SOURCE_DIR = get_template_source_dir()
-TEMPLATE_RESOURCES_DIR = os.path.join(_PREFS_DIR, f"{_PREFS_FILENAME}_resources")
+TEMPLATE_RESOURCES_DIR = get_template_resources_dir()
 
 class RigTemplates:
     # Icons
