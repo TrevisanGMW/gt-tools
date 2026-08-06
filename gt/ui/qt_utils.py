@@ -307,7 +307,12 @@ class MayaWindowMeta(type):
             restore_parent = OpenMayaUI.MQtUtil.findControl(control_name)
             if not mcs._attach_restored_window(window, restore_parent):
                 return False
-            cmds.workspaceControl(control_name, edit=True, uiScript=restore_script)
+            cmds.workspaceControl(
+                control_name,
+                edit=True,
+                label=str(window.windowTitle()),
+                uiScript=restore_script,
+            )
             if cmds.workspaceControl(control_name, query=True, visible=True):
                 cmds.workspaceControl(control_name, edit=True, restore=True)
             else:

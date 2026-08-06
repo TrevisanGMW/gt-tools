@@ -4,6 +4,7 @@ import unittest
 import logging
 import sys
 import os
+import types
 
 # Logging Setup
 logging.basicConfig()
@@ -185,6 +186,53 @@ class TestQtUtilities(unittest.TestCase):
 
         expected = None
         self.assertEqual(expected, retained_window.parent())
+
+    def test_reuse_workspace_control_updates_retained_label(self):
+        """Ensures a reopened tool uses the new view title for its workspace label."""
+        maya_cmds = types.ModuleType("maya.cmds")
+        maya_open_maya_ui = types.ModuleType("maya.OpenMayaUI")
+        maya_module = types.ModuleType("maya")
+        maya_module.cmds = maya_cmds
+        maya_module.OpenMayaUI = maya_open_maya_ui
+
+        workspace_control = MagicMock()
+
+        def workspace_control_side_effect(control_name, **kwargs):
+            """Provides the workspace-control query results used by the test."""
+            if kwargs.get("query") and kwargs.get("exists"):
+                return True
+            if kwargs.get("query") and kwargs.get("visible"):
+                return True
+            return None
+
+        workspace_control.side_effect = workspace_control_side_effect
+        maya_cmds.workspaceControl = workspace_control
+        maya_open_maya_ui.MQtUtil = MagicMock()
+        maya_open_maya_ui.MQtUtil.findControl.return_value = 123
+
+        window = MagicMock()
+        window.objectName.return_value = "BatchProcessorView"
+        window.windowTitle.return_value = "Batch Processor - (v1.0.0)"
+
+        with patch.dict(
+            sys.modules,
+            {
+                "maya": maya_module,
+                "maya.cmds": maya_cmds,
+                "maya.OpenMayaUI": maya_open_maya_ui,
+            },
+        ):
+            with patch.object(MayaWindowMeta, "_attach_restored_window", return_value=True):
+                result = MayaWindowMeta._reuse_workspace_control(window, "restore-script")
+
+        expected = True
+        self.assertEqual(expected, result)
+        workspace_control.assert_any_call(
+            "BatchProcessorViewWorkspaceControl",
+            edit=True,
+            label="Batch Processor - (v1.0.0)",
+            uiScript="restore-script",
+        )
 
     @patch.object(ui_qt.QtGui.QCursor, "pos", return_value=ui_qt.QtCore.QPoint(100, 200))
     def test_get_cursor_position_no_offset(self, mock_cursor):
