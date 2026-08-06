@@ -595,6 +595,40 @@ class TestBatchProcessorModel(unittest.TestCase):
         expected = os.path.dirname(os.path.dirname(self.temp_dir))
         self.assertEqual(os.path.normpath(expected), result.get("project-grandparent-dir"))
 
+    def test_project_file_directory_environment_variable(self):
+        model = batch_processor_model.BatchProcessorModel()
+
+        result = model.get_environment_variables(include_braces=False)
+
+        self.assertEqual("", result.get("project-file-dir"))
+
+        project_path = os.path.join(self.temp_dir, "project.batch")
+        model.save_to_file(project_path)
+        result = model.get_environment_variables(include_braces=False)
+
+        self.assertEqual(os.path.normpath(self.temp_dir), result.get("project-file-dir"))
+        self.assertEqual(os.path.normpath(self.temp_dir), model.get_project_dir())
+        expected = os.path.join(self.temp_dir, "data")
+        self.assertEqual(
+            os.path.normpath(expected),
+            model.resolve_template_path("{project-file-dir}/data"),
+        )
+
+        fixed_project_dir = os.path.join(self.temp_dir, "fixed_project")
+        model.environment_variables["project-dir"] = fixed_project_dir
+
+        result = model.get_environment_variables(include_braces=False)
+
+        self.assertEqual(os.path.normpath(fixed_project_dir), result.get("project-dir"))
+        self.assertEqual(os.path.normpath(self.temp_dir), result.get("project-file-dir"))
+
+        os.remove(project_path)
+
+        result = model.get_environment_variables(include_braces=False)
+
+        self.assertEqual("", result.get("project-file-dir"))
+        self.assertEqual("", model.resolve_template_path("{project-file-dir}/data"))
+
     def test_input_module_exclude_patterns(self):
         input_dir = os.path.join(self.temp_dir, "input")
         os.makedirs(input_dir)
