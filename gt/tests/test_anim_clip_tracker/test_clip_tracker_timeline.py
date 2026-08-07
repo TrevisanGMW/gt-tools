@@ -1,11 +1,22 @@
 """Tests Animation Clip Tracker timeline helpers."""
+import sys
 import unittest
+from unittest import mock
 
 from gt.tools.anim_clip_tracker import clip_tracker_timeline as clip_timeline
 
 
 class TestClipTrackerTimeline(unittest.TestCase):
-    """Tests the pure helpers used to draw the timeline view."""
+    """Tests timeline helpers and context-menu interactions."""
+
+    @classmethod
+    def setUpClass(cls):
+        """Creates the shared Qt application used by widget tests."""
+        application = clip_timeline.ui_qt.QtWidgets.QApplication.instance()
+        if not application:
+            cls.application = clip_timeline.ui_qt.QtWidgets.QApplication(sys.argv)
+        else:
+            cls.application = application
 
     def test_get_clip_span_supports_inverted_ranges(self):
         """Checks spans are returned from lowest to highest frame."""
@@ -90,6 +101,46 @@ class TestClipTrackerTimeline(unittest.TestCase):
         color_count = len(clip_timeline.CLIP_COLORS)
         self.assertEqual(clip_timeline.get_clip_color(0), clip_timeline.get_clip_color(color_count))
         self.assertEqual(clip_timeline.CLIP_COLORS[1], clip_timeline.get_clip_color(1))
+
+    def test_context_menu_set_current_frame_as_start(self):
+        """Checks the start action preserves the clip end frame."""
+        expected = [(0, 15, 20)]
+        actual = self.get_context_menu_modified_range("Set Current Frame as Start", 15)
+        self.assertEqual(expected, actual)
+
+    def test_context_menu_set_current_frame_as_end(self):
+        """Checks the end action preserves the clip start frame."""
+        expected = [(0, 10, 15)]
+        actual = self.get_context_menu_modified_range("Set Current Frame as End", 15)
+        self.assertEqual(expected, actual)
+
+    def get_context_menu_modified_range(self, action_label, current_frame):
+        """Runs a context-menu action and captures its edited frame range.
+
+        Args:
+            action_label (str): Label of the action to trigger.
+            current_frame (int): Current timeline frame.
+
+        Returns:
+            list: Ranges emitted by the timeline widget.
+        """
+        timeline_widget = clip_timeline.ClipTimelineWidget()
+        timeline_widget.set_clips([{"start": 10, "end": 20}])
+        timeline_widget.set_frame_state(1, 100, current_frame)
+        emitted_ranges = []
+        timeline_widget.clip_modified.connect(
+            lambda index, start, end: emitted_ranges.append((index, start, end))
+        )
+        with mock.patch.object(
+            clip_timeline,
+            "execute_menu",
+            side_effect=lambda menu, position: next(
+                action for action in menu.actions() if action.text() == action_label
+            ),
+        ):
+            timeline_widget.show_context_menu(mock.MagicMock(), 0)
+        timeline_widget.close()
+        return emitted_ranges
 
 
 if __name__ == "__main__":

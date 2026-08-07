@@ -39,9 +39,11 @@ def get_open_maya():
 
 
 class ClipTrackerView:
-    """Builds the Animation Clip Tracker UI."""
+    """Builds the Animation Clip Tracker UI in a Maya workspace control."""
 
     WINDOW_NAME = "GTClipTrackerWindow"
+    WORKSPACE_CONTROL = "GTClipTrackerWorkspaceControl"
+    LEGACY_WORKSPACE_CONTROL = "gt_tools_anim_clip_tracker_clip_tracker_view_ClipTrackerViewWorkspaceControl"
     CLIP_COLUMNS = [(1, 15), (2, 20), (3, 20), (4, 140), (5, 60), (6, 60), (7, 60), (8, 30), (9, 30), (10, 30)]
 
     def __init__(self, version=None):
@@ -72,8 +74,10 @@ class ClipTrackerView:
     def build_ui(self):
         """Builds the Maya UI."""
         cmds = get_maya_cmds()
-        if cmds.window(self.WINDOW_NAME, exists=True):
-            cmds.deleteUI(self.WINDOW_NAME)
+        if cmds.workspaceControl(self.LEGACY_WORKSPACE_CONTROL, query=True, exists=True):
+            cmds.deleteUI(self.LEGACY_WORKSPACE_CONTROL)
+        if cmds.workspaceControl(self.WORKSPACE_CONTROL, query=True, exists=True):
+            cmds.deleteUI(self.WORKSPACE_CONTROL)
         model = self.controller.model
         title = "Animation Clip Tracker"
         if self.version:
@@ -82,8 +86,16 @@ class ClipTrackerView:
         self.timeline_widget = None
         self.preferences_host = None
         self.preferences_panel = None
-        cmds.window(self.WINDOW_NAME, title=title, widthHeight=(780, 710))
-        main_form = cmds.formLayout()
+        cmds.workspaceControl(
+            self.WORKSPACE_CONTROL,
+            label=title,
+            initialWidth=780,
+            initialHeight=710,
+            minimumWidth=500,
+            minimumHeight=10,
+            retain=False,
+        )
+        main_form = cmds.formLayout(parent=self.WORKSPACE_CONTROL)
         top_form = self.build_top_toolbar(parent=main_form)
         clips_frame = self.build_clips_frame(parent=main_form)
         preferences_frame = self.build_preferences_frame(parent=main_form)
@@ -118,7 +130,7 @@ class ClipTrackerView:
             attachControl=attach_control,
             attachNone=attach_none,
         )
-        cmds.showWindow(self.WINDOW_NAME)
+        cmds.workspaceControl(self.WORKSPACE_CONTROL, edit=True, visible=True)
         self.apply_window_icon()
         self.attach_preferences_panel()
         if model.show_timeline:
@@ -127,11 +139,6 @@ class ClipTrackerView:
         # Fix: Ensure UI can be shrunk infinitely without breaking Qt layout minimums
         try:
             from maya import OpenMayaUI
-            win_ptr = OpenMayaUI.MQtUtil.findWindow(self.WINDOW_NAME)
-            if win_ptr:
-                win_wgt = ui_qt.shiboken.wrapInstance(int(win_ptr), ui_qt.QtWidgets.QWidget)
-                win_wgt.setMinimumHeight(10)
-
             if self.clips_scroll:
                 scroll_ptr = OpenMayaUI.MQtUtil.findControl(self.clips_scroll)
                 if scroll_ptr:
@@ -144,10 +151,10 @@ class ClipTrackerView:
         """Checks whether the tool window still exists.
 
         Returns:
-            bool: True if the Maya window exists.
+            bool: True if the Maya workspace control exists.
         """
         cmds = get_maya_cmds()
-        return bool(cmds.window(self.WINDOW_NAME, exists=True))
+        return bool(cmds.workspaceControl(self.WORKSPACE_CONTROL, query=True, exists=True))
 
     def clips_layout_exists(self):
         """Checks whether the clip list layout still exists.
@@ -168,7 +175,7 @@ class ClipTrackerView:
         try:
             from maya import OpenMayaUI
 
-            pointer = OpenMayaUI.MQtUtil.findWindow(self.WINDOW_NAME)
+            pointer = OpenMayaUI.MQtUtil.findControl(self.WORKSPACE_CONTROL)
             if not pointer:
                 return
             widget = ui_qt.shiboken.wrapInstance(int(pointer), ui_qt.QtWidgets.QWidget)
@@ -818,3 +825,10 @@ class ClipTrackerView:
             if cmds.symbolButton(button, query=True, exists=True):
                 icon = "pause_S.png" if playing_index == index else "timeplay.png"
                 cmds.symbolButton(button, edit=True, image=icon)
+
+if __name__ == '__main__':
+    import gt.ui.qt_utils as ui_qt_utils
+
+    with ui_qt_utils.QtApplicationContext():
+        window = ClipTrackerView()
+        

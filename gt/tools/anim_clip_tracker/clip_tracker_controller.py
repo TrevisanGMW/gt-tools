@@ -52,13 +52,13 @@ class ClipTrackerController:
         # Triggers when the user opens an existing file
         cmds.scriptJob(
             event=["SceneOpened", self._deferred_scene_refresh],
-            parent=self.view.WINDOW_NAME
+            parent=self.view.WORKSPACE_CONTROL,
         )
 
         # Triggers when the user clicks File > New Scene
         cmds.scriptJob(
             event=["NewSceneOpened", self._deferred_scene_refresh],
-            parent=self.view.WINDOW_NAME
+            parent=self.view.WORKSPACE_CONTROL,
         )
 
     def _deferred_scene_refresh(self, *args):
@@ -534,10 +534,12 @@ class ClipTrackerController:
         try:
             from maya import OpenMayaUI
 
-            pointer = OpenMayaUI.MQtUtil.findWindow(self.view.WINDOW_NAME)
+            pointer = OpenMayaUI.MQtUtil.findControl(self.view.WORKSPACE_CONTROL)
             if not pointer:
                 return
             widget = ui_qt.shiboken.wrapInstance(int(pointer), ui_qt.QtWidgets.QWidget)
+            if self._focus_filter:
+                widget.removeEventFilter(self._focus_filter)
             self._focus_filter = ClipTrackerFocusFilter(controller=self)
             widget.installEventFilter(self._focus_filter)
         except Exception as exception:
