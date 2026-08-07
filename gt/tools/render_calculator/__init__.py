@@ -1,25 +1,34 @@
-"""
- Render Calculator - Script for calculating the time a render will take
- github.com/TrevisanGMW - 2022-07-18
+"""Render Calculator tool entry point."""
 
- ATTENTION!!: This is a legacy tool. It was created before version "3.0.0" and it should NOT be used as an example of
- how to create new tools. As a legacy tool, its code and structure may not align with the current package standards.
- Please read the "CONTRIBUTING.md" file for more details and examples on how to create new tools.
-"""
-# Tool Version
-__version_tuple__ = (1, 0, 2)
-__version_suffix__ = ''
-__version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
+
+__version_tuple__ = (2, 0, 0)
+__version_suffix__ = ""
+__version__ = ".".join(str(number) for number in __version_tuple__)
+__version__ += __version_suffix__
 
 
 def launch_tool():
+    """Builds and launches the Render Calculator MVC tool.
+
+    Returns:
+        RenderCalculatorController: Controller for the launched tool.
     """
-    Launch user interface and create any necessary connections for the tool to function.
-    Entry point for when using the tool Render Calculator.
-    """
-    from gt.tools.render_calculator import render_calculator
-    render_calculator.script_version = __version__
-    render_calculator.build_gui_render_calculator()
+    from gt.tools.render_calculator.render_calculator_controller import (
+        RenderCalculatorController,
+    )
+    from gt.tools.render_calculator.render_calculator_model import (
+        RenderCalculatorModel,
+    )
+    from gt.tools.render_calculator.render_calculator_view import (
+        RenderCalculatorView,
+    )
+    from gt.ui import qt_utils
+
+    with qt_utils.QtApplicationContext() as context:
+        model = RenderCalculatorModel()
+        view = RenderCalculatorView(parent=context.get_parent(), version=__version__)
+        controller = RenderCalculatorController(model=model, view=view)
+    return controller
 
 
 if __name__ == "__main__":
