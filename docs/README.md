@@ -6,24 +6,23 @@
 <!-- Table of Contents -->
 <div>
 <h1> Table of Contents</h1>
-<a href="https://github.com/TrevisanGMW/gt-tools"><img src="./media/gt_logo.png" align="right" alt="GT Tools Logo" width="400"></a>
+<a href="https://github.com/TrevisanGMW/gt-tools"><img src="./media/logo.png" align="right" alt="GT Tools Logo" width="400"></a>
 <h3><b>General:</b></h3>
 <ul>
   <li><a href="#package-setup">Package Setup</a></li>
   <li><a href="#gt-menu">GT Menu</a></li>
   <li><a href="#check-for-updates">Check for Updates</a></li>
 </ul>
-<h3><b>Tools:</b></h3>
+<h3><b>General:</b></h3>
 <ul>
   <li><a href="#batch-processor">Batch Processor</a></li>
   <li><a href="#attributes-to-python">Attributes to Python</a></li>
-  <li><a href="#renamer">Renamer</a></li>
-  <li><a href="#outliner-sorter">Outliner Sorter</a></li>
-  <li><a href="#selection-manager">Selection Manager</a></li>
-  <li><a href="#path-manager">Path Manager</a></li>
   <li><a href="#color-manager">Color Manager</a></li>
+  <li><a href="#outliner-sorter">Outliner Sorter</a></li>
+  <li><a href="#path-manager">Path Manager</a></li>
+  <li><a href="#renamer">Renamer</a></li>
+  <li><a href="#selection-manager">Selection Manager</a></li>
   <li><a href="#transfer-transforms">Transfer Transforms</a></li>
-  <li><a href="#world-space-baker">World Space Baker</a></li>
 </ul>
 <h3><b>Curves:</b></h3>
 <ul>
@@ -37,50 +36,50 @@
   <li><a href="#mesh-morpher">Mesh Morpher</a></li>
   <li><a href="#mesh-library">Mesh Library</a></li>
   <li><a href="#transfer-uvs">Transfer UVs</a></li>
-  <li><a href="#sphere-types">Sphere Types</a></li>
 </ul>
 
 <div>
 <h3><b>Rigging:</b></h3>
 <ul>
   <li><a href="#auto-rigger">Auto Rigger</a></li>
-  <li><a href="#influences-to-python">Influences to Python</a></li>
-  <li><a href="#connect-attributes">Connect Attributes</a></li>
-  <li><a href="#morphing-utilities">Morphing Utilities</a></li>
-  <li><a href="#morphing-attributes">Morphing Attributes</a></li>
-  <li><a href="#mirror-cluster-tool">Mirror Cluster Tool</a></li>
   <li><a href="#add-offset-transform">Add Offset Transform</a></li>
-  <li><a href="#create-fk-driver">Create FK Driver</a></li>
-  <li><a href="#create-testing-keys">Create Testing Keys</a></li>
-  <li><a href="#make-ik-stretchy">Make IK Stretchy</a></li>
   <li><a href="#add-sine-attributes">Add Sine Attributes</a></li>
-  <li><a href="#ribbon-tool">Ribbon Tool</a></li>
+  <li><a href="#connect-attributes">Connect Attributes</a></li>
+  <li><a href="#create-fk-driver">Create FK Driver</a></li>
+  <li><a href="#influences-to-python">Influences to Python</a></li>
+  <li><a href="#make-ik-stretchy">Make IK Stretchy</a></li>
+  <li><a href="#mirror-cluster-tool">Mirror Cluster Tool</a></li>
+  <li><a href="#morphing-attributes">Morphing Attributes</a></li>
+  <li><a href="#morphing-utilities">Morphing Utilities</a></li>
   <li><a href="#orient-joints">Orient Joints</a></li>
+  <li><a href="#ribbon-tool">Ribbon Tool</a></li>
 </ul>
 <h3><b>Animation:</b></h3>
 <ul>
   <li><a href="#retargeter">Retargeter</a></li>
   <li><a href="#animation-clip-tracker">Animation Clip Tracker</a></li>
   <li><a href="#animation-label-tracker">Animation Label Tracker</a></li>
+  <li><a href="#create-testing-keys">Create Testing Keys</a></li>
+  <li><a href="#world-space-baker">World Space Baker</a></li>
+</ul>
+<h3><b>Miscellaneous:</b></h3>
+<ul>
+  <li><a href="#fspy-importer">fSpy Importer</a></li>
+  <li><a href="#maya-to-discord">Maya to Discord</a></li>
+  <li><a href="#render-calculator">Render Calculator</a></li>
+  <li><a href="#startup-booster">Startup Booster</a></li>
 </ul>
 <h3><b>Utilities:</b></h3>
 <ul>
   <li><a href="#utilities">Utilities</a></li>
-</ul>
-<h3><b>Miscellaneous:</b></h3>
-<ul>
-  <li><a href="#startup-booster">Startup Booster</a></li>
-  <li><a href="#fspy-importer">fSpy Importer</a></li>
-  <li><a href="#maya-to-discord">Maya to Discord</a></li>
-  <li><a href="#render-calculator">Render Calculator</a></li>
 </ul>
 <h3><b>Legacy Tools:</b></h3>
 <ul>
   <li><a href="#render-checklist">Render Checklist</a></li>
   <li><a href="#biped-auto-rigger">Biped Auto Rigger</a></li>
   <li><a href="#biped-rig-interface">Biped Rig Interface</a></li>
-  <li><a href="#retarget-assistant">Retarget Assistant</a></li>
   <li><a href="#game-fbx-exporter">Game FBX Exporter</a></li>
+  <li><a href="#retarget-assistant">Retarget Assistant</a></li>
 </ul>
 </div>
 </div>
@@ -147,7 +146,7 @@ After installing, you can delete the downloaded/extracted files (as they have al
 <!-- Dropdown Menu -->
 <div>
 <h1>GT Menu</h1>
-<img src="./media/gt_menu.jpg" align="right"
+<img src="./media/menu.jpg" align="right"
      alt="GT Dropdown Menu and Help">
 
 <p>The package adds a dropdown menu to the main Maya window. It provides easy access to scripts grouped by purpose, such as modeling, rigging, animation, and utilities. Most tool controls include tooltips, so hover over an unfamiliar field or button for a short explanation of what it does.</p>
@@ -175,7 +174,7 @@ After installing, you can delete the downloaded/extracted files (as they have al
 <!-- Check for Updates -->
 <div>
 <h1>Check for Updates</h1>
-<img src="./media/gt_check_for_updates.jpg" align="right"
+<img src="./media/check_for_updates.jpg" align="right"
      alt="Check for Updates UI">
 
 <p>This script compares your current GT Tools version with the latest release on GitHub. If the installed version is older, an update option becomes available.<br>You can also control how often the script automatically checks for updates.</p>
@@ -215,34 +214,44 @@ After installing, you can delete the downloaded/extracted files (as they have al
 <!-- Batch Processor -->
 <div>
 <h1>Batch Processor</h1>
-<p><b>Available tasks:</b></p>
+<p>Batch Processor automates a repeatable sequence of work across one or more Maya scenes. It is intended for production jobs that would be slow or error-prone to perform manually, such as importing files, running scripts, validating scenes, retargeting animation, exporting deliverables, and capturing previews. Projects are saved as readable files, so the same process can be reviewed, reused, and run again without rebuilding the task list.</p>
+
+<p><b>Main settings and workflow:</b></p>
+<ol>
+  <li>Create a new batch project or open an existing project file.</li>
+  <li>Configure the project directory and any path templates used by the tasks. Paths can use project and neighboring-task variables so outputs remain organized when the input changes.</li>
+  <li>Add tasks to the tree, reorder or duplicate them, and disable optional steps when needed. Select a task to edit its settings in the attribute panel.</li>
+  <li>Click <b>Validate</b> to check paths and task settings before processing. Use <b>Run</b> to start at the first enabled task or <b>Run Selected</b> to start at the selected task.</li>
+  <li>Review the tracker and logs for succeeded, skipped, or failed work items before using the generated files.</li>
+</ol>
+
+<p><b>Available tasks:</b> Tasks are grouped by purpose in the task menu.</p>
 <ul>
-  <li><b>Input Files:</b> Defines the files or folders that enter the process.</li>
-  <li><b>Import/Open Maya:</b> Opens source content in Maya for later tasks.</li>
-  <li><b>Python:</b> Runs inline Python or configured Python scripts.</li>
-  <li><b>Rename:</b> Applies consistent names to generated work items.</li>
-  <li><b>Map Hierarchy:</b> Records or applies relationships between source and target hierarchies.</li>
-  <li><b>MotionBuilder:</b> Runs a MotionBuilder script in the batch flow.</li>
-  <li><b>Blender:</b> Runs a Blender script in the batch flow.</li>
+  <li><b>Input Files:</b> Finds source files or folders and starts an input segment.</li>
+  <li><b>Import/Open Maya:</b> Imports or opens a Maya scene for the current process.</li>
+  <li><b>Python:</b> Runs inline Python or a configured Python script.</li>
+  <li><b>Rename:</b> Applies a consistent name to the current work item.</li>
+  <li><b>Map Hierarchy:</b> Maps relationships between source and target hierarchies.</li>
+  <li><b>MotionBuilder:</b> Runs a script in MotionBuilder.</li>
+  <li><b>Blender:</b> Runs a script in Blender.</li>
+  <li><b>Unreal Engine:</b> Runs a script in Unreal when the executable is configured.</li>
   <li><b>Save Maya File:</b> Saves the current Maya result to an output file.</li>
   <li><b>USD Export:</b> Exports the current scene or result as USD.</li>
   <li><b>FBX Export:</b> Exports the current scene or result as FBX.</li>
-  <li><b>Retarget:</b> Applies a Retargeter definition to animation.</li>
-  <li><b>HumanIK:</b> Retargets animation through Maya HumanIK.</li>
+  <li><b>Retarget:</b> Applies a GT Retargeter definition to animation.</li>
+  <li><b>HumanIK Retarget:</b> Retargets animation through Maya HumanIK.</li>
   <li><b>Build Auto Rig:</b> Builds an Auto Rigger project as a batch step.</li>
   <li><b>Clip Split:</b> Separates an animation range into individual clips.</li>
   <li><b>Clip Snapshot:</b> Creates a saved snapshot of an animation clip.</li>
-  <li><b>Delete Path:</b> Removes selected files from a configured path.</li>
+  <li><b>Delete Path:</b> Deletes files under a configured project path.</li>
   <li><b>Archive:</b> Compresses selected results into an archive.</li>
-  <li><b>Validate Maya Scene:</b> Runs the configured scene validators.</li>
+  <li><b>Validate Scene:</b> Runs the configured Maya scene validators.</li>
   <li><b>Validate Integrity:</b> Checks files for expected integrity and availability.</li>
   <li><b>Validate Parity:</b> Compares folders for matching contents.</li>
   <li><b>Capture Thumbnail:</b> Saves a representative image of the result.</li>
   <li><b>Capture Playblast:</b> Creates a playblast from the processed scene.</li>
 </ul>
-<p>Batch Processor runs a configurable sequence of tasks across multiple Maya scene files. Tasks cover common operations such as validation, Python execution, retargeting, and export. Processing can be previewed and tracked, while source scenes remain separate from generated output.</p>
-
-<p>Build a task list, configure each task, choose the input and output locations, then validate the setup before starting a batch. Hover over task fields for their accepted values and file-handling behavior.</p>
+<p>Hover over task fields for accepted values and file-handling behavior. Keep destructive cleanup tasks disabled until the input, output, and validation steps have been tested on a small sample.</p>
 </div>
 
 <!-- Attributes to Python -->
@@ -251,37 +260,39 @@ After installing, you can delete the downloaded/extracted files (as they have al
 <p>Attributes to Python converts channel box values and user-defined attributes into reusable Python commands. It is useful for recording a setup, reproducing attribute values on another object, or learning the equivalent <code>maya.cmds</code> operations.</p>
 </div>
 
-<!-- Renamer -->
+<!-- Color Manager -->
 <div>
-<h1>Renamer</h1>
-<img src="./media/gt_renamer.jpg" align="right"
-     alt="Renamer GUI">
-<img src="./media/gt_renamer_sample.gif" align="right"
-     alt="Renamer Sample">
+<h1>Color Manager</h1>
 
-<p>Script for quickly renaming multiple objects.<br>Feedback is given through inView messages at the left bottom corner.</p>
+<img src="./media/color_manager.jpg" align="right"
+     alt="Color Manager GUI">
 
-<p><b>Modes: </b><br>- Selected: uses selected objects when renaming.<br>- Hierarchy: uses hierarchy when renaming.<br>- All: uses everything in the scene (even hidden nodes)</p>
-
-<p><b>Other Tools: </b><br>- Remove First Letter: removes the first letter of a name.<br>If the next character is a number, it will be deleted.<br>- Remove Last Letter: removes the last letter of a name.<br>- U-Case: makes all letters uppercase.<br>- Capitalize: makes the 1st letter of every word uppercase.<br>- L-Case: makes all letters lowercase</p>
-
-<p><b>Rename and Number / Letter: </b>Renames selected objects and add a number or a letter to them.
-<br>- Use Source : Keeps the original name and only adds the number/letter.
-<br>- Start # : first number when counting the new names.
-<br>- Padding : how many zeros before the number. e.g. "001".
-<br>- Uppercase : Makes the letter uppercase.
-</p>
-
-<p><b>Prefix and Suffix: </b><br>Prefix: adds a string in front of a name.<br>Suffix: adds a string at the end of a name.<br> - Auto: Uses the provided strings to automatically name objects according to their type or position.<br>1st example: a mesh would automatically receive "_geo"<br>2nd example: an object in positive side of X, would automatically receive "left_: .<br> - Input: uses the provided text as a prefix or suffix.</p>
-
-<p><b>Search and Replace: </b>Uses the well-known method of search and replace to rename objects.</p>
+<p>Script for quickly coloring elements in Maya.<br>Feedback is given through inView messages at the left bottom corner.</p>
 <br>
+<p><b>Modes: </b><br>- Drawing Override: Utilize "Object > Object Display > Drawing Overrides" to set color.<br>- Wireframe Color:  Utilize "Display > Wireframe Color..." to set color.</p>
+<br>
+<p><b>Target: </b><br>- Transform:  Colorize actual selection. Usually a "transform"<br>- Wireframe Color:  Colorize the shape node inside the transform</p>
+<br>
+
+<img src="./media/color_manager_sample_b.gif" align="right"
+	 alt="Path Manager Sample B">
+<img src="./media/color_manager_sample_a.gif" align="right"
+	 alt="Path Manager Sample A">
+
+<p><b>Current Color: </b><br>The color used in the operation. Click on the color to open Maya's color picker.</p>
+
+<p><b>Color Presets: </b><br>A list of common colors. When clicked it sets the color.</p>
+
+<p><b>Set Color For: </b><br>- Outliner:  Control the outliner color
+<br>- Wireframe Color:  Control the wireframe color seen in the viewport</p>
+<br><br><br><br><br>
+
 </div>
 
 <!-- Outliner Sorter -->
 <div>
 <h1>Outliner Sorter</h1>
-<img src="./media/gt_outliner_sorter.jpg" align="right"
+<img src="./media/outliner_sorter.jpg" align="right"
      alt="Renamer GUI">
 
 <p>Script for sorting outliner hierarchies. Options will not re-parent objects, only change their order.</p>
@@ -313,33 +324,10 @@ After installing, you can delete the downloaded/extracted files (as they have al
 
 </div>
 
-<!-- Selection Manager-->
-<div>
-<h1>Selection Manager</h1>
-<img src="./media/gt_selection_manager.jpg" align="right"
-     alt="Selection Manager GUI">
-
-<p>This script allows you to update selections to contain (or not) filtered elements. You can also save and load previous selections.</p>	 
-<p><b>Element Name: </b>This option checks whether an object name contains or does not contain the provided text.</p>
-<p><b>Element Type:  </b>This filter will check the type of the element to determine if it should be part of the selection or not.</p>
-<p><b>Element Type > Behavior (Dropdown Menu): </b>Since most elements are transforms, you can use the dropdown menu "Behavior" to determine how to filter the shape element (usually hidden inside the transform). <br>(You can consider transform, shape, both or ignore it)</p>
-
-<p><b>Visibility State: </b>Selection based on the current state of the node's visibility attribute.</p>
-
-<p><b>Outliner Color (Transform): </b>Filters the option under Node > Display > Outliner Color. In case you're unsure about the exact color, you can use the "Get" button to automatically copy a color.</p>
-
-<p><b>Store Selection Options: </b><br>Select objects and click on "Store Selection" to store them for later.<br>Use the "-" and "+" buttons to add or remove elements.<br>Use the "Reset" button to clear your selection.</p>
-
-<p><b>You can save your selection in two ways: </b><br>As a set: creates a set containing your selection.<br> As text: creates a txt file containing  the code necessary to recreate selection.</p>
-
-<p><b>Create New Selection: </b>Uses all objects as initial selection<br><b>Update Current Selection: </b>Considers only selected objects</p>
-<br>
-</div>
-
 <!-- Path Manager -->
 <div>
 <h1>Path Manager</h1>
-<img src="./media/gt_path_manager.gif" align="right"
+<img src="./media/path_manager.gif" align="right"
      alt="Path Manager GUI">
 	 
 <p>This script displays a list with the name, type and path of any common nodes found in Maya.<br><br>You can select the node listed by clicking on it or change its name or path by double clicking the cell.
@@ -361,40 +349,61 @@ The icon on the left describes the validity of the path. If the file or director
 
 </div>
 
-<!-- Color Manager -->
+<!-- Renamer -->
 <div>
-<h1>Color Manager</h1>
+<h1>Renamer</h1>
+<img src="./media/renamer.jpg" align="right"
+     alt="Renamer GUI">
+<img src="./media/renamer_sample.gif" align="right"
+     alt="Renamer Sample">
 
-<img src="./media/gt_color_manager.jpg" align="right"
-     alt="Color Manager GUI">
+<p>Script for quickly renaming multiple objects.<br>Feedback is given through inView messages at the left bottom corner.</p>
 
-<p>Script for quickly coloring elements in Maya.<br>Feedback is given through inView messages at the left bottom corner.</p>
+<p><b>Modes: </b><br>- Selected: uses selected objects when renaming.<br>- Hierarchy: uses hierarchy when renaming.<br>- All: uses everything in the scene (even hidden nodes)</p>
+
+<p><b>Other Tools: </b><br>- Remove First Letter: removes the first letter of a name.<br>If the next character is a number, it will be deleted.<br>- Remove Last Letter: removes the last letter of a name.<br>- U-Case: makes all letters uppercase.<br>- Capitalize: makes the 1st letter of every word uppercase.<br>- L-Case: makes all letters lowercase</p>
+
+<p><b>Rename and Number / Letter: </b>Renames selected objects and add a number or a letter to them.
+<br>- Use Source : Keeps the original name and only adds the number/letter.
+<br>- Start # : first number when counting the new names.
+<br>- Padding : how many zeros before the number. e.g. "001".
+<br>- Uppercase : Makes the letter uppercase.
+</p>
+
+<p><b>Prefix and Suffix: </b><br>Prefix: adds a string in front of a name.<br>Suffix: adds a string at the end of a name.<br> - Auto: Uses the provided strings to automatically name objects according to their type or position.<br>1st example: a mesh would automatically receive "_geo"<br>2nd example: an object in positive side of X, would automatically receive "left_: .<br> - Input: uses the provided text as a prefix or suffix.</p>
+
+<p><b>Search and Replace: </b>Uses the well-known method of search and replace to rename objects.</p>
 <br>
-<p><b>Modes: </b><br>- Drawing Override: Utilize "Object > Object Display > Drawing Overrides" to set color.<br>- Wireframe Color:  Utilize "Display > Wireframe Color..." to set color.</p>
+</div>
+
+<!-- Selection Manager-->
+<div>
+<h1>Selection Manager</h1>
+<img src="./media/selection_manager.jpg" align="right"
+     alt="Selection Manager GUI">
+
+<p>This script allows you to update selections to contain (or not) filtered elements. You can also save and load previous selections.</p>
+<p><b>Element Name: </b>This option checks whether an object name contains or does not contain the provided text.</p>
+<p><b>Element Type:  </b>This filter will check the type of the element to determine if it should be part of the selection or not.</p>
+<p><b>Element Type > Behavior (Dropdown Menu): </b>Since most elements are transforms, you can use the dropdown menu "Behavior" to determine how to filter the shape element (usually hidden inside the transform). <br>(You can consider transform, shape, both or ignore it)</p>
+
+<p><b>Visibility State: </b>Selection based on the current state of the node's visibility attribute.</p>
+
+<p><b>Outliner Color (Transform): </b>Filters the option under Node > Display > Outliner Color. In case you're unsure about the exact color, you can use the "Get" button to automatically copy a color.</p>
+
+<p><b>Store Selection Options: </b><br>Select objects and click on "Store Selection" to store them for later.<br>Use the "-" and "+" buttons to add or remove elements.<br>Use the "Reset" button to clear your selection.</p>
+
+<p><b>You can save your selection in two ways: </b><br>As a set: creates a set containing your selection.<br> As text: creates a txt file containing  the code necessary to recreate selection.</p>
+
+<p><b>Create New Selection: </b>Uses all objects as initial selection<br><b>Update Current Selection: </b>Considers only selected objects</p>
 <br>
-<p><b>Target: </b><br>- Transform:  Colorize actual selection. Usually a "transform"<br>- Wireframe Color:  Colorize the shape node inside the transform</p>
-<br>
-
-<img src="./media/gt_color_manager_sample_b.gif" align="right"
-	 alt="Path Manager Sample B">
-<img src="./media/gt_color_manager_sample_a.gif" align="right"
-	 alt="Path Manager Sample A">
-
-<p><b>Current Color: </b><br>The color used in the operation. Click on the color to open Maya's color picker.</p>
-
-<p><b>Color Presets: </b><br>A list of common colors. When clicked it sets the color.</p>
-
-<p><b>Set Color For: </b><br>- Outliner:  Control the outliner color
-<br>- Wireframe Color:  Control the wireframe color seen in the viewport</p>
-<br><br><br><br><br>
-
 </div>
 
 <!-- Transfer Transforms -->
 <div>
 <h1>Transfer Transforms</h1>
 
-<img src="./media/gt_transfer_transforms.jpg" align="right"
+<img src="./media/transfer_transforms.jpg" align="right"
      alt="Transfer Transforms GUI">
 
 <p>Script for transferring translate, rotate or scale data from one object to another.</p>
@@ -422,138 +431,29 @@ with the provided prefix "Left Side Tag".</p>
 
 </div>
 
-<!-- World Space Baker -->
-<div>
-<h1>World Space Baker</h1>
-
-<img src="./media/gt_world_space_baker.jpg" align="right"
-     alt="World Space Baker GUI">
-
-<p>Script for storing then baking transforms using world-space data.</p>
-
-<p><b>1. Target(s) </b>
-<br>Use "Load Selection" to define targets (objects to extract transform from).</p>
-
-<p><b>2. Animation Range </b>
-<br>Enter animation range (Start & End). That's the range used by the script when extracting or baking transforms</p>
-
-<p><b>3. Extract World Space </b>
-<br>Extract and store transforms; This creates a dictionary with the transforms of the loaded objects throughout the animation range.</p>
-
-<p><b>4. Bake transforms when necessary </b>
-<br>Bake the transforms when necessary. For example, after updating the object's parent into another pose, you bake it forcing the loaded object to go back to the stored position (world-space)</p>
-
-<br><br><br><br>
-
-</div>
-
-<!-- Render Checklist -->
-<div>
-<h1>Render Checklist</h1>
-
-<p><b>Legacy Tool:</b> Enable it from <b>GT Tools > Help > Toggle > Toggle Legacy Menu</b>, then open it from <b>GT Tools > Legacy > Render Checklist</b>.</p>
-
-<img src="./media/gt_render_checklist.gif" align="right"
-     alt="Render Checklist GUI">
-
-<p>This script performs a series of checks to detect common issues that are often accidentally ignored/unnoticed.</p>
-
-<p><b>Checklist: </b>
-<br>- Operation: Name of the check the script will perform
-<br>- Status: Result received from the test
-<br>- Info: Extra info or comments regarding the results
-</p>
-
-<p><b>Checklist Status: </b><br>These are also buttons, you can click on them for extra functions:
-<br>- Grey: Default color, not yet tested.
-<br>- Green: Pass color, no issues were found.
-<br>- Yellow: Warning color, some possible issues were found.
-<br>- Red: Error color, issues were found.
-<br>- Black: Exception color, an issue caused the check to fail. (Likely because of a missing plug-in or unexpected value)
-<br>- Question Mark, click on button for more help.</p>
-
-<p><b>Settings: </b>
-<br>Change what values cause the script to return a warnings and errors.
-<br>- Apply: Stores the settings and go back to the main window (settings are persistent between Maya sessions)
-<br>- Export Settings: Exports a txt file containing all current settings.
-<br>- Import Settings: Imports a txt file exported using the previously mentioned function.
-<br>- Reset to Default Values: Resets expected values to default values.
-</p>
-
-<p><b>Main Buttons: </b>
-<br>- Generate Report: Creates a temporary txt file with all the information collected during the checks.
-<br>- Refresh: Runs all checks again.</p>
-
-<p><b>Checklist Operations:</b></p>
-<ul>
-	<li> Frame Rate: returns error if not matching expected frame rate, for example "film" (24fps).
-		<br>Examples of custom values:"film" (24fps),"23.976fps", "ntsc" (30fps), "ntscf" (60fps), "29.97fps"
-	</li>
-	<li> Scene Units: returns error if not matching expected value, for example "cm".
-		<br>Examples of custom values: "mm" (millimeter), "cm" (centimeter), "m" (meter).
-	</li>
-	<li> Output Resolution: returns error if not matching expected value, for example : ['1920', '1080'].
-		<br>Please use a comma "," for entering a custom value. Examples of custom values: "1280, 720" (720p), "1920, 1080" (1080p), "2560, 1440" (1440p), "3840, 2160" (4K), "7680, 4320" (8K)
-	</li>
-	<li> Total Texture Count: error if more than expected value 50 (default value) and a warning if more than 40 (default value). (UDIM tiles are counted as individual textures)
-	</li>
-	<li> Network File Paths: must start with ['path']. Path is a list, you can enter all acceptable locations (usually in the network for render farms)
-		<br>This function completely ignore slashes. You may use a list as custom value. Use a comma "," to separate multiple paths.
-	</li>
-	<li> Network Reference Paths: must start with ['path']. Path is a list, you can enter all acceptable locations (usually in the network for render farms)
-		<br>This function completely ignore slashes. You may use a list as custom value. Use a comma "," to separate multiple paths
-	</li>
-	<li> Unparented Objects: returns an error if common objects are found outside hierarchies. For example a cube outside of a group.</li>
-	<li> Total Triangle Count: : error if more than 2000000 (default value) warning if more than: 1800000 (default value).
-	</li>
-	<li> Total Poly Object Count: error if more than 100 (default value) warning if more than 90 (default value).
-	</li>
-	<li> Shadow Casting Lights: error if more than 3 (default value) warning if more than 2 (default value).
-	</li>
-	<li> RS Shadow Casting Lights: error if more than 4 (default value) warning if more than 3(default value).
-	</li>
-	<li> Ai Shadow Casting Lights: error if more than 4 (default value) warning if more than 3 (default value).
-	</li>
-	<li> Default Object Names: error if using default names. Warning if containing default names. 
-		<br>Examples of default names: "pCube1" = Error, "pointLight1" = Error, "nurbsPlane1" = Error, "my_pCube" = Warning
-	</li>
-	<li> Objects Assigned to lambert1: error if anything is assigned to the default shader "lambert1".
-	</li>
-	<li> Ngons: error if any ngons are found. (A polygon that is made up of five or more vertices. Anything over a quad (4 sides) is considered an ngon)
-	</li>
-	<li> Non-manifold Geometry: error if is found. A non-manifold geometry is a 3D shape that cannot be unfolded into a 2D surface with all its normals pointing the same direction.
-		<br>For example, objects with faces inside of it or faces with edges extruded out of it.
-	</li>
-	<li> Empty UV Sets: error if multiples UV Sets and Empty UV Sets. It ignores objects without UVs if they have only one UV Set.
-	</li>
-	<li> Frozen Transforms: error if rotation(XYZ) not frozen. It doesn't check objects with incoming connections, for example, animations or rigs.
-	</li>
-	<li> Animated Visibility: error if animated visibility is found warning if hidden object is found.
-	</li>
-	<li> Non Deformer History: error if any non-deformer history found.
-	</li>
-	<li> Textures Color Space: error if incorrect color space found. It only checks commonly used nodes for Redshift and Arnold
-		<br>Generally "sRGB" -> float3(color), and "Raw" -> float(value).
-	</li>
-	<li> Other Network Paths: must start with ['path']. Path is a list, you can enter all acceptable locations (usually in the network for render farms)
-		<br>This function completely ignore slashes. You may use a list as custom value. Use a comma "," to separate multiple paths.
-		<br>This function checks: Audio Nodes, Mash Audio Nodes, nCache Nodes, Maya Fluid Cache Nodes, Arnold Volumes/Standins/Lights, Redshift Proxy/Volume/Normal/Lights, Alembic/BIF/GPU Cache, Golaem Common and Cache Nodes.
-	</li>
-</ul>
-<br>
-</div>
-
 <!-- Curve Library -->
 <div>
 <h1>Curve Library</h1>
-<p>Curve Library browses the packaged control shapes and user-created curves as a visual catalog. Use it to create a curve, add selected curves to a custom library, edit metadata, and manage thumbnails without rebuilding shapes by hand.</p>
+<p>Curve Library is a visual catalog for reusable Maya NURBS and Bezier curves. It gives animators and riggers a quick way to browse the curves shipped with GT Tools, the package's control shapes, and personal curves saved to the user library. Selecting an item shows its preview and description, while <b>Build</b> creates a new curve in the current scene.</p>
+
+<p><b>Main settings and actions:</b></p>
+<ul>
+  <li><b>Search:</b> Filters the library as you type.</li>
+  <li><b>Build:</b> Creates the selected curve or control in Maya. Package curves are read-only library content; building them creates the scene object.</li>
+  <li><b>Save Curve:</b> Stores the selected NURBS or Bezier curve as a user-defined item.</li>
+  <li><b>Delete Curve:</b> Removes the selected user-defined curve from the user library.</li>
+  <li><b>Create Snapshot:</b> Updates the preview image for a user-defined curve.</li>
+  <li><b>Edit Parameters:</b> Opens the parameter editor for controls that expose customizable build options.</li>
+</ul>
+
+<p><b>How to start:</b> Open the tool from <b>GT Tools &gt; Curves &gt; Curve Library</b>, search for a shape or browse the list, select an item, and click <b>Build</b>. To create a personal entry, select a curve in the scene, click <b>Save Curve</b>, provide a unique name, and refresh or select the new user item. Package curves and controls cannot be deleted; only user-defined entries expose the delete and snapshot actions.</p>
 </div>
 
 <!-- Extract Python Curve -->
 <div>
 <h1>Curve to Python</h1>
 
-<img src="./media/gt_extract_python_curve.jpg" align="right"
+<img src="./media/curve_to_python.jpg" align="right"
      alt="Generate Python Curve GUI">
 
 <p>This script generates the Python code necessary to create a selected curve.<br>Helpful for when you want to save a curve to your shelf or to add it to a script.</p>
@@ -580,7 +480,7 @@ with the provided prefix "Left Side Tag".</p>
 <div>
 <h1>Generate Text Curve</h1>
 
-<img src="./media/gt_generate_text_curve.jpg" align="right"
+<img src="./media/generate_text_curve.jpg" align="right"
      alt="Generate Text Curve GUI">
 
 <p>This script creates merged curves containing the input text from the text field. <br>(All shapes go under one transform)</p>
@@ -598,11 +498,20 @@ with the provided prefix "Left Side Tag".</p>
 
 </div>
 
+<img src="./media/utilities_curves.jpg" align="right"
+     alt="GT Utilities Curves">
+
+<h3>Combine Curves</h3>
+<p>Moves the curve shapes of the selected curves into one transform. If a Bezier curve is found, the utility can convert it to NURBS before combining.</p>
+
+<h3>Separate Curves</h3>
+<p>Parents every curve shape under a new transform, separating the selected curves into individual transforms.</p>
+
 <!-- Extract Curve State -->
 <div>
 <h1>Extract Curve State</h1>
 
-<img src="./media/gt_extract_shape_state.jpg" align="right"
+<img src="./media/extract_curve_state.jpg" align="right"
      alt="Extract Curve State GUI">
 
 <p>This script generates the Python code necessary to recreate a curve shape state.</p>
@@ -623,19 +532,50 @@ with the provided prefix "Left Side Tag".</p>
 <!-- Mesh Morpher -->
 <div>
 <h1>Mesh Morpher</h1>
-<p>Mesh Morpher generates reshaped meshes from saved morph definitions and cached data. Load definitions, choose the subject meshes and optional post-processing, then generate the result. The tool can request NumPy and SciPy when launched.</p>
+<p>Mesh Morpher uses cached RBF data to transfer a shape relationship from a source/target mesh pair onto one or more subject meshes with matching topology. This is useful for generating consistent variations, transferring a sculpted shape to another mesh, or producing a family of reshaped outputs without manually editing every vertex.</p>
+
+<p><b>Main settings and workflow:</b></p>
+<ol>
+  <li>Create an RBF cache with <b>Create Cache from Selection...</b> by selecting the source mesh first and the target mesh second. Existing cache data can also be loaded with <b>Load Definitions</b>.</li>
+  <li>In <b>Subject Meshes</b>, click <b>Add Selected</b> to add clean meshes with matching topology. Check the subjects that should be generated; double-click a name to edit it.</li>
+  <li>Select a subject and configure its post-processing tabs. These settings are stored per subject.</li>
+  <li>Use <b>Save Definitions</b> to preserve the cache, subject, and add-on configuration as JSON, then click <b>Generate Reshaped Meshes</b> to create duplicated outputs.</li>
+</ol>
+
+<p><b>Available post-processing add-ons:</b></p>
+<ul>
+  <li><b>Delta Mush:</b> Smooths selected vertex regions on the reshaped result with masked Delta Mush layers.</li>
+  <li><b>Masking:</b> Limits the morph influence to selected vertex ranges and can preserve specified translations.</li>
+  <li><b>Anchor:</b> Keeps a chosen vertex or anchor point aligned while applying the morph to a region.</li>
+  <li><b>Renaming:</b> Applies search/replace layers, an override, prefix, or suffix to generated mesh names.</li>
+</ul>
+
+<p>Start with one cache and one subject to verify topology and output naming before generating a larger set. NumPy and SciPy may be requested when the tool is launched because the RBF calculation depends on them.</p>
 </div>
+
 <!-- Mesh Library -->
 <div>
 <h1>Mesh Library</h1>
-<p>Mesh Library provides a thumbnail browser for packaged and user-created mesh assets. It can import a stored mesh into the current scene and manage custom library entries for geometry that is reused frequently.</p>
+<p>Mesh Library is a searchable visual catalog for reusable polygon meshes, parametric meshes, and user-created mesh assets. It helps artists build common geometry into the current scene without repeatedly importing files or recreating the same primitives.</p>
+
+<p><b>Main settings and actions:</b></p>
+<ul>
+  <li><b>Search:</b> Filters the list of available meshes.</li>
+  <li><b>Build:</b> Creates the selected base, parametric, or user mesh in the current Maya scene.</li>
+  <li><b>Save Mesh:</b> Exports the selected polygon or surface mesh into the user library.</li>
+  <li><b>Create Snapshot:</b> Captures a new preview image for a user mesh.</li>
+  <li><b>Edit Parameters:</b> Opens the parameter editor for parametric meshes before building them.</li>
+  <li><b>Delete Mesh:</b> Removes a user mesh and its preview files after confirmation. Package and parametric entries are not deleted from the library.</li>
+</ul>
+
+<p><b>How to start:</b> Open <b>GT Tools &gt; Modeling &gt; Mesh Library</b>, search or browse the list, select an item, and click <b>Build</b>. To add a personal asset, select its mesh in Maya and click <b>Save Mesh</b>; the new entry is stored in the user mesh folder and can be previewed or rebuilt later.</p>
 </div>
 
 <!-- Transfer UVs -->
 <div>
 <h1>Transfer UVs</h1>
 
-<img src="./media/gt_transfer_uvs.jpg" align="right"
+<img src="./media/transfer_uvs.jpg" align="right"
      alt="Transfer UVs GUI">
 
 <p>Script used to quickly transfer UVs between objects. It allows you to export or import UVs or transfer them from an object to other objects in the scene.<br> This script automatically bakes the UVs onto the intermediate object allowing you to transfer UVs without generating history.</p>
@@ -648,28 +588,29 @@ with the provided prefix "Left Side Tag".</p>
 
 </div>
 
-<!-- Sphere Types -->
-<div>
-<h1>Sphere Types</h1>
+<img src="./media/utilities_modeling.jpg" align="right"
+     alt="GT Utilities Modeling">
 
-<img src="./media/gt_create_sphere_types.jpg" align="right"
-     alt="Sphere Types GUI">
+<h3>Preview All UDIMs</h3>
+<p>Generates previews for all file nodes that use UDIM textures.</p>
 
-<p>Quite simple script used as a reminder that the standard sphere is not the only sphere option.</p>
+<h3>Convert Bif to Mesh</h3>
+<p>Converts selected Bifrost meshes into standard Maya meshes.</p>
 
-<p><b>Standard Sphere: </b><br>Creates the standard Maya sphere. "Create > Polygon Primitives > Sphere"</p>
-<p><b>Standard Sphere: </b><br>Creates a sphere using a cube. "Create > Polygon Primitives > Cube" then "Mesh > Smooth (2x)"</p>
-<p><b>Platonic Sphere A: </b><br>Creates a sphere using a platonic solid. (Settings: Icosahedron, Quads, 1, 1, 1)</p>
-<p><b>Platonic Sphere A: </b><br>Creates a sphere using a platonic solid. (Settings: Octahedron, Quads, 2, 1, 1)</p>
+<h3>Copy Material</h3>
+<p>Copies a material from the selection for later application to another object or component selection.</p>
 
-<br>
-
-</div>
+<h3>Paste Material</h3>
+<p>Applies the material captured by <b>Copy Material</b> to the current selection.</p>
 
 <!-- Auto Rigger -->
 <div>
 <h1>Auto Rigger</h1>
-<p>Auto Rigger is the current modular rig-building system. A project stores an ordered set of modules, their proxy placement, and build settings. Templates provide useful starting points, but modules can also be combined into custom character or prop rigs. The usual workflow is to create or load a project, position its proxies, validate the setup, and build the rig.</p>
+<p>Auto Rigger is a modular rig-building system. A project stores an ordered hierarchy of modules, proxy placement, module settings, and build options. Templates provide useful starting points, but modules can also be combined into custom character, creature, or prop rigs.</p>
+
+<p><b>How to start:</b> Open <b>GT Tools &gt; Rigging &gt; Auto Rigger</b>, create a new project or load an existing one, and add modules to the project tree. Select each module to edit its attributes, drag modules to organize their hierarchy, and use <b>Build Proxy</b> to create a guide skeleton. Adjust the proxies, run the available validation steps, and click <b>Build Rig</b> only after the proxy layout and module settings are correct.</p>
+
+<p><b>Main settings:</b> The project tree controls module order and parenting; each selected module exposes its own attributes in the right panel. Project actions can save, load, import, or export rig data, while build options control proxy generation, rig generation, scene handling, skin weights, validation, and optional capture/export steps. Tooltips on individual fields describe module-specific behavior.</p>
 
 <p><b>Available modules:</b></p>
 <ul>
@@ -730,51 +671,64 @@ with the provided prefix "Left Side Tag".</p>
 <p>Many modules expose specialized options that depend on the chosen rig and build stage. Hover over a field to read its tooltip before changing an unfamiliar setting.</p>
 </div>
 
-<!-- Retargeter -->
+<!-- Add Offset Transform -->
 <div>
-<h1>Retargeter</h1>
-<p>Retargeter transfers animation between compatible source and target skeletons through a configurable mapping. It supports reusable templates, scene preparation and cleanup add-ons, animation baking, and batch processing for multiple files. Validate mappings and output paths before a long batch; detailed field behavior is available in the tooltips.</p>
-</div>
+<h1>Add Offset Transform</h1>
 
-<!-- Animation Clip Tracker -->
-<div>
-<h1>Animation Clip Tracker</h1>
-<p>Animation Clip Tracker stores named frame ranges for the current animation scene. It helps animators define, reorder, duplicate, and review clips without relying on handwritten frame notes, and keeps clip data available for later export or processing workflows.</p>
-</div>
+<img src="./media/add_offset_transform.jpg" align="right"
+     alt="GT Add Offset Transform GUI">
 
-<!-- Animation Label Tracker -->
-<div>
-<h1>Animation Label Tracker</h1>
-<p>Animation Label Tracker stores descriptive labels and metadata for animation ranges. Schemas define the available fields, while validation helps keep labels consistent across clips.</p>
-</div>
-<!-- Influences to Python -->
-<div>
-<h1>Influences to Python</h1>
+<p>This script creates a inbetween transform for the selected elements.</p>
 
-<img src="./media/gt_extract_bound_joints.jpg" align="right"
-     alt="GT Influences to Python GUI">
+<p><b>Layer Type: </b>
+<br>This pull-down menu determines what type object will be created.</p>
 
-<p>This script generates the Python code necessary to select all joints influencing a skinCluster node.</p>
+<p><b>Parent Type: </b>
+<br>This pull-down menu determines where the pivot point of the generated element will be extracted from.</p>
 
-<p><b>How to use it:</b>
-<br>1. Select bound meshes or surfaces.
-<br>2. Click on the "Influences to Python" button to generate the code.</p>
+<p><b>Outliner Color: </b>
+<br>Determines the outliner color of the generated element.</p>
 
-<p><b>"Extract Influence Python" button:</b><br>Outputs the python code necessary to reselect the joints into the "Output PYthon Curve" box.</p>
-<p><b>"Extract Influence Selection Sets" button:</b><br>Saves the bound joints as selection sets instead of Python. One set per mesh. (May or may not include mesh, according to checkbox settings.</p>
-
-<p><b>Run Code: </b><br>Attempts to run the code (or anything written) inside  "Output Selection Command" box  </p>
-<p><b>Save to Shelf: </b><br>Saves the code (or anything written) inside "Output Selection Command" box as a shelf button.</p>
+<p><b>New Transform Suffix: </b>
+<br>Determines the suffix to be added to generated transforms.</p>
 
 <br>
 
 </div>
 
+<!-- Add Sine Attributes -->
+<div>
+<h1>Add Sine Attributes</h1>
+
+<img src="./media/add_sine_attributes.jpg" align="right"
+     alt="GT Add Sine Attributes GUI">
+
+<p>Create Sine attributes without using third-party plugins or expressions.
+<br>Just select and object, then click on "Add Sine Attributes"</p>
+
+<br>
+<p><b>- Sine Attributes:</b>: The attribute holder will receive custom attributes to control how the stretchy system behaves.
+<ul>
+	<li><b>Time:</b> Multiplier for the time input (tick)</li>
+	<li><b>Amplitude:</b> Wave amplitude (how high it gets)</li>
+	<li><b>Frequency:</b> Wave frequency (how often it happens)</li>
+	<li><b>Offset:</b> Value added after calculation, offset.</li>
+	<li><b>Tick:</b> Time as seen by the sine system.</li>
+	<li><b>Output:</b> Result of the sine operation.</li>
+	<li><b>Abs Output:</b> Absolute output. (no negative values).</li>
+</ul>
+<p>
+Added attributes don't affect your attribute holder in any way, it's up to you do create necessary connections that will determine how these new values will be used.<br>For example, connecting "sideOutput" to "translateY" will case the object to move up and down according to the side curve.
+
+</p>
+
+<br><br>
+
 <!-- Connect Attributes -->
 <div>
 <h1>Connect Attributes</h1>
 
-<img src="./media/gt_connect_attributes.jpg" align="right"
+<img src="./media/connect_attributes.jpg" align="right"
      alt="GT Connect Attributes GUI">
 
 <p>This script automates the creation of connections between attributes from source (output) and target (input).</p>
@@ -804,158 +758,11 @@ with the provided prefix "Left Side Tag".</p>
 
 </div>
 
-<!-- Morphing Utilities -->
-<div>
-<h1>Morphing Utilities</h1>
-
-<img src="./media/gt_morphing_utilities.jpg" align="right"
-     alt="GT Morphing Attributes GUI">
-
-<p>This script offers utilities to handle blend shape nodes and targets.</p>
-
-<p><b>Delete All Blend Shape Nodes:</b>
-<br>Deletes all nodes of the type "blendShape" found in the opened Maya scene.</p>
-
-<p><b>Delete All Blend Shape Targets:</b>
-<br>Deletes all targets found inside the scene's blend shape nodes, but leave the nodes behind.</p>
-
-<p><b>Load Morphing Object:</b>
-<br>Determines the source of the morphing node. Runs basic validation and populates the scroll field with blend shape nodes found under the selected object.</p>
-
-<p><b>Blend Shape Nodes:</b>
-<br>A list of the blend shape nodes found under the selected object.</p>
-
-<p><b>Search and Replace Target Names:</b>
-<br>Allows you to search and replace strings used on blend shape target names (only the selected blend shape target will be affected).
-	<ul>
-		<li><b>Search:</b>  If the string is found in the text, it is replaced. (case sensitive)</li>
-		<li><b>Replace:</b>  If found, the string is replace with the text provided here.</li>
-	</ul>
-</p>
-
-<p><b>Search and Replace Target Names:</b>
-<br>Runs search and replace operation.</p>
-
-<br>
-
-<!-- Morphing Attributes -->
-<div>
-<h1>Morphing Attributes</h1>
-
-<img src="./media/gt_morphing_attributes.jpg" align="right"
-     alt="GT Morphing Attributes GUI">
-
-<p>This script automates the creation of attributes used to drive blend shapes.</p>
-
-<p><b>Load Morphing Object:</b>
-<br>Determines the source of the morphing node. Runs basic validation and populates the scroll field with blend shape nodes.</p>
-
-<p><b>Blend Shape Nodes:</b>
-<br>Once the morphing object is loaded, this box shows a list of blend shape nodes. Click on the desired node to select it.</p>
-
-<p><b>Load Attribute Holder:</b>
-<br>This is the object to receive the driving attributes. Usually a curve control.</p>
-
-<p><b>Desired Filter:</b>
-<br>Strings in this text field will be included in the list of affected targets. 
-<br>If empty, everything will be included. (multiple strings can be separated using  commas ","</p>
-
-<p><b>Undesired Filter:</b>
-<br>Strings in this text field will be removed from the list of affected targets.
-<br>If empty, filter will not take effect. (multiple strings can be separated using  commas ","</p>
-
-<p><b>Drop-down Menu (Includes, Starts With, Ends With)</b>: 
-<br>These options determine how the desired or undesired strings will be filtered.
-	<ul>
-		<li><b>Includes:</b>  if the string is found in the text, it is accepted.</li>
-		<li><b>Starts With:</b>  If found at the begging of the word, it is included.</li>
-		<li><b>Ends With:</b>  If found at the end of the word, it\'s included.</li>
-	</ul>
-</p>
-
-<p><b>Ignore Uppercase:</b>
-<br>If active, the script will ignore the capitalization of the filter strings.',</p>
-
-<p><b>Add Separator:</b>
-<br>If active, the script will also attempt to create a locked attribute to be used as a separator.
-<br>Example - "Blends: "-------------"</p>
-
-<p><b>Ignore Connected:</b>
-<br>If active, the script will ignore blend targets that already have incoming connections.</p>
-
-<p><b>Sort Attributes:</b>
-<br>If active, the script will sort the list of attributes before creating them.</p>
-
-<p><b>Modify Range:</b>
-<br>If active, the script will create an in-between node to remap the value according to what is provided under "old" and "new" minimum and maximum values</p>
-
-<p><b>Modify Range:</b>
-<br>If active, the script will create an in-between node to remap the value according to what is provided under "old" and "new" minimum and maximum values</p>
-
-<p><b>Old Min/Max & New Min/Max:</b>
-<br>This values are used for the remapping of the morphing attributes. Blend shapes are usually deactivated when as 0 and activated when at 1. If remapped to min: 0 and max: 10, the range would now be bigger but reflect the same values. For example 7.3 would actually load 0.73 of the blend target.</p>
-
-<br>
-
-</div>
-<!-- Mirror Cluster Tool -->
-<div>
-<h1>Mirror Cluster Tool</h1>
-
-<img src="./media/gt_mirror_cluster_tool.jpg" align="right"
-     alt="GT Mirror Cluster Tool GUI">
-
-<p>Script for mirroring clusters on mesh objects.</p>
-
-<p><b>Step 1: </b>
-<br>Load your mesh by selecting it in the viewport or in the outliner,<br> then click on "Select Mesh".
-<br>Requirements: Must be one single mesh transform.</p>
-
-<p><b>Step 2: </b>
-<br>Load your clusterHandle by selecting it in the viewport or in the outliner,<br> then click on "Select Cluster".
-<br>Requirements: Must be one single clusterHandle.</p>
-
-<p><b>Step 3: </b>
-<br>Select your mirror axis X, Y or Z. It will always mirror on the negative direction</p>
-
-<p><b>Step 4: </b>
-<br>To save time you can automatically rename the mirrored clusters using the search and replace text fields.
-<br>For example search for "left_" and replace with "right_"</p>
-
-<br>
-
-</div>
-
-<!-- Add Offset Transform -->
-<div>
-<h1>Add Offset Transform</h1>
-
-<img src="./media/gt_generate_inbetween.jpg" align="right"
-     alt="GT Add Offset Transform GUI">
-
-<p>This script creates a inbetween transform for the selected elements.</p>
-
-<p><b>Layer Type: </b>
-<br>This pull-down menu determines what type object will be created.</p>
-
-<p><b>Parent Type: </b>
-<br>This pull-down menu determines where the pivot point of the generated element will be extracted from.</p>
-
-<p><b>Outliner Color: </b>
-<br>Determines the outliner color of the generated element.</p>
-
-<p><b>New Transform Suffix: </b>
-<br>Determines the suffix to be added to generated transforms.</p>
-
-<br>
-
-</div>
-
 <!-- Create FK Driver -->
 <div>
 <h1>Create FK Driver</h1>
 
-<img src="./media/gt_create_auto_fk.jpg" align="right"
+<img src="./media/create_fk_driver.jpg" align="right"
      alt="GT Create FK Driver GUI">
 
 <p>This script generates FK controls for joints while storing their transforms in groups.
@@ -987,44 +794,26 @@ with the provided prefix "Left Side Tag".</p>
 
 </div>
 
-<!-- Create Testing Keys -->
+<!-- Influences to Python -->
 <div>
-<h1>Create Testing Keys</h1>
+<h1>Influences to Python</h1>
 
-<img src="./media/gt_create_testing_keys.jpg" align="right"
-     alt="GT Create Testing Keys GUI">
+<img src="./media/influences_to_python.jpg" align="right"
+     alt="GT Influences to Python GUI">
 
-<p>This script creates a sequence of keys with offset,
-<br> usually used for testing controls or skin weights.</p>
+<p>This script generates the Python code necessary to select all joints influencing a skinCluster node.</p>
 
-<p><b>How to use:</b>
-<br>1. Select Target Object(s)
-<br>2. Provide Offset Value(s)
-<br>3. Create Testing Keyframes</p>
+<p><b>How to use it:</b>
+<br>1. Select bound meshes or surfaces.
+<br>2. Click on the "Influences to Python" button to generate the code.</p>
 
-<p><b>Offset Amount:</b>
-<br>These are the values that will be added to the object.
-<br>If set to "0.0" it will be ignored. (No keys will be created)</p>
+<p><b>"Extract Influence Python" button:</b><br>Outputs the python code necessary to reselect the joints into the "Output PYthon Curve" box.</p>
+<p><b>"Extract Influence Selection Sets" button:</b><br>Saves the bound joints as selection sets instead of Python. One set per mesh. (May or may not include mesh, according to checkbox settings.</p>
 
-<p><b>Reset All Offset Values:</b>
-<br>Resets all offset text fields to "0.0"</p>
+<p><b>Run Code: </b><br>Attempts to run the code (or anything written) inside  "Output Selection Command" box  </p>
+<p><b>Save to Shelf: </b><br>Saves the code (or anything written) inside "Output Selection Command" box as a shelf button.</p>
 
-<p><b>Add Inverted Offset Movement:</b>
-<br>Auto creates another key with the inverted offset value.
-<br>For example, an offset of "1.0" will also create another offset at "-1.0"
-<br>creating an oscillating movement like a sine function.</p>
-
-<p><b>Use World Space (WS) Values:</b>
-<br>Moves objects as if they were not part of a hierarchy, which mimics the behavior of the world space.</p>
-
-<p><b>Delete Previously Created Keys:</b>
-<br>Deletes all keys attached to the selected controls before creating new ones. 
-<br>(Doesn't include Set Driven Keys)</p>
-
-<p><b>Create Testing Keyframes:</b>
-<br>Creates keyframes according to the provided settings.</p>
-
-<br><br>
+<br>
 
 </div>
 
@@ -1032,7 +821,7 @@ with the provided prefix "Left Side Tag".</p>
 <div>
 <h1>Make IK Stretchy</h1>
 
-<img src="./media/gt_make_ik_stretchy.jpg" align="right"
+<img src="./media/make_ik_stretchy.jpg" align="right"
      alt="GT Make IK Stretchy GUI">
 
 <p>This script makes an IK setup stretchy.
@@ -1067,39 +856,150 @@ with the provided prefix "Left Side Tag".</p>
 
 </div>
 
-<!-- Add Sine Attributes -->
+<!-- Mirror Cluster Tool -->
 <div>
-<h1>Add Sine Attributes</h1>
+<h1>Mirror Cluster Tool</h1>
 
-<img src="./media/gt_add_sine_attributes.jpg" align="right"
-     alt="GT Add Sine Attributes GUI">
+<img src="./media/mirror_cluster_tool.jpg" align="right"
+     alt="GT Mirror Cluster Tool GUI">
 
-<p>Create Sine attributes without using third-party plugins or expressions.
-<br>Just select and object, then click on "Add Sine Attributes"</p>
+<p>Script for mirroring clusters on mesh objects.</p>
+
+<p><b>Step 1: </b>
+<br>Load your mesh by selecting it in the viewport or in the outliner,<br> then click on "Select Mesh".
+<br>Requirements: Must be one single mesh transform.</p>
+
+<p><b>Step 2: </b>
+<br>Load your clusterHandle by selecting it in the viewport or in the outliner,<br> then click on "Select Cluster".
+<br>Requirements: Must be one single clusterHandle.</p>
+
+<p><b>Step 3: </b>
+<br>Select your mirror axis X, Y or Z. It will always mirror on the negative direction</p>
+
+<p><b>Step 4: </b>
+<br>To save time you can automatically rename the mirrored clusters using the search and replace text fields.
+<br>For example search for "left_" and replace with "right_"</p>
 
 <br>
-<p><b>- Sine Attributes:</b>: The attribute holder will receive custom attributes to control how the stretchy system behaves.
-<ul>
-	<li><b>Time:</b> Multiplier for the time input (tick)</li>
-	<li><b>Amplitude:</b> Wave amplitude (how high it gets)</li>
-	<li><b>Frequency:</b> Wave frequency (how often it happens)</li>
-	<li><b>Offset:</b> Value added after calculation, offset.</li>
-	<li><b>Tick:</b> Time as seen by the sine system.</li>
-	<li><b>Output:</b> Result of the sine operation.</li>
-	<li><b>Abs Output:</b> Absolute output. (no negative values).</li>
-</ul>
-<p>
-Added attributes don't affect your attribute holder in any way, it's up to you do create necessary connections that will determine how these new values will be used.<br>For example, connecting "sideOutput" to "translateY" will case the object to move up and down according to the side curve.
 
+</div>
+
+<!-- Morphing Attributes -->
+<div>
+<h1>Morphing Attributes</h1>
+
+<img src="./media/morphing_attributes.jpg" align="right"
+     alt="GT Morphing Attributes GUI">
+
+<p>This script automates the creation of attributes used to drive blend shapes.</p>
+
+<p><b>Load Morphing Object:</b>
+<br>Determines the source of the morphing node. Runs basic validation and populates the scroll field with blend shape nodes.</p>
+
+<p><b>Blend Shape Nodes:</b>
+<br>Once the morphing object is loaded, this box shows a list of blend shape nodes. Click on the desired node to select it.</p>
+
+<p><b>Load Attribute Holder:</b>
+<br>This is the object to receive the driving attributes. Usually a curve control.</p>
+
+<p><b>Desired Filter:</b>
+<br>Strings in this text field will be included in the list of affected targets.
+<br>If empty, everything will be included. (multiple strings can be separated using  commas ","</p>
+
+<p><b>Undesired Filter:</b>
+<br>Strings in this text field will be removed from the list of affected targets.
+<br>If empty, filter will not take effect. (multiple strings can be separated using  commas ","</p>
+
+<p><b>Drop-down Menu (Includes, Starts With, Ends With)</b>:
+<br>These options determine how the desired or undesired strings will be filtered.
+	<ul>
+		<li><b>Includes:</b>  if the string is found in the text, it is accepted.</li>
+		<li><b>Starts With:</b>  If found at the begging of the word, it is included.</li>
+		<li><b>Ends With:</b>  If found at the end of the word, it\'s included.</li>
+	</ul>
 </p>
 
-<br><br>
+<p><b>Ignore Uppercase:</b>
+<br>If active, the script will ignore the capitalization of the filter strings.',</p>
+
+<p><b>Add Separator:</b>
+<br>If active, the script will also attempt to create a locked attribute to be used as a separator.
+<br>Example - "Blends: "-------------"</p>
+
+<p><b>Ignore Connected:</b>
+<br>If active, the script will ignore blend targets that already have incoming connections.</p>
+
+<p><b>Sort Attributes:</b>
+<br>If active, the script will sort the list of attributes before creating them.</p>
+
+<p><b>Modify Range:</b>
+<br>If active, the script will create an in-between node to remap the value according to what is provided under "old" and "new" minimum and maximum values</p>
+
+<p><b>Modify Range:</b>
+<br>If active, the script will create an in-between node to remap the value according to what is provided under "old" and "new" minimum and maximum values</p>
+
+<p><b>Old Min/Max & New Min/Max:</b>
+<br>This values are used for the remapping of the morphing attributes. Blend shapes are usually deactivated when as 0 and activated when at 1. If remapped to min: 0 and max: 10, the range would now be bigger but reflect the same values. For example 7.3 would actually load 0.73 of the blend target.</p>
+
+<br>
+
+</div>
+
+<!-- Morphing Utilities -->
+<div>
+<h1>Morphing Utilities</h1>
+
+<img src="./media/morphing_utilities.jpg" align="right"
+     alt="GT Morphing Attributes GUI">
+
+<p>This script offers utilities to handle blend shape nodes and targets.</p>
+
+<p><b>Delete All Blend Shape Nodes:</b>
+<br>Deletes all nodes of the type "blendShape" found in the opened Maya scene.</p>
+
+<p><b>Delete All Blend Shape Targets:</b>
+<br>Deletes all targets found inside the scene's blend shape nodes, but leave the nodes behind.</p>
+
+<p><b>Load Morphing Object:</b>
+<br>Determines the source of the morphing node. Runs basic validation and populates the scroll field with blend shape nodes found under the selected object.</p>
+
+<p><b>Blend Shape Nodes:</b>
+<br>A list of the blend shape nodes found under the selected object.</p>
+
+<p><b>Search and Replace Target Names:</b>
+<br>Allows you to search and replace strings used on blend shape target names (only the selected blend shape target will be affected).
+	<ul>
+		<li><b>Search:</b>  If the string is found in the text, it is replaced. (case sensitive)</li>
+		<li><b>Replace:</b>  If found, the string is replace with the text provided here.</li>
+	</ul>
+</p>
+
+<p><b>Search and Replace Target Names:</b>
+<br>Runs search and replace operation.</p>
+
+<br>
+
+<!-- Orient Joints -->
+<div>
+<h1>Orient Joints</h1>
+<p>Orient Joints gives a predictable way to orient a selected joint chain before rigging or skin binding. It can orient only the selected joints or the whole selected hierarchy, display their local rotation axes, copy a parent orientation, or reset orientations to world space.</p>
+
+<p><b>Main settings:</b></p>
+<ul>
+  <li><b>Target:</b> Choose <b>Selected</b> to affect only the selected joints or <b>Hierarchy</b> to include descendant joints.</li>
+  <li><b>Aim Axis:</b> Select the local axis that points down the joint chain and choose its positive or negative direction.</li>
+  <li><b>Up Axis:</b> Select the local axis used to define the joint's up orientation and choose its direction.</li>
+  <li><b>Up Dir:</b> Select the world or reference direction used to resolve the roll around the aim axis.</li>
+</ul>
+
+<p><b>How to start:</b> Select one or more joints, choose <b>Selected</b> or <b>Hierarchy</b>, set the aim/up axes and signs, and click <b>Orient Joints</b>. Use <b>Show Axis</b> and <b>Hide Axis</b> to inspect the result, <b>Copy Parent</b> to match parent orientation, or <b>Reset to World</b> to clear the current orientation before trying another setup.</p>
+</div>
 
 <!-- Ribbon Tool -->
 <div>
 <h1>Ribbon Tool</h1>
 
-<img src="./media/gt_ribbon_tool.jpg" align="right"
+<img src="./media/ribbon_tool.jpg" align="right"
      alt="GT Ribbon Tool GUI">
 
 <p>Tool for automating the process of creating ribbons. A ribbon is a commonly used setup in rigging that serves as a flexible surface for attaching joints and controls.
@@ -1138,163 +1038,130 @@ Ribbon rigging is particularly useful for creating smooth and natural-looking de
 
 </div>
 
-<!-- Orient Joints -->
+<!-- Retargeter -->
 <div>
-<h1>Orient Joints</h1>
-<p>Orient Joints provides predictable joint orientation controls for a selected hierarchy. It can aim joints using chosen primary and secondary axes while accounting for hierarchy direction, making it useful before rig construction or skin binding.</p>
+<h1>Retargeter</h1>
+<p>Retargeter transfers animation from a source skeleton to a target rig through a reusable definition. It is designed for repeatable animation transfer between Maya scenes, FBX files, and compatible rigs while preserving control over namespaces, scene preparation, mapping methods, baking, and output files.</p>
+
+<p><b>Main settings and workflow:</b></p>
+<ol>
+  <li>On the main tab, choose a source animation, a target rig, and a saved definition. Enable <b>Process a Folder (Batch)</b> when the same definition should be applied to several source files.</li>
+  <li>Use the definition tab to load or create a definition, set source and target rig paths and namespaces, and edit the source-to-target mapping table. <b>Add Selected Controls</b>, <b>Remove Selected Targets</b>, and <b>Resolve Mapping Names</b> help maintain the mapping.</li>
+  <li>Use <b>Load Definition in Scene</b> to inspect or edit the setup, then capture a source pose and save the definition when the mapping is ready.</li>
+  <li>Review output options, including whether to reference the target, delete the source after processing, delete static channels, and oversample the animation. Click <b>Retarget</b> after checking the file paths and definition.</li>
+</ol>
+
+<p><b>Definition tabs and add-ons:</b></p>
+<ul>
+  <li><b>Mapping:</b> Stores source-to-target links and their targeting methods.</li>
+  <li><b>Scene:</b> Controls scene preparation and options used when loading the source and target.</li>
+  <li><b>Source Setup:</b> Prepares the source skeleton before links are created.</li>
+  <li><b>Post Bake:</b> Applies cleanup or follow-up operations after animation is baked.</li>
+  <li><b>Patches:</b> Enables targeted compatibility fixes for specific rigs or transfer problems.</li>
+  <li><b>Scripts:</b> Runs configured Python steps as part of the retarget operation.</li>
+</ul>
+
+<p>The <b>Settings</b> tab stores the definition folder, skip-existing behavior, and the optional experimental multi-process batch mode. Increase concurrent Maya processes gradually and enable log files when diagnosing batch failures.</p>
 </div>
 
-<!-- Utilities -->
+<!-- Animation Clip Tracker -->
 <div>
-<h1>Utilities</h1>
+<h1>Animation Clip Tracker</h1>
+<p>Animation Clip Tracker stores named animation ranges directly in the Maya scene. It provides a compact clip list and an optional interactive timeline so animators can mark, review, reorder, play, and export clips without maintaining frame notes outside the scene.</p>
 
-<img src="./media/gt_utilities.jpg" align="right"
-     alt="GT Utilities Menu">
+<p><b>Main settings:</b></p>
+<ul>
+  <li><b>Clip list:</b> Edit clip names, start frames, and end frames; add, delete, play, or apply a clip range to Maya's playback range.</li>
+  <li><b>Warnings:</b> Enable minimum/maximum frame checks and overlap detection to flag inconsistent clip ranges.</li>
+  <li><b>Timeline View:</b> Show clip blocks, choose <b>Navigate</b>, <b>Select</b>, or <b>Edit</b> mode, move the current time while editing, allow clips outside the playback range, and enable magnet snapping.</li>
+  <li><b>Clip Behavior:</b> Refresh on focus, auto-add the current timeline, synchronize Maya bookmarks, auto-reorder clips, confirm deletes, or start new clips at the current frame.</li>
+  <li><b>Data actions:</b> Synchronize bookmarks, reorder clips, import/export JSON, reset preferences, or delete the scene data node.</li>
+</ul>
 
-<p>GT Utilities (GTU) is a collection of smaller functions that don't necessary need or use a window/dialog.
-<br>Most of these functions can be found under "GT Tools > Utilities" but a few of them are scattered throughout other menus.</p>
+<p><b>How to start:</b> Open <b>GT Tools &gt; Animation &gt; Animation Clip Tracker</b>, click the add button or draw a range in <b>Edit</b> mode, give the clip a name, and adjust its start/end frames. Use the timeline to review and edit ranges, then export JSON when the clip list needs to be used by another process.</p>
+</div>
 
-<p><b>Standalone use: </b>
-<br>In case you're using the standalone version of GT Utilities, you'll have to uncomment one of the functions at the bottom of the script.</p>
+<!-- Animation Label Tracker -->
+<div>
+<h1>Animation Label Tracker</h1>
+<p>Animation Label Tracker annotates animation ranges with structured production metadata. It combines a visual range timeline with schema-driven file and frame fields, allowing teams to label clips consistently and run small Python automations against the selected ranges.</p>
 
-<h3>Reload File</h3>
-<p>This utility reloads the current Maya file (scene).
-<br>Reloading means re-opening it without attempting to save.
-<br>It only works if the file was saved at least once.</p>
+<p><b>Main settings and workflow:</b></p>
+<ol>
+  <li>Open the tool and load a JSON schema. The bundled sample schema demonstrates file-level fields such as quality and source, plus range fields such as state, style, stance, interaction, and events.</li>
+  <li>Use the <b>Tools</b> tab to choose <b>Navigate</b>, <b>Select</b>, <b>Edit</b>, or <b>Razor</b> mode. Enable magnet snapping, auto-crop, or auto-stretch when building adjacent ranges.</li>
+  <li>Create or select a range, then fill its name, start/end frames, color, lock state, and schema-defined metadata in <b>Range Data</b>. File-level fields are edited in <b>File Data</b>.</li>
+  <li>Use <b>Automations</b> to run configured Python scripts, and use <b>Preferences</b> to control schema/automation paths, display, colors, timeline behavior, scene-node writing, and JSON import/export.</li>
+</ol>
 
-<h3>Open File Directory</h3>
-<p>This utility attempts to open the current Maya file directory.
-<br>In case it fails, the path for the file is printed to the script editor.
-<br>It only works if the file was saved at least once.</p>
+<p><b>Important data settings:</b> <b>Write Data to Scene Node (rangeTimelineData)</b> keeps the tracker data with the Maya scene. <b>Import JSON</b> and <b>Export JSON</b> exchange the current ranges and metadata, while schema validation warns when imported data no longer matches the active schema.</p>
 
-<h3>Resource Browser</h3>
-<p>Opens the resource browser, a menu that allows the used to see what images are available inside Maya and download them.</p>
+<p><b>How to start:</b> Begin with the bundled sample schema, draw a range on the timeline, enter its metadata, and confirm the validation status. Create a copy of the sample schema when a project needs additional fields, and keep the schema with the animation data so future imports use the same field definitions.</p>
+</div>
 
-<h3>Unlock Default Channels</h3>
-<p>This function unlocks the translate, rotate, scale and visibility channels for the selected objects.</p>
+<!-- Create Testing Keys -->
+<div>
+<h1>Create Testing Keys</h1>
 
-<h3>Unhide Default Channels</h3>
-<p>This function unhides/shows the translate, rotate, scale and visibility channels for the selected objects.</p>
+<img src="./media/create_testing_keys.jpg" align="right"
+     alt="GT Create Testing Keys GUI">
 
-<h3>Unhide Default Channels</h3>
-<p>This function unhides/shows the translate, rotate, scale and visibility channels for the selected objects.</p>
+<p>This script creates a sequence of keys with offset,
+<br> usually used for testing controls or skin weights.</p>
 
-<h3>Uniform LRA Toggle</h3>
-<p>This utility makes the visibility of the local rotation axis of the selected objects uniform.<br> For example, if two out of three objects have their LRA visible, it makes all of them visible.</p>
+<p><b>How to use:</b>
+<br>1. Select Target Object(s)
+<br>2. Provide Offset Value(s)
+<br>3. Create Testing Keyframes</p>
 
-<h3>Convert Joints to Mesh</h3>
-<p>Converts selected skeleton to a mesh version of it. Helpful when sending joints into another program that might not support or display joints in the same way Maya does. To use it, select the root joint of your skeleton and run the function. (No need to select all joints, just the root)</p>
+<p><b>Offset Amount:</b>
+<br>These are the values that will be added to the object.
+<br>If set to "0.0" it will be ignored. (No keys will be created)</p>
 
-<h3>Uniform Joint Label Toggle</h3>
-<p>Uniformly toggles the option "Joint > Joint Labelling > Draw Label" (".drawLabel") for all joints in the scene (according to the state of the majority of them).</p>
+<p><b>Reset All Offset Values:</b>
+<br>Resets all offset text fields to "0.0"</p>
 
-<h3>Select Non-Unique Objects</h3>
-<p>Selects all objects with the same short name. (A short name is the name of the object without its path)</p>
+<p><b>Add Inverted Offset Movement:</b>
+<br>Auto creates another key with the inverted offset value.
+<br>For example, an offset of "1.0" will also create another offset at "-1.0"
+<br>creating an oscillating movement like a sine function.</p>
 
-<h3>Full HUD Toggle</h3>
-<p>Toggles most of the Heads-Up Display (HUD) options according to the state of the majority of them. <br>(Keeps default elements ON when toggling it OFF)</p>
+<p><b>Use World Space (WS) Values:</b>
+<br>Moves objects as if they were not part of a hierarchy, which mimics the behavior of the world space.</p>
 
-<h3>Import References</h3>
-<p>Attempts to import all loaded references.</p>
+<p><b>Delete Previously Created Keys:</b>
+<br>Deletes all keys attached to the selected controls before creating new ones.
+<br>(Doesn't include Set Driven Keys)</p>
 
-<h3>Remove References</h3>
-<p>Attempts to remove all references.</p>
+<p><b>Create Testing Keyframes:</b>
+<br>Creates keyframes according to the provided settings.</p>
 
-<h3>Move Pivot to Top</h3>
-<p>Moves the pivot point of the selected objects to the top of their bounding box.</p>
-
-<h3>Move Pivot to Base</h3>
-<p>Moves the pivot point of the selected objects to the base of their bounding box.</p>
-
-<h3>Move Object to Origin</h3>
-<p>Moves the selected objects to the center of the grid (0,0,0) origin point.</p>
-
-<h3>Reset Transforms</h3>
-<p>Resets translate, rotate and scale back to zero. For example, you can select all controls of a character and reset its pose.
-<br>This pose will not reset translate for joints.</p>
-
-<h3>Reset Joints Display</h3>
-<p>Resets the visibility of all joints. It sets the radius of all joints to one. (Unless the channel is locked) and sets the visibility to "On". It also changes the global joint display scale (multiplier) back to one.</p>
-
-<h3>Reset "persp" Camera</h3>
-<p>Resets most of the attributes for the default "persp" camera.</p>
-
-<h3>Delete Namespaces</h3>
-<p>Merges all namespaces back to the root, essentially deleting them.</p>
-
-<h3>Delete Display Layers</h3>
-<p>Deletes all display layers.</p>
-
-<h3>Delete Nucleus Nodes</h3>
-<p>Deletes all nodes related to the nucleus system.</p>
-
-<h3>Delete Keyframes</h3>
-<p>Deletes all keyframes. (It does not affect set driven keys)</p>
-
-<img src="./media/gtu_modeling.jpg" align="right"
-     alt="GT Utilities Modeling">
-
-<h3>Preview All UDIMs</h3>
-<p>Generates previews for all file nodes using UDIMs.</p>
-
-<h3>Convert Bif to Mesh</h3>
-<p>Converts selected Bifrost meshes into the standard Maya meshes.<br>(Bif objects are created using Bifrost Graph)</p>
-
-<h3>Copy Material</h3>
-<p>Copies a material from the selection to the clipboard to later be applied to another object.
-<br>It supports components such as faces.</p>
-
-<h3>Paste Material</h3>
-<p>Pastes a material to the selection. (Use the Copy Material function to copy it first)
-<br>It supports components such as faces.</p>
-
-<img src="./media/gtu_curves.jpg" align="right"
-     alt="GT Utilities Curves">
-
-<h3>Combine Curves</h3>
-<p>Moves curve shapes of the selected curves into one single transform, essentially combining them.
-<br>In case a bezier curve is found, the script gives you the option of converting them to NURBS.</p>
-
-<h3>Separate Curves</h3>
-<p>Parents every curve shape of the selection under a new transform, causing them to be separated.</p>
-<br>
+<br><br>
 
 </div>
 
-<!-- Startup Booster -->
+<!-- World Space Baker -->
 <div>
-<h1>Startup Booster</h1>
+<h1>World Space Baker</h1>
 
-<img src="./media/gt_startup_booster.jpg" align="right"
-     alt="GT Startup Booster GUI">
+<img src="./media/world_space_baker.jpg" align="right"
+     alt="World Space Baker GUI">
 
-<p>This script helps decrease the time Maya takes to load before becoming fully functional.</p>
+<p>Script for storing then baking transforms using world-space data.</p>
 
-<p><b>How It works: </b>
-<br>Not all plugins are used every time Maya is opened, but they are usually still loaded during startup. This causes the startup time to be quite slow.
-<br>This script aims to fix that, by helping you skip the heavy plugins while still having easy access to them.</p>
+<p><b>1. Target(s) </b>
+<br>Use "Load Selection" to define targets (objects to extract transform from).</p>
 
-<p>1st: Optimize.
-<br>2nd: Create Shelf Buttons.
-<br>3rd: Enjoy faster startups.</p>
+<p><b>2. Animation Range </b>
+<br>Enter animation range (Start & End). That's the range used by the script when extracting or baking transforms</p>
 
-<p><b>Plugin List: </b>
-<br>This is a list of common plugins that are usually automatically loaded by default.
-<br>Plugin File: Name of the file used by the plugin.
-<br>Auto Load: Is this plugin automatically loading?
-<br>Installed: Is the plugin installed?
-<br>Control: General name of the plugin.</p>
+<p><b>3. Extract World Space </b>
+<br>Extract and store transforms; This creates a dictionary with the transforms of the loaded objects throughout the animation range.</p>
 
-<p><b>"Shelf Button" and "Auto Load" Buttons: </b>
-<br>Shelf Button: Creates a Shelf Button (under the current shelf) to load the plugin and give you feedback on its current state.
-<br>Auto Load: Toggles the Auto Load function of the plugin.<br>(same as "Auto Load" in the plugin manager)</p>
+<p><b>4. Bake transforms when necessary </b>
+<br>Bake the transforms when necessary. For example, after updating the object's parent into another pose, you bake it forcing the loaded object to go back to the stored position (world-space)</p>
 
-<p><b>Custom Shelf Button: </b>
-<br>This script couldn't account for every heavy 3rd party plug-in.This shouldn't be an issue as you can manually add any plugin.
-<br>Just manually deactivate your third party plugin by going to "Windows > Settings/Preferences > Plug-in Manager"
-<br>Then create a custom load button using the textField that says "Other Plugins"</p>
-
-<br>
+<br><br><br><br>
 
 </div>
 
@@ -1302,7 +1169,7 @@ Ribbon rigging is particularly useful for creating smooth and natural-looking de
 <div>
 <h1>fSpy Importer</h1>
 
-<img src="./media/gt_fspy_importer.jpg" align="right"
+<img src="./media/fspy_importer.jpg" align="right"
      alt="GT fSpy Importer GUI">
 
 <p>This script allows you import the data of a JSON file (exported out of fSpy) into Maya.</p>
@@ -1347,7 +1214,7 @@ Do not change the resolution of the image file or crop the image or it might not
 <div>
 <h1>Maya to Discord</h1>
 
-<img src="./media/gt_maya_to_discord.jpg" align="right"
+<img src="./media/maya_to_discord.jpg" align="right"
      alt="GT Maya to Discord GUI">
 
 <p>This script allows you to quickly send images and videos (playblasts) from Maya to Discord using a Discord Webhook to bridge the two programs.</p>
@@ -1411,7 +1278,7 @@ Do not change the resolution of the image file or crop the image or it might not
 <div>
 <h1>Render Calculator</h1>
 
-<img src="./media/gt_render_calculator.jpg" align="right"
+<img src="./media/render_calculator.jpg" align="right"
      alt="GT Render Calculator GUI">
 
 <p>This script helps you calculate the total render time of a task based on how long it takes to render a frame..</p>
@@ -1431,17 +1298,244 @@ Do not change the resolution of the image file or crop the image or it might not
 
 </div>
 
+<!-- Startup Booster -->
+<div>
+<h1>Startup Booster</h1>
+
+<img src="./media/startup_booster.jpg" align="right"
+     alt="GT Startup Booster GUI">
+
+<p>This script helps decrease the time Maya takes to load before becoming fully functional.</p>
+
+<p><b>How It works: </b>
+<br>Not all plugins are used every time Maya is opened, but they are usually still loaded during startup. This causes the startup time to be quite slow.
+<br>This script aims to fix that, by helping you skip the heavy plugins while still having easy access to them.</p>
+
+<p>1st: Optimize.
+<br>2nd: Create Shelf Buttons.
+<br>3rd: Enjoy faster startups.</p>
+
+<p><b>Plugin List: </b>
+<br>This is a list of common plugins that are usually automatically loaded by default.
+<br>Plugin File: Name of the file used by the plugin.
+<br>Auto Load: Is this plugin automatically loading?
+<br>Installed: Is the plugin installed?
+<br>Control: General name of the plugin.</p>
+
+<p><b>"Shelf Button" and "Auto Load" Buttons: </b>
+<br>Shelf Button: Creates a Shelf Button (under the current shelf) to load the plugin and give you feedback on its current state.
+<br>Auto Load: Toggles the Auto Load function of the plugin.<br>(same as "Auto Load" in the plugin manager)</p>
+
+<p><b>Custom Shelf Button: </b>
+<br>This script couldn't account for every heavy 3rd party plug-in.This shouldn't be an issue as you can manually add any plugin.
+<br>Just manually deactivate your third party plugin by going to "Windows > Settings/Preferences > Plug-in Manager"
+<br>Then create a custom load button using the textField that says "Other Plugins"</p>
+
+<br>
+
+</div>
+
+<!-- Utilities -->
+<div>
+<h1>Utilities</h1>
+
+<img src="./media/utilities.jpg" align="right"
+     alt="GT Utilities Menu">
+
+<p>GT Utilities (GTU) is a collection of smaller functions that do not need a dedicated window. The entries below follow the order of the <b>GT Tools &gt; Utilities</b> menu. A few menu-specific utilities are documented in the Curves and Modeling sections where they appear in Maya.</p>
+
+<p><b>Standalone use: </b>
+<br>In case you're using the standalone version of GT Utilities, you'll have to uncomment one of the functions at the bottom of the script.</p>
+
+<h3>Reload File</h3>
+<p>This utility reloads the current Maya file (scene).
+<br>Reloading means re-opening it without attempting to save.
+<br>It only works if the file was saved at least once.</p>
+
+<h3>Open File Directory</h3>
+<p>This utility attempts to open the current Maya file directory.
+<br>In case it fails, the path for the file is printed to the script editor.
+<br>It only works if the file was saved at least once.</p>
+
+<h3>Full HUD Toggle</h3>
+<p>Toggles most of the Heads-Up Display (HUD) options according to the state of the majority of them. <br>(Keeps default elements ON when toggling it OFF)</p>
+
+<h3>Select Non-Unique Objects</h3>
+<p>Selects all objects with the same short name. A short name is the node name without its hierarchy path.</p>
+
+<h3>Set Joint Name as Label</h3>
+<p>Sets the label of each selected joint to its short name.</p>
+
+<h3>Unhide Default Channels</h3>
+<p>Unhides the translate, rotate, scale, and visibility channels for the selected objects.</p>
+
+<h3>Uniform Joint Label Toggle</h3>
+<p>Uniformly toggles <b>Joint &gt; Joint Labelling &gt; Draw Label</b> for joints according to the state of the majority of them.</p>
+
+<h3>Uniform LRA Toggle</h3>
+<p>Makes local rotation axis visibility uniform across the selected objects. For example, if two out of three objects have their LRA visible, it makes all of them visible.</p>
+
+<h3>Unlock Default Channels</h3>
+<p>Unlocks the translate, rotate, scale, and visibility channels for the selected objects.</p>
+
+<h3>Convert Joints to Mesh</h3>
+<p>Converts a selected skeleton into a mesh representation for applications that do not display Maya joints. Select the root joint; the utility finds the hierarchy below it.</p>
+
+<h3>Convert to Locators</h3>
+<p>Creates locator representations for transforms using the utility's conversion behavior. Review the result before deleting or replacing the original transforms.</p>
+
+<h3>Import References</h3>
+<p>Attempts to import all loaded references.</p>
+
+<h3>Remove References</h3>
+<p>Attempts to remove all references.</p>
+
+<h3>Move Object to Origin</h3>
+<p>Moves the selected objects to the center of the grid (0,0,0) origin point.</p>
+
+<h3>Move Pivot to Base</h3>
+<p>Moves the pivot point of the selected objects to the base of their bounding box.</p>
+
+<h3>Move Pivot to Top</h3>
+<p>Moves the pivot point of the selected objects to the top of their bounding box.</p>
+
+<h3>Reset Joints Display</h3>
+<p>Resets the visibility of all joints. It sets the radius of all joints to one. (Unless the channel is locked) and sets the visibility to "On". It also changes the global joint display scale (multiplier) back to one.</p>
+
+<h3>Reset "persp" Camera</h3>
+<p>Resets most of the attributes for the default "persp" camera.</p>
+
+<h3>Reset Transforms</h3>
+<p>Resets translate, rotate, and scale back to zero where the channels can be changed. This is useful for resetting a control pose without changing joint translations.</p>
+
+<h3>Delete Custom Attributes</h3>
+<p>Deletes user-defined attributes found on the selected objects.</p>
+
+<h3>Delete Namespaces</h3>
+<p>Merges all namespaces back to the root, essentially deleting them.</p>
+
+<h3>Delete Display Layers</h3>
+<p>Deletes all display layers.</p>
+
+<h3>Delete Unused Nodes</h3>
+<p>Deletes nodes Maya reports as unused. Review the scene and save a backup before using cleanup utilities.</p>
+
+<h3>Delete Nucleus Nodes</h3>
+<p>Deletes all nodes related to the nucleus system.</p>
+
+<h3>Delete Keyframes</h3>
+<p>Deletes all keyframes. (It does not affect set driven keys)</p>
+<br>
+
+</div>
+
 <!-- Legacy Tools -->
 <div>
 <h1>Legacy Tools</h1>
 <p>These tools predate the current Auto Rigger and Retargeter. They remain available for older rigs and established workflows, but the Legacy menu is hidden by default. Enable it from <b>GT Tools > Help > Toggle > Toggle Legacy Menu</b>.</p>
 </div>
 
+<!-- Render Checklist -->
+<div>
+<h1>Render Checklist</h1>
+
+<p><b>Legacy Tool:</b> Enable it from <b>GT Tools > Help > Toggle > Toggle Legacy Menu</b>, then open it from <b>GT Tools > Legacy > Render Checklist</b>.</p>
+
+<img src="./media/render_checklist.gif" align="right"
+     alt="Render Checklist GUI">
+
+<p>This script performs a series of checks to detect common issues that are often accidentally ignored/unnoticed.</p>
+
+<p><b>Checklist: </b>
+<br>- Operation: Name of the check the script will perform
+<br>- Status: Result received from the test
+<br>- Info: Extra info or comments regarding the results
+</p>
+
+<p><b>Checklist Status: </b><br>These are also buttons, you can click on them for extra functions:
+<br>- Grey: Default color, not yet tested.
+<br>- Green: Pass color, no issues were found.
+<br>- Yellow: Warning color, some possible issues were found.
+<br>- Red: Error color, issues were found.
+<br>- Black: Exception color, an issue caused the check to fail. (Likely because of a missing plug-in or unexpected value)
+<br>- Question Mark, click on button for more help.</p>
+
+<p><b>Settings: </b>
+<br>Change what values cause the script to return a warnings and errors.
+<br>- Apply: Stores the settings and go back to the main window (settings are persistent between Maya sessions)
+<br>- Export Settings: Exports a txt file containing all current settings.
+<br>- Import Settings: Imports a txt file exported using the previously mentioned function.
+<br>- Reset to Default Values: Resets expected values to default values.
+</p>
+
+<p><b>Main Buttons: </b>
+<br>- Generate Report: Creates a temporary txt file with all the information collected during the checks.
+<br>- Refresh: Runs all checks again.</p>
+
+<p><b>Checklist Operations:</b></p>
+<ul>
+	<li> Frame Rate: returns error if not matching expected frame rate, for example "film" (24fps).
+		<br>Examples of custom values:"film" (24fps),"23.976fps", "ntsc" (30fps), "ntscf" (60fps), "29.97fps"
+	</li>
+	<li> Scene Units: returns error if not matching expected value, for example "cm".
+		<br>Examples of custom values: "mm" (millimeter), "cm" (centimeter), "m" (meter).
+	</li>
+	<li> Output Resolution: returns error if not matching expected value, for example : ['1920', '1080'].
+		<br>Please use a comma "," for entering a custom value. Examples of custom values: "1280, 720" (720p), "1920, 1080" (1080p), "2560, 1440" (1440p), "3840, 2160" (4K), "7680, 4320" (8K)
+	</li>
+	<li> Total Texture Count: error if more than expected value 50 (default value) and a warning if more than 40 (default value). (UDIM tiles are counted as individual textures)
+	</li>
+	<li> Network File Paths: must start with ['path']. Path is a list, you can enter all acceptable locations (usually in the network for render farms)
+		<br>This function completely ignore slashes. You may use a list as custom value. Use a comma "," to separate multiple paths.
+	</li>
+	<li> Network Reference Paths: must start with ['path']. Path is a list, you can enter all acceptable locations (usually in the network for render farms)
+		<br>This function completely ignore slashes. You may use a list as custom value. Use a comma "," to separate multiple paths
+	</li>
+	<li> Unparented Objects: returns an error if common objects are found outside hierarchies. For example a cube outside of a group.</li>
+	<li> Total Triangle Count: : error if more than 2000000 (default value) warning if more than: 1800000 (default value).
+	</li>
+	<li> Total Poly Object Count: error if more than 100 (default value) warning if more than 90 (default value).
+	</li>
+	<li> Shadow Casting Lights: error if more than 3 (default value) warning if more than 2 (default value).
+	</li>
+	<li> RS Shadow Casting Lights: error if more than 4 (default value) warning if more than 3(default value).
+	</li>
+	<li> Ai Shadow Casting Lights: error if more than 4 (default value) warning if more than 3 (default value).
+	</li>
+		<li> Default Object Names: error if using default names. Warning if containing default names.
+		<br>Examples of default names: "pCube1" = Error, "pointLight1" = Error, "nurbsPlane1" = Error, "my_pCube" = Warning
+	</li>
+	<li> Objects Assigned to lambert1: error if anything is assigned to the default shader "lambert1".
+	</li>
+	<li> Ngons: error if any ngons are found. (A polygon that is made up of five or more vertices. Anything over a quad (4 sides) is considered an ngon)
+	</li>
+	<li> Non-manifold Geometry: error if is found. A non-manifold geometry is a 3D shape that cannot be unfolded into a 2D surface with all its normals pointing the same direction.
+		<br>For example, objects with faces inside of it or faces with edges extruded out of it.
+	</li>
+	<li> Empty UV Sets: error if multiples UV Sets and Empty UV Sets. It ignores objects without UVs if they have only one UV Set.
+	</li>
+	<li> Frozen Transforms: error if rotation(XYZ) not frozen. It doesn't check objects with incoming connections, for example, animations or rigs.
+	</li>
+	<li> Animated Visibility: error if animated visibility is found warning if hidden object is found.
+	</li>
+	<li> Non Deformer History: error if any non-deformer history found.
+	</li>
+	<li> Textures Color Space: error if incorrect color space found. It only checks commonly used nodes for Redshift and Arnold
+		<br>Generally "sRGB" -> float3(color), and "Raw" -> float(value).
+	</li>
+	<li> Other Network Paths: must start with ['path']. Path is a list, you can enter all acceptable locations (usually in the network for render farms)
+		<br>This function completely ignore slashes. You may use a list as custom value. Use a comma "," to separate multiple paths.
+		<br>This function checks: Audio Nodes, Mash Audio Nodes, nCache Nodes, Maya Fluid Cache Nodes, Arnold Volumes/Standins/Lights, Redshift Proxy/Volume/Normal/Lights, Alembic/BIF/GPU Cache, Golaem Common and Cache Nodes.
+	</li>
+</ul>
+<br>
+</div>
+
 <!-- Biped Auto Rigger -->
 <div>
 <h1>Biped Auto Rigger</h1>
 
-<img src="./media/gt_auto_biped_rigger.jpg" align="right"
+<img src="./media/biped_auto_rigger.jpg" align="right"
      alt="Biped Auto Rigger GUI">
 
 <p>Script for quickly generating an advanced biped rig.
@@ -1471,7 +1565,7 @@ Do not change the resolution of the image file or crop the image or it might not
 <b>- Create Proxy:</b><br>
 This button will create many temporary curves that will later be used to generate the rig.
 <br>In case you want to re-scale the proxy, use the root proxy control for that.
-<br>The initial scale is the average height of a woman (160cm) but you can download proxy presets (poses) for other scales from the  <a href="./assets">assets folder</a>.
+<br>The initial scale is the average height of a woman (160cm). The old packaged proxy-preset assets are no longer included, so use the root proxy to rescale the character or maintain project-specific proxy presets separately.
 <br>
 <br> The arrow found in the shape of the clavicles, hands and finger proxies indicate their up position.
 <br>The bigger arrows in the shape of the knees and elbows show the direction of their up vector constraint. (that's the direction they will bend)
@@ -1511,7 +1605,7 @@ Now that the rig has been created, it is time to attach it to the geometry.
 
 <p><h3>Utilities:</h3>
 
-<img src="./media/gt_auto_biped_rigger_fkik.jpg" align="right"
+<img src="./media/biped_auto_rigger_fk_ik.jpg" align="right"
      alt="Seamless FK/IK Switcher for Biped Auto Rigger GUI">
 
 These are utilities and extra functions that you can use after creating your rig.
@@ -1534,9 +1628,9 @@ These are utilities and extra functions that you can use after creating your rig
 
 <p><br><br><h3>How to attach motion capture data to the rig through HumanIK:</h3>
 <b>- 1.</b> Start by defining a character and assigning all bones to the definition (You can do that in one click using the utility "Attach to HumanIK")
-<br><b>2.</b> Create a custom rig by clicking on the custom rig button. <img src="./media//human_ik_custom_rig_btn.jpg" alt="HumanIK Custom Rig Button">
+<br><b>2.</b> Create a custom rig by clicking on the custom rig button. <img src="./media/biped_auto_rigger_human_ik_custom_rig_button.jpg" alt="HumanIK Custom Rig Button">
 <br><b>3.</b> Assign the desired controls or use one of the provided templates so HumanIK knows what controls to update.
-<br>You can load a template by clicking on the button "Load Custom Rig Mapping". <img src="./media/human_ik_load_mapping_btn.jpg" alt="HumanIK Load Custom Rig Mapping Button"> Templates can be found in the <a href="./assets">assets folder</a>.
+<br>You can load a template by clicking on the button "Load Custom Rig Mapping". <img src="./media/biped_auto_rigger_human_ik_load_mapping_button.jpg" alt="HumanIK Load Custom Rig Mapping Button"> The old packaged HumanIK mapping is no longer included with GT Tools, so provide a mapping file from your project or create the custom HumanIK mapping manually.
 <br><b>4.</b> Now you can source the motion from another character like you would normally do in HumanIK and it should automatically reverse engineer the control position to match the mocap data.
 <br>In case the elbows or knees pole vector controls give you trouble, you might be able to fix it using their custom attribute "Follow Foot" or "Follow Wrist" instead of relying on HumanIK to position it. <a href="https://youtu.be/eBwYi8FeK3I">This video</a> explains in more details how this process works.
 <br><b>5.</b> Now you can bake the movements to the custom rig by going to "HumanIK Button (blue button) > Bake > Bake to Custom Rig".
@@ -1550,9 +1644,9 @@ This rig comes with many custom attributes so you can tweak how much stability/f
 <p><b>- Lock Attribute</b>: Many controls come with channels automatically locked so they behave in an expected way, but in certain situations you might want to unlock these so you have more flexibility. For this, you can just change the "Lock ATTR" (ATTR could be channels TRS, XYZ) custom attribute. A good example is the foot rolls. They have their Y and Z rotations locked by default, but in case you want to rotate the foot in another direction you can change "Lock YZ" to "Off". </p>
 <p><b>- Follow Object</b>: A few controls give you the option to follow other controls or move on their own. These are the pole vector controls (such as the IK knees and IK elbows) and the eye controls. Below you can see an example of the eye controls following or not the head. </p>
 
-<img src="./media/gt_auto_biped_rigger_lock_attr.jpg"
+<img src="./media/biped_auto_rigger_lock_attribute.jpg"
      alt="Auto Biped Lock Attribute Example">
-<img src="./media/gt_auto_biped_rigger_follow_attr.jpg" align="right"
+<img src="./media/biped_auto_rigger_follow_attribute.jpg" align="right"
      alt="Auto Biped Follow Attribute Example">
 
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_foot.gif?raw=true"
@@ -1579,9 +1673,9 @@ This rig comes with many custom attributes so you can tweak how much stability/f
 </ul></p>
 <br>
 
-<img src="./media/gt_auto_biped_rigger_stretchy_system.jpg"
+<img src="./media/biped_auto_rigger_stretchy_system.jpg"
      alt="Auto Biped Stretchy Attributes Example">
-<img src="./media/gt_auto_biped_rigger_finger_attr.jpg" align="right"
+<img src="./media/biped_auto_rigger_finger_attributes.jpg" align="right"
      alt="Auto Biped Follow Attribute Example">
 
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_fingers.gif?raw=true" align="right"
@@ -1618,9 +1712,9 @@ This rig comes with many custom attributes so you can tweak how much stability/f
 
 <br>
 
-<img src="./media/gt_auto_biped_rigger_abduction_system.jpg"
+<img src="./media/biped_auto_rigger_abduction_system.jpg"
      alt="Auto Biped Abduction Attribute Example">
-<img src="./media/gt_auto_biped_rigger_breathing_system.jpg" align="right"
+<img src="./media/biped_auto_rigger_breathing_system.jpg" align="right"
      alt="Auto Biped Auto Breathing Attributes Example">
 
 <img src="https://github.com/TrevisanGMW/maya-scripts/blob/master/gt_tools/media/gt_auto_biped_rigger_breathing.gif?raw=true" align="right"
@@ -1644,7 +1738,7 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 <br>
 <p><h3>Auto Rigger Work Sample:</h3></p>
 <p>Below you can watch a few animations that used Biped Auto Rigger to rig their characters.</p>
-<img src="./media/gt_auto_rigger_home_remedy.jpg" alt="Biped Auto Rigger Home Remedy Promo">
+<img src="./media/biped_auto_rigger_home_remedy.jpg" alt="Biped Auto Rigger Home Remedy Promo">
 
 <p>
 <ul>
@@ -1663,7 +1757,7 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 <div>
 <h1>Biped Rig Interface</h1>
 
-<img src="./media/gt_custom_rig_interface.jpg" align="right"
+<img src="./media/biped_rig_interface.jpg" align="right"
      alt="Biped Rig Interface GUI">
 
 <p>Extra functions and automation for rigs generated using GT Biped Auto Rigger.
@@ -1728,11 +1822,31 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 <br>
 </div>
 
+<!-- Game FBX Exporter -->
+<div>
+<h1>Game FBX Exporter</h1>
+
+<img src="./media/game_fbx_exporter.jpg" align="right"
+     alt="GT Game FBX Exporter GUI">
+
+<p>This script exports a biped rig into FBX while including only the necessary data for animation or model to work in a real-time engine. Any namespaces included in animation files (due to being references) are automatically stripped before exporting.</p>
+<p>Generated FBX file uses real-time properties such as triangulation and SmoothingGroups and ContainerObjects</p>
+
+<ul>
+	<li><b>Export Model FBX File:</b> Exports the main skeleton (joints under "root_jnt") and skinned geometry (found under "geometry_grp")
+	<br>This option is equivalent to exporting the skinned version of the model without animation into a real-time engine. It includes some keyframe data into it to be used a neutral pose.</li>
+	<li><b>Export Animation FBX File:</b> Exports the main skeleton (joints under "root_jnt") after baking any interpolating keyframe data into individual keyframes.
+	<br>This option doesn't include the model, only the root skeleton. It should be used to export animation only. Any namespaces will be automatically stripped from the rig in the export.</li>
+</ul>
+<br>
+
+</div>
+
 <!-- Retarget Assistant -->
 <div>
 <h1>Retarget Assistant</h1>
 
-<img src="./media/gt_retarget_assistant.jpg" align="right"
+<img src="./media/retarget_assistant.jpg" align="right"
      alt="GT Retarget Assistant GUI">
 
 <p>This script applies patches while HumanIK motion capture animation is transferred to a rig created with GT Biped Auto Rigger.
@@ -1773,26 +1887,5 @@ If painting the skin weights with "ngSkinTools" (third party plugin) you might h
 <br>
 
 </div>
-
-<!-- Game FBX Exporter -->
-<div>
-<h1>Game FBX Exporter</h1>
-
-<img src="./media/gt_game_fbx_exporter.jpg" align="right"
-     alt="GT Game FBX Exporter GUI">
-
-<p>This script exports a biped rig into FBX while including only the necessary data for animation or model to work in a real-time engine. Any namespaces included in animation files (due to being references) are automatically stripped before exporting.</p>
-<p>Generated FBX file uses real-time properties such as triangulation and SmoothingGroups and ContainerObjects</p>
-
-<ul>
-	<li><b>Export Model FBX File:</b> Exports the main skeleton (joints under "root_jnt") and skinned geometry (found under "geometry_grp")
-	<br>This option is equivalent to exporting the skinned version of the model without animation into a real-time engine. It includes some keyframe data into it to be used a neutral pose.</li>
-	<li><b>Export Animation FBX File:</b> Exports the main skeleton (joints under "root_jnt") after baking any interpolating keyframe data into individual keyframes.
-	<br>This option doesn't include the model, only the root skeleton. It should be used to export animation only. Any namespaces will be automatically stripped from the rig in the export.</li>
-</ul>
-<br>
-
-</div>
-
 
 </body>
