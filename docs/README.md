@@ -1337,12 +1337,16 @@ Do not change the resolution of the image file or crop the image or it might not
 
 <!-- Utilities -->
 <div>
-<h1>Utilities</h1>
+<h1 id="utilities">Utilities</h1>
 
 <img src="./media/utilities.jpg" align="right"
      alt="GT Utilities Menu">
 
-<p>GT Utilities (GTU) is a collection of smaller functions that do not need a dedicated window. The entries below follow the order of the <b>GT Tools &gt; Utilities</b> menu. A few menu-specific utilities are documented in the Curves and Modeling sections where they appear in Maya.</p>
+<p>GT Utilities are a collection of quick functions that do not need a dedicated tool window. The entries below follow the order of the <b>GT Tools &gt; Utilities</b> menu. A few menu-specific utilities are documented in the Curves and Modeling sections where they appear in Maya.</p>
+
+<p><b>Option windows: </b>
+<br>Some menu items have a small option-box button next to them. Click the main menu item to run its default action, or click the option box to open a compact, dockable window with additional settings and related actions. These windows are non-modal, so you can keep working in Maya while they are open.
+<br>For example, the <b>Reload File</b> option window provides force, file-format, previous-file, next-file, and directory-loop controls. The <b>Move Pivot to Base</b> and <b>Move Pivot to Top</b> windows provide anchor grids, while <b>Delete Keyframes</b> provides scope, keyframe-type, and current-frame options.</p>
 
 <p><b>Standalone use: </b>
 <br>In case you're using the standalone version of GT Utilities, you'll have to uncomment one of the functions at the bottom of the script.</p>
