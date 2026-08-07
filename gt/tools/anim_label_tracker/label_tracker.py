@@ -328,6 +328,43 @@ class RangeItem:
         return f"f{self.start:04d}-f{self.end:04d}"
 
 
+def pack_range_lanes(ranges):
+    """Assigns overlapping timeline ranges to separate visual lanes.
+
+    Args:
+        ranges (list): Range items with ``start`` and ``end`` values.
+
+    Returns:
+        dict: Mapping of range indices to zero-based lane indices.
+    """
+    lane_ends = []
+    lanes = {}
+    ranges = list(ranges or [])
+    ordered_indices = sorted(
+        range(len(ranges)),
+        key=lambda index: (
+            min(ranges[index].start, ranges[index].end),
+            max(ranges[index].start, ranges[index].end),
+        ),
+    )
+    for index in ordered_indices:
+        range_item = ranges[index]
+        start_frame = min(range_item.start, range_item.end)
+        end_frame = max(range_item.start, range_item.end)
+        target_lane = None
+        for lane_index, lane_end in enumerate(lane_ends):
+            if start_frame > lane_end:
+                target_lane = lane_index
+                break
+        if target_lane is None:
+            lane_ends.append(end_frame)
+            target_lane = len(lane_ends) - 1
+        else:
+            lane_ends[target_lane] = max(lane_ends[target_lane], end_frame)
+        lanes[index] = target_lane
+    return lanes
+
+
 class CustomTimelineWidget(QtWidgets.QWidget):
     rangeSelected = QtCore.Signal(object) 
     timeChanged = QtCore.Signal(int)
@@ -370,6 +407,45 @@ class CustomTimelineWidget(QtWidgets.QWidget):
         self.initial_range_start = 0 
         self.drag_accum = 0.0 
 
+    def get_lane_geometry(self):
+        """Gets visual lane positions for the current timeline ranges.
+
+        Returns:
+            tuple: Range-index lane mapping, lane height, and top offset.
+        """
+        lanes = pack_range_lanes(self.ranges)
+        lane_count = max(lanes.values()) + 1 if lanes else 1
+        top_offset = 20
+        bottom_margin = 20
+        lane_spacing = 3
+        available_height = self.height() - top_offset - bottom_margin
+        lane_height = int((available_height - (lane_spacing * (lane_count - 1))) / lane_count)
+        return lanes, max(8, lane_height), top_offset
+
+    def get_range_rect(self, range_item, index, lanes, lane_height, top_offset):
+        """Builds the visual rectangle for one timeline range.
+
+        Args:
+            range_item (RangeItem): Timeline range being drawn.
+            index (int): Range index in the timeline collection.
+            lanes (dict): Range-index lane mapping.
+            lane_height (int): Height of each visual lane.
+            top_offset (int): Vertical offset of the first lane.
+
+        Returns:
+            QRect: Visual rectangle for the range.
+        """
+        x_start = self.frame_to_x(range_item.start)
+        x_end = self.frame_to_x(range_item.end)
+        width = max(x_end - x_start, 5)
+        lane_spacing = 3
+        lane_index = lanes.get(index, 0)
+        y_position = top_offset + (lane_index * (lane_height + lane_spacing))
+        if range_item.locked:
+            y_position += 5
+            lane_height = max(3, lane_height - 10)
+        return QtCore.QRect(x_start, y_position, width, lane_height)
+
     def frame_to_x(self, frame):
         """Converts a Maya frame value to a timeline x-coordinate.
 
@@ -398,27 +474,33 @@ class CustomTimelineWidget(QtWidgets.QWidget):
         frame = self.start_frame + (float(x) / width) * frame_range
         return round(frame)
 
-    def get_range_and_zone_at_x(self, x):
+    def get_range_and_zone_at_x(self, x, y=None):
         """Finds the range and edge zone under a widget coordinate.
 
         Args:
             x (float): Widget x-coordinate to inspect.
+            y (float, optional): Widget y-coordinate to inspect.
 
         Returns:
             tuple: Range item and interaction zone, or ``(None, None)``.
         """
         frame = self.x_to_frame(x)
         tolerance_px = 6
-        for r in reversed(self.ranges):
-            x_start = self.frame_to_x(r.start)
-            x_end = self.frame_to_x(r.end)
+        lanes, lane_height, top_offset = self.get_lane_geometry()
+        for index in reversed(range(len(self.ranges))):
+            range_item = self.ranges[index]
+            range_rect = self.get_range_rect(range_item, index, lanes, lane_height, top_offset)
+            x_start = range_rect.left()
+            x_end = range_rect.right()
+            if y is not None and not range_rect.adjusted(-tolerance_px, 0, tolerance_px, 0).contains(x, y):
+                continue
             if x_start - tolerance_px <= x <= x_end + tolerance_px:
-                if r.locked or self.tool_mode != 'edit':
-                    if r.start <= frame <= r.end: return r, 'center'
+                if range_item.locked or self.tool_mode != 'edit':
+                    if range_item.start <= frame <= range_item.end: return range_item, 'center'
                 else:
-                    if abs(x - x_start) <= tolerance_px: return r, 'left'
-                    elif abs(x - x_end) <= tolerance_px: return r, 'right'
-                    elif r.start <= frame <= r.end: return r, 'center'
+                    if abs(x - x_start) <= tolerance_px: return range_item, 'left'
+                    elif abs(x - x_end) <= tolerance_px: return range_item, 'right'
+                    elif range_item.start <= frame <= range_item.end: return range_item, 'center'
         return None, None
 
     def get_snap_frame(self, proposed_frame, edge_type, ignore_range=None):
@@ -483,36 +565,42 @@ class CustomTimelineWidget(QtWidgets.QWidget):
             painter.drawLine(x, rect.height() - 15, x, rect.height())
             painter.drawText(x + 2, rect.height() - 2, str(f))
 
-        for r in self.ranges:
-            x1 = self.frame_to_x(r.start)
-            x2 = self.frame_to_x(r.end)
-            w = max(x2 - x1, 5) 
-            y_offset, h_offset = (25, 50) if r.locked else (20, 40)
-            range_rect = QtCore.QRect(x1, y_offset, w, rect.height() - h_offset)
+        lanes, lane_height, top_offset = self.get_lane_geometry()
+        for index, range_item in enumerate(self.ranges):
+            range_rect = self.get_range_rect(range_item, index, lanes, lane_height, top_offset)
             
-            color = QtGui.QColor(*r.color)
+            color = QtGui.QColor(*range_item.color)
             color.setAlpha(150)
-            if r.locked:
+            if range_item.locked:
                 brush = QtGui.QBrush(color, QtCore.Qt.BrushStyle.BDiagPattern)
                 painter.fillRect(range_rect, QtGui.QColor(60, 60, 60, 150))
                 painter.fillRect(range_rect, brush)
             else:
                 painter.fillRect(range_rect, color)
             
-            if r == self.active_range: painter.setPen(QtGui.QPen(QtGui.QColor(255, 200, 50), 3))
-            else: painter.setPen(QtGui.QPen(QtGui.QColor(*r.color), 2))
+            if range_item == self.active_range: painter.setPen(QtGui.QPen(QtGui.QColor(255, 200, 50), 3))
+            else: painter.setPen(QtGui.QPen(QtGui.QColor(*range_item.color), 2))
             painter.drawRect(range_rect)
             
             if self.pref_show_names:
                 painter.setPen(QtGui.QColor(255, 255, 255))
-                painter.drawText(range_rect, QtCore.Qt.AlignmentFlag.AlignCenter, r.display_name)
+                painter.drawText(range_rect, QtCore.Qt.AlignmentFlag.AlignCenter, range_item.display_name)
             if self.pref_show_frames:
                 bold_font = painter.font()
                 bold_font.setPointSize(bold_font.pointSize() + 1); bold_font.setBold(True)
                 painter.setFont(bold_font)
                 painter.setPen(QtGui.QColor(220, 220, 220, 220))
-                painter.drawText(range_rect.adjusted(3, 0, -3, -2), QtCore.Qt.AlignmentFlag.AlignBottom | QtCore.Qt.AlignmentFlag.AlignLeft, str(r.start))
-                painter.drawText(range_rect.adjusted(3, 0, -3, -2), QtCore.Qt.AlignmentFlag.AlignBottom | QtCore.Qt.AlignmentFlag.AlignRight, str(r.end))
+                text_rect = range_rect.adjusted(3, 0, -3, -2)
+                left_alignment = (
+                    QtCore.Qt.AlignmentFlag.AlignBottom
+                    | QtCore.Qt.AlignmentFlag.AlignLeft
+                )
+                right_alignment = (
+                    QtCore.Qt.AlignmentFlag.AlignBottom
+                    | QtCore.Qt.AlignmentFlag.AlignRight
+                )
+                painter.drawText(text_rect, left_alignment, str(range_item.start))
+                painter.drawText(text_rect, right_alignment, str(range_item.end))
 
         cx = self.frame_to_x(self.current_frame)
         painter.setPen(QtGui.QPen(QtGui.QColor(255, 50, 50), 2))
@@ -524,8 +612,9 @@ class CustomTimelineWidget(QtWidgets.QWidget):
         Args:
             event (QMouseEvent): Qt mouse press event.
         """
-        event_x = int(event.position().x())
-        clicked_range, zone = self.get_range_and_zone_at_x(event_x)
+        event_position = event.position()
+        event_x = int(event_position.x())
+        clicked_range, zone = self.get_range_and_zone_at_x(event_x, int(event_position.y()))
         playhead_x = self.frame_to_x(self.current_frame)
 
         if event.button() == QtCore.Qt.MouseButton.RightButton:
@@ -633,7 +722,7 @@ class CustomTimelineWidget(QtWidgets.QWidget):
             if self.tool_mode == 'select' and abs(current_x - playhead_x) <= 8:
                 self.setCursor(QtCore.Qt.CursorShape.SizeWECursor)
             elif self.tool_mode == 'edit':
-                _, zone = self.get_range_and_zone_at_x(current_x)
+                _, zone = self.get_range_and_zone_at_x(current_x, int(event.position().y()))
                 if zone in ('left', 'right'): self.setCursor(QtCore.Qt.CursorShape.SplitHCursor)
                 else: self.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
             elif self.tool_mode == 'razor': self.setCursor(QtCore.Qt.CursorShape.CrossCursor)

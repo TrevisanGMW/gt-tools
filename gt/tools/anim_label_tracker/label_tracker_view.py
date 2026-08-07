@@ -17,8 +17,11 @@ QtWidgets = ui_qt.QtWidgets
 QtGui = ui_qt.QtGui
 
 
-class AnimationLabelTrackerView(legacy_tracker.RangeToolWindow):
-    """Builds the tracker UI while retaining its established interactions."""
+class AnimationLabelTrackerView(
+    metaclass=qt_utils.MayaWindowMeta,
+    base_inheritance=legacy_tracker.RangeToolWindow,
+):
+    """Builds the dockable tracker UI while retaining established interactions."""
 
     def __init__(self, model=None, parent=None):
         """Initializes the tracker view.
