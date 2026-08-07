@@ -290,16 +290,18 @@ class RiggerController:
             return
         for index, file_path in enumerate(recent_paths, start=1):
             action_recent = ui_qt.QtLib.QtGui.QAction(
+                ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_open),
                 f"{index}. {file_path}",
-                icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_open),
+                self._recent_projects_menu,
             )
             action_recent.setToolTip(file_path)
             action_recent.triggered.connect(partial(self.load_project_from_path, file_path))
             self._recent_projects_menu.addAction(action_recent)
         self._recent_projects_menu.addSeparator()
         action_clear = ui_qt.QtLib.QtGui.QAction(
+            ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_delete),
             "Clear Recent Projects",
-            icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_delete),
+            self._recent_projects_menu,
         )
         action_clear.triggered.connect(self.clear_recent_projects)
         self._recent_projects_menu.addAction(action_clear)
