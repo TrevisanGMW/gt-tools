@@ -18,7 +18,9 @@ for path_to_append in [package_root_dir, tests_dir]:
 
 from gt.tools.batch_processor import batch_processor_controller
 from gt.tools.batch_processor import batch_processor_model
+from gt.tools.batch_processor import batch_processor_tasks
 from gt.tools.batch_processor import batch_processor_view
+from gt.tools.batch_processor.widgets import attr_widget_python_script
 from gt.tools.batch_processor.widgets import attr_widget_task
 
 
@@ -129,6 +131,47 @@ class TestBatchProcessorUi(unittest.TestCase):
         self.application.processEvents()
         refresh_parent.assert_called_once_with()
         task_widget.close()
+
+    def test_python_script_paths_persist_when_the_widget_is_rebuilt(self):
+        """Ensures dynamic Python path fields write to task settings."""
+        external_task = self.model.add_task(
+            batch_processor_tasks.TaskPythonScript(settings={"script_mode": "External File"})
+        )
+        external_widget = attr_widget_python_script.AttrWidgetPythonScriptTask(
+            task=external_task,
+            project=self.model,
+        )
+        external_path = "C:/custom/external.py"
+        external_widget.external_script_widgets[0]["field"].setText(external_path)
+        self.application.processEvents()
+
+        external_return_widget = attr_widget_python_script.AttrWidgetPythonScriptTask(
+            task=external_task,
+            project=self.model,
+        )
+        self.assertEqual(external_path, external_return_widget.external_script_widgets[0]["field"].text())
+
+        batch_task = self.model.add_task(
+            batch_processor_tasks.TaskPythonScript(settings={"script_mode": "Batch Directory"})
+        )
+        batch_widget = attr_widget_python_script.AttrWidgetPythonScriptTask(
+            task=batch_task,
+            project=self.model,
+        )
+        batch_path = "C:/custom/scripts"
+        batch_widget.batch_directory_widgets[0]["field"].setText(batch_path)
+        batch_widget.batch_directory_widgets[0]["include_field"].setText("publish_*.py")
+        batch_widget.batch_directory_widgets[0]["exclude_field"].setText("wip_*.py")
+        self.application.processEvents()
+
+        batch_return_widget = attr_widget_python_script.AttrWidgetPythonScriptTask(
+            task=batch_task,
+            project=self.model,
+        )
+        batch_entry = batch_return_widget.batch_directory_widgets[0]
+        self.assertEqual(batch_path, batch_entry["field"].text())
+        self.assertEqual("publish_*.py", batch_entry["include_field"].text())
+        self.assertEqual("wip_*.py", batch_entry["exclude_field"].text())
 
 
 if __name__ == "__main__":

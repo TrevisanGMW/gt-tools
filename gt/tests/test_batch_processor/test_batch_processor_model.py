@@ -1176,6 +1176,31 @@ class TestBatchProcessorModel(unittest.TestCase):
         expected = ["external_script.py"]
         self.assertEqual(expected, result)
 
+    def test_python_external_file_mode_runs_enabled_scripts_in_order(self):
+        first_path = os.path.join(self.temp_dir, "01_first.py")
+        second_path = os.path.join(self.temp_dir, "02_second.py")
+        third_path = os.path.join(self.temp_dir, "03_third.py")
+        for script_path in [first_path, second_path, third_path]:
+            self._write_file(script_path, "def run(context): pass")
+        script_task = modules.TaskPythonScript(
+            settings={
+                "script_mode": "External File",
+                "external_scripts": [
+                    {"path": second_path, "enabled": True},
+                    {"path": first_path, "enabled": False},
+                    {"path": third_path, "enabled": True},
+                ],
+            }
+        )
+
+        result = [
+            os.path.basename(path)
+            for path in script_task.get_script_paths(batch_processor_model.BatchProcessorModel())
+        ]
+
+        expected = ["02_second.py", "03_third.py"]
+        self.assertEqual(expected, result)
+
     def test_legacy_python_scripts_folder_deserializes_as_python_batch(self):
         scripts_dir = os.path.join(self.temp_dir, "scripts")
         os.makedirs(scripts_dir)
@@ -1218,6 +1243,42 @@ class TestBatchProcessorModel(unittest.TestCase):
         result = [os.path.basename(path) for path in script_task.get_script_paths(model)]
 
         expected = ["02_publish.py"]
+        self.assertEqual(expected, result)
+
+    def test_python_batch_directories_run_in_directory_then_script_order(self):
+        first_dir = os.path.join(self.temp_dir, "first_scripts")
+        second_dir = os.path.join(self.temp_dir, "second_scripts")
+        os.makedirs(first_dir)
+        os.makedirs(second_dir)
+        self._write_file(os.path.join(first_dir, "02_second.py"), "def run(context): pass")
+        self._write_file(os.path.join(first_dir, "01_first.py"), "def run(context): pass")
+        self._write_file(os.path.join(first_dir, "03_skip.py"), "def run(context): pass")
+        self._write_file(os.path.join(second_dir, "02_fourth.py"), "def run(context): pass")
+        self._write_file(os.path.join(second_dir, "01_third.py"), "def run(context): pass")
+        script_task = modules.TaskPythonScript(
+            settings={
+                "script_mode": "Batch Directory",
+                "batch_directories": [
+                    {
+                        "path": first_dir,
+                        "include_patterns": "*.py",
+                        "exclude_patterns": "03_*",
+                    },
+                    {
+                        "path": second_dir,
+                        "include_patterns": "01_*.py",
+                        "exclude_patterns": "",
+                    },
+                ],
+            }
+        )
+
+        result = [
+            os.path.basename(path)
+            for path in script_task.get_script_paths(batch_processor_model.BatchProcessorModel())
+        ]
+
+        expected = ["01_first.py", "02_second.py", "01_third.py"]
         self.assertEqual(expected, result)
 
     def test_python_task_executes_inline_script_with_context(self):
