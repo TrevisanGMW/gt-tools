@@ -9,6 +9,8 @@ import ast
 import sys
 import os
 import re
+import json
+import subprocess
 
 # Import Tests
 import gt.tests.test_curve_library as test_curve_library
@@ -122,6 +124,60 @@ def get_test_suites_from_modules(module_list):
     return all_suites
 
 
+def run_ui_test_module_in_subprocess(module):
+    """Runs a Qt UI test module in an isolated Python process.
+
+    Args:
+        module (module): Test module to execute.
+
+    Returns:
+        unittest.TestResult: Test result containing the subprocess counts,
+            failures, and errors.
+    """
+    marker = "__TEST_RESULT__"
+    module_name = module.__name__
+    child_script = (
+        "import importlib, io, json, sys, unittest\n"
+        f"module = importlib.import_module({module_name!r})\n"
+        "suite = unittest.TestLoader().loadTestsFromModule(module)\n"
+        "result = unittest.TextTestRunner(stream=io.StringIO(), verbosity=1).run(suite)\n"
+        "payload = {\n"
+        "    'tests_run': result.testsRun,\n"
+        "    'failures': [[str(test), message] for test, message in result.failures],\n"
+        "    'errors': [[str(test), message] for test, message in result.errors],\n"
+        "}\n"
+        f"print({marker!r} + json.dumps(payload))\n"
+        "sys.exit(1 if result.failures or result.errors else 0)\n"
+    )
+    completed_process = subprocess.run(
+        [sys.executable, "-c", child_script],
+        cwd=package_parent_dir,
+        capture_output=True,
+        encoding="utf-8",
+        errors="replace",
+    )
+
+    if completed_process.stderr:
+        sys.stderr.write(completed_process.stderr)
+
+    output = completed_process.stdout
+    marker_index = output.rfind(marker)
+    result = unittest.TestResult()
+    if marker_index == -1:
+        result.errors = [(module_name, output or "Unable to read subprocess test results.")]
+        return result
+
+    visible_output = output[:marker_index]
+    if visible_output:
+        sys.stdout.write(visible_output)
+
+    payload = json.loads(output[marker_index + len(marker) :].strip())
+    result.testsRun = payload.get("tests_run", 0)
+    result.failures = [tuple(item) for item in payload.get("failures", [])]
+    result.errors = [tuple(item) for item in payload.get("errors", [])]
+    return result
+
+
 def run_test_modules(module_list):
     """
     Run provided tests and returns the results
@@ -131,7 +187,11 @@ def run_test_modules(module_list):
         A list of test results
     """
     results = []
-    for suite in get_test_suites_from_modules(module_list):
+    for module in module_list:
+        if module.__name__.startswith("gt.tests.test_ui."):
+            results.append(run_ui_test_module_in_subprocess(module))
+            continue
+        suite = unittest.TestLoader().loadTestsFromModule(module)
         results.append(unittest.TextTestRunner(verbosity=1).run(suite))
     return results
 

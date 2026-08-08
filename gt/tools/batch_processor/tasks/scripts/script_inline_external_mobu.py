@@ -47,7 +47,14 @@ def parse_args():
 
 
 def load_context(context_path):
-    """Loads the optional batch context JSON file."""
+    """Loads the optional batch context JSON file.
+
+    Args:
+        context_path (str): Path to the batch context JSON file.
+
+    Returns:
+        dict: Loaded context data, or an empty dictionary when unavailable.
+    """
     if context_path and os.path.isfile(context_path):
         with open(context_path, "r", encoding="utf-8") as context_file:
             return json.load(context_file)
@@ -55,7 +62,15 @@ def load_context(context_path):
 
 
 def build_file_pairs(input_path, output_path):
-    """Builds input/output FBX file pairs."""
+    """Builds input/output FBX file pairs.
+
+    Args:
+        input_path (str): Source FBX file or directory.
+        output_path (str): Destination FBX file or directory.
+
+    Returns:
+        list: Input/output file path pairs.
+    """
     if os.path.isdir(input_path):
         if not os.path.isdir(output_path):
             os.makedirs(output_path)
@@ -68,7 +83,12 @@ def build_file_pairs(input_path, output_path):
 
 
 def strip_geometry(input_path, output_path):
-    """Opens an FBX, saves skeleton/character data only, and writes the result."""
+    """Opens an FBX, saves skeleton/character data only, and writes the result.
+
+    Args:
+        input_path (str): Source FBX file path.
+        output_path (str): Destination FBX file path.
+    """
     app = FBApplication()
     system = FBSystem()
     output_dir = os.path.dirname(output_path)

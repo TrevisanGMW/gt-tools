@@ -53,7 +53,14 @@ def parse_args():
 
 
 def load_context(context_path):
-    """Loads the optional batch context JSON file."""
+    """Loads the optional batch context JSON file.
+
+    Args:
+        context_path (str): Path to the batch context JSON file.
+
+    Returns:
+        dict: Loaded context data, or an empty dictionary when unavailable.
+    """
     if context_path and os.path.isfile(context_path):
         with open(context_path, "r", encoding="utf-8") as context_file:
             return json.load(context_file)
@@ -61,7 +68,11 @@ def load_context(context_path):
 
 
 def open_input_file(file_path):
-    """Opens a Blend file or imports a supported interchange file."""
+    """Opens a Blend file or imports a supported interchange file.
+
+    Args:
+        file_path (str): Blend or interchange file to open or import.
+    """
     extension = os.path.splitext(file_path)[1].lower()
     if extension == ".blend":
         bpy.ops.wm.open_mainfile(filepath=file_path)
@@ -78,7 +89,14 @@ def open_input_file(file_path):
 
 
 def export_fbx(file_path):
-    """Exports the current Blender scene as FBX."""
+    """Exports the current Blender scene as FBX.
+
+    Args:
+        file_path (str): Destination path used to build the FBX output path.
+
+    Returns:
+        str: Path to the exported FBX file.
+    """
     output_path = os.path.splitext(file_path)[0] + ".fbx"
     output_dir = os.path.dirname(output_path)
     if output_dir and not os.path.isdir(output_dir):

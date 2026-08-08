@@ -30,6 +30,10 @@ pprint.pprint(environment_variables)
 
 
 def run(context):
-    """Runs after the inline script is loaded by the batch processor."""
+    """Runs after the inline script is loaded by the batch processor.
+
+    Args:
+        context (dict): Batch context data for the current work item.
+    """
     print("Processing: {0}".format(args.get("input") or context.get("source_path")))
     print("Output: {0}".format(args.get("output") or context.get("output_path")))

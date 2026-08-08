@@ -657,7 +657,18 @@ class TaskExternalScript(TaskPythonScript):
         context_path,
         process_log_path=None,
     ):
-        """Compatibility wrapper for the former MotionBuilder runner name."""
+        """Runs an external script through the compatibility runner name.
+
+        Args:
+            executable_path (str): External application executable path.
+            script_path (str): Python script path.
+            work_item (WorkItem): Work item being processed.
+            output_path (str): Expected output path.
+            project (BatchProcessorModel): Active project model.
+            context_path (str): JSON context path.
+            process_log_path (str, optional): Path used to capture output.
+
+        """
         return self.run_external_script(
             executable_path=executable_path,
             script_path=script_path,
@@ -671,7 +682,19 @@ class TaskExternalScript(TaskPythonScript):
     def build_motionbuilder_command(
         self, executable_path, script_path, work_item, output_path, project, context_path
     ):
-        """Compatibility wrapper for the former command-builder name."""
+        """Builds an external command through the compatibility method name.
+
+        Args:
+            executable_path (str): External application executable path.
+            script_path (str): Script path.
+            work_item (WorkItem): Work item being processed.
+            output_path (str): Expected output path.
+            project (BatchProcessorModel): Active project model.
+            context_path (str): Context JSON path.
+
+        Returns:
+            list: Command arguments.
+        """
         return self.build_external_command(
             executable_path=executable_path,
             script_path=script_path,
@@ -682,7 +705,14 @@ class TaskExternalScript(TaskPythonScript):
         )
 
     def resolve_motionbuilder_executable(self, project=None):
-        """Compatibility wrapper for the former executable resolver name."""
+        """Resolves an executable through the compatibility method name.
+
+        Args:
+            project (BatchProcessorModel, optional): Active project model.
+
+        Returns:
+            str: Resolved executable path.
+        """
         return self.resolve_executable(project=project)
 
 

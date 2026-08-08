@@ -168,30 +168,29 @@ class TestSceneCore(unittest.TestCase):
                 current_file_path,
                 direction=1,
             )
+            expected_loop_previous = {
+                "file_path": os.path.join(directory_path, "c.fbx"),
+                "position": 3,
+                "total": 3,
+            }
+            expected_loop_next = {
+                "file_path": os.path.join(directory_path, "a.ma"),
+                "position": 1,
+                "total": 3,
+            }
+            result_loop_previous = core_scene.get_adjacent_file_data(
+                os.path.join(directory_path, "a.ma"),
+                direction=-1,
+                loop_directory=True,
+            )
+            result_loop_next = core_scene.get_adjacent_file_data(
+                os.path.join(directory_path, "c.fbx"),
+                direction=1,
+                loop_directory=True,
+            )
+
         self.assertEqual(expected_previous, result_previous)
         self.assertEqual(expected_next, result_next)
-
-        expected_loop_previous = {
-            "file_path": os.path.join(directory_path, "c.fbx"),
-            "position": 3,
-            "total": 3,
-        }
-        expected_loop_next = {
-            "file_path": os.path.join(directory_path, "a.ma"),
-            "position": 1,
-            "total": 3,
-        }
-        result_loop_previous = core_scene.get_adjacent_file_data(
-            os.path.join(directory_path, "a.ma"),
-            direction=-1,
-            loop_directory=True,
-        )
-        result_loop_next = core_scene.get_adjacent_file_data(
-            os.path.join(directory_path, "c.fbx"),
-            direction=1,
-            loop_directory=True,
-        )
-
         self.assertEqual(expected_loop_previous, result_loop_previous)
         self.assertEqual(expected_loop_next, result_loop_next)
 
@@ -268,8 +267,7 @@ class TestSceneCore(unittest.TestCase):
             )
         expected_intro = (
             '<span style="font-weight:bold;text-decoration:underline;">next</span> '
-            'file <span style="color:#66CCFF;">&quot;c.fbx&quot;.</span>'
-            '&nbsp;&nbsp;'
+            'file <span style="color:#66CCFF;">"c.fbx"</span> - '
             '<span style="color:#FFCC66;font-weight:bold;text-decoration:underline;">'
             '(3 of 3)</span>'
         )
