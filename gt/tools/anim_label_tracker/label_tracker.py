@@ -12,6 +12,7 @@ import sys
 import subprocess
 from datetime import datetime
 import gt.ui.qt_import as ui_qt
+import gt.ui.qt_utils as ui_qt_utils
 import gt.ui.resource_library as ui_res_lib
 from gt.tools.anim_label_tracker import label_tracker_model
 
@@ -1853,10 +1854,33 @@ class RangeToolWindow(QtWidgets.QDialog):
         """Creates the Maya time-change job used to refresh the tracker."""
         self.teardown_scriptjob()
         self.sj_id = cmds.scriptJob(e=["timeChanged", self.on_maya_time_changed], protected=True)
+
     def teardown_scriptjob(self):
         """Removes the Maya time-change job when the window is closed."""
-        if self.sj_id and cmds.scriptJob(exists=self.sj_id): cmds.scriptJob(kill=self.sj_id, force=True)
+        script_job_id = getattr(self, "sj_id", None)
+        if script_job_id:
+            try:
+                if cmds.scriptJob(exists=script_job_id):
+                    cmds.scriptJob(kill=script_job_id, force=True)
+            except RuntimeError:
+                pass
         self.sj_id = None
+
+    def runtime_widgets_alive(self):
+        """Checks whether the controls used by Maya callbacks still exist.
+
+        Returns:
+            bool: True when the tracker controls can receive updates.
+        """
+        widgets = [
+            self,
+            getattr(self, "start_fld", None),
+            getattr(self, "current_fld", None),
+            getattr(self, "end_fld", None),
+            getattr(self, "timeline", None),
+        ]
+        return all(ui_qt_utils.is_qt_object_valid(widget) for widget in widgets)
+
     def closeEvent(self, event):
         """Cleans up tracker resources before closing the window.
 
@@ -1877,17 +1901,28 @@ class RangeToolWindow(QtWidgets.QDialog):
 
     def on_maya_time_changed(self):
         """Updates the timeline position after Maya's current time changes."""
-        if self.timeline.pref_sync_time and not self.timeline.interaction_state:
-            current = int(cmds.currentTime(q=True))
-            self.sync_current_field(current)
-            self.timeline.current_frame = current; self.timeline.update()
+        if not self.runtime_widgets_alive():
+            self.teardown_scriptjob()
+            return
+        try:
+            if self.timeline.pref_sync_time and not self.timeline.interaction_state:
+                current = int(cmds.currentTime(q=True))
+                self.sync_current_field(current)
+                self.timeline.current_frame = current
+                self.timeline.update()
+        except RuntimeError:
+            self.teardown_scriptjob()
 
     def refresh_from_maya(self):
         """Refreshes tracker display values from the current Maya scene."""
+        if not self.runtime_widgets_alive():
+            return
         s = int(cmds.playbackOptions(q=True, min=True))
         e = int(cmds.playbackOptions(q=True, max=True))
         c = int(cmds.currentTime(q=True))
-        self.start_fld.setText(str(s)); self.end_fld.setText(str(e)); self.sync_current_field(c)
+        self.start_fld.setText(str(s))
+        self.end_fld.setText(str(e))
+        self.sync_current_field(c)
         self.timeline.start_frame, self.timeline.end_frame, self.timeline.current_frame = s, e, c
         self.timeline.update()
         self.highlight_validation()
@@ -1898,7 +1933,16 @@ class RangeToolWindow(QtWidgets.QDialog):
         Args:
             frame (float): Current timeline frame.
         """
-        self.current_fld.blockSignals(True); self.current_fld.setValue(int(frame)); self.current_fld.blockSignals(False)
+        current_field = getattr(self, "current_fld", None)
+        if not ui_qt_utils.is_qt_object_valid(current_field):
+            self.teardown_scriptjob()
+            return
+        try:
+            current_field.blockSignals(True)
+            current_field.setValue(int(frame))
+            current_field.blockSignals(False)
+        except RuntimeError:
+            self.teardown_scriptjob()
 
     def on_current_field_changed(self, val):
         """Moves Maya's current time when the current field changes.
@@ -1906,8 +1950,11 @@ class RangeToolWindow(QtWidgets.QDialog):
         Args:
             val (object): New current-frame field value.
         """
+        if not self.runtime_widgets_alive():
+            return
         cmds.currentTime(val)
-        self.timeline.current_frame = val; self.timeline.update()
+        self.timeline.current_frame = val
+        self.timeline.update()
 
     def on_tool_mode_changed(self, _=None):
         """Updates timeline behavior after the tool mode changes.
