@@ -6,6 +6,7 @@ This module must remain importable outside Maya, so it never imports "maya.cmds"
 Values are provided by the caller and changes are reported through signals.
 """
 import gt.ui.qt_import as ui_qt
+import gt.ui.resource_library as ui_res_lib
 
 from gt.tools.anim_clip_tracker.clip_tracker_constants import (
     MODE_LABELS,
@@ -20,6 +21,7 @@ ACTION_IMPORT_DATA = "import_data"
 ACTION_EXPORT_DATA = "export_data"
 ACTION_RESET_PREFERENCES = "reset_preferences"
 ACTION_DELETE_SCENE_DATA = "delete_scene_data"
+ACTION_SELECT_SCENE_DATA = "select_scene_data"
 
 TOOLTIP_MIN_FRAMES = (
     "Warns when a clip is shorter than the minimum duration.\n"
@@ -128,6 +130,11 @@ TOOLTIP_BTN_DELETE_SCENE_DATA = (
     "A confirmation is required and the action cannot be undone\n"
     "unless the scene is reopened without saving."
 )
+TOOLTIP_WRITE_SCENE_DATA = (
+    "Writes clip changes to the scene node named animClipData.\n"
+    "When disabled, changes remain in the current tool session only."
+)
+TOOLTIP_BTN_SELECT_SCENE_DATA = "Selects the animClipData scene node when it exists."
 
 
 class ClipPreferencesPanel(ui_qt.QtWidgets.QWidget):
@@ -155,6 +162,7 @@ class ClipPreferencesPanel(ui_qt.QtWidgets.QWidget):
         main_layout.addWidget(self.build_warnings_group())
         main_layout.addWidget(self.build_timeline_group())
         main_layout.addWidget(self.build_behavior_group())
+        main_layout.addWidget(self.build_data_management_group())
         main_layout.addWidget(self.build_actions_group())
         self.update_timeline_dependent_widgets()
 
@@ -226,6 +234,28 @@ class ClipPreferencesPanel(ui_qt.QtWidgets.QWidget):
         """
         button = ui_qt.QtWidgets.QPushButton(label)
         button.setToolTip(tooltip)
+        button.clicked.connect(lambda *args, name=action: self.action_triggered.emit(name))
+        return button
+
+    def build_icon_button(self, icon_path, action, tooltip, is_destructive=False):
+        """Builds an icon-only action button.
+
+        Args:
+            icon_path (str): Resource-library icon path.
+            action (str): Action name reported when clicked.
+            tooltip (str): Hover description.
+            is_destructive (bool, optional): Whether this button deletes scene data.
+
+        Returns:
+            QPushButton: Configured icon button.
+        """
+        button = ui_qt.QtWidgets.QPushButton()
+        button.setIcon(ui_qt.QtGui.QIcon(icon_path))
+        button.setIconSize(ui_qt.QtCore.QSize(18, 18))
+        button.setFixedSize(28, 28)
+        button.setToolTip(tooltip)
+        if is_destructive:
+            button.setStyleSheet("background-color: #c94c4c; color: white;")
         button.clicked.connect(lambda *args, name=action: self.action_triggered.emit(name))
         return button
 
@@ -374,7 +404,7 @@ class ClipPreferencesPanel(ui_qt.QtWidgets.QWidget):
         return group_box
 
     def build_actions_group(self):
-        """Builds the preference action buttons.
+        """Builds the non-data preference action buttons.
 
         Returns:
             QGroupBox: Created group.
@@ -386,12 +416,41 @@ class ClipPreferencesPanel(ui_qt.QtWidgets.QWidget):
         )
         first_row.addWidget(self.build_button("Reorder Clips", ACTION_REORDER_CLIPS, TOOLTIP_BTN_REORDER))
         first_row.addWidget(self.build_button("Reset Settings", ACTION_RESET_PREFERENCES, TOOLTIP_BTN_RESET))
-        second_row = self.build_row(group_layout)
-        second_row.addWidget(self.build_button("Export Scene Data", ACTION_EXPORT_DATA, TOOLTIP_BTN_EXPORT))
-        second_row.addWidget(self.build_button("Import Scene Data", ACTION_IMPORT_DATA, TOOLTIP_BTN_IMPORT))
-        second_row.addWidget(
-            self.build_button("Delete Scene Data", ACTION_DELETE_SCENE_DATA, TOOLTIP_BTN_DELETE_SCENE_DATA)
+        return group_box
+
+    def build_data_management_group(self):
+        """Builds controls for scene-node writing and clip-data file actions.
+
+        Returns:
+            QGroupBox: Created data-management group.
+        """
+        group_box, group_layout = self.build_group("Data Management")
+        data_row = self.build_row(group_layout)
+        data_row.addWidget(
+            self.build_check_box(
+                "Write Data to Scene Node (animClipData)",
+                "write_scene_node",
+                TOOLTIP_WRITE_SCENE_DATA,
+            )
         )
+        data_row.addStretch()
+        data_row.addWidget(
+            self.build_icon_button(
+                ui_res_lib.Icon.ui_delete,
+                ACTION_DELETE_SCENE_DATA,
+                TOOLTIP_BTN_DELETE_SCENE_DATA,
+                is_destructive=True,
+            )
+        )
+        data_row.addWidget(
+            self.build_icon_button(
+                ui_res_lib.Icon.ui_cursor,
+                ACTION_SELECT_SCENE_DATA,
+                TOOLTIP_BTN_SELECT_SCENE_DATA,
+            )
+        )
+        data_row.addWidget(self.build_button("Import JSON", ACTION_IMPORT_DATA, TOOLTIP_BTN_IMPORT))
+        data_row.addWidget(self.build_button("Export JSON", ACTION_EXPORT_DATA, TOOLTIP_BTN_EXPORT))
         return group_box
 
     # ------------------------------------------------------------------ signals

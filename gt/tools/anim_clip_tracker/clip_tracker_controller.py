@@ -2,6 +2,7 @@
 Animation Clip Tracker Controller
 """
 from gt.tools.anim_clip_tracker import clip_tracker_constants as clip_constants
+from gt.tools.anim_clip_tracker import clip_tracker_model
 from gt.tools.anim_clip_tracker import clip_tracker_preferences
 import gt.ui.qt_import as ui_qt
 
@@ -35,6 +36,9 @@ class ClipTrackerController:
         self._focus_filter = None
         self._is_refreshing = False
         self._timeline_timer = None
+        self._scene_callback_ids = []
+        self._is_rebuilding = False
+        self._view_rebuild_pending = False
 
     def start(self):
         """Starts the tool."""
@@ -48,18 +52,31 @@ class ClipTrackerController:
         cmds = get_maya_cmds()
         if not self.view.window_exists():
             return
+        self.teardown_scene_callbacks()
 
         # Triggers when the user opens an existing file
-        cmds.scriptJob(
+        scene_opened_job = cmds.scriptJob(
             event=["SceneOpened", self._deferred_scene_refresh],
-            parent=self.view.WORKSPACE_CONTROL,
+            parent=self.view.get_workspace_control_name(),
         )
 
         # Triggers when the user clicks File > New Scene
-        cmds.scriptJob(
+        new_scene_job = cmds.scriptJob(
             event=["NewSceneOpened", self._deferred_scene_refresh],
-            parent=self.view.WORKSPACE_CONTROL,
+            parent=self.view.get_workspace_control_name(),
         )
+        self._scene_callback_ids = [scene_opened_job, new_scene_job]
+
+    def teardown_scene_callbacks(self):
+        """Removes scene callbacks created for this controller instance."""
+        cmds = get_maya_cmds()
+        for callback_id in self._scene_callback_ids:
+            try:
+                if cmds.scriptJob(exists=callback_id):
+                    cmds.scriptJob(kill=callback_id, force=True)
+            except RuntimeError:
+                continue
+        self._scene_callback_ids = []
 
     def _deferred_scene_refresh(self, *args):
         """Safely triggers a refresh after Maya finishes loading."""
@@ -102,12 +119,29 @@ class ClipTrackerController:
             self.refresh()  # Evaluates normally without forcing a redraw
 
     def rebuild_view(self):
-        """Rebuilds the window after deferred UI actions."""
-        if self.view.window_exists():
+        """Rebuilds the view after its current Qt callback has completed."""
+        self._view_rebuild_pending = False
+        if self._is_rebuilding or not self.view.window_exists():
+            return
+        self._is_rebuilding = True
+        try:
+            # A rebuild deletes the old timeline and preference widgets. Stop all
+            # callbacks first so no timer or scriptJob can target those widgets.
+            self.stop_timeline_sync()
+            self.teardown_scene_callbacks()
             self.view.build_ui()
             self.install_focus_refresh_filter()
             self.setup_scene_callbacks()
             self.refresh(force=True)
+        finally:
+            self._is_rebuilding = False
+
+    def schedule_view_rebuild(self):
+        """Queues one safe view rebuild after the current signal returns."""
+        if self._view_rebuild_pending or self._is_rebuilding:
+            return
+        self._view_rebuild_pending = True
+        ui_qt.QtCore.QTimer.singleShot(0, self.rebuild_view)
 
     def add_clip(self, *args):
         """Adds a clip using the current new-clip preferences.
@@ -334,8 +368,10 @@ class ClipTrackerController:
             # Row highlights only mirror a timeline selection, so they are dropped with the timeline
             if not value:
                 self.selected_index = -1
-            # The timeline changes the window structure, so the UI is rebuilt
-            get_maya_cmds().evalDeferred(self.rebuild_view)
+            if self.view.window_exists():
+                self.view.set_timeline_visible(value)
+                self.view.update_timeline()
+                self.view.draw_clips(self.model.get_data(), self.playing_index)
             return
         timeline_only_keys = [
             "timeline_mode",
@@ -373,6 +409,7 @@ class ClipTrackerController:
             clip_tracker_preferences.ACTION_EXPORT_DATA: self.export_data,
             clip_tracker_preferences.ACTION_RESET_PREFERENCES: self.reset_preferences,
             clip_tracker_preferences.ACTION_DELETE_SCENE_DATA: self.delete_scene_data,
+            clip_tracker_preferences.ACTION_SELECT_SCENE_DATA: self.select_scene_data,
         }
         action_function = actions.get(action)
         if not action_function:
@@ -403,6 +440,20 @@ class ClipTrackerController:
         self.selected_index = -1
         if self.view.window_exists():
             self.view.draw_clips(self.model.get_data(), self.playing_index)
+
+    def select_scene_data(self, *args):
+        """Selects the scene node used to store Clip Tracker data.
+
+        Args:
+            *args: Optional Maya callback arguments.
+        """
+        cmds = get_maya_cmds()
+        node_name = clip_tracker_model.CLIP_NODE_NAME
+        if not cmds.objExists(node_name):
+            self.model.log('Scene data node "{0}" was not found.'.format(node_name))
+            return
+        cmds.select(node_name, replace=True)
+        self.model.log('Selected scene data node: "{0}".'.format(node_name))
 
     def set_preferences_collapsed(self, state):
         """Stores preferences collapsed state.
@@ -435,6 +486,28 @@ class ClipTrackerController:
         self.selected_index = -1
         self.view.draw_clips(self.model.get_data(), self.playing_index)
 
+    def move_clip(self, index, offset, *args):
+        """Moves one clip up or down in the displayed list.
+
+        Args:
+            index (int): Current clip index.
+            offset (int): Position change, normally -1 or 1.
+            *args: Optional Maya callback arguments.
+        """
+        target_index = int(index) + int(offset)
+        if not self.model.move_clip(index, offset):
+            return
+        if self.selected_index == index:
+            self.selected_index = target_index
+        elif self.selected_index == target_index:
+            self.selected_index = index
+        if self.playing_index == index:
+            self.playing_index = target_index
+        elif self.playing_index == target_index:
+            self.playing_index = index
+        if self.view.window_exists():
+            self.view.draw_clips(self.model.get_data(), self.playing_index)
+
     def connect_timeline(self, timeline_widget):
         """Connects the timeline widget signals and starts its state sync.
 
@@ -456,7 +529,7 @@ class ClipTrackerController:
     def start_timeline_sync(self):
         """Starts the timer that pushes Maya frame state into the timeline widget."""
         self.stop_timeline_sync()
-        self._timeline_timer = ui_qt.QtCore.QTimer()
+        self._timeline_timer = ui_qt.QtCore.QTimer(self.view)
         self._timeline_timer.setInterval(200)
         self._timeline_timer.timeout.connect(self.sync_timeline_state)
         self._timeline_timer.start()
@@ -532,16 +605,10 @@ class ClipTrackerController:
     def install_focus_refresh_filter(self):
         """Installs a Qt event filter used for refresh-on-focus."""
         try:
-            from maya import OpenMayaUI
-
-            pointer = OpenMayaUI.MQtUtil.findControl(self.view.WORKSPACE_CONTROL)
-            if not pointer:
-                return
-            widget = ui_qt.shiboken.wrapInstance(int(pointer), ui_qt.QtWidgets.QWidget)
             if self._focus_filter:
-                widget.removeEventFilter(self._focus_filter)
+                self.view.removeEventFilter(self._focus_filter)
             self._focus_filter = ClipTrackerFocusFilter(controller=self)
-            widget.installEventFilter(self._focus_filter)
+            self.view.installEventFilter(self._focus_filter)
         except Exception as exception:
             self.model.log("Unable to install focus refresh filter: {0}".format(exception))
 

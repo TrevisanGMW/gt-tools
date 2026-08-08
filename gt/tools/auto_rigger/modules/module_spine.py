@@ -1,14 +1,13 @@
 """
 Auto Rigger Spine Modules
 
-TODO in future iterations:
+Potential new features/changes:
 1. Add an influence system that allows the user to rotate the "C_spine_IK_CTRL" and influence the in-between
 controls as if they were an FK chain (essentially using the pivot of their parents)
 Similarly to how the reference rig is capable of driving spine01 and spine02 when we rotate the spine IK control.
-2. We could change the order of the separator attributes found on many controls so the "controlOptions" come before
+2. Change the order of the separator attributes found on many controls so the "controlOptions" come before
 the exposed rotation order.
 3. Add parenting system to spine FK and IK controls, so they follow or not the rotation of the parent.
-
 """
 
 import gt.core.attr as core_attr

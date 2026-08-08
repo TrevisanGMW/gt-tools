@@ -25,6 +25,7 @@ PREFERENCE_KEYS = [
     "auto_reorder_clips",
     "confirm_delete_clip",
     "new_clip_at_current_frame",
+    "write_scene_node",
     "show_timeline",
     "timeline_mode",
     "timeline_show_names",
@@ -83,6 +84,7 @@ class ClipTrackerModel:
         self.auto_reorder_clips = False
         self.confirm_delete_clip = True
         self.new_clip_at_current_frame = True
+        self.write_scene_node = True
         self.show_timeline = False
         self.timeline_mode = clip_constants.DEFAULT_TIMELINE_MODE
         self.timeline_show_names = False
@@ -116,6 +118,7 @@ class ClipTrackerModel:
             "auto_reorder_clips": bool(self.auto_reorder_clips),
             "confirm_delete_clip": bool(self.confirm_delete_clip),
             "new_clip_at_current_frame": bool(self.new_clip_at_current_frame),
+            "write_scene_node": bool(self.write_scene_node),
             "show_timeline": bool(self.show_timeline),
             "timeline_mode": clip_constants.get_valid_mode(self.timeline_mode),
             "timeline_show_names": bool(self.timeline_show_names),
@@ -164,6 +167,8 @@ class ClipTrackerModel:
 
     def save_data(self):
         """Saves clip data to the Maya scene."""
+        if not self.write_scene_node:
+            return
         cmds = get_maya_cmds()
         if self.auto_reorder_clips:
             self.reorder_clips()
@@ -303,6 +308,26 @@ class ClipTrackerModel:
             deleted = self.clips.pop(index)
             self.save_data()
             self.log('Deleted clip: "{0}"'.format(deleted.get("name") or "Clip {0}".format(index + 1)))
+
+    def move_clip(self, index, offset):
+        """Moves one clip relative to its current list position.
+
+        Args:
+            index (int): Source clip index.
+            offset (int): Position change, normally -1 or 1.
+
+        Returns:
+            bool: True when the clip order was changed.
+        """
+        index = int(index)
+        target_index = index + int(offset)
+        if index < 0 or index >= len(self.clips):
+            return False
+        if target_index < 0 or target_index >= len(self.clips):
+            return False
+        self.clips[index], self.clips[target_index] = self.clips[target_index], self.clips[index]
+        self.save_data()
+        return True
 
     def reorder_clips(self):
         """Sorts clips by start and end frame."""

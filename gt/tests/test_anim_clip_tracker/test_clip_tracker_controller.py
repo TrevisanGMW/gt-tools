@@ -51,8 +51,28 @@ class FakeModel:
         """Sorts clips by start frame."""
         self.clips = sorted(self.clips, key=lambda clip: clip.get("start", 0))
 
+    def move_clip(self, index, offset):
+        """Swaps a clip with its requested neighboring position.
+
+        Args:
+            index (int): Source clip index.
+            offset (int): Relative move amount.
+
+        Returns:
+            bool: True when the move is valid.
+        """
+        target_index = index + offset
+        if target_index < 0 or target_index >= len(self.clips):
+            return False
+        self.clips[index], self.clips[target_index] = self.clips[target_index], self.clips[index]
+        return True
+
     def save_data(self):
         """Records that data was saved."""
+        self.saved = True
+
+    def save_preferences(self):
+        """Records that preferences were saved."""
         self.saved = True
 
     def log(self, message):
@@ -71,6 +91,7 @@ class FakeView:
         self.controller = None
         self.highlight_calls = []
         self.draw_calls = []
+        self.timeline_visibility_calls = []
 
     def window_exists(self):
         """Reports the window as available.
@@ -97,6 +118,17 @@ class FakeView:
             scroll_into_view (bool, optional): Whether the row should be revealed.
         """
         self.highlight_calls.append((selected_index, scroll_into_view))
+
+    def set_timeline_visible(self, is_visible):
+        """Records a timeline visibility update.
+
+        Args:
+            is_visible (bool): Requested timeline visibility.
+        """
+        self.timeline_visibility_calls.append(bool(is_visible))
+
+    def update_timeline(self):
+        """Provides the controller's timeline update interface."""
 
 
 def build_controller(clips=None, timeline_mode=clip_constants.MODE_SELECT, show_timeline=True):
@@ -182,6 +214,27 @@ class TestClipTrackerControllerSelection(unittest.TestCase):
         controller.reorder_clips()
 
         self.assertEqual(-1, controller.selected_index)
+
+    def test_show_timeline_changes_visibility_without_a_rebuild(self):
+        """Checks timeline visibility updates without rebuilding the docked view."""
+        controller = build_controller(show_timeline=False)
+        controller.update_preference("show_timeline", True)
+        controller.update_preference("show_timeline", False)
+
+        self.assertEqual([True, False], controller.view.timeline_visibility_calls)
+        self.assertEqual(False, controller.model.show_timeline)
+
+    def test_move_clip_updates_selection_and_playback_indices(self):
+        """Checks moving a clip preserves the matching selected and playing rows."""
+        controller = build_controller(clips=[{"start": 1}, {"start": 10}])
+        controller.selected_index = 0
+        controller.playing_index = 0
+
+        controller.move_clip(0, 1)
+
+        self.assertEqual(1, controller.selected_index)
+        self.assertEqual(1, controller.playing_index)
+        self.assertEqual(10, controller.model.clips[0]["start"])
 
 
 if __name__ == "__main__":
