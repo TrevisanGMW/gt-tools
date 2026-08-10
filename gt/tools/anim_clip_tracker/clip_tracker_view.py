@@ -46,8 +46,10 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
     LEGACY_WORKSPACE_CONTROL = "GTClipTrackerWorkspaceControl"
     CLIP_INDEX_WIDTH = 20
     CLIP_ACTIVE_WIDTH = 20
+    CLIP_NAME_MINIMUM_WIDTH = 120
     CLIP_FRAME_WIDTH = 60
     CLIP_ACTION_WIDTH = 30
+    CLIP_COLUMN_COUNT = 9
 
     def __init__(self, parent=None, version=None):
         """Initializes the clip tracker view.
@@ -67,11 +69,15 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
         self.index_labels = {}
         self.clip_rows = {}
         self.clips_scroll = None
+        self.clips_content = None
         self.clips_layout = None
         self.timeline_widget = None
         self.preferences_panel = None
         self.preferences_scroll = None
         self.tabs = None
+        self._scaled_width_widgets = []
+        self._scaled_icon_buttons = []
+        self._ui_scale = 1.0
         self._ui_built = False
         self.setMinimumSize(0, 0)
         self.setSizePolicy(
@@ -85,6 +91,7 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
         self.remove_legacy_workspace_control()
         self._ui_built = False
         self.clear_layout()
+        self.update_ui_scale_metrics(force=True)
         title = "Animation Clip Tracker"
         if self.version:
             title += " - (v{0})".format(self.version)
@@ -157,9 +164,12 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
         self.timeline_widget = None
         self.preferences_panel = None
         self.clips_scroll = None
+        self.clips_content = None
         self.clips_layout = None
         self.preferences_scroll = None
         self.tabs = None
+        self._scaled_width_widgets = []
+        self._scaled_icon_buttons = []
         self.play_buttons = []
         self.duration_fields = []
         self.frame_fields = {}
@@ -183,6 +193,135 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
             if child_widget:
                 child_widget.setParent(None)
                 child_widget.deleteLater()
+
+    def showEvent(self, event):
+        """Refreshes DPI-aware metrics after the view is shown.
+
+        Args:
+            event (QShowEvent): Qt show event.
+        """
+        super().showEvent(event)
+        if self._ui_built:
+            self.update_ui_scale_metrics()
+
+    def moveEvent(self, event):
+        """Refreshes DPI-aware metrics after moving between displays.
+
+        Args:
+            event (QMoveEvent): Qt move event.
+        """
+        super().moveEvent(event)
+        if self._ui_built:
+            self.update_ui_scale_metrics()
+
+    def resizeEvent(self, event):
+        """Refreshes DPI-aware metrics when a remote display changes size.
+
+        Args:
+            event (QResizeEvent): Qt resize event.
+        """
+        super().resizeEvent(event)
+        if self._ui_built:
+            self.update_ui_scale_metrics()
+
+    def get_ui_scale_factor(self):
+        """Gets a safe DPI scale factor for the display hosting this view.
+
+        Returns:
+            float: Current DPI scale, clamped to at least the standard scale.
+        """
+        try:
+            screen_number = ui_qt_utils.get_window_screen_number(window=self)
+            scale_factor = float(ui_qt_utils.get_screen_dpi_scale(screen_number))
+        except (AttributeError, RuntimeError, TypeError, ValueError):
+            return 1.0
+        return max(1.0, scale_factor)
+
+    def get_scaled_width(self, width):
+        """Scales a logical control width for the current display DPI.
+
+        Args:
+            width (int): Width at the standard DPI scale.
+
+        Returns:
+            int: Width suitable for the current display.
+        """
+        return max(1, int(round(int(width) * self._ui_scale)))
+
+    def get_clip_row_minimum_width(self):
+        """Gets the minimum width that keeps all clip-row columns usable.
+
+        Returns:
+            int: Minimum width for a complete clip row.
+        """
+        fixed_width = (
+            self.CLIP_INDEX_WIDTH
+            + self.CLIP_ACTIVE_WIDTH
+            + (self.CLIP_FRAME_WIDTH * 3)
+            + (self.CLIP_ACTION_WIDTH * 3)
+        )
+        spacing_width = (self.CLIP_COLUMN_COUNT - 1) * 2
+        return (
+            self.get_scaled_width(fixed_width)
+            + self.get_scaled_width(self.CLIP_NAME_MINIMUM_WIDTH)
+            + spacing_width
+        )
+
+    def register_scaled_width_widget(self, widget, width):
+        """Tracks and sizes a fixed-width control using the current DPI scale.
+
+        Args:
+            widget (QWidget): Widget that should retain a scaled fixed width.
+            width (int): Width at the standard DPI scale.
+        """
+        self._scaled_width_widgets.append((widget, int(width)))
+        widget.setFixedWidth(self.get_scaled_width(width))
+
+    def set_icon_button_size(self, button, width):
+        """Applies scaled dimensions and icon padding to an action button.
+
+        Args:
+            button (QToolButton): Action button to resize.
+            width (int): Square button size at the standard DPI scale.
+        """
+        button_size = self.get_scaled_width(width)
+        icon_padding = self.get_scaled_width(3)
+        button.setFixedSize(button_size, button_size)
+        button.setIconSize(
+            ui_qt.QtCore.QSize(
+                max(1, button_size - (icon_padding * 2)),
+                max(1, button_size - (icon_padding * 2)),
+            )
+        )
+
+    def update_ui_scale_metrics(self, force=False):
+        """Updates fixed clip-list control widths when the screen DPI changes.
+
+        Args:
+            force (bool, optional): Whether to update even when the scale is unchanged.
+        """
+        scale_factor = self.get_ui_scale_factor()
+        if not force and abs(scale_factor - self._ui_scale) < 0.01:
+            return
+        self._ui_scale = scale_factor
+        for widget, width in self._scaled_width_widgets:
+            if ui_qt_utils.is_qt_object_valid(widget):
+                widget.setFixedWidth(self.get_scaled_width(width))
+        for button, width in self._scaled_icon_buttons:
+            if ui_qt_utils.is_qt_object_valid(button):
+                self.set_icon_button_size(button, width)
+        for name_field in self.name_fields.values():
+            if ui_qt_utils.is_qt_object_valid(name_field):
+                name_field.setMinimumWidth(self.get_scaled_width(self.CLIP_NAME_MINIMUM_WIDTH))
+        for row in self.clip_rows.values():
+            if ui_qt_utils.is_qt_object_valid(row):
+                row.setMinimumWidth(self.get_clip_row_minimum_width())
+        if ui_qt_utils.is_qt_object_valid(self.clips_content):
+            self.clips_content.setMinimumWidth(self.get_clip_row_minimum_width())
+            self.clips_content.updateGeometry()
+        if self.clips_layout:
+            self.clips_layout.invalidate()
+        self.updateGeometry()
 
     def get_workspace_control_name(self):
         """Gets the workspace-control name generated by MayaWindowMeta.
@@ -268,7 +407,6 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
         tab_layout.setSpacing(2)
 
         header = ui_qt.QtWidgets.QWidget()
-        header.setMinimumWidth(0)
         header.setSizePolicy(
             ui_qt.QtWidgets.QSizePolicy.Ignored,
             ui_qt.QtWidgets.QSizePolicy.Preferred,
@@ -292,7 +430,7 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
             header_label.setStyleSheet("font-weight: bold;")
             header_label.setAlignment(ui_qt.QtCore.Qt.AlignCenter)
             if width:
-                header_label.setFixedWidth(width)
+                self.register_scaled_width_widget(header_label, width)
                 header_layout.addWidget(header_label)
             else:
                 header_label.setAlignment(
@@ -304,6 +442,7 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
         self.clips_scroll = ui_qt.QtWidgets.QScrollArea()
         self.clips_scroll.setWidgetResizable(True)
         self.clips_scroll.setFrameShape(ui_qt.QtWidgets.QFrame.NoFrame)
+        self.clips_scroll.setHorizontalScrollBarPolicy(ui_qt.QtCore.Qt.ScrollBarAsNeeded)
         self.clips_scroll.setMinimumSize(0, 0)
         self.clips_scroll.setSizePolicy(
             ui_qt.QtWidgets.QSizePolicy.Ignored,
@@ -312,11 +451,13 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
         self.clips_scroll.setContextMenuPolicy(ui_qt.QtCore.Qt.CustomContextMenu)
         self.clips_scroll.customContextMenuRequested.connect(self.show_clips_popup)
         clips_content = ui_qt.QtWidgets.QWidget()
-        clips_content.setMinimumSize(0, 0)
+        clips_content.setMinimumWidth(self.get_clip_row_minimum_width())
+        clips_content.setMinimumHeight(0)
         clips_content.setSizePolicy(
-            ui_qt.QtWidgets.QSizePolicy.Ignored,
+            ui_qt.QtWidgets.QSizePolicy.MinimumExpanding,
             ui_qt.QtWidgets.QSizePolicy.Preferred,
         )
+        self.clips_content = clips_content
         self.clips_layout = ui_qt.QtWidgets.QVBoxLayout(clips_content)
         self.clips_layout.setContentsMargins(0, 0, 0, 0)
         self.clips_layout.setSpacing(2)
@@ -434,6 +575,7 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
 
     def clear_clip_rows(self):
         """Deletes all clip-row widgets from the scroll layout."""
+        self.discard_clip_row_metrics()
         while self.clips_layout.count():
             item = self.clips_layout.takeAt(0)
             widget = item.widget()
@@ -446,6 +588,22 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
         self.index_labels = {}
         self.clip_rows = {}
 
+    def discard_clip_row_metrics(self):
+        """Removes DPI-metric references owned by clip rows being rebuilt."""
+        clip_rows = tuple(self.clip_rows.values())
+        if not clip_rows:
+            return
+        self._scaled_width_widgets = [
+            (widget, width)
+            for widget, width in self._scaled_width_widgets
+            if not any(row is widget or row.isAncestorOf(widget) for row in clip_rows)
+        ]
+        self._scaled_icon_buttons = [
+            (button, width)
+            for button, width in self._scaled_icon_buttons
+            if not any(row is button or row.isAncestorOf(button) for row in clip_rows)
+        ]
+
     def draw_clip_row(self, index, clip, issues=None, playing_index=None):
         """Builds one editable clip row.
 
@@ -457,6 +615,11 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
         """
         row = ui_qt.QtWidgets.QWidget()
         row.setMinimumHeight(30)
+        row.setMinimumWidth(self.get_clip_row_minimum_width())
+        row.setSizePolicy(
+            ui_qt.QtWidgets.QSizePolicy.MinimumExpanding,
+            ui_qt.QtWidgets.QSizePolicy.Preferred,
+        )
         row_layout = ui_qt.QtWidgets.QHBoxLayout(row)
         row_layout.setContentsMargins(0, 0, 0, 0)
         row_layout.setSpacing(2)
@@ -470,7 +633,7 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
 
         active_checkbox = ui_qt.QtWidgets.QCheckBox()
         active_checkbox.setChecked(bool(clip.get("active")))
-        active_checkbox.setFixedWidth(self.CLIP_ACTIVE_WIDTH)
+        self.register_scaled_width_widget(active_checkbox, self.CLIP_ACTIVE_WIDTH)
         active_checkbox.setContextMenuPolicy(ui_qt.QtCore.Qt.CustomContextMenu)
         active_checkbox.customContextMenuRequested.connect(
             partial(self.show_clip_order_popup, active_checkbox, index)
@@ -480,7 +643,7 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
 
         name_field = ui_qt.QtWidgets.QLineEdit(str(clip.get("name") or ""))
         name_field.setObjectName("ClipTrackerNameField")
-        name_field.setMinimumWidth(120)
+        name_field.setMinimumWidth(self.get_scaled_width(self.CLIP_NAME_MINIMUM_WIDTH))
         name_field.setPlaceholderText("Enter clip name...")
         name_field.editingFinished.connect(
             lambda field=name_field, clip_index=index: self.controller.update_clip_val(
@@ -549,7 +712,7 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
         field.setRange(-1000000, 1000000)
         field.setValue(int(value))
         field.setObjectName("ClipTrackerFrameField")
-        field.setFixedWidth(self.CLIP_FRAME_WIDTH)
+        self.register_scaled_width_widget(field, self.CLIP_FRAME_WIDTH)
         field.editingFinished.connect(
             lambda frame_field=field, clip_index=index, clip_key=key: self.controller.update_clip_val(
                 clip_index,
@@ -575,7 +738,7 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
         """
         label = ui_qt.QtWidgets.QLabel(text)
         label.setAlignment(ui_qt.QtCore.Qt.AlignCenter)
-        label.setFixedWidth(width)
+        self.register_scaled_width_widget(label, width)
         return label
 
     def create_duration_field(self):
@@ -588,7 +751,7 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
         duration_field.setObjectName("ClipTrackerDurationField")
         duration_field.setReadOnly(True)
         duration_field.setAlignment(ui_qt.QtCore.Qt.AlignCenter)
-        duration_field.setFixedWidth(self.CLIP_FRAME_WIDTH)
+        self.register_scaled_width_widget(duration_field, self.CLIP_FRAME_WIDTH)
         return duration_field
 
     @staticmethod
@@ -634,13 +797,13 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
         button.setObjectName("ClipTrackerIconButton")
         button.setToolTip(tooltip)
         button_size = int(button_width or self.CLIP_ACTION_WIDTH)
-        button.setFixedSize(button_size, button_size)
+        self._scaled_icon_buttons.append((button, button_size))
+        self.set_icon_button_size(button, button_size)
         icon = self.get_icon(icon_name, fallback_icon)
         if icon.isNull():
             button.setText(fallback_text)
         else:
             button.setIcon(icon)
-            button.setIconSize(ui_qt.QtCore.QSize(button_size - 6, button_size - 6))
         button.clicked.connect(lambda *args: callback())
         return button
 
