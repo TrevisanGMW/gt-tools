@@ -42,6 +42,27 @@ def get_template_source_dir():
     return os.path.join(get_default_prefs_dir(), "{0}_templates".format(_PREFS_FILENAME))
 
 
+def save_project_template(project, template_path):
+    """Saves a project as a template without changing the active project.
+
+    Args:
+        project (BatchProcessorModel): Project to serialize as a template.
+        template_path (str): Destination `.batch` template file path.
+
+    Returns:
+        str: Saved template file path.
+    """
+    if not isinstance(project, batch_processor_model.BatchProcessorModel):
+        raise TypeError("Expected a BatchProcessorModel project.")
+
+    template_dir = os.path.dirname(template_path)
+    if template_dir and not os.path.isdir(template_dir):
+        os.makedirs(template_dir)
+    batch_processor_model.BatchProcessorModel._atomic_write_json(template_path, project.to_dict())
+    logger.info('Saved batch project template: "%s"', template_path)
+    return template_path
+
+
 TEMPLATE_SOURCE_DIR = get_template_source_dir()
 
 

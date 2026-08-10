@@ -129,11 +129,31 @@ class BatchProcessorController:
         self.view.add_menu_action(parent_menu=menu_file, action=action_save)
         self.view.add_menu_action(parent_menu=menu_file, action=action_save_as)
 
-        menu_templates = self.view.add_menu_submenu(
+        self._templates_menu = self.view.add_menu_submenu(
             parent_menu=menu_file,
             submenu_name="Templates",
             icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_templates),
         )
+        self._template_menu_actions = []
+        self._templates_menu.aboutToShow.connect(self.refresh_templates_menu)
+        self.refresh_templates_menu()
+
+        action_import_project = self.create_action("Import Project", icon_path=ui_res_lib.Icon.ui_open)
+        action_import_project.setToolTip(
+            "Import all tasks from an existing .batch project and append them to the current project. "
+            "Only the tasks and their settings are imported; project settings are discarded."
+        )
+        action_import_project.triggered.connect(self.import_project)
+        self.view.add_menu_action(parent_menu=menu_file, action=action_import_project)
+
+    def refresh_templates_menu(self):
+        """Rebuilds the template submenu from the current template directory."""
+        if not ui_qt_utils.is_qt_object_valid(getattr(self, "_templates_menu", None)):
+            return
+
+        menu_templates = self._templates_menu
+        self._template_menu_actions = []
+        menu_templates.clear()
         template_registry = batch_processor_templates.BatchProcessorTemplates()
         ui_qt_utils.add_labeled_separator(menu=menu_templates, text="File Templates")
         for name, template_func in template_registry.get_dict_templates().items():
@@ -143,21 +163,22 @@ class BatchProcessorController:
                 icon_path=get_icon_path(template_registry.icon_files),
             )
             action_template.triggered.connect(partial(self.replace_project_from_template, template_func=template_func))
-            self.view.add_menu_action(parent_menu=menu_templates, action=action_template)
-        ui_qt_utils.add_labeled_separator(menu=menu_templates, text="Template Resources")
+            self._template_menu_actions.append(action_template)
+            menu_templates.addAction(action_template)
+
+        ui_qt_utils.add_labeled_separator(menu=menu_templates, text="Template Folder")
         action_open_templates = self.create_action("Open Templates Folder", icon_path=ui_res_lib.Icon.util_open_dir)
         action_open_templates.triggered.connect(
             lambda *args: self.open_or_create_directory(batch_processor_templates.get_template_source_dir())
         )
-        self.view.add_menu_action(parent_menu=menu_templates, action=action_open_templates)
+        self._template_menu_actions.append(action_open_templates)
+        menu_templates.addAction(action_open_templates)
 
-        action_import_project = self.create_action("Import Project", icon_path=ui_res_lib.Icon.ui_open)
-        action_import_project.setToolTip(
-            "Import all tasks from an existing .batch project and append them to the current project. "
-            "Only the tasks and their settings are imported; project settings are discarded."
-        )
-        action_import_project.triggered.connect(self.import_project)
-        self.view.add_menu_action(parent_menu=menu_file, action=action_import_project)
+        action_save_template = self.create_action("Save Current as Template", icon_path=ui_res_lib.Icon.ui_templates)
+        action_save_template.setToolTip("Save a copy of the current project as a reusable template.")
+        action_save_template.triggered.connect(self.save_current_project_as_template)
+        self._template_menu_actions.append(action_save_template)
+        menu_templates.addAction(action_save_template)
 
     def refresh_recent_projects_menu(self):
         """Rebuilds the recent-project submenu from stored preferences."""
@@ -767,6 +788,90 @@ class BatchProcessorController:
             self.log_status("Saved project: {0}".format(saved_path))
             return True
         return False
+
+    def save_current_project_as_template(self, *args):
+        """Saves the current project as a reusable template project file.
+
+        Args:
+            *args: Optional Qt signal arguments.
+
+        Returns:
+            bool: True when the template was created.
+        """
+        template_name = self.get_template_name_from_dialog(default_name=self.model.project_name)
+        if not template_name:
+            return False
+
+        template_source_dir = batch_processor_templates.get_template_source_dir()
+        template_path = os.path.join(template_source_dir, f"{template_name}{constants.Project.EXTENSION}")
+        if os.path.isfile(template_path) and not self.show_template_overwrite_warning(template_path):
+            return False
+
+        try:
+            saved_template_path = batch_processor_templates.save_project_template(
+                project=self.model,
+                template_path=template_path,
+            )
+        except (OSError, TypeError, ValueError) as exception:
+            self.show_project_load_warning(
+                title="Unable to Save Template",
+                message=f"The template could not be saved:\n\n{exception}",
+            )
+            return False
+
+        logger.info(f'Created batch project template "{saved_template_path}".')
+        self.log_status(f"Saved template: {saved_template_path}")
+        ui_qt.QtCore.QTimer.singleShot(0, self.refresh_templates_menu)
+        return True
+
+    def get_template_name_from_dialog(self, default_name):
+        """Prompts the user for a safe name for a new project template.
+
+        Args:
+            default_name (str): Initial template name shown to the user.
+
+        Returns:
+            str: Sanitized template name without the project extension, or an
+            empty string when cancelled or invalid.
+        """
+        template_name, accepted = ui_qt.QtWidgets.QInputDialog.getText(
+            self.view,
+            "Save Current as Template",
+            "Template Name:",
+            text=default_name or constants.Project.DEFAULT_NAME,
+        )
+        if not accepted:
+            return ""
+
+        template_name = tasks.sanitize_filename(template_name, fallback="")
+        if template_name.lower().endswith(constants.Project.EXTENSION):
+            template_name = template_name[: -len(constants.Project.EXTENSION)]
+        if template_name:
+            return template_name
+
+        self.show_project_load_warning(
+            title="Invalid Template Name",
+            message="Enter a valid name for the template.",
+        )
+        return ""
+
+    def show_template_overwrite_warning(self, template_path):
+        """Asks the user before replacing an existing template project file.
+
+        Args:
+            template_path (str): Existing template file that would be replaced.
+
+        Returns:
+            bool: True when the existing template may be replaced.
+        """
+        result = ui_qt.QtWidgets.QMessageBox.question(
+            self.view,
+            "Replace Existing Template",
+            f"A template already exists at:\n\n{template_path}\n\nReplace its project data?",
+            ui_qt.QtLib.StandardButton.Yes | ui_qt.QtLib.StandardButton.No,
+            ui_qt.QtLib.StandardButton.No,
+        )
+        return result == ui_qt.QtLib.StandardButton.Yes
 
     def add_task_by_type(self, task_type):
         """Adds a new task to the project.

@@ -140,6 +140,24 @@ class TestBatchProcessorModel(unittest.TestCase):
         expected = constants.TaskType.MAYA_IMPORT
         self.assertEqual(expected, result.tasks[1].task_type)
 
+    def test_save_project_template_keeps_active_project_path(self):
+        model = batch_processor_model.BatchProcessorModel()
+        model.project_name = "Reusable Batch"
+        model.project_file_path = os.path.join(self.temp_dir, "active_project.batch")
+        model.add_task(modules.TaskRename(settings={"pattern": "template_{index}"}))
+        template_path = os.path.join(self.temp_dir, "templates", "reusable_batch.batch")
+
+        result = batch_processor_templates.save_project_template(model, template_path)
+
+        expected = template_path
+        self.assertEqual(expected, result)
+        self.assertEqual(os.path.join(self.temp_dir, "active_project.batch"), model.project_file_path)
+        self.assertTrue(os.path.isfile(template_path))
+        with open(template_path, "r", encoding="utf-8") as template_file:
+            template_data = json.load(template_file)
+        self.assertEqual("Reusable Batch", template_data["project_name"])
+        self.assertEqual("template_{index}", template_data["tasks"][1]["parameters"]["pattern"])
+
     def test_input_module_discovers_extension_filtered_files(self):
         input_dir = os.path.join(self.temp_dir, "input")
         nested_dir = os.path.join(input_dir, "nested")
