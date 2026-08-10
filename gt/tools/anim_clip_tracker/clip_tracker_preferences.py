@@ -22,6 +22,8 @@ ACTION_EXPORT_DATA = "export_data"
 ACTION_RESET_PREFERENCES = "reset_preferences"
 ACTION_DELETE_SCENE_DATA = "delete_scene_data"
 ACTION_SELECT_SCENE_DATA = "select_scene_data"
+ACTION_CREATE_EXAMPLE_AUTOMATION = "create_example_automation"
+ACTION_BROWSE_AUTOMATION_DIRECTORY = "browse_automation_directory"
 
 TOOLTIP_MIN_FRAMES = (
     "Warns when a clip is shorter than the minimum duration.\n"
@@ -135,6 +137,17 @@ TOOLTIP_WRITE_SCENE_DATA = (
     "When disabled, changes remain in the current tool session only."
 )
 TOOLTIP_BTN_SELECT_SCENE_DATA = "Selects the animClipData scene node when it exists."
+TOOLTIP_AUTOMATION_FOLDER = (
+    "Folder containing Python automation scripts.\n"
+    "Each script appears in the Automations tab, where it can be run alone\n"
+    "or included in a checked batch run."
+)
+TOOLTIP_BTN_CREATE_AUTOMATION = (
+    "Writes the packaged example automation script to a location you choose."
+)
+TOOLTIP_BTN_BROWSE_AUTOMATION = "Selects the folder that contains automation scripts."
+ICON_BUTTON_SIZE = 28
+ICON_BUTTON_ICON_SIZE = 18
 
 
 class ClipPreferencesPanel(ui_qt.QtWidgets.QWidget):
@@ -155,6 +168,9 @@ class ClipPreferencesPanel(ui_qt.QtWidgets.QWidget):
         self.mode_buttons = {}
         self.mode_button_group = None
         self.snap_tolerance_spin = None
+        self.automation_path_field = None
+        self._icon_buttons = []
+        self._icon_button_size_references = []
         self.timeline_dependent_widgets = []
         main_layout = ui_qt.QtWidgets.QVBoxLayout(self)
         main_layout.setContentsMargins(4, 2, 4, 4)
@@ -162,6 +178,7 @@ class ClipPreferencesPanel(ui_qt.QtWidgets.QWidget):
         main_layout.addWidget(self.build_warnings_group())
         main_layout.addWidget(self.build_timeline_group())
         main_layout.addWidget(self.build_behavior_group())
+        main_layout.addWidget(self.build_automations_group())
         main_layout.addWidget(self.build_data_management_group())
         main_layout.addWidget(self.build_actions_group())
         self.update_timeline_dependent_widgets()
@@ -238,7 +255,7 @@ class ClipPreferencesPanel(ui_qt.QtWidgets.QWidget):
         return button
 
     def build_icon_button(self, icon_path, action, tooltip, is_destructive=False):
-        """Builds an icon-only action button.
+        """Builds an icon-only action button matching text-button metrics.
 
         Args:
             icon_path (str): Resource-library icon path.
@@ -251,13 +268,49 @@ class ClipPreferencesPanel(ui_qt.QtWidgets.QWidget):
         """
         button = ui_qt.QtWidgets.QPushButton()
         button.setIcon(ui_qt.QtGui.QIcon(icon_path))
-        button.setIconSize(ui_qt.QtCore.QSize(18, 18))
-        button.setFixedSize(28, 28)
+        self._icon_buttons.append(button)
+        self.set_icon_button_size(button)
         button.setToolTip(tooltip)
         if is_destructive:
             button.setStyleSheet("background-color: #c94c4c; color: white;")
         button.clicked.connect(lambda *args, name=action: self.action_triggered.emit(name))
         return button
+
+    def get_icon_button_size(self):
+        """Gets the square size shared by text and icon preference buttons.
+
+        Returns:
+            int: Button size matching the data-management text buttons.
+        """
+        button_size = ICON_BUTTON_SIZE
+        for button in self._icon_button_size_references:
+            if not button:
+                continue
+            button_size = max(
+                button_size,
+                button.sizeHint().height(),
+                button.minimumHeight(),
+            )
+        return button_size
+
+    def set_icon_button_size(self, button):
+        """Applies the shared text-button dimensions to an icon-only button.
+
+        Args:
+            button (QPushButton): Icon button to resize.
+        """
+        button_size = self.get_icon_button_size()
+        icon_size = max(
+            1,
+            int(round((ICON_BUTTON_ICON_SIZE / ICON_BUTTON_SIZE) * button_size)),
+        )
+        button.setFixedSize(button_size, button_size)
+        button.setIconSize(ui_qt.QtCore.QSize(icon_size, icon_size))
+
+    def update_icon_button_sizes(self):
+        """Refreshes icon-only button sizes after a display-metric change."""
+        for button in self._icon_buttons:
+            self.set_icon_button_size(button)
 
     @staticmethod
     def build_row(layout):
@@ -403,6 +456,42 @@ class ClipPreferencesPanel(ui_qt.QtWidgets.QWidget):
         )
         return group_box
 
+    def build_automations_group(self):
+        """Builds the automation folder preference controls.
+
+        Returns:
+            QGroupBox: Automation preference controls.
+        """
+        group_box, group_layout = self.build_group("Automations")
+        row_layout = self.build_row(group_layout)
+        path_label = ui_qt.QtWidgets.QLabel("Folder:")
+        path_label.setToolTip(TOOLTIP_AUTOMATION_FOLDER)
+        row_layout.addWidget(path_label)
+        self.automation_path_field = ui_qt.QtWidgets.QLineEdit(
+            str(self.preferences.get("automation_path") or "")
+        )
+        self.automation_path_field.setPlaceholderText("Select an automation folder...")
+        self.automation_path_field.setToolTip(TOOLTIP_AUTOMATION_FOLDER)
+        self.automation_path_field.textChanged.connect(
+            self.on_automation_path_changed
+        )
+        row_layout.addWidget(self.automation_path_field, 1)
+        row_layout.addWidget(
+            self.build_icon_button(
+                ui_res_lib.Icon.ui_add,
+                ACTION_CREATE_EXAMPLE_AUTOMATION,
+                TOOLTIP_BTN_CREATE_AUTOMATION,
+            )
+        )
+        row_layout.addWidget(
+            self.build_icon_button(
+                ui_res_lib.Icon.ui_open,
+                ACTION_BROWSE_AUTOMATION_DIRECTORY,
+                TOOLTIP_BTN_BROWSE_AUTOMATION,
+            )
+        )
+        return group_box
+
     def build_actions_group(self):
         """Builds the non-data preference action buttons.
 
@@ -449,8 +538,20 @@ class ClipPreferencesPanel(ui_qt.QtWidgets.QWidget):
                 TOOLTIP_BTN_SELECT_SCENE_DATA,
             )
         )
-        data_row.addWidget(self.build_button("Import JSON", ACTION_IMPORT_DATA, TOOLTIP_BTN_IMPORT))
-        data_row.addWidget(self.build_button("Export JSON", ACTION_EXPORT_DATA, TOOLTIP_BTN_EXPORT))
+        import_button = self.build_button(
+            "Import JSON",
+            ACTION_IMPORT_DATA,
+            TOOLTIP_BTN_IMPORT,
+        )
+        export_button = self.build_button(
+            "Export JSON",
+            ACTION_EXPORT_DATA,
+            TOOLTIP_BTN_EXPORT,
+        )
+        self._icon_button_size_references = [import_button, export_button]
+        self.update_icon_button_sizes()
+        data_row.addWidget(import_button)
+        data_row.addWidget(export_button)
         return group_box
 
     # ------------------------------------------------------------------ signals
@@ -481,6 +582,29 @@ class ClipPreferencesPanel(ui_qt.QtWidgets.QWidget):
         """
         self.preferences["show_timeline"] = bool(state)
         self.update_timeline_dependent_widgets()
+
+    def on_automation_path_changed(self, path):
+        """Reports a changed automation folder path.
+
+        Args:
+            path (str): Newly entered automation folder path.
+        """
+        self.preferences["automation_path"] = str(path)
+        self.preference_changed.emit("automation_path", str(path))
+
+    def set_automation_path(self, path):
+        """Updates the automation path field without re-emitting its signal.
+
+        Args:
+            path (str): Automation folder path to display.
+        """
+        path = str(path or "")
+        self.preferences["automation_path"] = path
+        if not self.automation_path_field:
+            return
+        self.automation_path_field.blockSignals(True)
+        self.automation_path_field.setText(path)
+        self.automation_path_field.blockSignals(False)
 
     def update_timeline_dependent_widgets(self):
         """Enables timeline options only while the timeline view is visible."""

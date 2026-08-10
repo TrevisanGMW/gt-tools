@@ -1,6 +1,7 @@
 """Qt view for the Animation Clip Tracker."""
 
 from functools import partial
+from glob import glob as find_glob_paths
 import os
 
 from gt.tools.anim_clip_tracker import clip_tracker_preferences
@@ -11,6 +12,7 @@ import gt.ui.resource_library as ui_res_lib
 
 
 TIMELINE_HEIGHT = 110
+TIMELINE_HANDLE_WIDTH = 6
 SELECTED_ROW_COLOR = "rgb(77, 66, 31)"
 SELECTED_ROW_LABEL_COLOR = "#FFC832"
 ISSUE_ERROR_COLOR = "rgb(140, 46, 46)"
@@ -72,8 +74,16 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
         self.clips_content = None
         self.clips_layout = None
         self.timeline_widget = None
+        self.timeline_splitter = None
+        self._timeline_height = TIMELINE_HEIGHT
         self.preferences_panel = None
         self.preferences_scroll = None
+        self.automations_scroll = None
+        self.automations_content = None
+        self.automations_layout = None
+        self.automation_checkboxes = {}
+        self.automation_index_labels = []
+        self.automation_empty_label = None
         self.tabs = None
         self._scaled_width_widgets = []
         self._scaled_icon_buttons = []
@@ -110,11 +120,6 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
         # Keep this widget alive while hidden. Rebuilding a docked workspace
         # control from the preference signal can leave Maya with stale Qt state.
         self.timeline_widget = clip_tracker_timeline.ClipTimelineWidget(parent=self)
-        self.timeline_widget.setFixedHeight(TIMELINE_HEIGHT)
-        main_layout.addWidget(self.timeline_widget)
-        self.set_timeline_visible(self.controller.model.show_timeline)
-        self.controller.connect_timeline(self.timeline_widget)
-
         self.tabs = ui_qt.QtWidgets.QTabWidget()
         self.tabs.setMinimumSize(0, 0)
         self.tabs.setElideMode(ui_qt.QtCore.Qt.ElideRight)
@@ -124,10 +129,15 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
             ui_qt.QtWidgets.QSizePolicy.Ignored,
         )
         self.tabs.addTab(self.build_clips_tab(), "Animation Clips")
+        self.tabs.addTab(self.build_automations_tab(), "Automations")
         self.tabs.addTab(self.build_preferences_tab(), "Preferences")
-        main_layout.addWidget(self.tabs, 1)
+        self.timeline_splitter = self.build_timeline_splitter()
+        main_layout.addWidget(self.timeline_splitter, 1)
+        self.set_timeline_visible(self.controller.model.show_timeline)
+        self.controller.connect_timeline(self.timeline_widget)
         self.apply_stylesheet()
         self.attach_preferences_panel()
+        self.build_automations_ui()
         self.update_timeline()
         self.setMinimumSize(0, 0)
         self._ui_built = True
@@ -162,11 +172,18 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
         layout.setParent(None)
         layout.deleteLater()
         self.timeline_widget = None
+        self.timeline_splitter = None
         self.preferences_panel = None
         self.clips_scroll = None
         self.clips_content = None
         self.clips_layout = None
         self.preferences_scroll = None
+        self.automations_scroll = None
+        self.automations_content = None
+        self.automations_layout = None
+        self.automation_checkboxes = {}
+        self.automation_index_labels = []
+        self.automation_empty_label = None
         self.tabs = None
         self._scaled_width_widgets = []
         self._scaled_icon_buttons = []
@@ -310,9 +327,14 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
         for button, width in self._scaled_icon_buttons:
             if ui_qt_utils.is_qt_object_valid(button):
                 self.set_icon_button_size(button, width)
+        if ui_qt_utils.is_qt_object_valid(self.preferences_panel):
+            self.preferences_panel.update_icon_button_sizes()
         for name_field in self.name_fields.values():
             if ui_qt_utils.is_qt_object_valid(name_field):
                 name_field.setMinimumWidth(self.get_scaled_width(self.CLIP_NAME_MINIMUM_WIDTH))
+        for index_label in self.automation_index_labels:
+            if ui_qt_utils.is_qt_object_valid(index_label):
+                index_label.setFixedWidth(self.get_scaled_width(24))
         for row in self.clip_rows.values():
             if ui_qt_utils.is_qt_object_valid(row):
                 row.setMinimumWidth(self.get_clip_row_minimum_width())
@@ -389,6 +411,27 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
             )
         )
         return toolbar_layout
+
+    def build_timeline_splitter(self):
+        """Builds the draggable container for the timeline and tracker tabs.
+
+        Returns:
+            QSplitter: Vertical splitter containing the timeline and tracker tabs.
+        """
+        splitter = ui_qt.QtWidgets.QSplitter(ui_qt.QtCore.Qt.Vertical)
+        splitter.setMinimumSize(0, 0)
+        splitter.setHandleWidth(TIMELINE_HANDLE_WIDTH)
+        splitter.setChildrenCollapsible(False)
+        splitter.setSizePolicy(
+            ui_qt.QtWidgets.QSizePolicy.Ignored,
+            ui_qt.QtWidgets.QSizePolicy.Ignored,
+        )
+        splitter.addWidget(self.timeline_widget)
+        splitter.addWidget(self.tabs)
+        splitter.setStretchFactor(0, 0)
+        splitter.setStretchFactor(1, 1)
+        self.restore_timeline_height(splitter=splitter)
+        return splitter
 
     def build_clips_tab(self):
         """Builds the Animation Clips tab.
@@ -483,6 +526,160 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
         )
         return self.preferences_scroll
 
+    def build_automations_tab(self):
+        """Builds the scrollable Automations tab host.
+
+        Returns:
+            QScrollArea: Scrollable automation tab content.
+        """
+        self.automations_scroll = ui_qt.QtWidgets.QScrollArea()
+        self.automations_scroll.setWidgetResizable(True)
+        self.automations_scroll.setFrameShape(ui_qt.QtWidgets.QFrame.NoFrame)
+        self.automations_scroll.setHorizontalScrollBarPolicy(
+            ui_qt.QtCore.Qt.ScrollBarAsNeeded
+        )
+        self.automations_scroll.setMinimumSize(0, 0)
+        self.automations_scroll.setSizePolicy(
+            ui_qt.QtWidgets.QSizePolicy.Ignored,
+            ui_qt.QtWidgets.QSizePolicy.Ignored,
+        )
+        self.automations_content = ui_qt.QtWidgets.QWidget()
+        self.automations_content.setMinimumSize(0, 0)
+        self.automations_content.setSizePolicy(
+            ui_qt.QtWidgets.QSizePolicy.Ignored,
+            ui_qt.QtWidgets.QSizePolicy.Preferred,
+        )
+        self.automations_layout = ui_qt.QtWidgets.QVBoxLayout(
+            self.automations_content
+        )
+        self.automations_layout.setContentsMargins(6, 6, 6, 6)
+        self.automations_layout.setSpacing(4)
+        self.automations_layout.setAlignment(ui_qt.QtCore.Qt.AlignTop)
+        self.automations_scroll.setWidget(self.automations_content)
+        return self.automations_scroll
+
+    def clear_automations_ui(self):
+        """Removes all dynamic controls from the Automations tab."""
+        if self.automations_layout:
+            self.clear_nested_layout(self.automations_layout)
+        self.automation_checkboxes = {}
+        self.automation_index_labels = []
+        self.automation_empty_label = None
+
+    def add_automation_empty_message(self, message):
+        """Centers a prominent message in the Automations tab.
+
+        Args:
+            message (str): Empty-state message to display.
+        """
+        self.automations_layout.setAlignment(ui_qt.QtCore.Qt.AlignCenter)
+        empty_label = ui_qt.QtWidgets.QLabel(message)
+        empty_label.setAlignment(ui_qt.QtCore.Qt.AlignCenter)
+        empty_label.setWordWrap(True)
+        empty_label.setStyleSheet("color: #b0b0b0; padding: 12px;")
+        message_font = empty_label.font()
+        message_font.setPointSize(max(message_font.pointSize() + 2, 11))
+        empty_label.setFont(message_font)
+        self.automation_empty_label = empty_label
+        self.automations_layout.addWidget(empty_label)
+
+    def build_automations_ui(self):
+        """Builds the available automation script controls."""
+        if not self.automations_layout or not self.controller:
+            return
+        self.clear_automations_ui()
+        self.automations_layout.setAlignment(ui_qt.QtCore.Qt.AlignTop)
+        folder = str(self.controller.model.automation_path or "").strip(' "\'')
+        if not folder or not os.path.isdir(folder):
+            self.add_automation_empty_message(
+                "Automations folder not found or path is empty."
+            )
+            return
+
+        script_paths = sorted(find_glob_paths(os.path.join(folder, "*.py")))
+        if not script_paths:
+            self.add_automation_empty_message(
+                f"No Python automation scripts were found in:\n{folder}"
+            )
+            return
+
+        info_label = ui_qt.QtWidgets.QLabel(
+            f"<b>Found {len(script_paths)} automation scripts</b><br>"
+            f"<span style='color:gray'>{folder}</span>"
+        )
+        info_label.setWordWrap(True)
+        self.automations_layout.addWidget(info_label)
+
+        run_checked_button = ui_qt.QtWidgets.QPushButton("Run Checked")
+        run_checked_button.setStyleSheet(
+            "background-color: #b0b0b0; color: black; font-weight: bold; "
+            "padding: 4px;"
+        )
+        run_checked_button.clicked.connect(self.controller.run_checked_automations)
+        self.automations_layout.addWidget(run_checked_button)
+
+        separator = ui_qt.QtWidgets.QFrame()
+        separator.setFrameShape(ui_qt.QtWidgets.QFrame.HLine)
+        self.automations_layout.addWidget(separator)
+
+        check_states = self.controller.model.get_automation_check_states(folder)
+        for index, script_path in enumerate(script_paths, 1):
+            row_layout = ui_qt.QtWidgets.QHBoxLayout()
+            row_layout.setSpacing(4)
+            script_name = os.path.basename(script_path)
+
+            index_label = ui_qt.QtWidgets.QLabel(f"{index}.")
+            index_label.setAlignment(
+                ui_qt.QtCore.Qt.AlignRight | ui_qt.QtCore.Qt.AlignVCenter
+            )
+            self.automation_index_labels.append(index_label)
+            index_label.setFixedWidth(self.get_scaled_width(24))
+            row_layout.addWidget(index_label)
+
+            check_box = ui_qt.QtWidgets.QCheckBox()
+            check_box.setSizePolicy(
+                ui_qt.QtWidgets.QSizePolicy.Fixed,
+                ui_qt.QtWidgets.QSizePolicy.Fixed,
+            )
+            check_box.setChecked(check_states.get(script_name, True))
+            check_box.setToolTip(
+                "Include this automation when running checked scripts."
+            )
+            check_box.toggled.connect(
+                partial(self.controller.set_automation_check_state, script_name)
+            )
+            self.automation_checkboxes[script_path] = check_box
+            row_layout.addWidget(check_box)
+
+            run_button = ui_qt.QtWidgets.QPushButton(script_name)
+            run_button.clicked.connect(
+                partial(self.controller.run_automation, script_path)
+            )
+            row_layout.addWidget(run_button, 1)
+
+            edit_button = ui_qt.QtWidgets.QPushButton("Edit")
+            edit_button.setStyleSheet("padding: 0 6px;")
+            edit_button.setMinimumWidth(edit_button.sizeHint().width())
+            edit_button.setSizePolicy(
+                ui_qt.QtWidgets.QSizePolicy.Fixed,
+                ui_qt.QtWidgets.QSizePolicy.Preferred,
+            )
+            edit_button.clicked.connect(
+                partial(self.controller.open_automation_in_editor, script_path)
+            )
+            row_layout.addWidget(edit_button)
+            self.automations_layout.addLayout(row_layout)
+
+    def set_automation_path(self, automation_path):
+        """Updates the displayed automation folder and script list.
+
+        Args:
+            automation_path (str): Automation folder path to display.
+        """
+        if self.preferences_panel:
+            self.preferences_panel.set_automation_path(automation_path)
+        self.build_automations_ui()
+
     def attach_preferences_panel(self):
         """Creates and connects the Qt preferences panel."""
         panel = clip_tracker_preferences.ClipPreferencesPanel(
@@ -496,6 +693,7 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
         )
         self.preferences_scroll.setWidget(panel)
         self.preferences_panel = panel
+        panel.update_icon_button_sizes()
         self.controller.connect_preferences_panel(panel)
 
     def timeline_widget_alive(self):
@@ -506,16 +704,73 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
         """
         return ui_qt_utils.is_qt_object_valid(self.timeline_widget)
 
+    def timeline_splitter_alive(self):
+        """Checks whether the timeline splitter can receive updates.
+
+        Returns:
+            bool: True when the splitter is valid.
+        """
+        return ui_qt_utils.is_qt_object_valid(self.timeline_splitter)
+
+    def get_timeline_splitter_handle(self):
+        """Gets the splitter handle between the timeline and tracker tabs.
+
+        Returns:
+            QSplitterHandle or None: Draggable timeline divider when available.
+        """
+        if not self.timeline_splitter_alive():
+            return None
+        return self.timeline_splitter.handle(1)
+
+    def remember_timeline_height(self):
+        """Stores the timeline height before it is hidden.
+
+        The stored size lets the timeline return to its last user-selected height
+        when the Show Timeline preference is enabled again.
+        """
+        if not self.timeline_splitter_alive() or self.timeline_widget.isHidden():
+            return
+        splitter_sizes = self.timeline_splitter.sizes()
+        if not splitter_sizes:
+            return
+        minimum_height = self.timeline_widget.minimumHeight()
+        self._timeline_height = max(minimum_height, splitter_sizes[0])
+
+    def restore_timeline_height(self, splitter=None):
+        """Restores the timeline's saved height in its splitter.
+
+        Args:
+            splitter (QSplitter, optional): Splitter to resize. When omitted,
+                the view's timeline splitter is used.
+        """
+        splitter = splitter or self.timeline_splitter
+        if not ui_qt_utils.is_qt_object_valid(splitter):
+            return
+        minimum_height = self.timeline_widget.minimumHeight()
+        timeline_height = max(minimum_height, self._timeline_height)
+        total_height = splitter.height()
+        if total_height <= 0:
+            total_height = self.height()
+        tabs_height = max(1, total_height - timeline_height - splitter.handleWidth())
+        splitter.setSizes([timeline_height, tabs_height])
+
     def set_timeline_visible(self, is_visible):
-        """Shows or hides the existing timeline without rebuilding the view.
+        """Shows or hides the timeline and its resize divider without rebuilding.
 
         Args:
             is_visible (bool): Whether the timeline should be displayed.
         """
         if not self.timeline_widget_alive():
             return
-        self.timeline_widget.setVisible(bool(is_visible))
+        is_visible = bool(is_visible)
+        splitter_handle = self.get_timeline_splitter_handle()
+        if not is_visible:
+            self.remember_timeline_height()
+        self.timeline_widget.setVisible(is_visible)
+        if splitter_handle:
+            splitter_handle.setVisible(is_visible)
         if is_visible:
+            self.restore_timeline_height()
             self.timeline_widget.update()
 
     def update_timeline(self):
