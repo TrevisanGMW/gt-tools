@@ -1,6 +1,7 @@
 """Tests for Animation Label Tracker pure model helpers."""
 
 import json
+import os
 import unittest
 from types import SimpleNamespace
 
@@ -53,6 +54,52 @@ class TestLabelTrackerModel(unittest.TestCase):
         stored_data["file_data"]["source"] = "changed_after_read"
 
         self.assertEqual("previous_file", model.get_last_used_data()["file_data"]["source"])
+
+    def test_automation_check_states_are_scoped_to_the_current_folder(self):
+        """Checks automation selections reset after changing folders."""
+        model = label_tracker_model.AnimationLabelTrackerModel.__new__(
+            label_tracker_model.AnimationLabelTrackerModel
+        )
+        model.preferences = {}
+        first_folder = os.path.join("scripts", "first")
+        second_folder = os.path.join("scripts", "second")
+
+        model.set_automation_check_state(
+            first_folder,
+            "optional_step.py",
+            False,
+            save=False,
+        )
+
+        self.assertEqual(
+            {"optional_step.py": False},
+            model.get_automation_check_states(first_folder),
+        )
+        self.assertTrue(
+            model.reset_automation_check_states(second_folder, save=False)
+        )
+        self.assertEqual({}, model.get_automation_check_states(second_folder))
+        self.assertEqual({}, model.get_automation_check_states(first_folder))
+
+    def test_automation_check_states_preserve_missing_script_entries(self):
+        """Checks stored selections remain available if a script returns later."""
+        model = label_tracker_model.AnimationLabelTrackerModel.__new__(
+            label_tracker_model.AnimationLabelTrackerModel
+        )
+        model.preferences = {}
+        automation_folder = os.path.join("scripts", "automations")
+
+        model.set_automation_check_state(
+            automation_folder,
+            "temporary_step.py",
+            False,
+            save=False,
+        )
+
+        self.assertEqual(
+            {"temporary_step.py": False},
+            model.get_automation_check_states(automation_folder),
+        )
 
     def test_flatten_schema_items_keeps_nested_fields_in_order(self):
         """Checks row items are flattened in display order."""

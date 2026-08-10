@@ -1072,7 +1072,7 @@ class RangeToolWindow(QtWidgets.QDialog):
         self.auto_path_fld.setText(
             os.path.join(os.path.dirname(__file__), "samples")
         )
-        self.auto_path_fld.textChanged.connect(self.build_automations_ui)
+        self.auto_path_fld.textChanged.connect(self.on_automation_path_changed)
         auto_row.addWidget(self.auto_path_fld)
         
         self.btn_add_auto = QtWidgets.QPushButton("Create")
@@ -1116,7 +1116,9 @@ class RangeToolWindow(QtWidgets.QDialog):
         self.chk_bounds = QtWidgets.QCheckBox("Limit Timeline Bounds")
         self.chk_bounds.setChecked(self.timeline.pref_limit_bounds)
         self.chk_bounds.setToolTip("Prevents ranges from being moved or resized\nbeyond the start and end of the timeline.")
-        self.chk_run_all_auto = QtWidgets.QCheckBox("Show 'Run All' Automations Button")
+        self.chk_run_all_auto = QtWidgets.QCheckBox(
+            "Show 'Run Checked' Automations Button"
+        )
         self.chk_run_all_auto.setChecked(True)
         self.chk_val_status = QtWidgets.QCheckBox("Show Validation Status")
         self.chk_val_status.setChecked(True)
@@ -1518,16 +1520,39 @@ class RangeToolWindow(QtWidgets.QDialog):
                 parent_layout.addLayout(field_layout)
 
     # --- AUTOMATIONS LOGIC ---
+    def on_automation_path_changed(self, automation_path):
+        """Resets automation selections when the configured folder changes.
+
+        Args:
+            automation_path (str): Newly configured automation folder path.
+        """
+        self.model.reset_automation_check_states(automation_path)
+        self.build_automations_ui()
+
     def build_automations_ui(self):
         """Builds the automation controls for the current schema."""
         self.clear_layout(self.auto_btn_layout)
+        self.auto_btn_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
+        self.automation_checkboxes = {}
         folder = self.auto_path_fld.text().strip(' "\'')
         
         if not folder or not os.path.exists(folder):
-            self.auto_btn_layout.addWidget(QtWidgets.QLabel("Automations folder not found or path is empty."))
+            self.auto_btn_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+            empty_automations_label = QtWidgets.QLabel(
+                "Automations folder not found or path is empty."
+            )
+            empty_automations_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+            empty_automations_label.setWordWrap(True)
+            empty_automations_label.setStyleSheet("color: #b0b0b0; padding: 12px;")
+            empty_automations_font = empty_automations_label.font()
+            empty_automations_font.setPointSize(
+                max(empty_automations_font.pointSize() + 2, 11)
+            )
+            empty_automations_label.setFont(empty_automations_font)
+            self.auto_btn_layout.addWidget(empty_automations_label)
             return
             
-        py_files = glob.glob(os.path.join(folder, "*.py"))
+        py_files = sorted(glob.glob(os.path.join(folder, "*.py")))
         info_lbl = QtWidgets.QLabel(f"<b>Found {len(py_files)} automation scripts</b><br><span style='color:gray'>{folder}</span><br>")
         info_lbl.setWordWrap(True)
         self.auto_btn_layout.addWidget(info_lbl)
@@ -1535,14 +1560,17 @@ class RangeToolWindow(QtWidgets.QDialog):
         if not py_files: return
         
         if self.chk_run_all_auto.isChecked():
-            btn_run_all = QtWidgets.QPushButton("Run All")
-            btn_run_all.setStyleSheet("background-color: #b0b0b0; color: black; font-weight: bold; padding: 4px;")
-            btn_run_all.clicked.connect(self.run_all_automations)
-            self.auto_btn_layout.addWidget(btn_run_all)
+            btn_run_checked = QtWidgets.QPushButton("Run Checked")
+            btn_run_checked.setStyleSheet(
+                "background-color: #b0b0b0; color: black; font-weight: bold; padding: 4px;"
+            )
+            btn_run_checked.clicked.connect(self.run_checked_automations)
+            self.auto_btn_layout.addWidget(btn_run_checked)
             
             line = QtWidgets.QFrame(); line.setFrameShape(QtWidgets.QFrame.Shape.HLine)
             self.auto_btn_layout.addWidget(line)
             
+        check_states = self.model.get_automation_check_states(folder)
         for i, fpath in enumerate(py_files, 1):
             row = QtWidgets.QHBoxLayout()
             fname = os.path.basename(fpath)
@@ -1551,24 +1579,61 @@ class RangeToolWindow(QtWidgets.QDialog):
             num_lbl.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter)
             num_lbl.setFixedWidth(24)
             row.addWidget(num_lbl)
+
+            checkbox = QtWidgets.QCheckBox()
+            checkbox.setSizePolicy(
+                QtWidgets.QSizePolicy.Fixed,
+                QtWidgets.QSizePolicy.Fixed,
+            )
+            checkbox.setChecked(check_states.get(fname, True))
+            checkbox.setToolTip("Include this automation when running checked scripts.")
+            checkbox.stateChanged.connect(
+                lambda state, name=fname: self.model.set_automation_check_state(
+                    folder,
+                    name,
+                    bool(state),
+                )
+            )
+            self.automation_checkboxes[fpath] = checkbox
+            row.addWidget(checkbox)
             
             btn = QtWidgets.QPushButton(fname)
             btn.clicked.connect(lambda checked=False, p=fpath: self.execute_automation_by_path(p))
             row.addWidget(btn)
             
             edit_btn = QtWidgets.QPushButton("Edit")
-            edit_btn.setMaximumWidth(40)
+            edit_btn.setStyleSheet("padding: 0 6px;")
+            edit_btn.setMinimumWidth(edit_btn.sizeHint().width())
+            edit_btn.setSizePolicy(
+                QtWidgets.QSizePolicy.Fixed,
+                QtWidgets.QSizePolicy.Preferred,
+            )
             edit_btn.clicked.connect(lambda checked=False, p=fpath: self.open_file_in_editor(p))
             row.addWidget(edit_btn)
             
             self.auto_btn_layout.addLayout(row)
 
-    def run_all_automations(self):
-        """Runs every automation configured for the current tracker."""
-        folder = self.auto_path_fld.text().strip(' "\'')
-        py_files = glob.glob(os.path.join(folder, "*.py"))
-        for fpath in py_files:
+    def run_checked_automations(self):
+        """Runs checked automations configured for the current tracker."""
+        checkboxes = getattr(self, "automation_checkboxes", {})
+        if checkboxes:
+            script_paths = [
+                fpath for fpath, checkbox in checkboxes.items() if checkbox.isChecked()
+            ]
+        else:
+            folder = self.auto_path_fld.text().strip(' "\'')
+            check_states = self.model.get_automation_check_states(folder)
+            script_paths = [
+                fpath
+                for fpath in sorted(glob.glob(os.path.join(folder, "*.py")))
+                if check_states.get(os.path.basename(fpath), True)
+            ]
+        for fpath in script_paths:
             self.execute_automation_by_path(fpath)
+
+    def run_all_automations(self):
+        """Runs checked automations through the legacy public method name."""
+        self.run_checked_automations()
 
     def open_file_in_editor(self, filepath):
         """Opens an automation file in the configured system editor.

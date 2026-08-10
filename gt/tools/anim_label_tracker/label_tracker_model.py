@@ -8,10 +8,14 @@ from gt.core.prefs import Prefs
 
 PREFS_FILENAME = "anim_label_tracker"
 LAST_USED_DATA_KEY = "last_used_data"
+AUTOMATION_CHECK_STATES_KEY = "automation_check_states"
+AUTOMATION_CHECK_STATES_PATH_KEY = "automation_check_states_path"
 
 DEFAULT_PREFERENCES = {
     "schema_path": "",
     "automation_path": "",
+    AUTOMATION_CHECK_STATES_KEY: {},
+    AUTOMATION_CHECK_STATES_PATH_KEY: "",
     "magnet_enabled": True,
     "snap_threshold": 10,
     "auto_crop": False,
@@ -68,6 +72,20 @@ def get_default_preferences():
     preferences["schema_path"] = get_sample_schema_path()
     preferences["automation_path"] = get_sample_directory()
     return preferences
+
+
+def normalize_automation_path(automation_path):
+    """Normalizes an automation folder path for preference comparisons.
+
+    Args:
+        automation_path (str): Automation folder path supplied by the user.
+
+    Returns:
+        str: Normalized automation folder path, or an empty string.
+    """
+    if not automation_path:
+        return ""
+    return os.path.normcase(os.path.normpath(str(automation_path).strip(' "\'')))
 
 
 def flatten_schema_items(schema_items):
@@ -282,6 +300,74 @@ class AnimationLabelTrackerModel:
             dict: Last-used range and file metadata, or an empty dictionary.
         """
         return copy.deepcopy(self.preferences.get(LAST_USED_DATA_KEY, {}))
+
+    def get_automation_check_states(self, automation_path):
+        """Gets stored check states when they belong to the given folder.
+
+        Script names that no longer exist are deliberately preserved here. The
+        view ignores them while building the current list, allowing a script to
+        regain its selection state if it returns to the same folder.
+
+        Args:
+            automation_path (str): Current automation folder path.
+
+        Returns:
+            dict: Mapping of automation file names to checked states.
+        """
+        normalized_path = normalize_automation_path(automation_path)
+        stored_path = self.preferences.get(AUTOMATION_CHECK_STATES_PATH_KEY, "")
+        if normalized_path != stored_path:
+            return {}
+        stored_states = self.preferences.get(AUTOMATION_CHECK_STATES_KEY, {})
+        return copy.deepcopy(stored_states) if isinstance(stored_states, dict) else {}
+
+    def reset_automation_check_states(self, automation_path, save=True):
+        """Clears stored check states when the automation folder changes.
+
+        Args:
+            automation_path (str): New automation folder path.
+            save (bool, optional): Whether to immediately persist the change.
+
+        Returns:
+            bool: True if a new folder caused stored states to be reset.
+        """
+        normalized_path = normalize_automation_path(automation_path)
+        stored_path = self.preferences.get(AUTOMATION_CHECK_STATES_PATH_KEY, "")
+        if normalized_path == stored_path:
+            return False
+        self.preferences[AUTOMATION_CHECK_STATES_PATH_KEY] = normalized_path
+        self.preferences[AUTOMATION_CHECK_STATES_KEY] = {}
+        if save:
+            self.save_preferences()
+        return True
+
+    def set_automation_check_state(
+        self,
+        automation_path,
+        script_name,
+        is_checked,
+        save=True,
+    ):
+        """Stores a selected state for an automation in the current folder.
+
+        Args:
+            automation_path (str): Automation folder that owns the script.
+            script_name (str): Automation file name.
+            is_checked (bool): Whether the automation is selected for batch runs.
+            save (bool, optional): Whether to immediately persist the change.
+        """
+        normalized_path = normalize_automation_path(automation_path)
+        stored_path = self.preferences.get(AUTOMATION_CHECK_STATES_PATH_KEY, "")
+        if normalized_path != stored_path:
+            self.preferences[AUTOMATION_CHECK_STATES_PATH_KEY] = normalized_path
+            self.preferences[AUTOMATION_CHECK_STATES_KEY] = {}
+        check_states = self.preferences.get(AUTOMATION_CHECK_STATES_KEY, {})
+        if not isinstance(check_states, dict):
+            check_states = {}
+        check_states[str(script_name)] = bool(is_checked)
+        self.preferences[AUTOMATION_CHECK_STATES_KEY] = check_states
+        if save:
+            self.save_preferences()
 
     def set_last_used_data(self, data, save=True):
         """Stores a copy of tracker data for reuse by later files.
