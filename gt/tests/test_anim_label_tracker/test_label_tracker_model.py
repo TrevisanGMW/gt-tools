@@ -11,6 +11,46 @@ from gt.tools.anim_label_tracker import label_tracker_model
 class TestLabelTrackerModel(unittest.TestCase):
     """Tests import-safe Animation Label Tracker behavior."""
 
+    def test_default_preferences_leave_automation_folder_empty(self):
+        """Checks automations require an explicit user-selected folder."""
+        preferences = label_tracker_model.get_default_preferences()
+
+        self.assertEqual("", preferences["automation_path"])
+
+    def test_default_preferences_show_the_timeline(self):
+        """Checks the timeline remains visible until a user hides it."""
+        preferences = label_tracker_model.get_default_preferences()
+
+        self.assertTrue(preferences["show_timeline"])
+
+    def test_empty_automation_path_is_omitted_from_saved_preferences(self):
+        """Checks an automation folder is only saved after it is configured."""
+        model = label_tracker_model.AnimationLabelTrackerModel.__new__(
+            label_tracker_model.AnimationLabelTrackerModel
+        )
+        saved_preferences = []
+        model.prefs = SimpleNamespace(
+            set_raw_preferences=saved_preferences.append,
+            save=lambda: None,
+        )
+        model.preferences = label_tracker_model.get_default_preferences()
+
+        model.save_preferences()
+
+        self.assertNotIn("automation_path", saved_preferences[-1])
+        self.assertNotIn(
+            label_tracker_model.AUTOMATION_CHECK_STATES_KEY,
+            saved_preferences[-1],
+        )
+
+        model.preferences["automation_path"] = os.path.join("scripts", "automations")
+        model.save_preferences()
+
+        self.assertEqual(
+            model.preferences["automation_path"],
+            saved_preferences[-1]["automation_path"],
+        )
+
     def test_sample_schema_is_valid_json(self):
         """Checks the packaged sample schema can be loaded."""
         with open(label_tracker_model.get_sample_schema_path(), encoding="utf-8") as schema_file:

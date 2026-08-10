@@ -17,6 +17,10 @@ QtWidgets = ui_qt.QtWidgets
 QtGui = ui_qt.QtGui
 
 
+TIMELINE_HEIGHT = 110
+TIMELINE_HANDLE_WIDTH = 6
+
+
 class AnimationLabelTrackerView(
     metaclass=qt_utils.MayaWindowMeta,
     base_inheritance=legacy_tracker.RangeToolWindow,
@@ -32,13 +36,53 @@ class AnimationLabelTrackerView(
         """
         self.model = model or label_tracker_model.AnimationLabelTrackerModel()
         self.controller = None
+        self.timeline_splitter = None
+        self._timeline_height = TIMELINE_HEIGHT
         super().__init__(parent=parent)
+        self._build_timeline_splitter()
+        self._add_timeline_visibility_preference()
         self._build_validation_tab()
         self._add_schema_editor_button()
         self._apply_button_icons()
         self._apply_model_preferences()
         self._connect_preference_persistence()
         self.highlight_validation()
+
+    def _build_timeline_splitter(self):
+        """Replaces the timeline and tabs stack with a draggable splitter."""
+        main_layout = self.layout()
+        timeline_index = main_layout.indexOf(self.timeline)
+        tabs_index = main_layout.indexOf(self.tabs)
+        if timeline_index < 0 or tabs_index < 0:
+            return
+
+        main_layout.removeWidget(self.timeline)
+        main_layout.removeWidget(self.tabs)
+        splitter = QtWidgets.QSplitter(ui_qt.QtCore.Qt.Vertical, self)
+        splitter.setMinimumSize(0, 0)
+        splitter.setHandleWidth(TIMELINE_HANDLE_WIDTH)
+        splitter.setChildrenCollapsible(False)
+        splitter.setSizePolicy(
+            QtWidgets.QSizePolicy.Ignored,
+            QtWidgets.QSizePolicy.Ignored,
+        )
+        splitter.addWidget(self.timeline)
+        splitter.addWidget(self.tabs)
+        splitter.setStretchFactor(0, 0)
+        splitter.setStretchFactor(1, 1)
+        main_layout.insertWidget(timeline_index, splitter, 1)
+        self.timeline_splitter = splitter
+        self._restore_timeline_height()
+
+    def _add_timeline_visibility_preference(self):
+        """Adds the Show Timeline preference to the existing display group."""
+        self.chk_show_timeline = QtWidgets.QCheckBox("Show Timeline")
+        self.chk_show_timeline.setChecked(True)
+        self.chk_show_timeline.setToolTip(
+            "Shows the range timeline and its draggable resize divider."
+        )
+        display_layout = self.chk_frames.parentWidget().layout()
+        display_layout.insertWidget(0, self.chk_show_timeline)
 
     def _build_validation_tab(self):
         """Adds the full validation report tab."""
@@ -126,6 +170,7 @@ class AnimationLabelTrackerView(
             "crop_tolerance": self.spin_crop_tolerance,
             "auto_stretch": self.chk_auto_stretch,
             "stretch_tolerance": self.spin_stretch_tolerance,
+            "show_timeline": self.chk_show_timeline,
             "show_frames": self.chk_frames,
             "show_names": self.chk_names,
             "random_colors": self.chk_colors,
@@ -161,6 +206,7 @@ class AnimationLabelTrackerView(
         self.timeline.pref_razor_random_colors = bool(
             preferences.get("razor_random_colors", True)
         )
+        self.set_timeline_visible(preferences.get("show_timeline", True))
         self.check_schema_path(rebuild=True)
         self.build_automations_ui()
         self.timeline.update()
@@ -176,6 +222,7 @@ class AnimationLabelTrackerView(
             self.spin_crop_tolerance,
             self.chk_auto_stretch,
             self.spin_stretch_tolerance,
+            self.chk_show_timeline,
             self.chk_frames,
             self.chk_names,
             self.chk_colors,
@@ -192,6 +239,7 @@ class AnimationLabelTrackerView(
                 widget.valueChanged.connect(self.save_preferences)
             else:
                 widget.stateChanged.connect(self.save_preferences)
+        self.chk_show_timeline.stateChanged.connect(self.set_timeline_visible)
 
     def save_preferences(self, *args):
         """Captures current UI values in the persistent model."""
@@ -205,6 +253,7 @@ class AnimationLabelTrackerView(
                 "crop_tolerance": self.spin_crop_tolerance.value(),
                 "auto_stretch": self.chk_auto_stretch.isChecked(),
                 "stretch_tolerance": self.spin_stretch_tolerance.value(),
+                "show_timeline": self.chk_show_timeline.isChecked(),
                 "show_frames": self.chk_frames.isChecked(),
                 "show_names": self.chk_names.isChecked(),
                 "random_colors": self.chk_colors.isChecked(),
@@ -216,6 +265,66 @@ class AnimationLabelTrackerView(
                 "write_scene_node": self.chk_write_node.isChecked(),
             }
         )
+
+    def _timeline_splitter_is_valid(self):
+        """Checks whether the timeline splitter can be safely updated.
+
+        Returns:
+            bool: True when the timeline splitter is a valid Qt object.
+        """
+        return qt_utils.is_qt_object_valid(self.timeline_splitter)
+
+    def _get_timeline_splitter_handle(self):
+        """Gets the resize handle between the timeline and the tracker tabs.
+
+        Returns:
+            QSplitterHandle or None: Timeline divider when it is available.
+        """
+        if not self._timeline_splitter_is_valid():
+            return None
+        return self.timeline_splitter.handle(1)
+
+    def _remember_timeline_height(self):
+        """Stores the current timeline height before hiding it."""
+        if not self._timeline_splitter_is_valid() or self.timeline.isHidden():
+            return
+        splitter_sizes = self.timeline_splitter.sizes()
+        if not splitter_sizes:
+            return
+        minimum_height = self.timeline.minimumHeight()
+        self._timeline_height = max(minimum_height, splitter_sizes[0])
+
+    def _restore_timeline_height(self):
+        """Restores the timeline's most recently selected splitter height."""
+        if not self._timeline_splitter_is_valid():
+            return
+        minimum_height = self.timeline.minimumHeight()
+        timeline_height = max(minimum_height, self._timeline_height)
+        total_height = self.timeline_splitter.height()
+        if total_height <= 0:
+            total_height = self.height()
+        tabs_height = max(
+            1,
+            total_height - timeline_height - self.timeline_splitter.handleWidth(),
+        )
+        self.timeline_splitter.setSizes([timeline_height, tabs_height])
+
+    def set_timeline_visible(self, is_visible):
+        """Shows or hides the timeline and its draggable resize divider.
+
+        Args:
+            is_visible (bool): Whether the timeline should be displayed.
+        """
+        is_visible = bool(is_visible)
+        splitter_handle = self._get_timeline_splitter_handle()
+        if not is_visible:
+            self._remember_timeline_height()
+        self.timeline.setVisible(is_visible)
+        if splitter_handle:
+            splitter_handle.setVisible(is_visible)
+        if is_visible:
+            self._restore_timeline_height()
+            self.timeline.update()
 
     def highlight_validation(self):
         """Updates the existing validation bar and full validation report."""
