@@ -149,6 +149,16 @@ class TestClipTrackerViewResponsiveLayout(unittest.TestCase):
         )
         self.assertGreater(self.view.clips_scroll.horizontalScrollBar().maximum(), 0)
 
+    def test_frame_field_preserves_large_frame_values(self):
+        """Checks clip frame fields accept values beyond the previous UI limit."""
+        expected_value = 1695613
+
+        frame_field = self.view.create_frame_field(0, "start", expected_value)
+
+        self.assertEqual(expected_value, frame_field.value())
+        self.assertEqual(clip_tracker_view.FRAME_FIELD_MINIMUM, frame_field.minimum())
+        self.assertEqual(clip_tracker_view.FRAME_FIELD_MAXIMUM, frame_field.maximum())
+
     def test_timeline_splitter_hides_its_handle_with_the_timeline(self):
         """Checks Show Timeline removes the timeline divider as well."""
         self.view.timeline_widget = clip_tracker_view.clip_tracker_timeline.ClipTimelineWidget(

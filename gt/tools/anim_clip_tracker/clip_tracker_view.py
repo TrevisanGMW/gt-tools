@@ -17,6 +17,8 @@ SELECTED_ROW_COLOR = "rgb(77, 66, 31)"
 SELECTED_ROW_LABEL_COLOR = "#FFC832"
 ISSUE_ERROR_COLOR = "rgb(140, 46, 46)"
 ISSUE_WARNING_COLOR = "rgb(140, 92, 20)"
+FRAME_FIELD_MINIMUM = -(2**31)
+FRAME_FIELD_MAXIMUM = 2**31 - 1
 
 
 def get_maya_cmds():
@@ -964,7 +966,7 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
             QSpinBox: Configured frame spin box.
         """
         field = ui_qt.QtWidgets.QSpinBox()
-        field.setRange(-1000000, 1000000)
+        field.setRange(FRAME_FIELD_MINIMUM, FRAME_FIELD_MAXIMUM)
         field.setValue(int(value))
         field.setObjectName("ClipTrackerFrameField")
         self.register_scaled_width_widget(field, self.CLIP_FRAME_WIDTH)
