@@ -1,8 +1,10 @@
 # gitignore
 .DS_Store
 /workbench
-/graphify-out
 Thumbs.db
 *__pycache__
 *pyc
 *.idea
+# graphify
+/graphify-out
+generate_html.py
