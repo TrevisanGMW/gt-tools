@@ -30,6 +30,9 @@ def open_reload_file_options():
         title="Reload File",
         object_name="gtReloadFileOptions",
         icon=ui_res_lib.Icon.util_reload_file,
+        workspace_restore_factory=(
+            "gt.tools.utility_options.reload_file_options.open_reload_file_options"
+        ),
     )
     force_checkbox = ui_qt.QtWidgets.QCheckBox("Force Operation")
     force_checkbox.setToolTip("Force the operation and discard unsaved changes.")

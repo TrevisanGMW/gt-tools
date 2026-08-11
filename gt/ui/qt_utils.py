@@ -84,13 +84,15 @@ class MayaWindowMeta(type):
     _restored_windows = {}
 
     @classmethod
-    def _get_restore_key(mcs, module_name, class_name):
+    def _get_restore_key(mcs, module_name, class_name, workspace_control_name=None):
         """Builds the key used to track a workspace-restored window.
 
         Args:
             mcs (object): Main-window or application context.
             module_name (str): Module containing the window class.
             class_name (str): Window class name.
+            workspace_control_name (str, optional): Maya workspace control used to
+                distinguish windows that share a class.
         """
         """Builds the key used to track a window while Maya restores it.
 
@@ -101,7 +103,10 @@ class MayaWindowMeta(type):
         Returns:
             str: Unique key for the window class.
         """
-        return f"{module_name}.{class_name}"
+        restore_key = f"{module_name}.{class_name}"
+        if workspace_control_name:
+            restore_key = f"{restore_key}.{workspace_control_name}"
+        return restore_key
 
     @classmethod
     def _get_stable_object_name(mcs, module_name, class_name):
@@ -125,7 +130,13 @@ class MayaWindowMeta(type):
         return re.sub(r"[^a-zA-Z0-9_]", "_", raw_name)
 
     @classmethod
-    def _get_restore_script(mcs, module_name, class_name, workspace_control_name):
+    def _get_restore_script(
+        mcs,
+        module_name,
+        class_name,
+        workspace_control_name,
+        restore_factory=None,
+    ):
         """Builds the script stored in a Maya workspace control.
 
         Args:
@@ -133,6 +144,8 @@ class MayaWindowMeta(type):
             module_name (str): Module containing the window class.
             class_name (str): Window class name.
             workspace_control_name (str): Maya workspace control name.
+            restore_factory (str, optional): Import path to the callable that
+                rebuilds the window contents.
         """
         """Builds the Python script stored in Maya's workspace control.
 
@@ -147,9 +160,30 @@ class MayaWindowMeta(type):
         restore_command = (
             f"from gt.ui.qt_utils import MayaWindowMeta; "
             f"MayaWindowMeta.restore_window("
-            f"{module_name!r}, {class_name!r}, {workspace_control_name!r})"
+            f"{module_name!r}, {class_name!r}, {workspace_control_name!r}, "
+            f"{restore_factory!r})"
         )
         return f"import maya.cmds as cmds\ncmds.evalDeferred({restore_command!r}, lowestPriority=True)"
+
+    @classmethod
+    def _discard_workspace_control(mcs, workspace_control_name):
+        """Deletes a workspace control that cannot be restored safely.
+
+        Args:
+            workspace_control_name (str): Name of the Maya workspace control.
+        """
+        if not workspace_control_name:
+            return
+        try:
+            from maya import cmds
+
+            if cmds.workspaceControl(workspace_control_name, query=True, exists=True):
+                cmds.deleteUI(workspace_control_name, control=True)
+        except Exception as exception:
+            logger.debug(
+                f'Unable to discard Maya workspace control "{workspace_control_name}". '
+                f'Issue: "{exception}".'
+            )
 
     @classmethod
     def _attach_restored_window(mcs, window, restore_parent):
@@ -325,7 +359,13 @@ class MayaWindowMeta(type):
             return False
 
     @classmethod
-    def restore_window(mcs, module_name, class_name, workspace_control_name=None):
+    def restore_window(
+        mcs,
+        module_name,
+        class_name,
+        workspace_control_name=None,
+        restore_factory=None,
+    ):
         """Recreates a window inside Maya's restoring workspace control.
 
         Args:
@@ -344,37 +384,65 @@ class MayaWindowMeta(type):
             module_name (str): Module containing the window class.
             class_name (str): Name of the window class.
             workspace_control_name (str, optional): Maya workspace control receiving the recreated window.
+            restore_factory (str, optional): Import path to the callable that
+                rebuilds a dynamic window and shows it.
         """
         import importlib
 
         try:
             from maya import OpenMayaUI as OpenMayaUI
 
+            window_module = importlib.import_module(module_name)
+            window_class = getattr(window_module, class_name)
+            if not restore_factory and not getattr(window_class, "allow_workspace_restore", True):
+                mcs._discard_workspace_control(workspace_control_name)
+                logger.debug(
+                    f'Maya window "{class_name}" does not support workspace recovery. '
+                    "Discarded its retained workspace control."
+                )
+                return
+
             restore_parent = None
             if workspace_control_name:
                 restore_parent = OpenMayaUI.MQtUtil.findControl(workspace_control_name)
             if restore_parent is None:
                 restore_parent = OpenMayaUI.MQtUtil.getCurrentParent()
-            restore_key = mcs._get_restore_key(module_name, class_name)
+            restore_key = mcs._get_restore_key(
+                module_name,
+                class_name,
+                workspace_control_name,
+            )
             mcs._pending_restores[restore_key] = restore_parent
 
-            window_module = importlib.import_module(module_name)
-            package_name = module_name.rpartition(".")[0]
-            package_module = importlib.import_module(package_name) if package_name else None
-            launch_tool = getattr(package_module, "launch_tool", None)
-            if callable(launch_tool):
-                try:
-                    launch_tool()
-                except Exception as e:
-                    logger.warning(
-                        f'Unable to launch package "{package_name}" while restoring '
-                        f'"{class_name}". Issue: "{e}".'
+            if restore_factory:
+                restore_module_name, separator, restore_function_name = restore_factory.rpartition(".")
+                if not separator:
+                    raise ValueError(
+                        f'Workspace restore factory "{restore_factory}" must be an import path.'
                     )
+                restore_module = importlib.import_module(restore_module_name)
+                restore_function = getattr(restore_module, restore_function_name)
+                if not callable(restore_function):
+                    raise TypeError(
+                        f'Workspace restore factory "{restore_factory}" is not callable.'
+                    )
+                restore_function()
+            else:
+                package_name = module_name.rpartition(".")[0]
+                package_module = importlib.import_module(package_name) if package_name else None
+                launch_tool = getattr(package_module, "launch_tool", None)
+                if callable(launch_tool):
+                    try:
+                        launch_tool()
+                    except Exception as e:
+                        logger.warning(
+                            f'Unable to launch package "{package_name}" while restoring '
+                            f'"{class_name}". Issue: "{e}".'
+                        )
 
-            if restore_key in mcs._pending_restores:
-                window_class = getattr(window_module, class_name)
-                window = window_class()
-                window.show()
+                if restore_key in mcs._pending_restores:
+                    window = window_class()
+                    window.show()
 
             if restore_key in mcs._pending_restores:
                 mcs._pending_restores.pop(restore_key, None)
@@ -382,7 +450,11 @@ class MayaWindowMeta(type):
                     f'Maya window "{class_name}" could not be attached during workspace restore.'
                 )
         except Exception as e:
-            restore_key = mcs._get_restore_key(module_name, class_name)
+            restore_key = mcs._get_restore_key(
+                module_name,
+                class_name,
+                workspace_control_name,
+            )
             mcs._pending_restores.pop(restore_key, None)
             logger.warning(
                 f'Unable to restore Maya window "{class_name}". Issue: "{e}".'
@@ -437,7 +509,6 @@ class MayaWindowMeta(type):
         if "__init__" in base_class_vars:
             original_init = base_class_vars["__init__"]
             module_name = attrs.get("__module__", "")
-            restore_key = mcs._get_restore_key(module_name, name)
             stable_object_name = mcs._get_stable_object_name(module_name, name)
 
             def custom_init(self, *args, **kwargs):
@@ -471,19 +542,30 @@ class MayaWindowMeta(type):
                             *args_show: Additional positional arguments for the "show" method.
                             **kwargs_show: Additional keyword arguments for the "show" method.
                         """
-                        workspace_control_name = f"{self.objectName()}WorkspaceControl"
-                        restore_script = mcs._get_restore_script(
-                            module_name, name, workspace_control_name
-                        )
-                        restore_parent = mcs._pending_restores.pop(restore_key, None)
-                        if restore_parent is not None:
-                            if mcs._attach_restored_window(self, restore_parent):
-                                mcs._restored_windows[restore_key] = self
-                            return
-                        if not args_show and not kwargs_show:
-                            if mcs._reuse_workspace_control(self, restore_script):
-                                mcs._restored_windows[restore_key] = self
+                        allow_workspace_restore = getattr(self, "allow_workspace_restore", True)
+                        if allow_workspace_restore:
+                            workspace_control_name = f"{self.objectName()}WorkspaceControl"
+                            restore_key = mcs._get_restore_key(
+                                module_name,
+                                name,
+                                workspace_control_name,
+                            )
+                            restore_factory = getattr(self, "workspace_restore_factory", None)
+                            restore_script = mcs._get_restore_script(
+                                module_name,
+                                name,
+                                workspace_control_name,
+                                restore_factory=restore_factory,
+                            )
+                            restore_parent = mcs._pending_restores.pop(restore_key, None)
+                            if restore_parent is not None:
+                                if mcs._attach_restored_window(self, restore_parent):
+                                    mcs._restored_windows[restore_key] = self
                                 return
+                            if not args_show and not kwargs_show:
+                                if mcs._reuse_workspace_control(self, restore_script):
+                                    mcs._restored_windows[restore_key] = self
+                                    return
                         if not hasattr(self, "_original_geometry"):
                             width = self.geometry().width()
                             height = self.geometry().height()
@@ -492,8 +574,12 @@ class MayaWindowMeta(type):
                             self._original_geometry = [pos_x, pos_y, width, height]
                         if not args_show and "dockable" not in kwargs_show:
                             kwargs_show["dockable"] = True
-                        kwargs_show.setdefault("retain", True)
-                        kwargs_show.setdefault("uiScript", restore_script)
+                        if allow_workspace_restore:
+                            kwargs_show.setdefault("retain", True)
+                            kwargs_show.setdefault("uiScript", restore_script)
+                        else:
+                            kwargs_show["retain"] = False
+                            kwargs_show.pop("uiScript", None)
                         original_show(*args_show, **kwargs_show)
                         try:
                             window_parent = self.parent().parent().parent().parent().parent()
@@ -513,6 +599,9 @@ class MayaWindowMeta(type):
                     generated_name_prefix = f"{name}_"
                     if current_object_name.startswith(generated_name_prefix):
                         self.setObjectName(stable_object_name)
+                    if not getattr(self, "allow_workspace_restore", True):
+                        workspace_control_name = f"{self.objectName()}WorkspaceControl"
+                        mcs._discard_workspace_control(workspace_control_name)
                 # Stay On Top macOS Tool Modality
                 try:
                     if utils_sys.is_system_macos() and not dockable:

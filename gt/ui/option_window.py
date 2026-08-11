@@ -42,15 +42,27 @@ class OptionWindow(metaclass=qt_utils.MayaWindowMeta):
 
     Attributes:
         allow_multiple_instances (bool): Allows different option windows to coexist.
+        allow_workspace_restore (bool): Whether Maya can restore this window at
+            startup.
         controls (dict): Map of control key to the created widget for later lookup.
     """
 
     allow_multiple_instances = True
+    allow_workspace_restore = False
     LABEL_WIDTH = 110
     CONTROL_HEIGHT = 24
     BUTTON_HEIGHT = 28
 
-    def __init__(self, title, object_name, icon=None, description=None, parent=None, version=None):
+    def __init__(
+        self,
+        title,
+        object_name,
+        icon=None,
+        description=None,
+        parent=None,
+        version=None,
+        workspace_restore_factory=None,
+    ):
         """
         Initializes the OptionWindow.
 
@@ -63,13 +75,19 @@ class OptionWindow(metaclass=qt_utils.MayaWindowMeta):
             parent (QWidget, optional): Parent widget. When omitted, the Maya main
                 window is used if available.
             version (str, optional): Optional version appended to the window title.
+            workspace_restore_factory (str, optional): Import path to the function
+                that rebuilds this dynamic window after a Maya restart.
         """
+        if workspace_restore_factory and not isinstance(workspace_restore_factory, str):
+            raise TypeError("workspace_restore_factory must be an import-path string.")
         if parent is None:
             parent = self._resolve_maya_parent()
         super().__init__(parent=parent)
 
         self.controls = {}
         self._title = title
+        self.workspace_restore_factory = workspace_restore_factory
+        self.allow_workspace_restore = bool(workspace_restore_factory)
 
         window_title = title
         if version:

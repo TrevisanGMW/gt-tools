@@ -86,6 +86,9 @@ def open_delete_keyframes_options():
         object_name="gtDeleteKeyframesOptions",
         icon=ui_res_lib.Icon.util_delete_keyframes,
         description="Delete keyframes using the options below.",
+        workspace_restore_factory=(
+            "gt.tools.utility_options.keyframe_options.open_delete_keyframes_options"
+        ),
     )
     scope_combo = window.add_combobox(
         "Scope",

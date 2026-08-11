@@ -20,6 +20,7 @@ for to_append in [package_root_dir, tests_dir]:
         sys.path.append(to_append)
 from gt.ui.qt_utils import MayaWindowMeta
 from gt.ui import qt_utils
+from gt.ui.option_window import OptionWindow
 from gt.tools.batch_processor.batch_processor_view import BatchProcessorView
 from gt.tools.batch_processor.batch_processor_controller import BatchProcessorController
 
@@ -233,6 +234,177 @@ class TestQtUtilities(unittest.TestCase):
             label="Batch Processor - (v1.0.0)",
             uiScript="restore-script",
         )
+
+    @patch("gt.core.session.is_script_in_interactive_maya", MagicMock(return_value=True))
+    def test_non_restorable_window_is_dockable_without_workspace_retention(self):
+        """Ensures dynamic windows do not save a startup restore script."""
+        from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
+
+        class NonRestorableWindow(metaclass=MayaWindowMeta):
+            """Test window that cannot be recreated from a no-argument call."""
+
+            allow_workspace_restore = False
+
+            def __init__(self):
+                """Initializes the test window."""
+                super().__init__()
+                self.setObjectName("NonRestorableWindow")
+
+        with patch.object(MayaQWidgetDockableMixin, "show") as mock_show:
+            with patch.object(MayaWindowMeta, "_discard_workspace_control") as mock_discard:
+                window = NonRestorableWindow()
+                window.show()
+
+        expected_retain = False
+        expected_restore_script = False
+        result_retain = mock_show.call_args.kwargs.get("retain")
+        result_restore_script = "uiScript" in mock_show.call_args.kwargs
+        self.assertEqual(expected_retain, result_retain)
+        self.assertEqual(expected_restore_script, result_restore_script)
+        mock_discard.assert_called_once_with("NonRestorableWindowWorkspaceControl")
+
+    def test_restore_window_discards_non_restorable_workspace_control(self):
+        """Ensures a retained dynamic window is not constructed without its inputs."""
+        maya_cmds = types.ModuleType("maya.cmds")
+        maya_open_maya_ui = types.ModuleType("maya.OpenMayaUI")
+        maya_module = types.ModuleType("maya")
+        maya_module.cmds = maya_cmds
+        maya_module.OpenMayaUI = maya_open_maya_ui
+        maya_cmds.workspaceControl = MagicMock(return_value=True)
+        maya_cmds.deleteUI = MagicMock()
+        window_class = MagicMock()
+        window_class.allow_workspace_restore = False
+        window_module = types.ModuleType("gt.ui.option_window")
+        window_module.OptionWindow = window_class
+        package_module = types.ModuleType("gt.ui")
+
+        def import_module(module_name):
+            """Returns the test modules used by the workspace restore call."""
+            if module_name == "gt.ui.option_window":
+                return window_module
+            if module_name == "gt.ui":
+                return package_module
+            raise ImportError(module_name)
+
+        with patch.dict(
+            sys.modules,
+            {
+                "maya": maya_module,
+                "maya.cmds": maya_cmds,
+                "maya.OpenMayaUI": maya_open_maya_ui,
+            },
+        ):
+            with patch("importlib.import_module", side_effect=import_module):
+                MayaWindowMeta.restore_window(
+                    "gt.ui.option_window",
+                    "OptionWindow",
+                    "gtReloadFileOptionsWorkspaceControl",
+                )
+
+        window_class.assert_not_called()
+        maya_cmds.deleteUI.assert_called_once_with(
+            "gtReloadFileOptionsWorkspaceControl",
+            control=True,
+        )
+
+    def test_restore_window_uses_workspace_restore_factory(self):
+        """Ensures a dynamic window is rebuilt through its registered factory."""
+        maya_open_maya_ui = types.ModuleType("maya.OpenMayaUI")
+        maya_module = types.ModuleType("maya")
+        maya_module.OpenMayaUI = maya_open_maya_ui
+        maya_open_maya_ui.MQtUtil = MagicMock()
+        maya_open_maya_ui.MQtUtil.findControl.return_value = 123
+        window_class = MagicMock()
+        window_class.allow_workspace_restore = False
+        window_module = types.ModuleType("gt.ui.option_window")
+        window_module.OptionWindow = window_class
+        restore_key = MayaWindowMeta._get_restore_key(
+            "gt.ui.option_window",
+            "OptionWindow",
+            "gtReloadFileOptionsWorkspaceControl",
+        )
+
+        def rebuild_window():
+            """Simulates a factory attaching its newly created option window."""
+            MayaWindowMeta._pending_restores.pop(restore_key, None)
+
+        restore_factory = MagicMock(side_effect=rebuild_window)
+        restore_module = types.ModuleType("gt.tools.utility_options.reload_file_options")
+        restore_module.open_reload_file_options = restore_factory
+
+        def import_module(module_name):
+            """Returns the test modules used by the workspace restore call."""
+            if module_name == "gt.ui.option_window":
+                return window_module
+            if module_name == "gt.tools.utility_options.reload_file_options":
+                return restore_module
+            raise ImportError(module_name)
+
+        MayaWindowMeta._pending_restores.clear()
+        with patch.dict(
+            sys.modules,
+            {
+                "maya": maya_module,
+                "maya.OpenMayaUI": maya_open_maya_ui,
+            },
+        ):
+            with patch("importlib.import_module", side_effect=import_module):
+                MayaWindowMeta.restore_window(
+                    "gt.ui.option_window",
+                    "OptionWindow",
+                    "gtReloadFileOptionsWorkspaceControl",
+                    "gt.tools.utility_options.reload_file_options.open_reload_file_options",
+                )
+
+        restore_factory.assert_called_once()
+        window_class.assert_not_called()
+        self.assertEqual({}, MayaWindowMeta._pending_restores)
+
+    def test_restore_key_includes_workspace_control_name(self):
+        """Ensures shared window classes can restore multiple workspace controls."""
+        first_key = MayaWindowMeta._get_restore_key(
+            "gt.ui.option_window",
+            "OptionWindow",
+            "gtReloadFileOptionsWorkspaceControl",
+        )
+        second_key = MayaWindowMeta._get_restore_key(
+            "gt.ui.option_window",
+            "OptionWindow",
+            "gtDeleteKeyframesOptionsWorkspaceControl",
+        )
+
+        self.assertNotEqual(first_key, second_key)
+
+    def test_restore_script_includes_workspace_restore_factory(self):
+        """Ensures the persisted Maya script retains the factory import path."""
+        factory_path = "gt.tools.utility_options.reload_file_options.open_reload_file_options"
+        result = MayaWindowMeta._get_restore_script(
+            "gt.ui.option_window",
+            "OptionWindow",
+            "gtReloadFileOptionsWorkspaceControl",
+            factory_path,
+        )
+
+        self.assertIn(factory_path, result)
+
+    def test_option_window_does_not_support_workspace_restore(self):
+        """Ensures dynamic option windows opt out of startup workspace recovery."""
+        expected = False
+        result = OptionWindow.allow_workspace_restore
+        self.assertEqual(expected, result)
+
+    def test_option_window_enables_workspace_restore_for_factory(self):
+        """Ensures an option window enables restore when a factory is provided."""
+        factory_path = "gt.tools.utility_options.reload_file_options.open_reload_file_options"
+        window = OptionWindow(
+            "Reload File",
+            "gtReloadFileOptions",
+            workspace_restore_factory=factory_path,
+        )
+
+        self.assertTrue(window.allow_workspace_restore)
+        self.assertEqual(factory_path, window.workspace_restore_factory)
+        window.deleteLater()
 
     @patch.object(ui_qt.QtGui.QCursor, "pos", return_value=ui_qt.QtCore.QPoint(100, 200))
     def test_get_cursor_position_no_offset(self, mock_cursor):
