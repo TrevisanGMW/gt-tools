@@ -5,8 +5,11 @@ import sys
 import unittest
 
 import gt.ui.qt_import as ui_qt
+import gt.tools.auto_rigger.attr_widgets.attr_widget_base as attr_widget_base
+import gt.tools.auto_rigger.attr_widgets.attr_widgets as attr_widgets
 from gt.tools.auto_rigger.attr_widgets.attr_widget_python import AttrWidgetModulePython
 from gt.tools.auto_rigger.modules.module_utils import ModulePython
+from gt.tools.auto_rigger.rigger_controller import get_module_attr_widgets
 from gt.tools.auto_rigger.rig_framework import RigProject
 
 
@@ -45,6 +48,24 @@ class TestAttrWidgetModulePython(unittest.TestCase):
 
         expected = self.widget.python_edit
         self.assertIs(expected, result)
+
+    def test_python_widget_uses_its_own_module(self):
+        """Ensures the controller resolves the Python widget implementation."""
+        result = attr_widgets.AttrWidgetModulePython
+        expected = AttrWidgetModulePython
+        self.assertIs(expected, result)
+        self.assertEqual(
+            "gt.tools.auto_rigger.attr_widgets.attr_widget_python",
+            result.__module__,
+        )
+        self.assertFalse(hasattr(attr_widget_base, "AttrWidgetModulePython"))
+        self.assertIs(expected, get_module_attr_widgets(self.module))
+
+    def test_python_editor_includes_placeholder(self):
+        """Ensures an empty Python editor explains its intended use."""
+        result = self.widget.python_edit.placeholderText()
+        expected = "Write Python code to run when this module executes."
+        self.assertEqual(expected, result)
 
     def test_font_size_slider_resizes_python_code(self):
         """Ensures the font size slider updates the visible Python code size."""

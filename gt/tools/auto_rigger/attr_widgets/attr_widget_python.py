@@ -3,6 +3,8 @@ Auto Rigger Python Attribute Widget
 """
 
 from gt.tools.auto_rigger.attr_widgets.attr_widget_base import *
+from gt.ui.line_text_widget import apply_text_font_size
+from gt.ui.line_text_widget import LineTextWidget
 
 class AttrWidgetModulePython(AttrWidget):
     def __init__(self, parent=None, *args, **kwargs):
@@ -21,7 +23,6 @@ class AttrWidgetModulePython(AttrWidget):
         self.content_layout.addLayout(_layout)
 
         _layout_top_prefs = ui_qt.QtWidgets.QHBoxLayout()
-        self.content_layout.addLayout(_layout)
 
         self.add_widget_code_data_editor(
             add_activation=False, add_order_editor=True, add_code_editor=False, layout=_layout_top_prefs
@@ -43,8 +44,13 @@ class AttrWidgetModulePython(AttrWidget):
         self.font_size_slider.valueChanged.connect(self.set_editor_font_size)
 
         # Python Edit
-        self.python_edit = ui_qt.QtWidgets.QTextEdit()
-        _layout.addWidget(self.python_edit)
+        self.python_editor_widget = LineTextWidget(
+            parent=self,
+            text_edit=ui_qt.QtWidgets.QTextEdit(),
+        )
+        self.python_edit = self.python_editor_widget.get_text_edit()
+        _layout.addWidget(self.python_editor_widget)
+        self.python_edit.setPlaceholderText("Write Python code to run when this module executes.")
         self.python_edit.setText(_value)
         self.base_stylesheet = ""  # In case we want to add something later
         self.python_edit.setStyleSheet(self.base_stylesheet)
@@ -110,7 +116,13 @@ class AttrWidgetModulePython(AttrWidget):
         Args:
             size (int): The new font size from the slider.
         """
-        self._update_editor_stylesheet(size)
+        font_size = int(size or 14)
+        self.python_edit_font.setPointSize(font_size)
+        self.python_edit.setFont(self.python_edit_font)
+        apply_text_font_size(self.python_edit, font_size)
+        self._update_editor_stylesheet(font_size)
+        self.python_editor_widget.number_bar.setFont(self.python_edit.font())
+        self.python_editor_widget.number_bar.update()
 
     def _update_editor_stylesheet(self, font_size):
         """
@@ -198,8 +210,7 @@ class AttrWidgetModulePython(AttrWidget):
         current_code = self.python_edit.toPlainText()
         self.module.set_execution_code(current_code)
 
-        # Enforce Set Font Size
-        self.set_editor_font_size(self.font_size_slider.value())
-
-        # Keep the same font
-        self.python_edit.setFont(self.python_edit_font)
+        if self.font_size_slider:
+            self._update_editor_stylesheet(self.font_size_slider.value())
+        if self.python_edit_font:
+            self.python_edit.setFont(self.python_edit_font)
