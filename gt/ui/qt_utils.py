@@ -374,6 +374,7 @@ class MayaWindowMeta(type):
         class, the view is instantiated directly as a compatibility fallback.
 
         Args:
+            mcs (type): Metaclass on which this class method is invoked.
             module_name (str): Module containing the window class.
             class_name (str): Name of the window class.
             workspace_control_name (str, optional): Maya workspace control receiving the recreated window.
