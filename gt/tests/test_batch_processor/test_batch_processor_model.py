@@ -1308,17 +1308,29 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertTrue(context.get("top_level"))
         self.assertTrue(context.get("run_called"))
 
-    def test_python_task_default_inline_script_documents_arguments_and_environment(self):
+    def test_python_task_default_inline_script_is_empty(self):
         script_task = modules.TaskPythonScript()
 
         result = script_task.settings.get("script_text")
 
-        self.assertIn("arguments", result)
-        self.assertIn("environment_variables", result)
-        self.assertIn("project_path", result)
-        self.assertNotIn("project_file_path", result)
-        self.assertIn("import maya.cmds as cmds", result)
-        self.assertIn("print", result)
+        expected = ""
+        self.assertEqual(expected, result)
+
+    def test_python_task_empty_inline_script_does_not_load_external_script_path(self):
+        """Ensures the blank inline editor does not read a legacy script path."""
+        script_path = os.path.join(self.temp_dir, "post_process.py")
+        self._write_file(script_path, "print('legacy script')")
+        script_task = modules.TaskPythonScript(
+            settings={
+                "script_text": "",
+                "script_path": script_path,
+            }
+        )
+
+        result = script_task.get_inline_script_text()
+
+        expected = ""
+        self.assertEqual(expected, result)
 
     def test_python_task_builds_arguments_and_environment_context(self):
         project = batch_processor_model.BatchProcessorModel()
@@ -1490,14 +1502,13 @@ class TestBatchProcessorModel(unittest.TestCase):
         mock_new_scene.assert_not_called()
         mock_import_file.assert_not_called()
 
-    def test_maya_import_post_script_defaults_include_arguments_and_environment(self):
+    def test_maya_import_post_script_defaults_to_empty(self):
         import_task = modules.create_task(constants.TaskType.MAYA_IMPORT)
 
         result = import_task.settings.get("post_script_text")
 
-        self.assertIn("arguments", result)
-        self.assertIn("environment_variables", result)
-        self.assertIn("import maya.cmds as cmds", result)
+        expected = ""
+        self.assertEqual(expected, result)
         self.assertTrue(import_task.settings.get("post_script_pass_standard_arguments"))
         self.assertTrue(import_task.settings.get("post_script_pass_environment_arguments"))
 
@@ -1546,6 +1557,7 @@ class TestBatchProcessorModel(unittest.TestCase):
     def test_maya_import_post_script_context_includes_arguments_and_environment(self):
         import_task = modules.create_task(constants.TaskType.MAYA_IMPORT)
         import_task.settings["run_post_script"] = True
+        import_task.settings["post_script_text"] = "pass"
         project = batch_processor_model.BatchProcessorModel()
         project.project_file_path = os.path.join(self.temp_dir, "project.batch")
         project.environment_variables["custom-dir"] = "C:/custom"
@@ -1821,11 +1833,10 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertFalse(hik_task.settings.get("run_pre_bake_script"))
         self.assertTrue(hik_task.settings.get("pre_bake_script_collapsed"))
         self.assertIn("pre_bake_script_text", hik_task.settings)
-        self.assertIn("import maya.cmds as cmds", hik_task.settings.get("pre_bake_script_text"))
+        expected = ""
+        self.assertEqual(expected, hik_task.settings.get("pre_bake_script_text"))
         self.assertIn("post_script_text", hik_task.settings)
-        self.assertIn("import maya.cmds as cmds", hik_task.settings.get("post_script_text"))
-        self.assertIn("arguments", hik_task.settings.get("post_script_text"))
-        self.assertIn("environment_variables", hik_task.settings.get("post_script_text"))
+        self.assertEqual(expected, hik_task.settings.get("post_script_text"))
         self.assertTrue(hik_task.settings.get("post_script_pass_standard_arguments"))
         self.assertTrue(hik_task.settings.get("post_script_pass_environment_arguments"))
         self.assertIn("source_namespace", hik_task.settings)
@@ -1954,6 +1965,7 @@ class TestBatchProcessorModel(unittest.TestCase):
     def test_hik_retarget_post_script_context_includes_arguments_and_environment(self):
         hik_task = modules.create_task(constants.TaskType.HIK_RETARGET)
         hik_task.settings["run_post_script"] = True
+        hik_task.settings["post_script_text"] = "pass"
         project = batch_processor_model.BatchProcessorModel()
         project.project_file_path = os.path.join(self.temp_dir, "project.batch")
         project.environment_variables["custom-dir"] = "C:/custom"
@@ -1997,6 +2009,7 @@ class TestBatchProcessorModel(unittest.TestCase):
     def test_hik_retarget_pre_bake_script_context_and_bake_gate(self):
         hik_task = modules.create_task(constants.TaskType.HIK_RETARGET)
         hik_task.settings["run_pre_bake_script"] = True
+        hik_task.settings["pre_bake_script_text"] = "pass"
         project = batch_processor_model.BatchProcessorModel()
         work_item = modules.WorkItem(source_path=os.path.join(self.temp_dir, "source.fbx"))
 
@@ -2622,14 +2635,28 @@ class TestBatchProcessorModel(unittest.TestCase):
         expected = "Inline"
         self.assertEqual(expected, blender_task.settings.get("script_mode"))
 
-    def test_blender_default_inline_script_opens_input_and_exports_fbx(self):
+    def test_blender_default_inline_script_is_empty(self):
         blender_task = modules.create_task(constants.TaskType.BLENDER_SCRIPT)
 
         result = blender_task.settings.get("script_text")
 
-        self.assertIn("open_input_file(input_path)", result)
-        self.assertIn("export_fbx(output_path)", result)
-        self.assertIn('os.path.splitext(file_path)[0] + ".fbx"', result)
+        expected = ""
+        self.assertEqual(expected, result)
+
+    def test_external_python_tasks_default_inline_scripts_are_empty(self):
+        """Ensures external Python task editors start blank instead of preloaded."""
+        task_types = (
+            constants.TaskType.BLENDER_SCRIPT,
+            constants.TaskType.MOTIONBUILDER_SCRIPT,
+            constants.TaskType.UNREAL_SCRIPT,
+        )
+
+        for task_type in task_types:
+            task = modules.create_task(task_type)
+            result = task.settings.get("script_text")
+
+            expected = ""
+            self.assertEqual(expected, result)
 
     def test_blender_output_check_ignores_extension(self):
         blender_task = modules.create_task(constants.TaskType.BLENDER_SCRIPT)

@@ -1,5 +1,5 @@
 """
-Batch Python example.
+Prints the Batch Processor Python task runtime context.
 
 Values exposed by the batch processor when Pass Task Args is enabled:
     arguments["input"]: Current input file for this task.

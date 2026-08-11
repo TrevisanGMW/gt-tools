@@ -20,8 +20,10 @@ from gt.tools.batch_processor import batch_processor_controller
 from gt.tools.batch_processor import batch_processor_model
 from gt.tools.batch_processor import batch_processor_tasks
 from gt.tools.batch_processor import batch_processor_view
+from gt.tools.batch_processor.tasks import task_utils
 from gt.tools.batch_processor.widgets import attr_widget_python_script
 from gt.tools.batch_processor.widgets import attr_widget_task
+from gt.tools.batch_processor.widgets.inline_python_editor import InlinePythonEditorWidget
 
 
 class TestBatchProcessorUi(unittest.TestCase):
@@ -172,6 +174,120 @@ class TestBatchProcessorUi(unittest.TestCase):
         self.assertEqual(batch_path, batch_entry["field"].text())
         self.assertEqual("publish_*.py", batch_entry["include_field"].text())
         self.assertEqual("wip_*.py", batch_entry["exclude_field"].text())
+
+    def test_inline_python_editor_loads_example_script_when_empty(self):
+        """Ensures selecting an example fills an empty inline editor."""
+        sample = task_utils.get_script_samples("python_script")[0]
+        expected = task_utils.load_script_file(sample["path"])
+        editor = InlinePythonEditorWidget(
+            sample_scripts_directory="python_script",
+        )
+        editor.sample_scripts_button.refresh_sample_menu()
+        action_labels = [action.text() for action in editor.sample_scripts_button.sample_menu.actions()]
+
+        self.assertIn("Print Batch Context", action_labels)
+        self.assertIs(
+            editor.python_edit,
+            editor.python_editor_widget.get_text_edit(),
+        )
+        self.assertIs(
+            editor.python_edit,
+            editor.python_editor_widget.number_bar.text_edit,
+        )
+
+        editor.sample_scripts_button.load_sample_script(
+            script_path=sample["path"],
+            relative_path=sample["relative_path"],
+        )
+
+        result = editor.get_text()
+        self.assertEqual(expected, result)
+        editor.close()
+
+    def test_python_task_inline_editor_exposes_example_menu(self):
+        """Ensures the unified Python task uses the shared example menu button."""
+        task = self.model.add_task(batch_processor_tasks.TaskPythonScript())
+        widget = attr_widget_python_script.AttrWidgetPythonScriptTask(
+            task=task,
+            project=self.model,
+        )
+        widget.sample_scripts_button.refresh_sample_menu()
+        action_labels = [action.text() for action in widget.sample_scripts_button.sample_menu.actions()]
+
+        expected = "Examples  ▼"
+        result = widget.sample_scripts_button.text()
+        self.assertEqual(expected, result)
+        self.assertTrue(widget.sample_scripts_button.icon().isNull())
+        self.assertEqual("padding: 6px;", widget.sample_scripts_button.styleSheet())
+        self.assertIn("Print Batch Context", action_labels)
+        self.assertIs(
+            widget.python_edit,
+            widget.python_editor_widget.number_bar.text_edit,
+        )
+        widget.close()
+
+    def test_inline_python_editor_keeps_line_number_gutter_width_while_scrolling(self):
+        """Ensures long scripts cannot resize the line number gutter while scrolling."""
+        editor = InlinePythonEditorWidget()
+        script_text = "\n".join(["print('line')"] * 150)
+        editor.set_text(script_text)
+        editor.resize(500, 220)
+        editor.show()
+        self.application.processEvents()
+        number_bar = editor.python_editor_widget.number_bar
+        number_bar.update()
+        expected_width = number_bar.width()
+        scroll_bar = editor.python_edit.verticalScrollBar()
+
+        for scroll_value in [0, scroll_bar.maximum() // 2, scroll_bar.maximum()]:
+            scroll_bar.setValue(scroll_value)
+            self.application.processEvents()
+            number_bar.update()
+            result_width = number_bar.width()
+            self.assertEqual(expected_width, result_width)
+
+        editor.close()
+
+    def test_python_task_editor_font_size_updates_script_text(self):
+        """Ensures the font size control updates Python code, not only line numbers."""
+        task = self.model.add_task(batch_processor_tasks.TaskPythonScript())
+        widget = attr_widget_python_script.AttrWidgetPythonScriptTask(
+            task=task,
+            project=self.model,
+        )
+        widget.python_edit.setPlainText("print('font size')")
+        document = widget.python_edit.document()
+        before_height = document.documentLayout().blockBoundingRect(document.firstBlock()).height()
+
+        widget.set_editor_font_size(20)
+        self.application.processEvents()
+
+        after_height = document.documentLayout().blockBoundingRect(document.firstBlock()).height()
+        self.assertGreater(after_height, before_height)
+        widget.close()
+
+    def test_inline_python_editor_keeps_existing_code_when_replacement_is_cancelled(self):
+        """Ensures an example cannot silently replace a user's inline script."""
+        expected = "custom_script = True"
+        editor = InlinePythonEditorWidget(
+            text=expected,
+            sample_scripts_directory="python_script",
+        )
+        sample = task_utils.get_script_samples("python_script")[0]
+
+        with mock.patch.object(
+            editor.sample_scripts_button,
+            "confirm_script_replacement",
+            return_value=False,
+        ):
+            editor.sample_scripts_button.load_sample_script(
+                script_path=sample["path"],
+                relative_path=sample["relative_path"],
+            )
+
+        result = editor.get_text()
+        self.assertEqual(expected, result)
+        editor.close()
 
 
 if __name__ == "__main__":

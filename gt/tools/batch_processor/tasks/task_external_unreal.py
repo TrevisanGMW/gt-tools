@@ -19,9 +19,7 @@ DEFAULT_UNREAL_ARGUMENTS = (
     "-NoUI -UpdateReg -Unattended -stdout -FullStdOutLogOutput "
     "-RenderOffScreen -AllowCommandletRendering -AllowSoftwareRendering"
 )
-DEFAULT_UNREAL_INLINE_SCRIPT = task_utils.load_script(
-    "script_inline_external_unreal.py"
-)
+SAMPLE_SCRIPTS_DIRECTORY = "external_unreal"
 
 
 class TaskUnrealScript(TaskExternalScript):
@@ -37,6 +35,7 @@ class TaskUnrealScript(TaskExternalScript):
     metadata_scripts_key = "unreal_scripts"
     temporary_file_prefix = "unreal"
     process_log_name = "unreal"
+    sample_scripts_directory = SAMPLE_SCRIPTS_DIRECTORY
 
     def get_default_settings(self):
         """Gets default Unreal Engine script task settings.
@@ -50,7 +49,7 @@ class TaskUnrealScript(TaskExternalScript):
                 "source_path": "{previous-task-path}",
                 "target_path": self.default_target_path_template,
                 "script_mode": SCRIPT_MODE_INLINE,
-                "script_text": DEFAULT_UNREAL_INLINE_SCRIPT,
+                "script_text": "",
                 "script_path": "{project-dir}/scripts/unreal_process.py",
                 "scripts_path": "{project-dir}/scripts/unreal",
                 "unreal_project_path": "",

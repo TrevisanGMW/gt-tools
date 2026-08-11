@@ -9,6 +9,32 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
+def apply_text_font_size(text_edit, font_size):
+    """Applies a font size to all existing text without changing selection.
+
+    Args:
+        text_edit (QTextEdit): Editor whose document text should be resized.
+        font_size (int): Font size in points.
+    """
+    if not text_edit:
+        return
+    original_cursor = text_edit.textCursor()
+    signals_blocked = text_edit.blockSignals(True)
+    try:
+        document_cursor = ui_qt.QtGui.QTextCursor(text_edit.document())
+        if ui_qt.IS_PYSIDE6:
+            document_selection = ui_qt.QtGui.QTextCursor.SelectionType.Document
+        else:
+            document_selection = ui_qt.QtGui.QTextCursor.Document
+        document_cursor.select(document_selection)
+        text_format = ui_qt.QtGui.QTextCharFormat()
+        text_format.setFontPointSize(int(font_size or 14))
+        document_cursor.mergeCharFormat(text_format)
+    finally:
+        text_edit.setTextCursor(original_cursor)
+        text_edit.blockSignals(signals_blocked)
+
+
 class LineTextWidget(ui_qt.QtWidgets.QFrame):
     """
     A custom widget for displaying line numbers alongside a QTextEdit.
@@ -52,13 +78,27 @@ class LineTextWidget(ui_qt.QtWidgets.QFrame):
             """
             self.text_edit = edit
 
+        def get_required_width(self):
+            """Gets a stable gutter width for every line number in the document.
+
+            Returns:
+                int: Required line-number gutter width in pixels.
+            """
+            line_count = 1
+            if self.text_edit and self.text_edit.document():
+                line_count = max(1, self.text_edit.document().blockCount())
+            widest_number = "9" * len(str(line_count))
+            bold_font = ui_qt.QtGui.QFont(self.font())
+            bold_font.setBold(True)
+            font_metrics = ui_qt.QtGui.QFontMetrics(bold_font)
+            return font_metrics.horizontalAdvance(widest_number) + self.bar_width_offset
+
         def update(self, *args):
             """
             Updates the number bar to display the current set of numbers.
             Also, adjusts the width of the number bar if necessary.
             """
-            # The + 4 is used to compensate for the current line being bold.
-            width = self.fontMetrics().boundingRect(str(self.highest_line)).width() + self.bar_width_offset
+            width = self.get_required_width()
             if self.width() != width:
                 self.setFixedWidth(width)
             super().update(*args)
@@ -88,12 +128,15 @@ class LineTextWidget(ui_qt.QtWidgets.QFrame):
             while block.isValid():
                 line_count += 1
 
-                # The top left position of the block in the document
-                position = self.text_edit.document().documentLayout().blockBoundingRect(block).topLeft()
+                block_rect = self.text_edit.document().documentLayout().blockBoundingRect(block)
+                position = block_rect.topLeft()
 
                 # Check if the position of the block is outside the visible area.
                 if position.y() > page_bottom:
                     break
+                if block_rect.bottom() < contents_y:
+                    block = block.next()
+                    continue
 
                 painter.setPen(self.number_color)
 
@@ -132,7 +175,7 @@ class LineTextWidget(ui_qt.QtWidgets.QFrame):
 
             super().paintEvent(event)
 
-    def __init__(self, *args):
+    def __init__(self, parent=None, text_edit=None):
         """
         Initialize the widget containing a QTextEdit with a line number bar.
 
@@ -142,13 +185,14 @@ class LineTextWidget(ui_qt.QtWidgets.QFrame):
         the text edit and its viewport to update the line numbers as needed.
 
         Args:
-            *args: Variable length argument list passed to the base QWidget initializer.
+            parent (QWidget, optional): Parent widget.
+            text_edit (QTextEdit, optional): Text editor displayed beside the line number bar.
         """
-        super().__init__(*args)
+        super().__init__(parent=parent)
 
         self.setFrameStyle(ui_qt.QtLib.FrameStyle.StyledPanel | ui_qt.QtLib.FrameStyle.Sunken)
         self.setObjectName("LineTextFrame")
-        self.edit = ui_qt.QtWidgets.QTextEdit()
+        self.edit = text_edit if text_edit is not None else ui_qt.QtWidgets.QTextEdit()
 
         self.edit.setFrameStyle(ui_qt.QtLib.FrameStyle.NoFrame)
         self.edit.setLineWrapMode(ui_qt.QtLib.LineWrapMode.NoWrap)

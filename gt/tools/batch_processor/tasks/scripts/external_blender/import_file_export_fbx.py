@@ -1,5 +1,5 @@
 """
-Blender batch example.
+Imports a source file and exports it as FBX in Blender.
 
 Arguments passed by the batch processor when Pass Task Args is enabled:
     --input: Source file.

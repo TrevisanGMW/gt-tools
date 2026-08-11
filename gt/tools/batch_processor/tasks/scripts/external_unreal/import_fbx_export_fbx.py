@@ -1,3 +1,5 @@
+"""Imports FBX assets and exports a selected asset as FBX in Unreal Engine."""
+
 import argparse
 import json
 import os

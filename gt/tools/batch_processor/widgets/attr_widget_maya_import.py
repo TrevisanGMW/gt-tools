@@ -213,8 +213,8 @@ class AttrWidgetMayaImportTask(AttrWidgetTask):
         editor = InlinePythonEditorWidget(
             parent=self,
             owner=self,
-            text=self.task.settings.get("post_script_text") or task_maya_import.DEFAULT_POST_SCRIPT_TEXT,
-            placeholder=task_maya_import.DEFAULT_POST_SCRIPT_TEXT,
+            text=self.task.settings.get("post_script_text") or "",
+            placeholder="Write an optional post-import Python script here, or choose an example.",
             tooltip=(
                 "Inline Python cleanup pass executed after Import/Open Maya loads the file and before output is "
                 "written. Use context, arguments/args, environment_variables/env, project, task, work_item, "
@@ -223,5 +223,6 @@ class AttrWidgetMayaImportTask(AttrWidgetTask):
             text_changed_callback=partial(self.set_task_setting, key="post_script_text"),
             font_size=self.task.settings.get("post_script_font_size") or 14,
             font_size_changed_callback=partial(self.set_task_setting, key="post_script_font_size"),
+            sample_scripts_directory=self.task.post_script_samples_directory,
         )
         layout.addWidget(editor)

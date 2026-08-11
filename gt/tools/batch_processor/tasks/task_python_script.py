@@ -21,7 +21,7 @@ SCRIPT_MODE_SINGLE = SCRIPT_MODE_INLINE
 SCRIPT_MODE_BATCH = SCRIPT_MODE_BATCH_DIRECTORY
 SCRIPT_MODE_VALUES = [SCRIPT_MODE_INLINE, SCRIPT_MODE_EXTERNAL_FILE, SCRIPT_MODE_BATCH_DIRECTORY]
 LEGACY_DEFAULT_DISPLAY_NAMES = set(["Run Python Script", "Run Python Scripts Folder"])
-DEFAULT_PYTHON_INLINE_SCRIPT = task_utils.load_script("script_inline_python_script.py")
+SAMPLE_SCRIPTS_DIRECTORY = "python_script"
 
 
 class TaskPythonScript(task_base.BatchTask):
@@ -33,6 +33,8 @@ class TaskPythonScript(task_base.BatchTask):
     icon = ui_res_lib.Icon.batch_task_python
     category = "Utilities"
     category_icon = ui_res_lib.Icon.root_utilities
+    sample_scripts_directory = SAMPLE_SCRIPTS_DIRECTORY
+
     def __init__(self, *args, **kwargs):
         """Initializes the Python task and normalizes legacy settings."""
         super().__init__(*args, **kwargs)
@@ -48,7 +50,7 @@ class TaskPythonScript(task_base.BatchTask):
             "source_path": "{previous-task-path}",
             "target_path": self.default_target_path_template,
             "script_mode": SCRIPT_MODE_INLINE,
-            "script_text": DEFAULT_PYTHON_INLINE_SCRIPT,
+            "script_text": "",
             "script_path": "{project-dir}/scripts/post_process.py",
             "scripts_path": "{project-dir}/scripts",
             "batch_include_patterns": "",
@@ -636,8 +638,8 @@ class TaskPythonScript(task_base.BatchTask):
             str: Inline script text.
         """
         script_text = self.settings.get("script_text")
-        if script_text:
-            return script_text
+        if script_text is not None:
+            return str(script_text)
         legacy_script_path = None
         if project:
             legacy_script_path = self.resolve_script_path(project)

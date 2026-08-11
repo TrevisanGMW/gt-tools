@@ -10,6 +10,9 @@ import os
 import sys
 
 
+SCRIPTS_DIRECTORY = os.path.join(os.path.dirname(__file__), "scripts")
+
+
 def load_script(script_name):
     """Loads an editable script from the batch processor scripts folder.
 
@@ -22,9 +25,80 @@ def load_script(script_name):
     Raises:
         IOError: If the script file cannot be read.
     """
-    script_path = os.path.join(os.path.dirname(__file__), "scripts", script_name)
+    script_path = os.path.join(SCRIPTS_DIRECTORY, script_name)
+    return load_script_file(script_path)
+
+
+def load_script_file(script_path):
+    """Loads a Python script from a file path.
+
+    Args:
+        script_path (str): Absolute or relative path to a Python script.
+
+    Returns:
+        str: Script source text.
+
+    Raises:
+        IOError: If the script file cannot be read.
+    """
     with open(script_path, "r", encoding="utf-8") as script_file:
         return script_file.read()
+
+
+def get_script_samples_directory(directory_name):
+    """Gets a sample script directory inside the batch processor scripts folder.
+
+    Args:
+        directory_name (str): Relative task sample directory name.
+
+    Returns:
+        str: Absolute sample directory path, or an empty string when invalid.
+    """
+    directory_name = str(directory_name or "").strip()
+    if not directory_name:
+        return ""
+    scripts_directory = os.path.normcase(os.path.abspath(SCRIPTS_DIRECTORY))
+    sample_directory = os.path.normcase(
+        os.path.abspath(os.path.join(scripts_directory, directory_name))
+    )
+    try:
+        if os.path.commonpath([scripts_directory, sample_directory]) != scripts_directory:
+            return ""
+    except ValueError:
+        return ""
+    return sample_directory
+
+
+def get_script_samples(directory_name):
+    """Gets Python sample scripts from a task-specific sample directory.
+
+    Directories and script files are sorted so the examples menu remains stable.
+    Nested folders are supported for task phases that need separate examples.
+
+    Args:
+        directory_name (str): Relative task sample directory name.
+
+    Returns:
+        list: Dictionaries with normalized ``path`` and ``relative_path`` values.
+    """
+    sample_directory = get_script_samples_directory(directory_name)
+    if not sample_directory or not os.path.isdir(sample_directory):
+        return []
+    script_samples = []
+    for current_directory, directory_names, file_names in os.walk(sample_directory):
+        directory_names.sort(key=str.lower)
+        for file_name in sorted(file_names, key=str.lower):
+            if not file_name.lower().endswith(".py"):
+                continue
+            script_path = os.path.join(current_directory, file_name)
+            relative_path = os.path.relpath(script_path, sample_directory)
+            script_samples.append(
+                {
+                    "path": os.path.normpath(script_path),
+                    "relative_path": os.path.normpath(relative_path),
+                }
+            )
+    return script_samples
 
 
 def ensure_directory(directory_path):

@@ -21,8 +21,8 @@ HIK_BAKE_TARGETS = [
     HIK_BAKE_TARGET_CONTROL_RIG,
     HIK_BAKE_TARGET_CUSTOM_CONTROL_RIG,
 ]
-DEFAULT_PRE_BAKE_SCRIPT_TEXT = task_utils.load_script("script_pre_bake_hik_retarget.py")
-DEFAULT_POST_SCRIPT_TEXT = task_utils.load_script("script_post_hik_retarget.py")
+PRE_BAKE_SCRIPT_SAMPLES_DIRECTORY = "hik_retarget"
+POST_SCRIPT_SAMPLES_DIRECTORY = "hik_retarget"
 
 
 class TaskRetargetHumanIK(task_base.BatchTask):
@@ -34,6 +34,9 @@ class TaskRetargetHumanIK(task_base.BatchTask):
     icon = ui_res_lib.Icon.batch_task_humanik
     category = "Animation"
     category_icon = ui_res_lib.Icon.root_animation
+    pre_bake_script_samples_directory = PRE_BAKE_SCRIPT_SAMPLES_DIRECTORY
+    post_script_samples_directory = POST_SCRIPT_SAMPLES_DIRECTORY
+
     def get_default_settings(self):
         """Gets default HumanIK retarget settings.
 
@@ -63,7 +66,7 @@ class TaskRetargetHumanIK(task_base.BatchTask):
             "bake_target": HIK_BAKE_TARGET_SKELETON,
             "force_proxy_bake": False,
             "run_pre_bake_script": False,
-            "pre_bake_script_text": DEFAULT_PRE_BAKE_SCRIPT_TEXT,
+            "pre_bake_script_text": "",
             "pre_bake_script_collapsed": True,
             "pre_bake_script_font_size": 14,
             "pre_bake_script_pass_standard_arguments": True,
@@ -71,7 +74,7 @@ class TaskRetargetHumanIK(task_base.BatchTask):
             "delete_source_elements": True,
             "delete_source_namespace": True,
             "run_post_script": False,
-            "post_script_text": DEFAULT_POST_SCRIPT_TEXT,
+            "post_script_text": "",
             "post_script_collapsed": True,
             "post_script_font_size": 14,
             "post_script_pass_standard_arguments": True,
@@ -102,7 +105,7 @@ class TaskRetargetHumanIK(task_base.BatchTask):
             result.add_error("HumanIK retarget bake target is invalid.")
         pre_bake_script_text = self.settings.get("pre_bake_script_text")
         if pre_bake_script_text is None:
-            pre_bake_script_text = DEFAULT_PRE_BAKE_SCRIPT_TEXT
+            pre_bake_script_text = ""
         if self.settings.get("run_pre_bake_script") and not pre_bake_script_text:
             result.add_error("HumanIK pre-bake script is enabled but no inline script is set.")
         source_path_checks = []
@@ -123,7 +126,7 @@ class TaskRetargetHumanIK(task_base.BatchTask):
                 result.add_error("Target HumanIK properties do not exist: {0}".format(properties_path))
         post_script_text = self.settings.get("post_script_text")
         if post_script_text is None:
-            post_script_text = DEFAULT_POST_SCRIPT_TEXT
+            post_script_text = ""
         if self.settings.get("run_post_script") and not post_script_text:
             result.add_error("HumanIK post script is enabled but no inline script is set.")
         if (
@@ -544,7 +547,7 @@ class TaskRetargetHumanIK(task_base.BatchTask):
             return
         script_text = self.settings.get("pre_bake_script_text")
         if script_text is None:
-            script_text = DEFAULT_PRE_BAKE_SCRIPT_TEXT
+            script_text = ""
         if not script_text.strip():
             return
         runtime_context = task_utils.build_python_script_runtime_context(
@@ -599,7 +602,7 @@ class TaskRetargetHumanIK(task_base.BatchTask):
             return
         script_text = self.settings.get("post_script_text")
         if script_text is None:
-            script_text = DEFAULT_POST_SCRIPT_TEXT
+            script_text = ""
         if not script_text.strip():
             return
         runtime_context = task_utils.build_python_script_runtime_context(

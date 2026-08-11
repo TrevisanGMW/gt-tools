@@ -1,4 +1,4 @@
-# Optional HumanIK pre-bake pass.
+# Prints the Batch Processor HumanIK pre-bake script context.
 # Available values:
 #   context / batch_context: Full runtime dictionary.
 #   arguments / args: input, output, project, project_dir, task, task_id, etc.

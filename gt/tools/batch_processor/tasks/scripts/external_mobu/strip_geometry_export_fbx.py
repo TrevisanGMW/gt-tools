@@ -1,5 +1,5 @@
 """
-MotionBuilder batch example.
+Strips scene geometry and exports the resulting animation as FBX in MotionBuilder.
 
 Values exposed by the batch processor when Pass Task Args is enabled:
     BATCH_INPUT: Source FBX file or folder.

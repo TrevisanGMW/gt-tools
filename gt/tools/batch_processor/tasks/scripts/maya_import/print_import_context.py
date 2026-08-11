@@ -1,4 +1,4 @@
-# Optional Import/Open Maya cleanup pass.
+# Prints the Batch Processor Import/Open Maya post-script context.
 # Available values:
 #   context / batch_context: Full runtime dictionary.
 #   arguments / args: input, output, project, project_dir, task, task_id, etc.
