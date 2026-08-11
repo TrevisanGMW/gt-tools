@@ -54,14 +54,14 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
         self.single_mode_widget = None
         self.external_mode_widget = None
         self.batch_mode_widget = None
-        self.script_path_widgets = None
-        self.scripts_path_widgets = None
+        self.script_path_widgets = []
+        self.scripts_path_widgets = []
+        self.external_scripts_layout = None
+        self.batch_directories_layout = None
+        self.external_script_widgets = []
+        self.batch_directory_widgets = []
         self.script_list_layout = None
         self.script_count_label = None
-        self.batch_filters_button = None
-        self.batch_filters_widget = None
-        self.batch_include_field = None
-        self.batch_exclude_field = None
 
         self.add_common_task_settings(
             scene_io_settings={
@@ -224,7 +224,7 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
         self.python_edit.textChanged.connect(self.on_text_changed)
 
     def add_external_file_controls(self):
-        """Adds controls for running one external Python file."""
+        """Adds controls for running an ordered list of external Python files."""
         self.external_mode_widget = ui_qt.QtWidgets.QWidget()
         self.external_mode_widget.setSizePolicy(ui_qt.QtLib.SizePolicy.Expanding, ui_qt.QtLib.SizePolicy.Preferred)
         external_layout = ui_qt.QtWidgets.QVBoxLayout(self.external_mode_widget)
@@ -235,12 +235,25 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
         self.add_widget_separator_line(
             label_text="External File",
             parent_layout=external_layout,
-            tooltip="Single external Python file executed for every incoming file.",
+            tooltip="External Python files executed in the order shown for every incoming file.",
         )
-        self.script_path_widgets = self.add_script_file_path_controls(external_layout)
+        buttons_layout = ui_qt.QtWidgets.QHBoxLayout()
+        buttons_layout.setContentsMargins(0, 0, 0, 5)
+        buttons_layout.addStretch()
+        add_button = ui_qt.QtWidgets.QPushButton("+")
+        self.configure_add_button(add_button)
+        add_button.setToolTip("Add an external Python script entry with its default path.")
+        add_button.clicked.connect(self.add_external_scripts)
+        buttons_layout.addWidget(add_button)
+        external_layout.addLayout(buttons_layout)
+        self.external_scripts_layout = ui_qt.QtWidgets.QVBoxLayout()
+        self.external_scripts_layout.setContentsMargins(0, 0, 0, 5)
+        self.external_scripts_layout.setSpacing(3)
+        external_layout.addLayout(self.external_scripts_layout)
+        self.refresh_external_script_rows()
 
     def add_batch_script_controls(self):
-        """Adds the folder-based batch script controls."""
+        """Adds controls for running scripts from ordered directories."""
         self.batch_mode_widget = ui_qt.QtWidgets.QWidget()
         self.batch_mode_widget.setSizePolicy(ui_qt.QtLib.SizePolicy.Expanding, ui_qt.QtLib.SizePolicy.Preferred)
         batch_layout = ui_qt.QtWidgets.QVBoxLayout(self.batch_mode_widget)
@@ -251,26 +264,27 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
         self.add_widget_separator_line(
             label_text="Batch Directory",
             parent_layout=batch_layout,
-            tooltip="Folder containing Python scripts to run in sorted order.",
+            tooltip="Directories are processed in order; scripts in each directory are sorted and run first.",
         )
-        self.scripts_path_widgets = self.add_scripts_path_controls(batch_layout)
-
         buttons_layout = ui_qt.QtWidgets.QHBoxLayout()
         buttons_layout.setContentsMargins(0, 0, 0, 5)
         buttons_layout.addStretch()
-        self.batch_filters_button = ui_qt.QtWidgets.QPushButton()
-        self.batch_filters_button.setCheckable(True)
-        self.batch_filters_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.dev_filter))
-        self.batch_filters_button.setToolTip("Show or hide include and exclude filters for batch-directory scripts.")
-        self.batch_filters_button.clicked.connect(self.toggle_batch_filters)
-        buttons_layout.addWidget(self.batch_filters_button)
+        add_button = ui_qt.QtWidgets.QPushButton("+")
+        self.configure_add_button(add_button)
+        add_button.setToolTip("Add a batch script directory.")
+        add_button.clicked.connect(self.add_batch_directory)
+        buttons_layout.addWidget(add_button)
         refresh_button = ui_qt.QtWidgets.QPushButton("Refresh Scripts")
         refresh_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_reset))
         refresh_button.setToolTip("Refresh detected Python scripts.")
         refresh_button.clicked.connect(lambda *args: self.refresh_script_list(update_status=True))
         buttons_layout.addWidget(refresh_button)
         batch_layout.addLayout(buttons_layout)
-        self.add_batch_filter_controls(batch_layout)
+
+        self.batch_directories_layout = ui_qt.QtWidgets.QVBoxLayout()
+        self.batch_directories_layout.setContentsMargins(0, 0, 0, 5)
+        self.batch_directories_layout.setSpacing(3)
+        batch_layout.addLayout(self.batch_directories_layout)
 
         self.script_count_label = ui_qt.QtWidgets.QLabel()
         self.script_count_label.setToolTip("Detected Python scripts.")
@@ -278,98 +292,89 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
         self.script_list_layout = ui_qt.QtWidgets.QVBoxLayout()
         self.script_list_layout.setContentsMargins(0, 0, 0, 5)
         batch_layout.addLayout(self.script_list_layout)
-        self.refresh_batch_filters_visibility(store_state=False)
+        self.refresh_batch_directory_rows()
         self.refresh_script_list(update_status=False)
 
-    def add_batch_filter_controls(self, parent_layout):
-        """Adds optional include and exclude controls for batch-directory scripts.
+    @staticmethod
+    def configure_add_button(button):
+        """Makes an add button's plus icon easier to see without resizing it.
 
         Args:
-            parent_layout (QLayout): Layout that receives the filter controls.
+            button (QPushButton): Add button to configure.
         """
-        self.batch_filters_widget = ui_qt.QtWidgets.QWidget()
-        self.batch_filters_widget.setSizePolicy(
-            ui_qt.QtLib.SizePolicy.Expanding,
-            ui_qt.QtLib.SizePolicy.Preferred,
-        )
-        filters_layout = ui_qt.QtWidgets.QVBoxLayout(self.batch_filters_widget)
-        filters_layout.setContentsMargins(0, 0, 0, 5)
-        filters_layout.setSpacing(5)
-        include_tooltip = (
-            "Optional comma, semicolon, or newline-separated glob patterns. "
-            "When empty, every non-excluded .py script is included."
-        )
-        exclude_tooltip = (
-            "Comma, semicolon, or newline-separated glob patterns to skip. "
-            "Matches file names, relative script paths, or absolute paths."
-        )
-        self.batch_include_field = self.add_text_field(
-            "Include",
-            self.task.settings.get("batch_include_patterns"),
-            partial(self.set_batch_filter_text, key="batch_include_patterns"),
-            placeholder="Optional: publish_*.py, rig/*.py",
-            tooltip=include_tooltip,
-            parent_layout=filters_layout,
-        )
-        self.batch_exclude_field = self.add_text_field(
-            "Exclude",
-            self.task.settings.get("batch_exclude_patterns"),
-            partial(self.set_batch_filter_text, key="batch_exclude_patterns"),
-            placeholder="Skip: wip_*.py, _shared.py, deprecated/*",
-            tooltip=exclude_tooltip,
-            parent_layout=filters_layout,
-        )
-        parent_layout.addWidget(self.batch_filters_widget)
+        button.setText("")
+        button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_add))
+        button.setIconSize(ui_qt.QtCore.QSize(18, 18))
+        button.setMinimumWidth(32)
 
-    def toggle_batch_filters(self, *args):
-        """Toggles visibility for batch include and exclude filters."""
-        self.refresh_batch_filters_visibility(store_state=True)
-
-    def refresh_batch_filters_visibility(self, store_state=False):
-        """Refreshes batch filter widget visibility and button text.
+    def _clear_dynamic_rows(self, layout):
+        """Clears row widgets from a dynamic layout.
 
         Args:
-            store_state (bool, optional): Whether to persist the current button state.
+            layout (QLayout): Layout containing row widgets.
         """
-        if not self.batch_filters_widget or not self.batch_filters_button:
+        while layout and layout.count():
+            item = layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+
+    def add_external_scripts(self):
+        """Adds a new external Python script entry with its default path."""
+        entries = self.task.get_external_script_entries()
+        default_path = self.task.get_default_settings().get("script_path", "")
+        entries.append({"path": default_path, "enabled": True})
+        self.task.set_external_script_entries(entries)
+        self.refresh_external_script_rows()
+        self.emit_status_message("Added an external Python script entry.")
+
+    def refresh_external_script_rows(self):
+        """Rebuilds external script rows from task settings."""
+        if not self.external_scripts_layout:
             return
-        is_visible = bool(self.task.settings.get("batch_filters_visible", False))
-        if store_state:
-            is_visible = bool(self.batch_filters_button.isChecked())
-            self.task.settings["batch_filters_visible"] = is_visible
-        self.batch_filters_button.setChecked(is_visible)
-        self.batch_filters_button.setText("Hide Filters" if is_visible else "Show Filters")
-        self.batch_filters_widget.setVisible(is_visible)
+        self._clear_dynamic_rows(self.external_scripts_layout)
+        self.script_path_widgets = []
+        self.external_script_widgets = []
+        entries = self.task.get_external_script_entries()
+        if not entries:
+            empty_label = ui_qt.QtWidgets.QLabel("No external Python scripts configured. Use + to add one.")
+            empty_label.setStyleSheet("color: grey;")
+            self.external_scripts_layout.addWidget(empty_label)
+            return
+        for script_index, entry in enumerate(entries):
+            self.add_external_script_row(script_index, entry)
 
-    def set_batch_filter_text(self, text, key):
-        """Stores batch filter text and refreshes the detected scripts.
-
-        Args:
-            text (str): Filter text.
-            key (str): Task settings key.
-        """
-        self.set_task_setting(text, key=key)
-        self.refresh_script_list(update_status=False)
-
-    def add_script_file_path_controls(self, parent_layout):
-        """Adds the external Python script path controls.
+    def add_external_script_row(self, script_index, entry):
+        """Adds one editable external script row.
 
         Args:
-            parent_layout (QLayout): Layout that receives the controls.
+            script_index (int): Zero-based entry index.
+            entry (dict): External script settings.
 
         Returns:
-            dict: Created widgets.
+            dict: Created row widgets.
         """
-        tooltip = "Python file to run for every incoming file."
-        layout = ui_qt.QtWidgets.QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 5)
-        layout.setSpacing(8)
-        label = ui_qt.QtWidgets.QLabel("Script File:")
-        attr_widget_base.configure_label_for_scaled_displays(label, minimum_width=140, word_wrap=True)
-        label.setToolTip(tooltip)
-        layout.addWidget(label)
+        tooltip = "External Python file to run for every incoming file."
+        row_widget = ui_qt.QtWidgets.QWidget()
+        layout = ui_qt.QtWidgets.QHBoxLayout(row_widget)
+        layout.setContentsMargins(0, 0, 0, 3)
+        layout.setSpacing(6)
+        index_label = ui_qt.QtWidgets.QLabel(f"{script_index + 1:02d}")
+        index_label.setMinimumWidth(28)
+        index_label.setStyleSheet("color: grey;")
+        index_label.setToolTip("External script order.")
+        layout.addWidget(index_label)
+        enabled_checkbox = ui_qt.QtWidgets.QCheckBox()
+        enabled_checkbox.setChecked(bool(entry.get("enabled", True)))
+        enabled_checkbox.setToolTip("Disabled scripts remain saved but are not run.")
+        enabled_checkbox.stateChanged.connect(
+            lambda *args, index=script_index, checkbox=enabled_checkbox: self.set_external_script_enabled(
+                index, checkbox.isChecked()
+            )
+        )
+        layout.addWidget(enabled_checkbox)
         field = self.create_text_field(
-            text=self.task.settings.get("script_path"),
+            text=entry.get("path"),
             placeholder="{project-dir}/scripts/post_process.py",
             tooltip=tooltip,
         )
@@ -385,16 +390,20 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
         edit_button = ui_qt.QtWidgets.QPushButton()
         edit_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_templates_python))
         edit_button.setToolTip("Open this Python script for editing.")
+        delete_button = ui_qt.QtWidgets.QPushButton()
+        delete_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_delete))
+        delete_button.setToolTip("Remove this external script.")
         layout.addWidget(field)
         layout.addWidget(info_button)
         layout.addWidget(open_button)
         layout.addWidget(browse_button)
         layout.addWidget(edit_button)
+        layout.addWidget(delete_button)
         field.textChanged.connect(
             partial(
                 self.set_path_field_value,
                 field=field,
-                setter=partial(self.set_task_setting, key="script_path"),
+                setter=partial(self.set_external_script_path, script_index=script_index),
             )
         )
         info_button.clicked.connect(partial(self.open_env_var_feedback_dialog, field=field))
@@ -408,37 +417,115 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
             )
         )
         edit_button.clicked.connect(
-            lambda checked=False: self.open_python_script(self.task.resolve_script_path(self.project))
+            lambda checked=False, path_field=field: self.open_python_script(
+                self.get_resolved_field_path(path_field)
+            )
         )
-        parent_layout.addLayout(layout)
-        return {
-            "layout": layout,
+        delete_button.clicked.connect(lambda checked=False, index=script_index: self.remove_external_script(index))
+        self.external_scripts_layout.addWidget(row_widget)
+        row_widgets = {
+            "row": row_widget,
             "field": field,
+            "enabled_checkbox": enabled_checkbox,
             "info_button": info_button,
             "open_button": open_button,
             "browse_button": browse_button,
             "edit_button": edit_button,
+            "delete_button": delete_button,
         }
+        self.script_path_widgets.append(row_widgets)
+        self.external_script_widgets.append(row_widgets)
+        return row_widgets
 
-    def add_scripts_path_controls(self, parent_layout):
-        """Adds the scripts folder path controls inside the batch container.
+    def set_external_script_path(self, path, script_index):
+        """Stores an external script path from a row editor.
 
         Args:
-            parent_layout (QLayout): Layout that receives the controls.
+            path (str): New script path.
+            script_index (int): Zero-based entry index.
+        """
+        entries = self.task.get_external_script_entries()
+        if script_index >= len(entries):
+            return
+        entries[script_index]["path"] = path
+        self.task.set_external_script_entries(entries)
+
+    def set_external_script_enabled(self, script_index, enabled):
+        """Stores the enabled state from an external script row.
+
+        Args:
+            script_index (int): Zero-based entry index.
+            enabled (bool): Whether the script should run.
+        """
+        entries = self.task.get_external_script_entries()
+        if script_index >= len(entries):
+            return
+        entries[script_index]["enabled"] = bool(enabled)
+        self.task.set_external_script_entries(entries)
+
+    def remove_external_script(self, script_index):
+        """Removes one external script entry.
+
+        Args:
+            script_index (int): Zero-based entry index.
+        """
+        entries = self.task.get_external_script_entries()
+        if script_index >= len(entries):
+            return
+        entries.pop(script_index)
+        self.task.set_external_script_entries(entries)
+        self.refresh_external_script_rows()
+
+    def add_batch_directory(self):
+        """Adds a batch script directory entry with its default path."""
+        entries = self.task.get_batch_directory_entries()
+        default_path = self.task.get_default_settings().get("scripts_path", "")
+        entries.append({"path": default_path, "include_patterns": "", "exclude_patterns": ""})
+        self.task.set_batch_directory_entries(entries)
+        self.refresh_batch_directory_rows()
+        self.refresh_script_list(update_status=True)
+
+    def refresh_batch_directory_rows(self):
+        """Rebuilds batch-directory rows from task settings."""
+        if not self.batch_directories_layout:
+            return
+        self._clear_dynamic_rows(self.batch_directories_layout)
+        self.scripts_path_widgets = []
+        self.batch_directory_widgets = []
+        entries = self.task.get_batch_directory_entries()
+        if not entries:
+            empty_label = ui_qt.QtWidgets.QLabel("No batch script directories configured. Use + to add one.")
+            empty_label.setStyleSheet("color: grey;")
+            self.batch_directories_layout.addWidget(empty_label)
+            return
+        for directory_index, entry in enumerate(entries):
+            self.add_batch_directory_row(directory_index, entry)
+
+    def add_batch_directory_row(self, directory_index, entry):
+        """Adds an expandable two-row batch-directory entry.
+
+        Args:
+            directory_index (int): Zero-based directory index.
+            entry (dict): Batch-directory settings.
 
         Returns:
-            dict: Created widgets.
+            dict: Created row widgets.
         """
-        tooltip = "Folder containing Python scripts to run in sorted order."
-        layout = ui_qt.QtWidgets.QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 5)
-        layout.setSpacing(8)
-        label = ui_qt.QtWidgets.QLabel("Scripts Directory:")
-        attr_widget_base.configure_label_for_scaled_displays(label, minimum_width=140, word_wrap=True)
-        label.setToolTip(tooltip)
-        layout.addWidget(label)
+        tooltip = "Folder containing Python scripts. Its scripts run before later directories."
+        container = ui_qt.QtWidgets.QWidget()
+        container_layout = ui_qt.QtWidgets.QVBoxLayout(container)
+        container_layout.setContentsMargins(0, 0, 0, 0)
+        container_layout.setSpacing(2)
+        path_row = ui_qt.QtWidgets.QHBoxLayout()
+        path_row.setContentsMargins(0, 0, 0, 0)
+        path_row.setSpacing(6)
+        index_label = ui_qt.QtWidgets.QLabel(f"{directory_index + 1:02d}")
+        index_label.setMinimumWidth(28)
+        index_label.setStyleSheet("color: grey;")
+        index_label.setToolTip("Batch directory order.")
+        path_row.addWidget(index_label)
         field = self.create_text_field(
-            text=self.task.settings.get("scripts_path"),
+            text=entry.get("path"),
             placeholder="{project-dir}/scripts",
             tooltip=tooltip,
         )
@@ -447,33 +534,145 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
         info_button.setToolTip("Get more information about the current path.")
         open_button = ui_qt.QtWidgets.QPushButton()
         open_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_open_external))
-        open_button.setToolTip("Open the resolved directory.")
+        open_button.setToolTip("Open this directory.")
         browse_button = ui_qt.QtWidgets.QPushButton()
         browse_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_open))
-        browse_button.setToolTip("Browse for a concrete path.")
-        layout.addWidget(field)
-        layout.addWidget(info_button)
-        layout.addWidget(open_button)
-        layout.addWidget(browse_button)
+        browse_button.setToolTip("Browse for a directory.")
+        expand_button = ui_qt.QtWidgets.QPushButton("v")
+        expand_button.setCheckable(True)
+        expand_button.setMinimumWidth(32)
+        expand_button.setToolTip("Show or hide include, exclude, and delete controls.")
+        path_row.addWidget(field)
+        path_row.addWidget(info_button)
+        path_row.addWidget(open_button)
+        path_row.addWidget(browse_button)
+        path_row.addWidget(expand_button)
+        container_layout.addLayout(path_row)
+
+        filters_row = ui_qt.QtWidgets.QWidget()
+        filters_layout = ui_qt.QtWidgets.QHBoxLayout(filters_row)
+        filters_layout.setContentsMargins(34, 0, 0, 3)
+        filters_layout.setSpacing(6)
+        include_label = ui_qt.QtWidgets.QLabel("Include:")
+        include_label.setMinimumWidth(52)
+        include_field = self.create_text_field(
+            text=entry.get("include_patterns"),
+            placeholder="publish_*.py, rig/*.py",
+            tooltip="Optional glob patterns to include for this directory.",
+        )
+        exclude_label = ui_qt.QtWidgets.QLabel("Exclude:")
+        exclude_label.setMinimumWidth(52)
+        exclude_field = self.create_text_field(
+            text=entry.get("exclude_patterns"),
+            placeholder="wip_*.py, deprecated/*",
+            tooltip="Glob patterns to skip for this directory.",
+        )
+        delete_button = ui_qt.QtWidgets.QPushButton()
+        delete_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_delete))
+        delete_button.setToolTip("Remove this batch script directory.")
+        filters_layout.addWidget(include_label)
+        filters_layout.addWidget(include_field, 1)
+        filters_layout.addWidget(exclude_label)
+        filters_layout.addWidget(exclude_field, 1)
+        filters_layout.addWidget(delete_button)
+        container_layout.addWidget(filters_row)
+        filters_row.setVisible(False)
+
         field.textChanged.connect(
             partial(
                 self.set_path_field_value,
                 field=field,
-                setter=partial(self.set_task_setting, key="scripts_path"),
+                setter=partial(self.set_batch_directory_path, directory_index=directory_index),
             )
         )
         field.textChanged.connect(lambda *args: self.refresh_scripts_if_directory_exists())
+        include_field.textChanged.connect(
+            lambda value, index=directory_index: self.set_batch_directory_filter(index, "include_patterns", value)
+        )
+        exclude_field.textChanged.connect(
+            lambda value, index=directory_index: self.set_batch_directory_filter(index, "exclude_patterns", value)
+        )
         info_button.clicked.connect(partial(self.open_env_var_feedback_dialog, field=field))
         open_button.clicked.connect(partial(self.open_resolved_path_directory, field=field))
         browse_button.clicked.connect(partial(self.open_path_dialog, field=field, dir_only=True))
-        parent_layout.addLayout(layout)
-        return {
-            "layout": layout,
+        expand_button.toggled.connect(
+            lambda is_checked, button=expand_button, widget=filters_row: self.toggle_batch_directory(
+                button, widget, is_checked
+            )
+        )
+        delete_button.clicked.connect(
+            lambda checked=False, index=directory_index: self.remove_batch_directory(index)
+        )
+        self.batch_directories_layout.addWidget(container)
+        row_widgets = {
+            "container": container,
             "field": field,
             "info_button": info_button,
             "open_button": open_button,
             "browse_button": browse_button,
+            "expand_button": expand_button,
+            "filters_row": filters_row,
+            "include_field": include_field,
+            "exclude_field": exclude_field,
+            "delete_button": delete_button,
         }
+        self.scripts_path_widgets.append(row_widgets)
+        self.batch_directory_widgets.append(row_widgets)
+        return row_widgets
+
+    @staticmethod
+    def toggle_batch_directory(button, filters_widget, is_expanded):
+        """Toggles the advanced row for a batch directory.
+
+        Args:
+            button (QPushButton): Expand/collapse button.
+            filters_widget (QWidget): Advanced settings row.
+            is_expanded (bool): Whether the row should be visible.
+        """
+        filters_widget.setVisible(bool(is_expanded))
+        button.setText("^" if is_expanded else "v")
+
+    def set_batch_directory_path(self, path, directory_index):
+        """Stores a batch-directory path from a row editor.
+
+        Args:
+            path (str): New directory path.
+            directory_index (int): Zero-based directory index.
+        """
+        entries = self.task.get_batch_directory_entries()
+        if directory_index >= len(entries):
+            return
+        entries[directory_index]["path"] = path
+        self.task.set_batch_directory_entries(entries)
+
+    def set_batch_directory_filter(self, directory_index, key, value):
+        """Stores an include or exclude filter for a batch directory.
+
+        Args:
+            directory_index (int): Zero-based directory index.
+            key (str): Entry key to update.
+            value (str): Filter text.
+        """
+        entries = self.task.get_batch_directory_entries()
+        if directory_index >= len(entries):
+            return
+        entries[directory_index][key] = value
+        self.task.set_batch_directory_entries(entries)
+        self.refresh_script_list(update_status=False)
+
+    def remove_batch_directory(self, directory_index):
+        """Removes one batch-directory entry.
+
+        Args:
+            directory_index (int): Zero-based directory index.
+        """
+        entries = self.task.get_batch_directory_entries()
+        if directory_index >= len(entries):
+            return
+        entries.pop(directory_index)
+        self.task.set_batch_directory_entries(entries)
+        self.refresh_batch_directory_rows()
+        self.refresh_script_list(update_status=True)
 
     def set_script_mode(self, value):
         """Sets the current script mode and refreshes visible controls.
@@ -500,12 +699,14 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
             self.refresh_script_list(update_status=False)
 
     def refresh_scripts_if_directory_exists(self):
-        """Refreshes the batch script list when the configured directory exists."""
-        if not self.scripts_path_widgets or not self.script_list_layout:
+        """Refreshes the batch script list when a configured directory exists."""
+        if not self.batch_directory_widgets or not self.script_list_layout:
             return
-        directory_path = self.get_resolved_field_path(self.scripts_path_widgets.get("field"))
-        if os.path.isdir(directory_path):
-            self.refresh_script_list(update_status=True)
+        for row_widgets in self.batch_directory_widgets:
+            directory_path = self.get_resolved_field_path(row_widgets.get("field"))
+            if os.path.isdir(directory_path):
+                self.refresh_script_list(update_status=True)
+                return
 
     def on_button_run_code_clicked(self):
         """Executes the Python code from the text editor."""
@@ -731,8 +932,9 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
         self.script_list_layout.addWidget(row_widget)
 
     def open_configured_script(self):
-        """Opens the configured legacy Python script for editing."""
-        script_path = self.task.resolve_script_path(self.project)
+        """Opens the first enabled external Python script for editing."""
+        script_paths = self.task.get_script_paths(self.project)
+        script_path = script_paths[0] if script_paths else self.task.resolve_script_path(self.project)
         self.open_python_script(script_path)
 
     def open_python_script(self, script_path):

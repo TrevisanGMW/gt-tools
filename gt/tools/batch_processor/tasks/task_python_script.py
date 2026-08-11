@@ -3,6 +3,7 @@ Batch Processor Python Script Tasks
 """
 
 from gt.tools.batch_processor import batch_processor_constants as constants
+from gt.tools.batch_processor.tasks import task_utils
 from gt.tools.batch_processor import batch_processor_maya
 from gt.tools.batch_processor import batch_processor_task_base as task_base
 import gt.ui.resource_library as ui_res_lib
@@ -20,46 +21,11 @@ SCRIPT_MODE_SINGLE = SCRIPT_MODE_INLINE
 SCRIPT_MODE_BATCH = SCRIPT_MODE_BATCH_DIRECTORY
 SCRIPT_MODE_VALUES = [SCRIPT_MODE_INLINE, SCRIPT_MODE_EXTERNAL_FILE, SCRIPT_MODE_BATCH_DIRECTORY]
 LEGACY_DEFAULT_DISPLAY_NAMES = set(["Run Python Script", "Run Python Scripts Folder"])
-DEFAULT_PYTHON_INLINE_SCRIPT = '''"""
-Batch Python example.
-
-Values exposed by the batch processor when Pass Task Args is enabled:
-    arguments["input"]: Current input file for this task.
-        Example: C:/project/01_input/walk.fbx
-    arguments["output"]: Expected output file for this task.
-        Example: C:/project/02_tasks/01_python/walk.ma
-    arguments["project_path"]: Batch project file.
-        Example: C:/project/Batch_process_project.batch
-    arguments["project_dir"]: Folder containing the batch project.
-        Example: C:/project
-    arguments["task"]: Task display name.
-        Example: Python
-    arguments["task_id"]: Stable task id from the .batch file.
-        Example: 2f35ec56-8e64-4df7-9a30-612af8d4f2db
-
-Project environment variables are available through environment_variables.
-Short aliases are also available: args and env.
-"""
-
-import pprint
-import maya.cmds as cmds
-
-print("Batch Python arguments:")
-pprint.pprint(arguments)
-
-print("Batch environment variables:")
-pprint.pprint(environment_variables)
-
-
-def run(context):
-    """Runs after the inline script is loaded by the batch processor."""
-    print("Processing: {0}".format(args.get("input") or context.get("source_path")))
-    print("Output: {0}".format(args.get("output") or context.get("output_path")))
-'''
+DEFAULT_PYTHON_INLINE_SCRIPT = task_utils.load_script("script_inline_python_script.py")
 
 
 class TaskPythonScript(task_base.BatchTask):
-    """Task that runs inline Python code or a folder of scripts against each incoming Maya file."""
+    """Task that runs inline Python code or external scripts against each incoming Maya file."""
 
     task_type = constants.TaskType.PYTHON_SCRIPT
     default_display_name = "Python"
@@ -111,6 +77,121 @@ class TaskPythonScript(task_base.BatchTask):
         self.settings.setdefault("pass_standard_arguments", True)
         self.settings.setdefault("pass_environment_arguments", True)
         self.settings.setdefault("font_size", 14)
+        if "external_scripts" not in self.settings:
+            self.settings["external_scripts"] = [
+                {"path": self.settings.get("script_path", ""), "enabled": True}
+            ]
+        if "batch_directories" not in self.settings:
+            self.settings["batch_directories"] = [
+                {
+                    "path": self.settings.get("scripts_path", ""),
+                    "include_patterns": self.settings.get("batch_include_patterns", ""),
+                    "exclude_patterns": self.settings.get("batch_exclude_patterns", ""),
+                }
+            ]
+
+        self.settings["external_scripts"] = self._normalize_external_script_entries(
+            self.settings.get("external_scripts")
+        )
+        self.settings["batch_directories"] = self._normalize_batch_directory_entries(
+            self.settings.get("batch_directories")
+        )
+
+    @staticmethod
+    def _normalize_external_script_entries(entries):
+        """Normalizes external script entries into a serializable list.
+
+        Args:
+            entries (list): Raw external script entries.
+
+        Returns:
+            list: Normalized external script dictionaries.
+        """
+        if entries is None:
+            return []
+        if not isinstance(entries, (list, tuple)):
+            entries = [entries]
+        normalized_entries = []
+        for entry in entries:
+            if isinstance(entry, dict):
+                path = entry.get("path", entry.get("script_path", ""))
+                enabled = entry.get("enabled", True)
+            else:
+                path = entry
+                enabled = True
+            if isinstance(enabled, str):
+                enabled = enabled.strip().lower() not in ["", "0", "false", "no", "off"]
+            normalized_entries.append({"path": str(path or ""), "enabled": bool(enabled)})
+        return normalized_entries
+
+    @staticmethod
+    def _normalize_batch_directory_entries(entries):
+        """Normalizes batch-directory entries into a serializable list.
+
+        Args:
+            entries (list): Raw batch-directory entries.
+
+        Returns:
+            list: Normalized batch-directory dictionaries.
+        """
+        if entries is None:
+            return []
+        if not isinstance(entries, (list, tuple)):
+            entries = [entries]
+        normalized_entries = []
+        for entry in entries:
+            if isinstance(entry, dict):
+                path = entry.get("path", entry.get("scripts_path", ""))
+                include_patterns = entry.get("include_patterns", entry.get("include", ""))
+                exclude_patterns = entry.get("exclude_patterns", entry.get("exclude", ""))
+            else:
+                path = entry
+                include_patterns = ""
+                exclude_patterns = ""
+            normalized_entries.append(
+                {
+                    "path": str(path or ""),
+                    "include_patterns": str(include_patterns or ""),
+                    "exclude_patterns": str(exclude_patterns or ""),
+                }
+            )
+        return normalized_entries
+
+    def get_external_script_entries(self):
+        """Gets ordered external script entries.
+
+        Returns:
+            list: Copies of external script entry dictionaries.
+        """
+        entries = self._normalize_external_script_entries(self.settings.get("external_scripts"))
+        self.settings["external_scripts"] = entries
+        return [dict(entry) for entry in entries]
+
+    def set_external_script_entries(self, entries):
+        """Stores ordered external script entries.
+
+        Args:
+            entries (list): External script entries to store.
+        """
+        self.settings["external_scripts"] = self._normalize_external_script_entries(entries)
+
+    def get_batch_directory_entries(self):
+        """Gets ordered batch-directory entries.
+
+        Returns:
+            list: Copies of batch-directory entry dictionaries.
+        """
+        entries = self._normalize_batch_directory_entries(self.settings.get("batch_directories"))
+        self.settings["batch_directories"] = entries
+        return [dict(entry) for entry in entries]
+
+    def set_batch_directory_entries(self, entries):
+        """Stores ordered batch-directory entries.
+
+        Args:
+            entries (list): Batch-directory entries to store.
+        """
+        self.settings["batch_directories"] = self._normalize_batch_directory_entries(entries)
 
     @staticmethod
     def normalize_script_mode(script_mode):
@@ -222,7 +303,7 @@ class TaskPythonScript(task_base.BatchTask):
         return result
 
     def validate_external_file_settings(self, project):
-        """Validates a single external Python script file.
+        """Validates enabled external Python script files.
 
         Args:
             project (BatchProcessorModel): Project containing this task.
@@ -231,13 +312,19 @@ class TaskPythonScript(task_base.BatchTask):
             ValidationResult: Collected validation result.
         """
         result = task_base.ValidationResult()
-        script_path = self.resolve_script_path(project)
-        if not script_path:
-            result.add_error("Python script file cannot be empty.")
-        elif not os.path.isfile(script_path):
-            result.add_error("Python script file does not exist: {0}".format(script_path))
-        elif not script_path.lower().endswith(".py"):
-            result.add_error("Python script file must use the .py extension: {0}".format(script_path))
+        entries = self.get_external_script_entries()
+        enabled_entries = [entry for entry in entries if entry.get("enabled", True)]
+        if not enabled_entries:
+            result.add_warning("No enabled external Python scripts are configured.")
+            return result
+        for script_index, entry in enumerate(enabled_entries, start=1):
+            script_path = self.resolve_external_script_path(entry.get("path"), project)
+            if not script_path:
+                result.add_error(f"External Python script {script_index} cannot be empty.")
+            elif not os.path.isfile(script_path):
+                result.add_error(f"External Python script does not exist: {script_path}")
+            elif not script_path.lower().endswith(".py"):
+                result.add_error(f"External Python script must use the .py extension: {script_path}")
         return result
 
     def validate_batch_settings(self, project):
@@ -250,13 +337,23 @@ class TaskPythonScript(task_base.BatchTask):
             ValidationResult: Collected validation result.
         """
         result = task_base.ValidationResult()
-        scripts_dir = self.resolve_scripts_path(project)
-        if not scripts_dir:
-            result.add_error("Python scripts folder cannot be empty.")
-        elif not os.path.isdir(scripts_dir):
-            result.add_error("Python scripts folder does not exist: {0}".format(scripts_dir))
-        elif not self.get_script_paths(project):
-            result.add_warning("Python scripts folder contains no runnable .py scripts: {0}".format(scripts_dir))
+        directory_entries = self.get_batch_directory_entries()
+        if not directory_entries:
+            result.add_warning("No Python script directories are configured.")
+            return result
+        for directory_index, entry in enumerate(directory_entries, start=1):
+            scripts_dir = self.resolve_batch_directory_path(entry.get("path"), project)
+            if not scripts_dir:
+                result.add_error(f"Python scripts directory {directory_index} cannot be empty.")
+                continue
+            if not os.path.isdir(scripts_dir):
+                result.add_error(f"Python scripts directory does not exist: {scripts_dir}")
+                continue
+            script_paths = self.get_batch_script_paths(project, entry)
+            if not script_paths:
+                result.add_warning(
+                    f"Python scripts directory contains no runnable .py scripts: {scripts_dir}"
+                )
         return result
 
     def validate_work_items(self, work_items, project, step_output_dir, context=None):
@@ -360,37 +457,67 @@ class TaskPythonScript(task_base.BatchTask):
             list: Script paths.
         """
         if self.is_external_file_mode():
-            script_path = self.resolve_script_path(project)
-            if script_path and os.path.isfile(script_path):
-                return [script_path]
-            return []
+            script_paths = []
+            for entry in self.get_external_script_entries():
+                if not entry.get("enabled", True):
+                    continue
+                script_path = self.resolve_external_script_path(entry.get("path"), project)
+                if script_path and os.path.isfile(script_path):
+                    script_paths.append(script_path)
+            return script_paths
         if self.is_inline_mode():
             return []
-        scripts_dir = self.resolve_scripts_path(project)
+        script_paths = []
+        for entry in self.get_batch_directory_entries():
+            script_paths.extend(self.get_batch_script_paths(project, entry))
+        return script_paths
+
+    def get_batch_script_paths(self, project, directory_entry):
+        """Gets runnable Python scripts for one ordered directory entry.
+
+        Args:
+            project (BatchProcessorModel): Active project model.
+            directory_entry (dict): Batch-directory settings.
+
+        Returns:
+            list: Sorted script paths from the directory.
+        """
+        scripts_dir = self.resolve_batch_directory_path(directory_entry.get("path"), project)
         if not os.path.isdir(scripts_dir):
             return []
+        include_patterns = parse_filter_patterns(directory_entry.get("include_patterns"))
+        exclude_patterns = parse_filter_patterns(directory_entry.get("exclude_patterns"))
         script_paths = []
         for file_name in sorted(os.listdir(scripts_dir)):
             if not file_name.lower().endswith(".py") or file_name.startswith("__"):
                 continue
             script_path = task_base.normalize_path(os.path.join(scripts_dir, file_name))
-            if not self.is_batch_script_allowed(script_path=script_path, scripts_dir=scripts_dir):
+            if not self.is_batch_script_allowed(
+                script_path=script_path,
+                scripts_dir=scripts_dir,
+                include_patterns=include_patterns,
+                exclude_patterns=exclude_patterns,
+            ):
                 continue
             script_paths.append(script_path)
         return script_paths
 
-    def is_batch_script_allowed(self, script_path, scripts_dir):
+    def is_batch_script_allowed(self, script_path, scripts_dir, include_patterns=None, exclude_patterns=None):
         """Checks whether a batch script passes include and exclude filters.
 
         Args:
             script_path (str): Python script path to inspect.
             scripts_dir (str): Root scripts directory.
+            include_patterns (list, optional): Include patterns for this directory.
+            exclude_patterns (list, optional): Exclude patterns for this directory.
 
         Returns:
             bool: True when the script should run.
         """
-        include_patterns = self.get_batch_include_patterns()
-        exclude_patterns = self.get_batch_exclude_patterns()
+        if include_patterns is None:
+            include_patterns = self.get_batch_include_patterns()
+        if exclude_patterns is None:
+            exclude_patterns = self.get_batch_exclude_patterns()
         relative_path = os.path.relpath(script_path, scripts_dir).replace("\\", "/")
         file_name = os.path.basename(script_path)
         if include_patterns and not self.matches_filter_patterns(
@@ -456,9 +583,22 @@ class TaskPythonScript(task_base.BatchTask):
         Returns:
             str: Resolved script path.
         """
+        return self.resolve_external_script_path(self.settings.get("script_path"), project)
+
+    def resolve_external_script_path(self, script_path, project):
+        """Resolves an external script entry path.
+
+        Args:
+            script_path (str): External script path or template.
+            project (BatchProcessorModel): Project used to resolve templates.
+
+        Returns:
+            str: Resolved script path.
+        """
+        script_path = str(script_path or "")
         if project:
-            return project.resolve_template_path(self.settings.get("script_path") or "", task=self)
-        return task_base.normalize_path(self.settings.get("script_path") or "")
+            return project.resolve_template_path(script_path, task=self)
+        return task_base.normalize_path(script_path)
 
     def resolve_scripts_path(self, project):
         """Resolves the configured scripts folder path.
@@ -469,9 +609,22 @@ class TaskPythonScript(task_base.BatchTask):
         Returns:
             str: Resolved scripts folder path.
         """
+        return self.resolve_batch_directory_path(self.settings.get("scripts_path"), project)
+
+    def resolve_batch_directory_path(self, directory_path, project):
+        """Resolves a batch-directory entry path.
+
+        Args:
+            directory_path (str): Batch-directory path or template.
+            project (BatchProcessorModel): Project used to resolve templates.
+
+        Returns:
+            str: Resolved directory path.
+        """
+        directory_path = str(directory_path or "")
         if project:
-            return project.resolve_template_path(self.settings.get("scripts_path") or "", task=self)
-        return task_base.normalize_path(self.settings.get("scripts_path") or "")
+            return project.resolve_template_path(directory_path, task=self)
+        return task_base.normalize_path(directory_path)
 
     def get_inline_script_text(self, project=None):
         """Gets inline script text, falling back to old script-path data when possible.

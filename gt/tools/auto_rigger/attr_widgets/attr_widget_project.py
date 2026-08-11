@@ -42,7 +42,7 @@ class AttrWidgetProject(AttrWidget):
             nice_name="Project Directory",
             dir_only=True,
             ok_caption="Set Directory",
-            placeholder='Project Directory (env-var: "{project-dir}")',
+            placeholder='Project Directory (defaults to env-var: "{project-file-dir}")',
         )
 
         # Preferences

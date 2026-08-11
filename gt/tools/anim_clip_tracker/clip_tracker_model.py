@@ -1,10 +1,13 @@
 """
 Animation Clip Tracker Model
 """
-from gt.tools.anim_clip_tracker import clip_tracker_constants as clip_constants
-from gt.core.prefs import Prefs
+import copy
 import datetime
 import json
+import os
+
+from gt.core.prefs import Prefs
+from gt.tools.anim_clip_tracker import clip_tracker_constants as clip_constants
 
 
 PREFS_FILENAME = "anim_clip_tracker"
@@ -12,6 +15,8 @@ PREFS_KEY_STATE = "state"
 CLIP_NODE_NAME = "animClipData"
 CLIP_ATTR_NAME = "clipData"
 CLIP_ATTR_EDITED = "clipDataLastEdited"
+AUTOMATION_CHECK_STATES_KEY = "automation_check_states"
+AUTOMATION_CHECK_STATES_PATH_KEY = "automation_check_states_path"
 PREFERENCE_KEYS = [
     "preferences_collapsed",
     "validate_min_frames",
@@ -25,6 +30,7 @@ PREFERENCE_KEYS = [
     "auto_reorder_clips",
     "confirm_delete_clip",
     "new_clip_at_current_frame",
+    "write_scene_node",
     "show_timeline",
     "timeline_mode",
     "timeline_show_names",
@@ -32,7 +38,42 @@ PREFERENCE_KEYS = [
     "timeline_allow_outside_range",
     "timeline_magnet_enabled",
     "timeline_snap_tolerance",
+    "automation_path",
+    AUTOMATION_CHECK_STATES_KEY,
+    AUTOMATION_CHECK_STATES_PATH_KEY,
 ]
+
+
+def get_sample_automation_directory():
+    """Gets the packaged Animation Clip Tracker automation directory.
+
+    Returns:
+        str: Absolute path to the packaged automation sample directory.
+    """
+    return os.path.join(os.path.dirname(__file__), "samples")
+
+
+def get_sample_automation_path():
+    """Gets the packaged Animation Clip Tracker automation sample path.
+
+    Returns:
+        str: Absolute path to the packaged automation Python file.
+    """
+    return os.path.join(get_sample_automation_directory(), "automation.py")
+
+
+def normalize_automation_path(automation_path):
+    """Normalizes an automation folder path for preference comparisons.
+
+    Args:
+        automation_path (str): Automation folder path supplied by the user.
+
+    Returns:
+        str: Normalized automation folder path, or an empty string.
+    """
+    if not automation_path:
+        return ""
+    return os.path.normcase(os.path.normpath(str(automation_path).strip(' "\'')))
 
 
 def get_maya_cmds():
@@ -83,6 +124,7 @@ class ClipTrackerModel:
         self.auto_reorder_clips = False
         self.confirm_delete_clip = True
         self.new_clip_at_current_frame = True
+        self.write_scene_node = True
         self.show_timeline = False
         self.timeline_mode = clip_constants.DEFAULT_TIMELINE_MODE
         self.timeline_show_names = False
@@ -90,6 +132,9 @@ class ClipTrackerModel:
         self.timeline_allow_outside_range = False
         self.timeline_magnet_enabled = True
         self.timeline_snap_tolerance = 10
+        self.automation_path = ""
+        self.automation_check_states = {}
+        self.automation_check_states_path = ""
 
     def load_preferences(self):
         """Loads persistent tool preferences."""
@@ -99,11 +144,17 @@ class ClipTrackerModel:
         for key in PREFERENCE_KEYS:
             if key in data:
                 setattr(self, key, data.get(key))
+        if normalize_automation_path(self.automation_path) == normalize_automation_path(
+            get_sample_automation_directory()
+        ):
+            self.automation_path = ""
+            self.automation_check_states = {}
+            self.automation_check_states_path = ""
         self.timeline_mode = clip_constants.get_valid_mode(self.timeline_mode)
 
     def save_preferences(self):
         """Saves persistent tool preferences."""
-        self.prefs.preferences[PREFS_KEY_STATE] = {
+        preferences = {
             "preferences_collapsed": bool(self.preferences_collapsed),
             "validate_min_frames": bool(self.validate_min_frames),
             "min_frames": int(self.min_frames),
@@ -116,6 +167,7 @@ class ClipTrackerModel:
             "auto_reorder_clips": bool(self.auto_reorder_clips),
             "confirm_delete_clip": bool(self.confirm_delete_clip),
             "new_clip_at_current_frame": bool(self.new_clip_at_current_frame),
+            "write_scene_node": bool(self.write_scene_node),
             "show_timeline": bool(self.show_timeline),
             "timeline_mode": clip_constants.get_valid_mode(self.timeline_mode),
             "timeline_show_names": bool(self.timeline_show_names),
@@ -124,6 +176,18 @@ class ClipTrackerModel:
             "timeline_magnet_enabled": bool(self.timeline_magnet_enabled),
             "timeline_snap_tolerance": int(self.timeline_snap_tolerance),
         }
+        automation_path = str(self.automation_path or "").strip()
+        if automation_path:
+            preferences["automation_path"] = automation_path
+            preferences[AUTOMATION_CHECK_STATES_KEY] = copy.deepcopy(
+                self.automation_check_states
+                if isinstance(self.automation_check_states, dict)
+                else {}
+            )
+            preferences[AUTOMATION_CHECK_STATES_PATH_KEY] = str(
+                self.automation_check_states_path or ""
+            )
+        self.prefs.preferences[PREFS_KEY_STATE] = preferences
         self.prefs.save()
 
     def get_preference_values(self):
@@ -133,6 +197,69 @@ class ClipTrackerModel:
             dict: Preference values keyed by preference name.
         """
         return {key: getattr(self, key) for key in PREFERENCE_KEYS}
+
+    def get_automation_check_states(self, automation_path):
+        """Gets stored check states when they belong to the given folder.
+
+        Script names that no longer exist are retained in preferences. The view
+        ignores those names until matching scripts return to the same folder.
+
+        Args:
+            automation_path (str): Current automation folder path.
+
+        Returns:
+            dict: Mapping of automation file names to checked states.
+        """
+        normalized_path = normalize_automation_path(automation_path)
+        if normalized_path != self.automation_check_states_path:
+            return {}
+        if not isinstance(self.automation_check_states, dict):
+            return {}
+        return copy.deepcopy(self.automation_check_states)
+
+    def reset_automation_check_states(self, automation_path, save=True):
+        """Clears automation selections when the configured folder changes.
+
+        Args:
+            automation_path (str): New automation folder path.
+            save (bool, optional): Whether to immediately persist the change.
+
+        Returns:
+            bool: True if the folder changed and selections were reset.
+        """
+        normalized_path = normalize_automation_path(automation_path)
+        if normalized_path == self.automation_check_states_path:
+            return False
+        self.automation_check_states_path = normalized_path
+        self.automation_check_states = {}
+        if save:
+            self.save_preferences()
+        return True
+
+    def set_automation_check_state(
+        self,
+        automation_path,
+        script_name,
+        is_checked,
+        save=True,
+    ):
+        """Stores one automation's batch-run selection state.
+
+        Args:
+            automation_path (str): Folder that owns the automation script.
+            script_name (str): Automation file name.
+            is_checked (bool): Whether the automation is selected for batch runs.
+            save (bool, optional): Whether to immediately persist the change.
+        """
+        normalized_path = normalize_automation_path(automation_path)
+        if normalized_path != self.automation_check_states_path:
+            self.automation_check_states_path = normalized_path
+            self.automation_check_states = {}
+        if not isinstance(self.automation_check_states, dict):
+            self.automation_check_states = {}
+        self.automation_check_states[str(script_name)] = bool(is_checked)
+        if save:
+            self.save_preferences()
 
     def log(self, message):
         """Prints an informational message through Maya.
@@ -164,6 +291,8 @@ class ClipTrackerModel:
 
     def save_data(self):
         """Saves clip data to the Maya scene."""
+        if not self.write_scene_node:
+            return
         cmds = get_maya_cmds()
         if self.auto_reorder_clips:
             self.reorder_clips()
@@ -303,6 +432,26 @@ class ClipTrackerModel:
             deleted = self.clips.pop(index)
             self.save_data()
             self.log('Deleted clip: "{0}"'.format(deleted.get("name") or "Clip {0}".format(index + 1)))
+
+    def move_clip(self, index, offset):
+        """Moves one clip relative to its current list position.
+
+        Args:
+            index (int): Source clip index.
+            offset (int): Position change, normally -1 or 1.
+
+        Returns:
+            bool: True when the clip order was changed.
+        """
+        index = int(index)
+        target_index = index + int(offset)
+        if index < 0 or index >= len(self.clips):
+            return False
+        if target_index < 0 or target_index >= len(self.clips):
+            return False
+        self.clips[index], self.clips[target_index] = self.clips[target_index], self.clips[index]
+        self.save_data()
+        return True
 
     def reorder_clips(self):
         """Sorts clips by start and end frame."""

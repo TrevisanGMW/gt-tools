@@ -1,103 +1,99 @@
 <!-- GT Tools README.md file -->
-<p></p>
-<img src="./docs/media/gt_logo.png">
-<p></p>
-<p align="center"> 
-   <a href="https://github.com/TrevisanGMW/gt-tools/graphs/contributors">
-   <img alt="GitHub contributors" src="https://img.shields.io/github/contributors/TrevisanGMW/gt-tools.svg?style=flat-square" ></a>
-   <img alt="GitHub language count" src="https://img.shields.io/github/languages/count/TrevisanGMW/gt-tools?style=flat-square">
-   <img alt="GitHub last commit" src="https://img.shields.io/github/last-commit/TrevisanGMW/gt-tools?style=flat-square">
-   <a href="https://github.com/TrevisanGMW/gt-tools/network/members">
-   <img alt="GitHub forks" src="https://img.shields.io/github/forks/TrevisanGMW/gt-tools.svg?style=flat-square" ></a>
-   <a href="https://github.com/TrevisanGMW/gt-tools/stargazers">
-   <img alt="GitHub stars" src="https://img.shields.io/github/stars/TrevisanGMW/gt-tools.svg?style=flat-square" ></a>
-   <a href="https://github.com/TrevisanGMW/gt-tools/issues">
-   <img alt="GitHub issues" src="https://img.shields.io/github/issues/TrevisanGMW/gt-tools.svg?style=flat-square" ></a>
-   <a href="https://github.com/TrevisanGMW/gt-tools/blob/master/LICENSE">
-   <img alt="GitHub license" src="https://img.shields.io/github/license/TrevisanGMW/gt-tools.svg?style=flat-square" ></a>
-   <a href="https://www.paypal.me/TrevisanGMW"> 
-   <img src="https://img.shields.io/badge/$-donate-blue.svg?maxAge=2592000&amp;style=flat-square"></a>
+
+<p align="center">
+    <img src="./docs/media/gt_logo.png" alt="GT Tools logo">
 </p>
 
-<h1>Description</h1>
-A collection of tools and Python scripts designed to automate workflows, enhance existing features, and bridge the gaps in Autodesk Maya.
-
-After installing or running the script collection, you’ll find a pull-down menu that provides easy access to a
-variety of tools and utilities. This menu contains sub-menus that have been organized to contain related tools,
-for example: modeling, rigging, utilities, etc…
-
-For help on how to use these scripts, click on the “Help” button at the top right of their window (within Maya) or
-check their documentation by going to the <a href="./docs">docs</a> folder. For changelog see the <a href="https://github.com/TrevisanGMW/gt-tools/releases">releases</a> page.
-
-All of these items are supplied as is. You alone are solely responsible for any issues. Use at your own risk.
-Hopefully these scripts are helpful to you as they are to me.
-
-<p><b>Package tested using Autodesk Maya 2025, 2026, and 2027 (Windows 11)</b></p>
-
-<h1>Organization</h1>
-<ul>
-<li><code>docs</code>: Documentation on installation, usage, and troubleshooting of the package and its tools.</li>
-<li><code>gt.tools</code>: The "tools" directory contains separate folders, each representing a distinct tool.</li>
-<li><code>gt.ui</code>: The "ui" module provides utilities for user interface operations.</li>
-<li><code>gt.utils</code>: The "utils" module is a set of reusable functions that are not tied to any specific tool.</li>
-<li><code>tests</code>: Package unittests for tools, ui and utilities. See <a href="./CONTRIBUTING.md">CONTRIBUTING</a> for more details.</li>
-</ul>
-
-<h1>Setup (Install, Uninstall, Run Only)</h1>
-<p><b>TL;DR:</b> Download and extract the files; Drag and drop the file "setup_drag_drop_maya.py" onto the Maya viewport; 
-Select the option "Install", "Uninstall" or "Run Only"; Enjoy! <br></p>
-
-<img src="./docs/media/setup_tutorial.svg"
-     alt="GT Tools Installation Tutorial"
-     width="1000" 
-     align="center">
-
-<p>This script collection comes with an auto setup tool ("setup_drag_drop_maya.py") to call it drag and drop the file on your Maya viewport. From the setup window you can "Install", "Uninstall" or "Run Only".
-<br>Here is how you do it in more details:</p>
-
-<ol>
-	<li>Open Maya (in case it's closed).</li>
-	<li>Download the latest release (or clone this repository).</li>
-	<li>Un-zip (Decompress) the file you downloaded. (the setup won't work if it's still compressed)</li>
-	<li>Drag and drop "setup_drag_drop_maya.py" on to your Maya viewport.</li>
-    <li>An user interface with the setup options will open.</li>
-	<li>Select the desired operation. E.g. "Install", "Uninstall", or "Run Only"</li>
-	<li>Enjoy!</li>
-</ol>
-
-<p>
-After installing, you can delete the downloaded/extracted files (as they have already been copied)
+<p align="center">
+    <a href="https://github.com/TrevisanGMW/gt-tools/graphs/contributors">
+        <img alt="GitHub contributors" src="https://img.shields.io/github/contributors/TrevisanGMW/gt-tools.svg?style=flat-square">
+    </a>
+    <img alt="GitHub language count" src="https://img.shields.io/github/languages/count/TrevisanGMW/gt-tools?style=flat-square">
+    <img alt="GitHub last commit" src="https://img.shields.io/github/last-commit/TrevisanGMW/gt-tools?style=flat-square">
+    <a href="https://github.com/TrevisanGMW/gt-tools/network/members">
+        <img alt="GitHub forks" src="https://img.shields.io/github/forks/TrevisanGMW/gt-tools.svg?style=flat-square">
+    </a>
+    <a href="https://github.com/TrevisanGMW/gt-tools/stargazers">
+        <img alt="GitHub stars" src="https://img.shields.io/github/stars/TrevisanGMW/gt-tools.svg?style=flat-square">
+    </a>
+    <a href="https://github.com/TrevisanGMW/gt-tools/issues">
+        <img alt="GitHub issues" src="https://img.shields.io/github/issues/TrevisanGMW/gt-tools.svg?style=flat-square">
+    </a>
+    <a href="https://github.com/TrevisanGMW/gt-tools/blob/master/LICENSE">
+        <img alt="GitHub license" src="https://img.shields.io/github/license/TrevisanGMW/gt-tools.svg?style=flat-square">
+    </a>
+    <a href="https://www.paypal.me/TrevisanGMW">
+        <img alt="Donate" src="https://img.shields.io/badge/$-donate-blue.svg?maxAge=2592000&amp;style=flat-square">
+    </a>
 </p>
 
-<h3>Setup Window</h3>
-<img src="./docs/media/setup_window.jpg"
-     alt="GT Tools Installation Setup Window"
-     width="500"
-     align="center">
-<ol>
-	<li><b>Install:</b> Copies the files to the installation path and loads (reloads) the package. </li>
-	<li><b>Uninstall:</b> Deletes the files from the installation path and unloads the package.</li>
-	<li><b>Run Only:</b> "One time use only"; Loads tools from current location without copying files.</li>
-</ol>
+## Description
 
-<h3>Checksum Verification</h3>
-<p>When installing it for the first time, Maya might show you a small dialog window saying "UserSetup Checksum Verification", you can confirm it with a "Yes". This window is only letting you know that the "userSetup.mel" script was modified. This is a security feature from Autodesk that is used to tell the user that the startup script was modified. This check is used to prevent infected scenes from modifying the startup script without the user knowing. In our case, we did it deliberately as part of the installation process, so you can just confirm it.
+GT Tools is a collection of tools and Python scripts designed to automate workflows, enhance existing features, and fill gaps in Autodesk Maya.
+
+After the package is installed and loaded, a drop-down menu provides access to the available tools and utilities. The menu is organized into submenus containing related tools, such as modeling, rigging, and utility tools.
+
+For help using the scripts, click the **Help** button in the top-right corner of the Maya window or browse the [documentation](./docs). For the changelog, see the [release page](https://github.com/TrevisanGMW/gt-tools/releases).
+
+All items are provided "as is." You are responsible for how you use them and for any issues that may result. I hope these scripts are useful to you.
+
+**Package tested with Autodesk Maya 2025, 2026, and 2027 on Windows 11.**
+
+## Organization
+
+- `docs`: Documentation for installing, using, and troubleshooting the package.
+- `gt`: Main Python package.
+- `gt.core`: Reusable core logic for common operations. Core modules are intended to be shared by multiple tools..
+- `gt.tools`: User-facing tools. Each tool is generally organized in its own package and combines core logic, utilities, and UI components.
+- `gt.ui`: Shared user-interface components, wrappers, widgets, styles, and resources.
+- `gt.utils`: Shared supporting utilities for tasks such as file handling, system operations, exporting, and DCC integration.
+- `gt.tests`: Unit and regression tests for core modules, utilities, UI components, and tools. See [CONTRIBUTING](./CONTRIBUTING.md) for more details.
+
+## Setup (Install, Uninstall, Run Only)
+
+**TL;DR:** Download and extract the package, then drag `setup_drag_drop_maya.py` onto the Maya viewport. The setup window lets you choose **Install**, **Uninstall**, or **Run Only**.
+
+![GT Tools Installation Tutorial](./docs/media/setup_tutorial.svg)
+
+1. Open Maya.
+2. Download the [latest release](https://github.com/TrevisanGMW/gt-tools/releases), or clone the repository.
+3. Extract the downloaded archive. The setup script will not work while the archive is still compressed.
+4. Drag `setup_drag_drop_maya.py` onto the Maya viewport.
+5. Choose the desired operation: **Install**, **Uninstall**, or **Run Only**.
+6. Follow the instructions shown in the setup window.
+
+After installation, you can delete the downloaded or extracted source files if they are no longer needed; the package files have already been copied to the installation path.
+
+### Setup Window
+
+![GT Tools Installation Setup Window](./docs/media/setup_window.jpg)
+
+- **Install:** Copies the package files to the installation path and loads (or reloads) the package.
+- **Uninstall:** Removes the installed package files and unloads the package.
+- **Run Only:** Loads the tools from their current location without copying them to the installation path. This is useful for temporary use or testing.
+
+### Checksum Verification
+
+During the first installation, Maya may display a small dialog titled **UserSetup Checksum Verification**. Select **Yes** to continue. The dialog indicates that the `userSetup.mel` startup script was modified as part of the installation. This is an Autodesk security feature that informs you when the startup script changes.
+
+## Updating
+
+The package can be updated automatically from Maya using the **Package Updater** tool. Open the updater from the drop-down menu to check for new releases. If an update is available, use the **Update** button to download and install the latest version.
+
+For a major version update, uninstalling the existing version before installing the new one is recommended because it removes extra files that are no longer needed. If you update the package manually, make sure to overwrite the existing files when copying the new version.
+
+## Contributing
+
+If you would like to contribute, see [CONTRIBUTING](./CONTRIBUTING.md) for details. Pull requests are welcome.
+
+<p align="center">
+    <a href="https://github.com/TrevisanGMW/gt-tools/graphs/contributors">
+        <img src="https://contributors-img.web.app/image?repo=TrevisanGMW/gt-tools" alt="GT Tools contributors">
+    </a>
 </p>
 
-<h3>Run Only</h3>
-<p>The setup window offers the option to run the tools without installing them. To do this, follow the same drag and drop steps and click on "Run Only" instead of "Install". This is going to load the tools from the location you have them, allowing you to run it one time only.</p>
+## Licensing
 
-<h3>Updating</h3>
-<p>Simply install it again. The auto setup will handle the file changes.
-<br>If updating a major version, it's recommended that you uninstall it first before installing it again. This will eliminate any unnecessary files.
-<br>In case updating it manually, make sure to overwrite (replace) the files when moving them.</p>
+GT Tools is distributed under the [MIT License](./LICENSE).
 
-<h1> Contributors </h1>
-If you'd like to contribute, see the <a href="./CONTRIBUTING.md">CONTRIBUTING</a> file for a detailed explanation on how to do that. 
-<br><b>Pull requests are warmly welcome.</b> 
-<p></p>
-<a href="https://github.com/TrevisanGMW/gt-tools/graphs/contributors">
-  <img src="https://contributors-img.web.app/image?repo=TrevisanGMW/gt-tools" />
-</a>
-<h1> Licensing </h1>
-The MIT License 2020 - Guilherme Trevisan
+Copyright 2020 Guilherme Trevisan.

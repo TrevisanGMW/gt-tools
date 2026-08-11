@@ -1,25 +1,35 @@
-"""
- Morphing Utilities
- github.com/TrevisanGMW/gt-tools - 2020-11-15
+"""Morphing Utilities MVC tool entry point."""
 
- ATTENTION!!: This is a legacy tool. It was created before version "3.0.0" and it should NOT be used as an example of
- how to create new tools. As a legacy tool, its code and structure may not align with the current package standards.
- Please read the "CONTRIBUTING.md" file for more details and examples on how to create new tools.
-"""
-# Tool Version
-__version_tuple__ = (1, 3, 2)
-__version_suffix__ = ''
-__version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
+__version_tuple__ = (2, 0, 0)
+__version_suffix__ = ""
+__version__ = ".".join(str(number) for number in __version_tuple__) + __version_suffix__
 
 
 def launch_tool():
+    """Creates the Morphing Utilities model, view, service, and controller.
+
+    Returns:
+        MorphingUtilitiesController: Connected tool controller.
     """
-    Launch user interface and create any necessary connections for the tool to function.
-    Entry point for when using the tool Morphing Utilities.
-    """
-    from gt.tools.morphing_utilities import morphing_utilities
-    morphing_utilities.script_version = __version__
-    morphing_utilities.build_gui_morphing_utilities()
+    from gt.tools.morphing_utilities import morphing_utilities_controller
+    from gt.tools.morphing_utilities import morphing_utilities_model
+    from gt.tools.morphing_utilities import morphing_utilities_service
+    from gt.tools.morphing_utilities import morphing_utilities_view
+    from gt.ui import qt_utils
+
+    with qt_utils.QtApplicationContext() as context:
+        model = morphing_utilities_model.MorphingUtilitiesModel()
+        view = morphing_utilities_view.MorphingUtilitiesView(
+            parent=context.get_parent(),
+            version=__version__,
+        )
+        service = morphing_utilities_service.MorphingUtilitiesService()
+        controller = morphing_utilities_controller.MorphingUtilitiesController(
+            model=model,
+            view=view,
+            service=service,
+        )
+        return controller
 
 
 if __name__ == "__main__":

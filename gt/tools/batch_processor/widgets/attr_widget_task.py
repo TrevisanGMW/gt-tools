@@ -1071,6 +1071,12 @@ def get_task_widget_class(task):
         from gt.tools.batch_processor.widgets.attr_widget_external_blender import AttrWidgetBlenderScriptTask
 
         return AttrWidgetBlenderScriptTask
+    if task.task_type == constants.TaskType.UNREAL_SCRIPT:
+        from gt.tools.batch_processor.widgets.attr_widget_external_unreal import (
+            AttrWidgetUnrealScriptTask,
+        )
+
+        return AttrWidgetUnrealScriptTask
     if task.task_type == constants.TaskType.PYTHON_SCRIPTS_FOLDER:
         from gt.tools.batch_processor.widgets.attr_widget_python_script import AttrWidgetPythonScriptsFolderTask
 
@@ -1112,7 +1118,7 @@ def get_task_widget_class(task):
 
         return AttrWidgetMapHierarchyTask
     if task.task_type == constants.TaskType.DELETE_PROJECT_FILES:
-        from gt.tools.batch_processor.widgets.attr_widget_delete_project_files import AttrWidgetDeleteProjectFilesTask
+        from gt.tools.batch_processor.widgets.attr_widget_delete_path import AttrWidgetDeleteProjectFilesTask
 
         return AttrWidgetDeleteProjectFilesTask
     if task.task_type == constants.TaskType.ZIP_COMPRESS:

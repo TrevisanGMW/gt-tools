@@ -30,6 +30,9 @@ def open_copy_paste_material_options():
         object_name="gtCopyPasteMaterialOptions",
         icon=ui_res_lib.Icon.util_mod_copy_material,
         description="Copy a material from the selection, then paste it onto another selection.",
+        workspace_restore_factory=(
+            "gt.tools.utility_options.material_options.open_copy_paste_material_options"
+        ),
     )
     window.add_button(
         "Copy Material",

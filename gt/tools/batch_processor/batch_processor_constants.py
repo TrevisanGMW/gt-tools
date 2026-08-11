@@ -10,7 +10,8 @@ class Project:
     VERSION = 1
     DEFAULT_NAME = "Untitled"
     DEFAULT_ENVIRONMENT_VARIABLES = {
-        "project-dir": "",
+        "project-dir": "{project-file-dir}",
+        "project-file-dir": "",
         "project-path": "",
         "project-grandparent-dir": "",
         "input-dir": "01_input",
@@ -49,6 +50,7 @@ class TaskType:
     PYTHON_SCRIPTS_FOLDER = "python_scripts_folder"
     MOTIONBUILDER_SCRIPT = "motionbuilder_script"
     BLENDER_SCRIPT = "blender_script"
+    UNREAL_SCRIPT = "unreal_script"
     MAYA_SAVE = "output_maya_save"
     USD_EXPORT = "output_usd_export"
     FBX_EXPORT = "output_fbx_export"

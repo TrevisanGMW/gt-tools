@@ -911,7 +911,7 @@ class TestRigFramework(unittest.TestCase):
                 "export_anim_blendshapes": False,
                 "apply_control_rig_pose": True,
                 "hide_skeleton": True,
-                "project_dir": None,
+                "project_dir": "{project-file-dir}",
                 "view_fit_skeleton": True,
             },
         }

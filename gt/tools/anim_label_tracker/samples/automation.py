@@ -3,10 +3,16 @@
 
 # The tool injects a ``context`` dictionary when this script runs.
 # See the available helpers below for a small full-coverage example.
+last_used_data = context["get_last_used_data"]()
+print("Last used tracker data from Prefs:")
+print(last_used_data)
+
 context["update_file_data"]("quality", "high")
 context["update_file_data"]("source", "mocap_shoot_01")
 context["update_file_data"]("clipped", True)
 context["update_file_data"]("labelled", True)
+context["update_file_data"]("commercial_use", True)
+context["update_file_data"]("gender", "male")
 
 start_frame = int(context["cmds"].playbackOptions(q=True, min=True))
 end_frame = int(context["cmds"].playbackOptions(q=True, max=True))

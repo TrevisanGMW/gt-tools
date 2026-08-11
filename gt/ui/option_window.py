@@ -32,7 +32,7 @@ logger.setLevel(logging.INFO)
 BUTTON_VARIANTS = ("normal", "primary", "warning", "success")
 
 
-class OptionWindow(ui_qt.QtWidgets.QDialog):
+class OptionWindow(metaclass=qt_utils.MayaWindowMeta):
     """
     Generic option window used to quickly build small action/option dialogs.
 
@@ -41,14 +41,28 @@ class OptionWindow(ui_qt.QtWidgets.QDialog):
     per ``object_name`` is kept alive at a time, so reopening replaces the old one.
 
     Attributes:
+        allow_multiple_instances (bool): Allows different option windows to coexist.
+        allow_workspace_restore (bool): Whether Maya can restore this window at
+            startup.
         controls (dict): Map of control key to the created widget for later lookup.
     """
 
+    allow_multiple_instances = True
+    allow_workspace_restore = False
     LABEL_WIDTH = 110
     CONTROL_HEIGHT = 24
     BUTTON_HEIGHT = 28
 
-    def __init__(self, title, object_name, icon=None, description=None, parent=None, version=None):
+    def __init__(
+        self,
+        title,
+        object_name,
+        icon=None,
+        description=None,
+        parent=None,
+        version=None,
+        workspace_restore_factory=None,
+    ):
         """
         Initializes the OptionWindow.
 
@@ -61,13 +75,19 @@ class OptionWindow(ui_qt.QtWidgets.QDialog):
             parent (QWidget, optional): Parent widget. When omitted, the Maya main
                 window is used if available.
             version (str, optional): Optional version appended to the window title.
+            workspace_restore_factory (str, optional): Import path to the function
+                that rebuilds this dynamic window after a Maya restart.
         """
+        if workspace_restore_factory and not isinstance(workspace_restore_factory, str):
+            raise TypeError("workspace_restore_factory must be an import-path string.")
         if parent is None:
             parent = self._resolve_maya_parent()
         super().__init__(parent=parent)
 
         self.controls = {}
         self._title = title
+        self.workspace_restore_factory = workspace_restore_factory
+        self.allow_workspace_restore = bool(workspace_restore_factory)
 
         window_title = title
         if version:
@@ -134,22 +154,34 @@ class OptionWindow(ui_qt.QtWidgets.QDialog):
         except Exception as exception:
             logger.debug(f'Unable to close existing option windows. Issue: "{exception}".')
 
-    def _build_field_row(self, label, control):
+    def _build_field_row(
+        self,
+        label,
+        control,
+        trailing_control=None,
+        label_width=None,
+    ):
         """
         Adds a labeled row (label on the left, control on the right) to the window.
 
         Args:
             label (str): Row label text.
             control (QWidget): Control widget placed next to the label.
+            trailing_control (QWidget, optional): Optional control placed after
+                the main control.
+            label_width (int, optional): Minimum label width. Defaults to
+                ``LABEL_WIDTH``.
         """
         row_layout = ui_qt.QtWidgets.QHBoxLayout()
         row_layout.setContentsMargins(0, 0, 0, 0)
         row_layout.setSpacing(6)
         label_widget = ui_qt.QtWidgets.QLabel(label)
         label_widget.setObjectName("optionFieldLabel")
-        label_widget.setMinimumWidth(self.LABEL_WIDTH)
+        label_widget.setMinimumWidth(label_width or self.LABEL_WIDTH)
         row_layout.addWidget(label_widget)
         row_layout.addWidget(control, stretch=1)
+        if trailing_control is not None:
+            row_layout.addWidget(trailing_control)
         self._main_layout.addLayout(row_layout)
 
     def _create_button(self, spec):
@@ -163,6 +195,8 @@ class OptionWindow(ui_qt.QtWidgets.QDialog):
                 variant (str, optional): One of BUTTON_VARIANTS. Defaults to "normal".
                 tooltip (str, optional): Tooltip text.
                 icon (str, optional): Path to an icon resource shown on the button.
+                flexible (bool, optional): Whether the button expands to use
+                    available layout space. Defaults to True.
 
         Returns:
             QPushButton: The created button.
@@ -174,6 +208,7 @@ class OptionWindow(ui_qt.QtWidgets.QDialog):
         button = ui_qt.QtWidgets.QPushButton(spec.get("label", ""))
         button.setObjectName(f"option_{variant}_button")
         button.setMinimumHeight(self.BUTTON_HEIGHT)
+        self.set_button_flexible(button, spec.get("flexible", True))
         if spec.get("icon"):
             button.setIcon(ui_qt.QtGui.QIcon(spec.get("icon")))
         if spec.get("tooltip"):
@@ -182,6 +217,22 @@ class OptionWindow(ui_qt.QtWidgets.QDialog):
         if callable(command):
             button.clicked.connect(lambda: self._run_command(command))
         return button
+
+    @staticmethod
+    def set_button_flexible(button, flexible=True):
+        """Configures whether a button expands to use available layout space.
+
+        Args:
+            button (QPushButton): Button to configure.
+            flexible (bool, optional): Whether the button should expand. Defaults
+                to True.
+        """
+        size_policy = (
+            ui_qt.QtLib.SizePolicy.Expanding
+            if flexible
+            else ui_qt.QtLib.SizePolicy.Fixed
+        )
+        button.setSizePolicy(size_policy, size_policy)
 
     @staticmethod
     def _run_command(command):
@@ -230,6 +281,50 @@ class OptionWindow(ui_qt.QtWidgets.QDialog):
         self._main_layout.addWidget(section)
         return section
 
+    def add_section_row(self, label, trailing_control=None):
+        """Adds a centered section label with an optional trailing control.
+
+        Args:
+            label (str): Section label text.
+            trailing_control (QWidget, optional): Control placed to the right
+                of the section label.
+
+        Returns:
+            QLabel: Created section label.
+        """
+        row_layout = ui_qt.QtWidgets.QHBoxLayout()
+        row_layout.setContentsMargins(0, 0, 0, 0)
+        row_layout.setSpacing(6)
+        row_layout.addStretch(1)
+
+        section = ui_qt.QtWidgets.QLabel(label)
+        section.setObjectName("optionSection")
+        row_layout.addWidget(section)
+        if trailing_control is not None:
+            row_layout.addWidget(trailing_control)
+        row_layout.addStretch(1)
+
+        self._main_layout.addSpacing(2)
+        self._main_layout.addLayout(row_layout)
+        return section
+
+    def add_control_row(self, controls):
+        """Adds a centered row of controls without a section label.
+
+        Args:
+            controls (list): Widgets to add to the row.
+        """
+        row_layout = ui_qt.QtWidgets.QHBoxLayout()
+        row_layout.setContentsMargins(0, 0, 0, 0)
+        row_layout.setSpacing(6)
+        row_layout.addStretch(1)
+        for control in controls:
+            row_layout.addWidget(control)
+        row_layout.addStretch(1)
+
+        self._main_layout.addSpacing(2)
+        self._main_layout.addLayout(row_layout)
+
     def add_combobox(self, label, items, default=None, tooltip=None, key=None):
         """
         Adds a labeled combobox.
@@ -256,6 +351,46 @@ class OptionWindow(ui_qt.QtWidgets.QDialog):
         self.controls[key or label] = combo
         return combo
 
+    def add_line_edit(
+        self,
+        label,
+        default="",
+        placeholder=None,
+        tooltip=None,
+        key=None,
+        trailing_control=None,
+        label_width=None,
+    ):
+        """Adds a labeled single-line text field.
+
+        Args:
+            label (str): Row label text.
+            default (str, optional): Initial field value. Defaults to an empty string.
+            placeholder (str, optional): Placeholder text shown when the field is empty.
+            tooltip (str, optional): Tooltip text.
+            key (str, optional): Lookup key stored in ``controls``. Defaults to label.
+            trailing_control (QWidget, optional): Optional control placed after the field.
+            label_width (int, optional): Minimum label width. Defaults to ``LABEL_WIDTH``.
+
+        Returns:
+            QLineEdit: Created line edit.
+        """
+        line_edit = ui_qt.QtWidgets.QLineEdit()
+        line_edit.setMinimumHeight(self.CONTROL_HEIGHT)
+        line_edit.setText(str(default))
+        if placeholder:
+            line_edit.setPlaceholderText(placeholder)
+        if tooltip:
+            line_edit.setToolTip(tooltip)
+        self._build_field_row(
+            label,
+            line_edit,
+            trailing_control=trailing_control,
+            label_width=label_width,
+        )
+        self.controls[key or label] = line_edit
+        return line_edit
+
     def add_checkbox(self, label, checked=False, tooltip=None, key=None):
         """
         Adds a checkbox.
@@ -277,7 +412,15 @@ class OptionWindow(ui_qt.QtWidgets.QDialog):
         self.controls[key or label] = checkbox
         return checkbox
 
-    def add_button(self, label, command, variant="normal", tooltip=None, icon=None):
+    def add_button(
+        self,
+        label,
+        command,
+        variant="normal",
+        tooltip=None,
+        icon=None,
+        flexible=True,
+    ):
         """
         Adds a single full-width button.
 
@@ -287,12 +430,21 @@ class OptionWindow(ui_qt.QtWidgets.QDialog):
             variant (str, optional): One of BUTTON_VARIANTS. Defaults to "normal".
             tooltip (str, optional): Tooltip text.
             icon (str, optional): Path to an icon resource shown on the button.
+            flexible (bool, optional): Whether the button expands to use available
+                layout space. Defaults to True.
 
         Returns:
             QPushButton: The created button.
         """
         button = self._create_button(
-            {"label": label, "command": command, "variant": variant, "tooltip": tooltip, "icon": icon}
+            {
+                "label": label,
+                "command": command,
+                "variant": variant,
+                "tooltip": tooltip,
+                "icon": icon,
+                "flexible": flexible,
+            }
         )
         self._main_layout.addWidget(button)
         return button
@@ -313,7 +465,8 @@ class OptionWindow(ui_qt.QtWidgets.QDialog):
         buttons = []
         for spec in specs:
             button = self._create_button(spec)
-            row_layout.addWidget(button)
+            stretch = 1 if spec.get("flexible", True) else 0
+            row_layout.addWidget(button, stretch=stretch)
             buttons.append(button)
         self._main_layout.addLayout(row_layout)
         return buttons
@@ -335,7 +488,8 @@ class OptionWindow(ui_qt.QtWidgets.QDialog):
             self.add_section(label)
         grid_layout = ui_qt.QtWidgets.QGridLayout()
         grid_layout.setContentsMargins(0, 0, 0, 0)
-        grid_layout.setSpacing(4)
+        grid_layout.setHorizontalSpacing(4)
+        grid_layout.setVerticalSpacing(4)
         buttons = []
         for row_index, row in enumerate(button_rows):
             for column_index, spec in enumerate(row):
@@ -343,6 +497,9 @@ class OptionWindow(ui_qt.QtWidgets.QDialog):
                     continue
                 button = self._create_button(spec)
                 grid_layout.addWidget(button, row_index, column_index)
+                if spec.get("flexible", True):
+                    grid_layout.setRowStretch(row_index, 1)
+                    grid_layout.setColumnStretch(column_index, 1)
                 buttons.append(button)
         self._main_layout.addLayout(grid_layout)
         return buttons
@@ -369,6 +526,7 @@ class OptionWindow(ui_qt.QtWidgets.QDialog):
             QLabel#optionFieldLabel { color: #dddddd; }
             QCheckBox { color: #dddddd; }
             QComboBox { background-color: #2b2b2b; border: 1px solid #444444; padding: 1px 4px; }
+            QLineEdit { background-color: #2b2b2b; border: 1px solid #444444; padding: 1px 4px; }
             QPushButton#option_normal_button {
                 background-color: #5c5c5c; border: 1px solid #444444; color: #dddddd; padding: 2px 6px;
             }

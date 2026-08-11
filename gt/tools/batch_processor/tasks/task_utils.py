@@ -10,6 +10,23 @@ import os
 import sys
 
 
+def load_script(script_name):
+    """Loads an editable script from the batch processor scripts folder.
+
+    Args:
+        script_name (str): Script file name relative to the scripts folder.
+
+    Returns:
+        str: Script source text.
+
+    Raises:
+        IOError: If the script file cannot be read.
+    """
+    script_path = os.path.join(os.path.dirname(__file__), "scripts", script_name)
+    with open(script_path, "r", encoding="utf-8") as script_file:
+        return script_file.read()
+
+
 def ensure_directory(directory_path):
     """Ensures a directory exists.
 

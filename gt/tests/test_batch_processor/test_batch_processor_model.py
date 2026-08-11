@@ -140,6 +140,24 @@ class TestBatchProcessorModel(unittest.TestCase):
         expected = constants.TaskType.MAYA_IMPORT
         self.assertEqual(expected, result.tasks[1].task_type)
 
+    def test_save_project_template_keeps_active_project_path(self):
+        model = batch_processor_model.BatchProcessorModel()
+        model.project_name = "Reusable Batch"
+        model.project_file_path = os.path.join(self.temp_dir, "active_project.batch")
+        model.add_task(modules.TaskRename(settings={"pattern": "template_{index}"}))
+        template_path = os.path.join(self.temp_dir, "templates", "reusable_batch.batch")
+
+        result = batch_processor_templates.save_project_template(model, template_path)
+
+        expected = template_path
+        self.assertEqual(expected, result)
+        self.assertEqual(os.path.join(self.temp_dir, "active_project.batch"), model.project_file_path)
+        self.assertTrue(os.path.isfile(template_path))
+        with open(template_path, "r", encoding="utf-8") as template_file:
+            template_data = json.load(template_file)
+        self.assertEqual("Reusable Batch", template_data["project_name"])
+        self.assertEqual("template_{index}", template_data["tasks"][1]["parameters"]["pattern"])
+
     def test_input_module_discovers_extension_filtered_files(self):
         input_dir = os.path.join(self.temp_dir, "input")
         nested_dir = os.path.join(input_dir, "nested")
@@ -594,6 +612,40 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertEqual(os.path.normpath(expected), result.get("project-parent-dir"))
         expected = os.path.dirname(os.path.dirname(self.temp_dir))
         self.assertEqual(os.path.normpath(expected), result.get("project-grandparent-dir"))
+
+    def test_project_file_directory_environment_variable(self):
+        model = batch_processor_model.BatchProcessorModel()
+
+        result = model.get_environment_variables(include_braces=False)
+
+        self.assertEqual("", result.get("project-file-dir"))
+
+        project_path = os.path.join(self.temp_dir, "project.batch")
+        model.save_to_file(project_path)
+        result = model.get_environment_variables(include_braces=False)
+
+        self.assertEqual(os.path.normpath(self.temp_dir), result.get("project-file-dir"))
+        self.assertEqual(os.path.normpath(self.temp_dir), model.get_project_dir())
+        expected = os.path.join(self.temp_dir, "data")
+        self.assertEqual(
+            os.path.normpath(expected),
+            model.resolve_template_path("{project-file-dir}/data"),
+        )
+
+        fixed_project_dir = os.path.join(self.temp_dir, "fixed_project")
+        model.environment_variables["project-dir"] = fixed_project_dir
+
+        result = model.get_environment_variables(include_braces=False)
+
+        self.assertEqual(os.path.normpath(fixed_project_dir), result.get("project-dir"))
+        self.assertEqual(os.path.normpath(self.temp_dir), result.get("project-file-dir"))
+
+        os.remove(project_path)
+
+        result = model.get_environment_variables(include_braces=False)
+
+        self.assertEqual("", result.get("project-file-dir"))
+        self.assertEqual("", model.resolve_template_path("{project-file-dir}/data"))
 
     def test_input_module_exclude_patterns(self):
         input_dir = os.path.join(self.temp_dir, "input")
@@ -1142,6 +1194,31 @@ class TestBatchProcessorModel(unittest.TestCase):
         expected = ["external_script.py"]
         self.assertEqual(expected, result)
 
+    def test_python_external_file_mode_runs_enabled_scripts_in_order(self):
+        first_path = os.path.join(self.temp_dir, "01_first.py")
+        second_path = os.path.join(self.temp_dir, "02_second.py")
+        third_path = os.path.join(self.temp_dir, "03_third.py")
+        for script_path in [first_path, second_path, third_path]:
+            self._write_file(script_path, "def run(context): pass")
+        script_task = modules.TaskPythonScript(
+            settings={
+                "script_mode": "External File",
+                "external_scripts": [
+                    {"path": second_path, "enabled": True},
+                    {"path": first_path, "enabled": False},
+                    {"path": third_path, "enabled": True},
+                ],
+            }
+        )
+
+        result = [
+            os.path.basename(path)
+            for path in script_task.get_script_paths(batch_processor_model.BatchProcessorModel())
+        ]
+
+        expected = ["02_second.py", "03_third.py"]
+        self.assertEqual(expected, result)
+
     def test_legacy_python_scripts_folder_deserializes_as_python_batch(self):
         scripts_dir = os.path.join(self.temp_dir, "scripts")
         os.makedirs(scripts_dir)
@@ -1184,6 +1261,42 @@ class TestBatchProcessorModel(unittest.TestCase):
         result = [os.path.basename(path) for path in script_task.get_script_paths(model)]
 
         expected = ["02_publish.py"]
+        self.assertEqual(expected, result)
+
+    def test_python_batch_directories_run_in_directory_then_script_order(self):
+        first_dir = os.path.join(self.temp_dir, "first_scripts")
+        second_dir = os.path.join(self.temp_dir, "second_scripts")
+        os.makedirs(first_dir)
+        os.makedirs(second_dir)
+        self._write_file(os.path.join(first_dir, "02_second.py"), "def run(context): pass")
+        self._write_file(os.path.join(first_dir, "01_first.py"), "def run(context): pass")
+        self._write_file(os.path.join(first_dir, "03_skip.py"), "def run(context): pass")
+        self._write_file(os.path.join(second_dir, "02_fourth.py"), "def run(context): pass")
+        self._write_file(os.path.join(second_dir, "01_third.py"), "def run(context): pass")
+        script_task = modules.TaskPythonScript(
+            settings={
+                "script_mode": "Batch Directory",
+                "batch_directories": [
+                    {
+                        "path": first_dir,
+                        "include_patterns": "*.py",
+                        "exclude_patterns": "03_*",
+                    },
+                    {
+                        "path": second_dir,
+                        "include_patterns": "01_*.py",
+                        "exclude_patterns": "",
+                    },
+                ],
+            }
+        )
+
+        result = [
+            os.path.basename(path)
+            for path in script_task.get_script_paths(batch_processor_model.BatchProcessorModel())
+        ]
+
+        expected = ["01_first.py", "02_second.py", "01_third.py"]
         self.assertEqual(expected, result)
 
     def test_python_task_executes_inline_script_with_context(self):
@@ -2380,8 +2493,17 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertIn("-verbosePython", motionbuilder_task.settings.get("motionbuilder_arguments"))
         expected = ""
         self.assertEqual(expected, motionbuilder_task.settings.get("script_flag"))
-        expected = "External File"
+        expected = "Inline"
         self.assertEqual(expected, motionbuilder_task.settings.get("script_mode"))
+
+    def test_external_script_tasks_share_external_task_base(self):
+        from gt.tools.batch_processor.tasks.task_external_script import TaskExternalScript
+
+        self.assertTrue(issubclass(modules.TaskMotionBuilderScript, TaskExternalScript))
+        self.assertTrue(issubclass(modules.TaskBlenderScript, TaskExternalScript))
+        self.assertFalse(
+            issubclass(modules.TaskBlenderScript, modules.TaskMotionBuilderScript)
+        )
 
     def test_motionbuilder_command_omits_batch_context_cli_arguments(self):
         motionbuilder_task = modules.create_task(constants.TaskType.MOTIONBUILDER_SCRIPT)
@@ -3181,7 +3303,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         result = copy_task.validate(model)
         self.assertFalse(result.is_valid())
 
-    def test_delete_project_files_task_blocks_outside_project(self):
+    def test_delete_path_task_blocks_outside_project_by_default(self):
         outside_dir = tempfile.mkdtemp(prefix="gt_batch_processor_outside_")
         model = batch_processor_model.BatchProcessorModel()
         model.project_file_path = os.path.join(self.temp_dir, "project.batch")
@@ -3192,9 +3314,31 @@ class TestBatchProcessorModel(unittest.TestCase):
             shutil.rmtree(outside_dir)
 
         self.assertFalse(result.is_valid())
-        self.assertTrue(any("outside the project path" in error for error in result.errors))
+        self.assertTrue(any("outside of the project directory" in error for error in result.errors))
 
-    def test_delete_project_files_task_dry_run_preserves_files(self):
+    def test_delete_path_task_allows_outside_project_when_enabled(self):
+        outside_dir = tempfile.mkdtemp(prefix="gt_batch_processor_outside_")
+        file_path = os.path.join(outside_dir, "temp.cache")
+        self._write_file(file_path, "delete me")
+        model = batch_processor_model.BatchProcessorModel()
+        model.project_file_path = os.path.join(self.temp_dir, "project.batch")
+        task = modules.TaskDeleteProjectFiles(
+            settings={
+                "delete_path": outside_dir,
+                "allow_out_of_project_deletion": True,
+                "dry_run": False,
+                "write_report": False,
+            }
+        )
+        try:
+            result = task.validate(model)
+            self.assertTrue(result.is_valid())
+            task.execute(None, model, self.temp_dir, context={"work_items": []})
+            self.assertFalse(os.path.isfile(file_path))
+        finally:
+            shutil.rmtree(outside_dir)
+
+    def test_delete_path_task_dry_run_preserves_files(self):
         delete_dir = os.path.join(self.temp_dir, "generated")
         os.makedirs(delete_dir)
         file_path = os.path.join(delete_dir, "temp.cache")
@@ -3217,7 +3361,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertTrue(os.path.isfile(file_path))
         self.assertTrue(os.path.isfile(report_path))
 
-    def test_delete_project_files_task_can_run_selected_without_work_items(self):
+    def test_delete_path_task_can_run_selected_without_work_items(self):
         delete_dir = os.path.join(self.temp_dir, "generated")
         os.makedirs(delete_dir)
         file_path = os.path.join(delete_dir, "temp.cache")

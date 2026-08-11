@@ -15,13 +15,14 @@ import gt.core.prefs as core_prefs
 import gt.core.uuid as core_uuid
 import gt.core.io as core_io
 import logging
+import shutil
 import types
-import sys
+import copy
 import os
+import sys
 
 # File Templates Source Folders
 _PREFS_FILENAME = tools_rig_const.RiggerConstants.PREFS_FILENAME
-_PREFS_DIR = core_prefs.Prefs(_PREFS_FILENAME).get_dir_path()
 
 
 def get_template_source_dir():
@@ -34,8 +35,167 @@ def get_template_source_dir():
     return os.path.join(prefs_dir, f"{_PREFS_FILENAME}_templates")
 
 
+def get_template_resources_dir():
+    """Gets the auto rigger template resources directory.
+
+    Returns:
+        str: Auto rigger template resources directory.
+    """
+    prefs_dir = core_prefs.Prefs(_PREFS_FILENAME).get_dir_path()
+    return os.path.join(prefs_dir, f"{_PREFS_FILENAME}_resources")
+
+
 TEMPLATE_SOURCE_DIR = get_template_source_dir()
-TEMPLATE_RESOURCES_DIR = os.path.join(_PREFS_DIR, f"{_PREFS_FILENAME}_resources")
+TEMPLATE_RESOURCES_DIR = get_template_resources_dir()
+
+
+def get_project_template_data(rig_project):
+    """Gets a project serialization payload configured for use as a template.
+
+    The current project is not modified. Its project directory is reset so a
+    project created from the template can establish its own working directory.
+
+    Args:
+        rig_project (RigProject): Project to serialize as a template.
+
+    Returns:
+        dict or None: Template-ready project data, or None when the project is
+        invalid.
+    """
+    if not isinstance(rig_project, tools_rig_frm.RigProject):
+        logging.warning("Unable to create template data. Invalid rig project.")
+        return
+
+    template_data = copy.deepcopy(rig_project.get_project_as_dict())
+    preferences = template_data.get("preferences", {})
+    if not isinstance(preferences, dict):
+        preferences = {}
+        template_data["preferences"] = preferences
+    preferences["project_dir"] = ""
+    return template_data
+
+
+def get_project_resource_source_dir(rig_project):
+    """Gets a saved project's configured resource directory when available.
+
+    A project must have an existing project file before its directory can be
+    considered for template resources. This prevents an unsaved project's
+    default path from resolving against the current working directory.
+
+    Args:
+        rig_project (RigProject): Project whose resource directory is queried.
+
+    Returns:
+        str: Absolute resource directory, or an empty string when unavailable.
+    """
+    if not isinstance(rig_project, tools_rig_frm.RigProject):
+        return ""
+
+    project_file_dir = rig_project.get_project_file_dir_path()
+    if not project_file_dir:
+        return ""
+
+    project_dir = rig_project.get_project_dir_path(parse_vars=True)
+    if not project_dir or "{" in project_dir or "}" in project_dir:
+        return ""
+
+    if not os.path.isabs(project_dir):
+        project_dir = os.path.join(project_file_dir, project_dir)
+
+    project_dir = os.path.normpath(project_dir)
+    if not os.path.isdir(project_dir):
+        return ""
+    return project_dir
+
+
+def project_directory_has_resources(rig_project):
+    """Determines whether a saved project directory has template resources.
+
+    The rig project file itself is ignored. Any other file or subdirectory is
+    considered a resource, including an empty subdirectory.
+
+    Args:
+        rig_project (RigProject): Project whose directory is checked.
+
+    Returns:
+        bool: True when resource content is available to copy.
+    """
+    source_dir = get_project_resource_source_dir(rig_project)
+    if not source_dir:
+        return False
+
+    project_file_path = os.path.normcase(os.path.abspath(str(rig_project.project_file_path)))
+    for root_dir, directory_names, file_names in os.walk(source_dir):
+        if directory_names:
+            return True
+        for file_name in file_names:
+            file_path = os.path.normcase(os.path.abspath(os.path.join(root_dir, file_name)))
+            if file_path != project_file_path:
+                return True
+    return False
+
+
+def copy_project_resources(rig_project, target_dir, overwrite=False):
+    """Copies a saved project's resources without copying its project file.
+
+    Existing files are retained by default. The target must not be inside the
+    source project directory, preventing a recursive self-copy.
+
+    Args:
+        rig_project (RigProject): Project whose resources are copied.
+        target_dir (str): Destination directory for the template resources.
+        overwrite (bool, optional): Whether existing resource files are
+            replaced. Defaults to False.
+
+    Returns:
+        dict: Copy counts with ``copied`` and ``skipped`` keys, or None when
+        the source or target is invalid.
+    """
+    source_dir = get_project_resource_source_dir(rig_project)
+    if (
+        not source_dir
+        or not isinstance(target_dir, str)
+        or not target_dir
+        or not os.path.isabs(target_dir)
+    ):
+        return
+
+    target_dir = os.path.normpath(os.path.abspath(target_dir))
+    try:
+        if os.path.commonpath([source_dir, target_dir]) == source_dir:
+            logging.warning("Unable to copy template resources into the project directory.")
+            return
+    except ValueError:
+        pass
+
+    project_file_path = os.path.normcase(os.path.abspath(str(rig_project.project_file_path)))
+    copy_results = {"copied": 0, "skipped": 0}
+    try:
+        for root_dir, directory_names, file_names in os.walk(source_dir):
+            relative_dir = os.path.relpath(root_dir, source_dir)
+            destination_dir = target_dir if relative_dir == os.curdir else os.path.join(target_dir, relative_dir)
+            os.makedirs(destination_dir, exist_ok=True)
+
+            for directory_name in directory_names:
+                os.makedirs(os.path.join(destination_dir, directory_name), exist_ok=True)
+
+            for file_name in file_names:
+                source_file = os.path.join(root_dir, file_name)
+                if os.path.normcase(os.path.abspath(source_file)) == project_file_path:
+                    continue
+
+                target_file = os.path.join(destination_dir, file_name)
+                if os.path.exists(target_file) and not overwrite:
+                    copy_results["skipped"] += 1
+                    continue
+
+                shutil.copy2(source_file, target_file)
+                copy_results["copied"] += 1
+    except OSError as exception:
+        logging.warning(f"Unable to copy template resources. Issue: {exception}")
+        return
+    return copy_results
+
 
 class RigTemplates:
     # Icons

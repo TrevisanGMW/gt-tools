@@ -1,7 +1,16 @@
 """
 Animation Clip Tracker Controller
 """
+import copy
+from glob import glob as find_glob_paths
+import os
+import shutil
+import subprocess
+import sys
+import traceback
+
 from gt.tools.anim_clip_tracker import clip_tracker_constants as clip_constants
+from gt.tools.anim_clip_tracker import clip_tracker_model
 from gt.tools.anim_clip_tracker import clip_tracker_preferences
 import gt.ui.qt_import as ui_qt
 
@@ -35,12 +44,51 @@ class ClipTrackerController:
         self._focus_filter = None
         self._is_refreshing = False
         self._timeline_timer = None
+        self._scene_callback_ids = []
+        self._is_rebuilding = False
+        self._view_rebuild_pending = False
 
     def start(self):
         """Starts the tool."""
         self.view.build_ui()
         self.install_focus_refresh_filter()
+        self.setup_scene_callbacks()
         self.refresh(force=True)
+
+    def setup_scene_callbacks(self):
+        """Creates event listeners that die automatically when the UI is closed."""
+        cmds = get_maya_cmds()
+        if not self.view.window_exists():
+            return
+        self.teardown_scene_callbacks()
+
+        # Triggers when the user opens an existing file
+        scene_opened_job = cmds.scriptJob(
+            event=["SceneOpened", self._deferred_scene_refresh],
+            parent=self.view.get_workspace_control_name(),
+        )
+
+        # Triggers when the user clicks File > New Scene
+        new_scene_job = cmds.scriptJob(
+            event=["NewSceneOpened", self._deferred_scene_refresh],
+            parent=self.view.get_workspace_control_name(),
+        )
+        self._scene_callback_ids = [scene_opened_job, new_scene_job]
+
+    def teardown_scene_callbacks(self):
+        """Removes scene callbacks created for this controller instance."""
+        cmds = get_maya_cmds()
+        for callback_id in self._scene_callback_ids:
+            try:
+                if cmds.scriptJob(exists=callback_id):
+                    cmds.scriptJob(kill=callback_id, force=True)
+            except RuntimeError:
+                continue
+        self._scene_callback_ids = []
+
+    def _deferred_scene_refresh(self, *args):
+        """Safely triggers a refresh after Maya finishes loading."""
+        get_maya_cmds().evalDeferred(lambda *args: self.refresh(force=True))
 
     def refresh(self, force=False):
         """Reloads scene data and redraws the clip list.
@@ -79,11 +127,29 @@ class ClipTrackerController:
             self.refresh()  # Evaluates normally without forcing a redraw
 
     def rebuild_view(self):
-        """Rebuilds the window after deferred UI actions."""
-        if self.view.window_exists():
+        """Rebuilds the view after its current Qt callback has completed."""
+        self._view_rebuild_pending = False
+        if self._is_rebuilding or not self.view.window_exists():
+            return
+        self._is_rebuilding = True
+        try:
+            # A rebuild deletes the old timeline and preference widgets. Stop all
+            # callbacks first so no timer or scriptJob can target those widgets.
+            self.stop_timeline_sync()
+            self.teardown_scene_callbacks()
             self.view.build_ui()
             self.install_focus_refresh_filter()
+            self.setup_scene_callbacks()
             self.refresh(force=True)
+        finally:
+            self._is_rebuilding = False
+
+    def schedule_view_rebuild(self):
+        """Queues one safe view rebuild after the current signal returns."""
+        if self._view_rebuild_pending or self._is_rebuilding:
+            return
+        self._view_rebuild_pending = True
+        ui_qt.QtCore.QTimer.singleShot(0, self.rebuild_view)
 
     def add_clip(self, *args):
         """Adds a clip using the current new-clip preferences.
@@ -304,14 +370,23 @@ class ClipTrackerController:
             key (str): Preference key.
             value (object): New value.
         """
+        if key == "automation_path":
+            self.model.automation_path = str(value or "")
+            self.model.reset_automation_check_states(value, save=False)
+            self.model.save_preferences()
+            if self.view.window_exists():
+                self.view.set_automation_path(value)
+            return
         setattr(self.model, key, value)
         self.model.save_preferences()
         if key == "show_timeline":
             # Row highlights only mirror a timeline selection, so they are dropped with the timeline
             if not value:
                 self.selected_index = -1
-            # The timeline changes the window structure, so the UI is rebuilt
-            get_maya_cmds().evalDeferred(self.rebuild_view)
+            if self.view.window_exists():
+                self.view.set_timeline_visible(value)
+                self.view.update_timeline()
+                self.view.draw_clips(self.model.get_data(), self.playing_index)
             return
         timeline_only_keys = [
             "timeline_mode",
@@ -349,6 +424,9 @@ class ClipTrackerController:
             clip_tracker_preferences.ACTION_EXPORT_DATA: self.export_data,
             clip_tracker_preferences.ACTION_RESET_PREFERENCES: self.reset_preferences,
             clip_tracker_preferences.ACTION_DELETE_SCENE_DATA: self.delete_scene_data,
+            clip_tracker_preferences.ACTION_SELECT_SCENE_DATA: self.select_scene_data,
+            clip_tracker_preferences.ACTION_CREATE_EXAMPLE_AUTOMATION: self.create_example_automation,
+            clip_tracker_preferences.ACTION_BROWSE_AUTOMATION_DIRECTORY: self.browse_automation_directory,
         }
         action_function = actions.get(action)
         if not action_function:
@@ -379,6 +457,20 @@ class ClipTrackerController:
         self.selected_index = -1
         if self.view.window_exists():
             self.view.draw_clips(self.model.get_data(), self.playing_index)
+
+    def select_scene_data(self, *args):
+        """Selects the scene node used to store Clip Tracker data.
+
+        Args:
+            *args: Optional Maya callback arguments.
+        """
+        cmds = get_maya_cmds()
+        node_name = clip_tracker_model.CLIP_NODE_NAME
+        if not cmds.objExists(node_name):
+            self.model.log('Scene data node "{0}" was not found.'.format(node_name))
+            return
+        cmds.select(node_name, replace=True)
+        self.model.log('Selected scene data node: "{0}".'.format(node_name))
 
     def set_preferences_collapsed(self, state):
         """Stores preferences collapsed state.
@@ -411,6 +503,274 @@ class ClipTrackerController:
         self.selected_index = -1
         self.view.draw_clips(self.model.get_data(), self.playing_index)
 
+    def set_automation_check_state(self, script_name, is_checked):
+        """Stores one automation's checked state for batch execution.
+
+        Args:
+            script_name (str): Automation script file name.
+            is_checked (bool): Whether the script is selected for batch runs.
+        """
+        self.model.set_automation_check_state(
+            self.model.automation_path,
+            script_name,
+            is_checked,
+        )
+
+    def run_checked_automations(self, *args):
+        """Runs every checked Python automation in the configured folder.
+
+        Args:
+            *args: Optional Qt callback arguments.
+        """
+        folder = str(self.model.automation_path or "").strip(' "\'')
+        if not folder or not os.path.isdir(folder):
+            self.model.log("Automation folder not found or path is empty.")
+            return
+        check_states = self.model.get_automation_check_states(folder)
+        script_paths = [
+            script_path
+            for script_path in sorted(find_glob_paths(os.path.join(folder, "*.py")))
+            if check_states.get(os.path.basename(script_path), True)
+        ]
+        for script_path in script_paths:
+            self.run_automation(script_path)
+        self.model.log(f"Ran {len(script_paths)} checked automation(s).")
+
+    def run_automation(self, script_path, *args):
+        """Executes one user-configured automation script.
+
+        Args:
+            script_path (str): Absolute path to the Python automation script.
+            *args: Optional Qt callback arguments.
+
+        Returns:
+            bool: True when the automation ran without raising an exception.
+        """
+        if not os.path.isfile(script_path):
+            self.model.log(f"Automation script not found: {script_path}")
+            return False
+        try:
+            with open(script_path, "r", encoding="utf-8") as automation_file:
+                script_code = automation_file.read()
+            execution_scope = {
+                "__file__": script_path,
+                "__name__": "__main__",
+                "context": self.get_automation_context(),
+            }
+            exec(compile(script_code, script_path, "exec"), execution_scope)
+        except Exception:
+            self.model.log(
+                f"Automation failed: {script_path}\n{traceback.format_exc()}"
+            )
+            return False
+        self.model.log(f"Automation completed: {script_path}")
+        return True
+
+    def get_automation_context(self):
+        """Builds the helpers available to animation clip automation scripts.
+
+        Returns:
+            dict: Maya commands and clip creation/update helper functions.
+        """
+        return {
+            "cmds": get_maya_cmds(),
+            "create_clip": self.create_automation_clip,
+            "set_clip_start": self.set_automation_clip_start,
+            "set_clip_end": self.set_automation_clip_end,
+            "set_clip_name": self.set_automation_clip_name,
+            "set_clip_active": self.set_automation_clip_active,
+            "get_clips": self.get_automation_clips,
+            "refresh_ui": self.refresh_automation_ui,
+        }
+
+    def get_automation_clips(self):
+        """Gets a copy of current clips for read-only automation inspection.
+
+        Returns:
+            list: Copy of the current clip dictionaries.
+        """
+        return copy.deepcopy(self.model.get_data())
+
+    def create_automation_clip(self, start_frame, end_frame, name="", active=True):
+        """Creates a clip and returns its index for automation scripts.
+
+        Args:
+            start_frame (int): New clip start frame.
+            end_frame (int): New clip end frame.
+            name (str, optional): New clip name.
+            active (bool, optional): Initial checked state for the clip.
+
+        Returns:
+            int: Index of the newly created clip.
+        """
+        self.model.add_clip_range(
+            start_frame=start_frame,
+            end_frame=end_frame,
+            name=name,
+            active=active,
+        )
+        clip_index = len(self.model.get_data()) - 1
+        self.selected_index = clip_index
+        self.refresh_automation_ui()
+        return clip_index
+
+    def set_automation_clip_start(self, clip_index, start_frame):
+        """Sets an automation clip's start frame.
+
+        Args:
+            clip_index (int): Target clip index.
+            start_frame (int): New start frame.
+
+        Returns:
+            bool: True when the clip was updated.
+        """
+        return self.set_automation_clip_value(clip_index, "start", start_frame)
+
+    def set_automation_clip_end(self, clip_index, end_frame):
+        """Sets an automation clip's end frame.
+
+        Args:
+            clip_index (int): Target clip index.
+            end_frame (int): New end frame.
+
+        Returns:
+            bool: True when the clip was updated.
+        """
+        return self.set_automation_clip_value(clip_index, "end", end_frame)
+
+    def set_automation_clip_name(self, clip_index, name):
+        """Sets an automation clip's display name.
+
+        Args:
+            clip_index (int): Target clip index.
+            name (str): New clip name.
+
+        Returns:
+            bool: True when the clip was updated.
+        """
+        return self.set_automation_clip_value(clip_index, "name", name)
+
+    def set_automation_clip_active(self, clip_index, is_active):
+        """Sets an automation clip's checked state.
+
+        Args:
+            clip_index (int): Target clip index.
+            is_active (bool): Whether the clip should be checked.
+
+        Returns:
+            bool: True when the clip was updated.
+        """
+        return self.set_automation_clip_value(clip_index, "active", is_active)
+
+    def set_automation_clip_value(self, clip_index, key, value):
+        """Updates one clip value and refreshes the visible clip list.
+
+        Args:
+            clip_index (int): Target clip index.
+            key (str): Clip data key to update.
+            value (object): New value.
+
+        Returns:
+            bool: True when the clip was updated.
+        """
+        clip_index = int(clip_index)
+        if clip_index < 0 or clip_index >= len(self.model.get_data()):
+            self.model.log(f"Automation clip index is invalid: {clip_index}")
+            return False
+        self.model.update_clip(clip_index, key, value)
+        self.refresh_automation_ui()
+        return True
+
+    def refresh_automation_ui(self):
+        """Refreshes clip controls after an automation modifies data."""
+        if self.view.window_exists():
+            self.view.draw_clips(self.model.get_data(), self.playing_index)
+
+    def open_automation_in_editor(self, script_path, *args):
+        """Opens an automation script with the operating system's editor.
+
+        Args:
+            script_path (str): Absolute automation script path.
+            *args: Optional Qt callback arguments.
+        """
+        try:
+            if sys.platform.startswith("win"):
+                os.startfile(script_path)
+            elif sys.platform.startswith("darwin"):
+                subprocess.call(("open", script_path))
+            else:
+                subprocess.call(("xdg-open", script_path))
+        except Exception as exception:
+            self.model.log(
+                f"Could not open automation script '{script_path}': {exception}"
+            )
+
+    def create_example_automation(self, *args):
+        """Writes the packaged automation example to a user-selected path.
+
+        Args:
+            *args: Optional Qt callback arguments.
+        """
+        default_path = os.path.basename(
+            clip_tracker_model.get_sample_automation_path()
+        )
+        script_path, _ = ui_qt.QtWidgets.QFileDialog.getSaveFileName(
+            self.view,
+            "Save Example Automation Script",
+            default_path,
+            "Python Files (*.py)",
+        )
+        if not script_path:
+            return
+        try:
+            shutil.copyfile(
+                clip_tracker_model.get_sample_automation_path(),
+                script_path,
+            )
+        except OSError as exception:
+            self.model.log(
+                f"Could not create example automation '{script_path}': {exception}"
+            )
+            return
+        self.update_preference("automation_path", os.path.dirname(script_path))
+        self.model.log(f"Created example automation: {script_path}")
+
+    def browse_automation_directory(self, *args):
+        """Prompts for an automation directory and stores the selected path.
+
+        Args:
+            *args: Optional Qt callback arguments.
+        """
+        folder = ui_qt.QtWidgets.QFileDialog.getExistingDirectory(
+            self.view,
+            "Select Automations Folder",
+            str(self.model.automation_path or ""),
+        )
+        if folder:
+            self.update_preference("automation_path", folder)
+
+    def move_clip(self, index, offset, *args):
+        """Moves one clip up or down in the displayed list.
+
+        Args:
+            index (int): Current clip index.
+            offset (int): Position change, normally -1 or 1.
+            *args: Optional Maya callback arguments.
+        """
+        target_index = int(index) + int(offset)
+        if not self.model.move_clip(index, offset):
+            return
+        if self.selected_index == index:
+            self.selected_index = target_index
+        elif self.selected_index == target_index:
+            self.selected_index = index
+        if self.playing_index == index:
+            self.playing_index = target_index
+        elif self.playing_index == target_index:
+            self.playing_index = index
+        if self.view.window_exists():
+            self.view.draw_clips(self.model.get_data(), self.playing_index)
+
     def connect_timeline(self, timeline_widget):
         """Connects the timeline widget signals and starts its state sync.
 
@@ -432,7 +792,7 @@ class ClipTrackerController:
     def start_timeline_sync(self):
         """Starts the timer that pushes Maya frame state into the timeline widget."""
         self.stop_timeline_sync()
-        self._timeline_timer = ui_qt.QtCore.QTimer()
+        self._timeline_timer = ui_qt.QtCore.QTimer(self.view)
         self._timeline_timer.setInterval(200)
         self._timeline_timer.timeout.connect(self.sync_timeline_state)
         self._timeline_timer.start()
@@ -508,14 +868,10 @@ class ClipTrackerController:
     def install_focus_refresh_filter(self):
         """Installs a Qt event filter used for refresh-on-focus."""
         try:
-            from maya import OpenMayaUI
-
-            pointer = OpenMayaUI.MQtUtil.findWindow(self.view.WINDOW_NAME)
-            if not pointer:
-                return
-            widget = ui_qt.shiboken.wrapInstance(int(pointer), ui_qt.QtWidgets.QWidget)
+            if self._focus_filter:
+                self.view.removeEventFilter(self._focus_filter)
             self._focus_filter = ClipTrackerFocusFilter(controller=self)
-            widget.installEventFilter(self._focus_filter)
+            self.view.installEventFilter(self._focus_filter)
         except Exception as exception:
             self.model.log("Unable to install focus refresh filter: {0}".format(exception))
 

@@ -11,6 +11,8 @@ import logging
 import math
 import sys
 import os
+import re
+import html
 
 # Logging Setup
 logging.basicConfig()
@@ -18,6 +20,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 MAX_FRAME_RATE = 48000
+DEFAULT_FILE_EXTENSIONS = (".ma", ".mb", ".fbx")
 
 
 def get_frame_rate():
@@ -140,14 +143,246 @@ def get_distance_in_meters():
     return 1
 
 
-def force_reload_file():
-    """Reopens the opened file (to revert any changes done to the file)"""
+def open_scene_file(file_path, force=False):
+    """Opens a scene file after resolving unsaved changes.
+
+    Args:
+        file_path (str): Scene file path to open.
+        force (bool, optional): Force opening and discard unsaved changes.
+            Defaults to False.
+    """
+    operation_force = _resolve_scene_open_force(force=bool(force))
+    if operation_force is None:
+        return False
+    cmds.file(file_path, open=True, force=operation_force)
+    return True
+
+
+def _resolve_scene_open_force(force=False):
+    """Resolves whether a scene file operation may discard changes.
+
+    Args:
+        force (bool, optional): Force the operation without asking. Defaults
+            to False.
+
+    Returns:
+        bool or None: Force value to use for the Maya file command, or None
+        when the user cancels the operation.
+    """
+    if force or not cmds.file(query=True, modified=True):
+        return bool(force)
+
+    user_choice = cmds.confirmDialog(
+        title="Unsaved Changes",
+        message="The current file has unsaved changes. What would you like to do?",
+        button=["Save", "Don't Save", "Cancel"],
+        defaultButton="Cancel",
+        cancelButton="Cancel",
+        dismissString="Cancel",
+        icon="warning",
+    )
+    if user_choice == "Cancel":
+        return None
+    if user_choice == "Save":
+        cmds.file(save=True)
+        return False
+    return True
+
+
+def _normalize_file_extensions(file_extensions):
+    """Normalizes a file-extension setting into a unique lowercase tuple.
+
+    Args:
+        file_extensions (str or list or tuple): Extensions separated by commas,
+            spaces, or semicolons. A leading dot and wildcard are optional.
+
+    Returns:
+        tuple: Normalized file extensions, including their leading dots.
+    """
+    if file_extensions is None:
+        file_extensions = DEFAULT_FILE_EXTENSIONS
+    if isinstance(file_extensions, str):
+        file_extensions = re.split(r"[,;\s]+", file_extensions)
+
+    normalized_extensions = []
+    for file_extension in file_extensions:
+        extension = str(file_extension).strip().lower().lstrip("*")
+        if extension in ("", "and", "or"):
+            continue
+        if not extension.startswith("."):
+            extension = f".{extension}"
+        if extension not in normalized_extensions:
+            normalized_extensions.append(extension)
+    return tuple(normalized_extensions)
+
+
+def get_scene_files(directory_path, file_extensions=None):
+    """Lists supported scene files in a directory in deterministic order.
+
+    Args:
+        directory_path (str): Directory to search.
+        file_extensions (str or list or tuple, optional): Accepted file
+            extensions. Defaults to Maya ASCII, Maya Binary, and FBX files.
+
+    Returns:
+        list: Absolute file paths sorted by filename, or an empty list.
+    """
+    directory_path = os.path.abspath(os.path.expanduser(str(directory_path or "")))
+    extensions = _normalize_file_extensions(file_extensions)
+    if not os.path.isdir(directory_path) or not extensions:
+        return []
+
+    try:
+        file_names = os.listdir(directory_path)
+    except OSError as exception:
+        logger.warning(f'Unable list scene files in "{directory_path}". Issue: "{exception}".')
+        return []
+
+    file_paths = []
+    for file_name in file_names:
+        file_path = os.path.join(directory_path, file_name)
+        if not os.path.isfile(file_path):
+            continue
+        if os.path.splitext(file_name)[1].lower() in extensions:
+            file_paths.append(os.path.abspath(file_path))
+    return sorted(file_paths, key=lambda path: (os.path.basename(path).casefold(), path.casefold()))
+
+
+def get_adjacent_file_data(
+    current_file_path,
+    direction,
+    file_extensions=None,
+    loop_directory=False,
+):
+    """Resolves a neighboring supported file and its folder position.
+
+    Args:
+        current_file_path (str): Current scene file path.
+        direction (int): Navigation direction. Use ``-1`` for previous or
+            ``1`` for next.
+        file_extensions (str or list or tuple, optional): Accepted file
+            extensions. Defaults to Maya ASCII, Maya Binary, and FBX files.
+        loop_directory (bool, optional): Wraps navigation at either end of the
+            directory. Defaults to False.
+
+    Returns:
+        dict or None: Data containing ``file_path``, ``position``, and ``total``
+        when an adjacent file exists; otherwise ``None``.
+    """
+    if direction not in (-1, 1):
+        raise ValueError("File navigation direction must be -1 or 1.")
+
+    current_file_path = os.path.abspath(os.path.expanduser(str(current_file_path or "")))
+    directory_path = os.path.dirname(current_file_path)
+    scene_files = get_scene_files(directory_path, file_extensions=file_extensions)
+    normalized_current_path = os.path.normcase(os.path.normpath(current_file_path))
+    normalized_scene_files = [
+        os.path.normcase(os.path.normpath(scene_file)) for scene_file in scene_files
+    ]
+    if normalized_current_path not in normalized_scene_files:
+        return None
+
+    current_index = normalized_scene_files.index(normalized_current_path)
+    adjacent_index = current_index + direction
+    if adjacent_index < 0 or adjacent_index >= len(scene_files):
+        if not loop_directory:
+            return None
+        adjacent_index %= len(scene_files)
+
+    return {
+        "file_path": scene_files[adjacent_index],
+        "position": adjacent_index + 1,
+        "total": len(scene_files),
+    }
+
+
+def reload_file(force=False):
+    """Reopens the current file, optionally bypassing Maya's save warning.
+
+    Args:
+        force (bool, optional): Force the file open and discard unsaved changes.
+            Defaults to False.
+
+    Returns:
+        bool: True when a saved scene was sent to Maya for reopening.
+    """
     if cmds.file(query=True, exists=True):  # Check to see if it was ever saved
         file_path = cmds.file(query=True, expandName=True)
         if file_path is not None:
-            cmds.file(file_path, open=True, force=True)
-    else:
-        cmds.warning("Unable to force reload. File was never saved.")
+            return open_scene_file(file_path, force=bool(force))
+    cmds.warning("Unable to reload. File was never saved.")
+    return False
+
+
+def force_reload_file():
+    """Reopens the current file and discards unsaved changes.
+
+    Returns:
+        bool: True when a saved scene was sent to Maya for reopening.
+    """
+    return reload_file(force=True)
+
+
+def open_adjacent_file(
+    direction,
+    file_extensions=None,
+    force=False,
+    loop_directory=False,
+):
+    """Opens the previous or next supported file in the current folder.
+
+    Args:
+        direction (int): Navigation direction. Use ``-1`` for previous or
+            ``1`` for next.
+        file_extensions (str or list or tuple, optional): Accepted file
+            extensions. Defaults to Maya ASCII, Maya Binary, and FBX files.
+        force (bool, optional): Force opening and discard unsaved changes.
+            Defaults to False.
+        loop_directory (bool, optional): Wraps navigation at either end of the
+            directory. Defaults to False.
+
+    Returns:
+        dict or None: Opened-file data containing ``file_path``, ``position``,
+        and ``total`` when successful; otherwise ``None``.
+    """
+    if not cmds.file(query=True, exists=True):
+        cmds.warning("Unable to open adjacent file. The current scene was never saved.")
+        return None
+
+    current_file_path = cmds.file(query=True, expandName=True)
+    adjacent_file_data = get_adjacent_file_data(
+        current_file_path=current_file_path,
+        direction=direction,
+        file_extensions=file_extensions,
+        loop_directory=loop_directory,
+    )
+    if not adjacent_file_data:
+        cmds.warning("Unable to open adjacent file. No matching file was found.")
+        return None
+
+    adjacent_file_path = adjacent_file_data["file_path"]
+    if not open_scene_file(adjacent_file_path, force=bool(force)):
+        return None
+    direction_label = "previous" if direction == -1 else "next"
+    import gt.core.feedback as core_fback
+
+    filename = html.escape(os.path.basename(adjacent_file_path))
+    direction_style = "font-weight:bold;text-decoration:underline;"
+    filename_style = "color:#66CCFF;"
+    count_style = "color:#FFCC66;font-weight:bold;text-decoration:underline;"
+    feedback_message = (
+        "Open "
+        f'<span style="{direction_style}">{direction_label}</span> file '
+        f'<span style="{filename_style}">"{filename}"</span> - '
+        f'<span style="{count_style}">('
+        f'{adjacent_file_data["position"]} of {adjacent_file_data["total"]})</span>'
+    ).strip()
+    feedback = core_fback.FeedbackMessage(
+        general_overwrite=feedback_message,
+        style_general=None,
+    )
+    feedback.print_inview_message(stay_time=4000, system_write=False)
+    return adjacent_file_data
 
 
 def open_file_dir():

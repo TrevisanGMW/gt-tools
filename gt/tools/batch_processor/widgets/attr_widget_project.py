@@ -39,9 +39,9 @@ class AttrWidgetProject(attr_widget_base.AttrWidgetBase):
         self.add_environment_variable_field(
             "project-dir",
             "Project Dir",
-            "Root directory for this batch project. Used as {project-dir}.",
+            "Root directory for this batch project. Defaults to {project-file-dir}; set a fixed path to override it.",
             browse=True,
-            placeholder="Project root folder. Blank stays unresolved until a project file is saved or opened.",
+            placeholder="{project-file-dir}",
         )
         self.add_environment_variable_field(
             "input-dir",

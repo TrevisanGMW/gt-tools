@@ -231,9 +231,21 @@ class RiggerController:
         self.view.add_menu_action(parent_menu=menu_file, action=action_save_as)
 
         # Templates
-        menu_templates = self.view.add_menu_submenu(
+        self._templates_menu = self.view.add_menu_submenu(
             parent_menu=menu_file, submenu_name="Templates", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_templates)
         )
+        self._template_menu_actions = []
+        self._templates_menu.aboutToShow.connect(self.refresh_templates_menu)
+        self.refresh_templates_menu()
+
+    def refresh_templates_menu(self):
+        """Rebuilds the template submenu from the current template directory."""
+        if not ui_qt_utils.is_qt_object_valid(getattr(self, "_templates_menu", None)):
+            return
+
+        menu_templates = self._templates_menu
+        self._template_menu_actions = []
+        menu_templates.clear()
         rig_templates = tools_rig_templates.RigTemplates()  # Initializing populates it with file templates
 
         # Python Templates ---
@@ -247,7 +259,8 @@ class RiggerController:
                 )
                 item_func = partial(self.replace_project, project=template_func)
                 action_template.triggered.connect(item_func)
-                self.view.add_menu_action(parent_menu=menu_templates, action=action_template)
+                self._template_menu_actions.append(action_template)
+                menu_templates.addAction(action_template)
 
         # File Templates ---
         ui_qt_utils.add_labeled_separator(menu=menu_templates, text="File Templates")
@@ -258,15 +271,36 @@ class RiggerController:
             )
             item_func = partial(self.replace_project, project=template_func)
             action_template.triggered.connect(item_func)
-            self.view.add_menu_action(parent_menu=menu_templates, action=action_template)
-        # Open Templates Dir ---
+            self._template_menu_actions.append(action_template)
+            menu_templates.addAction(action_template)
+        # Open Template Directories ---
         ui_qt_utils.add_labeled_separator(menu=menu_templates, text="Template Resources")
-        action_open_resources = ui_qt.QtLib.QtGui.QAction(
+        action_open_templates = ui_qt.QtLib.QtGui.QAction(
             "Open Templates Folder", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.util_open_dir)
         )
-        _save_as_func = lambda *args: self.open_or_create_directory(tools_rig_templates.get_template_source_dir())
-        action_open_resources.triggered.connect(_save_as_func)
-        self.view.add_menu_action(parent_menu=menu_templates, action=action_open_resources)
+        _open_templates_func = lambda *args: self.open_or_create_directory(
+            tools_rig_templates.get_template_source_dir()
+        )
+        action_open_templates.triggered.connect(_open_templates_func)
+        self._template_menu_actions.append(action_open_templates)
+        menu_templates.addAction(action_open_templates)
+
+        action_open_resources = ui_qt.QtLib.QtGui.QAction(
+            "Open Resources Folder", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.util_open_dir)
+        )
+        _open_resources_func = lambda *args: self.open_or_create_directory(
+            tools_rig_templates.get_template_resources_dir()
+        )
+        action_open_resources.triggered.connect(_open_resources_func)
+        self._template_menu_actions.append(action_open_resources)
+        menu_templates.addAction(action_open_resources)
+
+        action_convert_template = ui_qt.QtLib.QtGui.QAction(
+            "Save Current as Template", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_templates)
+        )
+        action_convert_template.triggered.connect(self.convert_current_project_to_template)
+        self._template_menu_actions.append(action_convert_template)
+        menu_templates.addAction(action_convert_template)
 
     def refresh_recent_projects_menu(self):
         """Rebuilds the recent-project submenu from stored preferences."""
@@ -279,16 +313,18 @@ class RiggerController:
             return
         for index, file_path in enumerate(recent_paths, start=1):
             action_recent = ui_qt.QtLib.QtGui.QAction(
+                ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_open),
                 f"{index}. {file_path}",
-                icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_open),
+                self._recent_projects_menu,
             )
             action_recent.setToolTip(file_path)
             action_recent.triggered.connect(partial(self.load_project_from_path, file_path))
             self._recent_projects_menu.addAction(action_recent)
         self._recent_projects_menu.addSeparator()
         action_clear = ui_qt.QtLib.QtGui.QAction(
+            ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_delete),
             "Clear Recent Projects",
-            icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_delete),
+            self._recent_projects_menu,
         )
         action_clear.triggered.connect(self.clear_recent_projects)
         self._recent_projects_menu.addAction(action_clear)
@@ -298,6 +334,24 @@ class RiggerController:
         self._recent_projects.clear()
         self.refresh_recent_projects_menu()
         logger.info("Cleared recent projects.")
+
+    def open_project_folder(self, *args):
+        """Opens the current project folder in the system file browser.
+
+        Args:
+            *args: Optional Qt signal arguments.
+        """
+        project_path = ""
+        if self._opened_project:
+            project_path = os.path.normpath(os.path.dirname(self._opened_project))
+        if project_path and os.path.isdir(project_path):
+            utils_system.open_file_dir(project_path)
+            return
+        ui_qt.QtWidgets.QMessageBox.warning(
+            self.view,
+            "Project Folder Unavailable",
+            f"The project folder could not found:\n{project_path or 'No project folder configured.'}",
+        )
 
     @staticmethod
     def open_or_create_directory(directory_path, *args):
@@ -357,6 +411,13 @@ class RiggerController:
         Adds utils menu bar to the view
         """
         menu_utils = self.view.add_menu_parent("Utilities")
+
+        # Open Project Folder ------------------------------------------------------------------
+        action_open_project_folder = ui_qt.QtLib.QtGui.QAction(
+            "Open Project Folder", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_open_external)
+        )
+        action_open_project_folder.triggered.connect(self.open_project_folder)
+        self.view.add_menu_action(parent_menu=menu_utils, action=action_open_project_folder)
 
         # Get Env Vars -------------------------------------------------------------------------------
         action_get_environment_vars = ui_qt.QtLib.QtGui.QAction(
@@ -756,6 +817,148 @@ class RiggerController:
         if project:
             self.model.set_project(project=project)
             self.refresh_widgets()
+
+    def convert_current_project_to_template(self, *args):
+        """Saves the current project as a reusable file template.
+
+        When the saved project directory contains additional files or folders,
+        the user can also copy them into the matching template resources
+        directory. The active project and its working directory are unchanged.
+
+        Args:
+            *args: Optional Qt signal arguments.
+
+        Returns:
+            bool: True when the template project file was created.
+        """
+        project = self.model.get_project()
+        template_name = self.get_template_name_from_dialog(default_name=project.get_name())
+        if not template_name:
+            return False
+
+        template_source_dir = tools_rig_templates.get_template_source_dir()
+        try:
+            os.makedirs(template_source_dir, exist_ok=True)
+        except OSError as exception:
+            self.show_project_load_warning(
+                title="Unable to Create Template",
+                message=f"The templates directory could not be created:\n\n{exception}",
+            )
+            return False
+
+        template_extension = f".{tools_rig_const.RiggerConstants.PROJECT_EXTENSION}"
+        template_path = os.path.join(template_source_dir, f"{template_name}{template_extension}")
+        if os.path.isfile(template_path) and not self.show_template_overwrite_warning(template_path):
+            return False
+
+        template_data = tools_rig_templates.get_project_template_data(project)
+        if not template_data:
+            return False
+
+        if os.path.isfile(template_path):
+            core_io.set_file_permission_modifiable(template_path)
+        saved_template_path = core_io.write_json(path=template_path, data=template_data)
+        if not saved_template_path:
+            self.show_project_load_warning(
+                title="Unable to Create Template",
+                message=f"The template could not be saved:\n\n{template_path}",
+            )
+            return False
+
+        logger.info(f'Created template "{saved_template_path}".')
+        ui_qt.QtCore.QTimer.singleShot(0, self.refresh_templates_menu)
+        if not tools_rig_templates.project_directory_has_resources(project):
+            return True
+
+        resource_target_dir = os.path.join(tools_rig_templates.get_template_resources_dir(), template_name)
+        if not self.show_template_resource_copy_dialog(resource_target_dir):
+            return True
+
+        copy_results = tools_rig_templates.copy_project_resources(project, resource_target_dir)
+        if copy_results is None:
+            self.show_project_load_warning(
+                title="Unable to Copy Template Resources",
+                message="The project resources could not be copied into the template resources directory.",
+            )
+            return True
+
+        logger.info(
+            f'Copied {copy_results["copied"]} template resource(s) to "{resource_target_dir}". '
+            f'Skipped {copy_results["skipped"]} existing resource(s).'
+        )
+        return True
+
+    def get_template_name_from_dialog(self, default_name):
+        """Prompts the user for a safe file name for a new template.
+
+        Args:
+            default_name (str): Initial template name shown to the user.
+
+        Returns:
+            str: Sanitized template name without the project extension, or an
+            empty string when cancelled or invalid.
+        """
+        template_name, accepted = ui_qt.QtWidgets.QInputDialog.getText(
+            self.view,
+            "Convert Project to Template",
+            "Template Name:",
+            text=default_name or "Untitled",
+        )
+        if not accepted:
+            return ""
+
+        template_name = utils_system.sanitize_filename(template_name)
+        template_extension = f".{tools_rig_const.RiggerConstants.PROJECT_EXTENSION}"
+        if template_name.lower().endswith(template_extension):
+            template_name = template_name[: -len(template_extension)]
+        if template_name:
+            return template_name
+
+        self.show_project_load_warning(
+            title="Invalid Template Name",
+            message="Enter a valid name for the template.",
+        )
+        return ""
+
+    def show_template_overwrite_warning(self, template_path):
+        """Asks the user before overwriting an existing template project file.
+
+        Args:
+            template_path (str): Existing template file that would be replaced.
+
+        Returns:
+            bool: True when the existing template may be replaced.
+        """
+        result = ui_qt.QtWidgets.QMessageBox.question(
+            self.view,
+            "Replace Existing Template",
+            f"A template already exists at:\n\n{template_path}\n\nReplace its project data?",
+            ui_qt.QtWidgets.QMessageBox.Yes | ui_qt.QtWidgets.QMessageBox.No,
+            ui_qt.QtWidgets.QMessageBox.No,
+        )
+        return result == ui_qt.QtWidgets.QMessageBox.Yes
+
+    def show_template_resource_copy_dialog(self, resource_target_dir):
+        """Offers to copy detected project resources into a template folder.
+
+        Args:
+            resource_target_dir (str): Destination for the template resources.
+
+        Returns:
+            bool: True when the user requests a resource copy.
+        """
+        message_box = ui_qt.QtWidgets.QMessageBox(self.view)
+        message_box.setWindowTitle("Project Resources Detected")
+        message_box.setText(
+            "The project directory contains files or folders in addition to the rig project.\n"
+            "Would you like to copy them into this template's resources folder?\n\n"
+            f"{resource_target_dir}\n\n"
+            "Existing resource files will be retained."
+        )
+        copy_button = message_box.addButton("Copy Resources", ui_qt.QtWidgets.QMessageBox.AcceptRole)
+        message_box.addButton("Skip Resources", ui_qt.QtWidgets.QMessageBox.RejectRole)
+        message_box.exec_()
+        return message_box.clickedButton() == copy_button
 
     # ----------------------------------------- Modules Tree -----------------------------------------
     def populate_module_tree(self):

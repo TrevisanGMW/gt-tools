@@ -123,6 +123,20 @@ class BatchProcessorModel:
         """
         configured_project_dir = self.environment_variables.get("project-dir")
         if configured_project_dir:
+            configured_project_dir = str(configured_project_dir).strip()
+            project_file_dir_token = format_environment_key("project-file-dir")
+            if project_file_dir_token in configured_project_dir:
+                project_file_dir = self.get_project_file_dir()
+                if not project_file_dir:
+                    if (
+                        configured_project_dir == project_file_dir_token
+                        and self.project_file_path
+                    ):
+                        return os.path.dirname(os.path.abspath(self.project_file_path))
+                    return ""
+                configured_project_dir = configured_project_dir.replace(
+                    project_file_dir_token, project_file_dir
+                )
             if os.path.isabs(str(configured_project_dir)):
                 return tasks.normalize_path(configured_project_dir)
             if self.project_file_path:
@@ -132,6 +146,22 @@ class BatchProcessorModel:
         if self.project_file_path:
             return os.path.dirname(os.path.abspath(self.project_file_path))
         return ""
+
+    def get_project_file_dir(self):
+        """Gets the directory containing the current project file.
+
+        Returns:
+            str: Existing project file directory, or an empty string when the
+                project has not been saved or its file no longer exists.
+        """
+        if not self.project_file_path:
+            return ""
+
+        project_file_path = os.path.abspath(str(self.project_file_path))
+        if not os.path.isfile(project_file_path):
+            return ""
+
+        return tasks.normalize_path(os.path.dirname(project_file_path))
 
     def resolve_path(self, path):
         """Resolves a project-relative, template-based, or absolute path.
@@ -202,6 +232,11 @@ class BatchProcessorModel:
         if not path:
             return ""
         if self.path_uses_project_dir(path) and not self.get_project_dir():
+            return ""
+        if (
+            format_environment_key("project-file-dir") in str(path)
+            and not self.get_project_file_dir()
+        ):
             return ""
         path = self.resolve_template(
             path,
@@ -764,6 +799,7 @@ class BatchProcessorModel:
             "project-name": project_name,
             "project-sanitized-name": tasks.sanitize_filename(project_name.lower().replace(" ", "_")),
             "project-dir": project_dir,
+            "project-file-dir": self.get_project_file_dir(),
             "project-path": project_path,
             "project-parent-dir": project_parent_dir,
             "project-grandparent-dir": os.path.dirname(project_parent_dir) if project_parent_dir else "",

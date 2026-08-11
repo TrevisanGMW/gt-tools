@@ -79,7 +79,7 @@ def _build_anchor_grid(vertical):
     return button_rows
 
 
-def _open_move_pivot_options(vertical, title, object_name, icon):
+def _open_move_pivot_options(vertical, title, object_name, icon, workspace_restore_factory):
     """
     Opens a "Move Pivot" option window for a given vertical level.
 
@@ -88,6 +88,8 @@ def _open_move_pivot_options(vertical, title, object_name, icon):
         title (str): Window title.
         object_name (str): Stable Qt object name for the window.
         icon (str): Window icon resource path.
+        workspace_restore_factory (str): Import path to the function that rebuilds
+            this option window after a Maya restart.
 
     Returns:
         OptionWindow: The created option window.
@@ -96,9 +98,9 @@ def _open_move_pivot_options(vertical, title, object_name, icon):
         title=title,
         object_name=object_name,
         icon=icon,
-        description=f"Move the pivot to a {vertical} anchor of each object's bounding box.",
+        workspace_restore_factory=workspace_restore_factory,
     )
-    window.add_button_grid(_build_anchor_grid(vertical), label="Bounding Box Anchor (top-down view)")
+    window.add_button_grid(_build_anchor_grid(vertical))
     window.show_window()
     return window
 
@@ -115,6 +117,9 @@ def open_move_pivot_base_options():
         title="Move Pivot to Base",
         object_name="gtMovePivotBaseOptions",
         icon=ui_res_lib.Icon.util_pivot_bottom,
+        workspace_restore_factory=(
+            "gt.tools.utility_options.pivot_options.open_move_pivot_base_options"
+        ),
     )
 
 
@@ -130,6 +135,9 @@ def open_move_pivot_top_options():
         title="Move Pivot to Top",
         object_name="gtMovePivotTopOptions",
         icon=ui_res_lib.Icon.util_pivot_top,
+        workspace_restore_factory=(
+            "gt.tools.utility_options.pivot_options.open_move_pivot_top_options"
+        ),
     )
 
 

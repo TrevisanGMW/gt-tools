@@ -967,6 +967,8 @@ class ClipTimelineWidget(ui_qt.QtWidgets.QWidget):
         if clip_index >= 0:
             self.select_clip(clip_index)
             clip = self.clips[clip_index]
+            action_set_start = menu.addAction("Set Current Frame as Start")
+            action_set_end = menu.addAction("Set Current Frame as End")
             action_range = menu.addAction("Set Timeline Range to Clip")
             action_play = menu.addAction("Play/Pause Clip")
             action_swap = menu.addAction("Swap Start and End") if is_inverted_clip(clip) else None
@@ -979,6 +981,18 @@ class ClipTimelineWidget(ui_qt.QtWidgets.QWidget):
                 self.clip_range_requested.emit(int(clip_index))
             elif triggered == action_play:
                 self.clip_play_requested.emit(int(clip_index))
+            elif triggered == action_set_start:
+                self.clip_modified.emit(
+                    int(clip_index),
+                    int(self.current_frame),
+                    int(clip.get("end", 0)),
+                )
+            elif triggered == action_set_end:
+                self.clip_modified.emit(
+                    int(clip_index),
+                    int(clip.get("start", 0)),
+                    int(self.current_frame),
+                )
             elif action_swap is not None and triggered == action_swap:
                 self.clip_modified.emit(
                     int(clip_index),

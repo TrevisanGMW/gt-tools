@@ -78,6 +78,7 @@ class RiggerModel:
         """
         data = self.project.get_project_as_dict()
         core_io.write_json(path=path, data=data)
+        self.project.project_file_path = path
 
     def load_project_from_file(self, path):
         """
@@ -88,6 +89,7 @@ class RiggerModel:
         data = core_io.read_json_dict(path)
         loaded_project = tools_rig_frm.RigProject()
         loaded_project.read_data_from_dict(data)
+        loaded_project.project_file_path = path
         self.project = loaded_project
 
 

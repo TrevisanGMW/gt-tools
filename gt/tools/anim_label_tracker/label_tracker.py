@@ -2,6 +2,7 @@ try:
     import maya.cmds as cmds
 except ImportError:
     cmds = None
+import copy
 import uuid
 import random
 import json
@@ -11,6 +12,7 @@ import sys
 import subprocess
 from datetime import datetime
 import gt.ui.qt_import as ui_qt
+import gt.ui.qt_utils as ui_qt_utils
 import gt.ui.resource_library as ui_res_lib
 from gt.tools.anim_label_tracker import label_tracker_model
 
@@ -33,10 +35,21 @@ EXAMPLE_SCHEMA = """{
       "description": "Defines the overall animation fidelity and usability.\\n'high' means polished, clean mocap ready for production.\\n'medium' indicates acceptable data that requires some animation cleanup.\\n'low' means blocky, rough motion, significant foot sliding, or missing marker data."
     },
     {
-      "type": "string", "name": "source", "label": "Source", 
-      "required": true, 
-      "placeholder": "e.g. mocap_shoot_01",
-      "description": "Identifies the origin of the animation.\\nThis could be a specific mocap shoot (e.g., 'mocap_shoot_01'), a dataset name, a vendor pipeline, or the intended game/cinematic project use-case."
+      "type": "row",
+      "items": [
+        {
+          "type": "string", "name": "source", "label": "Source",
+          "required": true,
+          "placeholder": "e.g. mocap_shoot_01",
+          "description": "Identifies the origin of the animation.\\nThis could be a specific mocap shoot (e.g., 'mocap_shoot_01'), a dataset name, a vendor pipeline, or the intended game/cinematic project use-case."
+        },
+        {
+          "type": "enum", "name": "gender", "label": "Gender",
+        "options": ["male", "female"],
+        "required": false,
+          "description": "The apparent gender of the character when it can be determined clearly."
+        }
+      ]
     },
     {"type": "separator"},
     {
@@ -51,6 +64,11 @@ EXAMPLE_SCHEMA = """{
           "type": "boolean", "name": "labelled", "label": "Labelled", 
           "required": true, 
           "description": "Set to true once a human animator or an automated script has fully populated, verified, and signed off on the frame-range metadata for this file."
+        },
+        {
+            "type": "boolean", "name": "commercial_use", "label": "Commercial Use",
+            "required": true,
+            "description": "Set to true when this file is cleared for commercial use."
         }
       ]
     }
@@ -139,6 +157,7 @@ context["field_name"]           # Name of the specific field this script was tri
 context["set_value"](val)       # Sets the UI value for the triggering field directly
 
 # Advanced API functions:
+context["get_last_used_data"]() # Returns the last tracker data stored in Prefs
 context["create_range"](name, start, end, color)         # Creates, automatically selects, and returns a new RangeItem
 context["get_file_data"](field)                          # Returns the current value of a File Data field
 context["update_file_data"](field, val)                  # Updates File Data
@@ -149,10 +168,16 @@ context["refresh_ui"]()                                  # Forces the UI to upda
 # =====================================================================
 # 1. Update File Data
 # =====================================================================
+last_used_data = context["get_last_used_data"]()
+print("Last used tracker data from Prefs:")
+print(last_used_data)
+
 context["update_file_data"]("quality", "high")
 context["update_file_data"]("source", "mocap_shoot_01")
 context["update_file_data"]("clipped", True)
 context["update_file_data"]("labelled", True)
+context["update_file_data"]("commercial_use", True)
+context["update_file_data"]("gender", "male")
 
 # =====================================================================
 # 2. Automatically generate a full-coverage range
@@ -190,6 +215,32 @@ class DataManager:
     ATTR_EDITED = "lastEdited"
 
     @classmethod
+    def build_payload(cls, ranges, file_data):
+        """Builds JSON-compatible tracker data without touching Maya.
+
+        Args:
+            ranges (list): Range items to serialize.
+            file_data (dict): File-level metadata to serialize.
+
+        Returns:
+            dict: JSON-compatible tracker data.
+        """
+        range_data = []
+        for range_item in ranges:
+            range_data.append(
+                {
+                    "id": range_item.id,
+                    "name": range_item.name,
+                    "start": range_item.start,
+                    "end": range_item.end,
+                    "color": range_item.color,
+                    "locked": range_item.locked,
+                    "custom_data": range_item.custom_data,
+                }
+            )
+        return {"ranges": range_data, "file_data": copy.deepcopy(file_data)}
+
+    @classmethod
     def save_data(cls, ranges, file_data):
         """Serializes range and file metadata to tracker scene data.
 
@@ -209,19 +260,7 @@ class DataManager:
         if not cmds.attributeQuery(cls.ATTR_EDITED, node=cls.NODE_NAME, exists=True):
             cmds.addAttr(cls.NODE_NAME, ln=cls.ATTR_EDITED, dataType="string")
             
-        r_data = []
-        for r in ranges:
-            r_data.append({
-                "id": r.id,
-                "name": r.name,
-                "start": r.start,
-                "end": r.end,
-                "color": r.color,
-                "locked": r.locked,
-                "custom_data": r.custom_data
-            })
-        
-        payload = {"ranges": r_data, "file_data": file_data}
+        payload = cls.build_payload(ranges, file_data)
         json_str = json.dumps(payload)
         cmds.setAttr(f"{cls.NODE_NAME}.{cls.ATTR_DATA}", json_str, type="string")
         
@@ -290,6 +329,43 @@ class RangeItem:
         return f"f{self.start:04d}-f{self.end:04d}"
 
 
+def pack_range_lanes(ranges):
+    """Assigns overlapping timeline ranges to separate visual lanes.
+
+    Args:
+        ranges (list): Range items with ``start`` and ``end`` values.
+
+    Returns:
+        dict: Mapping of range indices to zero-based lane indices.
+    """
+    lane_ends = []
+    lanes = {}
+    ranges = list(ranges or [])
+    ordered_indices = sorted(
+        range(len(ranges)),
+        key=lambda index: (
+            min(ranges[index].start, ranges[index].end),
+            max(ranges[index].start, ranges[index].end),
+        ),
+    )
+    for index in ordered_indices:
+        range_item = ranges[index]
+        start_frame = min(range_item.start, range_item.end)
+        end_frame = max(range_item.start, range_item.end)
+        target_lane = None
+        for lane_index, lane_end in enumerate(lane_ends):
+            if start_frame > lane_end:
+                target_lane = lane_index
+                break
+        if target_lane is None:
+            lane_ends.append(end_frame)
+            target_lane = len(lane_ends) - 1
+        else:
+            lane_ends[target_lane] = max(lane_ends[target_lane], end_frame)
+        lanes[index] = target_lane
+    return lanes
+
+
 class CustomTimelineWidget(QtWidgets.QWidget):
     rangeSelected = QtCore.Signal(object) 
     timeChanged = QtCore.Signal(int)
@@ -332,6 +408,45 @@ class CustomTimelineWidget(QtWidgets.QWidget):
         self.initial_range_start = 0 
         self.drag_accum = 0.0 
 
+    def get_lane_geometry(self):
+        """Gets visual lane positions for the current timeline ranges.
+
+        Returns:
+            tuple: Range-index lane mapping, lane height, and top offset.
+        """
+        lanes = pack_range_lanes(self.ranges)
+        lane_count = max(lanes.values()) + 1 if lanes else 1
+        top_offset = 20
+        bottom_margin = 20
+        lane_spacing = 3
+        available_height = self.height() - top_offset - bottom_margin
+        lane_height = int((available_height - (lane_spacing * (lane_count - 1))) / lane_count)
+        return lanes, max(8, lane_height), top_offset
+
+    def get_range_rect(self, range_item, index, lanes, lane_height, top_offset):
+        """Builds the visual rectangle for one timeline range.
+
+        Args:
+            range_item (RangeItem): Timeline range being drawn.
+            index (int): Range index in the timeline collection.
+            lanes (dict): Range-index lane mapping.
+            lane_height (int): Height of each visual lane.
+            top_offset (int): Vertical offset of the first lane.
+
+        Returns:
+            QRect: Visual rectangle for the range.
+        """
+        x_start = self.frame_to_x(range_item.start)
+        x_end = self.frame_to_x(range_item.end)
+        width = max(x_end - x_start, 5)
+        lane_spacing = 3
+        lane_index = lanes.get(index, 0)
+        y_position = top_offset + (lane_index * (lane_height + lane_spacing))
+        if range_item.locked:
+            y_position += 5
+            lane_height = max(3, lane_height - 10)
+        return QtCore.QRect(x_start, y_position, width, lane_height)
+
     def frame_to_x(self, frame):
         """Converts a Maya frame value to a timeline x-coordinate.
 
@@ -360,27 +475,33 @@ class CustomTimelineWidget(QtWidgets.QWidget):
         frame = self.start_frame + (float(x) / width) * frame_range
         return round(frame)
 
-    def get_range_and_zone_at_x(self, x):
+    def get_range_and_zone_at_x(self, x, y=None):
         """Finds the range and edge zone under a widget coordinate.
 
         Args:
             x (float): Widget x-coordinate to inspect.
+            y (float, optional): Widget y-coordinate to inspect.
 
         Returns:
             tuple: Range item and interaction zone, or ``(None, None)``.
         """
         frame = self.x_to_frame(x)
         tolerance_px = 6
-        for r in reversed(self.ranges):
-            x_start = self.frame_to_x(r.start)
-            x_end = self.frame_to_x(r.end)
+        lanes, lane_height, top_offset = self.get_lane_geometry()
+        for index in reversed(range(len(self.ranges))):
+            range_item = self.ranges[index]
+            range_rect = self.get_range_rect(range_item, index, lanes, lane_height, top_offset)
+            x_start = range_rect.left()
+            x_end = range_rect.right()
+            if y is not None and not range_rect.adjusted(-tolerance_px, 0, tolerance_px, 0).contains(x, y):
+                continue
             if x_start - tolerance_px <= x <= x_end + tolerance_px:
-                if r.locked or self.tool_mode != 'edit':
-                    if r.start <= frame <= r.end: return r, 'center'
+                if range_item.locked or self.tool_mode != 'edit':
+                    if range_item.start <= frame <= range_item.end: return range_item, 'center'
                 else:
-                    if abs(x - x_start) <= tolerance_px: return r, 'left'
-                    elif abs(x - x_end) <= tolerance_px: return r, 'right'
-                    elif r.start <= frame <= r.end: return r, 'center'
+                    if abs(x - x_start) <= tolerance_px: return range_item, 'left'
+                    elif abs(x - x_end) <= tolerance_px: return range_item, 'right'
+                    elif range_item.start <= frame <= range_item.end: return range_item, 'center'
         return None, None
 
     def get_snap_frame(self, proposed_frame, edge_type, ignore_range=None):
@@ -445,36 +566,42 @@ class CustomTimelineWidget(QtWidgets.QWidget):
             painter.drawLine(x, rect.height() - 15, x, rect.height())
             painter.drawText(x + 2, rect.height() - 2, str(f))
 
-        for r in self.ranges:
-            x1 = self.frame_to_x(r.start)
-            x2 = self.frame_to_x(r.end)
-            w = max(x2 - x1, 5) 
-            y_offset, h_offset = (25, 50) if r.locked else (20, 40)
-            range_rect = QtCore.QRect(x1, y_offset, w, rect.height() - h_offset)
+        lanes, lane_height, top_offset = self.get_lane_geometry()
+        for index, range_item in enumerate(self.ranges):
+            range_rect = self.get_range_rect(range_item, index, lanes, lane_height, top_offset)
             
-            color = QtGui.QColor(*r.color)
+            color = QtGui.QColor(*range_item.color)
             color.setAlpha(150)
-            if r.locked:
+            if range_item.locked:
                 brush = QtGui.QBrush(color, QtCore.Qt.BrushStyle.BDiagPattern)
                 painter.fillRect(range_rect, QtGui.QColor(60, 60, 60, 150))
                 painter.fillRect(range_rect, brush)
             else:
                 painter.fillRect(range_rect, color)
             
-            if r == self.active_range: painter.setPen(QtGui.QPen(QtGui.QColor(255, 200, 50), 3))
-            else: painter.setPen(QtGui.QPen(QtGui.QColor(*r.color), 2))
+            if range_item == self.active_range: painter.setPen(QtGui.QPen(QtGui.QColor(255, 200, 50), 3))
+            else: painter.setPen(QtGui.QPen(QtGui.QColor(*range_item.color), 2))
             painter.drawRect(range_rect)
             
             if self.pref_show_names:
                 painter.setPen(QtGui.QColor(255, 255, 255))
-                painter.drawText(range_rect, QtCore.Qt.AlignmentFlag.AlignCenter, r.display_name)
+                painter.drawText(range_rect, QtCore.Qt.AlignmentFlag.AlignCenter, range_item.display_name)
             if self.pref_show_frames:
                 bold_font = painter.font()
                 bold_font.setPointSize(bold_font.pointSize() + 1); bold_font.setBold(True)
                 painter.setFont(bold_font)
                 painter.setPen(QtGui.QColor(220, 220, 220, 220))
-                painter.drawText(range_rect.adjusted(3, 0, -3, -2), QtCore.Qt.AlignmentFlag.AlignBottom | QtCore.Qt.AlignmentFlag.AlignLeft, str(r.start))
-                painter.drawText(range_rect.adjusted(3, 0, -3, -2), QtCore.Qt.AlignmentFlag.AlignBottom | QtCore.Qt.AlignmentFlag.AlignRight, str(r.end))
+                text_rect = range_rect.adjusted(3, 0, -3, -2)
+                left_alignment = (
+                    QtCore.Qt.AlignmentFlag.AlignBottom
+                    | QtCore.Qt.AlignmentFlag.AlignLeft
+                )
+                right_alignment = (
+                    QtCore.Qt.AlignmentFlag.AlignBottom
+                    | QtCore.Qt.AlignmentFlag.AlignRight
+                )
+                painter.drawText(text_rect, left_alignment, str(range_item.start))
+                painter.drawText(text_rect, right_alignment, str(range_item.end))
 
         cx = self.frame_to_x(self.current_frame)
         painter.setPen(QtGui.QPen(QtGui.QColor(255, 50, 50), 2))
@@ -486,8 +613,9 @@ class CustomTimelineWidget(QtWidgets.QWidget):
         Args:
             event (QMouseEvent): Qt mouse press event.
         """
-        event_x = int(event.position().x())
-        clicked_range, zone = self.get_range_and_zone_at_x(event_x)
+        event_position = event.position()
+        event_x = int(event_position.x())
+        clicked_range, zone = self.get_range_and_zone_at_x(event_x, int(event_position.y()))
         playhead_x = self.frame_to_x(self.current_frame)
 
         if event.button() == QtCore.Qt.MouseButton.RightButton:
@@ -595,7 +723,7 @@ class CustomTimelineWidget(QtWidgets.QWidget):
             if self.tool_mode == 'select' and abs(current_x - playhead_x) <= 8:
                 self.setCursor(QtCore.Qt.CursorShape.SizeWECursor)
             elif self.tool_mode == 'edit':
-                _, zone = self.get_range_and_zone_at_x(current_x)
+                _, zone = self.get_range_and_zone_at_x(current_x, int(event.position().y()))
                 if zone in ('left', 'right'): self.setCursor(QtCore.Qt.CursorShape.SplitHCursor)
                 else: self.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
             elif self.tool_mode == 'razor': self.setCursor(QtCore.Qt.CursorShape.CrossCursor)
@@ -692,7 +820,11 @@ class RangeToolWindow(QtWidgets.QDialog):
         self.setWindowTitle("Animation Label Tracker")
         self.resize(900, 450)
         self.setWindowFlags(QtCore.Qt.WindowType.WindowStaysOnTopHint)
-        self.sj_id = None 
+        self.sj_id = None
+        if not getattr(self, "model", None):
+            self.model = label_tracker_model.AnimationLabelTrackerModel()
+        self._suspend_last_used_data = False
+        self._is_loading_data = False
         
         self.schema = {}
         self.file_data = {}
@@ -940,7 +1072,7 @@ class RangeToolWindow(QtWidgets.QDialog):
         self.auto_path_fld.setText(
             os.path.join(os.path.dirname(__file__), "samples")
         )
-        self.auto_path_fld.textChanged.connect(self.build_automations_ui)
+        self.auto_path_fld.textChanged.connect(self.on_automation_path_changed)
         auto_row.addWidget(self.auto_path_fld)
         
         self.btn_add_auto = QtWidgets.QPushButton("Create")
@@ -984,7 +1116,9 @@ class RangeToolWindow(QtWidgets.QDialog):
         self.chk_bounds = QtWidgets.QCheckBox("Limit Timeline Bounds")
         self.chk_bounds.setChecked(self.timeline.pref_limit_bounds)
         self.chk_bounds.setToolTip("Prevents ranges from being moved or resized\nbeyond the start and end of the timeline.")
-        self.chk_run_all_auto = QtWidgets.QCheckBox("Show 'Run All' Automations Button")
+        self.chk_run_all_auto = QtWidgets.QCheckBox(
+            "Show 'Run Checked' Automations Button"
+        )
         self.chk_run_all_auto.setChecked(True)
         self.chk_val_status = QtWidgets.QCheckBox("Show Validation Status")
         self.chk_val_status.setChecked(True)
@@ -1011,12 +1145,16 @@ class RangeToolWindow(QtWidgets.QDialog):
         btn_del_node.setStyleSheet("background-color: #c94c4c; color: white;")
         btn_del_node.clicked.connect(self.delete_scene_node)
         data_mng_layout.addWidget(btn_del_node)
-        
-        btn_import = QtWidgets.QPushButton("Import JSON...")
+        self.btn_select_node = QtWidgets.QPushButton()
+        self.btn_select_node.setToolTip("Select scene data node")
+        self.btn_select_node.clicked.connect(self.select_scene_node)
+        data_mng_layout.addWidget(self.btn_select_node)
+
+        btn_import = QtWidgets.QPushButton("Import JSON")
         btn_import.clicked.connect(self.import_data)
         data_mng_layout.addWidget(btn_import)
         
-        btn_export = QtWidgets.QPushButton("Export JSON...")
+        btn_export = QtWidgets.QPushButton("Export JSON")
         btn_export.clicked.connect(self.export_data)
         data_mng_layout.addWidget(btn_export)
         
@@ -1041,6 +1179,19 @@ class RangeToolWindow(QtWidgets.QDialog):
         self.refresh_from_maya()
 
     # --- SAVE / EXPORT / IMPORT LOGIC ---
+    def select_scene_node(self):
+        """Selects the tracker data node in the current Maya scene."""
+        node_name = DataManager.NODE_NAME
+        if not cmds.objExists(node_name):
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Select Node",
+                f"Node '{node_name}' not found in scene.",
+            )
+            return
+        cmds.select(node_name, replace=True)
+        self.status_bar.setText(f"Selected scene data node: {node_name}")
+
     def delete_scene_node(self):
         """Deletes the tracker data node from the current Maya scene."""
         node_name = DataManager.NODE_NAME
@@ -1062,6 +1213,9 @@ class RangeToolWindow(QtWidgets.QDialog):
     def save_to_scene(self):
         """Persists the current tracker ranges and metadata to the scene."""
         if getattr(self, '_is_building_ui', False): return
+        payload = DataManager.build_payload(self.timeline.ranges, self.file_data)
+        if not self._suspend_last_used_data and not self._is_loading_data:
+            self.model.set_last_used_data(payload)
         if not self.chk_write_node.isChecked(): return
         DataManager.save_data(self.timeline.ranges, self.file_data)
         
@@ -1083,10 +1237,7 @@ class RangeToolWindow(QtWidgets.QDialog):
         """Exports tracker data to a user-selected JSON file."""
         path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Export JSON", "timeline_data.json", "JSON Files (*.json)")
         if path:
-            r_data = []
-            for r in self.timeline.ranges:
-                r_data.append({"id": r.id, "name": r.name, "start": r.start, "end": r.end, "color": r.color, "locked": r.locked, "custom_data": r.custom_data})
-            payload = {"ranges": r_data, "file_data": self.file_data}
+            payload = DataManager.build_payload(self.timeline.ranges, self.file_data)
             try:
                 with open(path, 'w') as f: json.dump(payload, f, indent=2)
                 cmds.warning(f"Data exported successfully to {path}")
@@ -1120,6 +1271,8 @@ class RangeToolWindow(QtWidgets.QDialog):
             loaded_ranges (list): Ranges read from the input data.
             loaded_file_data (dict): File metadata read from the input data.
         """
+        previous_loading = self._is_loading_data
+        self._is_loading_data = True
         while True:
             if not self.check_schema_mismatch(loaded_ranges, loaded_file_data):
                 break
@@ -1149,7 +1302,8 @@ class RangeToolWindow(QtWidgets.QDialog):
         self.timeline.ranges = loaded_ranges
         self.scene_file_data_cache = loaded_file_data
         self.rebuild_schema_ui()
-        self.timeline.rangesChanged.emit() 
+        self.timeline.rangesChanged.emit()
+        self._is_loading_data = previous_loading
         
     def check_schema_mismatch(self, loaded_ranges, loaded_file_data):
         """Checks imported data against the active schema definition.
@@ -1253,9 +1407,16 @@ class RangeToolWindow(QtWidgets.QDialog):
         else:
             self.build_dynamic_ui(self.schema.get("frame_range", []), self.dynamic_range_layout, self.ui_widgets_range, self.on_dynamic_range_data_changed)
         
+        default_values = {
+            item.get("name"): item.get("default")
+            for item in self._flatten_schema(self.schema.get("file_level", []))
+            if item.get("name") and "default" in item
+        }
         for name, widget in self.ui_widgets_file.items():
             widget.blockSignals(True)
             val = self.scene_file_data_cache.get(name)
+            if val in (None, ""):
+                val = default_values.get(name, val)
             if val is not None:
                 if isinstance(widget, QtWidgets.QComboBox): widget.setCurrentText(str(val))
                 elif isinstance(widget, QtWidgets.QLineEdit): widget.setText(str(val))
@@ -1263,7 +1424,12 @@ class RangeToolWindow(QtWidgets.QDialog):
             widget.blockSignals(False)
 
         self._is_building_ui = False
-        self.on_file_data_changed() 
+        previous_suspend = self._suspend_last_used_data
+        self._suspend_last_used_data = True
+        try:
+            self.on_file_data_changed()
+        finally:
+            self._suspend_last_used_data = previous_suspend
         
         self.populate_edit_area(self.timeline.active_range)
         self.highlight_validation()
@@ -1322,6 +1488,9 @@ class RangeToolWindow(QtWidgets.QDialog):
                     widget = QtWidgets.QComboBox()
                     widget.addItem("---")
                     widget.addItems(item.get("options", []))
+                    default_value = item.get("default")
+                    if default_value is not None:
+                        widget.setCurrentText(str(default_value))
                     widget.currentIndexChanged.connect(callback)
                 elif itype == "string":
                     widget = QtWidgets.QLineEdit()
@@ -1351,16 +1520,39 @@ class RangeToolWindow(QtWidgets.QDialog):
                 parent_layout.addLayout(field_layout)
 
     # --- AUTOMATIONS LOGIC ---
+    def on_automation_path_changed(self, automation_path):
+        """Resets automation selections when the configured folder changes.
+
+        Args:
+            automation_path (str): Newly configured automation folder path.
+        """
+        self.model.reset_automation_check_states(automation_path)
+        self.build_automations_ui()
+
     def build_automations_ui(self):
         """Builds the automation controls for the current schema."""
         self.clear_layout(self.auto_btn_layout)
+        self.auto_btn_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
+        self.automation_checkboxes = {}
         folder = self.auto_path_fld.text().strip(' "\'')
         
         if not folder or not os.path.exists(folder):
-            self.auto_btn_layout.addWidget(QtWidgets.QLabel("Automations folder not found or path is empty."))
+            self.auto_btn_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+            empty_automations_label = QtWidgets.QLabel(
+                "Automations folder not found or path is empty."
+            )
+            empty_automations_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+            empty_automations_label.setWordWrap(True)
+            empty_automations_label.setStyleSheet("color: #b0b0b0; padding: 12px;")
+            empty_automations_font = empty_automations_label.font()
+            empty_automations_font.setPointSize(
+                max(empty_automations_font.pointSize() + 2, 11)
+            )
+            empty_automations_label.setFont(empty_automations_font)
+            self.auto_btn_layout.addWidget(empty_automations_label)
             return
             
-        py_files = glob.glob(os.path.join(folder, "*.py"))
+        py_files = sorted(glob.glob(os.path.join(folder, "*.py")))
         info_lbl = QtWidgets.QLabel(f"<b>Found {len(py_files)} automation scripts</b><br><span style='color:gray'>{folder}</span><br>")
         info_lbl.setWordWrap(True)
         self.auto_btn_layout.addWidget(info_lbl)
@@ -1368,14 +1560,17 @@ class RangeToolWindow(QtWidgets.QDialog):
         if not py_files: return
         
         if self.chk_run_all_auto.isChecked():
-            btn_run_all = QtWidgets.QPushButton("Run All")
-            btn_run_all.setStyleSheet("background-color: #b0b0b0; color: black; font-weight: bold; padding: 4px;")
-            btn_run_all.clicked.connect(self.run_all_automations)
-            self.auto_btn_layout.addWidget(btn_run_all)
+            btn_run_checked = QtWidgets.QPushButton("Run Checked")
+            btn_run_checked.setStyleSheet(
+                "background-color: #b0b0b0; color: black; font-weight: bold; padding: 4px;"
+            )
+            btn_run_checked.clicked.connect(self.run_checked_automations)
+            self.auto_btn_layout.addWidget(btn_run_checked)
             
             line = QtWidgets.QFrame(); line.setFrameShape(QtWidgets.QFrame.Shape.HLine)
             self.auto_btn_layout.addWidget(line)
             
+        check_states = self.model.get_automation_check_states(folder)
         for i, fpath in enumerate(py_files, 1):
             row = QtWidgets.QHBoxLayout()
             fname = os.path.basename(fpath)
@@ -1384,24 +1579,61 @@ class RangeToolWindow(QtWidgets.QDialog):
             num_lbl.setAlignment(QtCore.Qt.AlignmentFlag.AlignRight | QtCore.Qt.AlignmentFlag.AlignVCenter)
             num_lbl.setFixedWidth(24)
             row.addWidget(num_lbl)
+
+            checkbox = QtWidgets.QCheckBox()
+            checkbox.setSizePolicy(
+                QtWidgets.QSizePolicy.Fixed,
+                QtWidgets.QSizePolicy.Fixed,
+            )
+            checkbox.setChecked(check_states.get(fname, True))
+            checkbox.setToolTip("Include this automation when running checked scripts.")
+            checkbox.stateChanged.connect(
+                lambda state, name=fname: self.model.set_automation_check_state(
+                    folder,
+                    name,
+                    bool(state),
+                )
+            )
+            self.automation_checkboxes[fpath] = checkbox
+            row.addWidget(checkbox)
             
             btn = QtWidgets.QPushButton(fname)
             btn.clicked.connect(lambda checked=False, p=fpath: self.execute_automation_by_path(p))
             row.addWidget(btn)
             
             edit_btn = QtWidgets.QPushButton("Edit")
-            edit_btn.setMaximumWidth(40)
+            edit_btn.setStyleSheet("padding: 0 6px;")
+            edit_btn.setMinimumWidth(edit_btn.sizeHint().width())
+            edit_btn.setSizePolicy(
+                QtWidgets.QSizePolicy.Fixed,
+                QtWidgets.QSizePolicy.Preferred,
+            )
             edit_btn.clicked.connect(lambda checked=False, p=fpath: self.open_file_in_editor(p))
             row.addWidget(edit_btn)
             
             self.auto_btn_layout.addLayout(row)
 
-    def run_all_automations(self):
-        """Runs every automation configured for the current tracker."""
-        folder = self.auto_path_fld.text().strip(' "\'')
-        py_files = glob.glob(os.path.join(folder, "*.py"))
-        for fpath in py_files:
+    def run_checked_automations(self):
+        """Runs checked automations configured for the current tracker."""
+        checkboxes = getattr(self, "automation_checkboxes", {})
+        if checkboxes:
+            script_paths = [
+                fpath for fpath, checkbox in checkboxes.items() if checkbox.isChecked()
+            ]
+        else:
+            folder = self.auto_path_fld.text().strip(' "\'')
+            check_states = self.model.get_automation_check_states(folder)
+            script_paths = [
+                fpath
+                for fpath in sorted(glob.glob(os.path.join(folder, "*.py")))
+                if check_states.get(os.path.basename(fpath), True)
+            ]
+        for fpath in script_paths:
             self.execute_automation_by_path(fpath)
+
+    def run_all_automations(self):
+        """Runs checked automations through the legacy public method name."""
+        self.run_checked_automations()
 
     def open_file_in_editor(self, filepath):
         """Opens an automation file in the configured system editor.
@@ -1527,7 +1759,15 @@ class RangeToolWindow(QtWidgets.QDialog):
             self.timeline.active_range = nr 
             self.timeline.rangesChanged.emit()
             return nr
-            
+
+        def get_last_used_data():
+            """Gets a copy of the last tracker data stored in tool preferences.
+
+            Returns:
+                dict: Previously saved range and file metadata.
+            """
+            return self.model.get_last_used_data()
+
         def refresh_ui():
             """Refreshes the timeline and dynamic editor controls."""
             self.timeline.update()
@@ -1542,6 +1782,7 @@ class RangeToolWindow(QtWidgets.QDialog):
             "update_range_data": update_range_data,
             "update_file_data": update_file_data,
             "get_file_data": get_file_data,
+            "get_last_used_data": get_last_used_data,
             "create_range": create_range,
             "refresh_ui": refresh_ui
         }
@@ -1678,10 +1919,33 @@ class RangeToolWindow(QtWidgets.QDialog):
         """Creates the Maya time-change job used to refresh the tracker."""
         self.teardown_scriptjob()
         self.sj_id = cmds.scriptJob(e=["timeChanged", self.on_maya_time_changed], protected=True)
+
     def teardown_scriptjob(self):
         """Removes the Maya time-change job when the window is closed."""
-        if self.sj_id and cmds.scriptJob(exists=self.sj_id): cmds.scriptJob(kill=self.sj_id, force=True)
+        script_job_id = getattr(self, "sj_id", None)
+        if script_job_id:
+            try:
+                if cmds.scriptJob(exists=script_job_id):
+                    cmds.scriptJob(kill=script_job_id, force=True)
+            except RuntimeError:
+                pass
         self.sj_id = None
+
+    def runtime_widgets_alive(self):
+        """Checks whether the controls used by Maya callbacks still exist.
+
+        Returns:
+            bool: True when the tracker controls can receive updates.
+        """
+        widgets = [
+            self,
+            getattr(self, "start_fld", None),
+            getattr(self, "current_fld", None),
+            getattr(self, "end_fld", None),
+            getattr(self, "timeline", None),
+        ]
+        return all(ui_qt_utils.is_qt_object_valid(widget) for widget in widgets)
+
     def closeEvent(self, event):
         """Cleans up tracker resources before closing the window.
 
@@ -1702,17 +1966,28 @@ class RangeToolWindow(QtWidgets.QDialog):
 
     def on_maya_time_changed(self):
         """Updates the timeline position after Maya's current time changes."""
-        if self.timeline.pref_sync_time and not self.timeline.interaction_state:
-            current = int(cmds.currentTime(q=True))
-            self.sync_current_field(current)
-            self.timeline.current_frame = current; self.timeline.update()
+        if not self.runtime_widgets_alive():
+            self.teardown_scriptjob()
+            return
+        try:
+            if self.timeline.pref_sync_time and not self.timeline.interaction_state:
+                current = int(cmds.currentTime(q=True))
+                self.sync_current_field(current)
+                self.timeline.current_frame = current
+                self.timeline.update()
+        except RuntimeError:
+            self.teardown_scriptjob()
 
     def refresh_from_maya(self):
         """Refreshes tracker display values from the current Maya scene."""
+        if not self.runtime_widgets_alive():
+            return
         s = int(cmds.playbackOptions(q=True, min=True))
         e = int(cmds.playbackOptions(q=True, max=True))
         c = int(cmds.currentTime(q=True))
-        self.start_fld.setText(str(s)); self.end_fld.setText(str(e)); self.sync_current_field(c)
+        self.start_fld.setText(str(s))
+        self.end_fld.setText(str(e))
+        self.sync_current_field(c)
         self.timeline.start_frame, self.timeline.end_frame, self.timeline.current_frame = s, e, c
         self.timeline.update()
         self.highlight_validation()
@@ -1723,7 +1998,16 @@ class RangeToolWindow(QtWidgets.QDialog):
         Args:
             frame (float): Current timeline frame.
         """
-        self.current_fld.blockSignals(True); self.current_fld.setValue(int(frame)); self.current_fld.blockSignals(False)
+        current_field = getattr(self, "current_fld", None)
+        if not ui_qt_utils.is_qt_object_valid(current_field):
+            self.teardown_scriptjob()
+            return
+        try:
+            current_field.blockSignals(True)
+            current_field.setValue(int(frame))
+            current_field.blockSignals(False)
+        except RuntimeError:
+            self.teardown_scriptjob()
 
     def on_current_field_changed(self, val):
         """Moves Maya's current time when the current field changes.
@@ -1731,8 +2015,11 @@ class RangeToolWindow(QtWidgets.QDialog):
         Args:
             val (object): New current-frame field value.
         """
+        if not self.runtime_widgets_alive():
+            return
         cmds.currentTime(val)
-        self.timeline.current_frame = val; self.timeline.update()
+        self.timeline.current_frame = val
+        self.timeline.update()
 
     def on_tool_mode_changed(self, _=None):
         """Updates timeline behavior after the tool mode changes.
