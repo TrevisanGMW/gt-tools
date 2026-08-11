@@ -170,6 +170,7 @@ class MayaWindowMeta(type):
         """Deletes a workspace control that cannot be restored safely.
 
         Args:
+            mcs (type): Metaclass on which this class method is invoked.
             workspace_control_name (str): Name of the Maya workspace control.
         """
         if not workspace_control_name:
@@ -366,14 +367,6 @@ class MayaWindowMeta(type):
         workspace_control_name=None,
         restore_factory=None,
     ):
-        """Recreates a window inside Maya's restoring workspace control.
-
-        Args:
-            mcs (object): Main-window or application context.
-            module_name (str): Module containing the window class.
-            class_name (str): Window class name.
-            workspace_control_name (str, optional): Existing control name.
-        """
         """Recreates a window inside Maya's restoring workspace control.
 
         The tool package launcher is preferred so its model and controller are
