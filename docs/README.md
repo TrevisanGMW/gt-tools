@@ -243,6 +243,7 @@ After installing, you can delete the downloaded/extracted files (as they have al
   <li><b>Build Auto Rig:</b> Builds an Auto Rigger project as a batch step.</li>
   <li><b>Clip Split:</b> Separates an animation range into individual clips.</li>
   <li><b>Clip Snapshot:</b> Creates a saved snapshot of an animation clip.</li>
+  <li><b>Report:</b> Collects read-only information about the processed files into a report.</li>
   <li><b>Delete Path:</b> Deletes files under a configured project path.</li>
   <li><b>Archive:</b> Compresses selected results into an archive.</li>
   <li><b>Validate Scene:</b> Runs the configured Maya scene validators.</li>

@@ -14,6 +14,7 @@ from gt.tools.batch_processor.batch_processor_task_base import SOURCE_MODE_PATH
 from gt.tools.batch_processor.batch_processor_task_base import TaskSkip
 from gt.tools.batch_processor.batch_processor_task_base import ValidationResult
 from gt.tools.batch_processor.batch_processor_task_base import WorkItem
+from gt.tools.batch_processor.batch_processor_task_base import build_run_id
 from gt.tools.batch_processor.batch_processor_task_base import build_source_relative_metadata
 from gt.tools.batch_processor.batch_processor_task_base import build_step_folder_name
 from gt.tools.batch_processor.batch_processor_task_base import build_work_item_output_path
@@ -54,6 +55,7 @@ from gt.tools.batch_processor.tasks.task_external_mobu import get_motionbuilder_
 from gt.tools.batch_processor.tasks.task_python_script import TaskPythonScript
 from gt.tools.batch_processor.tasks.task_python_script import TaskPythonScriptsFolder
 from gt.tools.batch_processor.tasks.task_rename import TaskRename
+from gt.tools.batch_processor.tasks.task_report import TaskSceneReport
 from gt.tools.batch_processor.tasks.task_retarget import TaskRetarget
 from gt.tools.batch_processor.tasks.task_export_usd import TaskExportUsd
 from gt.tools.batch_processor.tasks.task_validation import TaskValidationFileIntegrity
@@ -67,6 +69,7 @@ TASK_TYPES = {
     constants.TaskType.PYTHON_SCRIPT: TaskPythonScript,
     constants.TaskType.RENAME: TaskRename,
     constants.TaskType.MAP_HIERARCHY: TaskMapHierarchy,
+    constants.TaskType.SCENE_REPORT: TaskSceneReport,
     constants.TaskType.MOTIONBUILDER_SCRIPT: TaskMotionBuilderScript,
     constants.TaskType.BLENDER_SCRIPT: TaskBlenderScript,
     constants.TaskType.UNREAL_SCRIPT: TaskUnrealScript,

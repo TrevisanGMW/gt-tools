@@ -133,6 +133,7 @@ def main():
     skipped = 0
     succeeded = 0
     global_item_index = get_global_item_index(args.worker_id)
+    run_id = tasks.build_run_id(args.event_file)
     active_task = None
     active_task_index = 0
     active_task_started = None
@@ -191,6 +192,7 @@ def main():
                     "total_items": len(current_items),
                     "work_items": list(current_items),
                     "worker_id": args.worker_id,
+                    "run_id": run_id,
                     "report_log": lambda path, task_id=task.id: event_writer.emit(
                         "log_artifact", task_id=task_id, path=path, kind="task_log"
                     ),
@@ -233,6 +235,7 @@ def main():
                         "total_items": len(current_items),
                         "work_items": list(current_items),
                         "worker_id": args.worker_id,
+                        "run_id": run_id,
                         "report_log": lambda path, task_id=task.id: event_writer.emit(
                             "log_artifact", task_id=task_id, path=path, kind="task_log"
                         ),

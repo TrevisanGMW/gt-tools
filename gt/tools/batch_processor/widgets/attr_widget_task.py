@@ -1117,6 +1117,10 @@ def get_task_widget_class(task):
         from gt.tools.batch_processor.widgets.attr_widget_map_hierarchy import AttrWidgetMapHierarchyTask
 
         return AttrWidgetMapHierarchyTask
+    if task.task_type == constants.TaskType.SCENE_REPORT:
+        from gt.tools.batch_processor.widgets.attr_widget_report import AttrWidgetSceneReportTask
+
+        return AttrWidgetSceneReportTask
     if task.task_type == constants.TaskType.DELETE_PROJECT_FILES:
         from gt.tools.batch_processor.widgets.attr_widget_delete_path import AttrWidgetDeleteProjectFilesTask
 

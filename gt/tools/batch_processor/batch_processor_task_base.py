@@ -206,6 +206,25 @@ def hash_settings(settings):
     return hashlib.sha1(payload.encode("utf-8")).hexdigest()
 
 
+def build_run_id(seed=None):
+    """Builds a run identifier shared by every process of one batch run.
+
+    Tasks that merge results written by parallel workers use this value to tell
+    the current run apart from artifacts left by earlier runs.
+
+    Args:
+        seed (str, optional): Run-scoped value, such as a session file path.
+            A random identifier is generated when omitted.
+
+    Returns:
+        str: Run identifier.
+    """
+    seed = str(seed or "").strip()
+    if not seed:
+        return uuid.uuid4().hex[:16]
+    return hashlib.sha1(os.path.normcase(seed).encode("utf-8")).hexdigest()[:16]
+
+
 def normalize_extensions(extensions):
     """Normalizes extension filters.
 

@@ -35,6 +35,7 @@ class SingleInstanceBatchRunner:
         self.tracker = tracker or batch_processor_tracker.BatchProgressTracker()
         self.flag_skipped_tasks = bool(flag_skipped_tasks)
         self.task_time_log_path = task_time_log_path
+        self.run_id = tasks.build_run_id()
 
     def run(self, project, run_from_task_id=None, run_from_module_id=None, run_to_task_id=None):
         """Runs a project through enabled tasks.
@@ -297,6 +298,7 @@ class SingleInstanceBatchRunner:
                 "item_index": 1,
                 "total_items": len(work_items),
                 "work_items": list(work_items),
+                "run_id": self.run_id,
             }
             self.tracker.record_message(
                 "[INFO] - ({0}) - Processing aggregate task with {1} incoming file(s).".format(
@@ -328,7 +330,12 @@ class SingleInstanceBatchRunner:
             return output_items
         for index, work_item in enumerate(work_items, 1):
             self.tracker.start_file(work_item.current_path)
-            context = {"item_index": index, "total_items": len(work_items), "work_items": list(work_items)}
+            context = {
+                "item_index": index,
+                "total_items": len(work_items),
+                "work_items": list(work_items),
+                "run_id": self.run_id,
+            }
             self.tracker.record_message(
                 "[INFO] - ({0}) - Processing {1}/{2}: {3}".format(
                     task.task_type, index, len(work_items), work_item.current_path

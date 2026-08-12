@@ -475,6 +475,7 @@ class Icon:
     batch_task_rename = get_icon_path(r"batch_task_rename.svg")
     batch_task_delete_project_files = get_icon_path(r"batch_task_delete_project_files.svg")
     batch_task_map_hierarchy = get_icon_path(r"batch_task_map_hierarchy.svg")
+    batch_task_report = get_icon_path(r"batch_task_report.svg")
     batch_task_save_maya = get_icon_path(r"batch_task_save_maya.svg")
     batch_task_export_usd = get_icon_path(r"batch_task_export_usd.svg")
     batch_task_export_fbx = get_icon_path(r"batch_task_export_fbx.svg")
