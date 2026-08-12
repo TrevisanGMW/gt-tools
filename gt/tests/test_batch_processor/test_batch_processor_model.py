@@ -31,6 +31,7 @@ from gt.tools.batch_processor import batch_processor_modules as modules
 from gt.tools.batch_processor import batch_processor_templates
 from gt.tools.batch_processor import batch_processor_tracker
 from gt.tools.batch_processor import batch_processor_worker
+from gt.tools.batch_processor.tasks import task_validation
 from gt.tools.batch_processor.tracker import tracker_events
 from gt.tools.batch_processor.tracker import tracker_worker as batch_processor_multi_worker
 from gt.tools.batch_processor.tasks import task_utils
@@ -878,6 +879,90 @@ class TestBatchProcessorModel(unittest.TestCase):
         expected = zip_task.id
         self.assertEqual(expected, command[final_task_arg_index + 1])
 
+    def test_multi_instance_runner_defers_run_once_map_hierarchy_task(self):
+        project_path = os.path.join(self.temp_dir, "project.batch")
+        input_dir = os.path.join(self.temp_dir, "01_input")
+        os.makedirs(input_dir)
+        self._write_file(os.path.join(input_dir, "clip.ma"), "maya scene")
+        model = batch_processor_model.BatchProcessorModel()
+        model.project_file_path = project_path
+        map_task = model.add_module(modules.create_task(constants.TaskType.MAP_HIERARCHY))
+        map_task.settings["mode"] = "Bypass Task"
+        captured_data = {}
+
+        def fake_popen(command, *args, **kwargs):
+            """Captures the tracker command without launching it.
+
+            Args:
+                command (list): Command passed to Popen.
+                *args: Positional arguments.
+                **kwargs: Keyword arguments.
+
+            Returns:
+                object: Dummy process object.
+            """
+            captured_data["command"] = command
+            return object()
+
+        with mock.patch.object(batch_processor_worker, "find_mayapy_executable", return_value=sys.executable):
+            with mock.patch.object(batch_processor_worker.subprocess, "Popen", side_effect=fake_popen):
+                batch_processor_worker.MultiInstanceBatchRunner().run(model)
+
+        command = captured_data.get("command")
+        final_task_arg_index = command.index("--final-task-id")
+        expected = map_task.id
+        self.assertEqual(expected, command[final_task_arg_index + 1])
+
+    def test_multi_instance_runner_defers_multiple_trailing_run_once_tasks(self):
+        project_path = os.path.join(self.temp_dir, "project.batch")
+        input_dir = os.path.join(self.temp_dir, "01_input")
+        os.makedirs(input_dir)
+        self._write_file(os.path.join(input_dir, "clip.ma"), "maya scene")
+        model = batch_processor_model.BatchProcessorModel()
+        model.project_file_path = project_path
+        parity_task = model.add_module(modules.create_task(constants.TaskType.FOLDER_COMPARE_VALIDATE))
+        parity_task.settings["run_once_after_multi_instance"] = True
+        zip_task = model.add_module(modules.create_task(constants.TaskType.ZIP_COMPRESS))
+        captured_data = {}
+
+        def fake_popen(command, *args, **kwargs):
+            """Captures the tracker command without launching it.
+
+            Args:
+                command (list): Command passed to Popen.
+                *args: Positional arguments.
+                **kwargs: Keyword arguments.
+
+            Returns:
+                object: Dummy process object.
+            """
+            captured_data["command"] = command
+            return object()
+
+        with mock.patch.object(batch_processor_worker, "find_mayapy_executable", return_value=sys.executable):
+            with mock.patch.object(batch_processor_worker.subprocess, "Popen", side_effect=fake_popen):
+                batch_processor_worker.MultiInstanceBatchRunner().run(model)
+
+        command = captured_data.get("command")
+        deferred_ids = [command[index + 1] for index, item in enumerate(command) if item == "--final-task-id"]
+        expected = [parity_task.id, zip_task.id]
+        self.assertEqual(expected, deferred_ids)
+
+    def test_multi_instance_runner_requires_run_once_validation_task_to_be_last(self):
+        project_path = os.path.join(self.temp_dir, "project.batch")
+        input_dir = os.path.join(self.temp_dir, "01_input")
+        os.makedirs(input_dir)
+        self._write_file(os.path.join(input_dir, "clip.ma"), "maya scene")
+        model = batch_processor_model.BatchProcessorModel()
+        model.project_file_path = project_path
+        parity_task = model.add_module(modules.create_task(constants.TaskType.FOLDER_COMPARE_VALIDATE))
+        parity_task.settings["run_once_after_multi_instance"] = True
+        model.add_module(modules.create_task(constants.TaskType.RENAME))
+
+        runner = batch_processor_worker.MultiInstanceBatchRunner()
+        with self.assertRaisesRegex(RuntimeError, "must be the last enabled processing task"):
+            runner.run(model)
+
     def test_multi_instance_runner_requires_run_once_zip_task_to_be_last(self):
         project_path = os.path.join(self.temp_dir, "project.batch")
         input_dir = os.path.join(self.temp_dir, "01_input")
@@ -1594,6 +1679,199 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertEqual(["pCube1"], result.get("imported_nodes"))
         self.assertEqual("test", result.get("runner"))
 
+    def test_scene_validation_node_type_only_applies_to_type_scope(self):
+        scene_task = modules.create_task(constants.TaskType.MAYA_SCENE_VALIDATE)
+        scene_task.settings["validation_node_type"] = "  mesh  "
+
+        self.assertFalse(scene_task.uses_node_type_scope())
+        expected = "mesh"
+        self.assertEqual(expected, scene_task.get_validation_node_type())
+
+        scene_task.settings["validation_scope"] = "Type"
+        self.assertTrue(scene_task.uses_node_type_scope())
+
+    def test_scene_validation_type_scope_without_node_type_warns(self):
+        model = batch_processor_model.BatchProcessorModel()
+        scene_task = modules.create_task(constants.TaskType.MAYA_SCENE_VALIDATE)
+        scene_task.settings["validation_scope"] = "Type"
+
+        result = scene_task.validate(model)
+
+        self.assertFalse(result.errors)
+        self.assertTrue(any("no node type is configured" in warning for warning in result.warnings))
+
+    def test_scene_validation_pre_script_enabled_without_text_errors(self):
+        model = batch_processor_model.BatchProcessorModel()
+        scene_task = modules.create_task(constants.TaskType.MAYA_SCENE_VALIDATE)
+        scene_task.settings["run_pre_validation_script"] = True
+
+        result = scene_task.validate(model)
+
+        self.assertTrue(any("no inline script is set" in error for error in result.errors))
+
+    def test_scene_validation_pre_script_skipped_when_disabled(self):
+        model = batch_processor_model.BatchProcessorModel()
+        scene_task = modules.create_task(constants.TaskType.MAYA_SCENE_VALIDATE)
+        scene_task.settings["pre_validation_script_text"] = "raise RuntimeError('script should not run')"
+
+        scene_task.run_pre_validation_script_if_needed(project=model, work_item=None, step_output_dir="")
+
+        scene_task.settings["run_pre_validation_script"] = True
+        scene_task.settings["pre_validation_script_text"] = "   "
+        scene_task.run_pre_validation_script_if_needed(project=model, work_item=None, step_output_dir="")
+
+    def test_scene_validation_pre_script_receives_scope_values(self):
+        model = batch_processor_model.BatchProcessorModel()
+        scene_task = modules.create_task(constants.TaskType.MAYA_SCENE_VALIDATE)
+        scene_task.settings["validation_scope"] = "Type"
+        scene_task.settings["validation_node_type"] = "mesh"
+        scene_task.settings["run_pre_validation_script"] = True
+        scene_task.settings["pre_validation_script_text"] = (
+            "captured.append([validation_scope, node_type, validator_names])"
+        )
+        captured = []
+
+        scene_task.run_pre_validation_script_if_needed(
+            project=model,
+            work_item=None,
+            step_output_dir="",
+            context={"captured": captured},
+        )
+
+        expected = [["Type", "mesh", []]]
+        self.assertEqual(expected, captured)
+
+    def test_run_validator_instance_forwards_node_type(self):
+        calls = []
+
+        class FakeValidator:
+            """Minimal validator stub recording the arguments it receives."""
+
+            def validate(self, scope=None, node_type=None):
+                """Records the received scope and node type.
+
+                Args:
+                    scope (object, optional): Forwarded scope.
+                    node_type (str, optional): Forwarded node type.
+                """
+                calls.append((scope, node_type))
+
+            def get_status(self):
+                """Gets a passing status value.
+
+                Returns:
+                    int: Status value.
+                """
+                return 1
+
+            def get_name(self):
+                """Gets the validator display name.
+
+                Returns:
+                    str: Display name.
+                """
+                return "Fake Validator"
+
+            def get_description(self):
+                """Gets the validator description.
+
+                Returns:
+                    str: Description.
+                """
+                return "Fake"
+
+            def get_feedback(self):
+                """Gets the validator feedback.
+
+                Returns:
+                    str: Feedback.
+                """
+                return "Checked"
+
+            def is_repair_available(self):
+                """Gets whether a repair is available.
+
+                Returns:
+                    bool: Always False.
+                """
+                return False
+
+        result = task_validation.run_validator_instance(
+            validator_class=FakeValidator,
+            validator_name="FakeValidator",
+            scope="TYPE",
+            node_type="mesh",
+        )
+
+        expected = [("TYPE", "mesh")]
+        self.assertEqual(expected, calls)
+        self.assertEqual("mesh", result.get("node_type"))
+        self.assertEqual(1, result.get("status_value"))
+
+    def test_run_validator_instance_omits_node_type_when_unset(self):
+        calls = []
+
+        class LegacyValidator:
+            """Validator stub that only accepts a scope argument."""
+
+            def validate(self, scope=None):
+                """Records the received scope.
+
+                Args:
+                    scope (object, optional): Forwarded scope.
+                """
+                calls.append(scope)
+
+            def get_status(self):
+                """Gets a passing status value.
+
+                Returns:
+                    int: Status value.
+                """
+                return 1
+
+            def get_name(self):
+                """Gets the validator display name.
+
+                Returns:
+                    str: Display name.
+                """
+                return "Legacy Validator"
+
+            def get_description(self):
+                """Gets the validator description.
+
+                Returns:
+                    str: Description.
+                """
+                return "Legacy"
+
+            def get_feedback(self):
+                """Gets the validator feedback.
+
+                Returns:
+                    str: Feedback.
+                """
+                return "Checked"
+
+            def is_repair_available(self):
+                """Gets whether a repair is available.
+
+                Returns:
+                    bool: Always False.
+                """
+                return False
+
+        result = task_validation.run_validator_instance(
+            validator_class=LegacyValidator,
+            validator_name="LegacyValidator",
+            scope="SCENE",
+        )
+
+        expected = ["SCENE"]
+        self.assertEqual(expected, calls)
+        self.assertNotIn("node_type", result)
+
     def test_validation_task_defaults_use_project_validation_logs(self):
         scene_task = modules.create_task(constants.TaskType.MAYA_SCENE_VALIDATE)
         integrity_task = modules.create_task(constants.TaskType.FILE_INTEGRITY_VALIDATE)
@@ -1682,6 +1960,83 @@ class TestBatchProcessorModel(unittest.TestCase):
 
         expected = "{project-dir}/data/clip_snapshot_data.json"
         self.assertEqual(expected, clip_snapshot_task.settings.get("snapshot_path"))
+
+    def test_clip_snapshot_merge_preserves_existing_entries_and_updates_metadata(self):
+        from gt.tools.batch_processor.tasks import task_clip
+
+        previous_payload = {
+            "source_root": self.temp_dir,
+            "clips": {
+                "walk.ma": [{"name": "walk", "start": 1, "end": 24}],
+            },
+        }
+
+        result = task_clip.merge_clip_snapshot_payload(
+            snapshot_payload=previous_payload,
+            source_root=self.temp_dir,
+            clip_data_by_path={
+                "run.ma": [
+                    {"name": "run", "start": 1, "end": 12},
+                    {"name": "run_end", "start": 13, "end": 24},
+                ],
+            },
+        )
+
+        expected = ["run.ma", "walk.ma"]
+        self.assertEqual(expected, sorted(result.get("clips").keys()))
+        expected = {"file_count": 2, "clip_count": 3}
+        self.assertEqual(expected, result.get("metadata"))
+
+    def test_clip_snapshot_entry_key_uses_active_source_path_before_original_metadata(self):
+        from gt.tools.batch_processor.tasks import task_clip
+
+        source_root = os.path.join(self.temp_dir, "clip_outputs")
+        item = modules.WorkItem(
+            source_path=os.path.join(self.temp_dir, "source.ma"),
+            current_path=os.path.join(source_root, "walk", "source_walk.ma"),
+            metadata={"source_relative_path": "source.ma"},
+        )
+
+        result = task_clip.TaskClipSnapshot.get_snapshot_entry_key(item=item, source_root=source_root)
+
+        expected = "walk/source_walk.ma"
+        self.assertEqual(expected, result)
+
+    def test_clip_snapshot_concurrent_workers_merge_entries(self):
+        snapshot_path = os.path.join(self.temp_dir, "clip_snapshot.json")
+        worker_count = 8
+        worker_processes = []
+        repository_root_dir = os.path.dirname(package_root_dir)
+        environment = dict(os.environ)
+        environment["PYTHONPATH"] = os.pathsep.join(
+            value for value in [repository_root_dir, environment.get("PYTHONPATH")] if value
+        )
+        for index in range(worker_count):
+            worker_code = (
+                "from gt.tools.batch_processor.tasks import task_clip\n"
+                "task_clip.update_clip_snapshot(\n"
+                f"    {snapshot_path!r}, {self.temp_dir!r}, \n"
+                f"    {{'scenes/scene_{index}.ma': [{{'name': 'clip_{index}'}}]}}\n"
+                ")\n"
+            )
+            worker_processes.append(
+                subprocess.Popen(
+                    [sys.executable, "-c", worker_code],
+                    cwd=repository_root_dir,
+                    env=environment,
+                )
+            )
+        for worker_process in worker_processes:
+            expected = 0
+            self.assertEqual(expected, worker_process.wait())
+
+        with open(snapshot_path, "r", encoding="utf-8") as snapshot_file:
+            result = json.load(snapshot_file)
+
+        expected = worker_count
+        self.assertEqual(expected, len(result.get("clips") or {}))
+        expected = {"file_count": worker_count, "clip_count": worker_count}
+        self.assertEqual(expected, result.get("metadata"))
 
     def test_clip_split_default_target_path_uses_clips_task_folder(self):
         clip_split_task = modules.create_task(constants.TaskType.CLIP_SPLIT)

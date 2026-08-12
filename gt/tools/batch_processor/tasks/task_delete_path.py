@@ -21,6 +21,7 @@ class TaskDeleteProjectFiles(task_base.BatchTask):
     category_icon = ui_res_lib.Icon.root_utilities
     is_aggregate_task = True
     is_delete_task = True
+    supports_run_once_after_jobs = True
 
     def get_default_settings(self):
         """Gets default delete task settings.
@@ -41,6 +42,10 @@ class TaskDeleteProjectFiles(task_base.BatchTask):
             "dry_run": True,
             "write_report": True,
             "report_path": "{project-dir}/logs/delete_path_{task-idx}.json",
+            "run_once_after_multi_instance": False,
+            "force_segment_separator": False,
+            "segment_name": "",
+            "segment_color": "blue_light_sky",
         }
 
     def validate(self, project):

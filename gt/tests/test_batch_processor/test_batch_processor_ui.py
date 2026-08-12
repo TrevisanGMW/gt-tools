@@ -1,7 +1,9 @@
 """Qt regression tests for the Batch Processor user interface."""
 
 import os
+import shutil
 import sys
+import tempfile
 import unittest
 from unittest import mock
 
@@ -20,7 +22,9 @@ from gt.tools.batch_processor import batch_processor_controller
 from gt.tools.batch_processor import batch_processor_model
 from gt.tools.batch_processor import batch_processor_tasks
 from gt.tools.batch_processor import batch_processor_view
+from gt.tools.batch_processor.tasks import task_clip
 from gt.tools.batch_processor.tasks import task_utils
+from gt.tools.batch_processor.widgets import attr_widget_clip
 from gt.tools.batch_processor.widgets import attr_widget_python_script
 from gt.tools.batch_processor.widgets import attr_widget_task
 from gt.tools.batch_processor.widgets.inline_python_editor import InlinePythonEditorWidget
@@ -96,6 +100,30 @@ class TestBatchProcessorUi(unittest.TestCase):
         selection_changed.assert_not_called()
         expected = self.task.id
         self.assertEqual(expected, self.view.get_selected_task_id())
+
+    def test_clip_snapshot_summary_displays_file_and_clip_counts(self):
+        """Ensures Clip Snapshot displays summary counts from its JSON file."""
+        snapshot_directory = tempfile.mkdtemp(prefix="gt_clip_snapshot_ui_test_")
+        self.addCleanup(shutil.rmtree, snapshot_directory)
+        snapshot_path = os.path.join(snapshot_directory, "clip_snapshot.json")
+        task_clip.update_clip_snapshot(
+            snapshot_path=snapshot_path,
+            source_root=snapshot_directory,
+            clip_data_by_path={
+                "walk.ma": [{"name": "walk"}],
+                "run.ma": [{"name": "run"}, {"name": "run_end"}],
+            },
+        )
+        task = batch_processor_tasks.TaskClipSnapshot(settings={"snapshot_path": snapshot_path})
+        widget = attr_widget_clip.AttrWidgetClipSnapshotTask(task=task, project=self.model)
+        self.addCleanup(widget.close)
+
+        files_label, _ = widget.summary_cells.get("file_count")
+        clips_label, _ = widget.summary_cells.get("clip_count")
+
+        self.assertIn("2", files_label.text())
+        self.assertIn("3", clips_label.text())
+        self.assertIn(task_clip.SNAPSHOT_STATUS_READY, widget.status_label.text())
 
     def test_update_task_tree_item_updates_label_and_enabled_state(self):
         """Ensures an existing tree row reflects task changes in place."""

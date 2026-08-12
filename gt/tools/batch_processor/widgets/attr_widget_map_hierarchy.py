@@ -86,9 +86,11 @@ class AttrWidgetMapHierarchyTask(AttrWidgetTask):
             partial(self.set_task_setting, key="apply_dir"),
             placeholder="Working directory transformed by apply/revert, or the parallel root for parallel modes.",
             tooltip=(
-                "Directory transformed by Apply (Forward), Revert (Backward), Copy Source & Apply, and the "
-                "destination for the Parallel modes (which match by base name, ignoring extensions). "
-                "Enable the checkbox on the left to use this field; otherwise the target directory is used."
+                "Directory transformed by Apply (Forward), Revert (Backward),\n"
+                "Copy Source & Apply, and the destination for the Parallel modes\n"
+                "(which match by base name, ignoring extensions).\n"
+                "Enable the checkbox on the left to use this field;\n"
+                "otherwise the target directory is used."
             ),
             dir_only=True,
             return_widgets=True,
@@ -96,8 +98,10 @@ class AttrWidgetMapHierarchyTask(AttrWidgetTask):
         self.use_apply_dir_checkbox = ui_qt.QtWidgets.QCheckBox()
         self.use_apply_dir_checkbox.setChecked(bool(self.task.settings.get("use_apply_dir")))
         self.use_apply_dir_checkbox.setToolTip(
-            "Enable to use this dedicated apply directory for apply, revert, copy, and parallel modes. "
-            "When unchecked, the target directory is used as the apply directory and this field is disabled."
+            "Enable to use this dedicated apply directory for apply, revert,\n"
+            "copy, and parallel modes.\n"
+            "When unchecked, the target directory is used as the apply directory\n"
+            "and this field is disabled."
         )
         self.use_apply_dir_checkbox.stateChanged.connect(
             lambda *args: self.set_use_apply_dir(self.use_apply_dir_checkbox.isChecked())
@@ -122,6 +126,16 @@ class AttrWidgetMapHierarchyTask(AttrWidgetTask):
         self.add_summary_section()
         self.add_widget_separator_line()
         self.add_action_buttons()
+        self.add_segmentation_section(
+            main_label="Run Once After All Jobs",
+            main_key="run_once_after_multi_instance",
+            main_tooltip=(
+                "In multi-instance mode, wait for every regular job to succeed,\n"
+                "then run this Map Hierarchy task once. This task must be the last\n"
+                'enabled processing task. Enable "Add Separator" to mark this\n'
+                "run-once step in the task list."
+            ),
+        )
         self.refresh_apply_dir_enabled_state()
         self.content_layout.addStretch()
 

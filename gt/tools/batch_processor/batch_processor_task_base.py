@@ -489,6 +489,7 @@ class BatchTask:
     is_output_task = False
     is_delete_task = False
     is_data_load_task = False
+    supports_run_once_after_jobs = False
 
     def __init__(self, task_id=None, display_name=None, enabled=True, settings=None, extra_data=None, **kwargs):
         """Initializes a batch task.

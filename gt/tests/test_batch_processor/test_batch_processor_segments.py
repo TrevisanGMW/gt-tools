@@ -181,6 +181,33 @@ class TestBatchProcessorSegments(unittest.TestCase):
         zip_task = tasks.create_task(task_type=constants.TaskType.ZIP_COMPRESS)
         self.assertTrue(zip_task.settings.get("run_once_after_multi_instance"))
 
+    def test_map_hierarchy_task_run_once_default_true(self):
+        map_task = tasks.create_task(task_type=constants.TaskType.MAP_HIERARCHY)
+        self.assertTrue(map_task.settings.get("run_once_after_multi_instance"))
+        self.assertTrue(map_task.supports_run_once_after_jobs)
+
+    def test_map_hierarchy_task_supports_separator(self):
+        map_task = tasks.create_task(task_type=constants.TaskType.MAP_HIERARCHY)
+        self.assertFalse(map_task.shows_segment_separator())
+        self.assertEqual("New Segment", map_task.get_segment_display_name())
+        map_task.settings["force_segment_separator"] = True
+        map_task.settings["segment_name"] = "Remap"
+        self.assertTrue(map_task.shows_segment_separator())
+        self.assertEqual("Remap", map_task.get_segment_display_name())
+
+    def test_optional_run_once_tasks_default_to_unchecked(self):
+        for task_type in [
+            constants.TaskType.FOLDER_COMPARE_VALIDATE,
+            constants.TaskType.FILE_INTEGRITY_VALIDATE,
+            constants.TaskType.MAYA_SCENE_VALIDATE,
+            constants.TaskType.DELETE_PROJECT_FILES,
+        ]:
+            task = tasks.create_task(task_type=task_type)
+            self.assertTrue(task.supports_run_once_after_jobs, task_type)
+            self.assertFalse(task.settings.get("run_once_after_multi_instance"), task_type)
+            self.assertFalse(task.shows_segment_separator(), task_type)
+            self.assertEqual("blue_light_sky", task.get_segment_color_name(), task_type)
+
     def test_zip_task_supports_separator(self):
         zip_task = tasks.create_task(task_type=constants.TaskType.ZIP_COMPRESS)
         self.assertFalse(zip_task.shows_segment_separator())

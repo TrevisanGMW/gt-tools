@@ -3,6 +3,7 @@ Batch Processor Validation Task Widgets
 """
 
 from gt.tools.batch_processor.widgets.attr_widget_task import AttrWidgetTask
+from gt.tools.batch_processor.widgets.inline_python_editor import InlinePythonEditorWidget
 from gt.tools.batch_processor.tasks import task_validation
 import gt.ui.python_output_view as ui_python_output_view
 import gt.ui.qt_import as ui_qt
@@ -32,15 +33,22 @@ class AttrWidgetMayaSceneValidationTask(AttrWidgetTask):
             *args,
             **kwargs
         )
+        self.node_type_widget = None
         self.add_common_task_settings()
         self.add_widget_separator_line(label_text="Scene Validation Preferences")
         self.add_combo_box(
             "Scope",
             self.task.settings.get("validation_scope"),
-            ["Scene", "Selection", "Type"],
-            partial(self.set_task_setting, key="validation_scope"),
-            tooltip="Scope forwarded to validators that support it.",
+            task_validation.VALIDATION_SCOPES,
+            self.set_validation_scope,
+            tooltip=(
+                "Scope forwarded to validators that support it.\n"
+                "Scene: check everything in the scene.\n"
+                "Selection: check the current selection, usually built by the pre-script.\n"
+                "Type: check nodes matching the node types configured below."
+            ),
         )
+        self.add_node_type_controls()
         self.add_combo_box(
             "Log Mode",
             self.task.settings.get("log_mode"),
@@ -59,8 +67,109 @@ class AttrWidgetMayaSceneValidationTask(AttrWidgetTask):
             tooltip="Fail the task when any validator reports warning or worse.",
         )
         self.add_validator_controls()
+        self.add_pre_validation_script_section()
         self.add_run_current_scene_button()
+        self.add_segmentation_section(
+            main_label="Run Once After All Jobs",
+            main_key="run_once_after_multi_instance",
+            main_tooltip=(
+                "In multi-instance mode, wait for every regular job to succeed,\n"
+                "then run this validation once over the files found at its Source Path.\n"
+                "This task must be the last enabled processing task.\n"
+                'Enable "Add Separator" to mark this run-once step in the task list.'
+            ),
+        )
         self.content_layout.addStretch()
+
+    def add_node_type_controls(self):
+        """Adds the node type field shown only while the Type scope is active."""
+        node_type_tooltip = (
+            "Single node type forwarded to the validators as node_type\n"
+            "when the Type scope is used.\n"
+            "Examples: mesh, joint, or nurbsCurve."
+        )
+        self.node_type_widget = ui_qt.QtWidgets.QWidget()
+        node_type_layout = ui_qt.QtWidgets.QVBoxLayout(self.node_type_widget)
+        node_type_layout.setContentsMargins(0, 0, 0, 0)
+        node_type_layout.setSpacing(0)
+        self.add_text_field(
+            "Node Type",
+            self.task.settings.get("validation_node_type"),
+            partial(self.set_task_setting, key="validation_node_type"),
+            placeholder="mesh",
+            tooltip=node_type_tooltip,
+            parent_layout=node_type_layout,
+        )
+        self.content_layout.addWidget(self.node_type_widget)
+        self.refresh_node_type_visibility()
+
+    def set_validation_scope(self, value):
+        """Sets the validation scope and refreshes the node type field.
+
+        Args:
+            value (str): Selected scope name.
+        """
+        self.set_task_setting(value, key="validation_scope")
+        self.refresh_node_type_visibility()
+
+    def refresh_node_type_visibility(self):
+        """Shows the node type field only while the Type scope is selected."""
+        if not self.node_type_widget:
+            return
+        self.node_type_widget.setVisible(self.task.uses_node_type_scope())
+
+    def add_pre_validation_script_section(self):
+        """Adds the collapsed optional pre-validation script section."""
+        collapsed = bool(self.task.settings.get("pre_validation_script_collapsed", True))
+        section = self.add_collapsible_section(
+            label_text="Pre-Validation Script",
+            collapsed=collapsed,
+            state_setter=partial(self.set_task_setting, key="pre_validation_script_collapsed"),
+            tooltip="Optional Python script that runs in the loaded scene before the validators.",
+        )
+        layout = section.get("content_layout")
+        options_layout = ui_qt.QtWidgets.QHBoxLayout()
+        options_layout.setContentsMargins(0, 0, 0, 5)
+        self.add_checkbox(
+            "Run",
+            self.task.settings.get("run_pre_validation_script"),
+            partial(self.set_task_setting, key="run_pre_validation_script"),
+            layout=options_layout,
+            tooltip="Run the configured script after the scene is loaded and before validation starts.",
+        )
+        self.add_checkbox(
+            "Pass Task Args",
+            self.task.settings.get("pre_validation_script_pass_standard_arguments", True),
+            partial(self.set_task_setting, key="pre_validation_script_pass_standard_arguments"),
+            layout=options_layout,
+            tooltip="Expose input, output, project, task, and related values as arguments and args.",
+        )
+        self.add_checkbox(
+            "Pass Env",
+            self.task.settings.get("pre_validation_script_pass_environment_arguments", True),
+            partial(self.set_task_setting, key="pre_validation_script_pass_environment_arguments"),
+            layout=options_layout,
+            tooltip="Expose project environment variables as environment_variables and env.",
+        )
+        options_layout.addStretch()
+        layout.addLayout(options_layout)
+        editor = InlinePythonEditorWidget(
+            parent=self,
+            owner=self,
+            text=self.task.settings.get("pre_validation_script_text") or "",
+            placeholder="Write an optional pre-validation Python script here, or choose an example.",
+            tooltip=(
+                "Inline Python pass executed in the loaded scene before the validators run.\n"
+                "Use it to build a selection for the Selection scope or to prepare the scene.\n"
+                "Use context, arguments/args, environment_variables/env, project, task,\n"
+                "work_item, output_path, validation_scope, node_type, and validator_names."
+            ),
+            text_changed_callback=partial(self.set_task_setting, key="pre_validation_script_text"),
+            font_size=self.task.settings.get("pre_validation_script_font_size") or 14,
+            font_size_changed_callback=partial(self.set_task_setting, key="pre_validation_script_font_size"),
+            sample_scripts_directory=self.task.pre_validation_script_samples_directory,
+        )
+        layout.addWidget(editor)
 
     def add_validator_controls(self):
         """Adds validator selector controls."""
@@ -99,7 +208,10 @@ class AttrWidgetMayaSceneValidationTask(AttrWidgetTask):
 
     def add_run_current_scene_button(self):
         """Adds a button used to run validators against the current Maya scene."""
-        tooltip = "Run the configured validators against the scene currently open in Maya."
+        tooltip = (
+            "Run the configured validators against the scene currently open in Maya.\n"
+            "The pre-validation script runs first when it is enabled."
+        )
         layout = self.add_labeled_layout("Actions", tooltip=tooltip)
         button = ui_qt.QtWidgets.QPushButton("Run On Current Scene")
         button.setMinimumHeight(35)
@@ -114,6 +226,11 @@ class AttrWidgetMayaSceneValidationTask(AttrWidgetTask):
             self.emit_status_message("Validate Scene has no validators configured.", status="warning")
             return
         try:
+            self.task.run_pre_validation_script_if_needed(
+                project=self.project,
+                work_item=None,
+                step_output_dir="",
+            )
             results = self.task.run_validators()
         except Exception as exception:
             self.emit_status_message("Unable to run current-scene validation: {0}".format(exception), status="warning")
@@ -215,6 +332,16 @@ class AttrWidgetFileIntegrityValidationTask(AttrWidgetTask):
             label_text="Run Integrity Check",
             tooltip="Run only this Validate Integrity task against its configured source files.",
         )
+        self.add_segmentation_section(
+            main_label="Run Once After All Jobs",
+            main_key="run_once_after_multi_instance",
+            main_tooltip=(
+                "In multi-instance mode, wait for every regular job to succeed,\n"
+                "then run this integrity check once over the files found at its Source Path.\n"
+                "This task must be the last enabled processing task.\n"
+                'Enable "Add Separator" to mark this run-once step in the task list.'
+            ),
+        )
         self.content_layout.addStretch()
 
 
@@ -300,6 +427,16 @@ class AttrWidgetFolderCompareValidationTask(AttrWidgetTask):
         self.add_run_selected_task_button(
             label_text="Run Parity Check",
             tooltip="Run only this Validate Parity task against its configured folders.",
+        )
+        self.add_segmentation_section(
+            main_label="Run Once After All Jobs",
+            main_key="run_once_after_multi_instance",
+            main_tooltip=(
+                "In multi-instance mode, wait for every regular job to succeed,\n"
+                "then compare the configured folders once.\n"
+                "This task must be the last enabled processing task.\n"
+                'Enable "Add Separator" to mark this run-once step in the task list.'
+            ),
         )
         self.content_layout.addStretch()
 

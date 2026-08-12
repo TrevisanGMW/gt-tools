@@ -18,6 +18,8 @@ class TestBatchProcessorScripts(unittest.TestCase):
             ("hik_retarget", "print_pre_bake_context.py", "import maya.cmds as cmds"),
             ("maya_import", "print_import_context.py", "import maya.cmds as cmds"),
             ("python_script", "print_batch_context.py", "environment_variables"),
+            ("validate_scene", "print_pre_validation_context.py", "validation_scope"),
+            ("validate_scene", "select_geometry_under_group.py", "cmds.select"),
         )
 
         for sample_directory, expected_relative_path, expected_content in expected_samples:
