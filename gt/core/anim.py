@@ -62,9 +62,9 @@ def get_time_keyframes(obj_list=None):
     Returns:
         list: A list of animation curve nodes that have time as input.
     """
-    if obj_list and isinstance(obj_list, str):
+    if isinstance(obj_list, str):
         obj_list = [obj_list]
-    if obj_list:
+    if obj_list is not None:
         # Get keyframe nodes connected to the provided objects
         keyframe_nodes = set()
         for obj in obj_list:
@@ -120,12 +120,12 @@ def get_double_keyframes(obj_list=None):
 
         return _keyframe_nodes
 
-    if obj_list and isinstance(obj_list, str):
+    if isinstance(obj_list, str):
         obj_list = [obj_list]
 
     keyframe_nodes = set()
 
-    if obj_list:
+    if obj_list is not None:
         for obj in obj_list:
             # Add the keyframes for each object
             keyframe_nodes.update(get_all_connected_keyframes(obj))
@@ -383,6 +383,114 @@ def delete_keyframes_after_current_frame(obj_list=None, include_current=False, k
     epsilon = 0.0001
     start = current_frame if include_current else current_frame + epsilon
     return delete_keyframes_in_range(obj_list=obj_list, start=start, end=None, key_scope=key_scope)
+
+
+def delete_time_keyframes_outside_range(start, end, obj_list=None, range_name="range"):
+    """Removes time keyframes outside an inclusive frame range.
+
+    The range bounds are preserved. This function finds the actual keyframe times on
+    each curve before removing the keys, avoiding a fixed maximum frame sentinel.
+    Set Driven Keys are intentionally excluded because their inputs are not time
+    values.
+
+    Args:
+        start (float): First frame to preserve.
+        end (float): Last frame to preserve.
+        obj_list (list, optional): Objects whose time keyframes are affected. If None,
+            the whole scene is considered.
+        range_name (str, optional): User-facing name for the preserved range. Defaults
+            to "range".
+
+    Returns:
+        int: Number of time keyframes deleted.
+    """
+    if start > end:
+        cmds.warning("Invalid range: start frame is greater than end frame.")
+        return 0
+
+    keyframe_nodes = get_time_keyframes(obj_list=obj_list)
+    if not keyframe_nodes:
+        feedback = core_fback.FeedbackMessage(
+            general_overwrite="No time keyframes found for the provided scope.",
+        )
+        feedback.print_inview_message()
+        return 0
+
+    function_name = "Delete Time Keyframes Outside Range"
+    cmds.undoInfo(openChunk=True, chunkName=function_name)
+    deleted_counter = 0
+    try:
+        for keyframe_node in keyframe_nodes:
+            keyframe_times = cmds.keyframe(keyframe_node, query=True, timeChange=True) or []
+            out_of_range_times = [
+                keyframe_time for keyframe_time in keyframe_times if keyframe_time < start or keyframe_time > end
+            ]
+            if not out_of_range_times:
+                continue
+            try:
+                cmds.cutKey(
+                    keyframe_node,
+                    time=(min(out_of_range_times), max(out_of_range_times)),
+                    clear=True,
+                )
+                deleted_counter += len(out_of_range_times)
+            except Exception as e:
+                logger.debug(str(e))
+
+        feedback = core_fback.FeedbackMessage(
+            quantity=deleted_counter,
+            singular=f"keyframe outside the {range_name} was",
+            plural=f"keyframes outside the {range_name} were",
+            conclusion="deleted.",
+            zero_overwrite_message=f"No keyframes were found outside the {range_name}.",
+        )
+        feedback.print_inview_message()
+        return deleted_counter
+    except Exception as e:
+        cmds.warning(str(e))
+        return deleted_counter
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=function_name)
+
+
+def delete_time_keyframes_outside_animation_range(obj_list=None):
+    """Removes time keyframes outside Maya's animation timeline range.
+
+    Args:
+        obj_list (list, optional): Objects whose time keyframes are affected. If None,
+            the whole scene is considered.
+
+    Returns:
+        int: Number of time keyframes deleted.
+    """
+    start = cmds.playbackOptions(query=True, animationStartTime=True)
+    end = cmds.playbackOptions(query=True, animationEndTime=True)
+    return delete_time_keyframes_outside_range(
+        start=start,
+        end=end,
+        obj_list=obj_list,
+        range_name="Timeline",
+    )
+
+
+def delete_time_keyframes_outside_playback_range(obj_list=None):
+    """Removes time keyframes outside Maya's current playback range.
+
+    Args:
+        obj_list (list, optional): Objects whose time keyframes are affected. If None,
+            the whole scene is considered.
+
+    Returns:
+        int: Number of time keyframes deleted.
+    """
+    start = cmds.playbackOptions(query=True, minTime=True)
+    end = cmds.playbackOptions(query=True, maxTime=True)
+    return delete_time_keyframes_outside_range(
+        start=start,
+        end=end,
+        obj_list=obj_list,
+        range_name="Playback Range",
+    )
 
 
 def check_unsaved_animation_changes():

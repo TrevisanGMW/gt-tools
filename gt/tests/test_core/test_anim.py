@@ -137,6 +137,12 @@ class TestAnimCore(unittest.TestCase):
         expected = ["cube_time_rotateY", "cube_time_scaleY", "cube_time_translateZ"]
         self.assertEqual(expected, result)
 
+    def test_get_time_keyframes_with_empty_object_list(self):
+        create_anim_test_scene()
+        result = core_anim.get_time_keyframes(obj_list=[])
+        expected = []
+        self.assertEqual(expected, result)
+
     def test_get_double_keyframes(self):
         create_anim_test_scene()
         result = core_anim.get_double_keyframes()
@@ -252,6 +258,39 @@ class TestAnimCore(unittest.TestCase):
         self.assertEqual(expected, result)
         result = cmds.keyframe("cube_time_translateZ", query=True, keyframeCount=True)
         expected = 1  # Key at frame 1 remains
+        self.assertEqual(expected, result)
+
+    def test_delete_time_keyframes_outside_range(self):
+        create_anim_test_scene()
+        result = core_anim.delete_time_keyframes_outside_range(start=1, end=10)
+        expected = 1
+        self.assertEqual(expected, result)
+        result = cmds.keyframe("cube_time_scaleY", query=True, keyframeCount=True)
+        expected = 1  # The key at the inclusive end frame remains.
+        self.assertEqual(expected, result)
+
+    def test_delete_time_keyframes_outside_range_with_large_frame(self):
+        create_anim_test_scene()
+        cmds.setKeyframe("cube_time.tx", time=100000000, value=1)
+        result = core_anim.delete_time_keyframes_outside_range(start=1, end=10)
+        expected = 2
+        self.assertEqual(expected, result)
+        result = cmds.objExists("cube_time_translateX")
+        expected = False
+        self.assertEqual(expected, result)
+
+    def test_delete_time_keyframes_outside_animation_range(self):
+        create_anim_test_scene()
+        cmds.playbackOptions(animationStartTime=1, animationEndTime=5)
+        result = core_anim.delete_time_keyframes_outside_animation_range()
+        expected = 6
+        self.assertEqual(expected, result)
+
+    def test_delete_time_keyframes_outside_playback_range(self):
+        create_anim_test_scene()
+        cmds.playbackOptions(minTime=1, maxTime=5)
+        result = core_anim.delete_time_keyframes_outside_playback_range()
+        expected = 6
         self.assertEqual(expected, result)
 
     def test_DoubleKeyframe(self):
