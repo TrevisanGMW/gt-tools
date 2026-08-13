@@ -173,6 +173,13 @@ def main():
                     remaining_tasks,
                 )
             )
+            if not current_items and not getattr(task, "is_aggregate_task", False):
+                raise RuntimeError(
+                    task.get_no_source_files_error(
+                        project=project,
+                        task_index=task_environment_index,
+                    )
+                )
             validation_context = {"item_index": global_item_index}
             validation = task.validate_work_items(current_items, project, step_output_dir, context=validation_context)
             if validation.errors:

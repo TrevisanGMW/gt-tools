@@ -112,10 +112,10 @@ class SingleInstanceBatchRunner:
                     current_items=current_items,
                 )
                 if not current_items and not getattr(task, "is_aggregate_task", False):
-                    source_path = task.resolve_source_path(project, task_index=task_environment_index)
                     raise RuntimeError(
-                        'No source files found for task "{0}" using source path: {1}'.format(
-                            task.display_name, source_path
+                        task.get_no_source_files_error(
+                            project=project,
+                            task_index=task_environment_index,
                         )
                     )
                 step_output_dir = self._get_step_output_dir(project, task_environment_index, task)

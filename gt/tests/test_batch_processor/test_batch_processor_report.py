@@ -6,6 +6,7 @@ import shutil
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 # Logging Setup
 logging.basicConfig()
@@ -44,6 +45,7 @@ class TestBatchProcessorReport(unittest.TestCase):
         expected = {
             "source_mode": task_base.SOURCE_MODE_PATH,
             "include_in_task_index": False,
+            "source_include_subdirectories": True,
             "overwrite": True,
             "report_metrics": ["frame_count", "frame_rate", "file_size", "time"],
             "report_detail_mode": task_report.REPORT_DETAIL_TOTAL_ONLY,
@@ -136,6 +138,43 @@ class TestBatchProcessorReport(unittest.TestCase):
         expected = 5
         self.assertEqual(expected, entry.get("values").get("file_size_bytes"))
         self.assertEqual([], entry.get("errors"))
+
+    def test_collect_entry_reports_source_scene_load_failure(self):
+        file_path = os.path.join(self.temp_dir, "broken.ma")
+        self.task.settings["report_metrics"] = ["frame_count"]
+
+        with mock.patch.object(
+            task_report.task_utils,
+            "load_source_scene",
+            side_effect=RuntimeError("Unreadable Maya data."),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "failed to load the Maya scene") as context_manager:
+                self.task.collect_entry(file_path)
+
+        self.assertIn(file_path, str(context_manager.exception))
+        self.assertIn("Unreadable Maya data.", str(context_manager.exception))
+
+    def test_get_no_source_files_error_describes_source_and_search_scope(self):
+        project = mock.Mock()
+        project.resolve_template_path.return_value = self.temp_dir
+        self.task.settings["source_include_subdirectories"] = False
+
+        result = self.task.get_no_source_files_error(project=project, task_index=1)
+
+        self.assertIn(self.temp_dir, result)
+        self.assertIn("top-level files only", result)
+
+    def test_execute_errors_when_report_file_is_missing_after_write(self):
+        file_path = os.path.join(self.temp_dir, "scene.ma")
+        missing_report_path = os.path.join(self.temp_dir, "missing_report.txt")
+        with open(file_path, "w", encoding="utf-8") as scene_file:
+            scene_file.write("// synthetic scene")
+        self.task.settings["report_metrics"] = ["file_size"]
+        work_item = task_base.WorkItem(source_path=file_path)
+
+        with mock.patch.object(self.task, "write_report", return_value=missing_report_path):
+            with self.assertRaisesRegex(RuntimeError, "expected report file was not found"):
+                self.task.execute(work_item, project=None, step_output_dir=self.temp_dir)
 
     def test_build_report_path_resolves_project_name(self):
         project = batch_processor_model.BatchProcessorModel()

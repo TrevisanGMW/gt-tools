@@ -745,6 +745,19 @@ class BatchTask:
         """
         return project.resolve_template_path(self.get_source_path_template(), task=self, task_index=task_index)
 
+    def get_no_source_files_error(self, project, task_index=None):
+        """Builds an error explaining why this task cannot run without source files.
+
+        Args:
+            project (BatchProcessorModel): Project containing this task.
+            task_index (int, optional): One-based task index used for path resolution.
+
+        Returns:
+            str: User-facing error message.
+        """
+        source_path = self.resolve_source_path(project=project, task_index=task_index)
+        return f'No source files found for task "{self.display_name}" using source path: {source_path}'
+
     def resolve_task_path(self, project, task_index=None):
         """Resolves this task's path template against a project.
 

@@ -602,6 +602,11 @@ class TestBatchProcessorTracker(unittest.TestCase):
         expected = tracker_constants.Status.SKIPPED
         self.assertEqual(expected, final_job.status)
         self.assertEqual(expected, final_job.tasks[0].status)
+        expected_message = (
+            "Run-once final tasks were skipped because 1 regular job did not finish successfully "
+            "(canceled: 1). Affected jobs: source.ma (canceled)."
+        )
+        self.assertIn(("Info", expected_message), final_job.tasks[0].messages)
 
     def test_event_reader_preserves_partial_line_until_complete(self):
         file_handle, event_path = tempfile.mkstemp(suffix=".jsonl")

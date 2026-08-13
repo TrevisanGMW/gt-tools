@@ -210,6 +210,7 @@ class TaskSceneReport(task_base.BatchTask):
         return {
             "source_path": "{previous-task-path}",
             "target_path": self.default_target_path_template,
+            "source_include_subdirectories": True,
             "source_load_mode": "Open",
             "load_relevant_plugins": True,
             "report_metrics": list(DEFAULT_REPORT_METRICS),
@@ -268,6 +269,23 @@ class TaskSceneReport(task_base.BatchTask):
         """
         return metrics_require_scene(self.get_metric_keys())
 
+    def get_no_source_files_error(self, project, task_index=None):
+        """Builds a clear error when the report has no source files to inspect.
+
+        Args:
+            project (BatchProcessorModel): Project containing this task.
+            task_index (int, optional): One-based task index used for path resolution.
+
+        Returns:
+            str: User-facing error message.
+        """
+        source_path = self.resolve_source_path(project=project, task_index=task_index)
+        if not source_path:
+            return "Report could not be generated because its source path resolved to an empty value."
+        include_subdirectories = self.settings.get("source_include_subdirectories", True)
+        search_scope = "including subdirectories" if include_subdirectories else "top-level files only"
+        return f'Report could not be generated: no source files were detected in "{source_path}" ({search_scope}).'
+
     def execute(self, work_item, project, step_output_dir, context=None):
         """Collects report values for one file and rewrites the report.
 
@@ -280,6 +298,8 @@ class TaskSceneReport(task_base.BatchTask):
         Returns:
             WorkItem: Unchanged work item.
         """
+        if not work_item:
+            raise RuntimeError("Report could not be generated because no source work item was provided.")
         context = context or {}
         run_id = get_run_id(context)
         entry = self.collect_entry(work_item.current_path)
@@ -287,14 +307,19 @@ class TaskSceneReport(task_base.BatchTask):
         parts_dir = get_parts_dir(base_report_path)
         self.purge_stale_parts_once(parts_dir, run_id)
         write_report_part(parts_dir, entry, run_id)
-        with report_lock(parts_dir):
-            entries = read_report_parts(parts_dir, run_id)
-            report_path = self.write_report(
-                step_output_dir=step_output_dir,
-                entries=entries,
-                project=project,
-                context=context,
-            )
+        try:
+            with report_lock(parts_dir):
+                entries = read_report_parts(parts_dir, run_id)
+                report_path = self.write_report(
+                    step_output_dir=step_output_dir,
+                    entries=entries,
+                    project=project,
+                    context=context,
+                )
+        except Exception as exception:
+            raise RuntimeError(f'Report could not be written to "{base_report_path}": {exception}')
+        if not report_path or not os.path.isfile(report_path):
+            raise RuntimeError(f'Report was not generated: expected report file was not found at "{report_path}".')
         task_utils.report_log_artifact(context, report_path)
         return task_base.WorkItem(
             source_path=work_item.source_path,
@@ -315,11 +340,16 @@ class TaskSceneReport(task_base.BatchTask):
         metric_keys = self.get_metric_keys()
         cmds = None
         if load_scene and metrics_require_scene(metric_keys):
-            task_utils.load_source_scene(
-                file_path,
-                source_load_mode=self.settings.get("source_load_mode") or "Open",
-                load_relevant_plugins=self.settings.get("load_relevant_plugins", True),
-            )
+            try:
+                task_utils.load_source_scene(
+                    file_path,
+                    source_load_mode=self.settings.get("source_load_mode") or "Open",
+                    load_relevant_plugins=self.settings.get("load_relevant_plugins", True),
+                )
+            except Exception as exception:
+                raise RuntimeError(
+                    f'Report could not inspect "{file_path}": failed to load the Maya scene. {exception}'
+                )
         return collect_report_entry(file_path=file_path, metric_keys=metric_keys, cmds=cmds)
 
     def purge_stale_parts_once(self, parts_dir, run_id):
