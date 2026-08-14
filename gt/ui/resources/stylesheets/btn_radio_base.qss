@@ -10,6 +10,10 @@ QRadioButton::indicator {
 	border: 2px solid @indicator_border_color;
 }
 
+QRadioButton::indicator:unchecked {
+	background-color: @indicator_unchecked_color;
+}
+
 QRadioButton::indicator:hover {
 	background-color: @indicator_hover_color;
 }

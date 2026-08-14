@@ -1032,6 +1032,7 @@ class StylesheetVariables:
         # Colors
         "@text_color;": Color.RGB.white,
         "@indicator_border_color;": Color.RGB.gray_mid_much_lighter,
+        "@indicator_unchecked_color;": "rgba(58, 58, 58, 255)",
         "@indicator_hover_color;": Color.RGB.gray_lighter,
         "@indicator_checked_color;": Color.RGB.white,
         "@indicator_checked_border_color;": Color.RGB.gray_gainsboro,

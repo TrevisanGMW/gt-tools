@@ -45,6 +45,14 @@ DEFAULT_SETTINGS = {
     "def_padding_number": "2",
     "def_uppercase_letter": "1",
     "selection_type": SELECTION_SELECTED,
+    "rename_text": "",
+    "use_source": "0",
+    "prefix_mode": "auto",
+    "prefix_text": "",
+    "suffix_mode": "auto",
+    "suffix_text": "",
+    "search_text": "",
+    "replace_text": "",
 }
 
 OPTION_VAR_MAP = {
@@ -61,6 +69,14 @@ OPTION_VAR_MAP = {
     "def_padding_number": "gt_renamer_def_padding_number",
     "def_uppercase_letter": "gt_renamer_def_uppercase_letter",
     "selection_type": "gt_renamer_selection_type",
+    "rename_text": "gt_renamer_rename_text",
+    "use_source": "gt_renamer_use_source",
+    "prefix_mode": "gt_renamer_prefix_mode",
+    "prefix_text": "gt_renamer_prefix_text",
+    "suffix_mode": "gt_renamer_suffix_mode",
+    "suffix_text": "gt_renamer_suffix_text",
+    "search_text": "gt_renamer_search_text",
+    "replace_text": "gt_renamer_replace_text",
 }
 
 NODES_TO_IGNORE = [
