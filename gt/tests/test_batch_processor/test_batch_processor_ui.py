@@ -146,6 +146,20 @@ class TestBatchProcessorUi(unittest.TestCase):
         expected = ""
         self.assertEqual(expected, tree_item.toolTip(0))
 
+    def test_refresh_tree_shows_separator_for_disabled_task(self):
+        """Ensures task-list separators remain visible when their task is disabled."""
+        self.task.enabled = False
+        self.task.settings["force_segment_separator"] = True
+
+        self.view.refresh_tree(self.model)
+
+        separator_item = self.view.project_item.child(0)
+        expected = "segment_separator"
+        self.assertEqual(expected, separator_item.data(0, self.view.DATA_ROLE))
+        task_item = self.view.project_item.child(1)
+        expected = self.task.id
+        self.assertEqual(expected, task_item.data(0, self.view.DATA_ROLE))
+
     def test_parent_refresh_is_deferred_until_next_event_loop_cycle(self):
         """Ensures full parent rebuilds do not run inside an emitting callback."""
         refresh_parent = mock.MagicMock()

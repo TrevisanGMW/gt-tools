@@ -371,7 +371,7 @@ class BatchProcessorView(metaclass=MayaWindowMeta):
 
             selected_item = None
             for task in project.tasks:
-                if task.enabled and task.shows_segment_separator():
+                if task.shows_segment_separator():
                     segment_name = task.get_segment_display_name()
                     color_name = task.get_segment_color_name()
                     color_hex = getattr(
