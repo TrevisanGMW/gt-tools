@@ -263,7 +263,12 @@ class Icon:
     tool_transfer_transforms = get_icon_path(r"tool_transfer_transforms.svg")
     tool_world_space_baker = get_icon_path(r"tool_world_space_baker.svg")
     tool_clip_tracker = get_icon_path(r"tool_clip_tracker.svg")
-    tool_label_tracker = get_icon_path(r"tool_label_tracker.svg")
+    tool_annotation_tracker = get_icon_path(r"tool_annotation_tracker.svg")
+    tool_offset_keyframes = get_icon_path(r"tool_offset_keyframes.svg")
+    tool_anim_copy_paste = get_icon_path(r"tool_anim_copy_paste.svg")
+    anim_copy = get_icon_path(r"anim_copy.svg")
+    anim_paste = get_icon_path(r"anim_paste.svg")
+    anim_paste_insert = get_icon_path(r"anim_paste_insert.svg")
     tool_attributes_to_python = get_icon_path(r"tool_attributes_to_python.svg")
     tool_render_checklist = get_icon_path(r"tool_render_checklist.svg")
     # Curves
