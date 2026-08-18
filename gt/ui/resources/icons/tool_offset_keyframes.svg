@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect x="48" y="104" width="416" height="304" rx="28" style="fill:#BDBDBD;stroke:#1D1D1D;stroke-width:20;"/>
+  <line x1="48" y1="184" x2="464" y2="184" style="fill:none;stroke:#1D1D1D;stroke-width:20;"/>
+  <circle cx="94" cy="144" r="12" style="fill:#FF6A6A;"/>
+  <circle cx="132" cy="144" r="12" style="fill:#FF6A6A;"/>
+  <circle cx="170" cy="144" r="12" style="fill:#FF6A6A;"/>
+  <line x1="96" y1="258" x2="416" y2="258" style="fill:none;stroke:#1D1D1D;stroke-width:16;stroke-linecap:round;"/>
+  <line x1="96" y1="338" x2="416" y2="338" style="fill:none;stroke:#1D1D1D;stroke-width:16;stroke-linecap:round;"/>
+  <circle cx="184" cy="258" r="27" style="fill:#FF6A6A;stroke:#1D1D1D;stroke-width:14;"/>
+  <circle cx="328" cy="338" r="27" style="fill:#FF6A6A;stroke:#1D1D1D;stroke-width:14;"/>
+  <path d="M72,448 H440 M72,448 L112,408 M72,448 L112,488 M440,448 L400,408 M440,448 L400,488" style="fill:none;stroke:#FF6A6A;stroke-width:20;stroke-linecap:round;stroke-linejoin:round;"/>
+</svg>
