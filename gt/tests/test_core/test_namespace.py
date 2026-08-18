@@ -57,6 +57,28 @@ class TestNamespaceCore(unittest.TestCase):
         result = core_namespace.get_namespace(node=object_to_test)
         self.assertEqual(expected, result)
 
+    def test_get_namespace_first_in_dag_path(self):
+        object_to_test = "|first:root|second:control"
+        expected = "first"
+        result = core_namespace.get_namespace(node=object_to_test, first_in_path=True)
+        self.assertEqual(expected, result)
+
+    def test_get_namespace_free_path(self):
+        object_to_test = "|first:rig|second:control"
+        expected = "|rig|control"
+        result = core_namespace.get_namespace_free_path(object_to_test)
+        self.assertEqual(expected, result)
+
+    def test_replace_namespace_in_path(self):
+        object_to_test = "|source:rig|source:control"
+        expected = "|target:rig|target:control"
+        result = core_namespace.replace_namespace_in_path(
+            object_to_test,
+            source_namespace="source",
+            target_namespace="target",
+        )
+        self.assertEqual(expected, result)
+
     def test_namespaces_split(self):
         expected = ('one:two', 'three')
         result = core_namespace.namespaces_split("|root|child|grandChild|one:two:three")
