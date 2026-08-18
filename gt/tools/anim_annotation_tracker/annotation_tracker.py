@@ -14,7 +14,7 @@ from datetime import datetime
 import gt.ui.qt_import as ui_qt
 import gt.ui.qt_utils as ui_qt_utils
 import gt.ui.resource_library as ui_res_lib
-from gt.tools.anim_label_tracker import label_tracker_model
+from gt.tools.anim_annotation_tracker import annotation_tracker_model
 
 QtWidgets = ui_qt.QtWidgets
 QtCore = ui_qt.QtCore
@@ -36,6 +36,7 @@ EXAMPLE_SCHEMA = """{
     },
     {
       "type": "row",
+      "equal_widths": true,
       "items": [
         {
           "type": "string", "name": "source", "label": "Source",
@@ -44,12 +45,18 @@ EXAMPLE_SCHEMA = """{
           "description": "Identifies the origin of the animation.\\nThis could be a specific mocap shoot (e.g., 'mocap_shoot_01'), a dataset name, a vendor pipeline, or the intended game/cinematic project use-case."
         },
         {
-          "type": "enum", "name": "gender", "label": "Gender",
-        "options": ["male", "female"],
-        "required": false,
-          "description": "The apparent gender of the character when it can be determined clearly."
+          "type": "enum", "name": "style", "label": "Style",
+          "options": ["none", "relaxed", "combat", "tired", "drunk", "confident", "tense", "old", "injured", "scared", "aggressive", "cautious", "stealth"],
+          "required": true,
+          "description": "The physical demeanor, personality, or emotional overlay that applies to the overall animation."
         }
       ]
+    },
+    {
+      "type": "string", "name": "context", "label": "Context",
+      "required": false,
+      "placeholder": "e.g. character exits through a heavy doorway",
+      "description": "Optional sentence describing the overall scene or situation."
     },
     {"type": "separator"},
     {
@@ -61,7 +68,7 @@ EXAMPLE_SCHEMA = """{
           "description": "Set to true if this animation sequence was sliced or extracted from a longer continuous raw take.\\nUsually auto-defined by pipeline tools if clip metadata exists."
         },
         {
-          "type": "boolean", "name": "labelled", "label": "Labelled", 
+          "type": "boolean", "name": "annotated", "label": "Annotated", 
           "required": true, 
           "description": "Set to true once a human animator or an automated script has fully populated, verified, and signed off on the frame-range metadata for this file."
         },
@@ -79,21 +86,21 @@ EXAMPLE_SCHEMA = """{
       "items": [
         {
           "type": "enum", "name": "state", "label": "State", 
-          "options": ["none", "idle", "walk", "jog", "run", "sprint", "turn_in_place", "transition", "mixed"], 
+          "options": ["none", "idle", "enter", "exit", "walk", "jog", "run", "sprint", "turn_in_place"],
           "required": true, 
-          "description": "The core locomotion or foundational action of the character.\\nUse 'none' if the character is completely still without an idle loop, or 'mixed' if the state changes too rapidly within the range to isolate."
+          "description": "Core locomotion or foundational action. Use 'none' when completely still."
         },
         {
-          "type": "enum", "name": "style", "label": "Style", 
-          "options": ["none", "relaxed", "combat", "tired", "drunk", "confident", "injured", "scared", "aggressive", "cautious", "stealth"], 
-          "required": true, 
-          "description": "The physical demeanor, personality, or emotional overlay driving the animation.\\nThis defines *how* the character moves rather than *what* they are doing (e.g., an 'aggressive' walk vs a 'tired' walk)."
+          "type": "enum", "name": "override_style", "label": "Override Style",
+          "options": ["none", "relaxed", "combat", "tired", "drunk", "confident", "tense", "old", "injured", "scared", "aggressive", "cautious", "stealth"], 
+          "required": false,
+          "description": "Optional style that applies only to this range when it differs materially from the file style."
         },
         {
           "type": "enum", "name": "stance", "label": "Stance", 
-          "options": ["none", "stand", "crouch", "kneel", "prone", "sit", "crawl"], 
+          "options": ["none", "stand", "crouch", "kneel", "prone", "sit", "crawl"],
           "required": true, 
-          "description": "The character's primary vertical posture.\\nThis should only change when the root structure or center of mass fundamentally shifts (e.g., dropping from a 'stand' to a 'crouch')."
+          "description": "The character's primary vertical posture."
         }
       ]
     },
@@ -103,9 +110,9 @@ EXAMPLE_SCHEMA = """{
       "items": [
         {
           "type": "enum", "name": "interaction_type", "label": "Interaction Type", 
-          "options": ["none", "avoid", "carry_light", "carry_heavy", "navigate", "push_pull", "climb", "gesture"], 
-          "required": true, 
-          "description": "Categorizes how the character physically reacts to external objects or environments.\\n'avoid' = stepping around/over\\n'navigate' = moving through tight spaces/doors\\n'carry' = holding objects\\n'push_pull' = applying force.\\nSet to 'none' if moving freely in open space."
+          "options": ["none", "avoid", "carry_light", "carry_heavy", "navigate", "push_pull", "climb", "gesture", "sustain"], 
+          "required": false,
+          "description": "Categorizes how the character physically reacts to external objects or environments.\\n'avoid' = stepping around/over\\n'navigate' = moving through tight spaces/doors\\n'carry' = holding objects\\n'push_pull' = applying force\\n'sustain' = maintaining an ongoing interaction while waiting.\\nSet to 'none' if moving freely in open space."
         },
         {
           "type": "enum", "name": "interaction_scope", "label": "Interaction Scope", 
@@ -124,10 +131,21 @@ EXAMPLE_SCHEMA = """{
       "description": "A comma-separated list of exact scene node names (e.g., 'box_obstacle_01') representing the 3D bounding volumes the character interacts with.\\nMust match scene geometry precisely. Use 'none' if not applicable."
     },
     {
-      "type": "string", "name": "interaction_context", "label": "Interaction Context", 
-      "required": false, 
-      "placeholder": "e.g. torch, phone, sword",
-      "description": "Strictly about the prop or target. The real-world name of the item being interacted with when no 3D bounding box exists in the scene (e.g., 'torch', 'heavy_crate', 'low_doorway').\\nThis describes *what* the character interacts with, especially useful when no actual 3D volume exists in the scene.\\nIf the character isn't physically interacting with something, leave empty."
+      "type": "row",
+      "items": [
+        {
+          "type": "string", "name": "interaction_item", "label": "Interaction Item", 
+          "required": false, 
+          "placeholder": "e.g. torch, phone, sword",
+          "description": "Prop or target involved when no interaction volume exists."
+        },
+        {
+          "type": "string", "name": "contact_attributes", "label": "Contact Attributes",
+          "required": false,
+          "placeholder": "e.g. pelvis_docking.contactWeight",
+          "description": "Comma-separated scene object attributes used to identify contacts. Enter each as object.attribute."
+        }
+      ]
     },
     {"type": "separator"},
     {
@@ -135,12 +153,6 @@ EXAMPLE_SCHEMA = """{
       "required": false, 
       "placeholder": "e.g. {'foot_strike': [18, 32]}",
       "description": "A JSON-formatted dictionary mapping specific animation events to frame numbers (e.g., {'foot_strike': [18, 32], 'blend_start': [12]}).\\nUsed for precise AI training, tagging impacts, or syncing audio."
-    },
-    {
-      "type": "string", "name": "auxiliary_context", "label": "Auxiliary Context", 
-      "required": false, 
-      "placeholder": "e.g. ground is slippery",
-      "description": "Broad context covering narrative, environmental factors, or technical notes that alter the flavor of the animation but don't fit strict enums.\\nE.g., 'slippery ground', 'underwater physics applied', or 'actor's foot slid slightly at frame 102'."
     }
   ]
 }"""
@@ -175,9 +187,13 @@ print(last_used_data)
 context["update_file_data"]("quality", "high")
 context["update_file_data"]("source", "mocap_shoot_01")
 context["update_file_data"]("clipped", True)
-context["update_file_data"]("labelled", True)
+context["update_file_data"]("annotated", True)
 context["update_file_data"]("commercial_use", True)
-context["update_file_data"]("gender", "male")
+context["update_file_data"]("style", "confident")
+context["update_file_data"](
+    "context",
+    "Character walks through a heavy doorway.",
+)
 
 # =====================================================================
 # 2. Automatically generate a full-coverage range
@@ -192,16 +208,15 @@ new_range = context["create_range"]("Auto_Generated", start_frame, end_frame, (1
 # 3. Populate fields dynamically
 # =====================================================================
 context["update_range_data"]("state", "walk")
-context["update_range_data"]("style", "confident")
 context["update_range_data"]("stance", "stand")
 
 context["update_range_data"]("interaction_type", "navigate")
 context["update_range_data"]("interaction_scope", "full_body")
 context["update_range_data"]("interaction_volumes", "doorway_volume_01")
-context["update_range_data"]("interaction_context", "heavy_door")
+context["update_range_data"]("interaction_item", "heavy_door")
+context["update_range_data"]("contact_attributes", "doorway_ctrl.open, doorway_ctrl.close")
 
 context["update_range_data"]("events", '{"foot_strike": [15, 30, 45]}')
-context["update_range_data"]("auxiliary_context", "Floor is slightly uneven.")
 
 print("Generated a full-coverage valid frame range automatically!")
 context["refresh_ui"]()
@@ -210,8 +225,8 @@ context["refresh_ui"]()
 # --- DATA MODEL (Scene Persistence) ---
 
 class DataManager:
-    NODE_NAME = "rangeTimelineData"
-    ATTR_DATA = "timelineData"
+    NODE_NAME = annotation_tracker_model.SCENE_DATA_NODE_NAME
+    ATTR_DATA = annotation_tracker_model.SCENE_DATA_ATTRIBUTE
     ATTR_EDITED = "lastEdited"
 
     @classmethod
@@ -238,7 +253,7 @@ class DataManager:
                     "custom_data": range_item.custom_data,
                 }
             )
-        return {"ranges": range_data, "file_data": copy.deepcopy(file_data)}
+        return {"range_data": range_data, "file_data": copy.deepcopy(file_data)}
 
     @classmethod
     def save_data(cls, ranges, file_data):
@@ -282,7 +297,7 @@ class DataManager:
             
         try:
             payload = json.loads(data_str)
-            r_data = payload.get("ranges", [])
+            r_data = payload.get("range_data", [])
             file_data = payload.get("file_data", {})
             
             ranges = []
@@ -320,7 +335,7 @@ class RangeItem:
         
     @property
     def display_name(self):
-        """Returns the display label for this range.
+        """Returns the display name for this range.
 
         Returns:
             str: Display name, including any required range metadata.
@@ -397,9 +412,9 @@ class CustomTimelineWidget(QtWidgets.QWidget):
         self.magnet_enabled = True
         self.snap_threshold = 10
         self.auto_crop_enabled = False
-        self.crop_tolerance = 10
+        self.crop_tolerance = 50
         self.auto_stretch_enabled = False
-        self.stretch_tolerance = 10
+        self.stretch_tolerance = 50
         
         self.interaction_state = None 
         self.active_range = None
@@ -538,7 +553,7 @@ class CustomTimelineWidget(QtWidgets.QWidget):
         Returns:
             list: Ranges changed by the adjustment.
         """
-        return label_tracker_model.adjust_adjacent_ranges(
+        return annotation_tracker_model.adjust_adjacent_ranges(
             self.active_range,
             self.ranges,
             auto_crop=self.auto_crop_enabled,
@@ -547,8 +562,208 @@ class CustomTimelineWidget(QtWidgets.QWidget):
             stretch_tolerance=self.stretch_tolerance,
         )
 
+    def get_current_timeline_frame(self):
+        """Gets the current Maya frame, falling back to the local playhead.
+
+        Returns:
+            int: Current timeline frame.
+        """
+        if cmds:
+            try:
+                current_frame = int(cmds.currentTime(query=True))
+                self.current_frame = current_frame
+                return current_frame
+            except RuntimeError:
+                pass
+        return int(self.current_frame)
+
+    def get_new_range_color(self):
+        """Gets the display color for a newly created frame range.
+
+        Returns:
+            tuple: RGB color values between 0 and 255.
+        """
+        if self.pref_random_colors:
+            return (
+                random.randint(60, 220),
+                random.randint(60, 220),
+                random.randint(60, 220),
+            )
+        return 128, 128, 128
+
+    def create_ranges(self, frame_ranges):
+        """Creates, selects, and saves one or more frame ranges.
+
+        Args:
+            frame_ranges (list): Inclusive ``(start_frame, end_frame)`` pairs.
+
+        Returns:
+            list: Newly created RangeItem objects.
+        """
+        created_ranges = []
+        for start_frame, end_frame in frame_ranges:
+            start_frame = int(start_frame)
+            end_frame = int(end_frame)
+            if start_frame > end_frame:
+                continue
+            created_ranges.append(
+                RangeItem("", start_frame, end_frame, self.get_new_range_color())
+            )
+        if not created_ranges:
+            return []
+        self.ranges.extend(created_ranges)
+        self.active_range = created_ranges[-1]
+        self.rangeSelected.emit(self.active_range)
+        self.rangesChanged.emit()
+        self.update()
+        return created_ranges
+
+    def set_range_boundary_to_current_frame(self, range_item, boundary):
+        """Sets one unlocked range boundary to the current timeline frame.
+
+        A range must retain at least two inclusive frames to remain compatible
+        with the existing drag and property-editor behavior.
+
+        Args:
+            range_item (RangeItem): Range to update.
+            boundary (str): Boundary name, either ``start`` or ``end``.
+        """
+        if not range_item or range_item.locked:
+            return
+        current_frame = self.get_current_timeline_frame()
+        if boundary == "start":
+            range_item.start = min(current_frame, int(range_item.end) - 1)
+        elif boundary == "end":
+            range_item.end = max(current_frame, int(range_item.start) + 1)
+        else:
+            return
+        self.active_range = range_item
+        self.adjust_adjacent_ranges()
+        self.rangeSelected.emit(range_item)
+        self.rangesChanged.emit()
+        self.update()
+
+    @staticmethod
+    def get_event_global_position(event):
+        """Gets a mouse event's screen position across supported Qt versions.
+
+        Args:
+            event (QMouseEvent): Mouse event that opened a context menu.
+
+        Returns:
+            QPoint: Screen-space position for the context menu.
+        """
+        if hasattr(event, "globalPosition"):
+            return event.globalPosition().toPoint()
+        return event.globalPos()
+
+    @staticmethod
+    def execute_menu(menu, position):
+        """Executes a context menu across supported Qt versions.
+
+        Args:
+            menu (QMenu): Context menu to execute.
+            position (QPoint): Screen-space menu position.
+
+        Returns:
+            QAction or None: Triggered action, if any.
+        """
+        if hasattr(menu, "exec_"):
+            return menu.exec_(position)
+        return menu.exec(position)
+
+    def show_range_context_menu(self, event, range_item):
+        """Shows actions available for an existing frame range.
+
+        Args:
+            event (QMouseEvent): Mouse event that opened the menu.
+            range_item (RangeItem): Range under the cursor.
+        """
+        self.active_range = range_item
+        self.rangeSelected.emit(range_item)
+        menu = QtWidgets.QMenu(self)
+        action_set_start = menu.addAction("Set Current Frame as Start")
+        action_set_start.setEnabled(not range_item.locked)
+        action_set_end = menu.addAction("Set Current Frame as End")
+        action_set_end.setEnabled(not range_item.locked)
+        menu.addSeparator()
+        action_lock = menu.addAction(
+            QtGui.QIcon(ui_res_lib.Icon.ui_read_only),
+            "Unlock" if range_item.locked else "Lock",
+        )
+        action_delete = menu.addAction(
+            QtGui.QIcon(ui_res_lib.Icon.ui_delete),
+            "Delete",
+        )
+        action = self.execute_menu(menu, self.get_event_global_position(event))
+        if action == action_set_start:
+            self.set_range_boundary_to_current_frame(range_item, "start")
+        elif action == action_set_end:
+            self.set_range_boundary_to_current_frame(range_item, "end")
+        elif action == action_lock:
+            range_item.locked = not range_item.locked
+            self.rangeSelected.emit(range_item)
+            self.rangesChanged.emit()
+            self.update()
+        elif action == action_delete:
+            self.ranges.remove(range_item)
+            self.active_range = None
+            self.rangeSelected.emit(None)
+            self.rangesChanged.emit()
+            self.update()
+
+    def show_gap_context_menu(self, event, clicked_frame):
+        """Shows actions for an uncovered timeline area.
+
+        Args:
+            event (QMouseEvent): Mouse event that opened the menu.
+            clicked_frame (int): Timeline frame under the cursor.
+        """
+        timeline_start = int(self.start_frame)
+        timeline_end = int(self.end_frame)
+        gap_range = annotation_tracker_model.get_uncovered_frame_range_at_frame(
+            self.ranges,
+            timeline_start,
+            timeline_end,
+            clicked_frame,
+        )
+        menu = QtWidgets.QMenu(self)
+        if gap_range:
+            gap_start, gap_end = gap_range
+            current_frame = self.get_current_timeline_frame()
+            action_to_current = menu.addAction("Fill Gap to Current Frame")
+            action_to_current.setEnabled(gap_start <= current_frame <= gap_end)
+            action_fill_left = menu.addAction("Fill Gap Left")
+            action_fill_right = menu.addAction("Fill Gap Right")
+            action_fill_entire = menu.addAction("Fill Entire Gap")
+        else:
+            action_to_current = menu.addAction("No Uncovered Frames at Cursor")
+            action_to_current.setEnabled(False)
+            action_fill_left = None
+            action_fill_right = None
+            action_fill_entire = None
+        menu.addSeparator()
+        action_fill_all = menu.addAction("Fill All Gaps")
+        action = self.execute_menu(menu, self.get_event_global_position(event))
+        if action == action_to_current and gap_range:
+            self.create_ranges([(gap_start, current_frame)])
+        elif action == action_fill_left:
+            self.create_ranges([(gap_start, clicked_frame)])
+        elif action == action_fill_right:
+            self.create_ranges([(clicked_frame, gap_end)])
+        elif action == action_fill_entire:
+            self.create_ranges([gap_range])
+        elif action == action_fill_all:
+            self.create_ranges(
+                annotation_tracker_model.get_uncovered_frame_ranges(
+                    self.ranges,
+                    timeline_start,
+                    timeline_end,
+                )
+            )
+
     def paintEvent(self, event):
-        """Paints timeline ranges, labels, and interaction markers.
+        """Paints timeline ranges, titles, and interaction markers.
 
         Args:
             event (QPaintEvent): Qt paint event supplied by the widget system.
@@ -620,31 +835,9 @@ class CustomTimelineWidget(QtWidgets.QWidget):
 
         if event.button() == QtCore.Qt.MouseButton.RightButton:
             if clicked_range:
-                self.active_range = clicked_range
-                self.rangeSelected.emit(self.active_range)
-                
-            menu = QtWidgets.QMenu(self)
-            action_lock = menu.addAction(
-                QtGui.QIcon(ui_res_lib.Icon.ui_read_only),
-                "Unlock" if clicked_range.locked else "Lock",
-            )
-            action_del = menu.addAction(
-                QtGui.QIcon(ui_res_lib.Icon.ui_delete),
-                "Delete",
-            )
-                
-            action = menu.exec(event.globalPosition().toPoint())
-            if action == action_lock:
-                    clicked_range.locked = not clicked_range.locked
-                    self.rangeSelected.emit(self.active_range)
-                    self.rangesChanged.emit() # Save trigger
-                    self.update()
-            elif action == action_del:
-                    self.ranges.remove(clicked_range)
-                    self.active_range = None
-                    self.rangeSelected.emit(None)
-                    self.rangesChanged.emit() # Save trigger
-                    self.update()
+                self.show_range_context_menu(event, clicked_range)
+            else:
+                self.show_gap_context_menu(event, self.x_to_frame(event_x))
             return
 
         if event.button() == QtCore.Qt.MouseButton.LeftButton:
@@ -811,24 +1004,25 @@ class CustomTimelineWidget(QtWidgets.QWidget):
 
 class RangeToolWindow(QtWidgets.QDialog):
     def __init__(self, parent=None):
-        """Initializes the animation label tracker window.
+        """Initializes the annotation tracker window.
 
         Args:
             parent (QWidget, optional): Parent widget.
         """
         super(RangeToolWindow, self).__init__(parent)
-        self.setWindowTitle("Animation Label Tracker")
+        self.setWindowTitle("Annotation Tracker")
         self.resize(900, 450)
         self.setWindowFlags(QtCore.Qt.WindowType.WindowStaysOnTopHint)
         self.sj_id = None
         if not getattr(self, "model", None):
-            self.model = label_tracker_model.AnimationLabelTrackerModel()
+            self.model = annotation_tracker_model.AnnotationTrackerModel()
         self._suspend_last_used_data = False
         self._is_loading_data = False
         
         self.schema = {}
         self.file_data = {}
         self.scene_file_data_cache = {}
+        self._loaded_schema_path = ""
         self._is_building_ui = False
         
         self.ui_widgets_file = {}
@@ -930,7 +1124,7 @@ class RangeToolWindow(QtWidgets.QDialog):
         crop_layout.addStretch()
         crop_layout.addWidget(QtWidgets.QLabel("Tolerance:"))
         self.spin_crop_tolerance = QtWidgets.QSpinBox()
-        self.spin_crop_tolerance.setRange(1, 100)
+        self.spin_crop_tolerance.setRange(1, 2**31 - 1)
         self.spin_crop_tolerance.setValue(self.timeline.crop_tolerance)
         self.spin_crop_tolerance.setMinimumWidth(55)
         self.spin_crop_tolerance.valueChanged.connect(self.on_auto_snapping_changed)
@@ -950,7 +1144,7 @@ class RangeToolWindow(QtWidgets.QDialog):
         stretch_layout.addStretch()
         stretch_layout.addWidget(QtWidgets.QLabel("Tolerance:"))
         self.spin_stretch_tolerance = QtWidgets.QSpinBox()
-        self.spin_stretch_tolerance.setRange(1, 100)
+        self.spin_stretch_tolerance.setRange(1, 999)
         self.spin_stretch_tolerance.setValue(self.timeline.stretch_tolerance)
         self.spin_stretch_tolerance.setMinimumWidth(55)
         self.spin_stretch_tolerance.valueChanged.connect(self.on_auto_snapping_changed)
@@ -1052,10 +1246,8 @@ class RangeToolWindow(QtWidgets.QDialog):
         schema_row = QtWidgets.QHBoxLayout()
         schema_row.addWidget(QtWidgets.QLabel("Schema File:"))
         self.schema_path_fld = QtWidgets.QLineEdit()
-        self.schema_path_fld.setText(
-            os.path.join(os.path.dirname(__file__), "samples", "schema.json")
-        )
-        self.schema_path_fld.textChanged.connect(lambda: self.check_schema_path(rebuild=True))
+        self.schema_path_fld.setText(self._get_initial_schema_path())
+        self.schema_path_fld.editingFinished.connect(self.check_schema_path)
         schema_row.addWidget(self.schema_path_fld)
         
         self.btn_add_schema = QtWidgets.QPushButton("Create")
@@ -1135,7 +1327,9 @@ class RangeToolWindow(QtWidgets.QDialog):
         
         data_mng_group = QtWidgets.QGroupBox("Data Management")
         data_mng_layout = QtWidgets.QHBoxLayout(data_mng_group)
-        self.chk_write_node = QtWidgets.QCheckBox("Write Data to Scene Node (rangeTimelineData)")
+        self.chk_write_node = QtWidgets.QCheckBox(
+            "Write Data to Scene Node (animAnnotationData)"
+        )
         self.chk_write_node.setChecked(True)
         self.chk_write_node.stateChanged.connect(self.on_write_node_changed)
         data_mng_layout.addWidget(self.chk_write_node)
@@ -1212,7 +1406,12 @@ class RangeToolWindow(QtWidgets.QDialog):
 
     def save_to_scene(self):
         """Persists the current tracker ranges and metadata to the scene."""
-        if getattr(self, '_is_building_ui', False): return
+        if getattr(self, '_is_building_ui', False) or getattr(
+            self,
+            "_is_loading_data",
+            False,
+        ):
+            return
         payload = DataManager.build_payload(self.timeline.ranges, self.file_data)
         if not self._suspend_last_used_data and not self._is_loading_data:
             self.model.set_last_used_data(payload)
@@ -1251,7 +1450,7 @@ class RangeToolWindow(QtWidgets.QDialog):
             try:
                 with open(path, 'r') as f: payload = json.load(f)
                 ranges = []
-                for d in payload.get("ranges", []):
+                for d in payload.get("range_data", []):
                     c = d.get("color", [128, 128, 128])
                     r = RangeItem(d.get("name", ""), d.get("start", 0), d.get("end", 1), tuple(c))
                     r.id = d.get("id", str(uuid.uuid4()))
@@ -1273,6 +1472,7 @@ class RangeToolWindow(QtWidgets.QDialog):
         """
         previous_loading = self._is_loading_data
         self._is_loading_data = True
+        data_was_reconciled = False
         while True:
             if not self.check_schema_mismatch(loaded_ranges, loaded_file_data):
                 break
@@ -1296,7 +1496,12 @@ class RangeToolWindow(QtWidgets.QDialog):
             elif msgBox.clickedButton() == btn_disable:
                 self.chk_write_node.setChecked(False)
                 break
-            else: 
+            else:
+                loaded_file_data = self._filter_loaded_data_for_schema(
+                    loaded_ranges,
+                    loaded_file_data,
+                )
+                data_was_reconciled = True
                 break
                 
         self.timeline.ranges = loaded_ranges
@@ -1304,6 +1509,8 @@ class RangeToolWindow(QtWidgets.QDialog):
         self.rebuild_schema_ui()
         self.timeline.rangesChanged.emit()
         self._is_loading_data = previous_loading
+        if data_was_reconciled:
+            self.save_to_scene()
         
     def check_schema_mismatch(self, loaded_ranges, loaded_file_data):
         """Checks imported data against the active schema definition.
@@ -1313,23 +1520,49 @@ class RangeToolWindow(QtWidgets.QDialog):
             loaded_file_data (dict): Imported file metadata.
 
         Returns:
-            list: Schema fields that do not match the active definition.
+            bool: Whether the active schema would discard saved values.
         """
-        if not loaded_file_data and not loaded_ranges:
-            return False 
-            
-        schema_file_keys = {item['name'] for item in self._flatten_schema(self.schema.get("file_level", []))}
-        schema_range_keys = {item['name'] for item in self._flatten_schema(self.schema.get("frame_range", []))}
-        
-        if loaded_file_data:
-            if set(loaded_file_data.keys()) != schema_file_keys:
-                return True
-                
-        for r in loaded_ranges:
-            if set(r.custom_data.keys()) != schema_range_keys:
-                return True
-                
-        return False
+        if not self.schema or (not loaded_file_data and not loaded_ranges):
+            return False
+
+        data_loss = annotation_tracker_model.get_schema_data_loss(
+            self.schema,
+            loaded_file_data,
+            loaded_ranges,
+        )
+        return bool(data_loss["file_data"] or data_loss["range_data"])
+
+    def _filter_loaded_data_for_schema(self, loaded_ranges, loaded_file_data):
+        """Removes saved values that do not fit the active schema.
+
+        Args:
+            loaded_ranges (list): Imported range objects or dictionaries.
+            loaded_file_data (dict): Imported file-level metadata.
+
+        Returns:
+            dict: File-level data compatible with the active schema.
+        """
+        for range_item in loaded_ranges:
+            if isinstance(range_item, dict):
+                custom_data = range_item.get("custom_data", {})
+                range_item["custom_data"] = annotation_tracker_model.filter_schema_data(
+                    self.schema,
+                    custom_data,
+                    "range_data",
+                )
+            else:
+                custom_data = getattr(range_item, "custom_data", {})
+                range_item.custom_data = annotation_tracker_model.filter_schema_data(
+                    self.schema,
+                    custom_data,
+                    "range_data",
+                )
+
+        return annotation_tracker_model.filter_schema_data(
+            self.schema,
+            loaded_file_data,
+            "file_data",
+        )
 
     # --- ADD BUTTONS LOGIC ---
     def create_example_schema(self):
@@ -1339,6 +1572,7 @@ class RangeToolWindow(QtWidgets.QDialog):
             try:
                 with open(path, 'w') as f: f.write(EXAMPLE_SCHEMA)
                 self.schema_path_fld.setText(path)
+                self.check_schema_path(rebuild=True)
                 cmds.warning(f"Created example schema at {path}")
             except Exception as e:
                 cmds.warning(f"Failed to save schema: {e}")
@@ -1364,37 +1598,157 @@ class RangeToolWindow(QtWidgets.QDialog):
             rebuild (bool): Whether to rebuild schema controls after validation.
         """
         path = self.schema_path_fld.text().strip(' "\'')
-        if not path or not os.path.exists(path):
-            self.schema = {}
-            if rebuild: self.rebuild_schema_ui()
-        else:
-            try:
-                with open(path, 'r') as f: self.schema = json.load(f)
-                if rebuild: self.rebuild_schema_ui()
-                print("Schema loaded successfully.") 
-            except Exception as e:
-                print(f"Failed to load schema: {e}")
-                self.schema = {}
-                if rebuild: self.rebuild_schema_ui()
+        if not path:
+            if not self.schema:
+                self.status_bar.setText(
+                    "No schema loaded. Create or browse to a schema file."
+                )
+            return False
+        if not os.path.exists(path):
+            self._restore_schema_path()
+            self.status_bar.setText(f"Schema file was not found: {path}")
+            return False
+
+        try:
+            with open(path, "r", encoding="utf-8") as schema_file:
+                schema = json.load(schema_file)
+        except (OSError, TypeError, ValueError) as error:
+            self._restore_schema_path()
+            self.status_bar.setText(f"Failed to load schema: {error}")
+            return False
+
+        if not isinstance(schema, dict):
+            self._restore_schema_path()
+            self.status_bar.setText("Schema root must be a JSON object.")
+            return False
+
+        if rebuild and not self._apply_schema(schema):
+            self._restore_schema_path()
+            return False
+
+        self.schema = schema
+        self._loaded_schema_path = path
+        self.status_bar.setText(f"Schema loaded: {path}")
+        return True
+
+    def _get_initial_schema_path(self):
+        """Gets the saved schema path before scene data is loaded.
+
+        Returns:
+            str: Stored schema path, or an empty string when none is set.
+        """
+        preferences = getattr(self.model, "preferences", {})
+        if not isinstance(preferences, dict):
+            return ""
+        return str(preferences.get("schema_path", "")).strip(' "\'')
+
+    def _restore_schema_path(self):
+        """Restores the path for the schema currently displayed in the UI."""
+        if not self._loaded_schema_path:
+            return
+        self.schema_path_fld.blockSignals(True)
+        self.schema_path_fld.setText(self._loaded_schema_path)
+        self.schema_path_fld.blockSignals(False)
+        save_preferences = getattr(self, "save_preferences", None)
+        if callable(save_preferences):
+            save_preferences()
+
+    def _apply_schema(self, schema):
+        """Applies a new schema after protecting unmatched current values.
+
+        Args:
+            schema (dict): Schema definition to apply.
+
+        Returns:
+            bool: True when the schema was applied.
+        """
+        data_loss = annotation_tracker_model.get_schema_data_loss(
+            schema,
+            self.file_data,
+            self.timeline.ranges,
+        )
+        if not self._confirm_schema_data_loss(data_loss):
+            return False
+
+        self.file_data = annotation_tracker_model.filter_schema_data(
+            schema,
+            self.file_data,
+            "file_data",
+        )
+        self.scene_file_data_cache = copy.deepcopy(self.file_data)
+        for range_item in self.timeline.ranges:
+            range_item.custom_data = annotation_tracker_model.filter_schema_data(
+                schema,
+                range_item.custom_data,
+                "range_data",
+            )
+
+        self.schema = schema
+        self.rebuild_schema_ui(file_data=self.file_data)
+        return True
+
+    def _confirm_schema_data_loss(self, data_loss):
+        """Asks before a schema change discards unmatched annotation data.
+
+        Args:
+            data_loss (dict): Removed file and range field names.
+
+        Returns:
+            bool: True when it is safe to apply the new schema.
+        """
+        file_fields = data_loss.get("file_data", [])
+        range_fields = data_loss.get("range_data", [])
+        if not file_fields and not range_fields:
+            return True
+
+        details = []
+        if file_fields:
+            details.append(f"File Data: {', '.join(file_fields)}")
+        if range_fields:
+            details.append(f"Range Data: {', '.join(range_fields)}")
+        details_text = "\n".join(details)
+        message = (
+            "The new schema does not contain the fields below. Applying it "
+            "will discard their current values.\n\n"
+            f"{details_text}\n\n"
+            "Apply the new schema?"
+        )
+        choice = QtWidgets.QMessageBox.warning(
+            self,
+            "Schema Data May Be Lost",
+            message,
+            QtWidgets.QMessageBox.StandardButton.Yes
+            | QtWidgets.QMessageBox.StandardButton.No,
+            QtWidgets.QMessageBox.StandardButton.No,
+        )
+        return choice == QtWidgets.QMessageBox.StandardButton.Yes
 
     def browse_schema(self):
         """Opens a file dialog for selecting a tracker schema."""
         path, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Load JSON Schema", "", "JSON Files (*.json)")
-        if path: self.schema_path_fld.setText(path)
+        if path:
+            self.schema_path_fld.setText(path)
+            self.check_schema_path(rebuild=True)
         
     def browse_automations_folder(self):
         """Opens a file dialog for selecting the automations folder."""
         folder = QtWidgets.QFileDialog.getExistingDirectory(self, "Select Automations Folder")
         if folder: self.auto_path_fld.setText(folder)
 
-    def rebuild_schema_ui(self):
+    def rebuild_schema_ui(self, file_data=None):
         """Rebuilds dynamic tracker controls from the active schema."""
         self._is_building_ui = True
+        file_data = copy.deepcopy(
+            file_data if isinstance(file_data, dict) else self.file_data
+        )
+        if not file_data:
+            file_data = copy.deepcopy(self.scene_file_data_cache)
         self.file_data = {}
         self.clear_layout(self.file_layout)
         self.ui_widgets_file.clear()
         
         if not self.schema:
+            self.file_data = file_data
             self.file_layout.addWidget(QtWidgets.QLabel("No schema loaded or path is empty."))
         else:
             self.build_dynamic_ui(self.schema.get("file_level", []), self.file_layout, self.ui_widgets_file, self.on_file_data_changed)
@@ -1404,6 +1758,9 @@ class RangeToolWindow(QtWidgets.QDialog):
         
         if not self.schema:
             self.dynamic_range_layout.addWidget(QtWidgets.QLabel("No schema loaded or path is empty."))
+            self._is_building_ui = False
+            self.highlight_validation()
+            return
         else:
             self.build_dynamic_ui(self.schema.get("frame_range", []), self.dynamic_range_layout, self.ui_widgets_range, self.on_dynamic_range_data_changed)
         
@@ -1414,7 +1771,7 @@ class RangeToolWindow(QtWidgets.QDialog):
         }
         for name, widget in self.ui_widgets_file.items():
             widget.blockSignals(True)
-            val = self.scene_file_data_cache.get(name)
+            val = file_data.get(name)
             if val in (None, ""):
                 val = default_values.get(name, val)
             if val is not None:
@@ -1450,7 +1807,14 @@ class RangeToolWindow(QtWidgets.QDialog):
                     self.clear_layout(item.layout())
                     item.layout().deleteLater()
 
-    def build_dynamic_ui(self, schema_items, parent_layout, widget_registry, callback):
+    def build_dynamic_ui(
+        self,
+        schema_items,
+        parent_layout,
+        widget_registry,
+        callback,
+        equal_row_widths=False,
+    ):
         """Builds schema-driven controls and registers their widgets.
 
         Args:
@@ -1458,6 +1822,7 @@ class RangeToolWindow(QtWidgets.QDialog):
             parent_layout (QLayout): Layout receiving the generated controls.
             widget_registry (dict): Mapping populated with generated widgets.
             callback (callable): Change callback connected to generated widgets.
+            equal_row_widths (bool): Whether fields in a row share its width.
         """
         for item in schema_items:
             itype = item.get("type")
@@ -1466,7 +1831,13 @@ class RangeToolWindow(QtWidgets.QDialog):
                 parent_layout.addWidget(line)
             elif itype == "row":
                 row_layout = QtWidgets.QHBoxLayout()
-                self.build_dynamic_ui(item.get("items", []), row_layout, widget_registry, callback)
+                self.build_dynamic_ui(
+                    item.get("items", []),
+                    row_layout,
+                    widget_registry,
+                    callback,
+                    equal_row_widths=bool(item.get("equal_widths", False)),
+                )
                 parent_layout.addLayout(row_layout)
             else:
                 field_layout = QtWidgets.QHBoxLayout() 
@@ -1517,7 +1888,10 @@ class RangeToolWindow(QtWidgets.QDialog):
                         btn.clicked.connect(lambda checked=False, s=auto_script, f=name, w=widget: self.execute_automation(s, f, w))
                         field_layout.addWidget(btn, alignment=QtCore.Qt.AlignmentFlag.AlignBottom)
                         
-                parent_layout.addLayout(field_layout)
+                if equal_row_widths:
+                    parent_layout.addLayout(field_layout, 1)
+                else:
+                    parent_layout.addLayout(field_layout)
 
     # --- AUTOMATIONS LOGIC ---
     def on_automation_path_changed(self, automation_path):
@@ -2167,12 +2541,12 @@ range_window = None
 
 
 def launch_tool():
-    """Launches Animation Label Tracker through its MVC entry point.
+    """Launches Annotation Tracker through its MVC entry point.
 
     Returns:
-        object: Animation Label Tracker controller.
+        object: Annotation Tracker controller.
     """
-    from gt.tools.anim_label_tracker import launch_tool as package_launch_tool
+    from gt.tools.anim_annotation_tracker import launch_tool as package_launch_tool
 
     return package_launch_tool()
 

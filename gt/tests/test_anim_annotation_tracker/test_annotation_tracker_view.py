@@ -1,12 +1,12 @@
-"""Tests Animation Label Tracker view formatting helpers."""
+"""Tests Annotation Tracker view formatting helpers."""
 
 import unittest
 
-from gt.tools.anim_label_tracker.label_tracker_view import AnimationLabelTrackerView
+from gt.tools.anim_annotation_tracker.annotation_tracker_view import AnnotationTrackerView
 
 
-class TestLabelTrackerView(unittest.TestCase):
-    """Tests import-safe Animation Label Tracker view helpers."""
+class TestAnnotationTrackerView(unittest.TestCase):
+    """Tests import-safe Annotation Tracker view helpers."""
 
     def test_validation_report_separates_sections_only(self):
         """Checks validation issues stay grouped without extra issue spacing."""
@@ -29,7 +29,7 @@ class TestLabelTrackerView(unittest.TestCase):
             "- Range 'First': 'Style' is required."
         )
 
-        actual_report = AnimationLabelTrackerView._format_validation_report(
+        actual_report = AnnotationTrackerView._format_validation_report(
             None, errors
         )
 

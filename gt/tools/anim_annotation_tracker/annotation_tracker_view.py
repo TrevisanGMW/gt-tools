@@ -1,4 +1,4 @@
-"""Qt view for Animation Label Tracker."""
+"""Qt view for Annotation Tracker."""
 
 import json
 import os
@@ -8,9 +8,9 @@ import gt.ui.qt_import as ui_qt
 import gt.ui.resource_library as ui_res_lib
 import gt.ui.qt_utils as qt_utils
 
-from gt.tools.anim_label_tracker import label_tracker as legacy_tracker
-from gt.tools.anim_label_tracker import label_tracker_model
-from gt.tools.anim_label_tracker.label_tracker_schema_editor import SchemaEditorDialog
+from gt.tools.anim_annotation_tracker import annotation_tracker as legacy_tracker
+from gt.tools.anim_annotation_tracker import annotation_tracker_model
+from gt.tools.anim_annotation_tracker.annotation_tracker_schema_editor import SchemaEditorDialog
 
 
 QtWidgets = ui_qt.QtWidgets
@@ -21,7 +21,7 @@ TIMELINE_HEIGHT = 110
 TIMELINE_HANDLE_WIDTH = 6
 
 
-class AnimationLabelTrackerView(
+class AnnotationTrackerView(
     metaclass=qt_utils.MayaWindowMeta,
     base_inheritance=legacy_tracker.RangeToolWindow,
 ):
@@ -31,10 +31,10 @@ class AnimationLabelTrackerView(
         """Initializes the tracker view.
 
         Args:
-            model (AnimationLabelTrackerModel, optional): Persistent tracker model.
+            model (AnnotationTrackerModel, optional): Persistent tracker model.
             parent (QWidget, optional): Parent widget.
         """
-        self.model = model or label_tracker_model.AnimationLabelTrackerModel()
+        self.model = model or annotation_tracker_model.AnnotationTrackerModel()
         self.controller = None
         self.timeline_splitter = None
         self._timeline_height = TIMELINE_HEIGHT
@@ -195,9 +195,9 @@ class AnimationLabelTrackerView(
         self.timeline.magnet_enabled = bool(preferences.get("magnet_enabled", True))
         self.timeline.snap_threshold = int(preferences.get("snap_threshold", 10))
         self.timeline.auto_crop_enabled = bool(preferences.get("auto_crop", False))
-        self.timeline.crop_tolerance = int(preferences.get("crop_tolerance", 10))
+        self.timeline.crop_tolerance = int(preferences.get("crop_tolerance", 50))
         self.timeline.auto_stretch_enabled = bool(preferences.get("auto_stretch", False))
-        self.timeline.stretch_tolerance = int(preferences.get("stretch_tolerance", 10))
+        self.timeline.stretch_tolerance = int(preferences.get("stretch_tolerance", 50))
         self.timeline.pref_show_frames = bool(preferences.get("show_frames", True))
         self.timeline.pref_show_names = bool(preferences.get("show_names", False))
         self.timeline.pref_random_colors = bool(preferences.get("random_colors", True))
@@ -333,7 +333,7 @@ class AnimationLabelTrackerView(
             return
         start_frame = getattr(self.timeline, "start_frame", 0)
         end_frame = getattr(self.timeline, "end_frame", 0)
-        errors = label_tracker_model.collect_validation_errors(
+        errors = annotation_tracker_model.collect_validation_errors(
             self.schema,
             self.timeline.ranges,
             self.file_data,
@@ -408,8 +408,12 @@ class AnimationLabelTrackerView(
             with open(path, "w", encoding="utf-8") as schema_file:
                 json.dump(dialog.get_schema(), schema_file, indent=2, ensure_ascii=False)
             self.schema_path_fld.setText(path)
-            self.check_schema_path(rebuild=True)
-            self.status_bar.setText("Schema written: {0}".format(path))
+            if self.check_schema_path(rebuild=True):
+                self.status_bar.setText(f"Schema written and applied: {path}")
+            else:
+                self.status_bar.setText(
+                    f"Schema written but not applied: {path}"
+                )
         except (OSError, TypeError, ValueError) as error:
             QtWidgets.QMessageBox.warning(self, "Write Schema", str(error))
 
@@ -424,9 +428,14 @@ class AnimationLabelTrackerView(
         if not path:
             return
         try:
-            shutil.copyfile(label_tracker_model.get_sample_schema_path(), path)
+            shutil.copyfile(annotation_tracker_model.get_sample_schema_path(), path)
             self.schema_path_fld.setText(path)
-            self.status_bar.setText("Created example schema: {0}".format(path))
+            if self.check_schema_path(rebuild=True):
+                self.status_bar.setText(f"Created and applied schema: {path}")
+            else:
+                self.status_bar.setText(
+                    f"Created schema but did not apply it: {path}"
+                )
         except OSError as error:
             QtWidgets.QMessageBox.warning(self, "Create Schema", str(error))
 
@@ -441,7 +450,7 @@ class AnimationLabelTrackerView(
         if not path:
             return
         try:
-            shutil.copyfile(label_tracker_model.get_sample_automation_path(), path)
+            shutil.copyfile(annotation_tracker_model.get_sample_automation_path(), path)
             self.auto_path_fld.setText(os.path.dirname(path))
             self.build_automations_ui()
             self.status_bar.setText("Created example automation: {0}".format(path))
@@ -470,5 +479,5 @@ class AnimationLabelTrackerView(
 
 if __name__ == "__main__":
     with qt_utils.QtApplicationContext():
-        window = AnimationLabelTrackerView()
+        window = AnnotationTrackerView()
         window.show()

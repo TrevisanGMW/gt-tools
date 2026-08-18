@@ -1,14 +1,14 @@
-"""Controller for Animation Label Tracker."""
+"""Controller for Annotation Tracker."""
 
-class AnimationLabelTrackerController:
-    """Connects the Animation Label Tracker model and view."""
+class AnnotationTrackerController:
+    """Connects the Annotation Tracker model and view."""
 
     def __init__(self, model, view):
         """Initializes the controller.
 
         Args:
-            model (AnimationLabelTrackerModel): Tracker model.
-            view (AnimationLabelTrackerView): Tracker view.
+            model (AnnotationTrackerModel): Tracker model.
+            view (AnnotationTrackerView): Tracker view.
         """
         self.model = model
         self.view = view
@@ -18,7 +18,7 @@ class AnimationLabelTrackerController:
         """Shows and activates the tracker window.
 
         Returns:
-            AnimationLabelTrackerController: This controller.
+            AnnotationTrackerController: This controller.
         """
         self.view.show()
         self.view.raise_()

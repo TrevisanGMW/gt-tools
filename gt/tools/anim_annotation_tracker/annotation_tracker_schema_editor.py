@@ -1,4 +1,4 @@
-"""Schema editor dialog for Animation Label Tracker."""
+"""Schema editor dialog for Annotation Tracker."""
 
 import copy
 import json
@@ -10,7 +10,7 @@ QtWidgets = ui_qt.QtWidgets
 
 
 class SchemaEditorDialog(QtWidgets.QDialog):
-    """Edits Animation Label Tracker schemas with form and JSON views."""
+    """Edits Annotation Tracker schemas with form and JSON views."""
 
     def __init__(self, schema, parent=None):
         """Initializes the schema editor.
@@ -25,7 +25,7 @@ class SchemaEditorDialog(QtWidgets.QDialog):
         self._current_item = None
         self._json_dirty = False
         self._updating_json = False
-        self.setWindowTitle("Edit Animation Label Tracker Schema")
+        self.setWindowTitle("Edit Annotation Tracker Schema")
         self.resize(860, 620)
         self._build_ui()
         self._refresh_entries()
