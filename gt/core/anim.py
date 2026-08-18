@@ -8,8 +8,11 @@ Import Line:
 
 import gt.core.feedback as core_fback
 import gt.core.io as core_io
+import gt.core.namespace as core_namespace
 import maya.cmds as cmds
+import tempfile
 import logging
+import json
 import os
 
 # Logging Setup
@@ -20,6 +23,29 @@ logger.setLevel(logging.INFO)
 
 KEY_TYPE_TIME = ["animCurveTA", "animCurveTL", "animCurveTT", "animCurveTU"]
 KEY_TYPE_DOUBLE = ["animCurveUL", "animCurveUA", "animCurveUT", "animCurveUU"]
+
+
+class AnimationConstants:
+    """Groups animation-clip constants and mode identifiers."""
+
+    class Clip:
+        """Constants describing the portable animation-clip format."""
+
+        SCHEMA_VERSION = 1
+        CACHE_FILENAME = "gt_copy_paste_animation.json"
+
+    class PasteMode:
+        """Constants that define how copied keys affect existing animation."""
+
+        INSERT = "insert"
+        REPLACE = "replace"
+
+    class MappingMode:
+        """Constants that define how source objects resolve to destinations."""
+
+        SELECTION = "selection"
+        NAME = "name"
+        NAMESPACE = "namespace"
 
 
 class KeyframeScope:
@@ -919,6 +945,833 @@ def ripple_delete_keyframes(start_frame, end_frame, nodes=None, tolerance=0.5, s
     print(
         f"Successfully removed frames {safe_start} to {safe_end} and shifted subsequent keys by {shift_amount} frames.")
     return True
+
+# --------------------------------------- Keyframe Offset and Filter Utilities ---------------------------------------
+
+def _get_offset_time_range(scope, current_frame=None):
+    """Resolves a key-offset scope into an optional Maya time range.
+
+    Args:
+        scope (str): All, current, or playback offset scope.
+        current_frame (float, optional): Current timeline frame when already known.
+
+    Returns:
+        tuple or None: Inclusive Maya time range, or None for all keys.
+    """
+    scope = str(scope or "all").lower()
+    if scope == "current":
+        current_frame = cmds.currentTime(query=True) if current_frame is None else current_frame
+        return float(current_frame), 1000000000.0
+    if scope == "playback":
+        return (
+            float(cmds.playbackOptions(query=True, min=True)),
+            float(cmds.playbackOptions(query=True, max=True)),
+        )
+    return None
+
+
+def _get_selected_keyframes():
+    """Gets the current Maya keyframe selection.
+
+    Returns:
+        list: Selected keyframe data grouped by animation curve and input type.
+    """
+    selected_keyframes = []
+    selected_curves = cmds.keyframe(query=True, selected=True, name=True) or []
+    for curve in selected_curves:
+        time_keys = cmds.keyframe(curve, query=True, selected=True, timeChange=True) or []
+        if time_keys:
+            selected_keyframes.append(
+                {
+                    "curve": curve,
+                    "input_type": "time",
+                    "values": [float(key_time) for key_time in time_keys],
+                }
+            )
+        float_keys = cmds.keyframe(curve, query=True, selected=True, floatChange=True) or []
+        if float_keys:
+            selected_keyframes.append(
+                {
+                    "curve": curve,
+                    "input_type": "float",
+                    "values": [float(key_value) for key_value in float_keys],
+                }
+            )
+    return selected_keyframes
+
+
+def _offset_selected_keyframes(selected_keyframes, moved_key_times, offset):
+    """Updates selected time-key locations after a keyframe offset.
+
+    Args:
+        selected_keyframes (list): Keyframe selection data from
+            :func:`_get_selected_keyframes`.
+        moved_key_times (dict): Moved key times grouped by animation curve.
+        offset (float): Signed frame offset applied to the affected keys.
+
+    Returns:
+        list: Updated keyframe selection data.
+    """
+    for keyframe_data in selected_keyframes:
+        if keyframe_data["input_type"] != "time":
+            continue
+        moved_times = set(moved_key_times.get(keyframe_data["curve"], []))
+        keyframe_data["values"] = [
+            key_time + offset if key_time in moved_times else key_time
+            for key_time in keyframe_data["values"]
+        ]
+    return selected_keyframes
+
+
+def _restore_selected_keyframes(selected_keyframes):
+    """Restores a Maya keyframe selection without changing object selection.
+
+    Args:
+        selected_keyframes (list): Keyframe selection data from
+            :func:`_get_selected_keyframes`.
+    """
+    try:
+        cmds.selectKey(clear=True)
+        for keyframe_data in selected_keyframes:
+            range_key = keyframe_data["input_type"]
+            for key_value in keyframe_data["values"]:
+                cmds.selectKey(
+                    keyframe_data["curve"],
+                    add=True,
+                    **{range_key: (key_value, key_value)},
+                )
+    except RuntimeError as exception:
+        logger.warning(f"Unable to restore selected keyframes: {exception}")
+
+
+def offset_time_keyframes(nodes=None, offset=1.0, scope="all"):
+    """Offsets time keyframes while preserving their key values and tangents.
+
+    Args:
+        nodes (list, optional): Nodes whose animation curves should be offset. Uses
+            the current selection when omitted.
+        offset (float, optional): Signed frame offset. Negative offsets move left.
+        scope (str, optional): One of all, selected, current, or playback.
+
+    Returns:
+        dict: Moved curve count, key count, and the applied offset.
+    """
+    offset = float(offset)
+    if not offset:
+        return {"curves": [], "key_count": 0, "offset": 0.0}
+    if nodes is None:
+        nodes = cmds.ls(selection=True, long=True) or []
+    if isinstance(nodes, str):
+        nodes = [nodes]
+    curves = get_time_keyframes(nodes)
+    if not curves:
+        return {"curves": [], "key_count": 0, "offset": offset}
+
+    moved_curves = []
+    moved_key_times = {}
+    key_count = 0
+    time_range = _get_offset_time_range(scope)
+    selected_keyframes = _get_selected_keyframes()
+    undo_opened = False
+    try:
+        cmds.undoInfo(openChunk=True, chunkName="Offset Keyframes")
+        undo_opened = True
+        for curve in curves:
+            curve_key_times = []
+            if str(scope).lower() == "selected":
+                curve_key_times = cmds.keyframe(curve, query=True, selected=True, timeChange=True) or []
+                for key_time in curve_key_times:
+                    cmds.keyframe(
+                        curve,
+                        edit=True,
+                        relative=True,
+                        time=(float(key_time), float(key_time)),
+                        timeChange=offset,
+                    )
+            else:
+                curve_key_times = cmds.keyframe(
+                    curve,
+                    query=True,
+                    timeChange=True,
+                    **({"time": time_range} if time_range else {}),
+                ) or []
+                if curve_key_times:
+                    edit_kwargs = {"edit": True, "relative": True, "timeChange": offset}
+                    if time_range:
+                        edit_kwargs["time"] = time_range
+                    cmds.keyframe(curve, **edit_kwargs)
+            if curve_key_times:
+                moved_curves.append(curve)
+                moved_key_times[curve] = curve_key_times
+                key_count += len(curve_key_times)
+    finally:
+        try:
+            selected_keyframes = _offset_selected_keyframes(selected_keyframes, moved_key_times, offset)
+            _restore_selected_keyframes(selected_keyframes)
+        finally:
+            if undo_opened:
+                cmds.undoInfo(closeChunk=True, chunkName="Offset Keyframes")
+    return {"curves": moved_curves, "key_count": key_count, "offset": offset}
+
+
+def stagger_time_keyframes(nodes=None, step=1.0, scope="all"):
+    """Offsets selected nodes incrementally in their current selection order.
+
+    Args:
+        nodes (list, optional): Ordered nodes to stagger. Uses current selection
+            when omitted.
+        step (float, optional): Signed frame increment between adjacent nodes.
+        scope (str, optional): Offset scope passed to offset_time_keyframes.
+
+    Returns:
+        dict: Affected object count, curve count, key count, and stagger step.
+    """
+    if nodes is None:
+        nodes = cmds.ls(selection=True, long=True) or []
+    if isinstance(nodes, str):
+        nodes = [nodes]
+    nodes = list(nodes or [])
+    affected_objects = 0
+    affected_curves = []
+    key_count = 0
+    undo_opened = False
+    try:
+        cmds.undoInfo(openChunk=True, chunkName="Stagger Keyframes")
+        undo_opened = True
+        for index, node in enumerate(nodes):
+            offset = float(step) * index
+            if not offset:
+                continue
+            result = offset_time_keyframes(nodes=[node], offset=offset, scope=scope)
+            if result["key_count"]:
+                affected_objects += 1
+                key_count += result["key_count"]
+                affected_curves.extend(result["curves"])
+    finally:
+        if undo_opened:
+            cmds.undoInfo(closeChunk=True, chunkName="Stagger Keyframes")
+    return {
+        "object_count": affected_objects,
+        "curves": sorted(set(affected_curves)),
+        "key_count": key_count,
+        "step": float(step),
+    }
+
+
+def filter_animation_curves(curves):
+    """Applies Maya's Euler filter to compatible animation curves.
+
+    Args:
+        curves (list): Animation curve nodes to filter.
+
+    Returns:
+        int: Number of curves passed to Maya's Euler filter.
+    """
+    curves = sorted(set(curves or []))
+    if not curves:
+        return 0
+    selected_keyframes = _get_selected_keyframes()
+    try:
+        cmds.filterCurve(curves)
+        return len(curves)
+    except RuntimeError as exception:
+        logger.warning(f"Unable to Euler filter animation curves: {exception}")
+        return 0
+    finally:
+        _restore_selected_keyframes(selected_keyframes)
+
+
+# ------------------------------------- Animation Clip Utilities -------------------------------------
+
+
+def get_animation_clip_cache_path():
+    """Gets the persistent temp-file location used by Copy/Paste Animation.
+
+    Returns:
+        str: Absolute JSON cache path.
+    """
+    return os.path.join(tempfile.gettempdir(), "gt_tools", AnimationConstants.Clip.CACHE_FILENAME)
+
+
+def normalize_animation_clip(clip_data):
+    """Validates and normalizes portable animation-clip data.
+
+    Args:
+        clip_data (dict): Raw animation-clip payload.
+
+    Returns:
+        dict: JSON-compatible normalized animation-clip payload.
+    """
+    clip_data = clip_data if isinstance(clip_data, dict) else {}
+    normalized_objects = []
+    for object_data in clip_data.get("objects") or []:
+        if not isinstance(object_data, dict):
+            continue
+        object_name = str(object_data.get("name") or "").strip()
+        if not object_name:
+            continue
+        normalized_attributes = []
+        for attribute_data in object_data.get("attributes") or []:
+            if not isinstance(attribute_data, dict):
+                continue
+            attribute_name = str(attribute_data.get("attribute") or "").strip()
+            if not attribute_name:
+                continue
+            normalized_keys = []
+            for key_data in attribute_data.get("keys") or []:
+                if not isinstance(key_data, dict):
+                    continue
+                try:
+                    time_value = float(key_data.get("time"))
+                    value = float(key_data.get("value"))
+                except (TypeError, ValueError):
+                    continue
+                normalized_key = {"time": time_value, "value": value}
+                for tangent_key in ["in_tangent", "out_tangent"]:
+                    tangent_value = key_data.get(tangent_key)
+                    if tangent_value:
+                        normalized_key[tangent_key] = str(tangent_value)
+                if "weighted" in key_data:
+                    normalized_key["weighted"] = bool(key_data.get("weighted"))
+                normalized_keys.append(normalized_key)
+            if normalized_keys:
+                normalized_keys.sort(key=lambda item: item["time"])
+                normalized_attributes.append(
+                    {
+                        "attribute": attribute_name,
+                        "keys": normalized_keys,
+                    }
+                )
+        if normalized_attributes:
+            normalized_objects.append(
+                {
+                    "name": object_name,
+                    "namespace_free_name": core_namespace.get_namespace_free_path(
+                        object_data.get("namespace_free_name") or object_name
+                    ),
+                    "attributes": normalized_attributes,
+                }
+            )
+
+    start_frame = clip_data.get("start_frame")
+    end_frame = clip_data.get("end_frame")
+    all_times = [
+        key_data["time"]
+        for object_data in normalized_objects
+        for attribute_data in object_data["attributes"]
+        for key_data in attribute_data["keys"]
+    ]
+    if all_times:
+        start_frame = min(all_times) if start_frame is None else float(start_frame)
+        end_frame = max(all_times) if end_frame is None else float(end_frame)
+    else:
+        start_frame = float(start_frame or 0)
+        end_frame = float(end_frame or start_frame)
+    return {
+        "schema_version": AnimationConstants.Clip.SCHEMA_VERSION,
+        "start_frame": float(start_frame),
+        "end_frame": float(end_frame),
+        "objects": normalized_objects,
+    }
+
+
+def write_animation_clip(clip_data, file_path=None):
+    """Writes a portable animation clip to a JSON cache file.
+
+    Args:
+        clip_data (dict): Animation-clip payload.
+        file_path (str, optional): Destination JSON path. Uses the shared session
+            cache when omitted.
+
+    Returns:
+        str: Absolute path of the written animation clip.
+    """
+    file_path = file_path or get_animation_clip_cache_path()
+    directory_path = os.path.dirname(os.path.abspath(file_path))
+    if not os.path.isdir(directory_path):
+        os.makedirs(directory_path)
+    normalized_data = normalize_animation_clip(clip_data)
+    with open(file_path, "w", encoding="utf-8") as output_file:
+        json.dump(normalized_data, output_file, indent=4, sort_keys=True)
+    return file_path
+
+
+def read_animation_clip(file_path=None):
+    """Reads a portable animation clip from disk.
+
+    Args:
+        file_path (str, optional): Source JSON path. Uses the shared session cache
+            when omitted.
+
+    Returns:
+        dict: Normalized animation-clip payload, or an empty payload when missing.
+    """
+    file_path = file_path or get_animation_clip_cache_path()
+    if not os.path.isfile(file_path):
+        return normalize_animation_clip({})
+    try:
+        with open(file_path, "r", encoding="utf-8") as input_file:
+            return normalize_animation_clip(json.load(input_file))
+    except (OSError, ValueError, TypeError) as exception:
+        logger.warning(f'Unable to read animation clip "{file_path}": {exception}')
+        return normalize_animation_clip({})
+
+
+def delete_animation_clip(file_path=None):
+    """Deletes a portable animation clip cache file.
+
+    Args:
+        file_path (str, optional): Cache file to remove. Uses the shared session
+            cache when omitted.
+
+    Returns:
+        bool: True when a file was removed.
+    """
+    file_path = file_path or get_animation_clip_cache_path()
+    if not os.path.isfile(file_path):
+        return False
+    os.remove(file_path)
+    return True
+
+
+def get_animation_clip_summary(clip_data):
+    """Builds a concise summary for a portable animation clip.
+
+    Args:
+        clip_data (dict): Animation-clip payload.
+
+    Returns:
+        str: User-facing object, channel, and frame-range summary.
+    """
+    clip_data = normalize_animation_clip(clip_data)
+    object_count = len(clip_data["objects"])
+    channel_count = sum(len(object_data["attributes"]) for object_data in clip_data["objects"])
+    if not object_count:
+        return "No copied animation."
+    object_label = "object" if object_count == 1 else "objects"
+    channel_label = "channel" if channel_count == 1 else "channels"
+    return (
+        f"{object_count} {object_label}, {channel_count} {channel_label}, "
+        f"frames {clip_data['start_frame']:g}-{clip_data['end_frame']:g}."
+    )
+
+
+def get_animation_clip_details(clip_data):
+    """Builds a readable report of all animation stored in a clip.
+
+    Args:
+        clip_data (dict): Animation-clip payload.
+
+    Returns:
+        str: Multi-line clip report containing object, channel, key, and frame data.
+    """
+    clip_data = normalize_animation_clip(clip_data)
+    object_count = len(clip_data["objects"])
+    channel_count = sum(len(object_data["attributes"]) for object_data in clip_data["objects"])
+    key_count = sum(
+        len(attribute_data["keys"])
+        for object_data in clip_data["objects"]
+        for attribute_data in object_data["attributes"]
+    )
+    lines = [
+        "# Stored Animation Details",
+        f"Schema Version: {clip_data['schema_version']}",
+        f"Frame Range: {clip_data['start_frame']:g} - {clip_data['end_frame']:g}",
+        f"Objects: {object_count}",
+        f"Channels: {channel_count}",
+        f"Keys: {key_count}",
+        "",
+    ]
+    if not object_count:
+        lines.append("No animation is currently stored.")
+        return "\n".join(lines)
+    for object_index, object_data in enumerate(clip_data["objects"], start=1):
+        lines.extend(
+            [
+                f"# Object {object_index}: {object_data['name']}",
+                f"Namespace-Free Path: {object_data['namespace_free_name']}",
+                f"Channels: {len(object_data['attributes'])}",
+            ]
+        )
+        for attribute_data in object_data["attributes"]:
+            key_times = [key_data["time"] for key_data in attribute_data["keys"]]
+            time_label = ", ".join(f"{key_time:g}" for key_time in key_times)
+            lines.append(
+                f"  {attribute_data['attribute']}: {len(key_times)} key(s) at frame(s): {time_label}"
+            )
+        lines.append("")
+    return "\n".join(lines).rstrip()
+
+
+def _get_key_tangent_values(node, attribute, query_flag):
+    """Gets one optional key-tangent query with a failure-safe fallback.
+
+    Args:
+        node (str): Maya animation target.
+        attribute (str): Animated attribute name.
+        query_flag (str): Maya keyTangent query flag.
+
+    Returns:
+        list: Values returned by maya.cmds.keyTangent, or an empty list.
+    """
+    query_kwargs = {"query": True, query_flag: True}
+    if attribute:
+        query_kwargs["attribute"] = attribute
+    try:
+        return cmds.keyTangent(node, **query_kwargs) or []
+    except RuntimeError:
+        return []
+
+
+def get_selected_time_keyframes():
+    """Gets selected timeline keyframes grouped by animation curve.
+
+    Returns:
+        dict: Animation-curve names mapped to their selected key times.
+    """
+    selected_times = {}
+    selected_curves = cmds.keyframe(query=True, selected=True, name=True) or []
+    for curve in selected_curves:
+        key_times = cmds.keyframe(curve, query=True, selected=True, timeChange=True) or []
+        if key_times:
+            selected_times[curve] = sorted(set(float(key_time) for key_time in key_times))
+    return selected_times
+
+
+def get_selected_time_keyframe_nodes(selected_key_times=None):
+    """Gets animated nodes connected to selected timeline keyframes.
+
+    Args:
+        selected_key_times (dict, optional): Selected key times grouped by curve.
+            Queries Maya when omitted.
+
+    Returns:
+        list: Unique long names for nodes connected to selected keyframes.
+    """
+    selected_key_times = selected_key_times or get_selected_time_keyframes()
+    nodes = []
+    for curve in selected_key_times:
+        destination_plugs = cmds.listConnections(curve, source=False, destination=True, plugs=True) or []
+        for destination_plug in destination_plugs:
+            if "." not in destination_plug:
+                continue
+            destination_node = destination_plug.rsplit(".", 1)[0]
+            long_names = cmds.ls(destination_node, long=True) or []
+            if long_names and long_names[0] not in nodes:
+                nodes.append(long_names[0])
+    return nodes
+
+
+def extract_animation_clip(nodes=None, start_frame=None, end_frame=None, selected_key_times=None):
+    """Extracts animation keys from nodes into a portable JSON-compatible payload.
+
+    Args:
+        nodes (list, optional): Nodes whose animation should be copied. Uses the
+            current selection when omitted.
+        start_frame (float, optional): Optional inclusive first frame to copy.
+        end_frame (float, optional): Optional inclusive last frame to copy.
+        selected_key_times (dict, optional): Animation-curve names mapped to
+            selected key times. When provided, only those keys are copied.
+
+    Returns:
+        dict: Normalized animation-clip payload containing values and tangent types.
+    """
+    if nodes is None:
+        nodes = cmds.ls(selection=True, long=True) or []
+    if isinstance(nodes, str):
+        nodes = [nodes]
+    selected_key_times = selected_key_times if isinstance(selected_key_times, dict) else None
+    if selected_key_times is not None and not nodes:
+        nodes = get_selected_time_keyframe_nodes(selected_key_times)
+
+    clip_objects = []
+    for node in nodes or []:
+        if not cmds.objExists(node):
+            continue
+        long_node_names = cmds.ls(node, long=True) or [node]
+        long_node_name = long_node_names[0]
+        curve_attributes = []
+        for curve in cmds.keyframe(node, query=True, name=True) or []:
+            destination_plugs = cmds.listConnections(curve, source=False, destination=True, plugs=True) or []
+            for destination_plug in destination_plugs:
+                if "." not in destination_plug:
+                    continue
+                destination_node, attribute_name = destination_plug.rsplit(".", 1)
+                destination_long_names = cmds.ls(destination_node, long=True) or []
+                if destination_long_names and destination_long_names[0] == long_node_name:
+                    curve_attributes.append((curve, attribute_name))
+        attributes = []
+        for curve, attribute_name in curve_attributes:
+            allowed_key_times = None
+            if selected_key_times is not None:
+                if curve not in selected_key_times:
+                    continue
+                allowed_key_times = set(float(key_time) for key_time in selected_key_times[curve])
+            key_times = cmds.keyframe(curve, query=True, timeChange=True) or []
+            key_values = cmds.keyframe(curve, query=True, valueChange=True) or []
+            in_tangents = _get_key_tangent_values(curve, None, "inTangentType")
+            out_tangents = _get_key_tangent_values(curve, None, "outTangentType")
+            weighted_tangents = _get_key_tangent_values(curve, None, "weightedTangents")
+            keys = []
+            for index, key_time in enumerate(key_times):
+                if allowed_key_times is not None and float(key_time) not in allowed_key_times:
+                    continue
+                if start_frame is not None and float(key_time) < float(start_frame):
+                    continue
+                if end_frame is not None and float(key_time) > float(end_frame):
+                    continue
+                if index >= len(key_values):
+                    continue
+                key_data = {"time": float(key_time), "value": float(key_values[index])}
+                if index < len(in_tangents):
+                    key_data["in_tangent"] = in_tangents[index]
+                if index < len(out_tangents):
+                    key_data["out_tangent"] = out_tangents[index]
+                if index < len(weighted_tangents):
+                    key_data["weighted"] = bool(weighted_tangents[index])
+                keys.append(key_data)
+            if keys:
+                attributes.append({"attribute": attribute_name, "keys": keys})
+        if attributes:
+            clip_objects.append(
+                {
+                    "name": node,
+                    "namespace_free_name": core_namespace.get_namespace_free_path(node),
+                    "attributes": attributes,
+                }
+            )
+    return normalize_animation_clip({"objects": clip_objects})
+
+
+def extract_selected_animation_clip(nodes=None):
+    """Extracts only the currently selected timeline keyframes.
+
+    Args:
+        nodes (list, optional): Nodes that own the selected keyframes. When
+            omitted, source nodes are resolved from the selected keyframes.
+
+    Returns:
+        dict: Normalized animation-clip payload containing selected keys only.
+    """
+    selected_key_times = get_selected_time_keyframes()
+    return extract_animation_clip(nodes=nodes, selected_key_times=selected_key_times)
+
+
+def _resolve_paste_targets(clip_data, targets, mapping_mode, source_namespace="", target_namespace=""):
+    """Pairs copied objects with destination objects.
+
+    Args:
+        clip_data (dict): Normalized animation-clip payload.
+        targets (list): Destination nodes selected by the user.
+        mapping_mode (str): Selection-order, namespace-free name, or namespace
+            swap mapping mode.
+        source_namespace (str, optional): Namespace to replace when using
+            namespace-swap mapping. Uses each copied object's namespace when
+            omitted.
+        target_namespace (str, optional): Replacement destination namespace.
+
+    Returns:
+        list: Source-object and destination-node pairs.
+    """
+    copied_objects = clip_data.get("objects") or []
+    existing_targets = [target for target in targets or [] if cmds.objExists(target)]
+    if not existing_targets:
+        existing_targets = [
+            object_data["name"]
+            for object_data in copied_objects
+            if cmds.objExists(object_data.get("name"))
+        ]
+    if str(mapping_mode).lower() == AnimationConstants.MappingMode.NAMESPACE:
+        pairs = []
+        for object_data in copied_objects:
+            copied_name = object_data.get("name") or ""
+            effective_source_namespace = source_namespace or core_namespace.get_namespace(
+                copied_name,
+                first_in_path=True,
+            )
+            target_name = core_namespace.replace_namespace_in_path(
+                copied_name,
+                source_namespace=effective_source_namespace,
+                target_namespace=target_namespace,
+            )
+            target_long_names = cmds.ls(target_name, long=True) or []
+            if target_long_names:
+                pairs.append((object_data, target_long_names[0]))
+        return pairs
+    if str(mapping_mode).lower() == AnimationConstants.MappingMode.NAME:
+        targets_by_name = {}
+        for target in existing_targets:
+            targets_by_name.setdefault(core_namespace.get_namespace_free_path(target), []).append(target)
+        pairs = []
+        for object_data in copied_objects:
+            candidates = targets_by_name.get(object_data.get("namespace_free_name"), [])
+            if candidates:
+                pairs.append((object_data, candidates.pop(0)))
+        return pairs
+
+    if len(copied_objects) == 1 and len(existing_targets) > 1:
+        return [(copied_objects[0], target) for target in existing_targets]
+    return list(zip(copied_objects, existing_targets))
+
+
+def _set_animation_key(node, attribute, key_data, destination_time):
+    """Sets one copied animation key and recreates its tangent types.
+
+    Args:
+        node (str): Destination Maya node.
+        attribute (str): Destination attribute name.
+        key_data (dict): Source key value and tangent data.
+        destination_time (float): Destination key time.
+    """
+    cmds.setKeyframe(node, attribute=attribute, time=destination_time, value=key_data["value"])
+    tangent_kwargs = {}
+    if key_data.get("in_tangent"):
+        tangent_kwargs["inTangentType"] = key_data["in_tangent"]
+    if key_data.get("out_tangent"):
+        tangent_kwargs["outTangentType"] = key_data["out_tangent"]
+    if tangent_kwargs:
+        cmds.keyTangent(
+            node,
+            attribute=attribute,
+            time=(destination_time, destination_time),
+            edit=True,
+            **tangent_kwargs,
+        )
+    if "weighted" in key_data:
+        cmds.keyTangent(
+            node,
+            attribute=attribute,
+            time=(destination_time, destination_time),
+            edit=True,
+            weightedTangents=bool(key_data["weighted"]),
+        )
+
+
+def paste_animation_clip(
+    clip_data,
+    targets=None,
+    paste_time=None,
+    mode=AnimationConstants.PasteMode.INSERT,
+    mapping_mode=AnimationConstants.MappingMode.SELECTION,
+    source_attribute="",
+    destination_attribute="",
+    source_namespace="",
+    target_namespace="",
+):
+    """Pastes a portable animation clip onto Maya nodes.
+
+    Paste Insert shifts target keys at and after the destination frame to keep
+    future animation intact. Paste Replace clears every affected target channel
+    before writing the copied animation, matching its full-replace behavior.
+
+    Args:
+        clip_data (dict): Animation payload returned by extract_animation_clip.
+        targets (list, optional): Destination nodes. Uses matching source nodes
+            when omitted.
+        paste_time (float, optional): Destination time for the copied start frame.
+            Uses the current frame when omitted.
+        mode (str, optional): Insert or replace.
+        mapping_mode (str, optional): Selection order, namespace-free name, or
+            exact namespace-swap mapping.
+        source_attribute (str, optional): Optional copied channel to isolate.
+        destination_attribute (str, optional): Optional channel name to receive
+            the isolated copied channel.
+        source_namespace (str, optional): Source namespace to replace when using
+            namespace-swap mapping. Uses the copied object's namespace when empty.
+        target_namespace (str, optional): Destination namespace used with
+            namespace-swap mapping.
+
+    Returns:
+        dict: Counts for pasted targets, channels, keys, and skipped channels.
+    """
+    clip_data = normalize_animation_clip(clip_data)
+    if not clip_data["objects"]:
+        return {"targets": 0, "channels": 0, "keys": 0, "skipped": 0, "curves": []}
+    if targets is None:
+        targets = cmds.ls(selection=True, long=True) or []
+    if isinstance(targets, str):
+        targets = [targets]
+    paste_time = cmds.currentTime(query=True) if paste_time is None else float(paste_time)
+    mode = str(mode or AnimationConstants.PasteMode.INSERT).lower()
+    if mode not in [AnimationConstants.PasteMode.INSERT, AnimationConstants.PasteMode.REPLACE]:
+        raise ValueError(f'Unknown animation paste mode "{mode}".')
+
+    source_attribute = str(source_attribute or "").strip()
+    destination_attribute = str(destination_attribute or "").strip()
+    pairs = _resolve_paste_targets(
+        clip_data,
+        targets,
+        mapping_mode,
+        source_namespace=source_namespace,
+        target_namespace=target_namespace,
+    )
+    source_start = float(clip_data["start_frame"])
+    source_end = float(clip_data["end_frame"])
+    insert_duration = max(1.0, source_end - source_start + 1.0)
+    original_time = cmds.currentTime(query=True)
+    pasted_targets = set()
+    pasted_channels = 0
+    pasted_keys = 0
+    skipped_channels = 0
+    affected_curves = []
+    prepared_channels = set()
+    undo_opened = False
+    try:
+        cmds.undoInfo(openChunk=True, chunkName="Paste Animation")
+        undo_opened = True
+        cmds.refresh(suspend=True)
+        for object_data, target in pairs:
+            for attribute_data in object_data["attributes"]:
+                source_name = attribute_data["attribute"]
+                if source_attribute and source_name != source_attribute:
+                    continue
+                target_name = destination_attribute if source_attribute and destination_attribute else source_name
+                target_plug = f"{target}.{target_name}"
+                if not cmds.objExists(target_plug):
+                    skipped_channels += 1
+                    continue
+                channel_key = (target, target_name)
+                if channel_key not in prepared_channels:
+                    if mode == AnimationConstants.PasteMode.REPLACE:
+                        cmds.cutKey(target, attribute=target_name, clear=True)
+                    elif insert_duration:
+                        existing_times = cmds.keyframe(
+                            target,
+                            attribute=target_name,
+                            query=True,
+                            timeChange=True,
+                        ) or []
+                        if existing_times:
+                            cmds.keyframe(
+                                target,
+                                attribute=target_name,
+                                edit=True,
+                                relative=True,
+                                time=(float(paste_time), 1000000000.0),
+                                timeChange=insert_duration,
+                            )
+                    prepared_channels.add(channel_key)
+                channel_keys = attribute_data["keys"]
+                for key_data in channel_keys:
+                    destination_key_time = float(paste_time) + (float(key_data["time"]) - source_start)
+                    _set_animation_key(target, target_name, key_data, destination_key_time)
+                    pasted_keys += 1
+                if channel_keys:
+                    pasted_targets.add(target)
+                    pasted_channels += 1
+                    affected_curves.extend(cmds.keyframe(target, attribute=target_name, query=True, name=True) or [])
+    finally:
+        cmds.currentTime(original_time)
+        cmds.refresh(suspend=False)
+        if undo_opened:
+            cmds.undoInfo(closeChunk=True, chunkName="Paste Animation")
+    return {
+        "targets": len(pasted_targets),
+        "channels": pasted_channels,
+        "keys": pasted_keys,
+        "skipped": skipped_channels,
+        "curves": sorted(set(affected_curves)),
+    }
 
 
 

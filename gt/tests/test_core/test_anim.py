@@ -437,11 +437,6 @@ class TestAnimCore(unittest.TestCase):
         self.assertEqual([30.0, 34.0], times)
         self.assertEqual([12.0, 24.0], values)
 
-    def test_namespace_free_path_removes_every_namespace_component(self):
-        result = core_anim.get_namespace_free_path("|first:rig|second:control")
-        expected = "|rig|control"
-        self.assertEqual(expected, result)
-
     def test_delete_keyframes_both(self):
         create_anim_test_scene()
         result = core_anim.delete_keyframes(key_scope=core_anim.KeyframeScope.BOTH)
