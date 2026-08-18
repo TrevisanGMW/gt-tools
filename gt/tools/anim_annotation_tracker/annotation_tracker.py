@@ -1736,7 +1736,14 @@ class RangeToolWindow(QtWidgets.QDialog):
         if folder: self.auto_path_fld.setText(folder)
 
     def rebuild_schema_ui(self, file_data=None):
-        """Rebuilds dynamic tracker controls from the active schema."""
+        """
+        Rebuilds dynamic tracker controls from the active schema.
+
+        Args:
+        file_data (dict, optional): A dictionary containing values to populate
+            the file-level widgets. If None or not a dictionary, it falls back
+            to the instance's current `file_data` or `scene_file_data_cache`.
+        """
         self._is_building_ui = True
         file_data = copy.deepcopy(
             file_data if isinstance(file_data, dict) else self.file_data
