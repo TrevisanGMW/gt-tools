@@ -1,0 +1,174 @@
+{
+  "validation": {
+    "full_coverage": true,
+    "allow_overlap": false
+  },
+  "file_level": [
+    {
+      "type": "enum",
+      "name": "quality",
+      "label": "Quality",
+      "options": ["low", "medium", "high"],
+      "required": true,
+      "description": "Defines overall animation fidelity and usability."
+    },
+    {
+      "type": "row",
+      "equal_widths": true,
+      "items": [
+        {
+          "type": "string",
+          "name": "source",
+          "label": "Source",
+          "required": true,
+          "placeholder": "e.g. mocap_shoot_01",
+          "description": "Identifies the origin animation or dataset."
+        },
+        {
+          "type": "enum",
+          "name": "style",
+          "label": "Style",
+          "options": ["none", "relaxed", "combat", "tired", "drunk", "confident", "tense", "old", "injured", "scared", "aggressive", "cautious", "stealth"],
+          "required": true,
+          "description": "The physical demeanor or emotional overlay that applies to the overall animation."
+        }
+      ]
+    },
+    {
+      "type": "string",
+      "name": "context",
+      "label": "Context",
+      "required": false,
+      "placeholder": "e.g. character exits through a heavy doorway",
+      "description": "Optional sentence describing the overall scene or situation."
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "row",
+      "items": [
+        {
+          "type": "boolean",
+          "name": "clipped",
+          "label": "Clipped",
+          "required": true,
+          "description": "True when this sequence was extracted from a longer take."
+        },
+        {
+          "type": "boolean",
+          "name": "annotated",
+          "label": "Annotated",
+          "required": true,
+          "description": "True when frame-range metadata is verified."
+        },
+        {
+          "type": "boolean",
+          "name": "commercial_use",
+          "label": "Commercial Use",
+          "required": true,
+          "description": "True when this file is cleared for commercial use."
+        }
+      ]
+    }
+  ],
+  "frame_range": [
+    {
+      "type": "row",
+      "items": [
+        {
+          "type": "enum",
+          "name": "state",
+          "label": "State",
+          "options": ["none", "idle", "enter", "exit", "walk", "jog", "run", "sprint"],
+          "required": true,
+          "description": "The core locomotion or foundational action."
+        },
+        {
+          "type": "enum",
+          "name": "stance",
+          "label": "Stance",
+          "options": ["none", "stand", "crouch", "kneel", "prone", "sit", "crawl"],
+          "required": true,
+          "description": "The character's primary vertical posture."
+        },
+        {
+          "type": "enum",
+          "name": "override_style",
+          "label": "Override Style",
+          "options": ["none", "relaxed", "combat", "tired", "drunk", "confident", "tense", "old", "injured", "scared", "aggressive", "cautious", "stealth"],
+          "required": false,
+          "description": "Optional style that applies only to this range when it differs materially from the file style."
+        }
+      ]
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "row",
+      "items": [
+        {
+          "type": "enum",
+          "name": "interaction_type",
+          "label": "Interaction Type",
+          "options": ["none", "avoid", "carry_light", "carry_heavy", "navigate", "push_pull", "climb", "gesture", "sustain"],
+          "required": false,
+          "description": "The primary interaction performed in this range. 'sustain' means maintaining an ongoing interaction while waiting."
+        },
+        {
+          "type": "enum",
+          "name": "interaction_scope",
+          "label": "Interaction Scope",
+          "options": ["full_body", "upper_body", "lower_body", "both_arms", "left_arm", "right_arm", "both_legs", "left_leg", "right_leg"],
+          "required": false,
+          "description": "The body parts actively constrained by the interaction."
+        }
+      ]
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "string",
+      "name": "interaction_volumes",
+      "label": "Interaction Volumes",
+      "required": false,
+      "automation": "detect_volumes.py",
+      "placeholder": "e.g. box_01, door_02",
+      "description": "Comma-separated scene nodes representing interaction volumes."
+    },
+    {
+      "type": "row",
+      "items": [
+        {
+          "type": "string",
+          "name": "interaction_item",
+          "label": "Interaction Item",
+          "required": false,
+          "placeholder": "e.g. torch, phone, sword",
+          "description": "Prop or target involved when no interaction volume exists."
+        },
+        {
+          "type": "string",
+          "name": "contact_attributes",
+          "label": "Contact Attributes",
+          "required": false,
+          "placeholder": "e.g. pelvis_docking.contactWeight",
+          "description": "Comma-separated scene object attributes used to identify contacts. Enter each as object.attribute."
+        }
+      ]
+    },
+    {
+      "type": "separator"
+    },
+    {
+      "type": "string",
+      "name": "events",
+      "label": "Events",
+      "required": false,
+      "placeholder": "e.g. {\"foot_strike\": [18, 32]}",
+      "description": "JSON dictionary mapping animation events to frame numbers."
+    }
+  ]
+}
