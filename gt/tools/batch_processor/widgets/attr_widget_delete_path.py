@@ -128,6 +128,16 @@ class AttrWidgetDeleteProjectFilesTask(AttrWidgetTask):
             label_text="Run Delete Task",
             tooltip="Run only this Delete Path task using the current safety settings.",
         )
+        self.add_segmentation_section(
+            main_label="Run Once After All Jobs",
+            main_key="run_once_after_multi_instance",
+            main_tooltip=(
+                "In multi-instance mode, wait for every regular job to succeed,\n"
+                "then run this delete pass once, instead of after each job.\n"
+                "This task must be the last enabled processing task.\n"
+                'Enable "Add Separator" to mark this run-once step in the task list.'
+            ),
+        )
         self.content_layout.addStretch()
 
     def _get_delete_preview_paths(self):

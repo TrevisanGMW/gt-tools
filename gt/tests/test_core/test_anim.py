@@ -137,6 +137,12 @@ class TestAnimCore(unittest.TestCase):
         expected = ["cube_time_rotateY", "cube_time_scaleY", "cube_time_translateZ"]
         self.assertEqual(expected, result)
 
+    def test_get_time_keyframes_with_empty_object_list(self):
+        create_anim_test_scene()
+        result = core_anim.get_time_keyframes(obj_list=[])
+        expected = []
+        self.assertEqual(expected, result)
+
     def test_get_double_keyframes(self):
         create_anim_test_scene()
         result = core_anim.get_double_keyframes()
@@ -200,6 +206,237 @@ class TestAnimCore(unittest.TestCase):
         expected = ["cube_time_rotateY", "cube_time_scaleY", "cube_time_translateZ"]
         self.assertEqual(expected, result)
 
+    def test_offset_time_keyframes_preserves_key_values(self):
+        source = cmds.polyCube(name="offset_source", createUVs=4, ch=False)[0]
+        cmds.setKeyframe(source, attribute="translateX", time=1, value=2)
+        cmds.setKeyframe(source, attribute="translateX", time=5, value=8)
+
+        result = core_anim.offset_time_keyframes(nodes=[source], offset=3)
+        times = cmds.keyframe(source, attribute="translateX", query=True, timeChange=True)
+        values = cmds.keyframe(source, attribute="translateX", query=True, valueChange=True)
+
+        self.assertEqual(2, result["key_count"])
+        self.assertEqual([4.0, 8.0], times)
+        self.assertEqual([2.0, 8.0], values)
+
+    def test_offset_time_keyframes_preserves_selected_keys_for_all_scopes(self):
+        scope_data = [
+            ("all", 1, 3),
+            ("selected", 1, 3),
+            ("current", 5, 7),
+            ("playback", 5, 7),
+        ]
+        for scope, selected_time, expected_time in scope_data:
+            maya_test_tools.force_new_scene()
+            source = cmds.polyCube(name="offset_source", createUVs=4, ch=False)[0]
+            cmds.setKeyframe(source, attribute="translateX", time=1, value=2)
+            cmds.setKeyframe(source, attribute="translateX", time=5, value=8)
+            curve = core_anim.get_time_keyframes([source])[0]
+            cmds.currentTime(4)
+            cmds.playbackOptions(min=4, max=6)
+            cmds.selectKey(clear=True)
+            cmds.selectKey(curve, add=True, time=(selected_time, selected_time))
+
+            core_anim.offset_time_keyframes(nodes=[source], offset=2, scope=scope)
+
+            result = cmds.keyframe(curve, query=True, selected=True, timeChange=True)
+            self.assertEqual([float(expected_time)], result)
+
+    def test_offset_with_euler_filter_preserves_selected_keys(self):
+        source = cmds.polyCube(name="filter_source", createUVs=4, ch=False)[0]
+        cmds.setKeyframe(source, attribute="rotateX", time=1, value=2)
+        cmds.setKeyframe(source, attribute="rotateX", time=5, value=200)
+        curve = core_anim.get_time_keyframes([source])[0]
+        cmds.selectKey(clear=True)
+        cmds.selectKey(curve, add=True, time=(1, 1))
+
+        offset_result = core_anim.offset_time_keyframes(nodes=[source], offset=2, scope="selected")
+        core_anim.filter_animation_curves(offset_result["curves"])
+
+        result = cmds.keyframe(curve, query=True, selected=True, timeChange=True)
+        self.assertEqual([3.0], result)
+
+    def test_animation_constants_group_clip_paste_and_mapping_values(self):
+        expected = 1
+        result = core_anim.AnimationConstants.Clip.SCHEMA_VERSION
+        self.assertEqual(expected, result)
+
+        expected = ["insert", "replace"]
+        result = [
+            core_anim.AnimationConstants.PasteMode.INSERT,
+            core_anim.AnimationConstants.PasteMode.REPLACE,
+        ]
+        self.assertEqual(expected, result)
+
+        expected = ["selection", "name", "namespace"]
+        result = [
+            core_anim.AnimationConstants.MappingMode.SELECTION,
+            core_anim.AnimationConstants.MappingMode.NAME,
+            core_anim.AnimationConstants.MappingMode.NAMESPACE,
+        ]
+        self.assertEqual(expected, result)
+
+    def test_animation_clip_pastes_to_another_object(self):
+        source = cmds.polyCube(name="animation_source", createUVs=4, ch=False)[0]
+        target = cmds.polyCube(name="animation_target", createUVs=4, ch=False)[0]
+        cmds.setKeyframe(source, attribute="translateX", time=1, value=2)
+        cmds.setKeyframe(source, attribute="translateX", time=5, value=8)
+        cmds.setKeyframe(target, attribute="translateX", time=1, value=99)
+
+        clip_data = core_anim.extract_animation_clip(nodes=[source])
+        result = core_anim.paste_animation_clip(
+            clip_data=clip_data,
+            targets=[target],
+            paste_time=10,
+            mode=core_anim.AnimationConstants.PasteMode.REPLACE,
+        )
+        times = cmds.keyframe(target, attribute="translateX", query=True, timeChange=True)
+        values = cmds.keyframe(target, attribute="translateX", query=True, valueChange=True)
+
+        self.assertEqual(2, result["keys"])
+        self.assertEqual([10.0, 14.0], times)
+        self.assertEqual([2.0, 8.0], values)
+
+    def test_animation_clip_insert_preserves_future_keys(self):
+        source = cmds.polyCube(name="insert_source", createUVs=4, ch=False)[0]
+        target = cmds.polyCube(name="insert_target", createUVs=4, ch=False)[0]
+        cmds.setKeyframe(source, attribute="translateX", time=1, value=2)
+        cmds.setKeyframe(source, attribute="translateX", time=5, value=8)
+        cmds.setKeyframe(target, attribute="translateX", time=10, value=50)
+        cmds.setKeyframe(target, attribute="translateX", time=20, value=60)
+
+        clip_data = core_anim.extract_animation_clip(nodes=[source])
+        result = core_anim.paste_animation_clip(
+            clip_data=clip_data,
+            targets=[target],
+            paste_time=10,
+            mode=core_anim.AnimationConstants.PasteMode.INSERT,
+        )
+        times = cmds.keyframe(target, attribute="translateX", query=True, timeChange=True)
+        values = cmds.keyframe(target, attribute="translateX", query=True, valueChange=True)
+
+        self.assertEqual(2, result["keys"])
+        self.assertEqual([10.0, 14.0, 15.0, 25.0], times)
+        self.assertEqual([2.0, 8.0, 50.0, 60.0], values)
+
+    def test_animation_clip_maps_matching_namespace_free_names(self):
+        cmds.namespace(add="source_rig")
+        cmds.namespace(add="target_rig")
+        source = cmds.polyCube(name="source_rig:control", createUVs=4, ch=False)[0]
+        target = cmds.polyCube(name="target_rig:control", createUVs=4, ch=False)[0]
+        cmds.setKeyframe(source, attribute="translateX", time=1, value=3)
+        cmds.setKeyframe(source, attribute="translateX", time=5, value=9)
+
+        clip_data = core_anim.extract_animation_clip(nodes=[source])
+        result = core_anim.paste_animation_clip(
+            clip_data=clip_data,
+            targets=[target],
+            paste_time=20,
+            mode=core_anim.AnimationConstants.PasteMode.REPLACE,
+            mapping_mode=core_anim.AnimationConstants.MappingMode.NAME,
+        )
+        times = cmds.keyframe(target, attribute="translateX", query=True, timeChange=True)
+        values = cmds.keyframe(target, attribute="translateX", query=True, valueChange=True)
+
+        self.assertEqual(2, result["keys"])
+        self.assertEqual([20.0, 24.0], times)
+        self.assertEqual([3.0, 9.0], values)
+
+    def test_animation_clip_maps_to_target_namespace_without_selection(self):
+        cmds.namespace(add="source_rig")
+        cmds.namespace(add="target_rig")
+        source = cmds.polyCube(name="source_rig:control", createUVs=4, ch=False)[0]
+        target = cmds.polyCube(name="target_rig:control", createUVs=4, ch=False)[0]
+        cmds.setKeyframe(source, attribute="translateX", time=1, value=3)
+        cmds.setKeyframe(source, attribute="translateX", time=5, value=9)
+
+        clip_data = core_anim.extract_animation_clip(nodes=[source])
+        result = core_anim.paste_animation_clip(
+            clip_data=clip_data,
+            targets=[],
+            paste_time=20,
+            mode=core_anim.AnimationConstants.PasteMode.REPLACE,
+            mapping_mode=core_anim.AnimationConstants.MappingMode.NAMESPACE,
+            source_namespace="source_rig",
+            target_namespace="target_rig",
+        )
+        times = cmds.keyframe(target, attribute="translateX", query=True, timeChange=True)
+        values = cmds.keyframe(target, attribute="translateX", query=True, valueChange=True)
+
+        self.assertEqual(2, result["keys"])
+        self.assertEqual([20.0, 24.0], times)
+        self.assertEqual([3.0, 9.0], values)
+
+    def test_animation_clip_extracts_selected_keyframes_only(self):
+        source = cmds.polyCube(name="selected_key_source", createUVs=4, ch=False)[0]
+        for frame, value in [(1, 2), (5, 8), (10, 14)]:
+            cmds.setKeyframe(source, attribute="translateX", time=frame, value=value)
+        curve = core_anim.get_time_keyframes([source])[0]
+        cmds.selectKey(clear=True)
+        cmds.selectKey(curve, add=True, time=(5, 5))
+        cmds.selectKey(curve, add=True, time=(10, 10))
+
+        clip_data = core_anim.extract_selected_animation_clip(nodes=[source])
+        result = [key_data["time"] for key_data in clip_data["objects"][0]["attributes"][0]["keys"]]
+
+        self.assertEqual([5.0, 10.0], result)
+
+    def test_animation_clip_extracts_keys_before_and_after_current_frame(self):
+        source = cmds.polyCube(name="range_key_source", createUVs=4, ch=False)[0]
+        for frame, value in [(1, 2), (5, 8), (10, 14)]:
+            cmds.setKeyframe(source, attribute="translateX", time=frame, value=value)
+        cmds.currentTime(5)
+
+        before_clip = core_anim.extract_animation_clip(nodes=[source], end_frame=cmds.currentTime(query=True))
+        after_clip = core_anim.extract_animation_clip(nodes=[source], start_frame=cmds.currentTime(query=True))
+        before_result = [key_data["time"] for key_data in before_clip["objects"][0]["attributes"][0]["keys"]]
+        after_result = [key_data["time"] for key_data in after_clip["objects"][0]["attributes"][0]["keys"]]
+
+        self.assertEqual([1.0, 5.0], before_result)
+        self.assertEqual([5.0, 10.0], after_result)
+
+    def test_animation_clip_details_lists_stored_objects_and_channels(self):
+        clip_data = {
+            "objects": [
+                {
+                    "name": "|source:control",
+                    "attributes": [
+                        {
+                            "attribute": "translateX",
+                            "keys": [{"time": 1, "value": 4}],
+                        }
+                    ],
+                }
+            ]
+        }
+
+        result = core_anim.get_animation_clip_details(clip_data)
+
+        self.assertIn("Object 1: |source:control", result)
+        self.assertIn("translateX: 1 key(s) at frame(s): 1", result)
+
+    def test_animation_clip_can_paste_to_another_channel(self):
+        source = cmds.polyCube(name="channel_source", createUVs=4, ch=False)[0]
+        target = cmds.polyCube(name="channel_target", createUVs=4, ch=False)[0]
+        cmds.setKeyframe(source, attribute="translateX", time=1, value=12)
+        cmds.setKeyframe(source, attribute="translateX", time=5, value=24)
+
+        clip_data = core_anim.extract_animation_clip(nodes=[source])
+        result = core_anim.paste_animation_clip(
+            clip_data=clip_data,
+            targets=[target],
+            paste_time=30,
+            mode=core_anim.AnimationConstants.PasteMode.REPLACE,
+            source_attribute="translateX",
+            destination_attribute="rotateY",
+        )
+        times = cmds.keyframe(target, attribute="rotateY", query=True, timeChange=True)
+        values = [round(value, 6) for value in cmds.keyframe(target, attribute="rotateY", query=True, valueChange=True)]
+
+        self.assertEqual(2, result["keys"])
+        self.assertEqual([30.0, 34.0], times)
+        self.assertEqual([12.0, 24.0], values)
+
     def test_delete_keyframes_both(self):
         create_anim_test_scene()
         result = core_anim.delete_keyframes(key_scope=core_anim.KeyframeScope.BOTH)
@@ -252,6 +489,39 @@ class TestAnimCore(unittest.TestCase):
         self.assertEqual(expected, result)
         result = cmds.keyframe("cube_time_translateZ", query=True, keyframeCount=True)
         expected = 1  # Key at frame 1 remains
+        self.assertEqual(expected, result)
+
+    def test_delete_time_keyframes_outside_range(self):
+        create_anim_test_scene()
+        result = core_anim.delete_time_keyframes_outside_range(start=1, end=10)
+        expected = 1
+        self.assertEqual(expected, result)
+        result = cmds.keyframe("cube_time_scaleY", query=True, keyframeCount=True)
+        expected = 1  # The key at the inclusive end frame remains.
+        self.assertEqual(expected, result)
+
+    def test_delete_time_keyframes_outside_range_with_large_frame(self):
+        create_anim_test_scene()
+        cmds.setKeyframe("cube_time.tx", time=100000000, value=1)
+        result = core_anim.delete_time_keyframes_outside_range(start=1, end=10)
+        expected = 2
+        self.assertEqual(expected, result)
+        result = cmds.objExists("cube_time_translateX")
+        expected = False
+        self.assertEqual(expected, result)
+
+    def test_delete_time_keyframes_outside_animation_range(self):
+        create_anim_test_scene()
+        cmds.playbackOptions(animationStartTime=1, animationEndTime=5)
+        result = core_anim.delete_time_keyframes_outside_animation_range()
+        expected = 6
+        self.assertEqual(expected, result)
+
+    def test_delete_time_keyframes_outside_playback_range(self):
+        create_anim_test_scene()
+        cmds.playbackOptions(minTime=1, maxTime=5)
+        result = core_anim.delete_time_keyframes_outside_playback_range()
+        expected = 6
         self.assertEqual(expected, result)
 
     def test_DoubleKeyframe(self):

@@ -21,7 +21,7 @@ import gt.ui.resource_library as ui_res_lib
 DEFAULT_MOBU_ARGUMENTS = "-batch\n-verbosePython"
 DEFAULT_MOBU_SCRIPT_FLAG = ""
 LEGACY_MOBU_SCRIPT_FLAG = "-r"
-DEFAULT_MOBU_INLINE_SCRIPT = task_utils.load_script("script_inline_external_mobu.py")
+SAMPLE_SCRIPTS_DIRECTORY = "external_mobu"
 
 
 class TaskMotionBuilderScript(TaskExternalScript):
@@ -37,6 +37,7 @@ class TaskMotionBuilderScript(TaskExternalScript):
     metadata_scripts_key = "motionbuilder_scripts"
     temporary_file_prefix = "mobu"
     process_log_name = "motionbuilder"
+    sample_scripts_directory = SAMPLE_SCRIPTS_DIRECTORY
 
     def __init__(self, *args, **kwargs):
         """Initializes the MotionBuilder task and migrates legacy launch defaults."""
@@ -57,7 +58,7 @@ class TaskMotionBuilderScript(TaskExternalScript):
                 "source_path": "{previous-task-path}",
                 "target_path": self.default_target_path_template,
                 "script_mode": SCRIPT_MODE_INLINE,
-                "script_text": DEFAULT_MOBU_INLINE_SCRIPT,
+                "script_text": "",
                 "script_path": "{project-dir}/scripts/mobu_process.py",
                 "scripts_path": "{project-dir}/scripts/mobu",
                 "motionbuilder_executable": "",

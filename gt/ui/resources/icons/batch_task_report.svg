@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150">
+  <style>
+    .page { fill: #bdbdbd; stroke: #1d1d1d; stroke-width: 6; stroke-linejoin: round; }
+    .fold { fill: #64b7a5; stroke: #1d1d1d; stroke-width: 6; stroke-linejoin: round; }
+    .bar { fill: #64b7a5; stroke: #1d1d1d; stroke-width: 6; stroke-linejoin: round; }
+    .line { fill: none; stroke: #1d1d1d; stroke-width: 7; stroke-linecap: round; }
+  </style>
+  <path class="page" d="M26 12h70l28 28v98H26z"/>
+  <path class="fold" d="M96 12l28 28H96z"/>
+  <path class="line" d="M46 60h34M46 78h58"/>
+  <rect class="bar" x="44" y="98" width="18" height="24"/>
+  <rect class="bar" x="68" y="86" width="18" height="36"/>
+  <rect class="bar" x="92" y="72" width="18" height="50"/>
+</svg>

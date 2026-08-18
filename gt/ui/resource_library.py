@@ -263,7 +263,12 @@ class Icon:
     tool_transfer_transforms = get_icon_path(r"tool_transfer_transforms.svg")
     tool_world_space_baker = get_icon_path(r"tool_world_space_baker.svg")
     tool_clip_tracker = get_icon_path(r"tool_clip_tracker.svg")
-    tool_label_tracker = get_icon_path(r"tool_label_tracker.svg")
+    tool_annotation_tracker = get_icon_path(r"tool_annotation_tracker.svg")
+    tool_offset_keyframes = get_icon_path(r"tool_offset_keyframes.svg")
+    tool_anim_copy_paste = get_icon_path(r"tool_anim_copy_paste.svg")
+    anim_copy = get_icon_path(r"anim_copy.svg")
+    anim_paste = get_icon_path(r"anim_paste.svg")
+    anim_paste_insert = get_icon_path(r"anim_paste_insert.svg")
     tool_attributes_to_python = get_icon_path(r"tool_attributes_to_python.svg")
     tool_render_checklist = get_icon_path(r"tool_render_checklist.svg")
     # Curves
@@ -475,6 +480,7 @@ class Icon:
     batch_task_rename = get_icon_path(r"batch_task_rename.svg")
     batch_task_delete_project_files = get_icon_path(r"batch_task_delete_project_files.svg")
     batch_task_map_hierarchy = get_icon_path(r"batch_task_map_hierarchy.svg")
+    batch_task_report = get_icon_path(r"batch_task_report.svg")
     batch_task_save_maya = get_icon_path(r"batch_task_save_maya.svg")
     batch_task_export_usd = get_icon_path(r"batch_task_export_usd.svg")
     batch_task_export_fbx = get_icon_path(r"batch_task_export_fbx.svg")
@@ -1031,6 +1037,7 @@ class StylesheetVariables:
         # Colors
         "@text_color;": Color.RGB.white,
         "@indicator_border_color;": Color.RGB.gray_mid_much_lighter,
+        "@indicator_unchecked_color;": "rgba(58, 58, 58, 255)",
         "@indicator_hover_color;": Color.RGB.gray_lighter,
         "@indicator_checked_color;": Color.RGB.white,
         "@indicator_checked_border_color;": Color.RGB.gray_gainsboro,

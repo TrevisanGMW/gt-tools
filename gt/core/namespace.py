@@ -64,20 +64,79 @@ def get_namespaces(obj_list):
     return namespaces
 
 
-def get_namespace(node):
-    """
-    Get the all namespaces found in provided objects
+def get_namespace(node, first_in_path=False):
+    """Gets a namespace from a Maya node name or DAG path.
+
     Args:
-        node (str): An object to extract namespace from.
+        node (str): Node name or long DAG path to inspect.
+        first_in_path (bool, optional): When True, returns the namespace from
+            the first namespaced DAG component. Defaults to False, which
+            preserves the existing behavior of returning the final component's
+            namespace.
 
     Returns:
-        str: Namespace of the provided object. Empty string if it doesn't have a namespace
+        str: Namespace of the provided object, or an empty string.
     """
+    if first_in_path:
+        for path_part in str(node or "").split("|"):
+            namespace, _ = namespaces_split(path_part)
+            if namespace:
+                return namespace
     namespace = get_namespaces(node)
     if namespace:
         return namespace[0]
-    else:
-        return ""
+    return ""
+
+
+def get_namespace_free_path(node_name):
+    """Removes namespaces from every component in a Maya DAG path.
+
+    Args:
+        node_name (str): Maya node name or long DAG path.
+
+    Returns:
+        str: Path with all namespace prefixes removed.
+    """
+    path_parts = str(node_name or "").split("|")
+    clean_parts = []
+    for path_part in path_parts:
+        if not path_part:
+            clean_parts.append(path_part)
+            continue
+        clean_parts.append(path_part.rsplit(":", 1)[-1])
+    return "|".join(clean_parts)
+
+
+def replace_namespace_in_path(node_name, source_namespace="", target_namespace=""):
+    """Builds a DAG path with one namespace replaced or added.
+
+    Args:
+        node_name (str): Source Maya node name or long DAG path.
+        source_namespace (str, optional): Namespace to replace. When empty, the
+            target namespace is added to un-namespaced path components.
+        target_namespace (str, optional): Replacement namespace. An empty value
+            removes the source namespace.
+
+    Returns:
+        str: Namespace-adjusted Maya node path.
+    """
+    source_namespace = str(source_namespace or "").strip().strip(":")
+    target_namespace = str(target_namespace or "").strip().strip(":")
+    path_parts = str(node_name or "").split("|")
+    replaced_parts = []
+    for path_part in path_parts:
+        if not path_part:
+            replaced_parts.append(path_part)
+            continue
+        if source_namespace:
+            source_prefix = f"{source_namespace}:"
+            if path_part.startswith(source_prefix):
+                short_name = path_part[len(source_prefix) :]
+                path_part = f"{target_namespace}:{short_name}" if target_namespace else short_name
+        elif target_namespace and ":" not in path_part:
+            path_part = f"{target_namespace}:{path_part}"
+        replaced_parts.append(path_part)
+    return "|".join(replaced_parts)
 
 
 def namespaces_split(object_name):

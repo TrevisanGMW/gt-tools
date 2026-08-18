@@ -3,6 +3,7 @@ Auto Rigger Probe Rotation Attribute Widget
 """
 
 from gt.tools.auto_rigger.attr_widgets.attr_widget_base import *
+from gt.tools.auto_rigger.attr_widgets.attr_widget_probe import AttrWidgetModuleProbe
 
 class AttrWidgetModuleProbeRotation(AttrWidgetModuleProbe):
     def __init__(self, parent=None, *args, **kwargs):

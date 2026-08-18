@@ -2,7 +2,7 @@
 Auto Rigger Attribute Widgets Aggregator
 """
 
-from gt.tools.auto_rigger.attr_widgets.attr_widget_common import *
+from gt.tools.auto_rigger.attr_widgets.attr_widget_base import AttrWidgetCommon
 from gt.tools.auto_rigger.attr_widgets.attr_widget_generic import *
 from gt.tools.auto_rigger.attr_widgets.attr_widget_generic_fk import *
 from gt.tools.auto_rigger.attr_widgets.attr_widget_root import *

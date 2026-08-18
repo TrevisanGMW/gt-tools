@@ -1,0 +1,660 @@
+"""Model and persistence helpers for Annotation Tracker."""
+
+import copy
+import os
+
+from gt.core.prefs import Prefs
+
+
+PREFS_FILENAME = "anim_annotation_tracker"
+LAST_USED_DATA_KEY = "last_used_data"
+AUTOMATION_CHECK_STATES_KEY = "automation_check_states"
+AUTOMATION_CHECK_STATES_PATH_KEY = "automation_check_states_path"
+SCENE_DATA_NODE_NAME = "animAnnotationData"
+SCENE_DATA_ATTRIBUTE = "annotationData"
+
+DEFAULT_PREFERENCES = {
+    "schema_path": "",
+    "automation_path": "",
+    AUTOMATION_CHECK_STATES_KEY: {},
+    AUTOMATION_CHECK_STATES_PATH_KEY: "",
+    "magnet_enabled": True,
+    "snap_threshold": 10,
+    "auto_crop": False,
+    "crop_tolerance": 50,
+    "auto_stretch": False,
+    "stretch_tolerance": 50,
+    "show_timeline": True,
+    "show_frames": True,
+    "show_names": False,
+    "random_colors": True,
+    "sync_time": True,
+    "limit_bounds": True,
+    "razor_random_colors": True,
+    "run_all_automations": True,
+    "show_validation_status": True,
+    "write_scene_node": True,
+    LAST_USED_DATA_KEY: {},
+}
+
+
+def get_sample_directory():
+    """Gets the packaged sample directory.
+
+    Returns:
+        str: Absolute sample directory path.
+    """
+    return os.path.join(os.path.dirname(__file__), "samples")
+
+
+def get_sample_schema_path():
+    """Gets the packaged sample schema path.
+
+    Returns:
+        str: Absolute JSON schema path.
+    """
+    return os.path.join(get_sample_directory(), "schema.json")
+
+
+def get_sample_automation_path():
+    """Gets the packaged sample automation path.
+
+    Returns:
+        str: Absolute Python automation path.
+    """
+    return os.path.join(get_sample_directory(), "automation.py")
+
+
+def get_default_preferences():
+    """Builds default preferences without a pre-selected schema.
+
+    Returns:
+        dict: Default Annotation Tracker preferences.
+    """
+    return copy.deepcopy(DEFAULT_PREFERENCES)
+
+
+def normalize_automation_path(automation_path):
+    """Normalizes an automation folder path for preference comparisons.
+
+    Args:
+        automation_path (str): Automation folder path supplied by the user.
+
+    Returns:
+        str: Normalized automation folder path, or an empty string.
+    """
+    if not automation_path:
+        return ""
+    return os.path.normcase(os.path.normpath(str(automation_path).strip(' "\'')))
+
+
+def flatten_schema_items(schema_items):
+    """Flattens schema rows into editable field definitions.
+
+    Args:
+        schema_items (list): Schema items, including rows and separators.
+
+    Returns:
+        list: Field definitions in display order.
+    """
+    flattened_items = []
+    for item in schema_items or []:
+        if item.get("type") == "row":
+            flattened_items.extend(flatten_schema_items(item.get("items", [])))
+        elif item.get("type") != "separator":
+            flattened_items.append(item)
+    return flattened_items
+
+
+def get_schema_field_names(schema):
+    """Gets the editable field names for each schema data section.
+
+    Args:
+        schema (dict): Schema definition to inspect.
+
+    Returns:
+        dict: File and range data field names stored as sets.
+    """
+    field_definitions = _get_schema_field_definitions(schema)
+    return {
+        "file_data": set(field_definitions["file_data"]),
+        "range_data": set(field_definitions["range_data"]),
+    }
+
+
+def _get_schema_field_definitions(schema):
+    """Gets schema field definitions grouped by data section.
+
+    Args:
+        schema (dict): Schema definition to inspect.
+
+    Returns:
+        dict: File and range field definitions keyed by field name.
+    """
+    schema = schema if isinstance(schema, dict) else {}
+    field_definitions = {}
+    for data_key, schema_key in (
+        ("file_data", "file_level"),
+        ("range_data", "frame_range"),
+    ):
+        field_definitions[data_key] = {
+            item.get("name"): item
+            for item in flatten_schema_items(schema.get(schema_key, []))
+            if item.get("name")
+        }
+    return field_definitions
+
+
+def _is_schema_value_supported(field_definition, value):
+    """Checks whether a value is representable by its schema field.
+
+    Args:
+        field_definition (dict or None): Schema definition for the value.
+        value (object): Stored value to inspect.
+
+    Returns:
+        bool: True when the replacement schema can retain the value.
+    """
+    if not isinstance(field_definition, dict):
+        return False
+    if value in (None, "", "---"):
+        return True
+    if field_definition.get("type") != "enum":
+        return True
+    options = field_definition.get("options", [])
+    return str(value) in [str(option) for option in options]
+
+
+def filter_schema_data(schema, data, data_key):
+    """Filters values that cannot be retained by a schema data section.
+
+    Args:
+        schema (dict): Replacement schema definition.
+        data (dict): Current file or range data values.
+        data_key (str): Data section, either ``file_data`` or ``range_data``.
+
+    Returns:
+        dict: Compatible values copied from the source data.
+    """
+    data = data if isinstance(data, dict) else {}
+    field_definitions = _get_schema_field_definitions(schema).get(data_key, {})
+    return {
+        name: copy.deepcopy(value)
+        for name, value in data.items()
+        if _is_schema_value_supported(field_definitions.get(name), value)
+    }
+
+
+def get_schema_data_loss(schema, file_data, ranges):
+    """Finds saved values that a replacement schema would discard.
+
+    Args:
+        schema (dict): Replacement schema definition.
+        file_data (dict): Current file-level values.
+        ranges (list): Current range objects or serialized range dictionaries.
+
+    Returns:
+        dict: Sorted removed field names for ``file_data`` and ``range_data``.
+    """
+    file_data = file_data if isinstance(file_data, dict) else {}
+    compatible_file_data = filter_schema_data(schema, file_data, "file_data")
+    file_data_loss = set(file_data.keys()) - set(compatible_file_data.keys())
+    range_data_loss = set()
+
+    for range_item in ranges or []:
+        if isinstance(range_item, dict):
+            custom_data = range_item.get("custom_data", {})
+        else:
+            custom_data = getattr(range_item, "custom_data", {})
+        if isinstance(custom_data, dict):
+            compatible_range_data = filter_schema_data(
+                schema,
+                custom_data,
+                "range_data",
+            )
+            range_data_loss.update(
+                set(custom_data.keys()) - set(compatible_range_data.keys())
+            )
+
+    return {
+        "file_data": sorted(file_data_loss),
+        "range_data": sorted(range_data_loss),
+    }
+
+
+def build_usd_custom_data(payload):
+    """Builds USD customData-compatible metadata from tracker scene data.
+
+    The result deliberately omits tracker implementation fields, such as range
+    identifiers, display colors, and lock states. Range data is stored in a
+    dictionary rather than a list so the result can be supplied directly to a
+    USD prim's ``customData`` without requiring an array of dictionaries.
+
+    Args:
+        payload (dict): Serialized Annotation Tracker scene payload.
+
+    Returns:
+        dict: File and per-range user annotation data.
+    """
+    payload = payload if isinstance(payload, dict) else {}
+    file_data = payload.get("file_data", {})
+    range_data = payload.get("range_data", [])
+    custom_data = {
+        "file_data": copy.deepcopy(file_data)
+        if isinstance(file_data, dict)
+        else {},
+        "range_data": {},
+    }
+
+    if not isinstance(range_data, list):
+        return custom_data
+
+    range_key_width = max(3, len(str(len(range_data))))
+    for index, range_item in enumerate(range_data):
+        if not isinstance(range_item, dict):
+            continue
+        range_metadata = range_item.get("custom_data", {})
+        custom_data["range_data"][f"range_{index:0{range_key_width}d}"] = {
+            "name": str(range_item.get("name", "")),
+            "start_frame": range_item.get("start", 0),
+            "end_frame": range_item.get("end", 0),
+            "metadata": copy.deepcopy(range_metadata)
+            if isinstance(range_metadata, dict)
+            else {},
+        }
+    return custom_data
+
+
+def _is_missing_value(value):
+    """Checks whether a schema value should be treated as missing.
+
+    Args:
+        value (object): Value to inspect.
+
+    Returns:
+        bool: True when the value is empty.
+    """
+    return value is None or value == "" or value == "---"
+
+
+def adjust_adjacent_ranges(
+    active_range,
+    ranges,
+    auto_crop=False,
+    crop_tolerance=0,
+    auto_stretch=False,
+    stretch_tolerance=0,
+):
+    """Adjusts unlocked ranges adjacent to an edited range.
+
+    Cropping resolves overlaps by moving the adjacent boundary away from the
+    active range. Stretching resolves gaps by extending an adjacent range to
+    the active range boundary. Each operation is limited by its tolerance.
+
+    Args:
+        active_range (object): Range currently being edited.
+        ranges (list): All timeline ranges.
+        auto_crop (bool): Whether nearby overlaps should be cropped.
+        crop_tolerance (int): Maximum overlap corrected by cropping.
+        auto_stretch (bool): Whether nearby gaps should be stretched closed.
+        stretch_tolerance (int): Maximum gap corrected by stretching.
+
+    Returns:
+        list: Ranges changed by the adjustment.
+    """
+    if not active_range:
+        return []
+
+    sorted_ranges = sorted(ranges or [], key=lambda item: item.start)
+    try:
+        active_index = sorted_ranges.index(active_range)
+    except ValueError:
+        return []
+
+    previous_range = (
+        sorted_ranges[active_index - 1] if active_index > 0 else None
+    )
+    next_range = (
+        sorted_ranges[active_index + 1]
+        if active_index < len(sorted_ranges) - 1
+        else None
+    )
+    changed_ranges = []
+
+    if auto_crop and previous_range and not previous_range.locked:
+        overlap = previous_range.end - active_range.start + 1
+        new_end = active_range.start - 1
+        if 0 < overlap <= max(0, int(crop_tolerance)):
+            if new_end >= previous_range.start and previous_range.end != new_end:
+                previous_range.end = new_end
+                changed_ranges.append(previous_range)
+
+    if auto_crop and next_range and not next_range.locked:
+        overlap = active_range.end - next_range.start + 1
+        new_start = active_range.end + 1
+        if 0 < overlap <= max(0, int(crop_tolerance)):
+            if new_start <= next_range.end and next_range.start != new_start:
+                next_range.start = new_start
+                changed_ranges.append(next_range)
+
+    if auto_stretch and previous_range and not previous_range.locked:
+        gap = active_range.start - previous_range.end - 1
+        new_end = active_range.start - 1
+        if 0 < gap <= max(0, int(stretch_tolerance)):
+            if new_end >= previous_range.start and previous_range.end != new_end:
+                previous_range.end = new_end
+                changed_ranges.append(previous_range)
+
+    if auto_stretch and next_range and not next_range.locked:
+        gap = next_range.start - active_range.end - 1
+        new_start = active_range.end + 1
+        if 0 < gap <= max(0, int(stretch_tolerance)):
+            if new_start <= next_range.end and next_range.start != new_start:
+                next_range.start = new_start
+                changed_ranges.append(next_range)
+
+    return changed_ranges
+
+
+def get_uncovered_frame_ranges(ranges, start_frame, end_frame):
+    """Gets contiguous timeline spans that are not covered by ranges.
+
+    Range bounds are treated as inclusive. Overlapping, adjacent, inverted, and
+    out-of-bounds ranges are normalized before the uncovered spans are found.
+
+    Args:
+        ranges (list): Range-like objects with ``start`` and ``end`` values.
+        start_frame (int): First frame of the timeline bounds.
+        end_frame (int): Last frame of the timeline bounds.
+
+    Returns:
+        list: Ordered ``(start_frame, end_frame)`` tuples for uncovered spans.
+    """
+    timeline_start = min(int(start_frame), int(end_frame))
+    timeline_end = max(int(start_frame), int(end_frame))
+    covered_ranges = []
+    for range_item in ranges or []:
+        if range_item is None:
+            continue
+        range_start = getattr(range_item, "start", None)
+        range_end = getattr(range_item, "end", None)
+        if range_start is None or range_end is None:
+            continue
+        range_start = int(range_start)
+        range_end = int(range_end)
+        range_start, range_end = min(range_start, range_end), max(
+            range_start,
+            range_end,
+        )
+        if range_end < timeline_start or range_start > timeline_end:
+            continue
+        covered_ranges.append(
+            (
+                max(timeline_start, range_start),
+                min(timeline_end, range_end),
+            )
+        )
+
+    covered_ranges.sort()
+    merged_ranges = []
+    for range_start, range_end in covered_ranges:
+        if not merged_ranges or range_start > merged_ranges[-1][1] + 1:
+            merged_ranges.append([range_start, range_end])
+        else:
+            merged_ranges[-1][1] = max(merged_ranges[-1][1], range_end)
+
+    uncovered_ranges = []
+    next_frame = timeline_start
+    for range_start, range_end in merged_ranges:
+        if next_frame < range_start:
+            uncovered_ranges.append((next_frame, range_start - 1))
+        next_frame = max(next_frame, range_end + 1)
+    if next_frame <= timeline_end:
+        uncovered_ranges.append((next_frame, timeline_end))
+    return uncovered_ranges
+
+
+def get_uncovered_frame_range_at_frame(ranges, start_frame, end_frame, frame):
+    """Gets the uncovered span that contains a frame.
+
+    Args:
+        ranges (list): Range-like objects with ``start`` and ``end`` values.
+        start_frame (int): First frame of the timeline bounds.
+        end_frame (int): Last frame of the timeline bounds.
+        frame (int): Frame to inspect.
+
+    Returns:
+        tuple or None: Inclusive uncovered ``(start_frame, end_frame)`` span.
+    """
+    current_frame = int(frame)
+    for range_start, range_end in get_uncovered_frame_ranges(
+        ranges,
+        start_frame,
+        end_frame,
+    ):
+        if range_start <= current_frame <= range_end:
+            return range_start, range_end
+    return None
+
+
+def collect_validation_errors(schema, ranges, file_data, start_frame, end_frame):
+    """Collects all schema validation errors without touching Maya.
+
+    Args:
+        schema (dict): Loaded Annotation Tracker schema.
+        ranges (list): RangeItem objects to validate.
+        file_data (dict): File-level values.
+        start_frame (int): Timeline start frame.
+        end_frame (int): Timeline end frame.
+
+    Returns:
+        list: Human-readable validation errors.
+    """
+    if not schema:
+        return ["No schema loaded."]
+
+    errors = []
+    validation_rules = schema.get("validation", {})
+    ranges = list(ranges or [])
+    file_data = file_data or {}
+
+    if not validation_rules.get("allow_overlap", True):
+        sorted_ranges = sorted(ranges, key=lambda item: item.start)
+        for index in range(len(sorted_ranges) - 1):
+            current_range = sorted_ranges[index]
+            next_range = sorted_ranges[index + 1]
+            if current_range.end > next_range.start:
+                errors.append(
+                    "Overlap detected between "
+                    f"'{current_range.display_name}' and "
+                    f"'{next_range.display_name}'"
+                )
+
+    if validation_rules.get("full_coverage", False):
+        covered_frames = set()
+        for range_item in ranges:
+            covered_frames.update(range(range_item.start, range_item.end + 1))
+        expected_frames = set(range(start_frame, end_frame + 1))
+        missing_frames = expected_frames - covered_frames
+        if missing_frames:
+            errors.append(
+                f"Timeline has {len(missing_frames)} uncovered frame(s)."
+            )
+
+    file_items = flatten_schema_items(schema.get("file_level", []))
+    for item in file_items:
+        value = file_data.get(item.get("name"))
+        if item.get("required") and _is_missing_value(value):
+            errors.append(f"File '{item.get('label', item.get('name'))}' is required.")
+
+    range_items = flatten_schema_items(schema.get("frame_range", []))
+    for range_item in ranges:
+        for item in range_items:
+            value = range_item.custom_data.get(item.get("name"))
+            if item.get("required") and _is_missing_value(value):
+                errors.append(
+                    f"Range '{range_item.display_name}': "
+                    f"'{item.get('label', item.get('name'))}' is required."
+                )
+
+    return errors
+
+
+class AnnotationTrackerModel:
+    """Stores persistent Annotation Tracker state."""
+
+    def __init__(self):
+        """Initializes the model and loads persistent preferences."""
+        self.prefs = Prefs(PREFS_FILENAME)
+        self.preferences = {}
+        self.load_preferences()
+
+    def load_preferences(self):
+        """Loads preferences and fills missing keys with current defaults."""
+        preferences = get_default_preferences()
+        stored_preferences = self.prefs.get_raw_preferences()
+        preferences.update(stored_preferences)
+        if normalize_automation_path(preferences.get("automation_path")) == normalize_automation_path(
+            get_sample_directory()
+        ):
+            preferences["automation_path"] = ""
+            preferences[AUTOMATION_CHECK_STATES_KEY] = {}
+            preferences[AUTOMATION_CHECK_STATES_PATH_KEY] = ""
+        self.preferences = preferences
+        return copy.deepcopy(self.preferences)
+
+    def save_preferences(self):
+        """Writes all current preferences to the package preferences file."""
+        preferences = copy.deepcopy(self.preferences)
+        automation_path = str(preferences.get("automation_path") or "").strip()
+        self.preferences["automation_path"] = automation_path
+        if automation_path:
+            preferences["automation_path"] = automation_path
+        else:
+            preferences.pop("automation_path", None)
+            preferences.pop(AUTOMATION_CHECK_STATES_KEY, None)
+            preferences.pop(AUTOMATION_CHECK_STATES_PATH_KEY, None)
+        self.prefs.set_raw_preferences(preferences)
+        self.prefs.save()
+
+    def get_preference(self, key, default=None):
+        """Gets a preference value.
+
+        Args:
+            key (str): Preference key.
+            default (object, optional): Fallback value.
+
+        Returns:
+            object: Stored or fallback value.
+        """
+        return self.preferences.get(key, default)
+
+    def get_last_used_data(self):
+        """Gets a copy of the most recently saved tracker data.
+
+        Returns:
+            dict: Last-used range and file metadata, or an empty dictionary.
+        """
+        return copy.deepcopy(self.preferences.get(LAST_USED_DATA_KEY, {}))
+
+    def get_automation_check_states(self, automation_path):
+        """Gets stored check states when they belong to the given folder.
+
+        Script names that no longer exist are deliberately preserved here. The
+        view ignores them while building the current list, allowing a script to
+        regain its selection state if it returns to the same folder.
+
+        Args:
+            automation_path (str): Current automation folder path.
+
+        Returns:
+            dict: Mapping of automation file names to checked states.
+        """
+        normalized_path = normalize_automation_path(automation_path)
+        stored_path = self.preferences.get(AUTOMATION_CHECK_STATES_PATH_KEY, "")
+        if normalized_path != stored_path:
+            return {}
+        stored_states = self.preferences.get(AUTOMATION_CHECK_STATES_KEY, {})
+        return copy.deepcopy(stored_states) if isinstance(stored_states, dict) else {}
+
+    def reset_automation_check_states(self, automation_path, save=True):
+        """Clears stored check states when the automation folder changes.
+
+        Args:
+            automation_path (str): New automation folder path.
+            save (bool, optional): Whether to immediately persist the change.
+
+        Returns:
+            bool: True if a new folder caused stored states to be reset.
+        """
+        normalized_path = normalize_automation_path(automation_path)
+        stored_path = self.preferences.get(AUTOMATION_CHECK_STATES_PATH_KEY, "")
+        if normalized_path == stored_path:
+            return False
+        self.preferences[AUTOMATION_CHECK_STATES_PATH_KEY] = normalized_path
+        self.preferences[AUTOMATION_CHECK_STATES_KEY] = {}
+        if save:
+            self.save_preferences()
+        return True
+
+    def set_automation_check_state(
+        self,
+        automation_path,
+        script_name,
+        is_checked,
+        save=True,
+    ):
+        """Stores a selected state for an automation in the current folder.
+
+        Args:
+            automation_path (str): Automation folder that owns the script.
+            script_name (str): Automation file name.
+            is_checked (bool): Whether the automation is selected for batch runs.
+            save (bool, optional): Whether to immediately persist the change.
+        """
+        normalized_path = normalize_automation_path(automation_path)
+        stored_path = self.preferences.get(AUTOMATION_CHECK_STATES_PATH_KEY, "")
+        if normalized_path != stored_path:
+            self.preferences[AUTOMATION_CHECK_STATES_PATH_KEY] = normalized_path
+            self.preferences[AUTOMATION_CHECK_STATES_KEY] = {}
+        check_states = self.preferences.get(AUTOMATION_CHECK_STATES_KEY, {})
+        if not isinstance(check_states, dict):
+            check_states = {}
+        check_states[str(script_name)] = bool(is_checked)
+        self.preferences[AUTOMATION_CHECK_STATES_KEY] = check_states
+        if save:
+            self.save_preferences()
+
+    def set_last_used_data(self, data, save=True):
+        """Stores a copy of tracker data for reuse by later files.
+
+        Args:
+            data (dict): JSON-compatible range and file metadata.
+            save (bool, optional): Whether to immediately persist preferences.
+        """
+        self.preferences[LAST_USED_DATA_KEY] = copy.deepcopy(data or {})
+        if save:
+            self.save_preferences()
+
+    def set_preference(self, key, value, save=True):
+        """Sets one preference value.
+
+        Args:
+            key (str): Preference key.
+            value (object): New preference value.
+            save (bool, optional): Whether to immediately persist the value.
+        """
+        self.preferences[key] = value
+        if save:
+            self.save_preferences()
+
+    def update_preferences(self, values, save=True):
+        """Updates several preferences together.
+
+        Args:
+            values (dict): Preference values to update.
+            save (bool, optional): Whether to immediately persist the values.
+        """
+        self.preferences.update(values)
+        if save:
+            self.save_preferences()

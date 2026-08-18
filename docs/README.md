@@ -1,4 +1,4 @@
-﻿<!-- GT Tools Docs -->
+<!-- GT Tools Docs -->
 
 <body>
 
@@ -58,7 +58,7 @@
 <ul>
   <li><a href="#retargeter">Retargeter</a></li>
   <li><a href="#animation-clip-tracker">Animation Clip Tracker</a></li>
-  <li><a href="#animation-label-tracker">Animation Label Tracker</a></li>
+  <li><a href="#annotation-tracker">Annotation Tracker</a></li>
   <li><a href="#create-testing-keys">Create Testing Keys</a></li>
   <li><a href="#world-space-baker">World Space Baker</a></li>
 </ul>
@@ -243,6 +243,7 @@ After installing, you can delete the downloaded/extracted files (as they have al
   <li><b>Build Auto Rig:</b> Builds an Auto Rigger project as a batch step.</li>
   <li><b>Clip Split:</b> Separates an animation range into individual clips.</li>
   <li><b>Clip Snapshot:</b> Creates a saved snapshot of an animation clip.</li>
+  <li><b>Report:</b> Collects read-only information about the processed files into a report.</li>
   <li><b>Delete Path:</b> Deletes files under a configured project path.</li>
   <li><b>Archive:</b> Compresses selected results into an archive.</li>
   <li><b>Validate Scene:</b> Runs the configured Maya scene validators.</li>
@@ -1081,10 +1082,10 @@ Ribbon rigging is particularly useful for creating smooth and natural-looking de
 <p><b>How to start:</b> Open <b>GT Tools &gt; Animation &gt; Animation Clip Tracker</b>, click the add button or draw a range in <b>Edit</b> mode, give the clip a name, and adjust its start/end frames. Use the timeline to review and edit ranges, then export JSON when the clip list needs to be used by another process.</p>
 </div>
 
-<!-- Animation Label Tracker -->
+<!-- Annotation Tracker -->
 <div>
-<h1>Animation Label Tracker</h1>
-<p>Animation Label Tracker annotates animation ranges with structured production metadata. It combines a visual range timeline with schema-driven file and frame fields, allowing teams to label clips consistently and run small Python automations against the selected ranges.</p>
+<h1>Annotation Tracker</h1>
+<p>Annotation Tracker annotates animation ranges with structured production metadata. It combines a visual range timeline with schema-driven file and frame fields, allowing teams to annotate clips consistently and run small Python automations against the selected ranges.</p>
 
 <p><b>Main settings and workflow:</b></p>
 <ol>
@@ -1094,7 +1095,7 @@ Ribbon rigging is particularly useful for creating smooth and natural-looking de
   <li>Use <b>Automations</b> to run configured Python scripts, and use <b>Preferences</b> to control schema/automation paths, display, colors, timeline behavior, scene-node writing, and JSON import/export.</li>
 </ol>
 
-<p><b>Important data settings:</b> <b>Write Data to Scene Node (rangeTimelineData)</b> keeps the tracker data with the Maya scene. <b>Import JSON</b> and <b>Export JSON</b> exchange the current ranges and metadata, while schema validation warns when imported data no longer matches the active schema.</p>
+<p><b>Important data settings:</b> <b>Write Data to Scene Node (animAnnotationData)</b> keeps the tracker data with the Maya scene. <b>Import JSON</b> and <b>Export JSON</b> exchange the current ranges and metadata, while schema validation warns when imported data no longer matches the active schema.</p>
 
 <p><b>How to start:</b> Begin with the bundled sample schema, draw a range on the timeline, enter its metadata, and confirm the validation status. Create a copy of the sample schema when a project needs additional fields, and keep the schema with the animation data so future imports use the same field definitions.</p>
 </div>

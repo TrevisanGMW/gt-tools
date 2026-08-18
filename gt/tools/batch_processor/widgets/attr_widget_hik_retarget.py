@@ -540,8 +540,8 @@ class AttrWidgetRetargetHumanIK(AttrWidgetTask):
         editor = InlinePythonEditorWidget(
             parent=self,
             owner=self,
-            text=self.task.settings.get("post_script_text") or task_hik_retarget.DEFAULT_POST_SCRIPT_TEXT,
-            placeholder=task_hik_retarget.DEFAULT_POST_SCRIPT_TEXT,
+            text=self.task.settings.get("post_script_text") or "",
+            placeholder="Write an optional post-retarget Python script here, or choose an example.",
             tooltip=(
                 "Inline Python cleanup pass executed after HumanIK retargeting and before output is written. "
                 "Use context, arguments/args, environment_variables/env, project, task, work_item, output_path, "
@@ -550,6 +550,7 @@ class AttrWidgetRetargetHumanIK(AttrWidgetTask):
             text_changed_callback=partial(self.set_task_setting, key="post_script_text"),
             font_size=self.task.settings.get("post_script_font_size") or 14,
             font_size_changed_callback=partial(self.set_task_setting, key="post_script_font_size"),
+            sample_scripts_directory=self.task.post_script_samples_directory,
         )
         layout.addWidget(editor)
 
@@ -598,11 +599,8 @@ class AttrWidgetRetargetHumanIK(AttrWidgetTask):
         editor = InlinePythonEditorWidget(
             parent=self,
             owner=self,
-            text=(
-                self.task.settings.get("pre_bake_script_text")
-                or task_hik_retarget.DEFAULT_PRE_BAKE_SCRIPT_TEXT
-            ),
-            placeholder=task_hik_retarget.DEFAULT_PRE_BAKE_SCRIPT_TEXT,
+            text=self.task.settings.get("pre_bake_script_text") or "",
+            placeholder="Write an optional pre-bake Python script here, or choose an example.",
             tooltip=(
                 "Inline Python pass executed after HumanIK source assignment and immediately before baking. "
                 "Use context, arguments/args, environment_variables/env, project, task, work_item, output_path, "
@@ -611,6 +609,7 @@ class AttrWidgetRetargetHumanIK(AttrWidgetTask):
             text_changed_callback=partial(self.set_task_setting, key="pre_bake_script_text"),
             font_size=self.task.settings.get("pre_bake_script_font_size") or 14,
             font_size_changed_callback=partial(self.set_task_setting, key="pre_bake_script_font_size"),
+            sample_scripts_directory=self.task.pre_bake_script_samples_directory,
         )
         layout.addWidget(editor)
         self.refresh_pre_bake_script_warning()

@@ -85,7 +85,6 @@ def open_delete_keyframes_options():
         title="Delete Keyframes",
         object_name="gtDeleteKeyframesOptions",
         icon=ui_res_lib.Icon.util_delete_keyframes,
-        description="Delete keyframes using the options below.",
         workspace_restore_factory=(
             "gt.tools.utility_options.keyframe_options.open_delete_keyframes_options"
         ),
@@ -124,8 +123,33 @@ def open_delete_keyframes_options():
             key_scope=_resolve_key_scope(key_type_combo),
         )
 
+    def _delete_outside_timeline():
+        """Deletes time keyframes located outside the animation timeline."""
+        core_anim.delete_time_keyframes_outside_animation_range(
+            obj_list=_resolve_obj_list(scope_combo),
+        )
+
+    def _delete_outside_playback_range():
+        """Deletes time keyframes located outside the playback range."""
+        core_anim.delete_time_keyframes_outside_playback_range(
+            obj_list=_resolve_obj_list(scope_combo),
+        )
+
     window.add_button("Delete Keyframes", command=_delete_all, variant="primary")
-    window.add_section("Relative to Current Frame")
+    window.add_button_row(
+        [
+            {
+                "label": "Delete Outside Timeline",
+                "command": _delete_outside_timeline,
+                "tooltip": "Keep time keyframes within Maya's Animation Start and End range.",
+            },
+            {
+                "label": "Delete Outside Playback Range",
+                "command": _delete_outside_playback_range,
+                "tooltip": "Keep time keyframes within Maya's current Playback Start and End range.",
+            },
+        ]
+    )
     window.add_button_row(
         [
             {"label": "Delete Before Current Frame", "command": _delete_before,

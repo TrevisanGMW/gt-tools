@@ -269,29 +269,40 @@ def load_menu(*args):
     # ------------------------------------ Animation ------------------------------------
     menu.add_sub_menu("Animation", icon=ui_res_lib.Icon.root_animation, parent_to_root=True)
     menu.add_menu_item(
-        label="Retargeter",
-        command=IMPORT_TOOL + 'initialize_tool("retargeter")',
-        tooltip="Opens retargeter.",
-        icon=ui_res_lib.Icon.tool_retargeter,
+        label="Annotation Tracker",
+        command=IMPORT_TOOL + 'initialize_tool("anim_annotation_tracker")',
+        tooltip="Opens annotation tracker.",
+        icon=ui_res_lib.Icon.tool_annotation_tracker,
     )
-    menu.add_divider()
     menu.add_menu_item(
-        label="Animation Clip Tracker",
+        label="Clip Tracker",
         command=IMPORT_TOOL + 'initialize_tool("anim_clip_tracker")',
         tooltip="Opens the animation clip tracker.",
         icon=ui_res_lib.Icon.tool_clip_tracker,
     )
     menu.add_menu_item(
-        label="Animation Label Tracker",
-        command=IMPORT_TOOL + 'initialize_tool("anim_label_tracker")',
-        tooltip="Opens animation label tracker.",
-        icon=ui_res_lib.Icon.tool_label_tracker,
+        label="Copy/Paste Animation",
+        command=IMPORT_TOOL + 'initialize_tool("anim_copy_paste")',
+        tooltip="Copies persistent animation data with scoped keyframe support and character namespace mapping.",
+        icon=ui_res_lib.Icon.tool_anim_copy_paste,
     )
     menu.add_menu_item(
         label="Create Testing Keys",
         command=IMPORT_TOOL + 'initialize_tool("create_testing_keys")',
         tooltip="Automated solution for creating testing keyframes.",
         icon=ui_res_lib.Icon.tool_testing_keys,
+    )
+    menu.add_menu_item(
+        label="Offset Keyframes",
+        command=IMPORT_TOOL + 'initialize_tool("offset_keyframes")',
+        tooltip="Offsets selected animation timing and provides selection-order staggering.",
+        icon=ui_res_lib.Icon.tool_offset_keyframes,
+    )
+    menu.add_menu_item(
+        label="Retargeter",
+        command=IMPORT_TOOL + 'initialize_tool("retargeter")',
+        tooltip="Opens retargeter.",
+        icon=ui_res_lib.Icon.tool_retargeter,
     )
     menu.add_menu_item(
         label="World Space Baker",

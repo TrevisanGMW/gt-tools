@@ -45,6 +45,14 @@ class TestResourceLibrary(unittest.TestCase):
         expected = "QWidget"
         self.assertIn(expected, result)
 
+    def test_maya_dialog_radio_indicator_has_unchecked_background(self):
+        result = resource_library.Stylesheet.maya_dialog_base
+        expected = "QRadioButton::indicator:unchecked"
+        self.assertIn(expected, result)
+        self.assertIn("border-radius: 7px", result)
+        self.assertIn("background-color: rgb", result)
+        self.assertIn("background-color: rgb", resource_library.Stylesheet.btn_radio_base)
+
     def test_process_stylesheet_variables(self):
         mocked_variables = {"@original": "modified"}
         result = resource_library.process_stylesheet_variables(stylesheet_content="@original",

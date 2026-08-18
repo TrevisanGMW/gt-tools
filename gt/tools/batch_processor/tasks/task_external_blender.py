@@ -20,7 +20,7 @@ import gt.ui.resource_library as ui_res_lib
 
 DEFAULT_BLENDER_ARGUMENTS = "--background"
 DEFAULT_BLENDER_SCRIPT_FLAG = "--python"
-DEFAULT_BLENDER_INLINE_SCRIPT = task_utils.load_script("script_inline_external_blender.py")
+SAMPLE_SCRIPTS_DIRECTORY = "external_blender"
 
 
 class TaskBlenderScript(TaskExternalScript):
@@ -35,6 +35,7 @@ class TaskBlenderScript(TaskExternalScript):
     category_icon = ui_res_lib.Icon.batch_category_external
     metadata_scripts_key = "blender_scripts"
     temporary_file_prefix = "blender"
+    sample_scripts_directory = SAMPLE_SCRIPTS_DIRECTORY
 
     def get_default_settings(self):
         """Gets default Blender script task settings.
@@ -48,7 +49,7 @@ class TaskBlenderScript(TaskExternalScript):
                 "source_path": "{previous-task-path}",
                 "target_path": self.default_target_path_template,
                 "script_mode": SCRIPT_MODE_INLINE,
-                "script_text": DEFAULT_BLENDER_INLINE_SCRIPT,
+                "script_text": "",
                 "script_path": "{project-dir}/scripts/blender_process.py",
                 "scripts_path": "{project-dir}/scripts/blender",
                 "blender_executable": "",

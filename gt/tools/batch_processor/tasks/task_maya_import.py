@@ -10,7 +10,7 @@ from gt.tools.batch_processor.tasks import task_utils
 import os
 
 
-DEFAULT_POST_SCRIPT_TEXT = task_utils.load_script("script_post_maya_import.py")
+POST_SCRIPT_SAMPLES_DIRECTORY = "maya_import"
 
 
 class TaskMayaImport(task_base.BatchTask):
@@ -22,6 +22,8 @@ class TaskMayaImport(task_base.BatchTask):
     icon = ui_res_lib.Icon.batch_task_maya_import
     category = "Inputs"
     category_icon = ui_res_lib.Icon.batch_category_inputs
+    post_script_samples_directory = POST_SCRIPT_SAMPLES_DIRECTORY
+
     def get_default_settings(self):
         """Gets default Maya import settings.
 
@@ -43,7 +45,7 @@ class TaskMayaImport(task_base.BatchTask):
             "set_scene_up_axis": False,
             "scene_up_axis": "Y",
             "run_post_script": False,
-            "post_script_text": DEFAULT_POST_SCRIPT_TEXT,
+            "post_script_text": "",
             "post_script_collapsed": True,
             "post_script_font_size": 14,
             "post_script_pass_standard_arguments": True,
@@ -81,7 +83,7 @@ class TaskMayaImport(task_base.BatchTask):
                 result.add_error("Maya import scene up axis must be Y or Z.")
         post_script_text = self.settings.get("post_script_text")
         if post_script_text is None:
-            post_script_text = DEFAULT_POST_SCRIPT_TEXT
+            post_script_text = ""
         if self.settings.get("run_post_script") and not post_script_text:
             result.add_error("Import/Open Maya post script is enabled but no inline script is set.")
         return result
@@ -225,7 +227,7 @@ class TaskMayaImport(task_base.BatchTask):
             return
         script_text = self.settings.get("post_script_text")
         if script_text is None:
-            script_text = DEFAULT_POST_SCRIPT_TEXT
+            script_text = ""
         if not script_text.strip():
             return
         runtime_context = task_utils.build_python_script_runtime_context(

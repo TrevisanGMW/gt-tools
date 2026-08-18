@@ -60,6 +60,7 @@ class TaskType:
     CLIP_SPLIT = "clip_split"
     CLIP_SNAPSHOT = "clip_snapshot"
     MAP_HIERARCHY = "map_hierarchy"
+    SCENE_REPORT = "scene_report"
     DELETE_PROJECT_FILES = "delete_project_files"
     ZIP_COMPRESS = "zip_compress"
     MAYA_SCENE_VALIDATE = "validate_maya_scene"

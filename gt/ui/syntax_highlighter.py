@@ -218,9 +218,10 @@ class PythonSyntaxHighlighter(ui_qt.QtGui.QSyntaxHighlighter):
         if dunder_rgb and isinstance(dunder_rgb, (list, tuple)) and len(dunder_rgb) == 3:
             style_dunder = get_text_format(dunder_rgb)
 
-        # Multi-line strings (expression, flag, style)
-        self.quotation_single = (ui_qt.QtLib.QtCore.QRegExp("'''"), 1, style_quotation_double)
-        self.quotation_double = (ui_qt.QtLib.QtCore.QRegExp('"""'), 2, style_quotation_double)
+        # Triple-quoted strings are commonly used as docstrings and headers.
+        # Treat them like comments, including strings assigned to variables.
+        self.quotation_single = ("'''", 1, style_comment)
+        self.quotation_double = ('"""', 2, style_comment)
 
         # Rules
         rules = []
@@ -278,12 +279,6 @@ class PythonSyntaxHighlighter(ui_qt.QtGui.QSyntaxHighlighter):
                     length = match.capturedLength(nth)
                     self.setFormat(start, length, format_str)
 
-            # Apply multi-line string matching
-            in_multiline = self.match_multiline(text, *self.quotation_single)
-            if not in_multiline:
-                self.match_multiline(text, *self.quotation_double)
-
-            self.setCurrentBlockState(0)
         else:
             # Do other syntax formatting
             for expression, nth, format_str in self.rules:
@@ -296,12 +291,10 @@ class PythonSyntaxHighlighter(ui_qt.QtGui.QSyntaxHighlighter):
                     self.setFormat(index, length, format_str)
                     index = expression.indexIn(text, index + length)
 
-            self.setCurrentBlockState(0)
-
-            # Do multi-line strings
-            in_multiline = self.match_multiline(text, *self.quotation_single)
-            if not in_multiline:
-                self.match_multiline(text, *self.quotation_double)
+        self.setCurrentBlockState(0)
+        in_multiline = self.match_multiline(text, *self.quotation_single)
+        if not in_multiline:
+            self.match_multiline(text, *self.quotation_double)
 
     def match_multiline(self, text, delimiter, in_state, style):
         """
@@ -309,82 +302,35 @@ class PythonSyntaxHighlighter(ui_qt.QtGui.QSyntaxHighlighter):
 
         Args:
             text (str): The text to be processed.
-            delimiter (QRegExp): Regular expression pattern used to identify the delimiters.
+            delimiter (str): Triple-quote delimiter used to identify the string.
             in_state (int): State indicator for multi-line strings.
             style (QTextCharFormat): The text style to apply to the highlighted multi-line strings.
 
         Returns:
             bool: True if the current block state matches the specified in_state; otherwise, False.
         """
-        if ui_qt.IS_PYSIDE6:
-            # If inside a multi-line string, start from the beginning of the text
-            if self.previousBlockState() == in_state:
-                start = 0
-                add = 0
-            # Otherwise, look for the delimiter in the current line
-            else:
-                match_iterator = delimiter.globalMatch(text)
-                if match_iterator.hasNext():
-                    match = match_iterator.next()
-                    start = match.capturedStart()
-                    add = match.capturedLength()
-                else:
-                    start = -1
-                    add = 0
+        previous_state = self.previousBlockState()
+        if previous_state not in (-1, 0, in_state):
+            return False
 
-            # As long as there's a delimiter match on this line...
-            while start >= 0:
-                match_iterator = delimiter.globalMatch(text, start + add)
-                if match_iterator.hasNext():
-                    end_match = match_iterator.next()
-                    end_start = end_match.capturedStart()
-                    if end_start >= add:  # Ending delimiter on this line?
-                        length = end_start - start + add + end_match.capturedLength()
-                        self.setCurrentBlockState(0)
-                        self.setFormat(start, length, style)  # Apply style
-                    # Multi-line string continues
-                    else:
-                        self.setCurrentBlockState(in_state)
-                        length = len(text) - start + add
-                        self.setFormat(start, length, style)  # Apply style
-                        break  # String continues to the next line
-                    start = (
-                        delimiter.globalMatch(text, start + length).next().capturedStart()
-                    )  # Continue searching on the next line
-                else:
-                    self.setCurrentBlockState(in_state)
-                    length = len(text) - start + add
-                    self.setFormat(start, length, style)  # Apply style
-                    break  # String continues to the next line
+        delimiter_length = len(delimiter)
+        continues_from_previous_block = previous_state == in_state
+        start = 0 if continues_from_previous_block else text.find(delimiter)
 
-            return self.currentBlockState() == in_state
-        else:
-            # If inside triple-single quotes, start at 0
-            if self.previousBlockState() == in_state:
-                start = 0
-                add = 0
-            # Otherwise, look for the delimiter on this line
-            else:
-                start = delimiter.indexIn(text)
-                # Move past this match
-                add = delimiter.matchedLength()
+        while start >= 0:
+            search_start = start if continues_from_previous_block else start + delimiter_length
+            end = text.find(delimiter, search_start)
+            if end < 0:
+                self.setCurrentBlockState(in_state)
+                self.setFormat(start, len(text) - start, style)
+                return True
 
-            # As long as there's a delimiter match on this line...
-            while start >= 0:
-                end = delimiter.indexIn(text, start + add)
-                if end >= add:  # Ending delimiter on this line?
-                    length = end - start + add + delimiter.matchedLength()
-                    self.setCurrentBlockState(0)
-                    self.setFormat(start, length, style)  # Apply style
-                # No multi-line string
-                else:
-                    self.setCurrentBlockState(in_state)
-                    length = len(text) - start + add
-                    self.setFormat(start, length, style)  # Apply style
-                    break  # String continues to the next line
-                start = delimiter.indexIn(text, start + length)  # Continue searching on the next line
+            length = end - start + delimiter_length
+            self.setFormat(start, length, style)
+            continues_from_previous_block = False
+            start = text.find(delimiter, end + delimiter_length)
 
-            return self.currentBlockState() == in_state
+        return False
 
 
 class LogSyntaxHighlighter(ui_qt.QtGui.QSyntaxHighlighter):

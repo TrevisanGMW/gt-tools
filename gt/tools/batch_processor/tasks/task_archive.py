@@ -25,6 +25,7 @@ class TaskArchive(task_base.BatchTask):
     category_icon = ui_res_lib.Icon.batch_category_outputs
     is_aggregate_task = True
     is_output_task = True
+    supports_run_once_after_jobs = True
 
     def get_default_settings(self):
         """Gets default zip task settings.

@@ -2,6 +2,7 @@
 Auto Rigger Probe Distance Attribute Widget
 """
 
+from gt.tools.auto_rigger.attr_widgets.attr_widget_probe import AttrWidgetModuleProbe
 from gt.tools.auto_rigger.attr_widgets.attr_widget_base import *
 
 class AttrWidgetModuleProbeDistance(AttrWidgetModuleProbe):

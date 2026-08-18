@@ -14,6 +14,7 @@ class RenamerView(metaclass=MayaWindowMeta):
     LABEL_WIDTH = 58
     CONTROL_HEIGHT = 24
     BUTTON_HEIGHT = 28
+    SCREEN_MARGIN = 32
 
     def __init__(self, parent=None, version=None):
         """Initializes the renamer view.
@@ -23,40 +24,182 @@ class RenamerView(metaclass=MayaWindowMeta):
             version (str, optional): Tool version.
         """
         super().__init__(parent=parent)
+        self.setSizePolicy(
+            ui_qt.QtLib.SizePolicy.Expanding,
+            ui_qt.QtLib.SizePolicy.Expanding,
+        )
         self.setWindowTitle("Renamer" + (" - (v{0})".format(version) if version else ""))
         self.setMinimumWidth(self.WINDOW_WIDTH)
         self.setWindowIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.tool_renamer))
         self.setStyleSheet(self._build_stylesheet())
         self.build_widgets()
-        self.adjustSize()
+        self._resize_to_available_screen()
         qt_utils.center_window(self)
 
     def build_widgets(self):
         """Builds all view widgets."""
-        main_layout = ui_qt.QtWidgets.QVBoxLayout(self)
-        main_layout.setContentsMargins(10, 10, 10, 10)
-        main_layout.setSpacing(5)
+        self.content_widget = ui_qt.QtWidgets.QWidget()
+        self.content_widget.setMinimumWidth(self.WINDOW_WIDTH)
+        self.content_widget.setSizePolicy(
+            ui_qt.QtLib.SizePolicy.Expanding,
+            ui_qt.QtLib.SizePolicy.Expanding,
+        )
+        self.content_scroll_area = ui_qt.QtWidgets.QScrollArea()
+        self.content_scroll_area.setSizePolicy(
+            ui_qt.QtLib.SizePolicy.Expanding,
+            ui_qt.QtLib.SizePolicy.Expanding,
+        )
+        self.content_scroll_area.setFrameShape(ui_qt.QtLib.FrameStyle.NoFrame)
+        self.content_scroll_area.setWidgetResizable(True)
+        self.content_scroll_area.setHorizontalScrollBarPolicy(
+            ui_qt.QtCore.Qt.ScrollBarAsNeeded
+        )
+        self.content_scroll_area.setVerticalScrollBarPolicy(
+            ui_qt.QtCore.Qt.ScrollBarAsNeeded
+        )
+        self.content_scroll_area.setWidget(self.content_widget)
 
-        main_layout.addWidget(self._build_title_bar())
-        main_layout.addSpacing(2)
-        main_layout.addLayout(self._build_selection_layout())
+        outer_layout = ui_qt.QtWidgets.QVBoxLayout(self)
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+        outer_layout.addWidget(self.content_scroll_area)
 
-        main_layout.addWidget(self.create_separator("Other Utilities"))
-        main_layout.addLayout(self._build_utility_layout())
+        self.content_layout = ui_qt.QtWidgets.QVBoxLayout(self.content_widget)
+        self.content_layout.setContentsMargins(10, 10, 10, 10)
+        self.content_layout.setSpacing(5)
 
-        main_layout.addWidget(self.create_separator("Rename and Number / Letter"))
-        main_layout.addLayout(self._build_rename_layout())
+        self.content_layout.addWidget(self._build_title_bar())
+        self.content_layout.addSpacing(2)
+        self.content_layout.addLayout(self._build_selection_layout())
 
-        main_layout.addWidget(self.create_separator("Prefix and Suffix"))
-        main_layout.addLayout(self._build_prefix_suffix_layout())
+        self.content_layout.addWidget(self.create_separator("Other Utilities"))
+        self.content_layout.addLayout(self._build_utility_layout())
 
-        main_layout.addWidget(self.create_separator("Search and Replace"))
-        main_layout.addLayout(self._build_search_replace_layout())
+        self.content_layout.addWidget(self.create_separator("Rename and Number / Letter"))
+        self.content_layout.addLayout(self._build_rename_layout())
+
+        self.content_layout.addWidget(self.create_separator("Prefix and Suffix"))
+        self.content_layout.addLayout(self._build_prefix_suffix_layout())
+
+        self.content_layout.addWidget(self.create_separator("Search and Replace"))
+        self.content_layout.addLayout(self._build_search_replace_layout())
 
         self.selected_radio.setChecked(True)
         self.prefix_auto_radio.setChecked(True)
         self.suffix_auto_radio.setChecked(True)
         self.refresh_enabled_states()
+
+    @staticmethod
+    def set_adaptive_height(widget, preferred_height):
+        """Sets a control height that accommodates the active Qt font and style.
+
+        Args:
+            widget (QWidget): Widget that needs a minimum height.
+            preferred_height (int): Original compact control height in pixels.
+        """
+        required_height = max(
+            preferred_height,
+            widget.sizeHint().height(),
+            widget.minimumSizeHint().height(),
+        )
+        widget.setMinimumHeight(required_height)
+
+    def _get_available_screen_geometry(self):
+        """Gets the available geometry for this window's current screen.
+
+        Returns:
+            QRect or None: Available screen geometry when a screen is available.
+        """
+        screen = None
+        window_handle = self.windowHandle()
+        if window_handle:
+            screen = window_handle.screen()
+        if not screen and hasattr(self, "screen"):
+            screen = self.screen()
+        if not screen:
+            screen = ui_qt.QtGui.QGuiApplication.primaryScreen()
+        if screen:
+            return screen.availableGeometry()
+        return None
+
+    def _resize_to_available_screen(self):
+        """Fits the window to its screen and enables scrolling only when needed."""
+        if not qt_utils.is_qt_object_valid(self):
+            return
+        available_geometry = self._get_available_screen_geometry()
+        content_size = self.content_layout.sizeHint()
+        minimum_content_size = self.content_layout.minimumSize()
+        target_width = max(
+            self.WINDOW_WIDTH,
+            content_size.width(),
+            minimum_content_size.width(),
+        )
+        target_height = max(content_size.height(), minimum_content_size.height())
+        if available_geometry:
+            maximum_width = max(1, available_geometry.width() - self.SCREEN_MARGIN)
+            maximum_height = max(1, available_geometry.height() - self.SCREEN_MARGIN)
+            self.setMinimumWidth(min(self.WINDOW_WIDTH, maximum_width))
+            target_width = min(target_width, maximum_width)
+            target_height = min(target_height, maximum_height)
+        self.resize(int(target_width), int(target_height))
+
+    def _is_floating_window(self):
+        """Determines whether the Renamer is currently floating.
+
+        Returns:
+            bool: True when the window is floating or has no docking API.
+        """
+        try:
+            if hasattr(self, "isFloating"):
+                return self.isFloating()
+        except (AttributeError, RuntimeError):
+            pass
+        return True
+
+    def _resize_floating_window_to_contents(self):
+        """Fits a floating window to its content without adding scrollbars."""
+        if not qt_utils.is_qt_object_valid(self):
+            return
+        if not self._is_floating_window():
+            return
+        self._refresh_content_layout()
+        self.content_widget.adjustSize()
+        self._resize_to_available_screen()
+
+    def _refresh_content_layout(self):
+        """Refreshes layout geometry after Maya attaches or resizes the window."""
+        if not qt_utils.is_qt_object_valid(self):
+            return
+        if not hasattr(self, "content_layout"):
+            return
+        outer_layout = self.layout()
+        if outer_layout:
+            outer_layout.invalidate()
+            outer_layout.activate()
+        self.content_layout.invalidate()
+        self.content_layout.activate()
+        self.content_widget.updateGeometry()
+        self.content_scroll_area.updateGeometry()
+
+    def showEvent(self, event):
+        """Refreshes content layout after the window becomes visible.
+
+        Args:
+            event (QShowEvent): Qt show event.
+        """
+        super().showEvent(event)
+        if self._is_floating_window():
+            ui_qt.QtCore.QTimer.singleShot(0, self._resize_floating_window_to_contents)
+        else:
+            ui_qt.QtCore.QTimer.singleShot(0, self._refresh_content_layout)
+
+    def resizeEvent(self, event):
+        """Refreshes scroll content after the workspace control changes size.
+
+        Args:
+            event (QResizeEvent): Qt resize event.
+        """
+        super().resizeEvent(event)
+        self._refresh_content_layout()
 
     def _build_title_bar(self):
         """Builds the dark title strip.
@@ -75,7 +218,7 @@ class RenamerView(metaclass=MayaWindowMeta):
         title_layout.addStretch()
         self.reset_btn = ui_qt.QtWidgets.QPushButton("Reset")
         self.reset_btn.setObjectName("titleButton")
-        self.reset_btn.setFixedHeight(self.CONTROL_HEIGHT)
+        self.set_adaptive_height(self.reset_btn, self.CONTROL_HEIGHT)
         self.reset_btn.setToolTip("Reset persistent Renamer settings to defaults.")
         title_layout.addWidget(self.reset_btn)
         return title_widget
@@ -154,18 +297,26 @@ class RenamerView(metaclass=MayaWindowMeta):
         options_row.setSpacing(5)
         self.start_number_field = ui_qt.QtWidgets.QSpinBox()
         self.start_number_field.setRange(0, 999999)
-        self.start_number_field.setFixedHeight(self.CONTROL_HEIGHT)
+        self.start_number_field.setSizePolicy(
+            ui_qt.QtLib.SizePolicy.Expanding,
+            ui_qt.QtLib.SizePolicy.Fixed,
+        )
+        self.set_adaptive_height(self.start_number_field, self.CONTROL_HEIGHT)
         self.start_number_field.setToolTip("Number used by the first renamed object.")
         self.padding_number_field = ui_qt.QtWidgets.QSpinBox()
         self.padding_number_field.setRange(1, 12)
-        self.padding_number_field.setFixedHeight(self.CONTROL_HEIGHT)
+        self.padding_number_field.setSizePolicy(
+            ui_qt.QtLib.SizePolicy.Expanding,
+            ui_qt.QtLib.SizePolicy.Fixed,
+        )
+        self.set_adaptive_height(self.padding_number_field, self.CONTROL_HEIGHT)
         self.padding_number_field.setToolTip("Minimum number of digits used by Rename and Number.")
         self.uppercase_checkbox = ui_qt.QtWidgets.QCheckBox("Uppercase")
         self.uppercase_checkbox.setToolTip("Use uppercase letters for Rename and Letter.")
         options_row.addWidget(self.create_row_label("Start #:"))
-        options_row.addWidget(self.start_number_field)
-        options_row.addWidget(ui_qt.QtWidgets.QLabel("Padding:"))
-        options_row.addWidget(self.padding_number_field)
+        options_row.addWidget(self.start_number_field, 1)
+        options_row.addWidget(self.create_row_label("Padding:"))
+        options_row.addWidget(self.padding_number_field, 1)
         options_row.addWidget(self.uppercase_checkbox)
 
         button_row = ui_qt.QtWidgets.QHBoxLayout()
@@ -313,7 +464,7 @@ class RenamerView(metaclass=MayaWindowMeta):
         """
         field = ui_qt.QtWidgets.QLineEdit()
         field.setPlaceholderText(placeholder)
-        field.setFixedHeight(self.CONTROL_HEIGHT)
+        self.set_adaptive_height(field, self.CONTROL_HEIGHT)
         return field
 
     def create_small_field(self):
@@ -323,8 +474,9 @@ class RenamerView(metaclass=MayaWindowMeta):
             QLineEdit: Compact field.
         """
         field = ui_qt.QtWidgets.QLineEdit()
-        field.setMinimumWidth(24)
-        field.setFixedHeight(self.CONTROL_HEIGHT)
+        required_width = field.fontMetrics().horizontalAdvance("_grp") + 12
+        field.setMinimumWidth(max(24, required_width))
+        self.set_adaptive_height(field, self.CONTROL_HEIGHT)
         field.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignCenter)
         if ui_qt.IS_PYSIDE6:
             ignored_policy = ui_qt.QtWidgets.QSizePolicy.Policy.Ignored
@@ -381,7 +533,8 @@ class RenamerView(metaclass=MayaWindowMeta):
             QLabel: Created label.
         """
         label = ui_qt.QtWidgets.QLabel(text)
-        label.setFixedWidth(self.LABEL_WIDTH)
+        label.setMinimumWidth(max(self.LABEL_WIDTH, label.sizeHint().width()))
+        label.setSizePolicy(ui_qt.QtLib.SizePolicy.Fixed, ui_qt.QtLib.SizePolicy.Preferred)
         label.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignRight | ui_qt.QtLib.AlignmentFlag.AlignVCenter)
         return label
 
@@ -397,7 +550,7 @@ class RenamerView(metaclass=MayaWindowMeta):
         """
         button = ui_qt.QtWidgets.QPushButton(label)
         button.setObjectName("primaryButton" if primary else "utilityButton")
-        button.setFixedHeight(self.BUTTON_HEIGHT)
+        self.set_adaptive_height(button, self.BUTTON_HEIGHT)
         button.setSizePolicy(ui_qt.QtLib.SizePolicy.Expanding, ui_qt.QtLib.SizePolicy.Fixed)
         return button
 

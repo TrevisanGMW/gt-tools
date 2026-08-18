@@ -10,6 +10,10 @@ from gt.tools.batch_processor.tasks.task_python_script import SCRIPT_MODE_EXTERN
 from gt.tools.batch_processor.tasks.task_python_script import SCRIPT_MODE_INLINE
 from gt.tools.batch_processor.tasks.task_python_script import SCRIPT_MODE_VALUES
 from gt.tools.batch_processor.widgets.inline_python_editor import PythonCodeTextEdit
+from gt.tools.batch_processor.widgets.inline_python_editor import SampleScriptMenuButton
+from gt.tools.batch_processor.widgets.inline_python_editor import configure_inline_script_button
+from gt.ui.line_text_widget import LineTextWidget
+from gt.ui.line_text_widget import apply_text_font_size
 import gt.ui.file_dialog as ui_file_dialog
 import gt.ui.qt_utils as ui_qt_utils
 import gt.ui.resource_library as ui_res_lib
@@ -47,9 +51,11 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
         self.mode_buttons = None
         self.python_edit = None
         self.python_edit_font = None
+        self.python_editor_widget = None
         self.font_size_slider = None
         self.font_size_value_label = None
         self.highlighter = None
+        self.sample_scripts_button = None
         self.base_stylesheet = ""
         self.single_mode_widget = None
         self.external_mode_widget = None
@@ -157,24 +163,28 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
         top_layout = ui_qt.QtWidgets.QHBoxLayout()
         top_layout.setContentsMargins(0, 0, 0, 5)
         run_code_btn = ui_qt.QtWidgets.QPushButton("Run Code")
+        configure_inline_script_button(run_code_btn)
         run_code_btn.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.dev_code))
         run_code_btn.setToolTip("Execute the Python code in the text editor.")
         run_code_btn.clicked.connect(self.on_button_run_code_clicked)
         top_layout.addWidget(run_code_btn)
 
         insert_selection_btn = ui_qt.QtWidgets.QPushButton("Insert Selection")
+        configure_inline_script_button(insert_selection_btn)
         insert_selection_btn.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.dev_filter))
         insert_selection_btn.setToolTip("Insert the current Maya selection as a Python list at the cursor.")
         insert_selection_btn.clicked.connect(self.on_insert_selection_clicked)
         top_layout.addWidget(insert_selection_btn)
 
         save_btn = ui_qt.QtWidgets.QPushButton("Save")
+        configure_inline_script_button(save_btn)
         save_btn.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_save))
         save_btn.setToolTip("Save the current script to a file.")
         save_btn.clicked.connect(self.on_save_clicked)
         top_layout.addWidget(save_btn)
 
         load_btn = ui_qt.QtWidgets.QPushButton("Load")
+        configure_inline_script_button(load_btn)
         load_btn.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_open))
         load_btn.setToolTip("Load a script from a file.")
         load_btn.clicked.connect(self.on_load_clicked)
@@ -196,13 +206,31 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
         attr_widget_base.configure_label_for_scaled_displays(self.font_size_value_label)
         self.font_size_value_label.setMinimumWidth(24)
         top_layout.addWidget(self.font_size_value_label)
-        top_layout.addStretch()
+        sample_scripts_directory = getattr(self.task, "sample_scripts_directory", "")
+        if sample_scripts_directory:
+            self.sample_scripts_button = SampleScriptMenuButton(
+                sample_scripts_directory=sample_scripts_directory,
+                get_text_callback=self.get_inline_editor_text,
+                set_text_callback=self.set_inline_editor_text,
+                status_callback=self.emit_status_message,
+                parent=self,
+            )
+            top_layout.addWidget(self.sample_scripts_button)
+        else:
+            top_layout.addStretch()
         single_layout.addLayout(top_layout)
 
-        self.python_edit = PythonCodeTextEdit()
-        self.python_edit.setMinimumHeight(240)
-        self.python_edit.setMinimumWidth(1)
-        self.python_edit.setSizePolicy(ui_qt.QtLib.SizePolicy.Expanding, ui_qt.QtLib.SizePolicy.Expanding)
+        self.python_editor_widget = LineTextWidget(
+            parent=self.single_mode_widget,
+            text_edit=PythonCodeTextEdit(),
+        )
+        self.python_editor_widget.setMinimumHeight(240)
+        self.python_editor_widget.setMinimumWidth(1)
+        self.python_editor_widget.setSizePolicy(
+            ui_qt.QtLib.SizePolicy.Expanding,
+            ui_qt.QtLib.SizePolicy.Expanding,
+        )
+        self.python_edit = self.python_editor_widget.get_text_edit()
         self.python_edit.setPlainText(self.task.get_inline_script_text(self.project))
         self.python_edit.setPlaceholderText("Enter Python code to run for each incoming file.")
         self.base_stylesheet = ""
@@ -211,7 +239,7 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
         self.python_edit.setFont(self.python_edit_font)
         self.python_edit.setFontPointSize(initial_font_size)
         self.python_edit.setToolTip("Python code executed for every incoming file. Use context for batch data.")
-        single_layout.addWidget(self.python_edit)
+        single_layout.addWidget(self.python_editor_widget)
 
         try:
             import gt.ui.syntax_highlighter as ui_syntax_highlighter
@@ -222,6 +250,25 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
 
         self.set_editor_font_size(initial_font_size)
         self.python_edit.textChanged.connect(self.on_text_changed)
+
+    def get_inline_editor_text(self):
+        """Gets the current inline script editor text.
+
+        Returns:
+            str: Current Python code.
+        """
+        if not self.python_edit:
+            return ""
+        return self.python_edit.toPlainText()
+
+    def set_inline_editor_text(self, script_text):
+        """Replaces the inline script editor text.
+
+        Args:
+            script_text (str): Python code to display and persist.
+        """
+        if self.python_edit:
+            self.python_edit.setPlainText(str(script_text or ""))
 
     def add_external_file_controls(self):
         """Adds controls for running an ordered list of external Python files."""
@@ -787,6 +834,10 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
         self.task.settings["font_size"] = size
         if self.font_size_value_label:
             self.font_size_value_label.setText(str(size))
+        if self.python_edit_font:
+            self.python_edit_font.setPointSize(size)
+            self.python_edit.setFont(self.python_edit_font)
+        apply_text_font_size(self.python_edit, size)
         self._update_editor_stylesheet(size)
 
     def _update_editor_stylesheet(self, font_size):
@@ -799,6 +850,9 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
             return
         dynamic_stylesheet = self.base_stylesheet + "; font-size: {0}pt;".format(font_size)
         self.python_edit.setStyleSheet(dynamic_stylesheet)
+        if self.python_editor_widget:
+            self.python_editor_widget.number_bar.setFont(self.python_edit.font())
+            self.python_editor_widget.number_bar.update()
         font_metrics = ui_qt.QtGui.QFontMetrics(self.python_edit.font())
         if hasattr(font_metrics, "horizontalAdvance"):
             space_width = font_metrics.horizontalAdvance(" ")
@@ -869,8 +923,10 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
     def on_text_changed(self):
         """Stores the editor content on the task settings."""
         self.task.settings["script_text"] = self.python_edit.toPlainText()
-        self.set_editor_font_size(self.font_size_slider.value())
-        self.python_edit.setFont(self.python_edit_font)
+        if self.font_size_slider:
+            self._update_editor_stylesheet(self.font_size_slider.value())
+        if self.python_edit and self.python_edit_font:
+            self.python_edit.setFont(self.python_edit_font)
 
     def refresh_script_list(self, update_status=True):
         """Refreshes the detected script list.

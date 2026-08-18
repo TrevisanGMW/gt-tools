@@ -18,6 +18,12 @@ VALIDATION_LOG_TARGET_PATH_TEMPLATE = "{log-dir}"
 OLD_VALIDATION_LOG_TARGET_PATH_TEMPLATE = "{project-dir}/validation_logs"
 LEGACY_VALIDATION_LOG_TARGET_PATH_TEMPLATE = "{project-dir}/{output-dir}/validation_logs"
 
+VALIDATION_SCOPE_SCENE = "Scene"
+VALIDATION_SCOPE_SELECTION = "Selection"
+VALIDATION_SCOPE_TYPE = "Type"
+VALIDATION_SCOPES = [VALIDATION_SCOPE_SCENE, VALIDATION_SCOPE_SELECTION, VALIDATION_SCOPE_TYPE]
+PRE_VALIDATION_SCRIPT_SAMPLES_DIRECTORY = "validate_scene"
+
 FOLDER_COMPARE_RELATIVE_PATHS = "Relative Paths"
 FOLDER_COMPARE_NAMES_ONLY = "Names Only"
 FOLDER_COMPARE_NAMES_WITHOUT_EXTENSIONS = "Names Without Extensions"
@@ -47,6 +53,8 @@ class TaskValidationMayaScene(task_base.BatchTask):
     category = "Validation"
     category_icon = ui_res_lib.Icon.batch_category_validation
     is_indexless_task = True
+    supports_run_once_after_jobs = True
+    pre_validation_script_samples_directory = PRE_VALIDATION_SCRIPT_SAMPLES_DIRECTORY
 
     def __init__(self, *args, **kwargs):
         """Initializes a Maya scene validation task.
@@ -70,10 +78,21 @@ class TaskValidationMayaScene(task_base.BatchTask):
             "source_load_mode": "Open",
             "load_relevant_plugins": True,
             "validators": [],
-            "validation_scope": "Scene",
+            "validation_scope": VALIDATION_SCOPE_SCENE,
+            "validation_node_type": "",
             "log_mode": VALIDATION_LOG_ISSUES,
             "fail_on_issues": False,
             "overwrite": True,
+            "run_pre_validation_script": False,
+            "pre_validation_script_text": "",
+            "pre_validation_script_collapsed": True,
+            "pre_validation_script_font_size": 14,
+            "pre_validation_script_pass_standard_arguments": True,
+            "pre_validation_script_pass_environment_arguments": True,
+            "run_once_after_multi_instance": False,
+            "force_segment_separator": False,
+            "segment_name": "",
+            "segment_color": "blue_light_sky",
         }
 
     def validate(self, project):
@@ -86,6 +105,14 @@ class TaskValidationMayaScene(task_base.BatchTask):
             ValidationResult: Validation result.
         """
         result = task_base.ValidationResult()
+        script_text = self.settings.get("pre_validation_script_text") or ""
+        if self.settings.get("run_pre_validation_script") and not script_text.strip():
+            result.add_error("Maya scene validation pre-script is enabled but no inline script is set.")
+        if self.uses_node_type_scope() and not self.get_validation_node_type():
+            result.add_warning(
+                "Maya scene validation uses the Type scope but no node type is configured. "
+                "Validators will run without a node type filter."
+            )
         validator_names = self.get_validator_names()
         if not validator_names:
             result.add_warning("Maya scene validation has no validators configured.")
@@ -95,6 +122,22 @@ class TaskValidationMayaScene(task_base.BatchTask):
             if validator_name not in available_validators:
                 result.add_error("Unknown Maya scene validator: {0}".format(validator_name))
         return result
+
+    def uses_node_type_scope(self):
+        """Checks whether the configured scope filters nodes by type.
+
+        Returns:
+            bool: True when the Type scope is active.
+        """
+        return str(self.settings.get("validation_scope") or "").strip().upper() == VALIDATION_SCOPE_TYPE.upper()
+
+    def get_validation_node_type(self):
+        """Gets the single node type forwarded to validators by the Type scope.
+
+        Returns:
+            str: Cleaned node type name, empty when none is configured.
+        """
+        return str(self.settings.get("validation_node_type") or "").strip()
 
     def execute(self, work_item, project, step_output_dir, context=None):
         """Runs configured validators against one Maya scene.
@@ -113,6 +156,12 @@ class TaskValidationMayaScene(task_base.BatchTask):
             source_load_mode=self.settings.get("source_load_mode") or "Open",
             load_relevant_plugins=self.settings.get("load_relevant_plugins", True),
         )
+        self.run_pre_validation_script_if_needed(
+            project=project,
+            work_item=work_item,
+            step_output_dir=step_output_dir,
+            context=context,
+        )
         results = self.run_validators()
         has_issues = any(result_data.get("status_value", 0) > 1 for result_data in results)
         self.write_validation_log_if_needed(
@@ -130,16 +179,59 @@ class TaskValidationMayaScene(task_base.BatchTask):
             metadata=task_utils.build_metadata(self, work_item),
         )
 
+    def run_pre_validation_script_if_needed(self, project, work_item, step_output_dir, context=None):
+        """Runs the optional Python script executed before the validators.
+
+        The script runs in the loaded scene, so it can build a selection, create
+        temporary state, or otherwise prepare the scene for the Selection and
+        Type scopes.
+
+        Args:
+            project (BatchProcessorModel): Active project.
+            work_item (WorkItem): Work item being validated.
+            step_output_dir (str): Log output directory.
+            context (dict, optional): Runner context.
+        """
+        if not self.settings.get("run_pre_validation_script"):
+            return
+        script_text = self.settings.get("pre_validation_script_text") or ""
+        if not script_text.strip():
+            return
+        runtime_context = task_utils.build_python_script_runtime_context(
+            project=project,
+            task=self,
+            work_item=work_item,
+            output_path=step_output_dir,
+            context=context,
+            extra_values={
+                "project": project,
+                "task": self,
+                "work_item": work_item,
+                "output_path": step_output_dir,
+                "validation_scope": self.settings.get("validation_scope"),
+                "node_type": self.get_validation_node_type(),
+                "validator_names": self.get_validator_names(),
+            },
+            pass_standard_arguments=self.settings.get("pre_validation_script_pass_standard_arguments", True),
+            pass_environment_arguments=self.settings.get("pre_validation_script_pass_environment_arguments", True),
+        )
+        task_utils.run_inline_python_script(
+            script_text=script_text,
+            context=runtime_context,
+            script_name="<validate_scene_pre_script>",
+        )
+
     def run_validators(self):
         """Runs the selected validators in the current Maya scene.
+
+        The configured node type is only forwarded while the Type scope is active.
 
         Returns:
             list: Serialized validator result dictionaries.
         """
-        import gt.core.validator as core_validator
-
         results = []
         scope = get_validator_scope(self.settings.get("validation_scope"))
+        node_type = self.get_validation_node_type() if self.uses_node_type_scope() else ""
         for validator_name in self.get_validator_names():
             validator_class = get_validator_class(validator_name)
             if not validator_class:
@@ -153,27 +245,13 @@ class TaskValidationMayaScene(task_base.BatchTask):
                     }
                 )
                 continue
-            validator = validator_class()
-            try:
-                validator.validate(scope=scope)
-            except TypeError:
-                validator.validate()
-            status = validator.get_status()
-            status_name = getattr(status, "name", str(status))
-            try:
-                status_value = int(status)
-            except (TypeError, ValueError):
-                status_value = 0
             results.append(
-                {
-                    "validator": validator_name,
-                    "name": validator.get_name(),
-                    "description": validator.get_description(),
-                    "status": status_name,
-                    "status_value": status_value,
-                    "feedback": validator.get_feedback(),
-                    "repair_available": validator.is_repair_available(),
-                }
+                run_validator_instance(
+                    validator_class=validator_class,
+                    validator_name=validator_name,
+                    scope=scope,
+                    node_type=node_type,
+                )
             )
         return results
 
@@ -224,6 +302,7 @@ class TaskValidationFileIntegrity(task_base.BatchTask):
     category = "Validation"
     category_icon = ui_res_lib.Icon.batch_category_validation
     is_indexless_task = True
+    supports_run_once_after_jobs = True
 
     def __init__(self, *args, **kwargs):
         """Initializes a file integrity validation task.
@@ -253,6 +332,10 @@ class TaskValidationFileIntegrity(task_base.BatchTask):
             "detect_duplicate_checksums": False,
             "checksum_algorithm": "sha1",
             "overwrite": True,
+            "run_once_after_multi_instance": False,
+            "force_segment_separator": False,
+            "segment_name": "",
+            "segment_color": "blue_light_sky",
         }
 
     def validate(self, project):
@@ -421,6 +504,7 @@ class TaskValidationFolderCompare(task_base.BatchTask):
     category_icon = ui_res_lib.Icon.batch_category_validation
     is_indexless_task = True
     is_aggregate_task = True
+    supports_run_once_after_jobs = True
 
     def __init__(self, *args, **kwargs):
         """Initializes a folder parity validation task.
@@ -448,6 +532,10 @@ class TaskValidationFolderCompare(task_base.BatchTask):
             "log_mode": VALIDATION_LOG_ISSUES,
             "fail_on_differences": False,
             "overwrite": True,
+            "run_once_after_multi_instance": False,
+            "force_segment_separator": False,
+            "segment_name": "",
+            "segment_color": "blue_light_sky",
         }
 
     def validate(self, project):
@@ -649,6 +737,52 @@ def get_validator_class(validator_name):
         return getattr(core_validator.ValidatorLibrary, str(validator_name), None)
     except Exception:
         return None
+
+
+def run_validator_instance(validator_class, validator_name, scope, node_type=None):
+    """Runs one validator and serializes its result.
+
+    Validators that do not accept the scope or node type arguments fall back to
+    the simplest supported signature.
+
+    Args:
+        validator_class (type): Validator class to instantiate.
+        validator_name (str): Registered validator name.
+        scope (ValidatorScope): Scope forwarded to the validator.
+        node_type (str, optional): Node type forwarded when the Type scope is active.
+
+    Returns:
+        dict: Serialized validator result.
+    """
+    validator = validator_class()
+    if node_type:
+        try:
+            validator.validate(scope=scope, node_type=node_type)
+        except TypeError:
+            validator.validate()
+    else:
+        try:
+            validator.validate(scope=scope)
+        except TypeError:
+            validator.validate()
+    status = validator.get_status()
+    status_name = getattr(status, "name", str(status))
+    try:
+        status_value = int(status)
+    except (TypeError, ValueError):
+        status_value = 0
+    result_data = {
+        "validator": validator_name,
+        "name": validator.get_name(),
+        "description": validator.get_description(),
+        "status": status_name,
+        "status_value": status_value,
+        "feedback": validator.get_feedback(),
+        "repair_available": validator.is_repair_available(),
+    }
+    if node_type:
+        result_data["node_type"] = node_type
+    return result_data
 
 
 def get_validator_scope(scope_name):

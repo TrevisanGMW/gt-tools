@@ -35,12 +35,21 @@ class RenamerController:
                 lambda checked, radio_button=radio_button: self.on_selection_type_changed(radio_button, checked)
             )
 
-        self.view.use_source_checkbox.toggled.connect(lambda *args: self.view.refresh_enabled_states())
-        self.view.prefix_auto_radio.toggled.connect(lambda *args: self.view.refresh_enabled_states())
-        self.view.prefix_input_radio.toggled.connect(lambda *args: self.view.refresh_enabled_states())
-        self.view.suffix_auto_radio.toggled.connect(lambda *args: self.view.refresh_enabled_states())
-        self.view.suffix_input_radio.toggled.connect(lambda *args: self.view.refresh_enabled_states())
+        self.view.use_source_checkbox.toggled.connect(self.on_use_source_changed)
+        self.view.prefix_auto_radio.toggled.connect(
+            lambda checked: self.on_mode_changed("prefix_mode", "auto", checked)
+        )
+        self.view.prefix_input_radio.toggled.connect(
+            lambda checked: self.on_mode_changed("prefix_mode", "input", checked)
+        )
+        self.view.suffix_auto_radio.toggled.connect(
+            lambda checked: self.on_mode_changed("suffix_mode", "auto", checked)
+        )
+        self.view.suffix_input_radio.toggled.connect(
+            lambda checked: self.on_mode_changed("suffix_mode", "input", checked)
+        )
 
+        self.connect_setting_field(self.view.rename_field, "rename_text")
         self.connect_setting_field(self.view.transform_suffix_field, "transform_suffix")
         self.connect_setting_field(self.view.mesh_suffix_field, "mesh_suffix")
         self.connect_setting_field(self.view.nurbs_crv_suffix_field, "nurbs_crv_suffix")
@@ -50,6 +59,10 @@ class RenamerController:
         self.connect_setting_field(self.view.left_prefix_field, "left_prefix")
         self.connect_setting_field(self.view.center_prefix_field, "center_prefix")
         self.connect_setting_field(self.view.right_prefix_field, "right_prefix")
+        self.connect_setting_field(self.view.prefix_field, "prefix_text")
+        self.connect_setting_field(self.view.suffix_field, "suffix_text")
+        self.connect_setting_field(self.view.search_field, "search_text")
+        self.connect_setting_field(self.view.replace_field, "replace_text")
         self.view.start_number_field.valueChanged.connect(
             lambda value: self.save_setting("def_starting_number", value)
         )
@@ -108,12 +121,41 @@ class RenamerController:
             return
         self.model.set_selection_type(radio_button.text())
 
+    def on_use_source_changed(self, checked):
+        """Persists the source-name option and refreshes dependent controls.
+
+        Args:
+            checked (bool): Whether source names should be used as the base name.
+        """
+        self.save_setting("use_source", "1" if checked else "0")
+        self.view.refresh_enabled_states()
+
+    def on_mode_changed(self, setting_key, mode, checked):
+        """Persists an automatic or manual input mode and refreshes the view.
+
+        Args:
+            setting_key (str): Name of the persisted mode setting.
+            mode (str): Selected mode value.
+            checked (bool): Whether the related radio button was selected.
+        """
+        if checked:
+            self.save_setting(setting_key, mode)
+        self.view.refresh_enabled_states()
+
     def sync_view_from_model(self):
         """Writes model values into the view."""
         widgets = [
             self.view.selected_radio,
             self.view.hierarchy_radio,
             self.view.all_radio,
+            self.view.rename_field,
+            self.view.use_source_checkbox,
+            self.view.prefix_auto_radio,
+            self.view.prefix_input_radio,
+            self.view.prefix_field,
+            self.view.suffix_auto_radio,
+            self.view.suffix_input_radio,
+            self.view.suffix_field,
             self.view.transform_suffix_field,
             self.view.mesh_suffix_field,
             self.view.nurbs_crv_suffix_field,
@@ -126,12 +168,24 @@ class RenamerController:
             self.view.start_number_field,
             self.view.padding_number_field,
             self.view.uppercase_checkbox,
+            self.view.search_field,
+            self.view.replace_field,
         ]
         self._syncing_view = True
         try:
             for widget in widgets:
                 widget.blockSignals(True)
             self.view.set_selection_type(self.model.settings.get("selection_type"))
+            self.view.rename_field.setText(self.model.settings.get("rename_text", ""))
+            self.view.use_source_checkbox.setChecked(self.get_bool_setting("use_source"))
+            self.view.prefix_auto_radio.setChecked(
+                self.model.settings.get("prefix_mode") != "input"
+            )
+            self.view.prefix_field.setText(self.model.settings.get("prefix_text", ""))
+            self.view.suffix_auto_radio.setChecked(
+                self.model.settings.get("suffix_mode") != "input"
+            )
+            self.view.suffix_field.setText(self.model.settings.get("suffix_text", ""))
             self.view.transform_suffix_field.setText(self.model.settings.get("transform_suffix"))
             self.view.mesh_suffix_field.setText(self.model.settings.get("mesh_suffix"))
             self.view.nurbs_crv_suffix_field.setText(self.model.settings.get("nurbs_crv_suffix"))
@@ -144,6 +198,8 @@ class RenamerController:
             self.view.start_number_field.setValue(self.get_int_setting("def_starting_number", 1))
             self.view.padding_number_field.setValue(self.get_int_setting("def_padding_number", 2))
             self.view.uppercase_checkbox.setChecked(self.model.settings.get("def_uppercase_letter") != "0")
+            self.view.search_field.setText(self.model.settings.get("search_text", ""))
+            self.view.replace_field.setText(self.model.settings.get("replace_text", ""))
         finally:
             for widget in widgets:
                 widget.blockSignals(False)
@@ -163,6 +219,21 @@ class RenamerController:
             return int(self.model.settings.get(setting_key))
         except (TypeError, ValueError):
             return fallback
+
+    def get_bool_setting(self, setting_key, fallback=False):
+        """Gets a boolean setting with fallback.
+
+        Args:
+            setting_key (str): Setting key.
+            fallback (bool, optional): Value used when the setting is missing.
+
+        Returns:
+            bool: Setting value.
+        """
+        value = self.model.settings.get(setting_key)
+        if value is None:
+            return fallback
+        return str(value).lower() not in ["0", "false", ""]
 
     def run_operation(self, operation):
         """Runs a renamer operation.

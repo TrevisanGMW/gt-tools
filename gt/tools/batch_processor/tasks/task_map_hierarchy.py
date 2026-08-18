@@ -126,6 +126,7 @@ class TaskMapHierarchy(task_base.BatchTask):
     category_icon = ui_res_lib.Icon.root_utilities
     is_aggregate_task = True
     is_data_load_task = True
+    supports_run_once_after_jobs = True
 
     def get_default_settings(self):
         """Gets default Map Hierarchy settings.
@@ -154,6 +155,10 @@ class TaskMapHierarchy(task_base.BatchTask):
             "write_report": True,
             "report_path": "{project-dir}/logs/map_hierarchy_{task-idx}.json",
             "overwrite": True,
+            "run_once_after_multi_instance": True,
+            "force_segment_separator": False,
+            "segment_name": "",
+            "segment_color": "blue_light_sky",
         }
 
     def validate(self, project):

@@ -35,6 +35,7 @@ class SingleInstanceBatchRunner:
         self.tracker = tracker or batch_processor_tracker.BatchProgressTracker()
         self.flag_skipped_tasks = bool(flag_skipped_tasks)
         self.task_time_log_path = task_time_log_path
+        self.run_id = tasks.build_run_id()
 
     def run(self, project, run_from_task_id=None, run_from_module_id=None, run_to_task_id=None):
         """Runs a project through enabled tasks.
@@ -111,10 +112,10 @@ class SingleInstanceBatchRunner:
                     current_items=current_items,
                 )
                 if not current_items and not getattr(task, "is_aggregate_task", False):
-                    source_path = task.resolve_source_path(project, task_index=task_environment_index)
                     raise RuntimeError(
-                        'No source files found for task "{0}" using source path: {1}'.format(
-                            task.display_name, source_path
+                        task.get_no_source_files_error(
+                            project=project,
+                            task_index=task_environment_index,
                         )
                     )
                 step_output_dir = self._get_step_output_dir(project, task_environment_index, task)
@@ -297,6 +298,7 @@ class SingleInstanceBatchRunner:
                 "item_index": 1,
                 "total_items": len(work_items),
                 "work_items": list(work_items),
+                "run_id": self.run_id,
             }
             self.tracker.record_message(
                 "[INFO] - ({0}) - Processing aggregate task with {1} incoming file(s).".format(
@@ -328,7 +330,12 @@ class SingleInstanceBatchRunner:
             return output_items
         for index, work_item in enumerate(work_items, 1):
             self.tracker.start_file(work_item.current_path)
-            context = {"item_index": index, "total_items": len(work_items), "work_items": list(work_items)}
+            context = {
+                "item_index": index,
+                "total_items": len(work_items),
+                "work_items": list(work_items),
+                "run_id": self.run_id,
+            }
             self.tracker.record_message(
                 "[INFO] - ({0}) - Processing {1}/{2}: {3}".format(
                     task.task_type, index, len(work_items), work_item.current_path
@@ -460,11 +467,17 @@ class MultiInstanceBatchRunner:
             raise RuntimeError("Project validation failed: {0}".format("; ".join(validation.errors)))
         final_tasks = self._get_final_multi_instance_tasks(process_tasks)
         if final_tasks:
-            last_processing_task = next((task for task in reversed(process_tasks) if not task.is_input_task), None)
-            if len(final_tasks) > 1 or final_tasks[0] is not last_processing_task:
+            processing_tasks = [task for task in process_tasks if not task.is_input_task]
+            trailing_tasks = processing_tasks[len(processing_tasks) - len(final_tasks) :]
+            if trailing_tasks != final_tasks:
+                offending_task = next(
+                    (task for task in final_tasks if task not in trailing_tasks),
+                    final_tasks[0],
+                )
                 raise RuntimeError(
-                    f'Zip Compress task "{final_tasks[0].display_name}" must be the last enabled processing task '
-                    f'when "Run Once After All Jobs" is enabled.'
+                    f'Task "{offending_task.display_name}" must be the last enabled processing task '
+                    'when "Run Once After All Jobs" is enabled. Run-once tasks have to be the final '
+                    "enabled processing tasks, in list order."
                 )
 
         project_snapshot_path = self._write_project_snapshot(project)
@@ -547,18 +560,18 @@ class MultiInstanceBatchRunner:
 
     @staticmethod
     def _get_final_multi_instance_tasks(process_tasks):
-        """Gets Zip Compress tasks configured to run after regular multi-instance jobs.
+        """Gets tasks configured to run once after regular multi-instance jobs.
 
         Args:
             process_tasks (list): Enabled tasks selected for the run.
 
         Returns:
-            list: Zip Compress tasks deferred to the final phase.
+            list: Tasks deferred to the final phase, in task order.
         """
         return [
             task
             for task in process_tasks
-            if task.task_type == constants.TaskType.ZIP_COMPRESS
+            if getattr(task, "supports_run_once_after_jobs", False)
             and task.settings.get("run_once_after_multi_instance", False)
         ]
 

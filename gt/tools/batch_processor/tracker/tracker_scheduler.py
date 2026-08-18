@@ -811,13 +811,21 @@ class TrackerScheduler:
             tracker_constants.Status.TIMED_OUT,
             tracker_constants.Status.CANCELED,
         }
-        if any(regular.status in blocking_statuses for regular in self.session.regular_jobs):
+        blocking_jobs = [
+            regular
+            for regular in self.session.regular_jobs
+            if regular.status in blocking_statuses
+        ]
+        if blocking_jobs:
+            skip_message = self._build_finalization_skip_message(blocking_jobs)
             job.status = tracker_constants.Status.SKIPPED
             job.completed_at = tracker_events.utc_now_iso()
             for task in job.tasks:
                 task.status = tracker_constants.Status.SKIPPED
                 task.progress = 100
                 task.completed_at = job.completed_at
+                task.messages.append(("Info", skip_message))
+            self._append_project_log(f"[SKIPPED] - (Multi-instance) - {skip_message}\n")
             return True
         if self.final_task_index < len(job.tasks):
             try:
@@ -835,6 +843,38 @@ class TrackerScheduler:
             job.status = tracker_constants.Status.COMPLETED
         job.completed_at = tracker_events.utc_now_iso()
         return True
+
+    @staticmethod
+    def _build_finalization_skip_message(blocking_jobs):
+        """Builds a concise explanation for skipped run-once final tasks.
+
+        Args:
+            blocking_jobs (list): Regular jobs that did not complete successfully.
+
+        Returns:
+            str: User-facing finalization skip message.
+        """
+        status_counts = {}
+        job_descriptions = []
+        for job in blocking_jobs:
+            status_name = str(job.status or "Unknown").lower()
+            status_counts[status_name] = status_counts.get(status_name, 0) + 1
+            source_name = os.path.basename(str(job.source_file or "")) or str(job.name or "Unknown source")
+            job_descriptions.append(f"{source_name} ({status_name})")
+        status_text = ", ".join(
+            f"{status_name}: {count}"
+            for status_name, count in sorted(status_counts.items())
+        )
+        max_job_descriptions = 5
+        visible_jobs = job_descriptions[:max_job_descriptions]
+        if len(job_descriptions) > max_job_descriptions:
+            visible_jobs.append(f"and {len(job_descriptions) - max_job_descriptions} more")
+        job_count = len(blocking_jobs)
+        job_label = "job" if job_count == 1 else "jobs"
+        return (
+            f"Run-once final tasks were skipped because {job_count} regular {job_label} did not finish successfully "
+            f"({status_text}). Affected jobs: {', '.join(visible_jobs)}."
+        )
 
     def _advance_abort(self):
         """Force-kills workers that exceed the abort grace period.

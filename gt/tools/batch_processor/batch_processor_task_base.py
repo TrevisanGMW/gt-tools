@@ -206,6 +206,25 @@ def hash_settings(settings):
     return hashlib.sha1(payload.encode("utf-8")).hexdigest()
 
 
+def build_run_id(seed=None):
+    """Builds a run identifier shared by every process of one batch run.
+
+    Tasks that merge results written by parallel workers use this value to tell
+    the current run apart from artifacts left by earlier runs.
+
+    Args:
+        seed (str, optional): Run-scoped value, such as a session file path.
+            A random identifier is generated when omitted.
+
+    Returns:
+        str: Run identifier.
+    """
+    seed = str(seed or "").strip()
+    if not seed:
+        return uuid.uuid4().hex[:16]
+    return hashlib.sha1(os.path.normcase(seed).encode("utf-8")).hexdigest()[:16]
+
+
 def normalize_extensions(extensions):
     """Normalizes extension filters.
 
@@ -489,6 +508,7 @@ class BatchTask:
     is_output_task = False
     is_delete_task = False
     is_data_load_task = False
+    supports_run_once_after_jobs = False
 
     def __init__(self, task_id=None, display_name=None, enabled=True, settings=None, extra_data=None, **kwargs):
         """Initializes a batch task.
@@ -724,6 +744,19 @@ class BatchTask:
             str: Resolved normalized source path.
         """
         return project.resolve_template_path(self.get_source_path_template(), task=self, task_index=task_index)
+
+    def get_no_source_files_error(self, project, task_index=None):
+        """Builds an error explaining why this task cannot run without source files.
+
+        Args:
+            project (BatchProcessorModel): Project containing this task.
+            task_index (int, optional): One-based task index used for path resolution.
+
+        Returns:
+            str: User-facing error message.
+        """
+        source_path = self.resolve_source_path(project=project, task_index=task_index)
+        return f'No source files found for task "{self.display_name}" using source path: {source_path}'
 
     def resolve_task_path(self, project, task_index=None):
         """Resolves this task's path template against a project.
