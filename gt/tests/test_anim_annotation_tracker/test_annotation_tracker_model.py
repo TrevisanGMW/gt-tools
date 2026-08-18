@@ -2,6 +2,7 @@
 
 import json
 import os
+import tempfile
 import unittest
 from types import SimpleNamespace
 
@@ -66,11 +67,62 @@ class TestAnnotationTrackerModel(unittest.TestCase):
 
     def test_sample_schema_is_valid_json(self):
         """Checks the packaged sample schema can be loaded."""
+        expected_directory = annotation_tracker_model.get_sample_schema_directory()
+
         with open(annotation_tracker_model.get_sample_schema_path(), encoding="utf-8") as schema_file:
             schema = json.load(schema_file)
 
+        self.assertEqual(
+            expected_directory,
+            os.path.dirname(annotation_tracker_model.get_sample_schema_path()),
+        )
         self.assertEqual("high", schema["file_level"][0]["options"][2])
         self.assertTrue(schema["validation"]["full_coverage"])
+
+    def test_sample_automation_scripts_are_packaged_in_their_own_folder(self):
+        """Checks all example automation scripts are collected together."""
+        expected_file_names = ["automation.py", "event_recorder.py"]
+
+        automation_paths = annotation_tracker_model.get_sample_automation_paths()
+        actual_file_names = [
+            os.path.basename(automation_path)
+            for automation_path in automation_paths
+        ]
+
+        self.assertEqual(expected_file_names, actual_file_names)
+        self.assertTrue(
+            os.path.isdir(
+                annotation_tracker_model.get_sample_automation_directory()
+            )
+        )
+
+    def test_copy_sample_automation_scripts_skips_existing_files(self):
+        """Checks sample automations copy without overwriting destination files."""
+        expected_file_names = ["automation.py", "event_recorder.py"]
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            copied_paths, skipped_paths = (
+                annotation_tracker_model.copy_sample_automation_scripts(
+                    temporary_directory
+                )
+            )
+            copied_file_names = [
+                os.path.basename(copied_path)
+                for copied_path in copied_paths
+            ]
+            second_copied_paths, second_skipped_paths = (
+                annotation_tracker_model.copy_sample_automation_scripts(
+                    temporary_directory
+                )
+            )
+            skipped_file_names = [
+                os.path.basename(skipped_path)
+                for skipped_path in second_skipped_paths
+            ]
+
+        self.assertEqual(expected_file_names, copied_file_names)
+        self.assertEqual([], skipped_paths)
+        self.assertEqual([], second_copied_paths)
+        self.assertEqual(expected_file_names, skipped_file_names)
 
     def test_sample_schema_contains_file_data_fields(self):
         """Checks the example file data fields and requirements."""
@@ -146,6 +198,8 @@ class TestAnnotationTrackerModel(unittest.TestCase):
             ["interaction_item", "contact_attributes"],
             row_field_names,
         )
+        self.assertEqual("event_recorder.py", fields_by_name["event"]["automation"])
+        self.assertNotIn("events", fields_by_name)
 
     def test_last_used_data_is_stored_as_a_copy(self):
         """Checks last-used data is isolated from caller mutations."""
@@ -279,10 +333,14 @@ class TestAnnotationTrackerModel(unittest.TestCase):
         self.assertEqual({}, actual_file_data)
         self.assertEqual({}, actual_range_data)
 
-    def test_build_usd_custom_data_omits_tracker_only_range_fields(self):
-        """Checks the USD data projection preserves only user metadata."""
+    def test_build_annotation_data_flattens_and_orders_range_metadata(self):
+        """Checks annotation data flattens metadata in schema UI order."""
         payload = {
-            "file_data": {"source": "mocap_take_01", "annotated": True},
+            "file_data": {
+                "legacy_file": "retained",
+                "source": "mocap_take_01",
+                "annotated": True,
+            },
             "range_data": [
                 {
                     "id": "b511c4c0-39a2-4d96-b5b3-5a486f5d5b4d",
@@ -292,33 +350,70 @@ class TestAnnotationTrackerModel(unittest.TestCase):
                     "color": [100, 150, 200],
                     "locked": True,
                     "custom_data": {
-                        "state": "walk",
                         "contact_attributes": "door_ctrl.open, door_ctrl.close",
+                        "state": "walk",
+                        "legacy_range": "retained",
                     },
                 }
             ],
         }
+        schema = {
+            "file_level": [
+                {"type": "string", "name": "source"},
+                {"type": "boolean", "name": "annotated"},
+            ],
+            "frame_range": [
+                {"type": "string", "name": "state"},
+                {"type": "string", "name": "contact_attributes"},
+            ],
+        }
         expected = {
-            "file_data": {"source": "mocap_take_01", "annotated": True},
+            "file_data": {
+                "source": "mocap_take_01",
+                "annotated": True,
+                "legacy_file": "retained",
+            },
             "range_data": {
                 "range_000": {
                     "name": "Walk Forward",
                     "start_frame": 1,
                     "end_frame": 30,
-                    "metadata": {
-                        "state": "walk",
-                        "contact_attributes": "door_ctrl.open, door_ctrl.close",
-                    },
+                    "state": "walk",
+                    "contact_attributes": "door_ctrl.open, door_ctrl.close",
+                    "legacy_range": "retained",
                 }
             },
         }
 
-        actual = annotation_tracker_model.build_usd_custom_data(payload)
+        actual = annotation_tracker_model.build_annotation_data(payload, schema=schema)
 
         self.assertEqual(expected, actual)
         self.assertNotIn("id", actual["range_data"]["range_000"])
         self.assertNotIn("color", actual["range_data"]["range_000"])
         self.assertNotIn("locked", actual["range_data"]["range_000"])
+
+    def test_get_reserved_range_field_names_ignores_file_data_fields(self):
+        """Checks only frame-range data fields can collide with range output."""
+        schema = {
+            "file_level": [{"type": "string", "name": "name"}],
+            "frame_range": [
+                {
+                    "type": "row",
+                    "items": [
+                        {"type": "string", "name": "name"},
+                        {"type": "string", "name": "state"},
+                    ],
+                },
+                {"type": "string", "name": "end_frame"},
+                {"type": "string", "name": "start_frame"},
+            ],
+        }
+
+        reserved_names = annotation_tracker_model.get_reserved_range_field_names(
+            schema
+        )
+
+        self.assertEqual(["name", "end_frame", "start_frame"], reserved_names)
 
     def test_validation_reports_all_missing_required_values(self):
         """Checks validation returns every missing required field."""

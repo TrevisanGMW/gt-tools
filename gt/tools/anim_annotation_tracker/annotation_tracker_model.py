@@ -2,6 +2,7 @@
 
 import copy
 import os
+import shutil
 
 from gt.core.prefs import Prefs
 
@@ -12,6 +13,11 @@ AUTOMATION_CHECK_STATES_KEY = "automation_check_states"
 AUTOMATION_CHECK_STATES_PATH_KEY = "automation_check_states_path"
 SCENE_DATA_NODE_NAME = "animAnnotationData"
 SCENE_DATA_ATTRIBUTE = "annotationData"
+RESERVED_RANGE_CUSTOM_DATA_KEYS = (
+    "name",
+    "start_frame",
+    "end_frame",
+)
 
 DEFAULT_PREFERENCES = {
     "schema_path": "",
@@ -47,13 +53,31 @@ def get_sample_directory():
     return os.path.join(os.path.dirname(__file__), "samples")
 
 
+def get_sample_schema_directory():
+    """Gets the packaged sample schema directory.
+
+    Returns:
+        str: Absolute sample schema directory path.
+    """
+    return os.path.join(get_sample_directory(), "schema")
+
+
 def get_sample_schema_path():
     """Gets the packaged sample schema path.
 
     Returns:
         str: Absolute JSON schema path.
     """
-    return os.path.join(get_sample_directory(), "schema.json")
+    return os.path.join(get_sample_schema_directory(), "schema.json")
+
+
+def get_sample_automation_directory():
+    """Gets the packaged sample automation directory.
+
+    Returns:
+        str: Absolute sample automation directory path.
+    """
+    return os.path.join(get_sample_directory(), "automations")
 
 
 def get_sample_automation_path():
@@ -62,7 +86,51 @@ def get_sample_automation_path():
     Returns:
         str: Absolute Python automation path.
     """
-    return os.path.join(get_sample_directory(), "automation.py")
+    return os.path.join(get_sample_automation_directory(), "automation.py")
+
+
+def get_sample_automation_paths():
+    """Gets the packaged sample automation scripts in display order.
+
+    Returns:
+        list: Absolute Python sample automation paths.
+    """
+    automation_directory = get_sample_automation_directory()
+    return sorted(
+        [
+            os.path.join(automation_directory, file_name)
+            for file_name in os.listdir(automation_directory)
+            if file_name.endswith(".py")
+        ]
+    )
+
+
+def copy_sample_automation_scripts(destination_directory):
+    """Copies packaged sample automation scripts without overwriting files.
+
+    Args:
+        destination_directory (str): Existing or new destination folder.
+
+    Returns:
+        tuple: Lists of copied and skipped destination file paths.
+    """
+    destination_directory = str(destination_directory or "").strip(' "\'')
+    if not destination_directory:
+        return [], []
+    os.makedirs(destination_directory, exist_ok=True)
+    copied_paths = []
+    skipped_paths = []
+    for source_path in get_sample_automation_paths():
+        destination_path = os.path.join(
+            destination_directory,
+            os.path.basename(source_path),
+        )
+        if os.path.exists(destination_path):
+            skipped_paths.append(destination_path)
+            continue
+        shutil.copyfile(source_path, destination_path)
+        copied_paths.append(destination_path)
+    return copied_paths, skipped_paths
 
 
 def get_default_preferences():
@@ -145,6 +213,57 @@ def _get_schema_field_definitions(schema):
     return field_definitions
 
 
+def get_ordered_schema_data(schema, data, data_key):
+    """Orders data to match the visible schema field order.
+
+    Recognized schema fields are emitted first in the order in which they
+    appear in the UI. Unknown fields are retained afterwards in their original
+    order so data from a newer or missing schema is not silently discarded.
+
+    Args:
+        schema (dict): Schema definition that defines UI field order.
+        data (dict): File or frame-range metadata to order.
+        data_key (str): Data section, either ``file_data`` or ``range_data``.
+
+    Returns:
+        dict: Deep-copied metadata in schema/UI order.
+    """
+    data = data if isinstance(data, dict) else {}
+    field_definitions = _get_schema_field_definitions(schema).get(data_key, {})
+    ordered_data = {
+        field_name: copy.deepcopy(data[field_name])
+        for field_name in field_definitions
+        if field_name in data
+    }
+    ordered_data.update(
+        {
+            field_name: copy.deepcopy(value)
+            for field_name, value in data.items()
+            if field_name not in ordered_data
+        }
+    )
+    return ordered_data
+
+
+def get_reserved_range_field_names(schema):
+    """Gets frame-range schema names that collide with exported base fields.
+
+    Args:
+        schema (dict): Schema definition to inspect.
+
+    Returns:
+        list: Reserved field names in their UI order.
+    """
+    schema = schema if isinstance(schema, dict) else {}
+    return [
+        item.get("name")
+        for item in flatten_schema_items(
+            schema.get("frame_range", [])
+        )
+        if item.get("name") in RESERVED_RANGE_CUSTOM_DATA_KEYS
+    ]
+
+
 def _is_schema_value_supported(field_definition, value):
     """Checks whether a value is representable by its schema field.
 
@@ -222,16 +341,20 @@ def get_schema_data_loss(schema, file_data, ranges):
     }
 
 
-def build_usd_custom_data(payload):
+def build_annotation_data(payload, schema=None):
     """Builds USD customData-compatible metadata from tracker scene data.
 
     The result deliberately omits tracker implementation fields, such as range
     identifiers, display colors, and lock states. Range data is stored in a
     dictionary rather than a list so the result can be supplied directly to a
     USD prim's ``customData`` without requiring an array of dictionaries.
+    Frame-range metadata is flattened alongside the base range fields. When a
+    schema is provided, file and frame-range metadata follow its visible UI
+    order.
 
     Args:
         payload (dict): Serialized Annotation Tracker scene payload.
+        schema (dict, optional): Active schema used to order metadata fields.
 
     Returns:
         dict: File and per-range user annotation data.
@@ -240,9 +363,7 @@ def build_usd_custom_data(payload):
     file_data = payload.get("file_data", {})
     range_data = payload.get("range_data", [])
     custom_data = {
-        "file_data": copy.deepcopy(file_data)
-        if isinstance(file_data, dict)
-        else {},
+        "file_data": get_ordered_schema_data(schema, file_data, "file_data"),
         "range_data": {},
     }
 
@@ -254,15 +375,43 @@ def build_usd_custom_data(payload):
         if not isinstance(range_item, dict):
             continue
         range_metadata = range_item.get("custom_data", {})
-        custom_data["range_data"][f"range_{index:0{range_key_width}d}"] = {
+        range_custom_data = {
             "name": str(range_item.get("name", "")),
             "start_frame": range_item.get("start", 0),
             "end_frame": range_item.get("end", 0),
-            "metadata": copy.deepcopy(range_metadata)
-            if isinstance(range_metadata, dict)
-            else {},
         }
+        ordered_metadata = get_ordered_schema_data(
+            schema,
+            range_metadata,
+            "range_data",
+        )
+        range_custom_data.update(
+            {
+                field_name: value
+                for field_name, value in ordered_metadata.items()
+                if field_name not in RESERVED_RANGE_CUSTOM_DATA_KEYS
+            }
+        )
+        custom_data["range_data"][
+            f"range_{index:0{range_key_width}d}"
+        ] = range_custom_data
     return custom_data
+
+
+def build_usd_custom_data(payload, schema=None):
+    """Builds annotation data with the previous USD helper name.
+
+    This compatibility wrapper preserves existing scripts that used the former
+    function name. New integrations should use ``build_annotation_data``.
+
+    Args:
+        payload (dict): Serialized Annotation Tracker scene payload.
+        schema (dict, optional): Active schema used to order metadata fields.
+
+    Returns:
+        dict: File and per-range user annotation data.
+    """
+    return build_annotation_data(payload, schema=schema)
 
 
 def _is_missing_value(value):

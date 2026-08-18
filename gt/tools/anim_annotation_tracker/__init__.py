@@ -29,8 +29,8 @@ def launch_tool(parent=None):
     return controller
 
 
-def get_scene_custom_data():
-    """Gets Annotation Tracker metadata saved in the current Maya scene.
+def get_scene_annotation_data():
+    """Gets Annotation Tracker annotation data saved in the current Maya scene.
 
     The returned dictionary contains file metadata and frame-range metadata
     only. It excludes tracker-only state such as range IDs, colors, and locks,
@@ -43,7 +43,19 @@ def get_scene_custom_data():
     """
     from gt.tools.anim_annotation_tracker import annotation_tracker_scene
 
-    return annotation_tracker_scene.get_scene_custom_data()
+    return annotation_tracker_scene.get_scene_annotation_data()
+
+
+def get_scene_custom_data():
+    """Gets scene annotation data using the previous helper name.
+
+    This compatibility wrapper preserves existing scripts that used the former
+    function name. New integrations should use ``get_scene_annotation_data``.
+
+    Returns:
+        dict: User-provided Annotation Tracker data.
+    """
+    return get_scene_annotation_data()
 
 
 if __name__ == "__main__":

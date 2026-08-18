@@ -333,6 +333,12 @@ def load_menu(*args):
         icon=ui_res_lib.Icon.tool_render_calculator,
     )
     menu.add_menu_item(
+        label="Startup Scripts",
+        command=IMPORT_TOOL + 'initialize_tool("startup_scripts")',
+        tooltip="Configures Python scripts that run after GT Tools loads or after Maya opens files.",
+        icon=ui_res_lib.Icon.tool_startup_scripts,
+    )
+    menu.add_menu_item(
         label="Startup Booster",
         command=IMPORT_TOOL + 'initialize_tool("startup_booster")',
         tooltip="Improve startup times by managing which plugins get loaded when starting Maya.",

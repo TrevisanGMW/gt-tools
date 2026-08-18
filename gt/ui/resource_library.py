@@ -343,6 +343,7 @@ class Icon:
     tool_fspy_importer = get_icon_path(r"tool_fspy_importer.svg")
     tool_render_calculator = get_icon_path(r"tool_render_calculator.svg")
     tool_startup_booster = get_icon_path(r"tool_startup_booster.svg")
+    tool_startup_scripts = get_icon_path(r"tool_startup_scripts.svg")
     tool_import_with_offset = get_icon_path(r"util_import_with_offset.svg")
     # Help
     tool_package_updater = get_icon_path(r"tool_check_for_updates.svg")

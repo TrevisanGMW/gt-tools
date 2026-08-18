@@ -7,6 +7,7 @@ import shutil
 import gt.ui.qt_import as ui_qt
 import gt.ui.resource_library as ui_res_lib
 import gt.ui.qt_utils as qt_utils
+import gt.ui.python_output_view as ui_python_output_view
 
 from gt.tools.anim_annotation_tracker import annotation_tracker as legacy_tracker
 from gt.tools.anim_annotation_tracker import annotation_tracker_model
@@ -43,6 +44,7 @@ class AnnotationTrackerView(
         self._add_timeline_visibility_preference()
         self._build_validation_tab()
         self._add_schema_editor_button()
+        self._add_annotation_data_print_button()
         self._apply_button_icons()
         self._apply_model_preferences()
         self._connect_preference_persistence()
@@ -113,6 +115,39 @@ class AnnotationTrackerView(
                     row_layout.addWidget(self.btn_edit_schema)
                     return
 
+    def _add_annotation_data_print_button(self):
+        """Adds an annotation-data preview action to Data Management."""
+        self.btn_print_annotation_data = QtWidgets.QPushButton(
+            "Print Annotation Data"
+        )
+        self.btn_print_annotation_data.setToolTip(
+            "Shows the current annotation data with syntax highlighting and "
+            "line numbers."
+        )
+        self.btn_print_annotation_data.clicked.connect(
+            self.show_annotation_data
+        )
+        parent_widget = self.chk_write_node.parentWidget()
+        data_layout = parent_widget.layout() if parent_widget else None
+        if data_layout:
+            import_button = next(
+                (
+                    button
+                    for button in parent_widget.findChildren(
+                        QtWidgets.QPushButton
+                    )
+                    if button.text() == "Import JSON"
+                ),
+                None,
+            )
+            if import_button:
+                data_layout.insertWidget(
+                    data_layout.indexOf(import_button),
+                    self.btn_print_annotation_data,
+                )
+            else:
+                data_layout.addWidget(self.btn_print_annotation_data)
+
     def _set_icon_button(self, button, icon_path, tooltip):
         """Sets a resource-library icon on a compact action button.
 
@@ -131,7 +166,11 @@ class AnnotationTrackerView(
         """Applies repository icons to existing tracker actions."""
         self._set_icon_button(self.btn_add_schema, ui_res_lib.Icon.ui_add, "Create sample schema")
         self._set_icon_button(self.btn_load_schema, ui_res_lib.Icon.ui_open, "Browse schema")
-        self._set_icon_button(self.btn_add_auto, ui_res_lib.Icon.ui_add, "Create sample automation")
+        self._set_icon_button(
+            self.btn_add_auto,
+            ui_res_lib.Icon.ui_add,
+            "Create sample automations",
+        )
         self._set_icon_button(self.btn_load_auto, ui_res_lib.Icon.ui_open, "Browse automations")
         self._set_icon_button(self.delete_btn, ui_res_lib.Icon.ui_delete, "Delete range")
         self._set_icon_button(
@@ -157,6 +196,27 @@ class AnnotationTrackerView(
 
         if hasattr(self, "btn_edit_schema"):
             self._set_icon_button(self.btn_edit_schema, ui_res_lib.Icon.ui_edit, "Edit schema")
+
+    def show_annotation_data(self):
+        """Shows current tracker annotation data in a readable output window."""
+        payload = legacy_tracker.DataManager.build_payload(
+            self.timeline.ranges,
+            self.file_data,
+        )
+        annotation_data = annotation_tracker_model.build_annotation_data(
+            payload,
+            schema=self.schema,
+        )
+        output_window = ui_python_output_view.PythonOutputView(
+            parent=self,
+            editable=False,
+        )
+        output_window.setWindowTitle("Annotation Tracker Annotation Data")
+        output_window.set_python_output_text(
+            json.dumps(annotation_data, indent=4, ensure_ascii=False)
+        )
+        self._annotation_data_output_window = output_window
+        output_window.show()
 
     def _apply_model_preferences(self):
         """Applies persisted preferences to the existing UI."""
@@ -440,20 +500,33 @@ class AnnotationTrackerView(
             QtWidgets.QMessageBox.warning(self, "Create Schema", str(error))
 
     def create_example_automation(self):
-        """Writes the packaged sample automation to a user-selected path."""
-        path, _ = QtWidgets.QFileDialog.getSaveFileName(
+        """Copies packaged sample automations to a user-selected folder."""
+        default_directory = self.auto_path_fld.text().strip()
+        if not os.path.isdir(default_directory):
+            default_directory = ""
+        directory = QtWidgets.QFileDialog.getExistingDirectory(
             self,
-            "Save Example Automation Script",
-            "automation.py",
-            "Python Files (*.py)",
+            "Select Folder for Sample Automations",
+            default_directory,
         )
-        if not path:
+        if not directory:
             return
         try:
-            shutil.copyfile(annotation_tracker_model.get_sample_automation_path(), path)
-            self.auto_path_fld.setText(os.path.dirname(path))
+            copied_paths, skipped_paths = (
+                annotation_tracker_model.copy_sample_automation_scripts(directory)
+            )
+            self.auto_path_fld.setText(directory)
             self.build_automations_ui()
-            self.status_bar.setText("Created example automation: {0}".format(path))
+            if copied_paths:
+                self.status_bar.setText(
+                    f"Created {len(copied_paths)} sample automation(s) in: "
+                    f"{directory}"
+                )
+            elif skipped_paths:
+                self.status_bar.setText(
+                    "Sample automation files already exist in: "
+                    f"{directory}"
+                )
         except OSError as error:
             QtWidgets.QMessageBox.warning(self, "Create Automation", str(error))
 

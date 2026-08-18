@@ -149,10 +149,11 @@ EXAMPLE_SCHEMA = """{
     },
     {"type": "separator"},
     {
-      "type": "string", "name": "events", "label": "Events", 
+      "type": "string", "name": "event", "label": "Event",
       "required": false, 
-      "placeholder": "e.g. {'foot_strike': [18, 32]}",
-      "description": "A JSON-formatted dictionary mapping specific animation events to frame numbers (e.g., {'foot_strike': [18, 32], 'blend_start': [12]}).\\nUsed for precise AI training, tagging impacts, or syncing audio."
+      "automation": "event_recorder.py",
+      "placeholder": "e.g. foot_strike: 18-28",
+      "description": "A JSON-formatted event record created by the Event Recorder automation."
     }
   ]
 }"""
@@ -216,7 +217,10 @@ context["update_range_data"]("interaction_volumes", "doorway_volume_01")
 context["update_range_data"]("interaction_item", "heavy_door")
 context["update_range_data"]("contact_attributes", "doorway_ctrl.open, doorway_ctrl.close")
 
-context["update_range_data"]("events", '{"foot_strike": [15, 30, 45]}')
+context["update_range_data"](
+    "event",
+    '{"foot_strike": {"start_frame": 15, "end_frame": 25}}',
+)
 
 print("Generated a full-coverage valid frame range automatically!")
 context["refresh_ui"]()
@@ -1578,17 +1582,35 @@ class RangeToolWindow(QtWidgets.QDialog):
                 cmds.warning(f"Failed to save schema: {e}")
                 
     def create_example_automation(self):
-        """Creates an example automation script in the configured folder."""
-        path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save Example Automation Script", "automation.py", "Python Files (*.py)")
-        if path:
-            try:
-                with open(path, 'w') as f: f.write(EXAMPLE_SCRIPT)
-                folder = os.path.dirname(path)
-                self.auto_path_fld.setText(folder)
-                self.build_automations_ui()
-                cmds.warning(f"Created example automation at {path}")
-            except Exception as e:
-                cmds.warning(f"Failed to save script: {e}")
+        """Copies packaged sample automations to a user-selected folder."""
+        default_directory = self.auto_path_fld.text().strip()
+        if not os.path.isdir(default_directory):
+            default_directory = ""
+        directory = QtWidgets.QFileDialog.getExistingDirectory(
+            self,
+            "Select Folder for Sample Automations",
+            default_directory,
+        )
+        if not directory:
+            return
+        try:
+            copied_paths, skipped_paths = (
+                annotation_tracker_model.copy_sample_automation_scripts(directory)
+            )
+            self.auto_path_fld.setText(directory)
+            self.build_automations_ui()
+            if copied_paths:
+                cmds.warning(
+                    f"Created {len(copied_paths)} sample automation(s) in: "
+                    f"{directory}"
+                )
+            elif skipped_paths:
+                cmds.warning(
+                    "Sample automation files already exist in: "
+                    f"{directory}"
+                )
+        except OSError as error:
+            cmds.warning(f"Failed to copy sample automations: {error}")
 
     # --- DYNAMIC SCHEMA & UI LOGIC ---
     def check_schema_path(self, rebuild=True):
@@ -1622,6 +1644,15 @@ class RangeToolWindow(QtWidgets.QDialog):
             self.status_bar.setText("Schema root must be a JSON object.")
             return False
 
+        reserved_field_names = annotation_tracker_model.get_reserved_range_field_names(
+            schema
+        )
+        if reserved_field_names and not self._confirm_reserved_range_field_names(
+            reserved_field_names
+        ):
+            self._restore_schema_path()
+            return False
+
         if rebuild and not self._apply_schema(schema):
             self._restore_schema_path()
             return False
@@ -1630,6 +1661,32 @@ class RangeToolWindow(QtWidgets.QDialog):
         self._loaded_schema_path = path
         self.status_bar.setText(f"Schema loaded: {path}")
         return True
+
+    def _confirm_reserved_range_field_names(self, field_names):
+        """Warns when schema fields collide with exported base range fields.
+
+        Args:
+            field_names (list): Reserved frame-range field names in use.
+
+        Returns:
+            bool: True when the user accepts the potential data loss.
+        """
+        message = (
+            "The frame-range schema uses reserved exported field name(s):\n\n"
+            f"{', '.join(field_names)}\n\n"
+            "These names are reserved for each range's name and frame bounds. "
+            "Values entered in matching schema fields will not be included in "
+            "the exported custom data. Continue?"
+        )
+        choice = QtWidgets.QMessageBox.warning(
+            self,
+            "Schema Data May Be Lost",
+            message,
+            QtWidgets.QMessageBox.StandardButton.Yes
+            | QtWidgets.QMessageBox.StandardButton.No,
+            QtWidgets.QMessageBox.StandardButton.No,
+        )
+        return choice == QtWidgets.QMessageBox.StandardButton.Yes
 
     def _get_initial_schema_path(self):
         """Gets the saved schema path before scene data is loaded.
