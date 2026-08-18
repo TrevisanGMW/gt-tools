@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <g id="Startup_Scripts">
+    <path d="M109 58h195l98 98v282c0 11-9 20-20 20H129c-11 0-20-9-20-20V78c0-11 9-20 20-20z"
+          fill="#BDBDBD" stroke="#1D1D1D" stroke-width="18" stroke-linejoin="round"/>
+    <path d="M304 58v98h98" fill="#8E8D8D" stroke="#1D1D1D" stroke-width="18" stroke-linejoin="round"/>
+    <path d="M203 218l-55 49 55 49M292 218l55 49-55 49M263 202l-28 132"
+          fill="none" stroke="#1D1D1D" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M139 383h128" fill="none" stroke="#5B5B5B" stroke-width="18" stroke-linecap="round"/>
+    <path d="M344 348c51 0 92 41 92 92h-35l43 43 43-43h-35c0-70-57-127-127-127-35 0-67 14-90 37l25 25c17-17 39-27 64-27z"
+          fill="#8E8D8D" stroke="#1D1D1D" stroke-width="14" stroke-linejoin="round"/>
+  </g>
+</svg>
