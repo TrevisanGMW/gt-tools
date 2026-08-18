@@ -104,7 +104,7 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
         self._ui_built = False
         self.clear_layout()
         self.update_ui_scale_metrics(force=True)
-        title = "Animation Clip Tracker"
+        title = "Clip Tracker"
         if self.version:
             title += " - (v{0})".format(self.version)
         self.setWindowTitle(title)
