@@ -2,7 +2,7 @@
 
 import json
 import os
-import shutil
+import sys
 
 import gt.ui.qt_import as ui_qt
 import gt.ui.resource_library as ui_res_lib
@@ -218,6 +218,50 @@ class AnnotationTrackerView(
         self._annotation_data_output_window = output_window
         output_window.show()
 
+    def _apply_tool_mode_preference(self, tool_mode):
+        """Restores the persisted timeline interaction mode.
+
+        Args:
+            tool_mode (object): Stored interaction mode value.
+
+        Returns:
+            str: Normalized interaction mode applied to the timeline.
+        """
+        normalized_mode = annotation_tracker_model.normalize_tool_mode(
+            tool_mode
+        )
+        mode_buttons = {
+            "navigate": self.rad_nav,
+            "select": self.rad_sel,
+            "edit": self.rad_edit,
+            "razor": self.rad_raz,
+        }
+        selected_button = mode_buttons[normalized_mode]
+        selected_button.blockSignals(True)
+        selected_button.setChecked(True)
+        selected_button.blockSignals(False)
+        self.on_tool_mode_changed()
+        return normalized_mode
+
+    def _get_selected_tool_mode(self):
+        """Gets the mode represented by the currently selected radio button.
+
+        Returns:
+            str: Valid selected timeline interaction mode.
+        """
+        mode_buttons = (
+            ("navigate", self.rad_nav),
+            ("select", self.rad_sel),
+            ("edit", self.rad_edit),
+            ("razor", self.rad_raz),
+        )
+        for tool_mode, button in mode_buttons:
+            if button.isChecked():
+                return tool_mode
+        return annotation_tracker_model.normalize_tool_mode(
+            self.timeline.tool_mode
+        )
+
     def _apply_model_preferences(self):
         """Applies persisted preferences to the existing UI."""
         preferences = self.model.preferences
@@ -252,6 +296,9 @@ class AnnotationTrackerView(
                 widget.setChecked(bool(value))
             widget.blockSignals(False)
 
+        self._apply_tool_mode_preference(
+            preferences.get(annotation_tracker_model.TOOL_MODE_PREFERENCE_KEY)
+        )
         self.timeline.magnet_enabled = bool(preferences.get("magnet_enabled", True))
         self.timeline.snap_threshold = int(preferences.get("snap_threshold", 10))
         self.timeline.auto_crop_enabled = bool(preferences.get("auto_crop", False))
@@ -300,6 +347,7 @@ class AnnotationTrackerView(
             else:
                 widget.stateChanged.connect(self.save_preferences)
         self.chk_show_timeline.stateChanged.connect(self.set_timeline_visible)
+        self.tool_grp.buttonClicked.connect(self.save_preferences)
 
     def save_preferences(self, *args):
         """Captures current UI values in the persistent model."""
@@ -323,6 +371,9 @@ class AnnotationTrackerView(
                 "run_all_automations": self.chk_run_all_auto.isChecked(),
                 "show_validation_status": self.chk_val_status.isChecked(),
                 "write_scene_node": self.chk_write_node.isChecked(),
+                annotation_tracker_model.TOOL_MODE_PREFERENCE_KEY: (
+                    self._get_selected_tool_mode()
+                ),
             }
         )
 
@@ -478,7 +529,7 @@ class AnnotationTrackerView(
             QtWidgets.QMessageBox.warning(self, "Write Schema", str(error))
 
     def create_example_schema(self):
-        """Writes the packaged sample schema to a user-selected path."""
+        """Copies the packaged sample schema to a user-selected path."""
         path, _ = QtWidgets.QFileDialog.getSaveFileName(
             self,
             "Save Example Schema",
@@ -488,15 +539,23 @@ class AnnotationTrackerView(
         if not path:
             return
         try:
-            shutil.copyfile(annotation_tracker_model.get_sample_schema_path(), path)
-            self.schema_path_fld.setText(path)
+            destination_path = annotation_tracker_model.copy_sample_schema(
+                path
+            )
+            self.schema_path_fld.setText(destination_path)
             if self.check_schema_path(rebuild=True):
-                self.status_bar.setText(f"Created and applied schema: {path}")
+                self.status_bar.setText(
+                    f"Created and applied schema: {destination_path}"
+                )
             else:
                 self.status_bar.setText(
-                    f"Created schema but did not apply it: {path}"
+                    "Created schema but did not apply it: "
+                    f"{destination_path}"
                 )
-        except OSError as error:
+            sys.stdout.write(
+                f"Created example schema at {destination_path}\n"
+            )
+        except (OSError, ValueError) as error:
             QtWidgets.QMessageBox.warning(self, "Create Schema", str(error))
 
     def create_example_automation(self):

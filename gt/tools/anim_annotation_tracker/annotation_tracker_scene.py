@@ -2,8 +2,27 @@
 
 import json
 import os
+from datetime import datetime
 
 from gt.tools.anim_annotation_tracker import annotation_tracker_model
+
+
+def _get_maya_cmds():
+    """Gets Maya commands without making this module Maya-dependent on import.
+
+    Returns:
+        module: Maya commands module.
+
+    Raises:
+        RuntimeError: If called outside a Maya Python runtime.
+    """
+    try:
+        from maya import cmds
+    except ImportError as exception:
+        raise RuntimeError(
+            "Annotation Tracker scene data is only available in Maya."
+        ) from exception
+    return cmds
 
 
 def _get_preferred_schema():
@@ -39,12 +58,7 @@ def get_scene_annotation_data():
     Raises:
         RuntimeError: If the function is called outside a Maya Python runtime.
     """
-    try:
-        from maya import cmds
-    except ImportError as exception:
-        raise RuntimeError(
-            "Annotation Tracker scene data is only available in Maya."
-        ) from exception
+    cmds = _get_maya_cmds()
 
     node_name = annotation_tracker_model.SCENE_DATA_NODE_NAME
     attribute_name = annotation_tracker_model.SCENE_DATA_ATTRIBUTE
@@ -76,6 +90,60 @@ def get_scene_annotation_data():
             schema=schema,
         )
     return annotation_tracker_model.build_annotation_data(payload, schema=schema)
+
+
+def set_scene_annotation_data(file_data, ranges):
+    """Replaces Annotation Tracker data in the current Maya scene.
+
+    This UI-independent API is intended for automation and batch scripts. A
+    range can use the internal tracker layout with ``start``, ``end``, and
+    ``custom_data`` or the flattened public layout with ``start_frame``,
+    ``end_frame``, and metadata fields alongside the range name.
+
+    Args:
+        file_data (dict): File-level annotation metadata.
+        ranges (list): Range dictionaries or range-like objects.
+
+    Returns:
+        dict: JSON-compatible payload written to ``animAnnotationData``.
+
+    Raises:
+        RuntimeError: If called outside a Maya Python runtime.
+        TypeError: If the existing scene data node is not a network node.
+        ValueError: If supplied range data is invalid.
+    """
+    cmds = _get_maya_cmds()
+    payload = annotation_tracker_model.build_scene_payload(file_data, ranges)
+    node_name = annotation_tracker_model.SCENE_DATA_NODE_NAME
+    data_attribute = annotation_tracker_model.SCENE_DATA_ATTRIBUTE
+    edited_attribute = annotation_tracker_model.SCENE_LAST_EDITED_ATTRIBUTE
+
+    if cmds.objExists(node_name):
+        node_type = cmds.nodeType(node_name)
+        if node_type != "network":
+            raise TypeError(
+                f"Scene node '{node_name}' must be a network node, not "
+                f"'{node_type}'."
+            )
+    else:
+        cmds.createNode("network", name=node_name)
+
+    for attribute_name in (data_attribute, edited_attribute):
+        if not cmds.attributeQuery(attribute_name, node=node_name, exists=True):
+            cmds.addAttr(node_name, longName=attribute_name, dataType="string")
+
+    cmds.setAttr(
+        f"{node_name}.{data_attribute}",
+        json.dumps(payload),
+        type="string",
+    )
+    last_edited = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    cmds.setAttr(
+        f"{node_name}.{edited_attribute}",
+        last_edited,
+        type="string",
+    )
+    return payload
 
 
 def get_scene_custom_data():

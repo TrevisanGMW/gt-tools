@@ -2,6 +2,8 @@
 
 import unittest
 from types import SimpleNamespace
+from unittest.mock import MagicMock
+from unittest.mock import patch
 
 from gt.tools.anim_annotation_tracker import annotation_tracker
 
@@ -141,6 +143,45 @@ class TestAnnotationTrackerTimeline(unittest.TestCase):
 
         self.assertEqual("C:/schemas/annotation.json", schema_path)
 
+    def test_create_example_schema_copies_packaged_file_and_writes_stdout(self):
+        """Checks successful sample creation is not reported as a warning."""
+        requested_path = "C:/schemas/schema.json"
+        copied_path = "C:\\schemas\\schema.json"
+        schema_path_field = SimpleNamespace(setText=MagicMock())
+        check_schema_path = MagicMock()
+        stdout = SimpleNamespace(write=MagicMock())
+        view = SimpleNamespace(
+            schema_path_fld=schema_path_field,
+            check_schema_path=check_schema_path,
+        )
+
+        with patch.object(
+            annotation_tracker.QtWidgets.QFileDialog,
+            "getSaveFileName",
+            return_value=(requested_path, "JSON Files (*.json)"),
+        ), patch.object(
+            annotation_tracker.annotation_tracker_model,
+            "copy_sample_schema",
+            return_value=copied_path,
+        ) as mock_copy, patch.object(
+            annotation_tracker.sys,
+            "stdout",
+            stdout,
+        ), patch.object(
+            annotation_tracker.cmds,
+            "warning",
+            create=True,
+        ) as mock_warning:
+            annotation_tracker.RangeToolWindow.create_example_schema(view)
+
+        mock_copy.assert_called_once_with(requested_path)
+        schema_path_field.setText.assert_called_once_with(copied_path)
+        check_schema_path.assert_called_once_with(rebuild=True)
+        stdout.write.assert_called_once_with(
+            f"Created example schema at {copied_path}\n"
+        )
+        mock_warning.assert_not_called()
+
     def test_save_to_scene_skips_writes_while_loading_scene_data(self):
         """Checks loading cannot overwrite scene data before schema setup."""
         view = SimpleNamespace(_is_building_ui=False, _is_loading_data=True)
@@ -148,6 +189,111 @@ class TestAnnotationTrackerTimeline(unittest.TestCase):
         result = annotation_tracker.RangeToolWindow.save_to_scene(view)
 
         self.assertIsNone(result)
+
+    def test_setup_scriptjob_registers_time_and_scene_events(self):
+        """Checks tracker callbacks cover time, opened, and new scenes."""
+        view = SimpleNamespace(
+            teardown_scriptjob=MagicMock(),
+            on_maya_time_changed=MagicMock(),
+            _deferred_scene_refresh=MagicMock(),
+            sj_id=None,
+            _scene_script_job_ids=[],
+        )
+
+        with patch.object(
+            annotation_tracker.cmds,
+            "scriptJob",
+            side_effect=[101, 102, 103],
+            create=True,
+        ) as mock_script_job:
+            annotation_tracker.RangeToolWindow.setup_scriptjob(view)
+
+        expected_events = [
+            "timeChanged",
+            "SceneOpened",
+            "NewSceneOpened",
+        ]
+        actual_events = [
+            call.kwargs["event"][0]
+            for call in mock_script_job.call_args_list
+        ]
+        self.assertEqual(expected_events, actual_events)
+        self.assertEqual(101, view.sj_id)
+        self.assertEqual([102, 103], view._scene_script_job_ids)
+
+    def test_refresh_scene_data_reloads_changed_scene_payload(self):
+        """Checks external scene-data changes repopulate the tracker."""
+        loaded_range = annotation_tracker.RangeItem(
+            "Walk",
+            1,
+            24,
+            (100, 150, 200),
+        )
+        loaded_file_data = {"source": "new_scene"}
+        handle_data_load = MagicMock()
+        refresh_from_maya = MagicMock()
+        view = SimpleNamespace(
+            runtime_widgets_alive=lambda: True,
+            _is_refreshing_scene_data=False,
+            _scene_path_cache="C:/scenes/old_scene.ma",
+            _scene_payload_cache={"range_data": [], "file_data": {}},
+            _get_current_scene_path=lambda: "C:/scenes/new_scene.ma",
+            handle_data_load=handle_data_load,
+            refresh_from_maya=refresh_from_maya,
+        )
+
+        with patch.object(
+            annotation_tracker.DataManager,
+            "load_data",
+            return_value=([loaded_range], loaded_file_data),
+        ):
+            result = annotation_tracker.RangeToolWindow.refresh_scene_data(view)
+
+        self.assertTrue(result)
+        handle_data_load.assert_called_once_with(
+            [loaded_range],
+            loaded_file_data,
+        )
+        refresh_from_maya.assert_called_once_with()
+        self.assertEqual("C:/scenes/new_scene.ma", view._scene_path_cache)
+        self.assertFalse(view._is_refreshing_scene_data)
+
+    def test_refresh_scene_data_preserves_unchanged_in_memory_data(self):
+        """Checks focus refresh avoids rebuilding an unchanged scene."""
+        loaded_range = annotation_tracker.RangeItem(
+            "Walk",
+            1,
+            24,
+            (100, 150, 200),
+        )
+        loaded_file_data = {"source": "same_scene"}
+        scene_payload = annotation_tracker.DataManager.build_payload(
+            [loaded_range],
+            loaded_file_data,
+        )
+        handle_data_load = MagicMock()
+        refresh_from_maya = MagicMock()
+        view = SimpleNamespace(
+            runtime_widgets_alive=lambda: True,
+            _is_refreshing_scene_data=False,
+            _scene_path_cache="C:/scenes/same_scene.ma",
+            _scene_payload_cache=scene_payload,
+            _get_current_scene_path=lambda: "C:/scenes/same_scene.ma",
+            handle_data_load=handle_data_load,
+            refresh_from_maya=refresh_from_maya,
+        )
+
+        with patch.object(
+            annotation_tracker.DataManager,
+            "load_data",
+            return_value=([loaded_range], loaded_file_data),
+        ):
+            result = annotation_tracker.RangeToolWindow.refresh_scene_data(view)
+
+        self.assertFalse(result)
+        handle_data_load.assert_not_called()
+        refresh_from_maya.assert_called_once_with()
+        self.assertFalse(view._is_refreshing_scene_data)
 
 
 if __name__ == "__main__":

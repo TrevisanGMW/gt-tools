@@ -20,212 +20,6 @@ QtWidgets = ui_qt.QtWidgets
 QtCore = ui_qt.QtCore
 QtGui = ui_qt.QtGui
 
-# --- DEFAULT EXAMPLE FILES ---
-
-EXAMPLE_SCHEMA = """{
-  "validation": {
-    "full_coverage": true,
-    "allow_overlap": false
-  },
-  "file_level": [
-    {
-      "type": "enum", "name": "quality", "label": "Quality", 
-      "options": ["low", "medium", "high"], 
-      "required": true, 
-      "description": "Defines the overall animation fidelity and usability.\\n'high' means polished, clean mocap ready for production.\\n'medium' indicates acceptable data that requires some animation cleanup.\\n'low' means blocky, rough motion, significant foot sliding, or missing marker data."
-    },
-    {
-      "type": "row",
-      "equal_widths": true,
-      "items": [
-        {
-          "type": "string", "name": "source", "label": "Source",
-          "required": true,
-          "placeholder": "e.g. mocap_shoot_01",
-          "description": "Identifies the origin of the animation.\\nThis could be a specific mocap shoot (e.g., 'mocap_shoot_01'), a dataset name, a vendor pipeline, or the intended game/cinematic project use-case."
-        },
-        {
-          "type": "enum", "name": "style", "label": "Style",
-          "options": ["none", "relaxed", "combat", "tired", "drunk", "confident", "tense", "old", "injured", "scared", "aggressive", "cautious", "stealth"],
-          "required": true,
-          "description": "The physical demeanor, personality, or emotional overlay that applies to the overall animation."
-        }
-      ]
-    },
-    {
-      "type": "string", "name": "context", "label": "Context",
-      "required": false,
-      "placeholder": "e.g. character exits through a heavy doorway",
-      "description": "Optional sentence describing the overall scene or situation."
-    },
-    {"type": "separator"},
-    {
-      "type": "row",
-      "items": [
-        {
-          "type": "boolean", "name": "clipped", "label": "Clipped", 
-          "required": true, 
-          "description": "Set to true if this animation sequence was sliced or extracted from a longer continuous raw take.\\nUsually auto-defined by pipeline tools if clip metadata exists."
-        },
-        {
-          "type": "boolean", "name": "annotated", "label": "Annotated", 
-          "required": true, 
-          "description": "Set to true once a human animator or an automated script has fully populated, verified, and signed off on the frame-range metadata for this file."
-        },
-        {
-            "type": "boolean", "name": "commercial_use", "label": "Commercial Use",
-            "required": true,
-            "description": "Set to true when this file is cleared for commercial use."
-        }
-      ]
-    }
-  ],
-  "frame_range": [
-    {
-      "type": "row",
-      "items": [
-        {
-          "type": "enum", "name": "state", "label": "State", 
-          "options": ["none", "idle", "enter", "exit", "walk", "jog", "run", "sprint", "turn_in_place"],
-          "required": true, 
-          "description": "Core locomotion or foundational action. Use 'none' when completely still."
-        },
-        {
-          "type": "enum", "name": "override_style", "label": "Override Style",
-          "options": ["none", "relaxed", "combat", "tired", "drunk", "confident", "tense", "old", "injured", "scared", "aggressive", "cautious", "stealth"], 
-          "required": false,
-          "description": "Optional style that applies only to this range when it differs materially from the file style."
-        },
-        {
-          "type": "enum", "name": "stance", "label": "Stance", 
-          "options": ["none", "stand", "crouch", "kneel", "prone", "sit", "crawl"],
-          "required": true, 
-          "description": "The character's primary vertical posture."
-        }
-      ]
-    },
-    {"type": "separator"},
-    {
-      "type": "row",
-      "items": [
-        {
-          "type": "enum", "name": "interaction_type", "label": "Interaction Type", 
-          "options": ["none", "avoid", "carry_light", "carry_heavy", "navigate", "push_pull", "climb", "gesture", "sustain"], 
-          "required": false,
-          "description": "Categorizes how the character physically reacts to external objects or environments.\\n'avoid' = stepping around/over\\n'navigate' = moving through tight spaces/doors\\n'carry' = holding objects\\n'push_pull' = applying force\\n'sustain' = maintaining an ongoing interaction while waiting.\\nSet to 'none' if moving freely in open space."
-        },
-        {
-          "type": "enum", "name": "interaction_scope", "label": "Interaction Scope", 
-          "options": ["full_body", "upper_body", "lower_body", "both_arms", "left_arm", "right_arm", "both_legs", "left_leg", "right_leg"], 
-          "required": false, 
-          "description": "Defines which body parts are actively constrained or driven by the interaction.\\nUse 'full_body' if the interaction shifts the center of mass or alters foot placement. Otherwise, specify isolated limbs."
-        }
-      ]
-    },
-    {"type": "separator"},
-    {
-      "type": "string", "name": "interaction_volumes", "label": "Interaction Volumes", 
-      "required": false, 
-      "automation": "detect_volumes.py",
-      "placeholder": "e.g. box_01, door_02",
-      "description": "A comma-separated list of exact scene node names (e.g., 'box_obstacle_01') representing the 3D bounding volumes the character interacts with.\\nMust match scene geometry precisely. Use 'none' if not applicable."
-    },
-    {
-      "type": "row",
-      "items": [
-        {
-          "type": "string", "name": "interaction_item", "label": "Interaction Item", 
-          "required": false, 
-          "placeholder": "e.g. torch, phone, sword",
-          "description": "Prop or target involved when no interaction volume exists."
-        },
-        {
-          "type": "string", "name": "contact_attributes", "label": "Contact Attributes",
-          "required": false,
-          "placeholder": "e.g. pelvis_docking.contactWeight",
-          "description": "Comma-separated scene object attributes used to identify contacts. Enter each as object.attribute."
-        }
-      ]
-    },
-    {"type": "separator"},
-    {
-      "type": "string", "name": "event", "label": "Event",
-      "required": false, 
-      "automation": "event_recorder.py",
-      "placeholder": "e.g. foot_strike: 18-28",
-      "description": "A JSON-formatted event record created by the Event Recorder automation."
-    }
-  ]
-}"""
-
-EXAMPLE_SCRIPT = '''\"\"\"
-Example Automation Script for Range Tool.
-
-This script runs with a globally injected `context` dictionary containing:
-
-context["cmds"]                 # Maya cmds module
-context["active_range"]         # The currently selected RangeItem object (or None)
-context["timeline_ranges"]      # List of all RangeItem objects in the timeline
-context["field_name"]           # Name of the specific field this script was triggered from (if any)
-context["set_value"](val)       # Sets the UI value for the triggering field directly
-
-# Advanced API functions:
-context["get_last_used_data"]() # Returns the last tracker data stored in Prefs
-context["create_range"](name, start, end, color)         # Creates, automatically selects, and returns a new RangeItem
-context["get_file_data"](field)                          # Returns the current value of a File Data field
-context["update_file_data"](field, val)                  # Updates File Data
-context["update_range_data"](field, val)                 # Updates Range Data for the active range
-context["refresh_ui"]()                                  # Forces the UI to update to reflect code changes
-\"\"\"
-
-# =====================================================================
-# 1. Update File Data
-# =====================================================================
-last_used_data = context["get_last_used_data"]()
-print("Last used tracker data from Prefs:")
-print(last_used_data)
-
-context["update_file_data"]("quality", "high")
-context["update_file_data"]("source", "mocap_shoot_01")
-context["update_file_data"]("clipped", True)
-context["update_file_data"]("annotated", True)
-context["update_file_data"]("commercial_use", True)
-context["update_file_data"]("style", "confident")
-context["update_file_data"](
-    "context",
-    "Character walks through a heavy doorway.",
-)
-
-# =====================================================================
-# 2. Automatically generate a full-coverage range
-# =====================================================================
-start_frame = int(context["cmds"].playbackOptions(q=True, min=True))
-end_frame = int(context["cmds"].playbackOptions(q=True, max=True))
-
-context["timeline_ranges"].clear() # Clear existing
-new_range = context["create_range"]("Auto_Generated", start_frame, end_frame, (100, 200, 100))
-
-# =====================================================================
-# 3. Populate fields dynamically
-# =====================================================================
-context["update_range_data"]("state", "walk")
-context["update_range_data"]("stance", "stand")
-
-context["update_range_data"]("interaction_type", "navigate")
-context["update_range_data"]("interaction_scope", "full_body")
-context["update_range_data"]("interaction_volumes", "doorway_volume_01")
-context["update_range_data"]("interaction_item", "heavy_door")
-context["update_range_data"]("contact_attributes", "doorway_ctrl.open, doorway_ctrl.close")
-
-context["update_range_data"](
-    "event",
-    '{"foot_strike": {"start_frame": 15, "end_frame": 25}}',
-)
-
-print("Generated a full-coverage valid frame range automatically!")
-context["refresh_ui"]()
-'''
-
 # --- DATA MODEL (Scene Persistence) ---
 
 class DataManager:
@@ -1018,6 +812,10 @@ class RangeToolWindow(QtWidgets.QDialog):
         self.resize(900, 450)
         self.setWindowFlags(QtCore.Qt.WindowType.WindowStaysOnTopHint)
         self.sj_id = None
+        self._scene_script_job_ids = []
+        self._is_refreshing_scene_data = False
+        self._scene_path_cache = ""
+        self._scene_payload_cache = {"range_data": [], "file_data": {}}
         if not getattr(self, "model", None):
             self.model = annotation_tracker_model.AnnotationTrackerModel()
         self._suspend_last_used_data = False
@@ -1035,6 +833,11 @@ class RangeToolWindow(QtWidgets.QDialog):
         # Load from scene initially
         loaded_ranges, loaded_file_data = DataManager.load_data()
         self.scene_file_data_cache = loaded_file_data
+        self._scene_path_cache = self._get_current_scene_path()
+        self._scene_payload_cache = DataManager.build_payload(
+            loaded_ranges,
+            loaded_file_data,
+        )
         
         main_layout = QtWidgets.QVBoxLayout(self)
         
@@ -1421,6 +1224,8 @@ class RangeToolWindow(QtWidgets.QDialog):
             self.model.set_last_used_data(payload)
         if not self.chk_write_node.isChecked(): return
         DataManager.save_data(self.timeline.ranges, self.file_data)
+        self._scene_path_cache = self._get_current_scene_path()
+        self._scene_payload_cache = copy.deepcopy(payload)
         
     def on_write_node_changed(self, state):
         """Updates whether tracker changes are written to the scene.
@@ -1508,7 +1313,16 @@ class RangeToolWindow(QtWidgets.QDialog):
                 data_was_reconciled = True
                 break
                 
+        active_range_id = getattr(self.timeline.active_range, "id", None)
         self.timeline.ranges = loaded_ranges
+        self.timeline.active_range = next(
+            (
+                range_item
+                for range_item in loaded_ranges
+                if range_item.id == active_range_id
+            ),
+            loaded_ranges[0] if loaded_ranges else None,
+        )
         self.scene_file_data_cache = loaded_file_data
         self.rebuild_schema_ui()
         self.timeline.rangesChanged.emit()
@@ -1571,15 +1385,27 @@ class RangeToolWindow(QtWidgets.QDialog):
     # --- ADD BUTTONS LOGIC ---
     def create_example_schema(self):
         """Creates an example schema file for the tracker tool."""
-        path, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Save Example Schema", "schema.json", "JSON Files (*.json)")
-        if path:
-            try:
-                with open(path, 'w') as f: f.write(EXAMPLE_SCHEMA)
-                self.schema_path_fld.setText(path)
-                self.check_schema_path(rebuild=True)
-                cmds.warning(f"Created example schema at {path}")
-            except Exception as e:
-                cmds.warning(f"Failed to save schema: {e}")
+        path, _ = QtWidgets.QFileDialog.getSaveFileName(
+            self,
+            "Save Example Schema",
+            "schema.json",
+            "JSON Files (*.json)",
+        )
+        if not path:
+            return
+        try:
+            destination_path = annotation_tracker_model.copy_sample_schema(
+                path
+            )
+        except (OSError, ValueError) as error:
+            cmds.warning(f"Failed to save schema: {error}")
+            return
+
+        self.schema_path_fld.setText(destination_path)
+        self.check_schema_path(rebuild=True)
+        sys.stdout.write(
+            f"Created example schema at {destination_path}\n"
+        )
                 
     def create_example_automation(self):
         """Copies packaged sample automations to a user-selected folder."""
@@ -2198,6 +2024,56 @@ class RangeToolWindow(QtWidgets.QDialog):
             self.timeline.rangesChanged.emit()
             return nr
 
+        def replace_annotation_data(file_data, ranges):
+            """Replaces all tracker metadata through an automation script.
+
+            Args:
+                file_data (dict): File-level annotation metadata.
+                ranges (list): Range dictionaries or range-like objects.
+
+            Returns:
+                dict: Normalized payload stored by the tracker.
+            """
+            payload = annotation_tracker_model.build_scene_payload(
+                file_data,
+                ranges,
+            )
+            loaded_ranges = []
+            for range_data in payload["range_data"]:
+                range_item = RangeItem(
+                    range_data["name"],
+                    range_data["start"],
+                    range_data["end"],
+                    tuple(range_data["color"]),
+                )
+                range_item.id = range_data["id"]
+                range_item.locked = range_data["locked"]
+                range_item.custom_data = copy.deepcopy(
+                    range_data["custom_data"]
+                )
+                loaded_ranges.append(range_item)
+
+            self.file_data = copy.deepcopy(payload["file_data"])
+            self.scene_file_data_cache = copy.deepcopy(payload["file_data"])
+            for field_name, widget in self.ui_widgets_file.items():
+                value = self.file_data.get(field_name, "")
+                widget.blockSignals(True)
+                if isinstance(widget, QtWidgets.QLineEdit):
+                    widget.setText(str(value))
+                elif isinstance(widget, QtWidgets.QComboBox):
+                    widget.setCurrentText(str(value))
+                elif isinstance(widget, QtWidgets.QCheckBox):
+                    widget.setChecked(bool(value))
+                widget.blockSignals(False)
+
+            self.timeline.ranges = loaded_ranges
+            self.timeline.active_range = (
+                loaded_ranges[0] if loaded_ranges else None
+            )
+            self.timeline.rangesChanged.emit()
+            refresh_ui()
+            return payload
+
         def get_last_used_data():
             """Gets a copy of the last tracker data stored in tool preferences.
 
@@ -2222,6 +2098,7 @@ class RangeToolWindow(QtWidgets.QDialog):
             "get_file_data": get_file_data,
             "get_last_used_data": get_last_used_data,
             "create_range": create_range,
+            "replace_annotation_data": replace_annotation_data,
             "refresh_ui": refresh_ui
         }
 
@@ -2354,20 +2231,103 @@ class RangeToolWindow(QtWidgets.QDialog):
 
     # --- STANDARD APP LOGIC ---
     def setup_scriptjob(self):
-        """Creates the Maya time-change job used to refresh the tracker."""
+        """Creates Maya jobs used to keep the tracker synchronized."""
         self.teardown_scriptjob()
-        self.sj_id = cmds.scriptJob(e=["timeChanged", self.on_maya_time_changed], protected=True)
+        self.sj_id = cmds.scriptJob(
+            event=["timeChanged", self.on_maya_time_changed],
+            protected=True,
+        )
+        self._scene_script_job_ids = [
+            cmds.scriptJob(
+                event=["SceneOpened", self._deferred_scene_refresh],
+                protected=True,
+            ),
+            cmds.scriptJob(
+                event=["NewSceneOpened", self._deferred_scene_refresh],
+                protected=True,
+            ),
+        ]
 
     def teardown_scriptjob(self):
-        """Removes the Maya time-change job when the window is closed."""
-        script_job_id = getattr(self, "sj_id", None)
-        if script_job_id:
+        """Removes Maya jobs when the tracker window is closed."""
+        script_job_ids = [
+            script_job_id
+            for script_job_id in (
+                getattr(self, "_scene_script_job_ids", []) or []
+            )
+            if script_job_id
+        ]
+        time_job_id = getattr(self, "sj_id", None)
+        if time_job_id:
+            script_job_ids.append(time_job_id)
+        for script_job_id in set(script_job_ids):
             try:
                 if cmds.scriptJob(exists=script_job_id):
                     cmds.scriptJob(kill=script_job_id, force=True)
             except RuntimeError:
-                pass
+                continue
         self.sj_id = None
+        self._scene_script_job_ids = []
+
+    def _get_current_scene_path(self):
+        """Gets the current scene path used to detect file changes.
+
+        Returns:
+            str: Current Maya scene path, or an empty string for untitled scenes.
+        """
+        return cmds.file(query=True, sceneName=True) or ""
+
+    def _deferred_scene_refresh(self, *args):
+        """Queues a full refresh after Maya completes a scene operation.
+
+        Args:
+            *args: Maya script-job arguments, when supplied.
+        """
+        if not self.runtime_widgets_alive():
+            self.teardown_scriptjob()
+            return
+        cmds.evalDeferred(lambda: self.refresh_scene_data(force=True))
+
+    def refresh_scene_data(self, force=False):
+        """Reloads annotation data when the scene source has changed.
+
+        Args:
+            force (bool): Whether to reload even when cached data is unchanged.
+
+        Returns:
+            bool: True when annotation data was reloaded.
+        """
+        if not self.runtime_widgets_alive():
+            return False
+        if self._is_refreshing_scene_data:
+            return False
+
+        self._is_refreshing_scene_data = True
+        data_was_reloaded = False
+        try:
+            loaded_ranges, loaded_file_data = DataManager.load_data()
+            scene_path = self._get_current_scene_path()
+            scene_payload = DataManager.build_payload(
+                loaded_ranges,
+                loaded_file_data,
+            )
+            scene_changed = (
+                scene_path != self._scene_path_cache
+                or scene_payload != self._scene_payload_cache
+            )
+            if force or scene_changed:
+                self.handle_data_load(loaded_ranges, loaded_file_data)
+                cached_ranges, cached_file_data = DataManager.load_data()
+                self._scene_path_cache = self._get_current_scene_path()
+                self._scene_payload_cache = DataManager.build_payload(
+                    cached_ranges,
+                    cached_file_data,
+                )
+                data_was_reloaded = True
+            self.refresh_from_maya()
+        finally:
+            self._is_refreshing_scene_data = False
+        return data_was_reloaded
 
     def runtime_widgets_alive(self):
         """Checks whether the controls used by Maya callbacks still exist.
@@ -2399,7 +2359,7 @@ class RangeToolWindow(QtWidgets.QDialog):
             event (QEvent): Qt change event.
         """
         if event.type() == QtCore.QEvent.Type.ActivationChange and self.isActiveWindow():
-            self.refresh_from_maya()
+            cmds.evalDeferred(self.refresh_scene_data)
         super(RangeToolWindow, self).changeEvent(event)
 
     def on_maya_time_changed(self):

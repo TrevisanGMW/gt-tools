@@ -30,6 +30,76 @@ class TestAnnotationTrackerModel(unittest.TestCase):
 
         self.assertTrue(preferences["show_timeline"])
 
+    def test_default_preferences_use_edit_tool_mode(self):
+        """Checks new trackers start with the established edit mode."""
+        preferences = annotation_tracker_model.get_default_preferences()
+
+        self.assertEqual(
+            "edit",
+            preferences[annotation_tracker_model.TOOL_MODE_PREFERENCE_KEY],
+        )
+
+    def test_normalize_tool_mode_rejects_unknown_preferences(self):
+        """Checks stale or invalid stored modes fall back safely."""
+        self.assertEqual(
+            "edit",
+            annotation_tracker_model.normalize_tool_mode("paint"),
+        )
+        self.assertEqual(
+            "navigate",
+            annotation_tracker_model.normalize_tool_mode(" NAVIGATE "),
+        )
+
+    def test_load_preferences_restores_stored_tool_mode(self):
+        """Checks a mode stored by Prefs is restored into the model."""
+        model = annotation_tracker_model.AnnotationTrackerModel.__new__(
+            annotation_tracker_model.AnnotationTrackerModel
+        )
+        model.prefs = SimpleNamespace(
+            get_raw_preferences=lambda: {
+                annotation_tracker_model.TOOL_MODE_PREFERENCE_KEY: "razor"
+            }
+        )
+
+        preferences = model.load_preferences()
+
+        self.assertEqual(
+            "razor",
+            preferences[annotation_tracker_model.TOOL_MODE_PREFERENCE_KEY],
+        )
+
+    def test_tool_mode_preference_round_trip(self):
+        """Checks saved mode survives constructing a fresh model instance."""
+        saved_preferences = []
+        first_model = annotation_tracker_model.AnnotationTrackerModel.__new__(
+            annotation_tracker_model.AnnotationTrackerModel
+        )
+        first_model.prefs = SimpleNamespace(
+            set_raw_preferences=saved_preferences.append,
+            save=lambda: None,
+        )
+        first_model.preferences = (
+            annotation_tracker_model.get_default_preferences()
+        )
+        first_model.set_preference(
+            annotation_tracker_model.TOOL_MODE_PREFERENCE_KEY,
+            "select",
+        )
+
+        second_model = annotation_tracker_model.AnnotationTrackerModel.__new__(
+            annotation_tracker_model.AnnotationTrackerModel
+        )
+        second_model.prefs = SimpleNamespace(
+            get_raw_preferences=lambda: saved_preferences[-1]
+        )
+
+        preferences = second_model.load_preferences()
+
+        self.assertEqual(
+            "select",
+            preferences[annotation_tracker_model.TOOL_MODE_PREFERENCE_KEY],
+        )
+
     def test_default_preferences_use_high_auto_adjust_tolerances(self):
         """Checks crop and stretch are useful with fresh preferences."""
         preferences = annotation_tracker_model.get_default_preferences()
@@ -65,6 +135,30 @@ class TestAnnotationTrackerModel(unittest.TestCase):
             saved_preferences[-1]["automation_path"],
         )
 
+    def test_save_preferences_normalizes_tool_mode(self):
+        """Checks the persisted preference always contains a valid mode."""
+        model = annotation_tracker_model.AnnotationTrackerModel.__new__(
+            annotation_tracker_model.AnnotationTrackerModel
+        )
+        saved_preferences = []
+        model.prefs = SimpleNamespace(
+            set_raw_preferences=saved_preferences.append,
+            save=lambda: None,
+        )
+        model.preferences = annotation_tracker_model.get_default_preferences()
+        model.preferences[
+            annotation_tracker_model.TOOL_MODE_PREFERENCE_KEY
+        ] = "invalid"
+
+        model.save_preferences()
+
+        self.assertEqual(
+            "edit",
+            saved_preferences[-1][
+                annotation_tracker_model.TOOL_MODE_PREFERENCE_KEY
+            ],
+        )
+
     def test_sample_schema_is_valid_json(self):
         """Checks the packaged sample schema can be loaded."""
         expected_directory = annotation_tracker_model.get_sample_schema_directory()
@@ -78,6 +172,25 @@ class TestAnnotationTrackerModel(unittest.TestCase):
         )
         self.assertEqual("high", schema["file_level"][0]["options"][2])
         self.assertTrue(schema["validation"]["full_coverage"])
+
+    def test_copy_sample_schema_uses_packaged_schema_file(self):
+        """Checks generated schemas exactly match the packaged JSON source."""
+        with open(
+            annotation_tracker_model.get_sample_schema_path(),
+            "rb",
+        ) as schema_file:
+            expected_contents = schema_file.read()
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            expected_path = os.path.join(temporary_directory, "schema.json")
+            actual_path = annotation_tracker_model.copy_sample_schema(
+                expected_path
+            )
+            with open(actual_path, "rb") as schema_file:
+                actual_contents = schema_file.read()
+
+        self.assertEqual(expected_path, actual_path)
+        self.assertEqual(expected_contents, actual_contents)
 
     def test_sample_automation_scripts_are_packaged_in_their_own_folder(self):
         """Checks all example automation scripts are collected together."""
@@ -332,6 +445,112 @@ class TestAnnotationTrackerModel(unittest.TestCase):
         )
         self.assertEqual({}, actual_file_data)
         self.assertEqual({}, actual_range_data)
+
+    def test_build_scene_payload_accepts_flattened_script_ranges(self):
+        """Checks scripts can use public flattened range dictionaries."""
+        file_data = {"quality": "high", "annotated": True}
+        ranges = [
+            {
+                "id": "range-b",
+                "name": "Walk",
+                "start_frame": 11,
+                "end_frame": 20,
+                "state": "walk",
+                "stance": "stand",
+                "color": (1, 2, 3),
+            },
+            {
+                "id": "range-a",
+                "name": "Idle",
+                "start_frame": 1,
+                "end_frame": 10,
+                "state": "idle",
+                "stance": "stand",
+                "locked": True,
+            },
+        ]
+        expected = {
+            "range_data": [
+                {
+                    "id": "range-a",
+                    "name": "Idle",
+                    "start": 1,
+                    "end": 10,
+                    "color": [255, 127, 14],
+                    "locked": True,
+                    "custom_data": {
+                        "state": "idle",
+                        "stance": "stand",
+                    },
+                },
+                {
+                    "id": "range-b",
+                    "name": "Walk",
+                    "start": 11,
+                    "end": 20,
+                    "color": [1, 2, 3],
+                    "locked": False,
+                    "custom_data": {
+                        "state": "walk",
+                        "stance": "stand",
+                    },
+                },
+            ],
+            "file_data": file_data,
+        }
+
+        actual = annotation_tracker_model.build_scene_payload(file_data, ranges)
+
+        self.assertEqual(expected, actual)
+
+    def test_default_scripted_range_palette_has_twenty_unique_colors(self):
+        """Checks distinct hues are exhausted before the palette repeats."""
+        expected_color_count = 20
+        colors = annotation_tracker_model.DEFAULT_SCRIPTED_RANGE_COLORS
+        actual_colors = [
+            tuple(
+                annotation_tracker_model._normalize_scripted_range_color(
+                    None,
+                    range_index,
+                )
+            )
+            for range_index in range(expected_color_count)
+        ]
+        repeated_color = tuple(
+            annotation_tracker_model._normalize_scripted_range_color(
+                None,
+                len(colors),
+            )
+        )
+
+        self.assertGreaterEqual(len(colors), expected_color_count)
+        self.assertEqual(expected_color_count, len(set(actual_colors)))
+        self.assertEqual(actual_colors[0], repeated_color)
+
+    def test_build_scene_payload_prefers_explicit_custom_data(self):
+        """Checks explicit custom metadata overrides flattened aliases."""
+        expected_state = "idle"
+        ranges = [
+            {
+                "name": "Idle",
+                "start": 1,
+                "end": 10,
+                "state": "walk",
+                "custom_data": {"state": expected_state},
+            }
+        ]
+
+        payload = annotation_tracker_model.build_scene_payload({}, ranges)
+        actual_state = payload["range_data"][0]["custom_data"]["state"]
+
+        self.assertEqual(expected_state, actual_state)
+
+    def test_build_scene_payload_rejects_inverted_ranges(self):
+        """Checks scripted ranges cannot end before they start."""
+        ranges = [{"name": "Invalid", "start": 20, "end": 10}]
+
+        with self.assertRaises(ValueError):
+            annotation_tracker_model.build_scene_payload({}, ranges)
 
     def test_build_annotation_data_flattens_and_orders_range_metadata(self):
         """Checks annotation data flattens metadata in schema UI order."""

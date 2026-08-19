@@ -1,7 +1,7 @@
 """Annotation Tracker."""
 
 
-__version_tuple__ = (1, 0, 0)
+__version_tuple__ = (1, 1, 2)
 __version_suffix__ = ""
 __version__ = ".".join(str(number) for number in __version_tuple__) + __version_suffix__
 
@@ -56,6 +56,21 @@ def get_scene_custom_data():
         dict: User-provided Annotation Tracker data.
     """
     return get_scene_annotation_data()
+
+
+def set_scene_annotation_data(file_data, ranges):
+    """Replaces Annotation Tracker data in the current Maya scene.
+
+    Args:
+        file_data (dict): File-level annotation metadata.
+        ranges (list): Range dictionaries or range-like objects.
+
+    Returns:
+        dict: JSON-compatible payload written to the tracker scene node.
+    """
+    from gt.tools.anim_annotation_tracker import annotation_tracker_scene
+
+    return annotation_tracker_scene.set_scene_annotation_data(file_data, ranges)
 
 
 if __name__ == "__main__":
