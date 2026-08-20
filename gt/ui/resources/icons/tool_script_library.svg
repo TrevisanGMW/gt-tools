@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <g id="tool_script_library">
+    <rect x="38" y="48" width="436" height="416" rx="24" fill="#BDBDBD" stroke="#1D1D1D" stroke-width="20"/>
+    <rect x="64" y="79" width="384" height="334" rx="10" fill="#535353" stroke="#1D1D1D" stroke-width="12"/>
+    <path d="M64 184h384M64 307h384M64 413h384" fill="none" stroke="#1D1D1D" stroke-width="18"/>
+    <rect x="83" y="103" width="70" height="62" rx="8" fill="#6E936B" stroke="#1D1D1D" stroke-width="8"/>
+    <rect x="359" y="103" width="70" height="62" rx="8" fill="#6E936B" stroke="#1D1D1D" stroke-width="8"/>
+    <rect x="83" y="326" width="70" height="67" rx="8" fill="#6E936B" stroke="#1D1D1D" stroke-width="8"/>
+    <rect x="359" y="326" width="70" height="67" rx="8" fill="#6E936B" stroke="#1D1D1D" stroke-width="8"/>
+    <path d="M155 83h151l58 58v238H155z" fill="#C7E8C5" stroke="#1D1D1D" stroke-width="18" stroke-linejoin="round"/>
+    <path d="M306 83v61h58" fill="#6BBE66" stroke="#1D1D1D" stroke-width="18" stroke-linejoin="round"/>
+    <path d="M235 206l-48 43 48 43M284 206l48 43-48 43" fill="none" stroke="#4F974C" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M278 184l-38 132" fill="none" stroke="#1D1D1D" stroke-width="18" stroke-linecap="round"/>
+    <rect x="38" y="420" width="436" height="44" rx="12" fill="#6BBE66" stroke="#1D1D1D" stroke-width="20"/>
+  </g>
+</svg>

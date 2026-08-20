@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <g id="script_library_missing_icon">
+    <rect width="512" height="512" fill="#535353"/>
+    <path d="M128 72h174l82 82v286H128z" fill="#707487" stroke="#1D1D1D" stroke-width="22" stroke-linejoin="round"/>
+    <path d="M302 72v84h82" fill="#BDBDBD" stroke="#1D1D1D" stroke-width="22" stroke-linejoin="round"/>
+    <path d="M218 214l-55 48 55 48M300 214l55 48-55 48" fill="none" stroke="#42A5F5" stroke-width="23" stroke-linecap="round" stroke-linejoin="round" opacity=".5"/>
+    <path d="M288 190l-59 150" fill="none" stroke="#1D1D1D" stroke-width="19" stroke-linecap="round"/>
+  </g>
+</svg>

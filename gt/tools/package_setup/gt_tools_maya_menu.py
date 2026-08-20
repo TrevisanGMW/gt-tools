@@ -100,6 +100,12 @@ def load_menu(*args):
         icon=ui_res_lib.Icon.tool_selection_manager,
     )
     menu.add_menu_item(
+        label="Script Library",
+        command=IMPORT_TOOL + 'initialize_tool("script_library")',
+        tooltip="Stores, organizes, and runs a personal library of quick Python scripts.",
+        icon=ui_res_lib.Icon.tool_script_library,
+    )
+    menu.add_menu_item(
         label="Transfer Transforms",
         command=IMPORT_TOOL + 'initialize_tool("transfer_transforms")',
         tooltip="Script for quickly transferring Translate, Rotate, and Scale between objects.",
