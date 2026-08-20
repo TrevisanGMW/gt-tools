@@ -182,6 +182,9 @@ class RiggerController:
         self._on_set_path_abs_to_relative = self._prefs.get_bool(
             key=tools_rig_const.RiggerConstants.PREFS_KEY_ON_SET_PATH_ABS_TO_RELATIVE, default=True
         )
+        self._show_package_templates = self._prefs.get_bool(
+            key=tools_rig_const.RiggerConstants.PREFS_KEY_SHOW_PACKAGE_TEMPLATES, default=True
+        )
 
         # Add Menubar
         self.add_menu_file()
@@ -246,7 +249,9 @@ class RiggerController:
         menu_templates = self._templates_menu
         self._template_menu_actions = []
         menu_templates.clear()
-        rig_templates = tools_rig_templates.RigTemplates()  # Initializing populates it with file templates
+        rig_templates = tools_rig_templates.RigTemplates(
+            include_package_templates=self._show_package_templates
+        )
 
         # Python Templates ---
         offer_python_templates = False  # To make it toggleable in the future.
@@ -262,9 +267,31 @@ class RiggerController:
                 self._template_menu_actions.append(action_template)
                 menu_templates.addAction(action_template)
 
-        # File Templates ---
-        ui_qt_utils.add_labeled_separator(menu=menu_templates, text="File Templates")
-        for name, template_func in rig_templates.get_dict_templates(include_py_templates=False).items():
+        # Package Templates ---
+        if self._show_package_templates:
+            package_templates = rig_templates.get_dict_templates(
+                include_py_templates=False,
+                include_file_templates=False,
+                include_package_templates=True,
+            )
+            if package_templates:
+                ui_qt_utils.add_labeled_separator(menu=menu_templates, text="Package Templates")
+            for name, template_func in package_templates.items():
+                formatted_name = " ".join(core_str.camel_case_split(name))
+                action_template = ui_qt.QtLib.QtGui.QAction(
+                    formatted_name, icon=ui_qt.QtGui.QIcon(rig_templates.icon_package_files)
+                )
+                item_func = partial(self.replace_project, project=template_func)
+                action_template.triggered.connect(item_func)
+                self._template_menu_actions.append(action_template)
+                menu_templates.addAction(action_template)
+
+        # User Templates ---
+        user_templates = rig_templates.get_dict_templates(include_py_templates=False)
+        if self._show_package_templates and package_templates:
+            menu_templates.addSeparator()
+        ui_qt_utils.add_labeled_separator(menu=menu_templates, text="User Templates")
+        for name, template_func in user_templates.items():
             formatted_name = " ".join(core_str.camel_case_split(name))
             action_template = ui_qt.QtLib.QtGui.QAction(
                 formatted_name, icon=ui_qt.QtGui.QIcon(rig_templates.icon_files)
@@ -301,6 +328,27 @@ class RiggerController:
         action_convert_template.triggered.connect(self.convert_current_project_to_template)
         self._template_menu_actions.append(action_convert_template)
         menu_templates.addAction(action_convert_template)
+
+        action_show_package_templates = ui_qt.QtLib.QtGui.QAction("Show Package Templates")
+        action_show_package_templates.setCheckable(True)
+        action_show_package_templates.setChecked(self._show_package_templates)
+        action_show_package_templates.triggered.connect(self.set_show_package_templates)
+        self._template_menu_actions.append(action_show_package_templates)
+        menu_templates.addAction(action_show_package_templates)
+
+    def set_show_package_templates(self, is_checked):
+        """Stores the package-template menu state and refreshes its contents.
+
+        Args:
+            is_checked (bool): Whether package templates should be displayed.
+        """
+        self._show_package_templates = bool(is_checked)
+        self._prefs.set_bool(
+            key=tools_rig_const.RiggerConstants.PREFS_KEY_SHOW_PACKAGE_TEMPLATES,
+            value=self._show_package_templates,
+        )
+        self._prefs.save()
+        ui_qt.QtCore.QTimer.singleShot(0, self.refresh_templates_menu)
 
     def refresh_recent_projects_menu(self):
         """Rebuilds the recent-project submenu from stored preferences."""

@@ -45,8 +45,30 @@ def get_template_resources_dir():
     return os.path.join(prefs_dir, f"{_PREFS_FILENAME}_resources")
 
 
+def get_package_template_source_dir():
+    """Gets the package-provided auto rigger template directory.
+
+    Returns:
+        str: Path to the package template directory.
+    """
+    tool_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(tool_dir, "templates", "package_templates")
+
+
+def get_package_template_resources_dir():
+    """Gets the package-provided auto rigger template resources directory.
+
+    Returns:
+        str: Path to the package template resources directory.
+    """
+    tool_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(tool_dir, "templates", "package_resources")
+
+
 TEMPLATE_SOURCE_DIR = get_template_source_dir()
 TEMPLATE_RESOURCES_DIR = get_template_resources_dir()
+PACKAGE_TEMPLATE_SOURCE_DIR = get_package_template_source_dir()
+PACKAGE_TEMPLATE_RESOURCES_DIR = get_package_template_resources_dir()
 
 
 def get_project_template_data(rig_project):
@@ -201,28 +223,44 @@ class RigTemplates:
     # Icons
     icon_python = ui_res_lib.Icon.ui_templates_python
     icon_files = ui_res_lib.Icon.ui_templates
+    icon_package_files = ui_res_lib.Icon.ui_templates_package
 
     # Python Templates
     TemplateBiped = tools_templates_biped.create_template_biped
     TemplateGenericRoot = tools_template_root.create_template_generic_root
     # File Templates (Auto Populated from Directory)
     file_templates = {}
+    package_file_templates = {}
 
-    def __init__(self):
-        """Clean and Retrieve file templates (re-populate class with file templates)"""
+    def __init__(self, include_package_templates=False):
+        """Populates user and optional package file templates.
+
+        Args:
+            include_package_templates (bool, optional): Whether package templates
+                should also be loaded. Defaults to False.
+        """
         RigTemplates.file_templates = {}
+        RigTemplates.package_file_templates = {}
         if os.path.isdir(TEMPLATE_SOURCE_DIR):
             self.populate_with_template_files(folder_path=TEMPLATE_SOURCE_DIR)
         else:
             sys.stdout.write(f"Template source directory '{TEMPLATE_SOURCE_DIR}' not found. Skipping.\n")
+        if include_package_templates and os.path.isdir(PACKAGE_TEMPLATE_SOURCE_DIR):
+            self.populate_with_template_files(
+                folder_path=PACKAGE_TEMPLATE_SOURCE_DIR,
+                template_resources_dir=PACKAGE_TEMPLATE_RESOURCES_DIR,
+                template_store=RigTemplates.package_file_templates,
+            )
 
     @staticmethod
-    def get_dict_templates(include_py_templates=True, include_file_templates=True):
+    def get_dict_templates(include_py_templates=True, include_file_templates=True, include_package_templates=False):
         """
         Gets all available modules as a dictionary. Key is the name of the module and value is the class.
         Args:
             include_py_templates (bool, optional): If True python templates will be included.
             include_file_templates (bool, optional): If True file templates will be included. (from source folder)
+            include_package_templates (bool, optional): If True package file
+                templates will be included. Defaults to False.
         Returns:
             dict: Dictionary where the key is the name of the module and value is the class.
                   e.g. 'ModuleBipedArm': <class 'ModuleBipedArm'>
@@ -232,6 +270,8 @@ class RigTemplates:
             _templates.update(vars(RigTemplates))
         if include_file_templates:
             _templates.update(RigTemplates.file_templates)
+        if include_package_templates:
+            _templates.update(RigTemplates.package_file_templates)
         callable_attributes = {
             name: value
             for name, value in _templates.items()
@@ -240,34 +280,46 @@ class RigTemplates:
         return callable_attributes
 
     @staticmethod
-    def get_templates(include_py_templates=True, include_file_templates=True):
+    def get_templates(include_py_templates=True, include_file_templates=True, include_package_templates=False):
         """
         Gets the available template functions. The output of these callable functions is a RigProject.
         Args:
             include_py_templates (bool, optional): If True python templates will be included.
             include_file_templates (bool, optional): If True file templates will be included. (from source folder)
+            include_package_templates (bool, optional): If True package file
+                templates will be included. Defaults to False.
         Returns:
             list: A list of template functions, these are of the type callable.
                   When called, they produce a RigProject describing the template.
         """
         # if include_py_templates:
         #     _templates =
-        return list(RigTemplates.get_dict_templates(include_py_templates, include_file_templates).values())
+        return list(
+            RigTemplates.get_dict_templates(
+                include_py_templates, include_file_templates, include_package_templates
+            ).values()
+        )
 
     @staticmethod
-    def get_template_names(include_py_templates=True, include_file_templates=True):
+    def get_template_names(include_py_templates=True, include_file_templates=True, include_package_templates=False):
         """
         Gets the name of all available templates.
         Args:
             include_py_templates (bool, optional): If True python templates will be included.
             include_file_templates (bool, optional): If True file templates will be included. (from source folder)
+            include_package_templates (bool, optional): If True package file
+                templates will be included. Defaults to False.
         Returns:
             list: A list of template names (strings)
         """
-        return list(RigTemplates.get_dict_templates(include_py_templates, include_file_templates).keys())
+        return list(
+            RigTemplates.get_dict_templates(
+                include_py_templates, include_file_templates, include_package_templates
+            ).keys()
+        )
 
     @staticmethod
-    def populate_with_template_files(folder_path):
+    def populate_with_template_files(folder_path, template_resources_dir=None, template_store=None):
         """Populates `RigTemplateFunctions` with functions that load template files.
 
         This method reads all files in the given folder (or the default folder if `folder_path`
@@ -277,9 +329,19 @@ class RigTemplates:
         Args:
             folder_path (str): The folder path where template files are stored.
                 Defaults to `RigTemplateFiles.folder_path` if not provided.
+            template_resources_dir (str, optional): Directory containing resources
+                associated with the template files. Defaults to the user template
+                resources directory.
+            template_store (dict, optional): Dictionary receiving the generated
+                template loaders. Defaults to the user template store.
 
         """
-        for filename in os.listdir(folder_path):
+        if template_resources_dir is None:
+            template_resources_dir = TEMPLATE_RESOURCES_DIR
+        if template_store is None:
+            template_store = RigTemplates.file_templates
+
+        for filename in sorted(os.listdir(folder_path)):
             if filename.endswith(tools_rig_const.RiggerConstants.PROJECT_EXTENSION):
                 # Remove the extension and sanitize the name if necessary
                 variable_name = os.path.splitext(filename)[0]
@@ -304,7 +366,9 @@ class RigTemplates:
                     _project.set_project_dir_path("")  # No project path (template)
                     _project.set_uuid(core_uuid.generate_uuid(short=True, short_length=6))  # Randomize UUID
                     try:
-                        resource_path = get_template_resource_path(os.path.splitext(os.path.basename(dir_path))[0])
+                        resource_path = get_template_resource_path(
+                            os.path.splitext(os.path.basename(dir_path))[0], template_resources_dir
+                        )
                         if resource_path:
                             project_path = open_resource_copy_dialog(resource_path)
                             if project_path and os.path.isdir(project_path):
@@ -313,25 +377,29 @@ class RigTemplates:
                         logging.warning(f"Fail to detect potential template resources. Issue: {e}")
                     return _project
 
-                RigTemplates.file_templates[variable_name] = file_loader
+                template_store[variable_name] = file_loader
 
 
-def get_template_resource_path(template_name):
+def get_template_resource_path(template_name, template_resources_dir=None):
     """
     Detects if a template has resources and returns the path to the template resource folder if that's the case.
 
     Args:
         template_name (str): Name of the template used to determine if resource is available.
+        template_resources_dir (str, optional): Directory containing template
+            resource folders. Defaults to the user template resources directory.
 
     Returns:
         str: A path to the template resource folder (when available)
     """
-    if not os.path.exists(TEMPLATE_RESOURCES_DIR) or not os.path.isdir(TEMPLATE_RESOURCES_DIR):
+    if template_resources_dir is None:
+        template_resources_dir = TEMPLATE_RESOURCES_DIR
+    if not os.path.exists(template_resources_dir) or not os.path.isdir(template_resources_dir):
         return
 
-    for resource_dir in os.listdir(TEMPLATE_RESOURCES_DIR):
+    for resource_dir in os.listdir(template_resources_dir):
         if resource_dir.lower() == template_name.lower():
-            return os.path.join(TEMPLATE_RESOURCES_DIR, resource_dir)
+            return os.path.join(template_resources_dir, resource_dir)
 
 
 def open_resource_copy_dialog(resource_path):

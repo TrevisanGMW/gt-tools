@@ -22,6 +22,7 @@ class RiggerConstants:
     PREFS_KEY_ON_BUILD_SHOW_LOG = "on_build_show_log"
     PREFS_KEY_ON_BUILD_CLEAR_LOG = "on_build_clear_log"
     PREFS_KEY_ON_SET_PATH_ABS_TO_RELATIVE = "on_set_path_abs_to_relative"
+    PREFS_KEY_SHOW_PACKAGE_TEMPLATES = "show_package_templates"
     PREFS_KEY_RECENT_PROJECTS = "recent_projects"
     MAX_RECENT_PROJECTS = 5
     # Basic System Attributes

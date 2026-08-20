@@ -522,6 +522,7 @@ class Icon:
     ui_save = get_icon_path(r"ui_save.svg")
     ui_env_var = get_icon_path(r"ui_env_var.svg")
     ui_templates = get_icon_path(r"ui_templates.svg")
+    ui_templates_package = get_icon_path(r"ui_templates_package.svg")
     ui_templates_python = get_icon_path(r"ui_templates_python.svg")
     ui_red_circle = get_icon_path(r"ui_red_circle.svg")
     ui_yellow_circle = get_icon_path(r"ui_yellow_circle.svg")
