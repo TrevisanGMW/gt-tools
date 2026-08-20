@@ -1,4 +1,5 @@
 from . import test_fbx
+from . import test_hik
 from . import test_hypertext
 from . import test_request
 from . import test_system

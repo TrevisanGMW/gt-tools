@@ -102,6 +102,7 @@ modules_to_test = [
     test_core.test_version,
     # Utils
     test_utils.test_fbx,
+    test_utils.test_hik,
     test_utils.test_request,
     test_utils.test_system,
     test_utils.test_hypertext,
