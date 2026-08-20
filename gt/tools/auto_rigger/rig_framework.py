@@ -2560,15 +2560,15 @@ class ModuleGeneric:
 
     def parse_absolute_project_path_to_relative(self, absolute_path):
         """
-        When receiving a path that starts with the same value as the resolved {project-dir}, it replaces the path with
-        the environment variables. See example below.
+        When receiving a path contained by the resolved {project-dir}, it replaces the project directory with the
+        environment variable. See example below.
 
         Args:
             absolute_path (str): A path to have the project dir environment variable injected into.
 
         Returns:
             str: A path where the long path for the project directory is replaced by an env var "{project-dir}".
-                 This only happens if the long path matches (startswith) the resolved {project-dir} value.
+                 This only happens if the path is contained by the resolved {project-dir} value.
                  If None is provided, it simply returns the same value of None.
                  Same thing in case a project is not available.
 
@@ -2583,13 +2583,24 @@ class ModuleGeneric:
         if not self._project:
             return absolute_path
         project_dir = self._project.get_project_dir_path(parse_vars=True)
-        if absolute_path.startswith(project_dir):
-            no_project_dir = core_str.remove_prefix(input_string=absolute_path, prefix=project_dir)
-            no_project_dir = no_project_dir.lstrip("\\/")  # Strip both backslash and forward slash
-            env_var_project_dir = os.path.join("{project-dir}", no_project_dir)
-            env_var_project_dir = env_var_project_dir.replace("\\", "/")
-            return env_var_project_dir
-        return absolute_path
+        if not project_dir:
+            return absolute_path
+        try:
+            normalized_path = os.path.normpath(absolute_path)
+            if not os.path.isabs(normalized_path):
+                return absolute_path
+            normalized_path = os.path.abspath(normalized_path)
+            normalized_project_dir = os.path.abspath(os.path.normpath(project_dir))
+            common_path = os.path.commonpath([normalized_project_dir, normalized_path])
+            if os.path.normcase(common_path) != os.path.normcase(normalized_project_dir):
+                return absolute_path
+            relative_path = os.path.relpath(normalized_path, normalized_project_dir)
+        except (TypeError, ValueError):
+            return absolute_path
+        if relative_path == os.curdir:
+            return "{project-dir}"
+        relative_path = relative_path.replace("\\", "/")
+        return f"{{project-dir}}/{relative_path}"
 
     def warn_if_path_outside_project(self, path):
         """

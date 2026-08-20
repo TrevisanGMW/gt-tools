@@ -2,6 +2,7 @@ import unittest
 import logging
 import sys
 import os
+import tempfile
 
 # Logging Setup
 logging.basicConfig()
@@ -688,6 +689,46 @@ class TestRigFramework(unittest.TestCase):
         self.assertEqual([1.2, 1.6, 1.4], scale)
 
     # --------------------------------------------- ModuleGeneric ---------------------------------------------
+    def test_module_parse_absolute_project_path_to_relative_uses_resolved_project_file_dir(self):
+        """Converts paths when the project directory uses the project-file token."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project_file_path = os.path.join(temp_dir, "test_project.rig")
+            with open(project_file_path, "w", encoding="utf-8") as project_file:
+                project_file.write("{}")
+            self.project.project_file_path = project_file_path
+            self.project.add_to_modules(self.module)
+            absolute_path = os.path.join(temp_dir, "assets", "source.ma").replace("\\", "/")
+
+            result = self.module.parse_absolute_project_path_to_relative(absolute_path)
+
+            expected = "{project-dir}/assets/source.ma"
+            self.assertEqual(expected, result)
+
+    def test_module_parse_absolute_project_path_to_relative_rejects_similar_sibling(self):
+        """Does not convert a sibling whose name only shares the project prefix."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project_file_path = os.path.join(temp_dir, "test_project.rig")
+            with open(project_file_path, "w", encoding="utf-8") as project_file:
+                project_file.write("{}")
+            self.project.project_file_path = project_file_path
+            self.project.add_to_modules(self.module)
+            sibling_path = os.path.join(f"{temp_dir}_outside", "source.ma")
+
+            result = self.module.parse_absolute_project_path_to_relative(sibling_path)
+
+            expected = sibling_path
+            self.assertEqual(expected, result)
+
+    def test_module_parse_absolute_project_path_to_relative_preserves_relative_path(self):
+        """Does not reinterpret an existing relative path against the process directory."""
+        self.project.set_project_dir_path(os.getcwd())
+        self.project.add_to_modules(self.module)
+
+        result = self.module.parse_absolute_project_path_to_relative("assets/source.ma")
+
+        expected = "assets/source.ma"
+        self.assertEqual(expected, result)
+
     def test_module_set_proxies(self):
         a_1st_proxy = tools_rig_frm.Proxy(name="a_1st_proxy")
         a_2nd_proxy = tools_rig_frm.Proxy(name="a_2nd_proxy")

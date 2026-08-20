@@ -563,6 +563,9 @@ class AttrWidgetProject(AttrWidget):
         path_btn = ui_qt.QtWidgets.QPushButton()
         path_btn.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_open))
         path_btn.setToolTip("Use file dialog to set path")
+        env_var_btn = ui_qt.QtWidgets.QPushButton()
+        env_var_btn.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_env_var))
+        env_var_btn.setToolTip("Get more information about the current path.")
         if attr_value is None:
             attr_value = getattr(self.project.get_preferences(), attr_name)
         if placeholder is None:
@@ -573,6 +576,7 @@ class AttrWidgetProject(AttrWidget):
         # Add to Widgets
         _layout.addWidget(label)
         _layout.addWidget(text_field)
+        _layout.addWidget(env_var_btn)
         _layout.addWidget(path_btn)
         # Connect
         _func = partial(self.set_project_preferences_attr_value_from_field, attr=attr_name, field=text_field)
@@ -585,6 +589,8 @@ class AttrWidgetProject(AttrWidget):
             dir_only=dir_only,
         )
         path_btn.clicked.connect(_btn_func)
+        _func = partial(self.open_env_var_feedback_dialog, field=text_field)
+        env_var_btn.clicked.connect(_func)
         return text_field
 
     def add_project_preferences_attr_widget_checkbox(

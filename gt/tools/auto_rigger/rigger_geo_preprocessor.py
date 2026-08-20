@@ -1,4 +1,5 @@
 import gt.tools.auto_rigger.rig_framework as tools_rig_frm
+import gt.tools.auto_rigger.rigger_path_utils as tools_rig_path_utils
 import gt.ui.resource_library as ui_res_lib
 import gt.ui.qt_utils as ui_qt_utils
 import gt.utils.system as utils_sys
@@ -77,7 +78,7 @@ class ProjectContextPathWidget(ui_qt.QtWidgets.QWidget):
         self.path_btn.setFixedWidth(30)
 
         self.env_var_btn.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_env_var))
-        self.env_var_btn.setToolTip("Show parsed path information.")
+        self.env_var_btn.setToolTip("Get more information about the current path.")
         self.env_var_btn.setFixedWidth(30)
 
         # Set Tooltips
@@ -166,23 +167,15 @@ class ProjectContextPathWidget(ui_qt.QtWidgets.QWidget):
             logger.error(f"File dialog failed: {e}")
 
     def _open_env_var_feedback_dialog(self):
-        """
-        Opens a modal QMessageBox displaying the resolved absolute path and its existence status.
-        """
-        _path = self.text_field.text()
-        _parsed_path = self.parse_path(path=_path)
-        _exists = os.path.exists(_parsed_path)
-        _is_dir = os.path.isdir(_parsed_path)
-
-        message = f"Parsed Path:\n{_parsed_path}\n\n" f"Exists: {str(_exists)}\n" f"Directory: {str(_is_dir)}"
-
-        msg_box = ui_qt.QtWidgets.QMessageBox(self.parent())
-        msg_box.setIcon(ui_qt.QtWidgets.QMessageBox.Information)
-        msg_box.setWindowTitle("Path Information")
-        msg_box.setTextFormat(ui_qt.QtCore.Qt.PlainText)
-        msg_box.setText(message)
-        msg_box.setStandardButtons(ui_qt.QtWidgets.QMessageBox.Ok)
-        msg_box.exec_()
+        """Opens a detailed window with information about the resolved path."""
+        configured_path = self.text_field.text()
+        parsed_path = self.parse_path(path=configured_path)
+        tools_rig_path_utils.show_path_information(
+            parent=self,
+            configured_path=configured_path,
+            parsed_path=parsed_path,
+            title="Path Information",
+        )
 
 
 class GeometryPreprocessor(ui_qt.QtWidgets.QDialog):

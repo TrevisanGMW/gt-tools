@@ -3,6 +3,7 @@ Auto Rigger Attr Widgets
 """
 
 import gt.tools.auto_rigger.rigger_orient_view as tools_rig_orient_view
+import gt.tools.auto_rigger.rigger_path_utils as tools_rig_path_utils
 import gt.tools.auto_rigger.rig_modules as tools_rig_modules
 import gt.tools.auto_rigger.rig_constants as tools_rig_const
 import gt.tools.auto_rigger.rig_framework as tools_rig_frm
@@ -1856,21 +1857,36 @@ class AttrWidget(ui_qt.QtWidgets.QWidget):
             self.toggle_content_visibility()
 
     def open_env_var_feedback_dialog(self, field):
-        """Opens a dialog with more information about a parsed path
+        """Opens a detailed window with more information about a parsed path.
+
         Args:
-            field (str): A path to parse and give as feedback.
+            field (QLineEdit): A path field to parse and describe.
         """
-        _path = field.text()
-        _parsed_path = self.module.parse_path(path=_path)
-        _exists = os.path.exists(_parsed_path)
-        _is_dir = os.path.isdir(_parsed_path)
-        message = f"Parsed Path:\n{_parsed_path}\n\nExists: {str(_exists)}\nDirectory: {str(_is_dir)}"
-        msg_box = ui_qt.QtWidgets.QMessageBox()
-        msg_box.setIcon(ui_qt.QtWidgets.QMessageBox.Information)
-        msg_box.setWindowTitle("Path Information")
-        msg_box.setText(message)
-        msg_box.setStandardButtons(ui_qt.QtWidgets.QMessageBox.Ok)
-        msg_box.exec_()
+        configured_path = field.text()
+        parsed_path = self.resolve_path(configured_path)
+        tools_rig_path_utils.show_path_information(
+            parent=self,
+            configured_path=configured_path,
+            parsed_path=parsed_path,
+            title="Path Information",
+        )
+
+    def resolve_path(self, path):
+        """Resolves environment variables in a module or project path.
+
+        Args:
+            path (str): Configured path to resolve.
+
+        Returns:
+            str: Resolved and normalized path.
+        """
+        if self.module and hasattr(self.module, "parse_path"):
+            return self.module.parse_path(path=path)
+        environment_variables = tools_rig_frm.get_environment_variables(rig_project=self.project)
+        parsed_path = core_str.replace_keys_with_values(path or "", environment_variables)
+        if not parsed_path:
+            return ""
+        return os.path.normpath(parsed_path)
 
     def open_module_attr_dictionary_editor(self, *args, attr, dict_editor_tooltip=None):
         """
