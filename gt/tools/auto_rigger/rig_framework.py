@@ -539,8 +539,8 @@ class RigPreferencesData:
 
     build_control_rig: bool = dataclasses.field(default=True)  # If True, Control rig is built
     delete_proxy_after_build: bool = dataclasses.field(default=True)  # If True, proxy is deleted after build
-    apply_control_rig_pose: bool = dataclasses.field(default=True)  # If True, pose proxy/joints before building rig
-    control_rig_pose_mode: str = dataclasses.field(default=tools_control_pose.ControlRigPoseMode.AUTOMATIC)
+    apply_control_rig_pose: bool = dataclasses.field(default=False)  # If True, pose proxy/joints before building rig
+    control_rig_pose_mode: str = dataclasses.field(default=tools_control_pose.ControlRigPoseMode.DISABLED)
     hide_skeleton: bool = dataclasses.field(default=True)  # If True, hides skeleton group during build
     view_fit_skeleton: bool = dataclasses.field(default=True)  # If True, viewFit the skeleton after creation
     export_anim_blendshapes: bool = dataclasses.field(default=False)  # If True, include BS in the anim export process

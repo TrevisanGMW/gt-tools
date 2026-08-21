@@ -738,6 +738,7 @@ class RiggerController:
         if self.show_unsaved_changes_warning_dialog(window=None, is_close_event=False):  # True when cancelled
             return
         self.model.clear_project()
+        self.view.clear_module_widget()
         self.refresh_widgets()
         self.clear_opened_project()
         self._has_high_level_changes = False

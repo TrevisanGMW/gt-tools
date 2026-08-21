@@ -951,10 +951,10 @@ class TestRigFramework(unittest.TestCase):
                 "alias": None,
                 "build_control_rig": True,
                 "control_rig_pose_name": f"{core_naming.NamingConstants.Poses.TPOSE}",
-                "control_rig_pose_mode": "automatic",
+                "control_rig_pose_mode": "disabled",
                 "delete_proxy_after_build": True,
                 "export_anim_blendshapes": False,
-                "apply_control_rig_pose": True,
+                "apply_control_rig_pose": False,
                 "hide_skeleton": True,
                 "project_dir": "{project-file-dir}",
                 "view_fit_skeleton": True,
@@ -969,6 +969,14 @@ class TestRigFramework(unittest.TestCase):
         result = self.project.get_control_rig_pose_mode()
         self.assertEqual(expected, result)
         self.assertFalse(self.project.is_control_rig_pose_enabled())
+
+    def test_project_migrates_legacy_enabled_control_pose_preference(self):
+        """Maps the legacy apply-pose boolean to automatic mode."""
+        self.project.set_preferences({"apply_control_rig_pose": True})
+        expected = tools_control_pose.ControlRigPoseMode.AUTOMATIC
+        result = self.project.get_control_rig_pose_mode()
+        self.assertEqual(expected, result)
+        self.assertTrue(self.project.is_control_rig_pose_enabled())
 
     def test_project_custom_control_pose_mode_keeps_legacy_flag_enabled(self):
         """Writes a compatible apply-pose boolean when custom mode is selected."""

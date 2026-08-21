@@ -127,16 +127,39 @@ class TestAttrWidgetPaths(unittest.TestCase):
         widget = AttrWidgetProject(project=RigProject())
         self.widgets.append(widget)
         expected = {
-            "capture_control_pose_button",
-            "validate_control_pose_button",
-            "view_control_pose_button",
-            "clear_control_pose_button",
+            "capture_control_pose_button": "Capture Rig Pose",
+            "validate_control_pose_button": "Validate Pose",
+            "view_control_pose_button": "View Data",
+            "clear_control_pose_button": "Clear Data",
         }
         result = {
-            button.objectName()
+            button.objectName(): button.text()
             for button in widget.findChildren(ui_qt.QtWidgets.QPushButton)
             if button.objectName() in expected
         }
+        self.assertEqual(expected, result)
+
+        for button in widget.findChildren(ui_qt.QtWidgets.QPushButton):
+            if button.objectName() in expected:
+                self.assertIn("\n", button.toolTip())
+
+    def test_project_widget_labels_build_pose_status(self):
+        """Identifies the message describing the selected build pose configuration."""
+        self.widgets = []
+        widget = AttrWidgetProject(project=RigProject())
+        self.widgets.append(widget)
+        status_caption = widget.findChild(ui_qt.QtWidgets.QLabel, "control_pose_status_caption_label")
+        expected = "Build Pose Status:"
+        result = status_caption.text()
+        self.assertEqual(expected, result)
+
+    def test_project_widget_defaults_to_disabled_pose_mode(self):
+        """Shows Disabled for a new project's control rig pose mode."""
+        self.widgets = []
+        widget = AttrWidgetProject(project=RigProject())
+        self.widgets.append(widget)
+        expected = ControlRigPoseMode.DISABLED
+        result = widget.control_pose_mode_combo.currentData()
         self.assertEqual(expected, result)
 
     def test_project_widget_control_pose_mode_label_uses_natural_width(self):
