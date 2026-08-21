@@ -22,6 +22,7 @@ import uuid
 REPORT_LOG_TARGET_PATH_TEMPLATE = "{log-dir}"
 REPORT_FILE_EXTENSION = ".txt"
 DEFAULT_REPORT_FILE_NAME = "{project-name}_report.txt"
+DEFAULT_REPORT_NOTES = "{project-notes}"
 
 PARTS_DIRECTORY_SUFFIX = "_parts"
 PART_FILE_EXTENSION = ".json"
@@ -216,6 +217,8 @@ class TaskSceneReport(task_base.BatchTask):
             "report_metrics": list(DEFAULT_REPORT_METRICS),
             "report_detail_mode": REPORT_DETAIL_TOTAL_ONLY,
             "report_file_name": DEFAULT_REPORT_FILE_NAME,
+            "report_notes": DEFAULT_REPORT_NOTES,
+            "report_notes_collapsed": True,
             "overwrite": True,
             "run_once_after_multi_instance": True,
             "force_segment_separator": False,
@@ -386,14 +389,15 @@ class TaskSceneReport(task_base.BatchTask):
             run_id=get_run_id(context),
             overwrite=self.settings.get("overwrite", True),
         )
-        report_data = self.build_report_data(entries)
+        report_data = self.build_report_data(entries, project=project)
         return write_report_file(report_path, build_report_lines(report_data))
 
-    def build_report_data(self, entries):
+    def build_report_data(self, entries, project=None):
         """Builds the serializable report data for the collected entries.
 
         Args:
             entries (list): Collected report entries.
+            project (BatchProcessorModel, optional): Active project used to resolve report notes.
 
         Returns:
             dict: Report data used to render the report text.
@@ -408,7 +412,24 @@ class TaskSceneReport(task_base.BatchTask):
             "file_count": len(entries),
             "totals": aggregate_entries(entries, metric_keys),
             "entries": list(entries),
+            "notes": self.get_report_notes(project=project),
         }
+
+    def get_report_notes(self, project=None):
+        """Gets report notes after resolving project environment variables.
+
+        Args:
+            project (BatchProcessorModel, optional): Active project used to resolve note tokens.
+
+        Returns:
+            str: Report notes, or an empty string when no notes are configured.
+        """
+        notes = str(self.settings.get("report_notes") or "")
+        if project and callable(getattr(project, "resolve_template", None)):
+            notes = project.resolve_template(notes, task=self)
+        elif notes.strip() == DEFAULT_REPORT_NOTES:
+            return ""
+        return notes if notes.strip() else ""
 
 
 def normalize_metric_keys(values):
@@ -668,6 +689,10 @@ def build_report_lines(report_data):
         lines.append("No report items selected.")
     if report_data.get("detail_mode") == REPORT_DETAIL_LIST_AND_TOTAL:
         lines.extend(build_entry_lines(report_data))
+    notes = str(report_data.get("notes") or "").strip()
+    if notes:
+        lines.extend(["", "Notes", "-" * 60])
+        lines.extend(notes.splitlines())
     lines.append("")
     return lines
 

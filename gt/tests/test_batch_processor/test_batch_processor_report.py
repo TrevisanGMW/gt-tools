@@ -50,6 +50,7 @@ class TestBatchProcessorReport(unittest.TestCase):
             "report_metrics": ["frame_count", "frame_rate", "file_size", "time"],
             "report_detail_mode": task_report.REPORT_DETAIL_TOTAL_ONLY,
             "report_file_name": "{project-name}_report.txt",
+            "report_notes": task_report.DEFAULT_REPORT_NOTES,
             "run_once_after_multi_instance": True,
             "target_path": task_report.REPORT_LOG_TARGET_PATH_TEMPLATE,
         }
@@ -127,6 +128,25 @@ class TestBatchProcessorReport(unittest.TestCase):
         report_lines = task_report.build_report_lines(self.task.build_report_data(entries))
 
         self.assertIn("    Error: Frame Count: broken scene", report_lines)
+
+    def test_build_report_lines_appends_non_empty_notes(self):
+        project = mock.Mock()
+        project.resolve_template.return_value = "Project feedback."
+        report_data = self.task.build_report_data(entries=[], project=project)
+
+        report_lines = task_report.build_report_lines(report_data)
+
+        self.assertIn("Notes", report_lines)
+        self.assertIn("Project feedback.", report_lines)
+
+    def test_build_report_lines_omits_empty_notes(self):
+        project = mock.Mock()
+        project.resolve_template.return_value = ""
+        report_data = self.task.build_report_data(entries=[], project=project)
+
+        report_lines = task_report.build_report_lines(report_data)
+
+        self.assertNotIn("Notes", report_lines)
 
     def test_collect_report_entry_reads_file_size_without_maya(self):
         file_path = os.path.join(self.temp_dir, "sample.ma")

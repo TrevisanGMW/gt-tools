@@ -113,10 +113,11 @@ class AttrWidgetProject(AttrWidget):
         mode_layout = ui_qt.QtWidgets.QHBoxLayout()
         mode_layout.setContentsMargins(0, 0, 0, 5)
         mode_tooltip = (
-            "Chooses which pose is used while building the control rig. This does not change the mesh bind pose.\n\n"
-            "Automatic: runs each module's pose helper, normally producing a biped T-pose.\n\n"
-            "Custom Stored Pose: applies the arbitrary skeleton pose captured from a previously built rig.\n\n"
-            "Disabled: builds controls in the same pose used by the mesh and skeleton."
+            "Chooses the pose used while building the control rig.\n"
+            "This does not change the mesh bind pose.\n\n"
+            "Automatic: Runs each module's pose helper, normally making a biped T-pose.\n\n"
+            "Custom Stored Pose: Applies a skeleton pose captured from a built rig.\n\n"
+            "Disabled: Builds controls in the same pose as the mesh and skeleton."
         )
         mode_label = ui_qt.QtWidgets.QLabel("Mode:")
         mode_label.setObjectName("control_pose_mode_label")
@@ -134,12 +135,15 @@ class AttrWidgetProject(AttrWidget):
         self.control_pose_mode_combo.currentIndexChanged.connect(self.on_control_pose_mode_changed)
         self.control_pose_mode_combo.setToolTip(mode_tooltip)
         mode_tooltips = [
-            "Runs module pose helpers during each build. Biped arm and leg helpers normally create a T-pose, "
-            "while the mesh and skeleton remain bound in their original pose.",
-            "Uses the stored per-joint world matrices as the control-build pose. Capture this data from a built "
-            "rig after posing it with its controls. The pose may be any shape, not only a T-pose.",
-            "Does not create a separate control rig pose. Controls are built directly in the mesh and skeleton "
-            "bind pose; any stored custom pose remains saved but inactive.",
+            "Runs module pose helpers during each build.\n"
+            "Biped arm and leg helpers normally create a T-pose.\n"
+            "The mesh and skeleton remain bound in their original pose.",
+            "Uses stored per-joint matrices as the control-build pose.\n"
+            "Capture this from a built rig after posing it with its controls.\n"
+            "The pose may be any shape, not only a T-pose.",
+            "Does not create a separate control rig pose.\n"
+            "Controls are built directly in the mesh and skeleton bind pose.\n"
+            "Any stored custom pose remains saved but inactive.",
         ]
         qt_enum = ui_qt.QtCore.Qt
         item_data_role = getattr(qt_enum, "ItemDataRole", None)
@@ -150,27 +154,36 @@ class AttrWidgetProject(AttrWidget):
         mode_layout.addWidget(self.control_pose_mode_combo, 1)
         self.content_layout.addLayout(mode_layout)
 
+        status_caption_label = ui_qt.QtWidgets.QLabel("Build Pose Status:")
+        status_caption_label.setObjectName("control_pose_status_caption_label")
+        status_caption_label.setToolTip(
+            "Summarizes the pose configuration that will be used\n"
+            "the next time the control rig is built."
+        )
+        self.content_layout.addWidget(status_caption_label)
         self.control_pose_status_label = ui_qt.QtWidgets.QLabel()
         self.control_pose_status_label.setObjectName("control_pose_status_label")
         self.control_pose_status_label.setWordWrap(True)
         self.content_layout.addWidget(self.control_pose_status_label)
 
         button_layout = ui_qt.QtWidgets.QHBoxLayout()
-        capture_button = ui_qt.QtWidgets.QPushButton("Capture Current Rig Pose")
+        capture_button = ui_qt.QtWidgets.QPushButton("Capture Rig Pose")
         capture_button.setObjectName("capture_control_pose_button")
         capture_button.setToolTip(
-            "Captures the evaluated skeleton pose from the built rig that matches this project. First pose the rig "
-            "with any combination of controls, then click this button. The per-joint matrices are stored in the "
-            "project, Custom Stored Pose is activated, and the next rig build uses that pose for its controls."
+            "Captures the evaluated skeleton pose from the built rig.\n"
+            "First pose the rig with its controls, then capture it.\n"
+            "This stores per-joint matrices, activates Custom Stored Pose,\n"
+            "and uses it on the next control-rig build."
         )
         capture_button.clicked.connect(self.on_capture_control_pose)
         button_layout.addWidget(capture_button)
 
-        validate_button = ui_qt.QtWidgets.QPushButton("Validate")
+        validate_button = ui_qt.QtWidgets.QPushButton("Validate Pose")
         validate_button.setObjectName("validate_control_pose_button")
         validate_button.setToolTip(
-            "Checks the stored schema, project identity, proxy configuration, target coverage, and matrix values. "
-            "Validation does not change the Maya scene or the stored pose."
+            "Checks stored schema, project and proxy identity,\n"
+            "target coverage, and matrix values.\n"
+            "Validation does not change the Maya scene or stored pose."
         )
         validate_button.clicked.connect(self.on_validate_control_pose)
         button_layout.addWidget(validate_button)
@@ -178,16 +191,16 @@ class AttrWidgetProject(AttrWidget):
         view_button = ui_qt.QtWidgets.QPushButton("View Data")
         view_button.setObjectName("view_control_pose_button")
         view_button.setToolTip(
-            "Opens a read-only, line-numbered, syntax-highlighted window showing every stored matrix together "
-            "with its target joint name and proxy UUID."
+            "Opens a read-only, line-numbered, syntax-highlighted view.\n"
+            "Shows stored matrices, target joint names, and proxy UUIDs."
         )
         view_button.clicked.connect(self.on_view_control_pose)
         button_layout.addWidget(view_button)
 
-        clear_button = ui_qt.QtWidgets.QPushButton("Clear")
+        clear_button = ui_qt.QtWidgets.QPushButton("Clear Data")
         clear_button.setObjectName("clear_control_pose_button")
         clear_button.setToolTip(
-            "Removes all stored custom pose matrices from this project and switches the mode to Automatic. "
+            "Removes stored custom pose matrices and switches to Automatic mode.\n"
             "The deletion becomes persistent when the project is saved."
         )
         clear_button.clicked.connect(self.on_clear_control_pose)

@@ -798,6 +798,7 @@ class BatchProcessorModel:
         environment_variables = {
             "project-name": project_name,
             "project-sanitized-name": tasks.sanitize_filename(project_name.lower().replace(" ", "_")),
+            "project-notes": self.notes,
             "project-dir": project_dir,
             "project-file-dir": self.get_project_file_dir(),
             "project-path": project_path,

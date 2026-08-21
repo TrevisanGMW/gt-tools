@@ -72,6 +72,7 @@ class AttrWidgetSceneReportTask(AttrWidgetTask):
         self.add_report_item_checkboxes()
         self.add_report_item_activation_buttons()
         self.add_report_action_buttons()
+        self.add_report_notes_section()
         self.add_segmentation_section(
             main_label="Run Once After All Jobs",
             main_key="run_once_after_multi_instance",
@@ -85,6 +86,28 @@ class AttrWidgetSceneReportTask(AttrWidgetTask):
             ),
         )
         self.content_layout.addStretch()
+
+    def add_report_notes_section(self):
+        """Adds the optional, collapsible notes section above segmentation settings."""
+        self.task.settings.setdefault("report_notes_collapsed", True)
+        notes_tooltip = (
+            "Optional notes appended to the report. By default, {project-notes} resolves to the "
+            "project notes saved in the .batch file."
+        )
+        section = self.add_collapsible_section(
+            "Report Notes",
+            collapsed=self.task.settings.get("report_notes_collapsed", True),
+            state_setter=partial(self.set_task_setting, key="report_notes_collapsed"),
+            tooltip=notes_tooltip,
+        )
+        self.add_text_area(
+            "Notes",
+            self.task.settings.get("report_notes", task_report.DEFAULT_REPORT_NOTES),
+            partial(self.set_task_setting, key="report_notes"),
+            placeholder=task_report.DEFAULT_REPORT_NOTES,
+            tooltip=notes_tooltip,
+            parent_layout=section.get("content_layout"),
+        )
 
     def add_report_item_checkboxes(self):
         """Adds one checkbox per registered report item."""
@@ -179,7 +202,7 @@ class AttrWidgetSceneReportTask(AttrWidgetTask):
         except Exception as exception:
             self.emit_status_message("Unable to preview report values: {0}".format(exception), status="warning")
             return
-        report_data = self.task.build_report_data([entry])
+        report_data = self.task.build_report_data([entry], project=self.project)
         report_data["detail_mode"] = task_report.REPORT_DETAIL_LIST_AND_TOTAL
         output_window = ui_python_output_view.PythonOutputView(parent=self, editable=False)
         output_window.setWindowTitle("Report Preview")
