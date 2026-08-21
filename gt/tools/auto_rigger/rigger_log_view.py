@@ -9,6 +9,9 @@ import sys
 
 
 class RiggerLoggingView(metaclass=ui_qt_utils.MayaWindowMeta):
+    DOCK_HEIGHT_PERCENTAGE = 0.15
+    DOCK_MINIMUM_HEIGHT = 60
+
     def __init__(self, parent=None):
         """
         Initializes the Auto Rigger Logging window.
@@ -73,15 +76,87 @@ class RiggerLoggingView(metaclass=ui_qt_utils.MayaWindowMeta):
                 continue
             logger.addHandler(qt_handler)
 
-    def show_if_not_visible(self):
-        """Shows the window, but only if it's not already visible (so it doesn't pop"""
+    def show_if_not_visible(self, dock_to_control=None):
+        """Shows the log window and optionally docks it below another Maya control.
+
+        Args:
+            dock_to_control (str, optional): Maya workspace-control name to dock
+                below. This is ignored outside interactive Maya.
+        """
+        dock_height = self.get_dock_height(dock_to_control)
         if not self._is_open:
+            if dock_height:
+                self.resize(self.width(), dock_height)
             self.show()
             self._is_open = True
-        else:
+        elif not dock_to_control:
             # Bring the dialog to the front if it's already open
             self.raise_()
             self.activateWindow()
+        if dock_to_control:
+            self.dock_below_control(dock_to_control, dock_height=dock_height)
+
+    def get_dock_height(self, target_control):
+        """Gets a compact log height based on an existing Maya workspace control.
+
+        Args:
+            target_control (str): Maya workspace-control name used as the size
+                reference.
+
+        Returns:
+            int or None: Desired log-pane height, or None when unavailable.
+        """
+        if not target_control:
+            return None
+        try:
+            from maya import cmds
+
+            if not cmds.workspaceControl(target_control, query=True, exists=True):
+                return None
+            target_height = cmds.workspaceControl(target_control, query=True, height=True)
+            if not target_height:
+                return None
+            calculated_height = int(float(target_height) * self.DOCK_HEIGHT_PERCENTAGE)
+            return max(self.DOCK_MINIMUM_HEIGHT, calculated_height)
+        except Exception as exception:
+            logging.getLogger(__name__).debug(
+                f'Unable to determine Auto Rigger log window height. Issue: "{exception}".'
+            )
+            return None
+
+    def dock_below_control(self, target_control, dock_height=None):
+        """Docks this log view below an existing Maya workspace control.
+
+        Args:
+            target_control (str): Maya workspace-control name to dock below.
+            dock_height (int, optional): Height to use for the docked log pane.
+
+        Returns:
+            bool: True if the log view was docked successfully.
+        """
+        if not target_control:
+            return False
+        try:
+            from maya import cmds
+
+            log_workspace_control = f"{self.objectName()}WorkspaceControl"
+            if not cmds.workspaceControl(log_workspace_control, query=True, exists=True):
+                return False
+            if not cmds.workspaceControl(target_control, query=True, exists=True):
+                return False
+            cmds.workspaceControl(
+                log_workspace_control,
+                edit=True,
+                dockToControl=(target_control, "bottom"),
+            )
+            if dock_height:
+                cmds.workspaceControl(log_workspace_control, edit=True, resizeHeight=dock_height)
+            return True
+        except Exception as exception:
+            logging.getLogger(__name__).debug(
+                f'Unable to dock Auto Rigger log window below "{target_control}". Issue: "{exception}".'
+            )
+            return False
 
     def closeEvent(self, event):
         """

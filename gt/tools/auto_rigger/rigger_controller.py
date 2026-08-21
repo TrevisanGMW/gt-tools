@@ -15,6 +15,7 @@ import gt.ui.tree_widget_enhanced as ui_tree_enhanced
 import gt.ui.resource_library as ui_res_lib
 import gt.ui.file_dialog as ui_file_dialog
 import gt.utils.system as utils_system
+import gt.core.session as core_session
 import gt.ui.qt_utils as ui_qt_utils
 import gt.core.prefs as core_prefs
 import gt.core.logger as core_log
@@ -181,6 +182,9 @@ class RiggerController:
         )
         self._on_build_show_log_view = self._prefs.get_bool(
             key=tools_rig_const.RiggerConstants.PREFS_KEY_ON_BUILD_SHOW_LOG, default=True
+        )
+        self._on_build_auto_dock_log = self._prefs.get_bool(
+            key=tools_rig_const.RiggerConstants.PREFS_KEY_ON_BUILD_AUTO_DOCK_LOG, default=True
         )
         self._on_set_path_abs_to_relative = self._prefs.get_bool(
             key=tools_rig_const.RiggerConstants.PREFS_KEY_ON_SET_PATH_ABS_TO_RELATIVE, default=True
@@ -666,6 +670,12 @@ class RiggerController:
         on_build_show_log_view_action.triggered.connect(self.toggle_on_build_show_log_view)
         self.view.add_menu_action(parent_menu=menu_log, action=on_build_show_log_view_action)
         on_build_show_log_view_action.setChecked(self._on_build_show_log_view)
+
+        # On Build Auto Dock Log Window
+        on_build_auto_dock_log_action = ui_qt.QtLib.QtGui.QAction("Auto Dock Log Window", checkable=True)
+        on_build_auto_dock_log_action.triggered.connect(self.toggle_on_build_auto_dock_log)
+        self.view.add_menu_action(parent_menu=menu_log, action=on_build_auto_dock_log_action)
+        on_build_auto_dock_log_action.setChecked(self._on_build_auto_dock_log)
 
         # On Build Clear Log Window
         on_build_clear_log_window_action = ui_qt.QtLib.QtGui.QAction("Build Clears Log Window", checkable=True)
@@ -1572,6 +1582,27 @@ class RiggerController:
         self._prefs.set_bool(key=tools_rig_const.RiggerConstants.PREFS_KEY_ON_BUILD_SHOW_LOG, value=checked)
         self._prefs.save()
 
+    def toggle_on_build_auto_dock_log(self, checked):
+        """Toggles automatically docking the log window below the Auto Rigger.
+
+        Args:
+            checked (bool): The new state for automatically docking the log window.
+        """
+        self._on_build_auto_dock_log = checked
+        self._prefs.set_bool(key=tools_rig_const.RiggerConstants.PREFS_KEY_ON_BUILD_AUTO_DOCK_LOG, value=checked)
+        self._prefs.save()
+
+    def show_log_view_for_build(self):
+        """Shows the build log view and docks it below the Auto Rigger in Maya.
+
+        The dock target is only passed while running in interactive Maya, keeping
+        the log window's normal behavior in standalone Qt and batch contexts.
+        """
+        dock_to_control = None
+        if self._on_build_auto_dock_log and core_session.is_script_in_interactive_maya():
+            dock_to_control = f"{self.view.objectName()}WorkspaceControl"
+        self.log_view.show_if_not_visible(dock_to_control=dock_to_control)
+
     def toggle_on_set_path_abs_to_relative(self, checked):
         """
         Toggle the flag to convert absolute paths to relative paths when setting paths.
@@ -1814,7 +1845,7 @@ class RiggerController:
         if self._on_build_clear_log_window:
             self.log_view.clear_log_widget()
         if self._on_build_show_log_view:
-            self.log_view.show_if_not_visible()
+            self.show_log_view_for_build()
 
         project = self.model.get_project()
         logger.operation(f'Initializing build proxy operation for "{project.get_name()}".')
@@ -1836,7 +1867,7 @@ class RiggerController:
         if self._on_build_clear_log_window:
             self.log_view.clear_log_widget()
         if self._on_build_show_log_view:
-            self.log_view.show_if_not_visible()
+            self.show_log_view_for_build()
 
         logger.operation(f'Initializing build rig operation for "{project.get_name()}".')
         project.build_proxy(optimized=True)
