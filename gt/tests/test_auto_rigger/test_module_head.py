@@ -127,6 +127,21 @@ class TestModuleHead(unittest.TestCase):
         result = a_2nd_head_module.neck_base_proxy.get_uuid()
         self.assertEqual(expected, result)
 
+    def test_module_head_read_data_applies_optional_flags_before_proxy_refresh(self):
+        """Does not restore default eye and jaw proxies disabled in serialized data."""
+        source_module = tools_mod_head.ModuleHead()
+        source_module.build_eyes = False
+        source_module.build_jaw = False
+        source_module.refresh_proxies_list()
+        serialized_data = source_module.get_module_as_dict()
+
+        loaded_module = tools_mod_head.ModuleHead()
+        loaded_module.read_data_from_dict(serialized_data)
+
+        expected = source_module.get_proxies_uuids()
+        result = loaded_module.get_proxies_uuids()
+        self.assertEqual(expected, result)
+
     def test_module_head_build_proxy(self):
         a_head_module = tools_mod_head.ModuleHead()
         proxy_data_list = a_head_module.build_proxy()

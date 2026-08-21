@@ -12,6 +12,7 @@ from gt.tools.auto_rigger.attr_widgets.attr_widget_base import AttrWidget
 from gt.tools.auto_rigger.attr_widgets.attr_widget_project import AttrWidgetProject
 from gt.tools.auto_rigger.rigger_geo_preprocessor import ProjectContextPathWidget
 from gt.tools.auto_rigger.rig_framework import RigProject
+from gt.tools.auto_rigger.control_rig_pose import ControlRigPoseMode
 
 
 class TestAttrWidgetPaths(unittest.TestCase):
@@ -119,6 +120,61 @@ class TestAttrWidgetPaths(unittest.TestCase):
 
         expected = 1
         self.assertEqual(expected, len(result))
+
+    def test_project_widget_exposes_control_rig_pose_actions(self):
+        """Adds mode, capture, validation, viewing, and clear controls to the project panel."""
+        self.widgets = []
+        widget = AttrWidgetProject(project=RigProject())
+        self.widgets.append(widget)
+        expected = {
+            "capture_control_pose_button",
+            "validate_control_pose_button",
+            "view_control_pose_button",
+            "clear_control_pose_button",
+        }
+        result = {
+            button.objectName()
+            for button in widget.findChildren(ui_qt.QtWidgets.QPushButton)
+            if button.objectName() in expected
+        }
+        self.assertEqual(expected, result)
+
+    def test_project_widget_control_pose_mode_label_uses_natural_width(self):
+        """Keeps the mode label compact while the combo box receives extra width."""
+        self.widgets = []
+        widget = AttrWidgetProject(project=RigProject())
+        self.widgets.append(widget)
+        mode_label = widget.findChild(ui_qt.QtWidgets.QLabel, "control_pose_mode_label")
+        expected = mode_label.sizeHint().width()
+        result = mode_label.width()
+        self.assertEqual(expected, result)
+
+    def test_project_widget_view_pose_data_uses_callback(self):
+        """Routes the stored-pose viewer action through the supplied callback."""
+        self.widgets = []
+        view_callback = MagicMock()
+        widget = AttrWidgetProject(project=RigProject(), view_control_pose_func=view_callback)
+        self.widgets.append(widget)
+        view_button = widget.findChild(ui_qt.QtWidgets.QPushButton, "view_control_pose_button")
+        view_button.click()
+        view_callback.assert_called_once_with()
+
+    def test_project_widget_control_pose_combo_updates_mode(self):
+        """Routes combo changes through the supplied controller callback."""
+        self.widgets = []
+        project = RigProject()
+
+        def set_mode(mode):
+            """Updates the test project mode."""
+            project.set_control_rig_pose_mode(mode)
+
+        widget = AttrWidgetProject(project=project, control_pose_mode_func=set_mode)
+        self.widgets.append(widget)
+        custom_index = widget.control_pose_mode_combo.findData(ControlRigPoseMode.CUSTOM)
+        widget.control_pose_mode_combo.setCurrentIndex(custom_index)
+        expected = ControlRigPoseMode.CUSTOM
+        result = project.get_control_rig_pose_mode()
+        self.assertEqual(expected, result)
 
 
 if __name__ == "__main__":

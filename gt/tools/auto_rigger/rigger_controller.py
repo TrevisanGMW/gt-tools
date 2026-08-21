@@ -2,7 +2,9 @@
 Auto Rigger Controller
 """
 
+import gt.tools.auto_rigger.control_rig_pose_service as tools_control_pose_service
 import gt.tools.auto_rigger.attr_widgets.attr_widgets as tools_rig_attr_widget
+import gt.tools.auto_rigger.control_rig_pose as tools_control_pose
 import gt.tools.auto_rigger.rigger_log_view as tools_rig_log_view
 import gt.tools.auto_rigger.rig_templates as tools_rig_templates
 import gt.tools.auto_rigger.rig_constants as tools_rig_const
@@ -165,6 +167,7 @@ class RiggerController:
         self._opened_project = ""
         self._opened_project_initial_state = {}  # Used for comparison to find changes
         self._has_high_level_changes = False
+        self.control_pose_data_window = None
 
         # Preferences
         self._prefs = core_prefs.Prefs(tools_rig_const.RiggerConstants.PREFS_FILENAME)
@@ -502,32 +505,32 @@ class RiggerController:
 
         import gt.core.pose as core_pose
 
-        # A-Pose Skeleton ---
+        # Bind Pose Skeleton ---
         action_sk_a_pose = ui_qt.QtLib.QtGui.QAction(
-            "A-Pose (Skeleton)", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.root_animation)
+            "Bind Pose (Skeleton)", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.root_animation)
         )
         action_sk_a_pose.triggered.connect(core_pose.set_apose)
         self.view.add_menu_action(parent_menu=menu_templates, action=action_sk_a_pose)
 
-        # T-Pose Skeleton ---
+        # Control Pose Skeleton ---
         action_sk_t_pose = ui_qt.QtLib.QtGui.QAction(
-            "T-Pose (Skeleton)", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.root_rigging)
+            "Control Pose (Skeleton)", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.root_rigging)
         )
-        action_sk_t_pose.triggered.connect(core_pose.set_tpose)
+        action_sk_t_pose.triggered.connect(self.set_skeleton_control_rig_pose)
         self.view.add_menu_action(parent_menu=menu_templates, action=action_sk_t_pose)
 
-        # A-Pose Control Rig ---
+        # Bind Pose Control Rig ---
         action_ctrl_a_pose = ui_qt.QtLib.QtGui.QAction(
-            "A-Pose (Control Rig)", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.root_animation)
+            "Bind Pose (Control Rig)", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.root_animation)
         )
-        action_ctrl_a_pose.triggered.connect(tools_rig_utils.set_rig_apose)
+        action_ctrl_a_pose.triggered.connect(tools_rig_utils.set_rig_bind_pose)
         self.view.add_menu_action(parent_menu=menu_templates, action=action_ctrl_a_pose)
 
-        # T-Pose Control Rig ---
+        # Control Pose Control Rig ---
         action_ctrl_t_pose = ui_qt.QtLib.QtGui.QAction(
-            "T-Pose (Control Rig)", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.root_rigging)
+            "Control Pose (Control Rig)", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.root_rigging)
         )
-        action_ctrl_t_pose.triggered.connect(tools_rig_utils.set_rig_tpose)
+        action_ctrl_t_pose.triggered.connect(tools_rig_utils.set_rig_control_pose)
         self.view.add_menu_action(parent_menu=menu_templates, action=action_ctrl_t_pose)
 
         # Range of Motion ---------------------------------------------------------------------------
@@ -1649,12 +1652,104 @@ class RiggerController:
         # Project ---------------------------------------------------------------
         if isinstance(data_obj, tools_rig_frm.RigProject):
             widget_object = tools_rig_attr_widget.AttrWidgetProject(
-                project=data_obj, refresh_parent_func=self.refresh_widgets
+                project=data_obj,
+                refresh_parent_func=self.refresh_widgets,
+                control_pose_mode_func=self.set_control_rig_pose_mode,
+                capture_control_pose_func=self.capture_control_rig_pose,
+                validate_control_pose_func=self.validate_control_rig_pose,
+                view_control_pose_func=self.view_control_rig_pose_data,
+                clear_control_pose_func=self.clear_control_rig_pose,
             )
             self.view.set_module_widget(widget_object)
             return
         # Unknown ---------------------------------------------------------------
         self.view.clear_module_widget()
+
+    def set_control_rig_pose_mode(self, mode):
+        """Sets the project control rig pose mode.
+
+        Args:
+            mode (str): Automatic, custom, or disabled mode.
+
+        Returns:
+            bool: True when the mode was accepted.
+        """
+        success = self.model.get_project().set_control_rig_pose_mode(mode)
+        if success:
+            self._has_high_level_changes = True
+            logger.info(f'Set control rig pose mode to "{mode}".')
+        return success
+
+    def capture_control_rig_pose(self):
+        """Captures the current evaluated skeleton as the project's custom control rig pose.
+
+        Returns:
+            str: User-facing capture summary.
+        """
+        project = self.model.get_project()
+        try:
+            pose_data = tools_control_pose_service.capture_project_control_rig_pose(project)
+        except Exception:
+            logger.exception("Unable to capture the current control rig pose.")
+            raise
+        project.set_control_rig_pose_data(pose_data)
+        project.set_control_rig_pose_mode(tools_control_pose.ControlRigPoseMode.CUSTOM)
+        self._has_high_level_changes = True
+        message = f"Captured custom control rig pose for {pose_data.get_transform_count()} joints."
+        logger.success(message)
+        return message
+
+    def validate_control_rig_pose(self):
+        """Validates the project's stored custom control rig pose.
+
+        Returns:
+            dict: Custom pose validation result.
+        """
+        validation = self.model.get_project().validate_control_rig_pose_data()
+        if validation.get("valid"):
+            logger.info("Stored custom control rig pose is valid.")
+        else:
+            logger.warning(" ".join(validation.get("errors") or []))
+        return validation
+
+    def clear_control_rig_pose(self):
+        """Clears custom pose data and restores automatic pose mode.
+
+        Returns:
+            str: User-facing clear summary.
+        """
+        project = self.model.get_project()
+        project.clear_control_rig_pose_data()
+        project.set_control_rig_pose_mode(tools_control_pose.ControlRigPoseMode.AUTOMATIC)
+        self._has_high_level_changes = True
+        message = "Cleared the stored custom pose. Automatic mode is active."
+        logger.info(message)
+        return message
+
+    def view_control_rig_pose_data(self):
+        """Opens a read-only window containing the stored custom pose data."""
+        import gt.ui.python_output_view as ui_py_output
+
+        report_data = tools_control_pose_service.get_project_control_rig_pose_report(self.model.get_project())
+        report_text = json.dumps(report_data, indent=4, ensure_ascii=False)
+        self.control_pose_data_window = ui_py_output.PythonOutputView(parent=self.view, editable=False)
+        self.control_pose_data_window.setWindowTitle("Stored Control Rig Pose Data")
+        self.control_pose_data_window.set_python_output_text(report_text)
+        self.control_pose_data_window.show()
+
+    def set_skeleton_control_rig_pose(self, *args):
+        """Sets the skeleton to the current project's stored control-build DAG pose.
+
+        Args:
+            *args: Qt signal arguments.
+
+        Returns:
+            bool: True when the DAG pose was found and restored.
+        """
+        import gt.core.pose as core_pose
+
+        pose_name = self.model.get_project().get_control_rig_pose_name()
+        return core_pose.set_dagpose(pose_name=pose_name)
 
     def preprocessing_validation(self):
         """
@@ -1727,6 +1822,12 @@ class RiggerController:
 
     def build_rig(self):
         """Builds Rig using the project "build_rig" function."""
+        project = self.model.get_project()
+        pose_validation = project.validate_control_rig_pose_for_build()
+        if not pose_validation.get("valid"):
+            message = " ".join(pose_validation.get("errors") or ["The custom control rig pose is invalid."])
+            self.show_project_load_warning(title="Invalid Custom Control Rig Pose", message=message)
+            return
         if self.preprocessing_validation():
             return
 
@@ -1735,8 +1836,6 @@ class RiggerController:
             self.log_view.clear_log_widget()
         if self._on_build_show_log_view:
             self.log_view.show_if_not_visible()
-
-        project = self.model.get_project()
 
         logger.operation(f'Initializing build rig operation for "{project.get_name()}".')
         project.build_proxy(optimized=True)

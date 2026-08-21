@@ -1470,14 +1470,14 @@ def get_single_skeleton_root_joint(top_level_fallback=True):
         return joints[0]
 
 
-def get_control_rig_tpose_and_apose_as_dict():
+def get_control_rig_control_pose_and_bind_pose_as_dict(control_pose_name=None):
     """
-    Gets the control rig T-pose values and A-pose values in two dictionaries.
+    Gets the control rig pose values and bind pose values in two dictionaries.
     This is supposed to be called at the end of the control rig building process, when it is in a "vanilla"
     state, without extra keys, ready for Animation. That's the state (T-pose/rig pose) that we want to store.
 
     Returns:
-        list of two dicts: all the attributes of all the controls of the rig in T-pose and A-pose.
+        tuple: Control attributes for the control rig pose and bind pose.
     """
 
     # T-POSE ---------------------------------------------------------------
@@ -1577,9 +1577,27 @@ def get_control_rig_tpose_and_apose_as_dict():
             pos_attr = f"{joint_control_map[hips_jnts[0]]}.{p_axis}"
             a_pose_controls_attrs_dict[pos_attr] = hips_delta_pos[ip]
 
-    core_pose.set_tpose()
+    core_pose.set_dagpose(pose_name=control_pose_name)
 
     return t_pose_controls_attrs_dict, a_pose_controls_attrs_dict
+
+
+def get_control_rig_tpose_and_apose_as_dict():
+    """Gets legacy T-pose and A-pose metadata dictionaries.
+
+    This compatibility wrapper treats the T-pose slot as the project's generic control rig pose and the A-pose slot
+    as its bind pose.
+
+    Args:
+        control_pose_name (str, optional): Skeleton DAG pose used as the control rig pose.
+
+    Returns:
+        tuple: Control attributes for the control rig pose and bind pose.
+    """
+
+    if not control_pose_name:
+        control_pose_name = core_naming.NamingConstants.Poses.TPOSE
+    return get_control_rig_control_pose_and_bind_pose_as_dict()
 
 
 def create_control_visualization_line(control, end_obj):
@@ -2341,7 +2359,7 @@ def selected_joints_to_module_generic(auto_include_children=True):
 
 
 def set_rig_pose(namespace=None, pose="t"):
-    """Sets the control rig with the given namespace in T-pose using the stored metadata values.
+    """Sets a control rig pose using stored metadata values.
     Args:
         namespace (str, optional): the rig namespace.
                                    If Namespace is None, the code attempts to get it from the first element selected.
@@ -2378,7 +2396,7 @@ def set_rig_pose(namespace=None, pose="t"):
     if pose == "t":
         pose_dict = get_tpose_from_rig_metadata(rig_metadata=rig_metadata)
         if not pose_dict:
-            logger.warning("T-pose data retrieved by the rig metadata is empty.")
+            logger.warning("Control rig pose data retrieved by the rig metadata is empty.")
             return
     elif pose == "a":
         pose_dict = get_apose_from_rig_metadata(rig_metadata=rig_metadata)
@@ -2399,8 +2417,26 @@ def set_rig_pose(namespace=None, pose="t"):
             missing_attributes.append(attr_path)
     if missing_attributes:
         _missing_string = "\n".join(attr for attr in missing_attributes)
-        logger.warning(f"The following attributes are missing and won't be set for the T-pose:{missing_attributes}")
+        logger.warning(f"The following attributes are missing and won't be set for the rig pose:{missing_attributes}")
     cmds.undoInfo(closeChunk=True)
+
+
+def set_rig_control_pose(namespace=None):
+    """Sets the rig to its stored control rig pose.
+
+    Args:
+        namespace (str, optional): Namespace of the rig to update.
+    """
+    set_rig_pose(namespace=namespace, pose="t")
+
+
+def set_rig_bind_pose(namespace=None):
+    """Sets the rig to its stored bind pose.
+
+    Args:
+        namespace (str, optional): Namespace of the rig to update.
+    """
+    set_rig_pose(namespace=namespace, pose="a")
 
 
 def set_rig_tpose(namespace=None):
@@ -2412,7 +2448,7 @@ def set_rig_tpose(namespace=None):
                                    If Namespace is "", it sets the first of all the rigs without namespace.
                                    If Namespace is a string, it sets the matching rig, if it exists.
     """
-    set_rig_pose(namespace=namespace, pose="t")
+    set_rig_control_pose(namespace=namespace)
 
 
 def set_rig_apose(namespace=None):
@@ -2424,7 +2460,7 @@ def set_rig_apose(namespace=None):
                                    If Namespace is "", it sets the first of all the rigs without namespace.
                                    If Namespace is a string, it sets the matching rig, if it exists.
     """
-    set_rig_pose(namespace=namespace, pose="a")
+    set_rig_bind_pose(namespace=namespace)
 
 
 def update_uuids_in_dict(data, uuid_mapping):

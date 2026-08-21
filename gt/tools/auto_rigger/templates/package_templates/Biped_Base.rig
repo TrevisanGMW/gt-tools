@@ -5576,6 +5576,7 @@
         "build_control_rig": true,
         "delete_proxy_after_build": true,
         "apply_control_rig_pose": true,
+        "control_rig_pose_mode": "automatic",
         "hide_skeleton": true,
         "view_fit_skeleton": true,
         "export_anim_blendshapes": false,

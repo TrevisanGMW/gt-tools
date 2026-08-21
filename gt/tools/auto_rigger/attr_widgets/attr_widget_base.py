@@ -411,16 +411,6 @@ class AttrWidget(ui_qt.QtWidgets.QWidget):
             _layout.addWidget(combobox)
             _func = partial(self.on_combobox_code_data_order_changed)
             combobox.currentTextChanged.connect(_func)
-            # Add Warning Color to Missing Steps -----------------------------------------
-            is_pose_active = self.project.get_preferences_dict_value(key="apply_control_rig_pose", default=False)
-            if not is_pose_active:
-                tooltip = "This execution order is not included in build preferences."
-                combobox.set_tooltip(tooltip, lambda text: "control_pose" in text)
-                warning_list = [s for s in order_list if s.endswith("control_pose")]  # Get Control Pose
-                for item in warning_list:
-                    index = combobox.findText(item)
-                    color = ui_res_lib.parse_rgb_numbers(ui_res_lib.Color.RGB.red_metallic_dark)
-                    combobox.set_item_color(index, ui_qt.QtGui.QColor(*color))
             # Set Initial Value -----------------------------------------
             if is_code_data_available:
                 current_value = code_data.get_order()

@@ -17,6 +17,7 @@ Import Line:
     import gt.tools.auto_rigger.rig_framework as tools_rig_frm
 """
 
+import gt.tools.auto_rigger.control_rig_pose as tools_control_pose
 import gt.tools.auto_rigger.rig_constants as tools_rig_const
 import gt.tools.auto_rigger.rig_utils as tools_rig_utils
 import gt.ui.resource_library as ui_res_lib
@@ -375,9 +376,9 @@ class CodeData:
         # Build Skeleton Phase
         pre_skeleton = "pre_skeleton"
         post_skeleton = "post_skeleton"
-        # Build Pose Phase - Not executed if not applying control rig pose
-        pre_control_pose = "pre_control_pose"  # Original Pose
-        post_control_pose = "post_control_pose"  # Already set as Control Rig Pose
+        # Build Pose Phase - Always executed in the bind pose and final control-build pose respectively
+        pre_control_pose = "pre_control_pose"  # Bind pose
+        post_control_pose = "post_control_pose"  # Final pose used to build controls
         # Build Control Rig Phase - Not executed if control rig is not created
         pre_control_rig = "pre_control_rig"
         post_control_rig = "post_control_rig"
@@ -539,6 +540,7 @@ class RigPreferencesData:
     build_control_rig: bool = dataclasses.field(default=True)  # If True, Control rig is built
     delete_proxy_after_build: bool = dataclasses.field(default=True)  # If True, proxy is deleted after build
     apply_control_rig_pose: bool = dataclasses.field(default=True)  # If True, pose proxy/joints before building rig
+    control_rig_pose_mode: str = dataclasses.field(default=tools_control_pose.ControlRigPoseMode.AUTOMATIC)
     hide_skeleton: bool = dataclasses.field(default=True)  # If True, hides skeleton group during build
     view_fit_skeleton: bool = dataclasses.field(default=True)  # If True, viewFit the skeleton after creation
     export_anim_blendshapes: bool = dataclasses.field(default=False)  # If True, include BS in the anim export process
@@ -563,11 +565,25 @@ class RigPreferencesData:
             data (dict): A dictionary with attributes as keys and values for the preferences as their value.
                         e.g. {"build_control_rig": True}
         """
+        if not isinstance(data, dict):
+            return
+
         for key, value in data.items():
             if key == "project_dir" and not value:
                 value = "{project-file-dir}"
             if hasattr(self, key):
                 setattr(self, key, value)
+
+        mode = data.get("control_rig_pose_mode")
+        if not tools_control_pose.ControlRigPoseMode.is_valid(mode):
+            apply_pose = data.get("apply_control_rig_pose", self.apply_control_rig_pose)
+            mode = (
+                tools_control_pose.ControlRigPoseMode.AUTOMATIC
+                if apply_pose
+                else tools_control_pose.ControlRigPoseMode.DISABLED
+            )
+        self.control_rig_pose_mode = mode
+        self.apply_control_rig_pose = mode != tools_control_pose.ControlRigPoseMode.DISABLED
 
     def list_available_preferences(self):
         """
@@ -1891,6 +1907,11 @@ class ModuleGeneric:
             else:
                 self.code.set_data_from_dict(code_dict=_code)
 
+        # Load serialized configuration flags before rebuilding specialized proxy lists.
+        # Modules such as Head use these flags to decide whether optional proxies belong
+        # to the loaded project.
+        self._set_serialized_attrs(module_dict)
+
         _proxies = module_dict.get("proxies")
         if _proxies and isinstance(_proxies, dict):
             self.read_proxies_from_dict(proxy_dict=_proxies)
@@ -1902,8 +1923,6 @@ class ModuleGeneric:
         _metadata = module_dict.get("metadata")
         if _metadata:
             self.set_metadata_dict(metadata=_metadata)
-
-        self._set_serialized_attrs(module_dict)
         return self
 
     def read_purpose_matching_proxy_from_dict(self, proxy_dict):
@@ -3194,6 +3213,7 @@ class RigProject:
         self.prefix = None
         self.modules = []
         self.preferences = RigPreferencesData()  # Initialize Preferences
+        self.control_rig_pose_data = tools_control_pose.ControlRigPoseData()
 
         if name:
             self.set_name(name=name)
@@ -3375,7 +3395,53 @@ class RigProject:
             return
         _current_prefs = self.preferences.get_data_as_dict()
         _current_prefs[key] = value
+        if key == "apply_control_rig_pose":
+            _current_prefs["control_rig_pose_mode"] = (
+                tools_control_pose.ControlRigPoseMode.AUTOMATIC
+                if value
+                else tools_control_pose.ControlRigPoseMode.DISABLED
+            )
+        elif key == "control_rig_pose_mode" and tools_control_pose.ControlRigPoseMode.is_valid(value):
+            _current_prefs["apply_control_rig_pose"] = value != tools_control_pose.ControlRigPoseMode.DISABLED
         self.preferences.read_data_from_dict(_current_prefs)
+
+    def set_control_rig_pose_mode(self, mode):
+        """Sets the method used to determine the project's control rig pose.
+
+        Args:
+            mode (str): Automatic, custom, or disabled mode string.
+
+        Returns:
+            bool: True when the mode was accepted.
+        """
+        if not tools_control_pose.ControlRigPoseMode.is_valid(mode):
+            logger.warning(f'Unable to set unsupported control rig pose mode: "{mode}".')
+            return False
+        self.set_preference_value_using_key(key="control_rig_pose_mode", value=mode)
+        return True
+
+    def set_control_rig_pose_data(self, pose_data):
+        """Sets custom control rig pose data for the project.
+
+        Args:
+            pose_data (ControlRigPoseData, dict): Custom pose data or its serialized form.
+
+        Returns:
+            bool: True when the pose data was accepted.
+        """
+        if isinstance(pose_data, tools_control_pose.ControlRigPoseData):
+            self.control_rig_pose_data = copy.deepcopy(pose_data)
+            return True
+        if isinstance(pose_data, dict):
+            self.control_rig_pose_data = tools_control_pose.ControlRigPoseData()
+            self.control_rig_pose_data.read_data_from_dict(pose_data)
+            return True
+        logger.warning(f'Unable to set control rig pose data from type "{type(pose_data)}".')
+        return False
+
+    def clear_control_rig_pose_data(self):
+        """Clears the stored custom control rig pose data."""
+        self.control_rig_pose_data.clear()
 
     def set_project_dir_path(self, dir_path):
         """
@@ -3457,7 +3523,8 @@ class RigProject:
         """
         if clear_modules:
             self.modules = []
-        self.preferences = None
+            self.control_rig_pose_data = tools_control_pose.ControlRigPoseData()
+        self.preferences = RigPreferencesData()
 
         if module_dict and not isinstance(module_dict, dict):
             logger.debug(f"Unable o read data from dict. Input must be a dictionary.")
@@ -3482,6 +3549,9 @@ class RigProject:
         _prefs = module_dict.get("preferences")
         if _prefs:
             self.set_preferences(preferences=_prefs)
+
+        if "control_rig_pose" in module_dict:
+            self.set_control_rig_pose_data(module_dict.get("control_rig_pose"))
         self.refresh_modules_project_reference()
         return self
 
@@ -3562,6 +3632,94 @@ class RigProject:
         """
         return self.preferences.get_data_as_dict().get(key, default)
 
+    def get_control_rig_pose_mode(self):
+        """Gets the project's control rig pose mode.
+
+        Returns:
+            str: Automatic, custom, or disabled mode string.
+        """
+        mode = self.get_preferences_dict_value(key="control_rig_pose_mode")
+        if tools_control_pose.ControlRigPoseMode.is_valid(mode):
+            return mode
+        apply_pose = self.get_preferences_dict_value(key="apply_control_rig_pose", default=True)
+        if apply_pose:
+            return tools_control_pose.ControlRigPoseMode.AUTOMATIC
+        return tools_control_pose.ControlRigPoseMode.DISABLED
+
+    def is_control_rig_pose_enabled(self):
+        """Checks whether the project builds a distinct control rig pose.
+
+        Returns:
+            bool: True for automatic and custom modes.
+        """
+        return self.get_control_rig_pose_mode() != tools_control_pose.ControlRigPoseMode.DISABLED
+
+    def is_control_rig_pose_automatic(self):
+        """Checks whether automatic module pose helpers are active.
+
+        Returns:
+            bool: True when the project uses automatic pose helpers.
+        """
+        return self.get_control_rig_pose_mode() == tools_control_pose.ControlRigPoseMode.AUTOMATIC
+
+    def get_control_rig_pose_data(self):
+        """Gets the custom control rig pose data object.
+
+        Returns:
+            ControlRigPoseData: Project custom control rig pose data.
+        """
+        return self.control_rig_pose_data
+
+    def get_control_rig_pose_proxy_signature_data(self):
+        """Gets skeleton-relevant project data used to detect stale custom poses.
+
+        Returns:
+            list: JSON-compatible module and proxy data.
+        """
+        modules_data = [module.get_module_as_dict(include_offset_data=True) for module in self.modules]
+        return tools_control_pose.get_proxy_signature_data({"modules": modules_data})
+
+    def get_control_rig_pose_proxy_signature(self):
+        """Gets a stable signature for the active proxy configuration.
+
+        Returns:
+            str: SHA-256 signature of skeleton-relevant project data.
+        """
+        signature_data = self.get_control_rig_pose_proxy_signature_data()
+        return tools_control_pose.build_data_signature(signature_data)
+
+    def validate_control_rig_pose_data(self):
+        """Validates stored custom pose data against the current project.
+
+        Returns:
+            dict: Validation result containing valid, errors, warnings, and transform_count keys.
+        """
+        return self.control_rig_pose_data.validate(
+            project_uuid=self.get_uuid(),
+            proxy_signature=self.get_control_rig_pose_proxy_signature(),
+        )
+
+    def validate_control_rig_pose_for_build(self):
+        """Validates that the configured control rig pose can be used for a build.
+
+        Returns:
+            dict: Validation result. Non-custom modes always return a valid result.
+        """
+        if self.get_control_rig_pose_mode() != tools_control_pose.ControlRigPoseMode.CUSTOM:
+            return {"valid": True, "errors": [], "warnings": [], "transform_count": 0}
+        return self.validate_control_rig_pose_data()
+
+    def raise_for_invalid_control_rig_pose(self):
+        """Raises when a custom control rig pose is not valid for this project.
+
+        Raises:
+            RuntimeError: If custom mode is active and the stored pose is missing or stale.
+        """
+        validation = self.validate_control_rig_pose_for_build()
+        if not validation.get("valid"):
+            message = " ".join(validation.get("errors") or ["The custom control rig pose is invalid."])
+            raise RuntimeError(message)
+
     def get_project_as_dict(self):
         """
         Gets the description for this project (including modules and its proxies) as a dictionary.
@@ -3582,6 +3740,8 @@ class RigProject:
         project_data["modules"] = project_modules
         if self.preferences:
             project_data["preferences"] = self.preferences.get_data_as_dict()
+        if self.control_rig_pose_data.has_pose():
+            project_data["control_rig_pose"] = self.control_rig_pose_data.get_data_as_dict()
         return project_data
 
     def get_project_dir_path(self, parse_vars=False):
@@ -3886,6 +4046,7 @@ class RigProject:
         """
         Builds project skeleton.
         """
+        self.raise_for_invalid_control_rig_pose()
         self.execute_modules_code(CodeData.Order.pre_skeleton)  # Try to run any pre-skeleton code.
 
         logger.operation("Building Skeleton")
@@ -3920,39 +4081,48 @@ class RigProject:
 
         self.execute_modules_code(CodeData.Order.post_skeleton)  # Try to run any post-skeleton code.
 
-        # build the control rig pose on the skeleton if needed
-        if self.get_preferences_dict_value(key="apply_control_rig_pose", default=True):
+        control_pose_mode = self.get_control_rig_pose_mode()
+        if self.is_control_rig_pose_enabled():
+            logger.operation(f'Applying Control Rig Pose ({control_pose_mode.title()})')
 
-            logger.operation("Applying Control Rig Pose")
-
-            # create the default dag pose (a.k.a. A-pose in relation to bipeds)
+            # Store the bind pose before transitioning to a distinct control rig pose.
             root_joint = tools_rig_utils.get_single_skeleton_root_joint()
             core_pose.delete_dagpose()
             core_pose.create_apose(root=root_joint)
 
-            # apply the automatic control rig pose
-            for module in self.modules:
-                if not module.is_active():  # If not active, skip
-                    continue
-                module.build_control_rig_pose()
+            if control_pose_mode == tools_control_pose.ControlRigPoseMode.CUSTOM:
+                from gt.tools.auto_rigger import control_rig_pose_service
 
-            # create the control rig dag pose (a.k.a. T-pose in relation to bipeds)
+                control_rig_pose_service.apply_project_control_rig_pose(self)
+            else:
+                # Biped module helpers generally resolve the skeleton to a T-pose.
+                for module in self.modules:
+                    if not module.is_active():
+                        continue
+                    module.build_control_rig_pose()
+
+            # Legacy DAG pose names remain stable for existing modules and rig consumers.
             core_pose.create_dagpose(root=root_joint, pose_name=self.get_control_rig_pose_name())
-            # freeze rig pose and put values in a-pose
-            core_pose.zero_out_pose(root=root_joint)
+            core_pose.zero_out_pose(root=root_joint, tpose_name=self.get_control_rig_pose_name())
 
-            # update all the proxies in order to match the joints transformations (rig pose)
+            # Match proxy positions to the control pose before control construction.
             self.align_module_proxies_to_joints()
-
             core_pose.set_apose()
-            self.execute_modules_code(CodeData.Order.pre_control_pose)  # Try to run any pre-control-pose code.
-            core_pose.set_tpose()
-            self.execute_modules_code(CodeData.Order.post_control_pose)  # Try to run any post-control-pose code.
+
+        # Bind-pose operations, such as skin loading, run even when the control pose is disabled.
+        self.execute_modules_code(CodeData.Order.pre_control_pose)
+
+        if self.is_control_rig_pose_enabled():
+            core_pose.set_dagpose(pose_name=self.get_control_rig_pose_name())
+
+        # This phase always represents the final pose used to construct the control rig.
+        self.execute_modules_code(CodeData.Order.post_control_pose)
 
     def build_rig(self):
         """
         Builds Rig using Proxy/Guide Armature/Skeleton from previous step (build_proxy)
         """
+        self.raise_for_invalid_control_rig_pose()
         cmds.refresh(suspend=True)
         try:
             root_group = tools_rig_utils.create_root_group()
@@ -4093,16 +4263,25 @@ class RigProject:
                     cmds.delete(proxy_root)
                     logger.operation(f"Deleting Proxy")
 
-            # Store the T-pose (a.k.a. rig-pose) and the A-pose (a.k.a. bind-pose) as metadata after the build-rig,
-            # the assumption is that at the end of the process the control rig is at rest, with the setups in FK and
-            # with the automations at zero. This pose is what we need to store.
-            generated_poses = tools_rig_utils.get_control_rig_tpose_and_apose_as_dict()
+            # Store the control rig pose and bind pose as metadata after the build. Legacy T/A metadata attribute
+            # names remain unchanged for compatibility. At this point the rig should be at rest, in FK, with
+            # automations at zero.
+            generated_poses = tools_rig_utils.get_control_rig_control_pose_and_bind_pose_as_dict(
+                control_pose_name=self.get_control_rig_pose_name()
+            )
             if generated_poses:
                 _tpose_as_dict, _apose_as_dict = generated_poses
                 _tpose_as_string = json.dumps(_tpose_as_dict)
                 _apose_as_string = json.dumps(_apose_as_dict)
                 core_attr.set_attr(f"{root_group}.{_rig_meta_attr_tpose_data}", _tpose_as_string)
                 core_attr.set_attr(f"{root_group}.{_rig_meta_attr_apose_data}", _apose_as_string)
+
+            removed_compensation_transforms = core_hrchy.cleanup_joint_parent_compensation_transforms()
+            if removed_compensation_transforms:
+                logger.debug(
+                    f"Removed {len(removed_compensation_transforms)} temporary joint parenting "
+                    "compensation transform(s)."
+                )
 
             self.execute_modules_code(CodeData.Order.post_build)  # Try to run any post_build code.
 

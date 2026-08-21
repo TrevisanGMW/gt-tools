@@ -10,6 +10,7 @@ import gt.core.feedback as core_fback
 import gt.core.naming as core_naming
 import gt.core.attr as core_attr
 import gt.core.node as core_node
+import maya.api.OpenMaya as om2
 import maya.OpenMaya as om
 import maya.cmds as cmds
 import logging
@@ -18,6 +19,124 @@ import logging
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+_JOINT_PARENT_COMPENSATION_ATTR = "gtJointParentCompensation"
+_JOINT_PARENT_TARGET_ATTR = "gtJointParentTarget"
+
+
+def _parent_joint_preserve_world(child, target_parent=None):
+    """Parents a joint directly while preserving its world matrix.
+
+    Maya's default absolute joint parenting can insert an unnamed transform when
+    the requested world transform cannot be represented by translate and
+    jointOrient alone. Parenting relatively first and restoring the world matrix
+    prevents that hidden compensation node from becoming part of the hierarchy.
+
+    Args:
+        child (str, Node): Joint to reparent.
+        target_parent (str, Node, optional): New parent. None parents to world.
+
+    Returns:
+        list: Names returned by Maya for the reparented joint.
+    """
+    world_matrix = om2.MMatrix(cmds.xform(str(child), query=True, matrix=True, worldSpace=True))
+    if target_parent:
+        parented_objects = cmds.parent(str(child), str(target_parent), relative=True) or []
+    else:
+        parented_objects = cmds.parent(str(child), world=True, relative=True) or []
+    if parented_objects:
+        parented_joint = parented_objects[0]
+        local_matrix = om2.MMatrix(cmds.getAttr(f"{parented_joint}.matrix"))
+        parent_world_matrix = om2.MMatrix()
+        if target_parent:
+            parent_world_matrix = om2.MMatrix(cmds.getAttr(f"{target_parent}.worldMatrix[0]"))
+        offset_parent_matrix = local_matrix.inverse() * world_matrix * parent_world_matrix.inverse()
+        cmds.setAttr(f"{parented_joint}.offsetParentMatrix", offset_parent_matrix, type="matrix")
+    return parented_objects
+
+
+def _mark_inserted_joint_parent_compensation(child, target_parent=None):
+    """Marks a transform Maya inserted above a joint during parenting.
+
+    Args:
+        child (str, Node): Joint that was just parented.
+        target_parent (str, Node, optional): Parent requested by the caller.
+
+    Returns:
+        str or None: Marked compensation transform, if one was found.
+    """
+    child_path = str(child)
+    if not cmds.objExists(child_path) or cmds.nodeType(child_path) != "joint":
+        return
+    actual_parent = cmds.listRelatives(child_path, parent=True, fullPath=True) or []
+    expected_parent = core_naming.get_long_name(str(target_parent)) if target_parent else None
+    if not actual_parent or actual_parent[0] == expected_parent:
+        return
+    compensation_transform = actual_parent[0]
+    if cmds.nodeType(compensation_transform) != "transform":
+        return
+    if not cmds.attributeQuery(_JOINT_PARENT_COMPENSATION_ATTR, node=compensation_transform, exists=True):
+        cmds.addAttr(
+            compensation_transform,
+            longName=_JOINT_PARENT_COMPENSATION_ATTR,
+            attributeType="bool",
+        )
+    cmds.setAttr(f"{compensation_transform}.{_JOINT_PARENT_COMPENSATION_ATTR}", True)
+    if target_parent:
+        if not cmds.attributeQuery(_JOINT_PARENT_TARGET_ATTR, node=compensation_transform, exists=True):
+            cmds.addAttr(compensation_transform, longName=_JOINT_PARENT_TARGET_ATTR, attributeType="message")
+        target_attr = f"{compensation_transform}.{_JOINT_PARENT_TARGET_ATTR}"
+        existing_targets = cmds.listConnections(target_attr, source=True, destination=False) or []
+        if not existing_targets:
+            cmds.connectAttr(f"{target_parent}.message", target_attr)
+    return compensation_transform
+
+
+def cleanup_joint_parent_compensation_transforms():
+    """Removes compensation transforms inserted by Maya joint parenting.
+
+    Marked wrappers are flattened after rig construction by moving their matrix
+    compensation to the child joint's offsetParentMatrix. Empty marked wrappers
+    are deleted directly. Joint channels and evaluated world matrices are
+    preserved.
+
+    Returns:
+        list: Long names of compensation transforms that were removed.
+    """
+    marked_attributes = cmds.ls(f"*.{_JOINT_PARENT_COMPENSATION_ATTR}", long=True) or []
+    compensation_transforms = [attribute.rsplit(".", 1)[0] for attribute in marked_attributes]
+    compensation_transforms = sorted(set(compensation_transforms), key=lambda item: item.count("|"), reverse=True)
+    removed_transforms = []
+    for compensation_transform in compensation_transforms:
+        if not cmds.objExists(compensation_transform):
+            continue
+        children = cmds.listRelatives(compensation_transform, children=True, fullPath=True) or []
+        shapes = cmds.listRelatives(compensation_transform, shapes=True, fullPath=True) or []
+        if shapes or len(children) > 1:
+            logger.warning(
+                f'Unable to remove joint compensation transform "{compensation_transform}". '
+                "The transform contains unsupported children or shapes."
+            )
+            continue
+        short_name = core_naming.get_short_name(compensation_transform)
+        if not children:
+            cmds.delete(compensation_transform)
+            removed_transforms.append(short_name)
+            continue
+        child = children[0]
+        if cmds.nodeType(child) != "joint":
+            continue
+        target_attr = f"{compensation_transform}.{_JOINT_PARENT_TARGET_ATTR}"
+        target_parent = []
+        if cmds.objExists(target_attr):
+            target_parent = cmds.listConnections(target_attr, source=True, destination=False) or []
+        if not target_parent:
+            target_parent = cmds.listRelatives(compensation_transform, parent=True, fullPath=True) or []
+        target_parent = target_parent[0] if target_parent else None
+        _parent_joint_preserve_world(child=child, target_parent=target_parent)
+        cmds.delete(compensation_transform)
+        removed_transforms.append(short_name)
+    return removed_transforms
 
 
 def parent(source_objects, target_parent, verbose=False):
@@ -34,6 +153,11 @@ def parent(source_objects, target_parent, verbose=False):
     store_selection = cmds.ls(selection=True) or []
     if target_parent and isinstance(target_parent, list) and len(target_parent) > 0:
         target_parent = target_parent[0]
+    if target_parent and not cmds.objExists(str(target_parent)):
+        target_short_name = core_naming.get_short_name(str(target_parent))
+        matching_targets = cmds.ls(target_short_name, long=True) or []
+        if len(matching_targets) == 1:
+            target_parent = matching_targets[0]
     if not target_parent or not cmds.objExists(str(target_parent)):
         core_fback.log_when_true(
             input_logger=logger,
@@ -59,6 +183,7 @@ def parent(source_objects, target_parent, verbose=False):
             )
             continue
         current_parent = cmds.listRelatives(str(child), parent=True, fullPath=True) or []
+        child_node = core_node.Node(child) if cmds.nodeType(str(child)) == "joint" else None
         if current_parent:
             current_parent = current_parent[0]
             if current_parent != core_naming.get_long_name(str(target_parent)):
@@ -67,6 +192,8 @@ def parent(source_objects, target_parent, verbose=False):
         else:
             for obj in cmds.parent(child, str(target_parent)) or []:
                 parented_objects.append(obj)
+        if child_node:
+            _mark_inserted_joint_parent_compensation(child=child_node, target_parent=target_parent)
     if store_selection:
         try:
             cmds.select(store_selection)
@@ -177,9 +304,15 @@ def duplicate_object(
     has_parent = bool(cmds.listRelatives(duplicated_obj, parent=True))
     if has_parent and parent_to_world:
         cmds.parent(duplicated_obj, world=True)
+        _mark_inserted_joint_parent_compensation(child=duplicated_obj)
     if reset_attributes:
         core_attr.delete_user_defined_attrs(obj_list=duplicated_obj, delete_locked=True, verbose=False)
-        core_attr.set_attr_state(obj_list=duplicated_obj, attr_list=core_attr.DEFAULT_ATTRS, locked=False, hidden=False)
+        core_attr.set_attr_state(
+            obj_list=duplicated_obj,
+            attr_list=core_attr.DEFAULT_ATTRS,
+            locked=False,
+            hidden=False,
+        )
     # Rename
     if name and isinstance(name, str):
         duplicated_obj.rename(name)

@@ -83,15 +83,18 @@ class ModulePivot(tools_generic_fk.ModuleGenericFK):
         super().build_rig_post()
         jnt_list = [str(tools_rig_utils.find_joint_from_uuid(proxy.get_uuid())) for proxy in self.proxies]
 
-        # if the Rig Pose (a.k.a. T-pose) is applied, we need to remove the pivot joints from the DAG poses
-        if self._project.get_preferences_dict_value(key="apply_control_rig_pose", default=True):
+        # If a separate control rig pose is applied, remove pivot joints from both stored skeleton poses.
+        if self._project.is_control_rig_pose_enabled():
             apose_name = core_naming.NamingConstants.Poses.APOSE
-            tpose_name = core_naming.NamingConstants.Poses.TPOSE
-            if core_pose.check_main_poses():
+            control_pose_name = self._project.get_control_rig_pose_name()
+            if core_pose.check_dagpose(apose_name) and core_pose.check_dagpose(control_pose_name):
                 cmds.dagPose(jnt_list, remove=True, n=apose_name)
-                cmds.dagPose(jnt_list, remove=True, n=tpose_name)
+                cmds.dagPose(jnt_list, remove=True, n=control_pose_name)
             else:
-                logger.error(f"The pivot module {self.name} cannot find the DAG poses {apose_name} and {tpose_name}.")
+                logger.error(
+                    f"The pivot module {self.name} cannot find the DAG poses "
+                    f'"{apose_name}" and "{control_pose_name}".'
+                )
 
         # place the joints under the automation group, outside the main skeleton hierarchy
         joint_automation_group = tools_rig_utils.find_or_create_joint_automation_group()
