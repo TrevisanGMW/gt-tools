@@ -295,18 +295,22 @@ class RiggerController:
 
         # User Templates ---
         user_templates = rig_templates.get_dict_templates(include_py_templates=False)
-        if self._show_package_templates and package_templates:
-            menu_templates.addSeparator()
         ui_qt_utils.add_labeled_separator(menu=menu_templates, text="User Templates")
-        for name, template_func in user_templates.items():
-            formatted_name = " ".join(core_str.camel_case_split(name))
-            action_template = ui_qt.QtLib.QtGui.QAction(
-                formatted_name, icon=ui_qt.QtGui.QIcon(rig_templates.icon_files)
-            )
-            item_func = partial(self.replace_project, project=template_func)
-            action_template.triggered.connect(item_func)
-            self._template_menu_actions.append(action_template)
-            menu_templates.addAction(action_template)
+        if not user_templates:
+            action_empty_templates = ui_qt.QtLib.QtGui.QAction("No Templates Found", self.view)
+            action_empty_templates.setEnabled(False)
+            self._template_menu_actions.append(action_empty_templates)
+            menu_templates.addAction(action_empty_templates)
+        else:
+            for name, template_func in user_templates.items():
+                formatted_name = " ".join(core_str.camel_case_split(name))
+                action_template = ui_qt.QtLib.QtGui.QAction(
+                    formatted_name, icon=ui_qt.QtGui.QIcon(rig_templates.icon_files)
+                )
+                item_func = partial(self.replace_project, project=template_func)
+                action_template.triggered.connect(item_func)
+                self._template_menu_actions.append(action_template)
+                menu_templates.addAction(action_template)
         # Open Template Directories ---
         ui_qt_utils.add_labeled_separator(menu=menu_templates, text="Template Resources")
         action_open_templates = ui_qt.QtLib.QtGui.QAction(

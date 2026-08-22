@@ -141,6 +141,54 @@ class TestBatchProcessorModel(unittest.TestCase):
         expected = constants.TaskType.MAYA_IMPORT
         self.assertEqual(expected, result.tasks[1].task_type)
 
+    def test_batch_processor_templates_load_package_templates(self):
+        templates = batch_processor_templates.BatchProcessorTemplates(include_package_templates=True)
+        template_dict = templates.get_dict_templates(
+            include_file_templates=False,
+            include_package_templates=True,
+        )
+
+        expected_template_names = {
+            "FBX_Animation_Export",
+            "FBX_Delivery_Package",
+            "File_Integrity_Check",
+            "Maya_Binary_to_ASCII",
+            "MayaSceneAudit",
+        }
+        self.assertTrue(expected_template_names.issubset(set(template_dict)))
+        result = template_dict["MayaSceneAudit"]()
+
+        expected = "Maya Scene Audit"
+        self.assertEqual(expected, result.project_name)
+        self.assertIsNone(result.project_file_path)
+        self.assertEqual("", result.environment_variables.get("project-dir"))
+        expected = [constants.TaskType.INPUT, constants.TaskType.SCENE_REPORT]
+        self.assertEqual(expected, [task.task_type for task in result.tasks])
+
+    def test_batch_processor_package_templates_use_expected_tasks(self):
+        templates = batch_processor_templates.BatchProcessorTemplates(include_package_templates=True)
+        template_dict = templates.get_dict_templates(
+            include_file_templates=False,
+            include_package_templates=True,
+        )
+        expected_template_tasks = {
+            "FBX_Animation_Export": [constants.TaskType.INPUT, constants.TaskType.FBX_EXPORT],
+            "FBX_Delivery_Package": [
+                constants.TaskType.INPUT,
+                constants.TaskType.FILE_INTEGRITY_VALIDATE,
+                constants.TaskType.SCENE_REPORT,
+                constants.TaskType.FBX_EXPORT,
+                constants.TaskType.ZIP_COMPRESS,
+            ],
+            "File_Integrity_Check": [constants.TaskType.INPUT, constants.TaskType.FILE_INTEGRITY_VALIDATE],
+            "Maya_Binary_to_ASCII": [constants.TaskType.INPUT, constants.TaskType.MAYA_SAVE],
+        }
+
+        for template_name, expected_tasks in expected_template_tasks.items():
+            project = template_dict[template_name]()
+            result = [task.task_type for task in project.tasks]
+            self.assertEqual(expected_tasks, result)
+
     def test_save_project_template_keeps_active_project_path(self):
         model = batch_processor_model.BatchProcessorModel()
         model.project_name = "Reusable Batch"

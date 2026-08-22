@@ -76,6 +76,10 @@ class BatchProcessorController:
             key=constants.Project.PREFS_KEY_AUTO_SEGMENT_IMPORTED_PROJECTS,
             default=True,
         )
+        self._show_package_templates = self._prefs.get_bool(
+            key=constants.Project.PREFS_KEY_SHOW_PACKAGE_TEMPLATES,
+            default=True,
+        )
         self.apply_task_index_automation()
         self.add_menu_file()
         self.add_menu_tasks()
@@ -154,17 +158,49 @@ class BatchProcessorController:
         menu_templates = self._templates_menu
         self._template_menu_actions = []
         menu_templates.clear()
-        template_registry = batch_processor_templates.BatchProcessorTemplates()
-        ui_qt_utils.add_labeled_separator(menu=menu_templates, text="File Templates")
-        for name, template_func in template_registry.get_dict_templates().items():
-            formatted_name = self.format_template_name(name)
-            action_template = self.create_action(
-                formatted_name,
-                icon_path=get_icon_path(template_registry.icon_files),
+        template_registry = batch_processor_templates.BatchProcessorTemplates(
+            include_package_templates=self._show_package_templates
+        )
+
+        package_templates = {}
+        if self._show_package_templates:
+            package_templates = template_registry.get_dict_templates(
+                include_file_templates=False,
+                include_package_templates=True,
             )
-            action_template.triggered.connect(partial(self.replace_project_from_template, template_func=template_func))
-            self._template_menu_actions.append(action_template)
-            menu_templates.addAction(action_template)
+            if package_templates:
+                ui_qt_utils.add_labeled_separator(menu=menu_templates, text="Package Templates")
+            for name, template_func in package_templates.items():
+                formatted_name = self.format_template_name(name)
+                action_template = self.create_action(
+                    formatted_name,
+                    icon_path=get_icon_path(template_registry.icon_package_files),
+                )
+                action_template.triggered.connect(
+                    partial(self.replace_project_from_template, template_func=template_func)
+                )
+                self._template_menu_actions.append(action_template)
+                menu_templates.addAction(action_template)
+
+        user_templates = template_registry.get_dict_templates(include_package_templates=False)
+        ui_qt_utils.add_labeled_separator(menu=menu_templates, text="User Templates")
+        if not user_templates:
+            action_empty_templates = self.create_action("No Templates Found")
+            action_empty_templates.setEnabled(False)
+            self._template_menu_actions.append(action_empty_templates)
+            menu_templates.addAction(action_empty_templates)
+        else:
+            for name, template_func in user_templates.items():
+                formatted_name = self.format_template_name(name)
+                action_template = self.create_action(
+                    formatted_name,
+                    icon_path=get_icon_path(template_registry.icon_files),
+                )
+                action_template.triggered.connect(
+                    partial(self.replace_project_from_template, template_func=template_func)
+                )
+                self._template_menu_actions.append(action_template)
+                menu_templates.addAction(action_template)
 
         ui_qt_utils.add_labeled_separator(menu=menu_templates, text="Template Folder")
         action_open_templates = self.create_action("Open Templates Folder", icon_path=ui_res_lib.Icon.util_open_dir)
@@ -179,6 +215,27 @@ class BatchProcessorController:
         action_save_template.triggered.connect(self.save_current_project_as_template)
         self._template_menu_actions.append(action_save_template)
         menu_templates.addAction(action_save_template)
+
+        action_show_package_templates = self.create_action("Show Package Templates")
+        action_show_package_templates.setCheckable(True)
+        action_show_package_templates.setChecked(self._show_package_templates)
+        action_show_package_templates.triggered.connect(self.set_show_package_templates)
+        self._template_menu_actions.append(action_show_package_templates)
+        menu_templates.addAction(action_show_package_templates)
+
+    def set_show_package_templates(self, is_checked):
+        """Stores the package-template menu state and refreshes its contents.
+
+        Args:
+            is_checked (bool): Whether package templates should be displayed.
+        """
+        self._show_package_templates = bool(is_checked)
+        self._prefs.set_bool(
+            key=constants.Project.PREFS_KEY_SHOW_PACKAGE_TEMPLATES,
+            value=self._show_package_templates,
+        )
+        self._prefs.save()
+        ui_qt.QtCore.QTimer.singleShot(0, self.refresh_templates_menu)
 
     def refresh_recent_projects_menu(self):
         """Rebuilds the recent-project submenu from stored preferences."""

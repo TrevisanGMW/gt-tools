@@ -42,6 +42,16 @@ def get_template_source_dir():
     return os.path.join(get_default_prefs_dir(), "{0}_templates".format(_PREFS_FILENAME))
 
 
+def get_package_template_source_dir():
+    """Gets the package-provided batch processor template directory.
+
+    Returns:
+        str: Path to the package template directory.
+    """
+    tool_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(tool_dir, "templates", "package_templates")
+
+
 def save_project_template(project, template_path):
     """Saves a project as a template without changing the active project.
 
@@ -64,51 +74,91 @@ def save_project_template(project, template_path):
 
 
 TEMPLATE_SOURCE_DIR = get_template_source_dir()
+PACKAGE_TEMPLATE_SOURCE_DIR = get_package_template_source_dir()
 
 
 class BatchProcessorTemplates:
-    """Discovers batch processor project templates from the user prefs folder."""
+    """Discovers user and optional package batch processor project templates."""
 
     icon_files = "ui_templates"
+    icon_package_files = "ui_templates_package"
     file_templates = {}
+    package_file_templates = {}
 
-    def __init__(self):
-        """Refreshes the file template registry."""
+    def __init__(self, include_package_templates=False):
+        """Refreshes user and optional package template registries.
+
+        Args:
+            include_package_templates (bool, optional): Whether package templates
+                should also be loaded. Defaults to False.
+        """
         BatchProcessorTemplates.file_templates = {}
+        BatchProcessorTemplates.package_file_templates = {}
         if os.path.isdir(TEMPLATE_SOURCE_DIR):
             self.populate_with_template_files(folder_path=TEMPLATE_SOURCE_DIR)
         else:
             sys.stdout.write('Template source directory "{0}" not found. Skipping.\n'.format(TEMPLATE_SOURCE_DIR))
+        if include_package_templates and os.path.isdir(PACKAGE_TEMPLATE_SOURCE_DIR):
+            self.populate_with_template_files(
+                folder_path=PACKAGE_TEMPLATE_SOURCE_DIR,
+                template_store=BatchProcessorTemplates.package_file_templates,
+            )
 
     @staticmethod
-    def get_dict_templates():
+    def get_dict_templates(include_file_templates=True, include_package_templates=False):
         """Gets available template loader functions.
+
+        Args:
+            include_file_templates (bool, optional): Whether user file templates
+                should be included. Defaults to True.
+            include_package_templates (bool, optional): Whether package templates
+                should be included. Defaults to False.
 
         Returns:
             dict: Template name to loader function mapping.
         """
+        template_store = {}
+        if include_file_templates:
+            template_store.update(BatchProcessorTemplates.file_templates)
+        if include_package_templates:
+            template_store.update(BatchProcessorTemplates.package_file_templates)
         return {
             name: value
-            for name, value in BatchProcessorTemplates.file_templates.items()
+            for name, value in template_store.items()
             if isinstance(value, types.FunctionType) and not name.startswith("_")
         }
 
     @staticmethod
-    def get_template_names():
+    def get_template_names(include_file_templates=True, include_package_templates=False):
         """Gets the available template names.
+
+        Args:
+            include_file_templates (bool, optional): Whether user file templates
+                should be included. Defaults to True.
+            include_package_templates (bool, optional): Whether package templates
+                should be included. Defaults to False.
 
         Returns:
             list: Template names.
         """
-        return list(BatchProcessorTemplates.get_dict_templates().keys())
+        return list(
+            BatchProcessorTemplates.get_dict_templates(
+                include_file_templates=include_file_templates,
+                include_package_templates=include_package_templates,
+            ).keys()
+        )
 
     @staticmethod
-    def populate_with_template_files(folder_path):
+    def populate_with_template_files(folder_path, template_store=None):
         """Populates the template registry with `.batch` project files.
 
         Args:
             folder_path (str): Folder containing batch templates.
+            template_store (dict, optional): Dictionary receiving the generated
+                template loaders. Defaults to the user template store.
         """
+        if template_store is None:
+            template_store = BatchProcessorTemplates.file_templates
         for filename in sorted(os.listdir(folder_path)):
             if not filename.endswith(constants.Project.EXTENSION):
                 continue
@@ -133,4 +183,4 @@ class BatchProcessorTemplates:
                 project.environment_variables["project-dir"] = ""
                 return project
 
-            BatchProcessorTemplates.file_templates[variable_name] = file_loader
+            template_store[variable_name] = file_loader
