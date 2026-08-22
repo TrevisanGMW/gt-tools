@@ -6,6 +6,7 @@ import os
 import gt.tools.auto_rigger.modules.module_biped_arm as module_arm
 import gt.tools.auto_rigger.rig_framework as tools_rig_frm
 import gt.tools.auto_rigger.rig_utils as tools_rig_utils
+import gt.tools.auto_rigger.control_rig_pose as tools_control_pose
 import gt.tests.maya_test_tools.maya_test_tools as maya_test_tools
 import gt.tools.auto_rigger.rig_constants as tools_rig_const
 import gt.tools.package_setup.package_tools_maya_plugins as tools_maya_plugins
@@ -397,7 +398,7 @@ class TestModuleBipedArm(unittest.TestCase):
             precision = 2
             result_translation = cmds.xform(f"{joint_name}", query=True, worldSpace=True, translation=True)
             rounded_translation = [round(coord, precision) for coord in result_translation]
-            self.assertAlmostEqual(expected, rounded_translation)
+            self.assertListEqual(expected, rounded_translation)
 
         world_rotation_proxy = [
             ("clavicle", [0.0, 0.0, 0.0]),
@@ -410,7 +411,7 @@ class TestModuleBipedArm(unittest.TestCase):
             precision = 2
             result_rotation = cmds.xform(f"{joint_name}", query=True, worldSpace=True, rotation=True)
             rounded_rotation = [round(coord, precision) for coord in result_rotation]
-            self.assertAlmostEqual(expected, rounded_rotation)
+            self.assertListEqual(expected, rounded_rotation)
 
     def test_module_arm_proxy_pose_a(self):
         an_arm_module = module_arm.ModuleBipedArm()
@@ -434,7 +435,7 @@ class TestModuleBipedArm(unittest.TestCase):
             precision = 2
             result_translation = cmds.xform(f"{joint_name}", query=True, worldSpace=True, translation=True)
             rounded_translation = [round(coord, precision) for coord in result_translation]
-            self.assertAlmostEqual(expected, rounded_translation)
+            self.assertListEqual(expected, rounded_translation)
 
         world_rotation_proxy = [
             ("clavicle", [0.0, 0.0, 0.0]),
@@ -447,7 +448,7 @@ class TestModuleBipedArm(unittest.TestCase):
             precision = 2
             result_rotation = cmds.xform(f"{joint_name}", query=True, worldSpace=True, rotation=True)
             rounded_rotation = [round(coord, precision) for coord in result_rotation]
-            self.assertAlmostEqual(expected, rounded_rotation)
+            self.assertListEqual(expected, rounded_rotation)
 
     def test_module_arm_proxy_pose_b(self):
         an_arm_module = module_arm.ModuleBipedArm()
@@ -471,7 +472,7 @@ class TestModuleBipedArm(unittest.TestCase):
             precision = 2
             result_translation = cmds.xform(f"{joint_name}", query=True, worldSpace=True, translation=True)
             rounded_translation = [round(coord, precision) for coord in result_translation]
-            self.assertAlmostEqual(expected, rounded_translation)
+            self.assertListEqual(expected, rounded_translation)
 
         world_rotation_proxy = [
             ("clavicle", [0.0, 0.0, 0.0]),
@@ -484,13 +485,14 @@ class TestModuleBipedArm(unittest.TestCase):
             precision = 2
             result_rotation = cmds.xform(f"{joint_name}", query=True, worldSpace=True, rotation=True)
             rounded_rotation = [round(coord, precision) for coord in result_rotation]
-            self.assertAlmostEqual(expected, rounded_rotation)
+            self.assertListEqual(expected, rounded_rotation)
 
     def test_module_arm_joint_pose_default(self):
         an_arm_module = module_arm.ModuleBipedArm(clavicle_world=False)
         # Setup Project
         a_proxy = tools_rig_frm.Proxy()
         a_project = tools_rig_frm.RigProject()
+        a_project.set_control_rig_pose_mode(tools_control_pose.ControlRigPoseMode.AUTOMATIC)
         a_project.add_to_modules(an_arm_module)
         a_project.add_to_modules(a_proxy)
         a_project.build_proxy()
@@ -517,7 +519,7 @@ class TestModuleBipedArm(unittest.TestCase):
             precision = 2
             result_translation = cmds.xform(f"{joint_name}", query=True, worldSpace=True, translation=True)
             rounded_translation = [round(coord, precision) for coord in result_translation]
-            self.assertAlmostEqual(expected, rounded_translation)
+            self.assertListEqual(expected, rounded_translation)
 
         world_rotation_joint = [
             ("clavicle_JNT", [-90.0, -90.0, 0.0]),
@@ -540,7 +542,7 @@ class TestModuleBipedArm(unittest.TestCase):
             precision = 2
             result_rotation = cmds.xform(f"{joint_name}", query=True, worldSpace=True, rotation=True)
             rounded_rotation = [round(coord, precision) for coord in result_rotation]
-            self.assertAlmostEqual(expected, rounded_rotation)
+            self.assertListEqual(expected, rounded_rotation)
 
     def test_module_arm_joint_pose_a(self):
         an_arm_module = module_arm.ModuleBipedArm()
@@ -551,6 +553,7 @@ class TestModuleBipedArm(unittest.TestCase):
         an_arm_module.hand_proxy.set_initial_position(xyz=[30, 5, 90])
         a_proxy = tools_rig_frm.Proxy()
         a_project = tools_rig_frm.RigProject()
+        a_project.set_control_rig_pose_mode(tools_control_pose.ControlRigPoseMode.AUTOMATIC)
         a_project.add_to_modules(an_arm_module)
         a_project.add_to_modules(a_proxy)
         a_project.build_proxy()
@@ -577,7 +580,7 @@ class TestModuleBipedArm(unittest.TestCase):
             precision = 2
             result_translation = cmds.xform(f"{joint_name}", query=True, worldSpace=True, translation=True)
             rounded_translation = [round(coord, precision) for coord in result_translation]
-            self.assertAlmostEqual(expected, rounded_translation)
+            self.assertListEqual(expected, rounded_translation)
 
         world_rotation_joint = [
             ("clavicle_JNT", [-90.0, 0.0, 0.0]),
@@ -600,7 +603,7 @@ class TestModuleBipedArm(unittest.TestCase):
             precision = 2
             result_rotation = cmds.xform(f"{joint_name}", query=True, worldSpace=True, rotation=True)
             rounded_rotation = [round(coord, precision) for coord in result_rotation]
-            self.assertAlmostEqual(expected, rounded_rotation)
+            self.assertListEqual(expected, rounded_rotation)
 
     def test_module_arm_joint_pose_b(self):
         an_arm_module = module_arm.ModuleBipedArm(clavicle_world=False)
@@ -610,6 +613,7 @@ class TestModuleBipedArm(unittest.TestCase):
         an_arm_module.lowerarm_proxy.set_initial_position(xyz=[20, 2, 1])
         an_arm_module.hand_proxy.set_initial_position(xyz=[20, 52, 72])
         a_project = tools_rig_frm.RigProject()
+        a_project.set_control_rig_pose_mode(tools_control_pose.ControlRigPoseMode.AUTOMATIC)
         a_project.add_to_modules(an_arm_module)
         a_project.build_proxy()
         a_project.build_rig()
@@ -635,7 +639,7 @@ class TestModuleBipedArm(unittest.TestCase):
             precision = 2
             result_translation = cmds.xform(f"{joint_name}", query=True, worldSpace=True, translation=True)
             rounded_translation = [round(coord, precision) for coord in result_translation]
-            self.assertAlmostEqual(expected, rounded_translation)
+            self.assertListEqual(expected, rounded_translation)
 
         world_rotation_joint = [
             ("clavicle_JNT", [-90.0, 15.07, 0.0]),
@@ -658,13 +662,14 @@ class TestModuleBipedArm(unittest.TestCase):
             precision = 2
             result_rotation = cmds.xform(f"{joint_name}", query=True, worldSpace=True, rotation=True)
             rounded_rotation = [round(coord, precision) for coord in result_rotation]
-            self.assertAlmostEqual(expected, rounded_rotation)
+            self.assertListEqual(expected, rounded_rotation)
 
     def test_module_arm_control_pose_default(self):
         an_arm_module = module_arm.ModuleBipedArm(clavicle_world=False)
         # Setup Project
         a_proxy = tools_rig_frm.Proxy()
         a_project = tools_rig_frm.RigProject()
+        a_project.set_control_rig_pose_mode(tools_control_pose.ControlRigPoseMode.AUTOMATIC)
         a_project.add_to_modules(an_arm_module)
         a_project.add_to_modules(a_proxy)
         a_project.build_proxy()
@@ -685,7 +690,7 @@ class TestModuleBipedArm(unittest.TestCase):
             precision = 2
             result_translation = cmds.xform(f"{joint_name}", query=True, worldSpace=True, translation=True)
             rounded_translation = [round(coord, precision) for coord in result_translation]
-            self.assertAlmostEqual(expected, rounded_translation)
+            self.assertListEqual(expected, rounded_translation)
 
         world_rotation_controls = [
             ("arm_CTRL", [0.0, 0.0, 0.0]),
@@ -702,7 +707,7 @@ class TestModuleBipedArm(unittest.TestCase):
             precision = 2
             result_rotation = cmds.xform(f"{joint_name}", query=True, worldSpace=True, rotation=True)
             rounded_rotation = [round(coord, precision) for coord in result_rotation]
-            self.assertAlmostEqual(expected, rounded_rotation)
+            self.assertListEqual(expected, rounded_rotation)
 
     def test_module_arm_control_pose_a(self):
         an_arm_module = module_arm.ModuleBipedArm(clavicle_world=False)
@@ -713,6 +718,7 @@ class TestModuleBipedArm(unittest.TestCase):
         an_arm_module.hand_proxy.set_initial_position(xyz=[30, 5, 90])
         a_proxy = tools_rig_frm.Proxy()
         a_project = tools_rig_frm.RigProject()
+        a_project.set_control_rig_pose_mode(tools_control_pose.ControlRigPoseMode.AUTOMATIC)
         a_project.add_to_modules(an_arm_module)
         a_project.add_to_modules(a_proxy)
         a_project.build_proxy()
@@ -733,7 +739,7 @@ class TestModuleBipedArm(unittest.TestCase):
             precision = 2
             result_translation = cmds.xform(f"{joint_name}", query=True, worldSpace=True, translation=True)
             rounded_translation = [round(coord, precision) for coord in result_translation]
-            self.assertAlmostEqual(expected, rounded_translation)
+            self.assertListEqual(expected, rounded_translation)
 
         world_rotation_controls = [
             ("arm_CTRL", [0.0, 0.0, 0.0]),
@@ -750,7 +756,7 @@ class TestModuleBipedArm(unittest.TestCase):
             precision = 2
             result_rotation = cmds.xform(f"{joint_name}", query=True, worldSpace=True, rotation=True)
             rounded_rotation = [round(coord, precision) for coord in result_rotation]
-            self.assertAlmostEqual(expected, rounded_rotation)
+            self.assertListEqual(expected, rounded_rotation)
 
     def test_module_arm_control_pose_b(self):
         an_arm_module = module_arm.ModuleBipedArm(clavicle_world=False)
@@ -760,6 +766,7 @@ class TestModuleBipedArm(unittest.TestCase):
         an_arm_module.lowerarm_proxy.set_initial_position(xyz=[20, 2, 1])
         an_arm_module.hand_proxy.set_initial_position(xyz=[20, 52, 72])
         a_project = tools_rig_frm.RigProject()
+        a_project.set_control_rig_pose_mode(tools_control_pose.ControlRigPoseMode.AUTOMATIC)
         a_project.add_to_modules(an_arm_module)
         a_project.build_proxy()
         a_project.build_rig()
@@ -779,7 +786,7 @@ class TestModuleBipedArm(unittest.TestCase):
             precision = 2
             result_translation = cmds.xform(f"{joint_name}", query=True, worldSpace=True, translation=True)
             rounded_translation = [round(coord, precision) for coord in result_translation]
-            self.assertAlmostEqual(expected, rounded_translation)
+            self.assertListEqual(expected, rounded_translation)
 
         world_rotation_controls = [
             ("arm_CTRL", [0.0, 0.0, 0.0]),
@@ -796,7 +803,7 @@ class TestModuleBipedArm(unittest.TestCase):
             precision = 2
             result_rotation = cmds.xform(f"{joint_name}", query=True, worldSpace=True, rotation=True)
             rounded_rotation = [round(coord, precision) for coord in result_rotation]
-            self.assertAlmostEqual(expected, rounded_rotation)
+            self.assertListEqual(expected, rounded_rotation)
 
     def test_module_arm_same_joint_position(self):
         a_arm_module = module_arm.ModuleBipedArm(prefix="C")

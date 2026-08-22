@@ -100,6 +100,12 @@ def load_menu(*args):
         icon=ui_res_lib.Icon.tool_selection_manager,
     )
     menu.add_menu_item(
+        label="Script Library",
+        command=IMPORT_TOOL + 'initialize_tool("script_library")',
+        tooltip="Stores, organizes, and runs a personal library of quick Python scripts.",
+        icon=ui_res_lib.Icon.tool_script_library,
+    )
+    menu.add_menu_item(
         label="Transfer Transforms",
         command=IMPORT_TOOL + 'initialize_tool("transfer_transforms")',
         tooltip="Script for quickly transferring Translate, Rotate, and Scale between objects.",
@@ -331,6 +337,12 @@ def load_menu(*args):
         command=IMPORT_TOOL + 'initialize_tool("render_calculator")',
         tooltip="Helps calculate how long it's going to take to render an image sequence.",
         icon=ui_res_lib.Icon.tool_render_calculator,
+    )
+    menu.add_menu_item(
+        label="Startup Scripts",
+        command=IMPORT_TOOL + 'initialize_tool("startup_scripts")',
+        tooltip="Configures Python scripts that run after GT Tools loads or after Maya opens files.",
+        icon=ui_res_lib.Icon.tool_startup_scripts,
     )
     menu.add_menu_item(
         label="Startup Booster",

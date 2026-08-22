@@ -2,6 +2,8 @@ import unittest
 import logging
 import sys
 import os
+import re
+import tempfile
 
 # Logging Setup
 logging.basicConfig()
@@ -18,6 +20,8 @@ for to_append in [package_root_dir, tests_dir]:
 import gt.tools.auto_rigger.rig_constants as tools_rig_const
 import gt.tools.auto_rigger.rig_framework as tools_rig_frm
 import gt.tools.auto_rigger.rig_utils as tools_rig_utils
+import gt.tools.auto_rigger.control_rig_pose as tools_control_pose
+import gt.tools.auto_rigger.control_rig_pose_service as tools_control_pose_service
 import gt.core.transform as core_trans
 import gt.core.naming as core_naming
 from gt.tests import maya_test_tools
@@ -688,6 +692,46 @@ class TestRigFramework(unittest.TestCase):
         self.assertEqual([1.2, 1.6, 1.4], scale)
 
     # --------------------------------------------- ModuleGeneric ---------------------------------------------
+    def test_module_parse_absolute_project_path_to_relative_uses_resolved_project_file_dir(self):
+        """Converts paths when the project directory uses the project-file token."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project_file_path = os.path.join(temp_dir, "test_project.rig")
+            with open(project_file_path, "w", encoding="utf-8") as project_file:
+                project_file.write("{}")
+            self.project.project_file_path = project_file_path
+            self.project.add_to_modules(self.module)
+            absolute_path = os.path.join(temp_dir, "assets", "source.ma").replace("\\", "/")
+
+            result = self.module.parse_absolute_project_path_to_relative(absolute_path)
+
+            expected = "{project-dir}/assets/source.ma"
+            self.assertEqual(expected, result)
+
+    def test_module_parse_absolute_project_path_to_relative_rejects_similar_sibling(self):
+        """Does not convert a sibling whose name only shares the project prefix."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            project_file_path = os.path.join(temp_dir, "test_project.rig")
+            with open(project_file_path, "w", encoding="utf-8") as project_file:
+                project_file.write("{}")
+            self.project.project_file_path = project_file_path
+            self.project.add_to_modules(self.module)
+            sibling_path = os.path.join(f"{temp_dir}_outside", "source.ma")
+
+            result = self.module.parse_absolute_project_path_to_relative(sibling_path)
+
+            expected = sibling_path
+            self.assertEqual(expected, result)
+
+    def test_module_parse_absolute_project_path_to_relative_preserves_relative_path(self):
+        """Does not reinterpret an existing relative path against the process directory."""
+        self.project.set_project_dir_path(os.getcwd())
+        self.project.add_to_modules(self.module)
+
+        result = self.module.parse_absolute_project_path_to_relative("assets/source.ma")
+
+        expected = "assets/source.ma"
+        self.assertEqual(expected, result)
+
     def test_module_set_proxies(self):
         a_1st_proxy = tools_rig_frm.Proxy(name="a_1st_proxy")
         a_2nd_proxy = tools_rig_frm.Proxy(name="a_2nd_proxy")
@@ -907,15 +951,131 @@ class TestRigFramework(unittest.TestCase):
                 "alias": None,
                 "build_control_rig": True,
                 "control_rig_pose_name": f"{core_naming.NamingConstants.Poses.TPOSE}",
+                "control_rig_pose_mode": "disabled",
                 "delete_proxy_after_build": True,
                 "export_anim_blendshapes": False,
-                "apply_control_rig_pose": True,
+                "apply_control_rig_pose": False,
                 "hide_skeleton": True,
                 "project_dir": "{project-file-dir}",
                 "view_fit_skeleton": True,
             },
         }
         self.assertEqual(expected, result)
+
+    def test_project_migrates_legacy_disabled_control_pose_preference(self):
+        """Maps the legacy apply-pose boolean to disabled mode."""
+        self.project.set_preferences({"apply_control_rig_pose": False})
+        expected = tools_control_pose.ControlRigPoseMode.DISABLED
+        result = self.project.get_control_rig_pose_mode()
+        self.assertEqual(expected, result)
+        self.assertFalse(self.project.is_control_rig_pose_enabled())
+
+    def test_project_migrates_legacy_enabled_control_pose_preference(self):
+        """Maps the legacy apply-pose boolean to automatic mode."""
+        self.project.set_preferences({"apply_control_rig_pose": True})
+        expected = tools_control_pose.ControlRigPoseMode.AUTOMATIC
+        result = self.project.get_control_rig_pose_mode()
+        self.assertEqual(expected, result)
+        self.assertTrue(self.project.is_control_rig_pose_enabled())
+
+    def test_project_custom_control_pose_mode_keeps_legacy_flag_enabled(self):
+        """Writes a compatible apply-pose boolean when custom mode is selected."""
+        self.project.set_control_rig_pose_mode(tools_control_pose.ControlRigPoseMode.CUSTOM)
+        expected = True
+        result = self.project.get_preferences_dict_value("apply_control_rig_pose")
+        self.assertEqual(expected, result)
+
+    def test_project_rejects_custom_build_without_stored_pose_before_scene_changes(self):
+        """Stops an invalid custom build before creating rig scene nodes."""
+        module = tools_rig_frm.ModuleGeneric(name="root")
+        module.add_to_proxies(tools_rig_frm.Proxy(name="root"))
+        self.project.add_to_modules(module)
+        self.project.set_control_rig_pose_mode(tools_control_pose.ControlRigPoseMode.CUSTOM)
+        with self.assertRaises(RuntimeError):
+            self.project.build_rig()
+        self.assertFalse(cmds.objExists("rig"))
+
+    def test_project_serializes_custom_control_rig_pose(self):
+        """Includes stored custom pose data in the project dictionary."""
+        matrix = [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0]
+        matrix += [0.0, 0.0, 1.0, 0.0, 2.0, 3.0, 4.0, 1.0]
+        pose_data = tools_control_pose.ControlRigPoseData(
+            project_uuid=self.project.get_uuid(),
+            proxy_signature=self.project.get_control_rig_pose_proxy_signature(),
+            transforms={"proxy_uuid": {"matrix": matrix}},
+        )
+        self.project.set_control_rig_pose_data(pose_data)
+        serialized_project = self.project.get_project_as_dict()
+        reloaded_project = tools_rig_frm.RigProject().read_data_from_dict(serialized_project)
+        expected = pose_data.get_data_as_dict()
+        result = reloaded_project.get_control_rig_pose_data().get_data_as_dict()
+        self.assertEqual(expected, result)
+
+    def test_disabled_control_pose_executes_bind_pose_code_phase(self):
+        """Runs bind-pose operations such as skin loading when pose conversion is disabled."""
+        executed_phases = []
+
+        def record_bind_pose_phase():
+            """Records execution of the bind-pose code phase."""
+            executed_phases.append(tools_rig_frm.CodeData.Order.pre_control_pose)
+
+        proxy = tools_rig_frm.Proxy(name="root")
+        module = tools_rig_frm.ModuleGeneric(name="root")
+        module.set_orientation_method(tools_rig_frm.OrientationData.Methods.inherit)
+        module.add_to_proxies(proxy)
+        module.set_extra_callable_function(
+            callable_func=record_bind_pose_phase,
+            order=tools_rig_frm.CodeData.Order.pre_control_pose,
+        )
+        project = tools_rig_frm.RigProject()
+        project.add_to_modules(module)
+        project.set_control_rig_pose_mode(tools_control_pose.ControlRigPoseMode.DISABLED)
+        project.build_proxy()
+        project.build_skeleton()
+        expected = [tools_rig_frm.CodeData.Order.pre_control_pose]
+        self.assertEqual(expected, executed_phases)
+
+    def test_custom_control_pose_capture_and_rebuild_round_trip(self):
+        """Rebuilds a generic skeleton in an arbitrary captured world-space pose."""
+        root_proxy = tools_rig_frm.Proxy(name="root")
+        child_proxy = tools_rig_frm.Proxy(name="child")
+        child_proxy.set_parent_uuid(root_proxy.get_uuid())
+        child_proxy.set_transform(core_trans.Transform(position=(5, 0, 0)))
+        module = tools_rig_frm.ModuleGeneric(name="chain")
+        module.set_orientation_method(tools_rig_frm.OrientationData.Methods.inherit)
+        module.add_to_proxies([root_proxy, child_proxy])
+        project = tools_rig_frm.RigProject()
+        project.add_to_modules(module)
+        project.build_proxy()
+        project.build_rig()
+
+        child_joint = tools_rig_utils.find_joint_from_uuid(child_proxy.get_uuid())
+        cmds.xform(child_joint, rotation=(0, 0, 27), worldSpace=True)
+        captured_pose = tools_control_pose_service.capture_project_control_rig_pose(project)
+        captured_child_data = captured_pose.transforms.get(child_proxy.get_uuid())
+        self.assertEqual("child_JNT", captured_child_data.get("target"))
+        project.set_control_rig_pose_data(captured_pose)
+        report_data = tools_control_pose_service.get_project_control_rig_pose_report(project)
+        child_report = [
+            item for item in report_data.get("targets") if item.get("proxy_uuid") == child_proxy.get_uuid()
+        ][0]
+        self.assertEqual("child_JNT", child_report.get("target_object"))
+        project.set_control_rig_pose_mode(tools_control_pose.ControlRigPoseMode.CUSTOM)
+        expected = captured_pose.transforms.get(child_proxy.get_uuid()).get("matrix")
+        serialized_project = project.get_project_as_dict()
+
+        maya_test_tools.force_new_scene()
+        rebuilt_project = tools_rig_frm.RigProject().read_data_from_dict(serialized_project)
+        rebuilt_project.build_proxy()
+        rebuilt_project.build_rig()
+        rebuilt_child_joint = tools_rig_utils.find_joint_from_uuid(child_proxy.get_uuid())
+        result = cmds.xform(rebuilt_child_joint, query=True, matrix=True, worldSpace=True)
+        for expected_component, result_component in zip(expected, result):
+            self.assertAlmostEqual(expected_component, result_component, places=5)
+        anonymous_transforms = [
+            node for node in cmds.ls(type="transform") or [] if re.match(r"^transform\d+$", node)
+        ]
+        self.assertEqual([], anonymous_transforms)
 
     def test_project_build_proxy_check_elements(self):
         a_proxy = tools_rig_frm.Proxy()

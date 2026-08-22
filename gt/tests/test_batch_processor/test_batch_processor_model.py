@@ -141,6 +141,54 @@ class TestBatchProcessorModel(unittest.TestCase):
         expected = constants.TaskType.MAYA_IMPORT
         self.assertEqual(expected, result.tasks[1].task_type)
 
+    def test_batch_processor_templates_load_package_templates(self):
+        templates = batch_processor_templates.BatchProcessorTemplates(include_package_templates=True)
+        template_dict = templates.get_dict_templates(
+            include_file_templates=False,
+            include_package_templates=True,
+        )
+
+        expected_template_names = {
+            "FBX_Animation_Export",
+            "FBX_Delivery_Package",
+            "File_Integrity_Check",
+            "Maya_Binary_to_ASCII",
+            "MayaSceneAudit",
+        }
+        self.assertTrue(expected_template_names.issubset(set(template_dict)))
+        result = template_dict["MayaSceneAudit"]()
+
+        expected = "Maya Scene Audit"
+        self.assertEqual(expected, result.project_name)
+        self.assertIsNone(result.project_file_path)
+        self.assertEqual("", result.environment_variables.get("project-dir"))
+        expected = [constants.TaskType.INPUT, constants.TaskType.SCENE_REPORT]
+        self.assertEqual(expected, [task.task_type for task in result.tasks])
+
+    def test_batch_processor_package_templates_use_expected_tasks(self):
+        templates = batch_processor_templates.BatchProcessorTemplates(include_package_templates=True)
+        template_dict = templates.get_dict_templates(
+            include_file_templates=False,
+            include_package_templates=True,
+        )
+        expected_template_tasks = {
+            "FBX_Animation_Export": [constants.TaskType.INPUT, constants.TaskType.FBX_EXPORT],
+            "FBX_Delivery_Package": [
+                constants.TaskType.INPUT,
+                constants.TaskType.FILE_INTEGRITY_VALIDATE,
+                constants.TaskType.SCENE_REPORT,
+                constants.TaskType.FBX_EXPORT,
+                constants.TaskType.ZIP_COMPRESS,
+            ],
+            "File_Integrity_Check": [constants.TaskType.INPUT, constants.TaskType.FILE_INTEGRITY_VALIDATE],
+            "Maya_Binary_to_ASCII": [constants.TaskType.INPUT, constants.TaskType.MAYA_SAVE],
+        }
+
+        for template_name, expected_tasks in expected_template_tasks.items():
+            project = template_dict[template_name]()
+            result = [task.task_type for task in project.tasks]
+            self.assertEqual(expected_tasks, result)
+
     def test_save_project_template_keeps_active_project_path(self):
         model = batch_processor_model.BatchProcessorModel()
         model.project_name = "Reusable Batch"
@@ -343,6 +391,7 @@ class TestBatchProcessorModel(unittest.TestCase):
     def test_environment_variables_include_task_dependent_neighbors(self):
         model = batch_processor_model.BatchProcessorModel()
         model.project_file_path = os.path.join(self.temp_dir, "project.batch")
+        model.notes = "Animator feedback goes here."
         rename_task = model.add_task(modules.TaskRename())
         python_task = model.add_task(modules.TaskPythonScript())
         save_task = model.add_task(modules.TaskMayaSave())
@@ -363,6 +412,9 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertEqual(expected, result.get("{previous-previous-task-name}"))
         expected = "1"
         self.assertEqual(expected, result.get("{previous-previous-task-index}"))
+        expected = "Animator feedback goes here."
+        self.assertEqual(expected, result.get("{project-notes}"))
+        self.assertEqual(expected, model.resolve_template("{project-notes}", task=save_task))
 
     def test_environment_variables_menu_uses_selected_task_context(self):
         controller_path = os.path.join(
@@ -1740,6 +1792,48 @@ class TestBatchProcessorModel(unittest.TestCase):
 
         expected = [["Type", "mesh", []]]
         self.assertEqual(expected, captured)
+
+    def test_fbx_export_pre_script_enabled_without_text_errors(self):
+        """Ensures an enabled FBX pre-export script requires inline code."""
+        model = batch_processor_model.BatchProcessorModel()
+        export_task = modules.create_task(constants.TaskType.FBX_EXPORT)
+        export_task.settings["run_pre_export_script"] = True
+
+        result = export_task.validate(model)
+
+        self.assertTrue(any("no inline script is set" in error for error in result.errors))
+
+    def test_fbx_export_pre_script_receives_export_context(self):
+        """Ensures FBX pre-export scripts receive standard and export-specific values."""
+        export_task = modules.create_task(constants.TaskType.FBX_EXPORT)
+        export_task.settings["run_pre_export_script"] = True
+        export_task.settings["pre_export_script_text"] = "pass"
+        project = batch_processor_model.BatchProcessorModel()
+        project.project_file_path = os.path.join(self.temp_dir, "project.batch")
+        project.environment_variables["custom-dir"] = "C:/custom"
+        project.add_task(export_task)
+        work_item = modules.WorkItem(source_path=os.path.join(self.temp_dir, "source.ma"))
+        output_path = os.path.join(self.temp_dir, "output.fbx")
+
+        with mock.patch(
+            "gt.tools.batch_processor.tasks.task_export_fbx.task_utils.run_inline_python_script"
+        ) as mock_run:
+            export_task.run_pre_export_script_if_needed(
+                project=project,
+                work_item=work_item,
+                output_path=output_path,
+                context={"runner": "test"},
+            )
+
+        result = mock_run.call_args.kwargs.get("context")
+        self.assertEqual(work_item.current_path, result.get("arguments").get("input"))
+        self.assertEqual(output_path, result.get("arguments").get("output"))
+        self.assertEqual(project.project_file_path, result.get("project_path"))
+        self.assertEqual("C:/custom", result.get("environment_variables").get("custom-dir"))
+        self.assertIs(result.get("arguments"), result.get("args"))
+        self.assertIs(result.get("environment_variables"), result.get("env"))
+        self.assertEqual("Animation", result.get("export_mode"))
+        self.assertEqual("test", result.get("runner"))
 
     def test_run_validator_instance_forwards_node_type(self):
         calls = []

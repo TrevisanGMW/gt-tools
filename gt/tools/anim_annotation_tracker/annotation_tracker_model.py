@@ -2,6 +2,8 @@
 
 import copy
 import os
+import shutil
+import uuid
 
 from gt.core.prefs import Prefs
 
@@ -10,8 +12,51 @@ PREFS_FILENAME = "anim_annotation_tracker"
 LAST_USED_DATA_KEY = "last_used_data"
 AUTOMATION_CHECK_STATES_KEY = "automation_check_states"
 AUTOMATION_CHECK_STATES_PATH_KEY = "automation_check_states_path"
+TOOL_MODE_PREFERENCE_KEY = "tool_mode"
+DEFAULT_TOOL_MODE = "edit"
+VALID_TOOL_MODES = ("navigate", "select", "edit", "razor")
 SCENE_DATA_NODE_NAME = "animAnnotationData"
 SCENE_DATA_ATTRIBUTE = "annotationData"
+SCENE_LAST_EDITED_ATTRIBUTE = "lastEdited"
+RESERVED_RANGE_CUSTOM_DATA_KEYS = (
+    "name",
+    "start_frame",
+    "end_frame",
+)
+# Base hues are ordered before their lighter variants to maximize variation.
+DEFAULT_SCRIPTED_RANGE_COLORS = (
+    (31, 119, 180),
+    (255, 127, 14),
+    (44, 160, 44),
+    (214, 39, 40),
+    (148, 103, 189),
+    (140, 86, 75),
+    (227, 119, 194),
+    (127, 127, 127),
+    (188, 189, 34),
+    (23, 190, 207),
+    (174, 199, 232),
+    (255, 187, 120),
+    (152, 223, 138),
+    (255, 152, 150),
+    (197, 176, 213),
+    (196, 156, 148),
+    (247, 182, 210),
+    (199, 199, 199),
+    (219, 219, 141),
+    (158, 218, 229),
+)
+SCRIPTED_RANGE_BASE_KEYS = {
+    "id",
+    "name",
+    "start",
+    "end",
+    "start_frame",
+    "end_frame",
+    "color",
+    "locked",
+    "custom_data",
+}
 
 DEFAULT_PREFERENCES = {
     "schema_path": "",
@@ -34,6 +79,7 @@ DEFAULT_PREFERENCES = {
     "run_all_automations": True,
     "show_validation_status": True,
     "write_scene_node": True,
+    TOOL_MODE_PREFERENCE_KEY: DEFAULT_TOOL_MODE,
     LAST_USED_DATA_KEY: {},
 }
 
@@ -47,13 +93,55 @@ def get_sample_directory():
     return os.path.join(os.path.dirname(__file__), "samples")
 
 
+def get_sample_schema_directory():
+    """Gets the packaged sample schema directory.
+
+    Returns:
+        str: Absolute sample schema directory path.
+    """
+    return os.path.join(get_sample_directory(), "schema")
+
+
 def get_sample_schema_path():
     """Gets the packaged sample schema path.
 
     Returns:
         str: Absolute JSON schema path.
     """
-    return os.path.join(get_sample_directory(), "schema.json")
+    return os.path.join(get_sample_schema_directory(), "schema.json")
+
+
+def copy_sample_schema(destination_path):
+    """Copies the packaged sample schema to a destination file.
+
+    Args:
+        destination_path (str): File path where the schema should be copied.
+
+    Returns:
+        str: Normalized destination file path.
+
+    Raises:
+        ValueError: If the destination path is empty.
+        OSError: If the packaged schema cannot be copied.
+    """
+    destination_path = str(destination_path or "").strip(' "\'')
+    if not destination_path:
+        raise ValueError("A destination schema path is required.")
+
+    source_path = os.path.abspath(get_sample_schema_path())
+    destination_path = os.path.abspath(destination_path)
+    if os.path.normcase(source_path) != os.path.normcase(destination_path):
+        shutil.copyfile(source_path, destination_path)
+    return destination_path
+
+
+def get_sample_automation_directory():
+    """Gets the packaged sample automation directory.
+
+    Returns:
+        str: Absolute sample automation directory path.
+    """
+    return os.path.join(get_sample_directory(), "automations")
 
 
 def get_sample_automation_path():
@@ -62,7 +150,51 @@ def get_sample_automation_path():
     Returns:
         str: Absolute Python automation path.
     """
-    return os.path.join(get_sample_directory(), "automation.py")
+    return os.path.join(get_sample_automation_directory(), "automation.py")
+
+
+def get_sample_automation_paths():
+    """Gets the packaged sample automation scripts in display order.
+
+    Returns:
+        list: Absolute Python sample automation paths.
+    """
+    automation_directory = get_sample_automation_directory()
+    return sorted(
+        [
+            os.path.join(automation_directory, file_name)
+            for file_name in os.listdir(automation_directory)
+            if file_name.endswith(".py")
+        ]
+    )
+
+
+def copy_sample_automation_scripts(destination_directory):
+    """Copies packaged sample automation scripts without overwriting files.
+
+    Args:
+        destination_directory (str): Existing or new destination folder.
+
+    Returns:
+        tuple: Lists of copied and skipped destination file paths.
+    """
+    destination_directory = str(destination_directory or "").strip(' "\'')
+    if not destination_directory:
+        return [], []
+    os.makedirs(destination_directory, exist_ok=True)
+    copied_paths = []
+    skipped_paths = []
+    for source_path in get_sample_automation_paths():
+        destination_path = os.path.join(
+            destination_directory,
+            os.path.basename(source_path),
+        )
+        if os.path.exists(destination_path):
+            skipped_paths.append(destination_path)
+            continue
+        shutil.copyfile(source_path, destination_path)
+        copied_paths.append(destination_path)
+    return copied_paths, skipped_paths
 
 
 def get_default_preferences():
@@ -72,6 +204,21 @@ def get_default_preferences():
         dict: Default Annotation Tracker preferences.
     """
     return copy.deepcopy(DEFAULT_PREFERENCES)
+
+
+def normalize_tool_mode(tool_mode):
+    """Normalizes a stored timeline interaction mode.
+
+    Args:
+        tool_mode (object): Stored mode preference value.
+
+    Returns:
+        str: Valid interaction mode, defaulting to edit.
+    """
+    normalized_mode = str(tool_mode or "").strip().lower()
+    if normalized_mode not in VALID_TOOL_MODES:
+        return DEFAULT_TOOL_MODE
+    return normalized_mode
 
 
 def normalize_automation_path(automation_path):
@@ -143,6 +290,57 @@ def _get_schema_field_definitions(schema):
             if item.get("name")
         }
     return field_definitions
+
+
+def get_ordered_schema_data(schema, data, data_key):
+    """Orders data to match the visible schema field order.
+
+    Recognized schema fields are emitted first in the order in which they
+    appear in the UI. Unknown fields are retained afterwards in their original
+    order so data from a newer or missing schema is not silently discarded.
+
+    Args:
+        schema (dict): Schema definition that defines UI field order.
+        data (dict): File or frame-range metadata to order.
+        data_key (str): Data section, either ``file_data`` or ``range_data``.
+
+    Returns:
+        dict: Deep-copied metadata in schema/UI order.
+    """
+    data = data if isinstance(data, dict) else {}
+    field_definitions = _get_schema_field_definitions(schema).get(data_key, {})
+    ordered_data = {
+        field_name: copy.deepcopy(data[field_name])
+        for field_name in field_definitions
+        if field_name in data
+    }
+    ordered_data.update(
+        {
+            field_name: copy.deepcopy(value)
+            for field_name, value in data.items()
+            if field_name not in ordered_data
+        }
+    )
+    return ordered_data
+
+
+def get_reserved_range_field_names(schema):
+    """Gets frame-range schema names that collide with exported base fields.
+
+    Args:
+        schema (dict): Schema definition to inspect.
+
+    Returns:
+        list: Reserved field names in their UI order.
+    """
+    schema = schema if isinstance(schema, dict) else {}
+    return [
+        item.get("name")
+        for item in flatten_schema_items(
+            schema.get("frame_range", [])
+        )
+        if item.get("name") in RESERVED_RANGE_CUSTOM_DATA_KEYS
+    ]
 
 
 def _is_schema_value_supported(field_definition, value):
@@ -222,16 +420,152 @@ def get_schema_data_loss(schema, file_data, ranges):
     }
 
 
-def build_usd_custom_data(payload):
+def _get_scripted_range_value(range_item, field_name, default=None):
+    """Gets a field from a scripted range dictionary or object.
+
+    Args:
+        range_item (dict or object): Range definition supplied by a script.
+        field_name (str): Field name to retrieve.
+        default (object, optional): Value returned when the field is absent.
+
+    Returns:
+        object: Stored field value or the provided default.
+    """
+    if isinstance(range_item, dict):
+        return range_item.get(field_name, default)
+    return getattr(range_item, field_name, default)
+
+
+def _normalize_scripted_range_color(color, range_index):
+    """Normalizes a scripted range display color.
+
+    Args:
+        color (list or tuple): Optional RGB display color.
+        range_index (int): Range index used to select a default color.
+
+    Returns:
+        list: Three integer RGB channel values clamped from 0 to 255.
+
+    Raises:
+        ValueError: If an explicit color does not contain three channels.
+    """
+    if color is None:
+        color = DEFAULT_SCRIPTED_RANGE_COLORS[
+            range_index % len(DEFAULT_SCRIPTED_RANGE_COLORS)
+        ]
+    if not isinstance(color, (list, tuple)) or len(color) != 3:
+        raise ValueError("Range color must contain exactly three RGB values.")
+    return [max(0, min(255, int(channel))) for channel in color]
+
+
+def build_scene_payload(file_data, ranges):
+    """Builds the tracker payload used by scripted scene integrations.
+
+    Ranges can use the tracker's internal ``start``, ``end``, and
+    ``custom_data`` layout or the public flattened ``start_frame`` and
+    ``end_frame`` layout returned by :func:`build_annotation_data`. Unknown
+    top-level dictionary keys are treated as custom frame-range metadata.
+
+    Args:
+        file_data (dict): File-level annotation metadata.
+        ranges (list): Ordered range dictionaries or range-like objects.
+
+    Returns:
+        dict: JSON-compatible tracker scene payload.
+
+    Raises:
+        TypeError: If file or custom range metadata is not a dictionary.
+        ValueError: If a range is missing bounds or has inverted bounds.
+    """
+    if not isinstance(file_data, dict):
+        raise TypeError("File annotation data must be a dictionary.")
+
+    normalized_ranges = []
+    for range_index, range_item in enumerate(ranges or []):
+        start_frame = _get_scripted_range_value(range_item, "start")
+        if start_frame is None:
+            start_frame = _get_scripted_range_value(range_item, "start_frame")
+        end_frame = _get_scripted_range_value(range_item, "end")
+        if end_frame is None:
+            end_frame = _get_scripted_range_value(range_item, "end_frame")
+        if start_frame is None or end_frame is None:
+            raise ValueError(
+                f"Range at index {range_index} is missing start or end bounds."
+            )
+
+        start_frame = int(start_frame)
+        end_frame = int(end_frame)
+        if end_frame < start_frame:
+            raise ValueError(
+                f"Range at index {range_index} ends before it starts."
+            )
+
+        custom_data = _get_scripted_range_value(
+            range_item,
+            "custom_data",
+            {},
+        )
+        if custom_data is None:
+            custom_data = {}
+        if not isinstance(custom_data, dict):
+            raise TypeError(
+                f"Range at index {range_index} custom data must be a dictionary."
+            )
+        if isinstance(range_item, dict):
+            flattened_custom_data = {
+                key: copy.deepcopy(value)
+                for key, value in range_item.items()
+                if key not in SCRIPTED_RANGE_BASE_KEYS
+            }
+            flattened_custom_data.update(copy.deepcopy(custom_data))
+            custom_data = flattened_custom_data
+        else:
+            custom_data = copy.deepcopy(custom_data)
+
+        range_id = _get_scripted_range_value(range_item, "id")
+        color = _normalize_scripted_range_color(
+            _get_scripted_range_value(range_item, "color"),
+            range_index,
+        )
+        normalized_ranges.append(
+            {
+                "id": str(range_id or uuid.uuid4()),
+                "name": str(
+                    _get_scripted_range_value(range_item, "name", "") or ""
+                ),
+                "start": start_frame,
+                "end": end_frame,
+                "color": color,
+                "locked": bool(
+                    _get_scripted_range_value(range_item, "locked", False)
+                ),
+                "custom_data": custom_data,
+            }
+        )
+
+    normalized_ranges.sort(
+        key=lambda item: (item["start"], item["end"], item["name"])
+    )
+    return {
+        "range_data": normalized_ranges,
+        "file_data": copy.deepcopy(file_data),
+    }
+
+
+def build_annotation_data(payload, schema=None):
     """Builds USD customData-compatible metadata from tracker scene data.
 
     The result deliberately omits tracker implementation fields, such as range
     identifiers, display colors, and lock states. Range data is stored in a
     dictionary rather than a list so the result can be supplied directly to a
     USD prim's ``customData`` without requiring an array of dictionaries.
+    Frame-range metadata is flattened alongside the base range fields. When a
+    schema is provided, file and frame-range metadata follow its visible UI
+    order.
 
     Args:
         payload (dict): Serialized Annotation Tracker scene payload.
+        schema (dict, optional): Active schema used to order metadata fields.
 
     Returns:
         dict: File and per-range user annotation data.
@@ -240,9 +574,7 @@ def build_usd_custom_data(payload):
     file_data = payload.get("file_data", {})
     range_data = payload.get("range_data", [])
     custom_data = {
-        "file_data": copy.deepcopy(file_data)
-        if isinstance(file_data, dict)
-        else {},
+        "file_data": get_ordered_schema_data(schema, file_data, "file_data"),
         "range_data": {},
     }
 
@@ -254,15 +586,43 @@ def build_usd_custom_data(payload):
         if not isinstance(range_item, dict):
             continue
         range_metadata = range_item.get("custom_data", {})
-        custom_data["range_data"][f"range_{index:0{range_key_width}d}"] = {
+        range_custom_data = {
             "name": str(range_item.get("name", "")),
             "start_frame": range_item.get("start", 0),
             "end_frame": range_item.get("end", 0),
-            "metadata": copy.deepcopy(range_metadata)
-            if isinstance(range_metadata, dict)
-            else {},
         }
+        ordered_metadata = get_ordered_schema_data(
+            schema,
+            range_metadata,
+            "range_data",
+        )
+        range_custom_data.update(
+            {
+                field_name: value
+                for field_name, value in ordered_metadata.items()
+                if field_name not in RESERVED_RANGE_CUSTOM_DATA_KEYS
+            }
+        )
+        custom_data["range_data"][
+            f"range_{index:0{range_key_width}d}"
+        ] = range_custom_data
     return custom_data
+
+
+def build_usd_custom_data(payload, schema=None):
+    """Builds annotation data with the previous USD helper name.
+
+    This compatibility wrapper preserves existing scripts that used the former
+    function name. New integrations should use ``build_annotation_data``.
+
+    Args:
+        payload (dict): Serialized Annotation Tracker scene payload.
+        schema (dict, optional): Active schema used to order metadata fields.
+
+    Returns:
+        dict: File and per-range user annotation data.
+    """
+    return build_annotation_data(payload, schema=schema)
 
 
 def _is_missing_value(value):
@@ -514,6 +874,9 @@ class AnnotationTrackerModel:
         preferences = get_default_preferences()
         stored_preferences = self.prefs.get_raw_preferences()
         preferences.update(stored_preferences)
+        preferences[TOOL_MODE_PREFERENCE_KEY] = normalize_tool_mode(
+            preferences.get(TOOL_MODE_PREFERENCE_KEY)
+        )
         if normalize_automation_path(preferences.get("automation_path")) == normalize_automation_path(
             get_sample_directory()
         ):
@@ -526,6 +889,11 @@ class AnnotationTrackerModel:
     def save_preferences(self):
         """Writes all current preferences to the package preferences file."""
         preferences = copy.deepcopy(self.preferences)
+        tool_mode = normalize_tool_mode(
+            preferences.get(TOOL_MODE_PREFERENCE_KEY)
+        )
+        self.preferences[TOOL_MODE_PREFERENCE_KEY] = tool_mode
+        preferences[TOOL_MODE_PREFERENCE_KEY] = tool_mode
         automation_path = str(preferences.get("automation_path") or "").strip()
         self.preferences["automation_path"] = automation_path
         if automation_path:

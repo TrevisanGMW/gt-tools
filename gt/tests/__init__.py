@@ -16,6 +16,7 @@ import subprocess
 import gt.tests.test_curve_library as test_curve_library
 import gt.tests.test_auto_rigger as test_auto_rigger
 import gt.tests.test_sample_tool as test_sample_tool
+import gt.tests.test_script_library as test_script_library
 import gt.tests.test_utils as test_utils
 import gt.tests.test_core as test_core
 import gt.tests.test_ui as test_ui
@@ -60,6 +61,7 @@ modules_to_test = [
     test_auto_rigger.test_template_biped,
     test_curve_library.test_curve_library_model,
     test_sample_tool.test_sample_tool_model,
+    test_script_library.test_script_library_model,
     # Core
     test_core.test_anim,
     test_core.test_attr,
@@ -102,6 +104,7 @@ modules_to_test = [
     test_core.test_version,
     # Utils
     test_utils.test_fbx,
+    test_utils.test_hik,
     test_utils.test_request,
     test_utils.test_system,
     test_utils.test_hypertext,

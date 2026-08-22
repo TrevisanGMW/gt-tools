@@ -3,9 +3,23 @@ Auto Rigger Project Attribute Widget
 """
 
 from gt.tools.auto_rigger.attr_widgets.attr_widget_base import *
+import gt.tools.auto_rigger.control_rig_pose as tools_control_pose
+
 
 class AttrWidgetProject(AttrWidget):
-    def __init__(self, parent=None, project=None, refresh_parent_func=None, *args, **kwargs):
+    def __init__(
+        self,
+        parent=None,
+        project=None,
+        refresh_parent_func=None,
+        control_pose_mode_func=None,
+        capture_control_pose_func=None,
+        validate_control_pose_func=None,
+        view_control_pose_func=None,
+        clear_control_pose_func=None,
+        *args,
+        **kwargs,
+    ):
         """
         Initialize the project attribute widget panel.
 
@@ -18,6 +32,11 @@ class AttrWidgetProject(AttrWidget):
             project (Project, optional): The project instance whose attributes will be edited.
             refresh_parent_func (callable, optional): Function to call to refresh the parent UI
                 after changes. If provided, it is set internally.
+            control_pose_mode_func (callable, optional): Function used to change the control pose mode.
+            capture_control_pose_func (callable, optional): Function used to capture the current rig pose.
+            validate_control_pose_func (callable, optional): Function used to validate stored custom pose data.
+            view_control_pose_func (callable, optional): Function used to show stored pose data.
+            clear_control_pose_func (callable, optional): Function used to clear stored custom pose data.
             *args: Additional positional arguments passed to the base AttrWidget.
             **kwargs: Additional keyword arguments passed to the base AttrWidget.
         """
@@ -29,6 +48,13 @@ class AttrWidgetProject(AttrWidget):
         self.project_prefix_field = None
         self.refresh_parent_func = None
         self.table_mirror_wdg = None
+        self.control_pose_mode_combo = None
+        self.control_pose_status_label = None
+        self.control_pose_mode_func = control_pose_mode_func
+        self.capture_control_pose_func = capture_control_pose_func
+        self.validate_control_pose_func = validate_control_pose_func
+        self.view_control_pose_func = view_control_pose_func
+        self.clear_control_pose_func = clear_control_pose_func
 
         if refresh_parent_func:
             self.set_refresh_parent_func(refresh_parent_func)
@@ -59,7 +85,6 @@ class AttrWidgetProject(AttrWidget):
         _layout = ui_qt.QtWidgets.QHBoxLayout()
         _layout.setContentsMargins(0, 0, 0, 5)  # L-T-R-B
         self.add_project_preferences_attr_widget_checkbox(attr_name="delete_proxy_after_build", layout=_layout)
-        self.add_project_preferences_attr_widget_checkbox(attr_name="apply_control_rig_pose", layout=_layout)
         self.add_project_preferences_attr_widget_checkbox(attr_name="hide_skeleton", layout=_layout)
         self.content_layout.addLayout(_layout)
         _layout = ui_qt.QtWidgets.QHBoxLayout()
@@ -73,12 +98,232 @@ class AttrWidgetProject(AttrWidget):
         self.add_project_preferences_attr_widget_checkbox(
             attr_name="export_anim_blendshapes", layout=_layout, tooltip=_export_anim_bs_tooltip
         )
-        self.content_layout.addLayout(_layout)
+
+        # Control Rig Pose -------------------------------------------------------------------
+        self.add_widget_separator_line(label_text="Control Rig Pose")
+        self.add_widget_control_rig_pose()
 
         # Mirror Table -------------------------------------------------------------------
         self.add_widget_separator_line(label_text="Mirror Proxies")
         self.add_widget_mirror_table()
         self.add_widget_mirror_buttons()
+
+    def add_widget_control_rig_pose(self):
+        """Adds mode, capture, validation, viewing, and clear controls for the control rig pose."""
+        mode_layout = ui_qt.QtWidgets.QHBoxLayout()
+        mode_layout.setContentsMargins(0, 0, 0, 5)
+        mode_tooltip = (
+            "Chooses the pose used while building the control rig.\n"
+            "This does not change the mesh bind pose.\n\n"
+            "Automatic: Runs each module's pose helper, normally making a biped T-pose.\n\n"
+            "Custom Stored Pose: Applies a skeleton pose captured from a built rig.\n\n"
+            "Disabled: Builds controls in the same pose as the mesh and skeleton."
+        )
+        mode_label = ui_qt.QtWidgets.QLabel("Mode:")
+        mode_label.setObjectName("control_pose_mode_label")
+        mode_label.setToolTip(mode_tooltip)
+        mode_label.setFixedWidth(mode_label.sizeHint().width())
+        self.control_pose_mode_combo = ui_qt.QtWidgets.QComboBox()
+        self.control_pose_mode_combo.setObjectName("control_pose_mode_combo")
+        self.control_pose_mode_combo.addItem(
+            "Automatic (Biped T-Pose Helper)", tools_control_pose.ControlRigPoseMode.AUTOMATIC
+        )
+        self.control_pose_mode_combo.addItem("Custom Stored Pose", tools_control_pose.ControlRigPoseMode.CUSTOM)
+        self.control_pose_mode_combo.addItem("Disabled", tools_control_pose.ControlRigPoseMode.DISABLED)
+        mode_index = self.control_pose_mode_combo.findData(self.project.get_control_rig_pose_mode())
+        self.control_pose_mode_combo.setCurrentIndex(max(mode_index, 0))
+        self.control_pose_mode_combo.currentIndexChanged.connect(self.on_control_pose_mode_changed)
+        self.control_pose_mode_combo.setToolTip(mode_tooltip)
+        mode_tooltips = [
+            "Runs module pose helpers during each build.\n"
+            "Biped arm and leg helpers normally create a T-pose.\n"
+            "The mesh and skeleton remain bound in their original pose.",
+            "Uses stored per-joint matrices as the control-build pose.\n"
+            "Capture this from a built rig after posing it with its controls.\n"
+            "The pose may be any shape, not only a T-pose.",
+            "Does not create a separate control rig pose.\n"
+            "Controls are built directly in the mesh and skeleton bind pose.\n"
+            "Any stored custom pose remains saved but inactive.",
+        ]
+        qt_enum = ui_qt.QtCore.Qt
+        item_data_role = getattr(qt_enum, "ItemDataRole", None)
+        tooltip_role = item_data_role.ToolTipRole if item_data_role else qt_enum.ToolTipRole
+        for index, tooltip in enumerate(mode_tooltips):
+            self.control_pose_mode_combo.setItemData(index, tooltip, tooltip_role)
+        mode_layout.addWidget(mode_label, 0)
+        mode_layout.addWidget(self.control_pose_mode_combo, 1)
+        self.content_layout.addLayout(mode_layout)
+
+        status_caption_label = ui_qt.QtWidgets.QLabel("Build Pose Status:")
+        status_caption_label.setObjectName("control_pose_status_caption_label")
+        status_caption_label.setToolTip(
+            "Summarizes the pose configuration that will be used\n"
+            "the next time the control rig is built."
+        )
+        self.content_layout.addWidget(status_caption_label)
+        self.control_pose_status_label = ui_qt.QtWidgets.QLabel()
+        self.control_pose_status_label.setObjectName("control_pose_status_label")
+        self.control_pose_status_label.setWordWrap(True)
+        self.content_layout.addWidget(self.control_pose_status_label)
+
+        button_layout = ui_qt.QtWidgets.QHBoxLayout()
+        capture_button = ui_qt.QtWidgets.QPushButton("Capture Rig Pose")
+        capture_button.setObjectName("capture_control_pose_button")
+        capture_button.setToolTip(
+            "Captures the evaluated skeleton pose from the built rig.\n"
+            "First pose the rig with its controls, then capture it.\n"
+            "This stores per-joint matrices, activates Custom Stored Pose,\n"
+            "and uses it on the next control-rig build."
+        )
+        capture_button.clicked.connect(self.on_capture_control_pose)
+        button_layout.addWidget(capture_button)
+
+        validate_button = ui_qt.QtWidgets.QPushButton("Validate Pose")
+        validate_button.setObjectName("validate_control_pose_button")
+        validate_button.setToolTip(
+            "Checks stored schema, project and proxy identity,\n"
+            "target coverage, and matrix values.\n"
+            "Validation does not change the Maya scene or stored pose."
+        )
+        validate_button.clicked.connect(self.on_validate_control_pose)
+        button_layout.addWidget(validate_button)
+
+        view_button = ui_qt.QtWidgets.QPushButton("View Data")
+        view_button.setObjectName("view_control_pose_button")
+        view_button.setToolTip(
+            "Opens a read-only, line-numbered, syntax-highlighted view.\n"
+            "Shows stored matrices, target joint names, and proxy UUIDs."
+        )
+        view_button.clicked.connect(self.on_view_control_pose)
+        button_layout.addWidget(view_button)
+
+        clear_button = ui_qt.QtWidgets.QPushButton("Clear Data")
+        clear_button.setObjectName("clear_control_pose_button")
+        clear_button.setToolTip(
+            "Removes stored custom pose matrices and switches to Automatic mode.\n"
+            "The deletion becomes persistent when the project is saved."
+        )
+        clear_button.clicked.connect(self.on_clear_control_pose)
+        button_layout.addWidget(clear_button)
+        self.content_layout.addLayout(button_layout)
+        self.refresh_control_pose_status()
+
+    def set_control_pose_status(self, message, is_error=False):
+        """Updates the control rig pose status label.
+
+        Args:
+            message (str): Message to display.
+            is_error (bool, optional): Whether to display the message as an error.
+        """
+        self.control_pose_status_label.setText(message)
+        color = ui_res_lib.Color.Hex.red_melon if is_error else ui_res_lib.Color.Hex.gray_light
+        self.control_pose_status_label.setStyleSheet(f"color: {color};")
+
+    def refresh_control_pose_status(self):
+        """Refreshes the stored pose summary without rebuilding the project widget."""
+        pose_data = self.project.get_control_rig_pose_data()
+        pose_mode = self.project.get_control_rig_pose_mode()
+        if pose_data.has_pose() and pose_mode == tools_control_pose.ControlRigPoseMode.CUSTOM:
+            self.set_control_pose_status(
+                f"Active custom pose: {pose_data.get_transform_count()} joint transforms."
+            )
+        elif pose_data.has_pose():
+            self.set_control_pose_status(
+                f"Stored custom pose: {pose_data.get_transform_count()} joint transforms (currently inactive)."
+            )
+        elif pose_mode == tools_control_pose.ControlRigPoseMode.CUSTOM:
+            self.set_control_pose_status(
+                "Custom mode requires a captured pose before the rig can be built.", is_error=True
+            )
+        elif pose_mode == tools_control_pose.ControlRigPoseMode.AUTOMATIC:
+            self.set_control_pose_status("Module helpers will generate the control rig pose during the next build.")
+        else:
+            self.set_control_pose_status("Controls will be built directly in the bind pose.")
+
+    def on_control_pose_mode_changed(self, *args):
+        """Updates the project when the user selects a control rig pose mode.
+
+        Args:
+            *args: Qt signal arguments.
+        """
+        mode = self.control_pose_mode_combo.currentData()
+        if self.control_pose_mode_func:
+            self.control_pose_mode_func(mode)
+        else:
+            self.project.set_control_rig_pose_mode(mode)
+        self.refresh_control_pose_status()
+
+    def on_capture_control_pose(self, *args):
+        """Captures the current evaluated rig pose using the controller callback.
+
+        Args:
+            *args: Qt signal arguments.
+        """
+        if not self.capture_control_pose_func:
+            self.set_control_pose_status(
+                "Pose capture is unavailable without an active rigger controller.", is_error=True
+            )
+            return
+        try:
+            message = self.capture_control_pose_func()
+            custom_index = self.control_pose_mode_combo.findData(tools_control_pose.ControlRigPoseMode.CUSTOM)
+            self.control_pose_mode_combo.blockSignals(True)
+            self.control_pose_mode_combo.setCurrentIndex(custom_index)
+            self.control_pose_mode_combo.blockSignals(False)
+            self.set_control_pose_status(message or "Captured the current rig pose.")
+        except Exception as error:
+            self.set_control_pose_status(str(error), is_error=True)
+
+    def on_validate_control_pose(self, *args):
+        """Validates the stored custom pose using the controller callback.
+
+        Args:
+            *args: Qt signal arguments.
+        """
+        if not self.validate_control_pose_func:
+            validation = self.project.validate_control_rig_pose_data()
+        else:
+            validation = self.validate_control_pose_func()
+        errors = validation.get("errors") or []
+        warnings = validation.get("warnings") or []
+        if errors:
+            self.set_control_pose_status(" ".join(errors), is_error=True)
+        elif warnings:
+            self.set_control_pose_status(" ".join(warnings))
+        else:
+            count = validation.get("transform_count", 0)
+            self.set_control_pose_status(f"Stored custom pose is valid ({count} joint transforms).")
+
+    def on_clear_control_pose(self, *args):
+        """Clears the stored custom pose using the controller callback.
+
+        Args:
+            *args: Qt signal arguments.
+        """
+        if self.clear_control_pose_func:
+            message = self.clear_control_pose_func()
+        else:
+            self.project.clear_control_rig_pose_data()
+            self.project.set_control_rig_pose_mode(tools_control_pose.ControlRigPoseMode.AUTOMATIC)
+            message = "Cleared the stored custom pose. Automatic mode is active."
+        automatic_index = self.control_pose_mode_combo.findData(tools_control_pose.ControlRigPoseMode.AUTOMATIC)
+        self.control_pose_mode_combo.blockSignals(True)
+        self.control_pose_mode_combo.setCurrentIndex(automatic_index)
+        self.control_pose_mode_combo.blockSignals(False)
+        self.set_control_pose_status(message)
+
+    def on_view_control_pose(self, *args):
+        """Shows the stored custom pose data using the controller callback.
+
+        Args:
+            *args: Qt signal arguments.
+        """
+        if self.view_control_pose_func:
+            self.view_control_pose_func()
+        else:
+            self.set_control_pose_status(
+                "Stored pose viewing is unavailable without an active rigger controller.", is_error=True
+            )
 
     # Parameter Widgets ----------------------------------------------------------------------------------------
     def add_widget_project_header(self):
@@ -551,7 +796,7 @@ class AttrWidgetProject(AttrWidget):
         if nice_name:
             _formatted_attr_name = nice_name
         # Create Layout
-        if layout:
+        if layout is not None:
             _layout = layout
         else:
             _layout = ui_qt.QtWidgets.QHBoxLayout()
@@ -563,6 +808,9 @@ class AttrWidgetProject(AttrWidget):
         path_btn = ui_qt.QtWidgets.QPushButton()
         path_btn.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_open))
         path_btn.setToolTip("Use file dialog to set path")
+        env_var_btn = ui_qt.QtWidgets.QPushButton()
+        env_var_btn.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_env_var))
+        env_var_btn.setToolTip("Get more information about the current path.")
         if attr_value is None:
             attr_value = getattr(self.project.get_preferences(), attr_name)
         if placeholder is None:
@@ -573,6 +821,7 @@ class AttrWidgetProject(AttrWidget):
         # Add to Widgets
         _layout.addWidget(label)
         _layout.addWidget(text_field)
+        _layout.addWidget(env_var_btn)
         _layout.addWidget(path_btn)
         # Connect
         _func = partial(self.set_project_preferences_attr_value_from_field, attr=attr_name, field=text_field)
@@ -585,6 +834,8 @@ class AttrWidgetProject(AttrWidget):
             dir_only=dir_only,
         )
         path_btn.clicked.connect(_btn_func)
+        _func = partial(self.open_env_var_feedback_dialog, field=text_field)
+        env_var_btn.clicked.connect(_func)
         return text_field
 
     def add_project_preferences_attr_widget_checkbox(
@@ -609,7 +860,7 @@ class AttrWidgetProject(AttrWidget):
         if nice_name:
             _formatted_attr_name = nice_name
         # Create Layout
-        if layout:
+        if layout is not None:
             _layout = layout
         else:
             _layout = ui_qt.QtWidgets.QHBoxLayout()
@@ -664,7 +915,7 @@ class AttrWidgetProject(AttrWidget):
         if nice_name:
             _formatted_attr_name = nice_name
         # Create Layout
-        if layout:
+        if layout is not None:
             _layout = layout
         else:
             _layout = ui_qt.QtWidgets.QHBoxLayout()

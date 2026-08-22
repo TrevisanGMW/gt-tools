@@ -90,6 +90,53 @@ class TestRigTemplates(unittest.TestCase):
             result_nested_resource_exists = os.path.exists(os.path.join(target_dir, "geo", "character.ma"))
             self.assertEqual(expected_nested_resource_exists, result_nested_resource_exists)
 
+    def test_package_template_directories_and_resources(self):
+        package_templates_dir = tools_rig_templates.get_package_template_source_dir()
+        package_resources_dir = tools_rig_templates.get_package_template_resources_dir()
+
+        expected_template_exists = True
+        result_template_exists = os.path.isfile(os.path.join(package_templates_dir, "Biped_Base.rig"))
+        self.assertEqual(expected_template_exists, result_template_exists)
+
+        expected_resource_path = os.path.join(package_resources_dir, "Biped_Base")
+        result_resource_path = tools_rig_templates.get_template_resource_path(
+            "biped_base", package_resources_dir
+        )
+        self.assertEqual(expected_resource_path, result_resource_path)
+
+    def test_rig_templates_keeps_package_templates_separate(self):
+        original_user_templates = tools_rig_templates.TEMPLATE_SOURCE_DIR
+        original_package_templates = tools_rig_templates.PACKAGE_TEMPLATE_SOURCE_DIR
+        with tempfile.TemporaryDirectory() as temp_dir:
+            user_templates_dir = os.path.join(temp_dir, "user_templates")
+            package_templates_dir = os.path.join(temp_dir, "package_templates")
+            os.makedirs(user_templates_dir)
+            os.makedirs(package_templates_dir)
+            with open(os.path.join(user_templates_dir, "user_template.rig"), "w", encoding="utf-8"):
+                pass
+            with open(os.path.join(package_templates_dir, "package_template.rig"), "w", encoding="utf-8"):
+                pass
+
+            tools_rig_templates.TEMPLATE_SOURCE_DIR = user_templates_dir
+            tools_rig_templates.PACKAGE_TEMPLATE_SOURCE_DIR = package_templates_dir
+            try:
+                rig_templates = tools_rig_templates.RigTemplates(include_package_templates=True)
+            finally:
+                tools_rig_templates.TEMPLATE_SOURCE_DIR = original_user_templates
+                tools_rig_templates.PACKAGE_TEMPLATE_SOURCE_DIR = original_package_templates
+
+        expected_user_template = True
+        result_user_template = "user_template" in rig_templates.get_dict_templates(include_py_templates=False)
+        self.assertEqual(expected_user_template, result_user_template)
+
+        expected_package_template = True
+        result_package_template = "package_template" in rig_templates.get_dict_templates(
+            include_py_templates=False,
+            include_file_templates=False,
+            include_package_templates=True,
+        )
+        self.assertEqual(expected_package_template, result_package_template)
+
 
 if __name__ == "__main__":
     unittest.main()

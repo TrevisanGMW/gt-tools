@@ -478,6 +478,13 @@ def load_package_menu(launch_maya_app=False, preferred_version=None):
             gt_tools_maya_menu.load_menu()
         except Exception as e:
             logger.warning(f"Unable to load GT Tools. Issue: {str(e)}")
+            return
+        try:
+            from gt.tools.startup_scripts import startup_scripts_runtime
+
+            execute_deferred(startup_scripts_runtime.initialize_startup_scripts)
+        except Exception as e:
+            logger.warning(f"Unable to initialize Startup Scripts. Issue: {str(e)}")
 
 
 def time_profiler(func):

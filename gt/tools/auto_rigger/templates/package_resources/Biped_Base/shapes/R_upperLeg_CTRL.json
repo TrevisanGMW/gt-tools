@@ -1,0 +1,85 @@
+{
+    "name": "|rig|controls|C_global_CTRL|C_globalOffset_CTRL|C_hips_JNT_driver|R_upperLeg_offset|R_upperLeg_parentOffset|R_upperLeg_CTRL",
+    "transform": null,
+    "shapes": [
+        {
+            "name": "circle_pos_xShape",
+            "points": [
+                [
+                    0.0,
+                    -8.97,
+                    -8.97
+                ],
+                [
+                    0.0,
+                    0.0,
+                    -12.677
+                ],
+                [
+                    0.0,
+                    8.97,
+                    -8.97
+                ],
+                [
+                    0.0,
+                    12.677,
+                    0.0
+                ],
+                [
+                    0.0,
+                    8.97,
+                    8.97
+                ],
+                [
+                    0.0,
+                    0.0,
+                    12.677
+                ],
+                [
+                    0.0,
+                    -8.97,
+                    8.97
+                ],
+                [
+                    0.0,
+                    -12.677,
+                    0.0
+                ],
+                [
+                    0.0,
+                    -8.97,
+                    -8.97
+                ],
+                [
+                    0.0,
+                    0.0,
+                    -12.677
+                ],
+                [
+                    0.0,
+                    8.97,
+                    -8.97
+                ]
+            ],
+            "degree": 3,
+            "knot": [
+                -2.0,
+                -1.0,
+                0.0,
+                1.0,
+                2.0,
+                3.0,
+                4.0,
+                5.0,
+                6.0,
+                7.0,
+                8.0,
+                9.0,
+                10.0
+            ],
+            "periodic": true,
+            "is_bezier": false
+        }
+    ],
+    "uuid": "z3hziv1bbztd-fk-upperLeg"
+}

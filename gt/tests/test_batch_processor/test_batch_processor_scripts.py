@@ -18,6 +18,7 @@ class TestBatchProcessorScripts(unittest.TestCase):
             ("hik_retarget", "print_pre_bake_context.py", "import maya.cmds as cmds"),
             ("maya_import", "print_import_context.py", "import maya.cmds as cmds"),
             ("python_script", "print_batch_context.py", "environment_variables"),
+            ("export_fbx", "select_root_joints_and_hierarchy.py", "hierarchy=True"),
             ("validate_scene", "print_pre_validation_context.py", "validation_scope"),
             ("validate_scene", "select_geometry_under_group.py", "cmds.select"),
         )

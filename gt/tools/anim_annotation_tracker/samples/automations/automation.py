@@ -35,5 +35,8 @@ context["update_range_data"]("interaction_scope", "full_body")
 context["update_range_data"]("interaction_volumes", "doorway_volume_01")
 context["update_range_data"]("interaction_item", "heavy_door")
 context["update_range_data"]("contact_attributes", "doorway_ctrl.open, doorway_ctrl.close")
-context["update_range_data"]("events", '{"foot_strike": [15, 30, 45]}')
+context["update_range_data"](
+    "event",
+    '{"foot_strike": {"start_frame": 15, "end_frame": 25}}',
+)
 context["refresh_ui"]()

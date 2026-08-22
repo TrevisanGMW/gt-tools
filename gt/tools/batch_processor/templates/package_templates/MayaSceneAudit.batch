@@ -1,0 +1,85 @@
+{
+    "version": 1,
+    "project_name": "Maya Scene Audit",
+    "notes": "Creates a read-only report for Maya scenes found in the input directory. The report includes scene timing, file size, geometry, joints, and scene units.",
+    "environment_variables": {
+        "project-dir": "{project-file-dir}",
+        "project-file-dir": "",
+        "project-path": "",
+        "project-grandparent-dir": "",
+        "input-dir": "01_input",
+        "task-dir": "02_tasks",
+        "output-dir": "03_output"
+    },
+    "run_settings": {
+        "multi_instance": true,
+        "worker_count": 8,
+        "max_retries": 0,
+        "timeout_minutes": 0,
+        "preferred_maya_version": "",
+        "create_log": true,
+        "create_task_time_log": true,
+        "log_path": "logs",
+        "purge_logs_on_run": true,
+        "ignore_disabled_tasks_for_task_index": false
+    },
+    "tasks": [
+        {
+            "id": "76beeb2a-0715-49b5-9ee0-33fb517c1ec6",
+            "task_type": "input",
+            "display_name": "Input Maya Scenes",
+            "enabled": true,
+            "parameters": {
+                "include_in_task_index": false,
+                "source_path": "{project-dir}/{input-dir}",
+                "include_subdirectories": true,
+                "extensions": [
+                    ".ma",
+                    ".mb"
+                ],
+                "exclude_patterns": [],
+                "explicit_files": [],
+                "start_new_input_list": false,
+                "force_segment_separator": false,
+                "segment_name": "",
+                "segment_color": "blue_light_sky"
+            }
+        },
+        {
+            "id": "91198af3-7a8f-4fad-b1c7-fdf390f78956",
+            "task_type": "scene_report",
+            "display_name": "Create Scene Audit Report",
+            "enabled": true,
+            "parameters": {
+                "source_path": "{previous-task-path}",
+                "target_path": "{log-dir}",
+                "source_include_subdirectories": true,
+                "source_load_mode": "Open",
+                "load_relevant_plugins": true,
+                "report_metrics": [
+                    "frame_count",
+                    "frame_rate",
+                    "file_size",
+                    "time",
+                    "mesh_count",
+                    "joint_count",
+                    "geometry_counts",
+                    "scene_units"
+                ],
+                "report_detail_mode": "List + Total",
+                "report_file_name": "{project-name}_report.txt",
+                "report_notes": "{project-notes}",
+                "report_notes_collapsed": true,
+                "overwrite": true,
+                "run_once_after_multi_instance": true,
+                "force_segment_separator": false,
+                "segment_name": "",
+                "segment_color": "blue_light_sky",
+                "include_in_task_index": false,
+                "source_mode": "source_path",
+                "output_mode": "target_path",
+                "task_io_collapsed": false
+            }
+        }
+    ]
+}

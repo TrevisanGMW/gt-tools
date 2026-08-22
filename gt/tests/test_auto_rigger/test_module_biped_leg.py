@@ -6,6 +6,7 @@ import os
 import gt.tools.auto_rigger.modules.module_biped_leg as module_leg
 import gt.tools.auto_rigger.rig_framework as tools_rig_frm
 import gt.tools.auto_rigger.rig_utils as tools_rig_utils
+import gt.tools.auto_rigger.control_rig_pose as tools_control_pose
 import gt.tests.maya_test_tools.maya_test_tools as maya_test_tools
 import gt.tools.auto_rigger.rig_constants as tools_rig_const
 import gt.tools.package_setup.package_tools_maya_plugins as tools_maya_plugins
@@ -322,32 +323,33 @@ class TestModuleBipedLeg(unittest.TestCase):
         a_leg_module = module_leg.ModuleBipedLeg(prefix="C")
         # Setup Project
         a_project = tools_rig_frm.RigProject()
+        a_project.set_control_rig_pose_mode(tools_control_pose.ControlRigPoseMode.AUTOMATIC)
         a_project.add_to_modules(a_leg_module)
         a_project.build_proxy()
         a_project.build_rig()
 
         world_positions_joint = [
             ("C_upperLeg_JNT", [0.0, 84.5, 0.0]),
-            ("C_lowerLeg_JNT", [0.0, 47.05, 0.0]),
-            ("C_foot_JNT", [0.0, 9.65, -1.96]),
-            ("C_ball_JNT", [0.0, 0.05, 11.14]),
+            ("C_lowerLeg_JNT", [0.0, 47.0, 0.0]),
+            ("C_foot_JNT", [0.0, 9.54, -1.96]),
+            ("C_ball_JNT", [0.0, -0.06, 11.14]),
             ("C_upperLeg_JNT_fk", [0.0, 84.5, 0.0]),
-            ("C_lowerLeg_JNT_fk", [0.0, 47.05, 0.0]),
-            ("C_foot_JNT_fk", [0.0, 9.65, -1.96]),
-            ("C_ball_JNT_fk", [0.0, 0.05, 11.14]),
-            ("C_toe_JNT_fk", [0.0, 0.05, 21.44]),
+            ("C_lowerLeg_JNT_fk", [0.0, 47.0, 0.0]),
+            ("C_foot_JNT_fk", [0.0, 9.54, -1.96]),
+            ("C_ball_JNT_fk", [0.0, -0.06, 11.14]),
+            ("C_toe_JNT_fk", [0.0, -0.06, 21.44]),
             ("C_upperLeg_JNT_ik", [0.0, 84.5, 0.0]),
-            ("C_lowerLeg_JNT_ik", [0.0, 47.05, 0.0]),
-            ("C_foot_JNT_ik", [0.0, 9.65, -1.96]),
-            ("C_ball_JNT_ik", [0.0, 0.05, 11.14]),
-            ("C_toe_JNT_ik", [0.0, 0.05, 21.44]),
+            ("C_lowerLeg_JNT_ik", [0.0, 47.0, 0.0]),
+            ("C_foot_JNT_ik", [0.0, 9.54, -1.96]),
+            ("C_ball_JNT_ik", [0.0, -0.06, 11.14]),
+            ("C_toe_JNT_ik", [0.0, -0.06, 21.44]),
         ]
 
         for joint_name, expected in world_positions_joint:
             precision = 2
             result_translation = cmds.xform(f"{joint_name}", query=True, worldSpace=True, translation=True)
             rounded_translation = [round(coord, precision) for coord in result_translation]
-            self.assertAlmostEqual(expected[0], rounded_translation[0])
+            self.assertListEqual(expected, rounded_translation)
 
         world_rotation_joint = [
             ("C_upperLeg_JNT", [90.0, -90.0, 0.0]),
@@ -358,44 +360,45 @@ class TestModuleBipedLeg(unittest.TestCase):
             ("C_lowerLeg_JNT_fk", [90.0, 3.0, -90.0]),
             ("C_foot_JNT_fk", [90.0, -90.0, 0.0]),
             ("C_ball_JNT_fk", [0.0, -90.0, 0.0]),
-            ("C_toe_JNT_fk", [0.0, -90.0, 0.0]),
+            ("C_toe_JNT_fk", [0.0, 0.0, 0.0]),
             ("C_upperLeg_JNT_ik", [90.0, -90.0, 0.0]),
             ("C_lowerLeg_JNT_ik", [90.0, 3.0, -90.0]),
             ("C_foot_JNT_ik", [90.0, -90.0, 0.0]),
             ("C_ball_JNT_ik", [0.0, -90.0, 0.0]),
-            ("C_toe_JNT_ik", [0.0, -90.0, 0.0]),
+            ("C_toe_JNT_ik", [0.0, 0.0, 0.0]),
         ]
 
         for joint_name, expected in world_rotation_joint:
             precision = 2
             result_rotation = cmds.xform(f"{joint_name}", query=True, worldSpace=True, rotation=True)
             rounded_rotation = [round(coord, precision) for coord in result_rotation]
-            self.assertAlmostEqual(expected[0], rounded_rotation[0])
+            self.assertListEqual(expected, rounded_rotation)
 
     def test_module_leg_control_pose_default(self):
         a_leg_module = module_leg.ModuleBipedLeg(prefix="C")
         # Setup Project
         a_project = tools_rig_frm.RigProject()
+        a_project.set_control_rig_pose_mode(tools_control_pose.ControlRigPoseMode.AUTOMATIC)
         a_project.add_to_modules(a_leg_module)
         a_project.build_proxy()
         a_project.build_rig()
 
         world_positions_control = [
             ("C_upperLeg_CTRL", [0.0, 84.5, 0.0]),
-            ("C_lowerLeg_CTRL", [0.0, 47.05, 0.0]),
-            ("C_foot_CTRL", [0.0, 9.65, -1.96]),
-            ("C_ball_CTRL", [0.0, 0.05, 11.14]),
-            ("C_lowerLeg_IK_CTRL", [0.0, 47.05, 37.45]),
-            ("C_foot_IK_CTRL", [0.0, 9.65, -1.96]),
-            ("C_leg_CTRL", [0.0, 9.65, -1.96]),
-            ("C_toe_IK_CTRL", [0.0, 0.05, 11.14]),
+            ("C_lowerLeg_CTRL", [0.0, 47.0, 0.0]),
+            ("C_foot_CTRL", [0.0, 9.54, -1.96]),
+            ("C_ball_CTRL", [0.0, -0.06, 11.14]),
+            ("C_lowerLeg_IK_CTRL", [0.0, 47.0, 37.5]),
+            ("C_foot_IK_CTRL", [0.0, 9.54, -1.96]),
+            ("C_leg_CTRL", [0.0, 9.54, -1.96]),
+            ("C_toe_IK_CTRL", [0.0, -0.06, 11.14]),
         ]
 
         for joint_name, expected in world_positions_control:
             precision = 2
             result_translation = cmds.xform(f"{joint_name}", query=True, worldSpace=True, translation=True)
             rounded_translation = [round(coord, precision) for coord in result_translation]
-            self.assertAlmostEqual(expected[0], rounded_translation[0])
+            self.assertListEqual(expected, rounded_translation)
 
         world_rotation_control = [
             ("C_upperLeg_CTRL", [90.0, -90.0, 0.0]),
@@ -412,4 +415,4 @@ class TestModuleBipedLeg(unittest.TestCase):
             precision = 2
             result_rotation = cmds.xform(f"{joint_name}", query=True, worldSpace=True, rotation=True)
             rounded_rotation = [round(coord, precision) for coord in result_rotation]
-            self.assertAlmostEqual(expected, rounded_rotation)
+            self.assertListEqual(expected, rounded_rotation)

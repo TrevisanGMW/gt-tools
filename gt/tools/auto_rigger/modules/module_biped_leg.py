@@ -1049,8 +1049,8 @@ class ModuleBipedLeg(tools_rig_frm.ModuleGeneric):
         temp_transform = core_hrchy.create_group(name=f"{lowerleg_ik_ctrl}_rotExtraction")
         core_trans.match_translate(source=lowerleg_jnt, target_list=temp_transform)
 
-        if self._project.get_preferences_dict_value(key="apply_control_rig_pose", default=True):
-            # We are in T-pose, the legs are straight, the pole vector needs just to be moved forward
+        if self._project.is_control_rig_pose_automatic():
+            # The automatic biped helper produces straight legs, so the pole vector can move directly forward.
             cmds.move(0, 0, leg_scale * 0.5, temp_transform, objectSpace=True, relative=True)
         else:
             cmds.delete(

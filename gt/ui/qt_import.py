@@ -274,14 +274,17 @@ class QtLib:
         ItemIsEnabled = None
         ItemIsSelectable = None
         ItemIsDragEnabled = None
+        ItemIsUserCheckable = None
         if IS_PYSIDE6:  # PySide6
             ItemIsEnabled = QtCore.Qt.ItemFlag.ItemIsEnabled
             ItemIsSelectable = QtCore.Qt.ItemFlag.ItemIsSelectable
             ItemIsDragEnabled = QtCore.Qt.ItemFlag.ItemIsDragEnabled
+            ItemIsUserCheckable = QtCore.Qt.ItemFlag.ItemIsUserCheckable
         else:  # PySide2
             ItemIsEnabled = QtCore.Qt.ItemIsEnabled
             ItemIsSelectable = QtCore.Qt.ItemIsSelectable
             ItemIsDragEnabled = QtCore.Qt.ItemIsDragEnabled
+            ItemIsUserCheckable = QtCore.Qt.ItemIsUserCheckable
 
     # ------------------------------------------- AbstractItemView ----------------------------------------
     class ScrollHint:

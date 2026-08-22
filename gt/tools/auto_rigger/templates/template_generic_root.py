@@ -180,6 +180,7 @@ def create_template_generic_root():
             "build_control_rig": True,
             "delete_proxy_after_build": True,
             "apply_control_rig_pose": False,
+            "control_rig_pose_mode": "disabled",
             "hide_skeleton": True,
             "view_fit_skeleton": True,
             "control_rig_pose_name": "tpose",

@@ -2,7 +2,9 @@
 Auto Rigger Controller
 """
 
+import gt.tools.auto_rigger.control_rig_pose_service as tools_control_pose_service
 import gt.tools.auto_rigger.attr_widgets.attr_widgets as tools_rig_attr_widget
+import gt.tools.auto_rigger.control_rig_pose as tools_control_pose
 import gt.tools.auto_rigger.rigger_log_view as tools_rig_log_view
 import gt.tools.auto_rigger.rig_templates as tools_rig_templates
 import gt.tools.auto_rigger.rig_constants as tools_rig_const
@@ -13,6 +15,7 @@ import gt.ui.tree_widget_enhanced as ui_tree_enhanced
 import gt.ui.resource_library as ui_res_lib
 import gt.ui.file_dialog as ui_file_dialog
 import gt.utils.system as utils_system
+import gt.core.session as core_session
 import gt.ui.qt_utils as ui_qt_utils
 import gt.core.prefs as core_prefs
 import gt.core.logger as core_log
@@ -165,6 +168,7 @@ class RiggerController:
         self._opened_project = ""
         self._opened_project_initial_state = {}  # Used for comparison to find changes
         self._has_high_level_changes = False
+        self.control_pose_data_window = None
 
         # Preferences
         self._prefs = core_prefs.Prefs(tools_rig_const.RiggerConstants.PREFS_FILENAME)
@@ -179,8 +183,14 @@ class RiggerController:
         self._on_build_show_log_view = self._prefs.get_bool(
             key=tools_rig_const.RiggerConstants.PREFS_KEY_ON_BUILD_SHOW_LOG, default=True
         )
+        self._on_build_auto_dock_log = self._prefs.get_bool(
+            key=tools_rig_const.RiggerConstants.PREFS_KEY_ON_BUILD_AUTO_DOCK_LOG, default=True
+        )
         self._on_set_path_abs_to_relative = self._prefs.get_bool(
             key=tools_rig_const.RiggerConstants.PREFS_KEY_ON_SET_PATH_ABS_TO_RELATIVE, default=True
+        )
+        self._show_package_templates = self._prefs.get_bool(
+            key=tools_rig_const.RiggerConstants.PREFS_KEY_SHOW_PACKAGE_TEMPLATES, default=True
         )
 
         # Add Menubar
@@ -246,7 +256,9 @@ class RiggerController:
         menu_templates = self._templates_menu
         self._template_menu_actions = []
         menu_templates.clear()
-        rig_templates = tools_rig_templates.RigTemplates()  # Initializing populates it with file templates
+        rig_templates = tools_rig_templates.RigTemplates(
+            include_package_templates=self._show_package_templates
+        )
 
         # Python Templates ---
         offer_python_templates = False  # To make it toggleable in the future.
@@ -262,17 +274,43 @@ class RiggerController:
                 self._template_menu_actions.append(action_template)
                 menu_templates.addAction(action_template)
 
-        # File Templates ---
-        ui_qt_utils.add_labeled_separator(menu=menu_templates, text="File Templates")
-        for name, template_func in rig_templates.get_dict_templates(include_py_templates=False).items():
-            formatted_name = " ".join(core_str.camel_case_split(name))
-            action_template = ui_qt.QtLib.QtGui.QAction(
-                formatted_name, icon=ui_qt.QtGui.QIcon(rig_templates.icon_files)
+        # Package Templates ---
+        if self._show_package_templates:
+            package_templates = rig_templates.get_dict_templates(
+                include_py_templates=False,
+                include_file_templates=False,
+                include_package_templates=True,
             )
-            item_func = partial(self.replace_project, project=template_func)
-            action_template.triggered.connect(item_func)
-            self._template_menu_actions.append(action_template)
-            menu_templates.addAction(action_template)
+            if package_templates:
+                ui_qt_utils.add_labeled_separator(menu=menu_templates, text="Package Templates")
+            for name, template_func in package_templates.items():
+                formatted_name = " ".join(core_str.camel_case_split(name))
+                action_template = ui_qt.QtLib.QtGui.QAction(
+                    formatted_name, icon=ui_qt.QtGui.QIcon(rig_templates.icon_package_files)
+                )
+                item_func = partial(self.replace_project, project=template_func)
+                action_template.triggered.connect(item_func)
+                self._template_menu_actions.append(action_template)
+                menu_templates.addAction(action_template)
+
+        # User Templates ---
+        user_templates = rig_templates.get_dict_templates(include_py_templates=False)
+        ui_qt_utils.add_labeled_separator(menu=menu_templates, text="User Templates")
+        if not user_templates:
+            action_empty_templates = ui_qt.QtLib.QtGui.QAction("No Templates Found", self.view)
+            action_empty_templates.setEnabled(False)
+            self._template_menu_actions.append(action_empty_templates)
+            menu_templates.addAction(action_empty_templates)
+        else:
+            for name, template_func in user_templates.items():
+                formatted_name = " ".join(core_str.camel_case_split(name))
+                action_template = ui_qt.QtLib.QtGui.QAction(
+                    formatted_name, icon=ui_qt.QtGui.QIcon(rig_templates.icon_files)
+                )
+                item_func = partial(self.replace_project, project=template_func)
+                action_template.triggered.connect(item_func)
+                self._template_menu_actions.append(action_template)
+                menu_templates.addAction(action_template)
         # Open Template Directories ---
         ui_qt_utils.add_labeled_separator(menu=menu_templates, text="Template Resources")
         action_open_templates = ui_qt.QtLib.QtGui.QAction(
@@ -301,6 +339,27 @@ class RiggerController:
         action_convert_template.triggered.connect(self.convert_current_project_to_template)
         self._template_menu_actions.append(action_convert_template)
         menu_templates.addAction(action_convert_template)
+
+        action_show_package_templates = ui_qt.QtLib.QtGui.QAction("Show Package Templates")
+        action_show_package_templates.setCheckable(True)
+        action_show_package_templates.setChecked(self._show_package_templates)
+        action_show_package_templates.triggered.connect(self.set_show_package_templates)
+        self._template_menu_actions.append(action_show_package_templates)
+        menu_templates.addAction(action_show_package_templates)
+
+    def set_show_package_templates(self, is_checked):
+        """Stores the package-template menu state and refreshes its contents.
+
+        Args:
+            is_checked (bool): Whether package templates should be displayed.
+        """
+        self._show_package_templates = bool(is_checked)
+        self._prefs.set_bool(
+            key=tools_rig_const.RiggerConstants.PREFS_KEY_SHOW_PACKAGE_TEMPLATES,
+            value=self._show_package_templates,
+        )
+        self._prefs.save()
+        ui_qt.QtCore.QTimer.singleShot(0, self.refresh_templates_menu)
 
     def refresh_recent_projects_menu(self):
         """Rebuilds the recent-project submenu from stored preferences."""
@@ -454,32 +513,32 @@ class RiggerController:
 
         import gt.core.pose as core_pose
 
-        # A-Pose Skeleton ---
+        # Bind Pose Skeleton ---
         action_sk_a_pose = ui_qt.QtLib.QtGui.QAction(
-            "A-Pose (Skeleton)", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.root_animation)
+            "Bind Pose (Skeleton)", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.root_animation)
         )
         action_sk_a_pose.triggered.connect(core_pose.set_apose)
         self.view.add_menu_action(parent_menu=menu_templates, action=action_sk_a_pose)
 
-        # T-Pose Skeleton ---
+        # Control Pose Skeleton ---
         action_sk_t_pose = ui_qt.QtLib.QtGui.QAction(
-            "T-Pose (Skeleton)", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.root_rigging)
+            "Control Pose (Skeleton)", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.root_rigging)
         )
-        action_sk_t_pose.triggered.connect(core_pose.set_tpose)
+        action_sk_t_pose.triggered.connect(self.set_skeleton_control_rig_pose)
         self.view.add_menu_action(parent_menu=menu_templates, action=action_sk_t_pose)
 
-        # A-Pose Control Rig ---
+        # Bind Pose Control Rig ---
         action_ctrl_a_pose = ui_qt.QtLib.QtGui.QAction(
-            "A-Pose (Control Rig)", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.root_animation)
+            "Bind Pose (Control Rig)", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.root_animation)
         )
-        action_ctrl_a_pose.triggered.connect(tools_rig_utils.set_rig_apose)
+        action_ctrl_a_pose.triggered.connect(tools_rig_utils.set_rig_bind_pose)
         self.view.add_menu_action(parent_menu=menu_templates, action=action_ctrl_a_pose)
 
-        # T-Pose Control Rig ---
+        # Control Pose Control Rig ---
         action_ctrl_t_pose = ui_qt.QtLib.QtGui.QAction(
-            "T-Pose (Control Rig)", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.root_rigging)
+            "Control Pose (Control Rig)", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.root_rigging)
         )
-        action_ctrl_t_pose.triggered.connect(tools_rig_utils.set_rig_tpose)
+        action_ctrl_t_pose.triggered.connect(tools_rig_utils.set_rig_control_pose)
         self.view.add_menu_action(parent_menu=menu_templates, action=action_ctrl_t_pose)
 
         # Range of Motion ---------------------------------------------------------------------------
@@ -616,6 +675,12 @@ class RiggerController:
         self.view.add_menu_action(parent_menu=menu_log, action=on_build_show_log_view_action)
         on_build_show_log_view_action.setChecked(self._on_build_show_log_view)
 
+        # On Build Auto Dock Log Window
+        on_build_auto_dock_log_action = ui_qt.QtLib.QtGui.QAction("Auto Dock Log Window", checkable=True)
+        on_build_auto_dock_log_action.triggered.connect(self.toggle_on_build_auto_dock_log)
+        self.view.add_menu_action(parent_menu=menu_log, action=on_build_auto_dock_log_action)
+        on_build_auto_dock_log_action.setChecked(self._on_build_auto_dock_log)
+
         # On Build Clear Log Window
         on_build_clear_log_window_action = ui_qt.QtLib.QtGui.QAction("Build Clears Log Window", checkable=True)
         on_build_clear_log_window_action.triggered.connect(self.toggle_on_build_clear_log_window)
@@ -687,6 +752,7 @@ class RiggerController:
         if self.show_unsaved_changes_warning_dialog(window=None, is_close_event=False):  # True when cancelled
             return
         self.model.clear_project()
+        self.view.clear_module_widget()
         self.refresh_widgets()
         self.clear_opened_project()
         self._has_high_level_changes = False
@@ -1520,6 +1586,27 @@ class RiggerController:
         self._prefs.set_bool(key=tools_rig_const.RiggerConstants.PREFS_KEY_ON_BUILD_SHOW_LOG, value=checked)
         self._prefs.save()
 
+    def toggle_on_build_auto_dock_log(self, checked):
+        """Toggles automatically docking the log window below the Auto Rigger.
+
+        Args:
+            checked (bool): The new state for automatically docking the log window.
+        """
+        self._on_build_auto_dock_log = checked
+        self._prefs.set_bool(key=tools_rig_const.RiggerConstants.PREFS_KEY_ON_BUILD_AUTO_DOCK_LOG, value=checked)
+        self._prefs.save()
+
+    def show_log_view_for_build(self):
+        """Shows the build log view and docks it below the Auto Rigger in Maya.
+
+        The dock target is only passed while running in interactive Maya, keeping
+        the log window's normal behavior in standalone Qt and batch contexts.
+        """
+        dock_to_control = None
+        if self._on_build_auto_dock_log and core_session.is_script_in_interactive_maya():
+            dock_to_control = f"{self.view.objectName()}WorkspaceControl"
+        self.log_view.show_if_not_visible(dock_to_control=dock_to_control)
+
     def toggle_on_set_path_abs_to_relative(self, checked):
         """
         Toggle the flag to convert absolute paths to relative paths when setting paths.
@@ -1601,12 +1688,104 @@ class RiggerController:
         # Project ---------------------------------------------------------------
         if isinstance(data_obj, tools_rig_frm.RigProject):
             widget_object = tools_rig_attr_widget.AttrWidgetProject(
-                project=data_obj, refresh_parent_func=self.refresh_widgets
+                project=data_obj,
+                refresh_parent_func=self.refresh_widgets,
+                control_pose_mode_func=self.set_control_rig_pose_mode,
+                capture_control_pose_func=self.capture_control_rig_pose,
+                validate_control_pose_func=self.validate_control_rig_pose,
+                view_control_pose_func=self.view_control_rig_pose_data,
+                clear_control_pose_func=self.clear_control_rig_pose,
             )
             self.view.set_module_widget(widget_object)
             return
         # Unknown ---------------------------------------------------------------
         self.view.clear_module_widget()
+
+    def set_control_rig_pose_mode(self, mode):
+        """Sets the project control rig pose mode.
+
+        Args:
+            mode (str): Automatic, custom, or disabled mode.
+
+        Returns:
+            bool: True when the mode was accepted.
+        """
+        success = self.model.get_project().set_control_rig_pose_mode(mode)
+        if success:
+            self._has_high_level_changes = True
+            logger.info(f'Set control rig pose mode to "{mode}".')
+        return success
+
+    def capture_control_rig_pose(self):
+        """Captures the current evaluated skeleton as the project's custom control rig pose.
+
+        Returns:
+            str: User-facing capture summary.
+        """
+        project = self.model.get_project()
+        try:
+            pose_data = tools_control_pose_service.capture_project_control_rig_pose(project)
+        except Exception:
+            logger.exception("Unable to capture the current control rig pose.")
+            raise
+        project.set_control_rig_pose_data(pose_data)
+        project.set_control_rig_pose_mode(tools_control_pose.ControlRigPoseMode.CUSTOM)
+        self._has_high_level_changes = True
+        message = f"Captured custom control rig pose for {pose_data.get_transform_count()} joints."
+        logger.success(message)
+        return message
+
+    def validate_control_rig_pose(self):
+        """Validates the project's stored custom control rig pose.
+
+        Returns:
+            dict: Custom pose validation result.
+        """
+        validation = self.model.get_project().validate_control_rig_pose_data()
+        if validation.get("valid"):
+            logger.info("Stored custom control rig pose is valid.")
+        else:
+            logger.warning(" ".join(validation.get("errors") or []))
+        return validation
+
+    def clear_control_rig_pose(self):
+        """Clears custom pose data and restores automatic pose mode.
+
+        Returns:
+            str: User-facing clear summary.
+        """
+        project = self.model.get_project()
+        project.clear_control_rig_pose_data()
+        project.set_control_rig_pose_mode(tools_control_pose.ControlRigPoseMode.AUTOMATIC)
+        self._has_high_level_changes = True
+        message = "Cleared the stored custom pose. Automatic mode is active."
+        logger.info(message)
+        return message
+
+    def view_control_rig_pose_data(self):
+        """Opens a read-only window containing the stored custom pose data."""
+        import gt.ui.python_output_view as ui_py_output
+
+        report_data = tools_control_pose_service.get_project_control_rig_pose_report(self.model.get_project())
+        report_text = json.dumps(report_data, indent=4, ensure_ascii=False)
+        self.control_pose_data_window = ui_py_output.PythonOutputView(parent=self.view, editable=False)
+        self.control_pose_data_window.setWindowTitle("Stored Control Rig Pose Data")
+        self.control_pose_data_window.set_python_output_text(report_text)
+        self.control_pose_data_window.show()
+
+    def set_skeleton_control_rig_pose(self, *args):
+        """Sets the skeleton to the current project's stored control-build DAG pose.
+
+        Args:
+            *args: Qt signal arguments.
+
+        Returns:
+            bool: True when the DAG pose was found and restored.
+        """
+        import gt.core.pose as core_pose
+
+        pose_name = self.model.get_project().get_control_rig_pose_name()
+        return core_pose.set_dagpose(pose_name=pose_name)
 
     def preprocessing_validation(self):
         """
@@ -1670,7 +1849,7 @@ class RiggerController:
         if self._on_build_clear_log_window:
             self.log_view.clear_log_widget()
         if self._on_build_show_log_view:
-            self.log_view.show_if_not_visible()
+            self.show_log_view_for_build()
 
         project = self.model.get_project()
         logger.operation(f'Initializing build proxy operation for "{project.get_name()}".')
@@ -1679,6 +1858,12 @@ class RiggerController:
 
     def build_rig(self):
         """Builds Rig using the project "build_rig" function."""
+        project = self.model.get_project()
+        pose_validation = project.validate_control_rig_pose_for_build()
+        if not pose_validation.get("valid"):
+            message = " ".join(pose_validation.get("errors") or ["The custom control rig pose is invalid."])
+            self.show_project_load_warning(title="Invalid Custom Control Rig Pose", message=message)
+            return
         if self.preprocessing_validation():
             return
 
@@ -1686,9 +1871,7 @@ class RiggerController:
         if self._on_build_clear_log_window:
             self.log_view.clear_log_widget()
         if self._on_build_show_log_view:
-            self.log_view.show_if_not_visible()
-
-        project = self.model.get_project()
+            self.show_log_view_for_build()
 
         logger.operation(f'Initializing build rig operation for "{project.get_name()}".')
         project.build_proxy(optimized=True)

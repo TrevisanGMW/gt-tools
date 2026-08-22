@@ -204,7 +204,14 @@ class FbxExporter:
 
     @staticmethod
     def reset_preferences():
-        """Resets any user preferences so we start clean."""
+        """Loads the FBX plug-in and resets its export preferences.
+
+        The FBX commands are registered dynamically by the ``fbxmaya`` plug-in,
+        so a Maya scene that does not import an FBX file has not necessarily
+        loaded them yet.
+        """
+        if not cmds.pluginInfo("fbxmaya", query=True, loaded=True):
+            cmds.loadPlugin("fbxmaya", quiet=True)
         cmds.FBXResetExport()
 
     def get_deformer_node_from_joint(self, joint_name):

@@ -25,6 +25,7 @@ from gt.tools.batch_processor import batch_processor_view
 from gt.tools.batch_processor.tasks import task_clip
 from gt.tools.batch_processor.tasks import task_utils
 from gt.tools.batch_processor.widgets import attr_widget_clip
+from gt.tools.batch_processor.widgets import attr_widget_export_fbx
 from gt.tools.batch_processor.widgets import attr_widget_python_script
 from gt.tools.batch_processor.widgets import attr_widget_task
 from gt.tools.batch_processor.widgets.inline_python_editor import InlinePythonEditorWidget
@@ -124,6 +125,26 @@ class TestBatchProcessorUi(unittest.TestCase):
         self.assertIn("2", files_label.text())
         self.assertIn("3", clips_label.text())
         self.assertIn(task_clip.SNAPSHOT_STATUS_READY, widget.status_label.text())
+
+    def test_fbx_export_frame_controls_follow_auto_frame_range(self):
+        """Ensures Auto Frame Range disables the manual FBX frame controls."""
+        task = batch_processor_tasks.TaskExportFbx()
+        widget = attr_widget_export_fbx.AttrWidgetFbxExportTask(task=task, project=self.model)
+        self.addCleanup(widget.close)
+
+        self.assertEqual(0, widget.frame_start_spin.value())
+        self.assertEqual(120, widget.frame_end_spin.value())
+        self.assertFalse(widget.frame_start_label.isEnabled())
+        self.assertFalse(widget.frame_start_spin.isEnabled())
+        self.assertFalse(widget.frame_end_label.isEnabled())
+        self.assertFalse(widget.frame_end_spin.isEnabled())
+
+        widget.set_auto_frame_range(False)
+
+        self.assertTrue(widget.frame_start_label.isEnabled())
+        self.assertTrue(widget.frame_start_spin.isEnabled())
+        self.assertTrue(widget.frame_end_label.isEnabled())
+        self.assertTrue(widget.frame_end_spin.isEnabled())
 
     def test_update_task_tree_item_updates_label_and_enabled_state(self):
         """Ensures an existing tree row reflects task changes in place."""

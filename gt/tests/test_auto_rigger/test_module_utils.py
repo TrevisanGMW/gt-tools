@@ -20,6 +20,7 @@ import gt.tools.auto_rigger.modules.module_utils as tools_mod_utils
 import gt.tools.auto_rigger.rig_framework as tools_rig_frm
 import gt.tools.auto_rigger.rig_constants as tools_rig_const
 import gt.tools.auto_rigger.modules.module_biped_leg as module_leg
+import gt.tools.auto_rigger.control_rig_pose as tools_control_pose
 from gt.tests import maya_test_tools
 import inspect
 
@@ -123,6 +124,7 @@ class TestModuleUtils(unittest.TestCase):
     def test_module_parent_switching_functionality(self):
         leg_module_instance = module_leg.ModuleBipedLeg(prefix="C")
         a_project = tools_rig_frm.RigProject()
+        a_project.set_control_rig_pose_mode(tools_control_pose.ControlRigPoseMode.AUTOMATIC)
         a_project.add_to_modules(leg_module_instance)
         a_project.build_proxy()
         a_project.build_rig()

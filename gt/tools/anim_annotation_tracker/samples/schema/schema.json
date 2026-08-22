@@ -164,11 +164,12 @@
     },
     {
       "type": "string",
-      "name": "events",
-      "label": "Events",
+      "name": "event",
+      "label": "Event",
       "required": false,
-      "placeholder": "e.g. {\"foot_strike\": [18, 32]}",
-      "description": "JSON dictionary mapping animation events to frame numbers."
+      "automation": "event_recorder.py",
+      "placeholder": "e.g. {\"foot_strike\": {\"start_frame\": 18, \"end_frame\": 28}}",
+      "description": "JSON event data recorded by the Event Recorder automation."
     }
   ]
 }
