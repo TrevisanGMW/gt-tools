@@ -1471,10 +1471,13 @@ def get_single_skeleton_root_joint(top_level_fallback=True):
 
 
 def get_control_rig_control_pose_and_bind_pose_as_dict(control_pose_name=None):
-    """
-    Gets the control rig pose values and bind pose values in two dictionaries.
+    """Gets the control rig pose values and bind pose values in two dictionaries.
+
     This is supposed to be called at the end of the control rig building process, when it is in a "vanilla"
     state, without extra keys, ready for Animation. That's the state (T-pose/rig pose) that we want to store.
+
+    Args:
+        control_pose_name (str, optional): Skeleton DAG pose used as the control rig pose.
 
     Returns:
         tuple: Control attributes for the control rig pose and bind pose.
@@ -1582,7 +1585,7 @@ def get_control_rig_control_pose_and_bind_pose_as_dict(control_pose_name=None):
     return t_pose_controls_attrs_dict, a_pose_controls_attrs_dict
 
 
-def get_control_rig_tpose_and_apose_as_dict():
+def get_control_rig_tpose_and_apose_as_dict(control_pose_name=None):
     """Gets legacy T-pose and A-pose metadata dictionaries.
 
     This compatibility wrapper treats the T-pose slot as the project's generic control rig pose and the A-pose slot
@@ -1597,7 +1600,7 @@ def get_control_rig_tpose_and_apose_as_dict():
 
     if not control_pose_name:
         control_pose_name = core_naming.NamingConstants.Poses.TPOSE
-    return get_control_rig_control_pose_and_bind_pose_as_dict()
+    return get_control_rig_control_pose_and_bind_pose_as_dict(control_pose_name=control_pose_name)
 
 
 def create_control_visualization_line(control, end_obj):
