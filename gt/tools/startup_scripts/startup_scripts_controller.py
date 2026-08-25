@@ -19,7 +19,11 @@ class StartupScriptsController:
         self.view = view
         self.selected_script_id = ""
         self.view.controller = self
-        self.view.set_run_modes(model_constants.RUN_MODE_VALUES)
+        self.view.set_run_modes(
+            model_constants.RUN_MODE_VALUES,
+            run_mode_tooltips=model_constants.RUN_MODE_TOOLTIPS,
+        )
+        self.view.set_run_interval_units(model_constants.RUN_INTERVAL_UNITS)
         self.view.set_sample_scripts(model_constants.get_sample_scripts())
         self.view.sample_load_callback = self.load_sample_script
         self._connect_view()
@@ -34,12 +38,23 @@ class StartupScriptsController:
         self.view.move_up_button.clicked.connect(lambda: self.move_selected_script(-1))
         self.view.move_down_button.clicked.connect(lambda: self.move_selected_script(1))
         self.view.remove_script_button.clicked.connect(self.remove_selected_script)
+        self.view.import_backup_button.clicked.connect(self.import_backup)
+        self.view.export_backup_button.clicked.connect(self.export_backup)
         self.view.name_field.textChanged.connect(lambda value: self.update_selected_script({"name": value}, True))
         self.view.enabled_checkbox.toggled.connect(
             lambda value: self.update_selected_script({"enabled": bool(value)}, True)
         )
         self.view.run_mode_combo.currentTextChanged.connect(
             lambda value: self.update_selected_script({"run_mode": value})
+        )
+        self.view.run_interval_enabled_checkbox.toggled.connect(
+            lambda value: self.update_selected_script({"run_interval_enabled": bool(value)})
+        )
+        self.view.run_interval_value_spinbox.valueChanged.connect(
+            lambda value: self.update_selected_script({"run_interval_value": int(value)})
+        )
+        self.view.run_interval_unit_combo.currentTextChanged.connect(
+            lambda value: self.update_selected_script({"run_interval_unit": value})
         )
         self.view.print_message_checkbox.toggled.connect(
             lambda value: self.update_selected_script({"print_execution_message": bool(value)})
@@ -118,6 +133,36 @@ class StartupScriptsController:
         self.refresh_runtime_callback()
         self.refresh_view()
         self.view.emit_status_message("Removed the startup script.")
+
+    def import_backup(self):
+        """Imports a complete startup-script setup after confirmation.
+
+        The selected backup replaces every current startup-script configuration.
+        """
+        file_path = self.view.choose_backup_import_path()
+        if not file_path or not self.view.confirm_backup_import():
+            return
+        try:
+            imported_scripts = self.model.import_backup(file_path)
+        except Exception as exception:
+            self.view.emit_status_message(f"Unable to import backup: {exception}", status="error")
+            return
+        self.selected_script_id = ""
+        self.refresh_runtime_callback()
+        self.refresh_view()
+        self.view.emit_status_message(f"Imported {len(imported_scripts)} startup script(s) from backup.")
+
+    def export_backup(self):
+        """Exports the complete startup-script setup to a JSON backup."""
+        file_path = self.view.choose_backup_export_path()
+        if not file_path:
+            return
+        try:
+            written_path = self.model.export_backup(file_path)
+        except Exception as exception:
+            self.view.emit_status_message(f"Unable to export backup: {exception}", status="error")
+            return
+        self.view.emit_status_message(f"Exported Startup Scripts backup: {written_path}")
 
     def move_selected_script(self, offset):
         """Moves the selected script within the persisted execution order.
@@ -237,6 +282,7 @@ class StartupScriptsController:
             script,
             event_name=runtime.EVENT_MANUAL,
             ignore_run_mode=True,
+            ignore_run_interval=True,
         ):
             self.view.emit_status_message(f"Ran '{script.get('name') or 'Startup Script'}'.")
         else:

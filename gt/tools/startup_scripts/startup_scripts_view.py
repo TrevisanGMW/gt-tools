@@ -40,10 +40,16 @@ class StartupScriptsView(metaclass=MayaWindowMeta):
         self.move_up_button = None
         self.move_down_button = None
         self.remove_script_button = None
+        self.import_backup_button = None
+        self.export_backup_button = None
         self.details_widget = None
         self.name_field = None
         self.enabled_checkbox = None
         self.run_mode_combo = None
+        self.run_mode_tooltips = {}
+        self.run_interval_enabled_checkbox = None
+        self.run_interval_value_spinbox = None
+        self.run_interval_unit_combo = None
         self.print_message_checkbox = None
         self.inline_editor = None
         self.external_files_list = None
@@ -56,6 +62,8 @@ class StartupScriptsView(metaclass=MayaWindowMeta):
         self.run_selected_button = None
         self.status_label = None
         self._build_widgets()
+        self.run_mode_combo.currentTextChanged.connect(self._update_run_mode_tooltip)
+        self.run_interval_enabled_checkbox.toggled.connect(self._set_run_interval_controls_enabled)
 
     def _build_widgets(self):
         """Builds the Startup Scripts window controls."""
@@ -64,8 +72,9 @@ class StartupScriptsView(metaclass=MayaWindowMeta):
         main_layout.setSpacing(8)
 
         description_label = ui_qt.QtWidgets.QLabel(
-            "Configure Python to run after GT Tools loads. Sources run inline code first, then "
-            "external files, then every Python file in configured directories."
+            "Configure Python to run after GT Tools loads in Interactive Maya or mayapy, or after "
+            "Interactive Maya opens a file. Sources run inline code first, then external files, then every "
+            "Python file in configured directories."
         )
         description_label.setWordWrap(True)
         description_label.setStyleSheet("color: #BDBDBD;")
@@ -116,7 +125,7 @@ class StartupScriptsView(metaclass=MayaWindowMeta):
         first_row = ui_qt.QtWidgets.QHBoxLayout()
         self.add_script_button = self._create_button("Add", ui_res_lib.Icon.ui_add, "Add a startup script.")
         self.duplicate_script_button = self._create_button(
-            "Duplicate", ui_res_lib.Icon.ui_copy_text, "Duplicate the selected startup script."
+            "Duplicate", ui_res_lib.Icon.ui_copy_text_bright, "Duplicate the selected startup script."
         )
         first_row.addWidget(self.add_script_button)
         first_row.addWidget(self.duplicate_script_button)
@@ -136,6 +145,21 @@ class StartupScriptsView(metaclass=MayaWindowMeta):
         second_row.addWidget(self.move_down_button)
         second_row.addWidget(self.remove_script_button)
         layout.addLayout(second_row)
+
+        backup_row = ui_qt.QtWidgets.QHBoxLayout()
+        self.import_backup_button = self._create_button(
+            "Import Backup",
+            ui_res_lib.Icon.ui_open,
+            "Replace all startup-script configurations with a validated JSON backup.",
+        )
+        self.export_backup_button = self._create_button(
+            "Export Backup",
+            ui_res_lib.Icon.ui_save,
+            "Save all startup-script configurations to a portable JSON backup.",
+        )
+        backup_row.addWidget(self.import_backup_button)
+        backup_row.addWidget(self.export_backup_button)
+        layout.addLayout(backup_row)
         return container
 
     def _build_details_widget(self):
@@ -158,7 +182,17 @@ class StartupScriptsView(metaclass=MayaWindowMeta):
         self.enabled_checkbox = ui_qt.QtWidgets.QCheckBox("Enabled")
         self.enabled_checkbox.setToolTip("Disabled configurations never execute.")
         self.run_mode_combo = ui_qt.QtWidgets.QComboBox()
-        self.run_mode_combo.setToolTip("Choose when this configuration runs.")
+        self.run_mode_combo.setToolTip("Choose when this configuration runs. Hover an option for details.")
+        self.run_interval_enabled_checkbox = ui_qt.QtWidgets.QCheckBox("Limit run frequency")
+        self.run_interval_enabled_checkbox.setToolTip(
+            "When disabled, the script runs at every matching event without checking dates."
+        )
+        self.run_interval_value_spinbox = ui_qt.QtWidgets.QSpinBox()
+        self.run_interval_value_spinbox.setRange(1, 9999)
+        self.run_interval_value_spinbox.setValue(1)
+        self.run_interval_value_spinbox.setToolTip("Number of calendar units to wait between successful runs.")
+        self.run_interval_unit_combo = ui_qt.QtWidgets.QComboBox()
+        self.run_interval_unit_combo.setToolTip("Calendar unit used by the run-frequency limit.")
         self.print_message_checkbox = ui_qt.QtWidgets.QCheckBox("Print execution messages")
         self.print_message_checkbox.setToolTip(
             "Print clear output-window messages before and after this configuration runs."
@@ -166,9 +200,23 @@ class StartupScriptsView(metaclass=MayaWindowMeta):
         settings_layout.addWidget(ui_qt.QtWidgets.QLabel("Name:"), 0, 0)
         settings_layout.addWidget(self.name_field, 0, 1)
         settings_layout.addWidget(self.enabled_checkbox, 0, 2)
-        settings_layout.addWidget(ui_qt.QtWidgets.QLabel("Run when:"), 1, 0)
+        run_when_label = ui_qt.QtWidgets.QLabel("Run when:")
+        run_when_label.setToolTip("Choose the Maya contexts and events that run this configuration.")
+        settings_layout.addWidget(run_when_label, 1, 0)
         settings_layout.addWidget(self.run_mode_combo, 1, 1)
         settings_layout.addWidget(self.print_message_checkbox, 1, 2)
+        run_frequency_label = ui_qt.QtWidgets.QLabel("Run frequency:")
+        run_frequency_label.setToolTip("Optionally limits how often this configuration may run.")
+        run_frequency_layout = ui_qt.QtWidgets.QHBoxLayout()
+        run_frequency_layout.setContentsMargins(0, 0, 0, 0)
+        run_frequency_layout.addWidget(self.run_interval_enabled_checkbox)
+        run_frequency_layout.addWidget(ui_qt.QtWidgets.QLabel("Every"))
+        run_frequency_layout.addWidget(self.run_interval_value_spinbox)
+        run_frequency_layout.addWidget(self.run_interval_unit_combo)
+        run_frequency_layout.addStretch()
+        settings_layout.addWidget(run_frequency_label, 2, 0)
+        settings_layout.addLayout(run_frequency_layout, 2, 1, 1, 2)
+        self._set_run_interval_controls_enabled(False)
         layout.addWidget(settings_group)
 
         inline_group = ui_qt.QtWidgets.QGroupBox("Inline Python")
@@ -190,7 +238,7 @@ class StartupScriptsView(metaclass=MayaWindowMeta):
             parent=inline_group,
             owner=self,
             placeholder="Write Python code here, or load an example.",
-            tooltip="Python run after GT Tools is fully loaded in Maya.",
+            tooltip="Python run after GT Tools is fully loaded for the selected Maya context or event.",
         )
         inline_layout.addWidget(self.inline_editor, 1)
         layout.addWidget(inline_group, 1)
@@ -277,16 +325,53 @@ class StartupScriptsView(metaclass=MayaWindowMeta):
         button.setToolTip(tooltip)
         return button
 
-    def set_run_modes(self, run_modes):
+    def set_run_modes(self, run_modes, run_mode_tooltips=None):
         """Populates the available configuration triggers.
 
         Args:
             run_modes (list): Ordered trigger display values.
+            run_mode_tooltips (dict, optional): Help text indexed by trigger display value.
         """
         self.run_mode_combo.blockSignals(True)
         self.run_mode_combo.clear()
-        self.run_mode_combo.addItems(run_modes or [])
+        self.run_mode_tooltips = dict(run_mode_tooltips or {})
+        for run_mode in run_modes or []:
+            self.run_mode_combo.addItem(run_mode)
+            item_index = self.run_mode_combo.count() - 1
+            tooltip = self.run_mode_tooltips.get(run_mode, "")
+            self.run_mode_combo.setItemData(item_index, tooltip, ui_qt.QtLib.ItemDataRole.ToolTipRole)
         self.run_mode_combo.blockSignals(False)
+        self._update_run_mode_tooltip(self.run_mode_combo.currentText())
+
+    def _update_run_mode_tooltip(self, run_mode):
+        """Updates the run-mode combobox tooltip for its active option.
+
+        Args:
+            run_mode (str): Active run-mode display value.
+        """
+        tooltip = self.run_mode_tooltips.get(run_mode)
+        if tooltip:
+            self.run_mode_combo.setToolTip(tooltip)
+
+    def set_run_interval_units(self, run_interval_units):
+        """Populates calendar units used by the optional run-frequency limit.
+
+        Args:
+            run_interval_units (list): Ordered calendar-unit display values.
+        """
+        self.run_interval_unit_combo.blockSignals(True)
+        self.run_interval_unit_combo.clear()
+        self.run_interval_unit_combo.addItems(run_interval_units or [])
+        self.run_interval_unit_combo.blockSignals(False)
+
+    def _set_run_interval_controls_enabled(self, enabled):
+        """Enables or disables optional run-frequency inputs.
+
+        Args:
+            enabled (bool): Whether the frequency limit is enabled.
+        """
+        self.run_interval_value_spinbox.setEnabled(bool(enabled))
+        self.run_interval_unit_combo.setEnabled(bool(enabled))
 
     def set_scripts(self, scripts, selected_script_id=""):
         """Rebuilds the configuration list while retaining the selected script.
@@ -339,6 +424,9 @@ class StartupScriptsView(metaclass=MayaWindowMeta):
         self.name_field.blockSignals(True)
         self.enabled_checkbox.blockSignals(True)
         self.run_mode_combo.blockSignals(True)
+        self.run_interval_enabled_checkbox.blockSignals(True)
+        self.run_interval_value_spinbox.blockSignals(True)
+        self.run_interval_unit_combo.blockSignals(True)
         self.print_message_checkbox.blockSignals(True)
         self.inline_editor.python_edit.blockSignals(True)
         self.inline_editor.font_size_slider.blockSignals(True)
@@ -348,6 +436,10 @@ class StartupScriptsView(metaclass=MayaWindowMeta):
         self.name_field.setText(script.get("name") or "")
         self.enabled_checkbox.setChecked(script.get("enabled", True))
         self.run_mode_combo.setCurrentText(script.get("run_mode") or "")
+        self.run_interval_enabled_checkbox.setChecked(script.get("run_interval_enabled", False))
+        self.run_interval_value_spinbox.setValue(int(script.get("run_interval_value", 1) or 1))
+        self.run_interval_unit_combo.setCurrentText(script.get("run_interval_unit") or "")
+        self._set_run_interval_controls_enabled(self.run_interval_enabled_checkbox.isChecked())
         self.print_message_checkbox.setChecked(script.get("print_execution_message", True))
         self.inline_editor.set_text(script.get("script_text") or "")
         self.inline_editor.font_size_slider.setValue(int(script.get("font_size", 14) or 14))
@@ -358,6 +450,9 @@ class StartupScriptsView(metaclass=MayaWindowMeta):
         self.name_field.blockSignals(False)
         self.enabled_checkbox.blockSignals(False)
         self.run_mode_combo.blockSignals(False)
+        self.run_interval_enabled_checkbox.blockSignals(False)
+        self.run_interval_value_spinbox.blockSignals(False)
+        self.run_interval_unit_combo.blockSignals(False)
         self.print_message_checkbox.blockSignals(False)
         self.inline_editor.python_edit.blockSignals(False)
         self.inline_editor.font_size_slider.blockSignals(False)
@@ -437,6 +532,34 @@ class StartupScriptsView(metaclass=MayaWindowMeta):
             self.get_dialog_starting_directory(),
         )
 
+    def choose_backup_import_path(self):
+        """Shows a dialog to select a Startup Scripts JSON backup.
+
+        Returns:
+            str: Selected JSON backup path, or an empty string.
+        """
+        file_path, _ = ui_qt.QtWidgets.QFileDialog.getOpenFileName(
+            self,
+            "Import Startup Scripts Backup",
+            self.get_dialog_starting_directory(),
+            "Startup Scripts Backup (*.json);;JSON Files (*.json)",
+        )
+        return file_path or ""
+
+    def choose_backup_export_path(self):
+        """Shows a dialog to choose a Startup Scripts JSON backup destination.
+
+        Returns:
+            str: Selected JSON backup path, or an empty string.
+        """
+        file_path, _ = ui_qt.QtWidgets.QFileDialog.getSaveFileName(
+            self,
+            "Export Startup Scripts Backup",
+            os.path.join(self.get_dialog_starting_directory(), "startup_scripts_backup.json"),
+            "Startup Scripts Backup (*.json);;JSON Files (*.json)",
+        )
+        return file_path or ""
+
     def set_sample_scripts(self, samples):
         """Rebuilds the packaged examples menu.
 
@@ -508,6 +631,21 @@ class StartupScriptsView(metaclass=MayaWindowMeta):
             self,
             "Remove Startup Script?",
             f"Remove the persistent startup script '{script_name}'?",
+            ui_qt.QtLib.StandardButton.Yes | ui_qt.QtLib.StandardButton.No,
+            ui_qt.QtLib.StandardButton.No,
+        )
+        return result == ui_qt.QtLib.StandardButton.Yes
+
+    def confirm_backup_import(self):
+        """Confirms replacement of the complete persistent startup-script setup.
+
+        Returns:
+            bool: True when the backup may replace the current setup.
+        """
+        result = ui_qt.QtWidgets.QMessageBox.question(
+            self,
+            "Import Startup Scripts Backup?",
+            "Importing a backup replaces every current startup-script configuration. Continue?",
             ui_qt.QtLib.StandardButton.Yes | ui_qt.QtLib.StandardButton.No,
             ui_qt.QtLib.StandardButton.No,
         )
