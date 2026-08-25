@@ -388,20 +388,23 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
             empty_label.setStyleSheet("color: grey;")
             self.external_scripts_layout.addWidget(empty_label)
             return
+        entry_count = len(entries)
         for script_index, entry in enumerate(entries):
-            self.add_external_script_row(script_index, entry)
+            self.add_external_script_row(script_index, entry, entry_count)
 
-    def add_external_script_row(self, script_index, entry):
+    def add_external_script_row(self, script_index, entry, entry_count=None):
         """Adds one editable external script row.
 
         Args:
             script_index (int): Zero-based entry index.
             entry (dict): External script settings.
+            entry_count (int, optional): Number of configured external script entries.
 
         Returns:
             dict: Created row widgets.
         """
         tooltip = "External Python file to run for every incoming file."
+        entry_count = entry_count if entry_count is not None else len(self.task.get_external_script_entries())
         row_widget = ui_qt.QtWidgets.QWidget()
         layout = ui_qt.QtWidgets.QHBoxLayout(row_widget)
         layout.setContentsMargins(0, 0, 0, 3)
@@ -445,6 +448,21 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
         layout.addWidget(open_button)
         layout.addWidget(browse_button)
         layout.addWidget(edit_button)
+        move_up_button = None
+        move_down_button = None
+        if entry_count > 1:
+            move_up_button = self.create_move_button(
+                icon_path=ui_res_lib.Icon.ui_arrow_up,
+                tooltip="Move this external script up in the execution order.",
+                enabled=script_index > 0,
+            )
+            move_down_button = self.create_move_button(
+                icon_path=ui_res_lib.Icon.ui_arrow_down,
+                tooltip="Move this external script down in the execution order.",
+                enabled=script_index < entry_count - 1,
+            )
+            layout.addWidget(move_up_button)
+            layout.addWidget(move_down_button)
         layout.addWidget(delete_button)
         field.textChanged.connect(
             partial(
@@ -468,6 +486,14 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
                 self.get_resolved_field_path(path_field)
             )
         )
+        if move_up_button:
+            move_up_button.clicked.connect(
+                lambda checked=False, index=script_index: self.move_external_script(index, -1)
+            )
+        if move_down_button:
+            move_down_button.clicked.connect(
+                lambda checked=False, index=script_index: self.move_external_script(index, 1)
+            )
         delete_button.clicked.connect(lambda checked=False, index=script_index: self.remove_external_script(index))
         self.external_scripts_layout.addWidget(row_widget)
         row_widgets = {
@@ -478,6 +504,8 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
             "open_button": open_button,
             "browse_button": browse_button,
             "edit_button": edit_button,
+            "move_up_button": move_up_button,
+            "move_down_button": move_down_button,
             "delete_button": delete_button,
         }
         self.script_path_widgets.append(row_widgets)
@@ -523,6 +551,18 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
         self.task.set_external_script_entries(entries)
         self.refresh_external_script_rows()
 
+    def move_external_script(self, script_index, index_offset):
+        """Moves an external script row and refreshes its displayed order.
+
+        Args:
+            script_index (int): Zero-based index of the external script to move.
+            index_offset (int): Positive or negative number of positions to move.
+        """
+        if not self.task.move_external_script_entry(script_index, index_offset):
+            return
+        self.refresh_external_script_rows()
+        self.emit_status_message("Updated external Python script order.")
+
     def add_batch_directory(self):
         """Adds a batch script directory entry with its default path."""
         entries = self.task.get_batch_directory_entries()
@@ -545,20 +585,23 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
             empty_label.setStyleSheet("color: grey;")
             self.batch_directories_layout.addWidget(empty_label)
             return
+        entry_count = len(entries)
         for directory_index, entry in enumerate(entries):
-            self.add_batch_directory_row(directory_index, entry)
+            self.add_batch_directory_row(directory_index, entry, entry_count)
 
-    def add_batch_directory_row(self, directory_index, entry):
+    def add_batch_directory_row(self, directory_index, entry, entry_count=None):
         """Adds an expandable two-row batch-directory entry.
 
         Args:
             directory_index (int): Zero-based directory index.
             entry (dict): Batch-directory settings.
+            entry_count (int, optional): Number of configured batch-directory entries.
 
         Returns:
             dict: Created row widgets.
         """
         tooltip = "Folder containing Python scripts. Its scripts run before later directories."
+        entry_count = entry_count if entry_count is not None else len(self.task.get_batch_directory_entries())
         container = ui_qt.QtWidgets.QWidget()
         container_layout = ui_qt.QtWidgets.QVBoxLayout(container)
         container_layout.setContentsMargins(0, 0, 0, 0)
@@ -593,6 +636,21 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
         path_row.addWidget(info_button)
         path_row.addWidget(open_button)
         path_row.addWidget(browse_button)
+        move_up_button = None
+        move_down_button = None
+        if entry_count > 1:
+            move_up_button = self.create_move_button(
+                icon_path=ui_res_lib.Icon.ui_arrow_up,
+                tooltip="Move this batch directory up in the execution order.",
+                enabled=directory_index > 0,
+            )
+            move_down_button = self.create_move_button(
+                icon_path=ui_res_lib.Icon.ui_arrow_down,
+                tooltip="Move this batch directory down in the execution order.",
+                enabled=directory_index < entry_count - 1,
+            )
+            path_row.addWidget(move_up_button)
+            path_row.addWidget(move_down_button)
         path_row.addWidget(expand_button)
         container_layout.addLayout(path_row)
 
@@ -647,6 +705,14 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
                 button, widget, is_checked
             )
         )
+        if move_up_button:
+            move_up_button.clicked.connect(
+                lambda checked=False, index=directory_index: self.move_batch_directory(index, -1)
+            )
+        if move_down_button:
+            move_down_button.clicked.connect(
+                lambda checked=False, index=directory_index: self.move_batch_directory(index, 1)
+            )
         delete_button.clicked.connect(
             lambda checked=False, index=directory_index: self.remove_batch_directory(index)
         )
@@ -657,6 +723,8 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
             "info_button": info_button,
             "open_button": open_button,
             "browse_button": browse_button,
+            "move_up_button": move_up_button,
+            "move_down_button": move_down_button,
             "expand_button": expand_button,
             "filters_row": filters_row,
             "include_field": include_field,
@@ -720,6 +788,38 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
         self.task.set_batch_directory_entries(entries)
         self.refresh_batch_directory_rows()
         self.refresh_script_list(update_status=True)
+
+    def move_batch_directory(self, directory_index, index_offset):
+        """Moves a batch-directory row and refreshes the detected scripts.
+
+        Args:
+            directory_index (int): Zero-based index of the directory to move.
+            index_offset (int): Positive or negative number of positions to move.
+        """
+        if not self.task.move_batch_directory_entry(directory_index, index_offset):
+            return
+        self.refresh_batch_directory_rows()
+        self.refresh_script_list(update_status=True)
+
+    @staticmethod
+    def create_move_button(icon_path, tooltip, enabled):
+        """Creates a compact script-order button.
+
+        Args:
+            icon_path (str): Resource path for the arrow icon.
+            tooltip (str): User-facing button tooltip.
+            enabled (bool): Whether the movement is valid at the current list edge.
+
+        Returns:
+            QPushButton: Configured move button.
+        """
+        button = ui_qt.QtWidgets.QPushButton()
+        button.setIcon(ui_qt.QtGui.QIcon(icon_path))
+        button.setIconSize(ui_qt.QtCore.QSize(16, 16))
+        button.setMinimumWidth(28)
+        button.setEnabled(bool(enabled))
+        button.setToolTip(tooltip)
+        return button
 
     def set_script_mode(self, value):
         """Sets the current script mode and refreshes visible controls.

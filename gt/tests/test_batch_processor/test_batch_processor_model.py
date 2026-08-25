@@ -1356,6 +1356,31 @@ class TestBatchProcessorModel(unittest.TestCase):
         expected = ["02_second.py", "03_third.py"]
         self.assertEqual(expected, result)
 
+    def test_python_external_script_entries_move_without_cycling(self):
+        """Ensures external script order can change while list edges stay fixed."""
+        script_task = modules.TaskPythonScript(
+            settings={
+                "external_scripts": [
+                    {"path": "first.py", "enabled": True},
+                    {"path": "second.py", "enabled": True},
+                    {"path": "third.py", "enabled": True},
+                ]
+            }
+        )
+
+        expected = True
+        result = script_task.move_external_script_entry(1, -1)
+        self.assertEqual(expected, result)
+        expected = ["second.py", "first.py", "third.py"]
+        result = [entry.get("path") for entry in script_task.get_external_script_entries()]
+        self.assertEqual(expected, result)
+        expected = False
+        result = script_task.move_external_script_entry(0, -1)
+        self.assertEqual(expected, result)
+        expected = ["second.py", "first.py", "third.py"]
+        result = [entry.get("path") for entry in script_task.get_external_script_entries()]
+        self.assertEqual(expected, result)
+
     def test_legacy_python_scripts_folder_deserializes_as_python_batch(self):
         scripts_dir = os.path.join(self.temp_dir, "scripts")
         os.makedirs(scripts_dir)
@@ -1434,6 +1459,31 @@ class TestBatchProcessorModel(unittest.TestCase):
         ]
 
         expected = ["01_first.py", "02_second.py", "01_third.py"]
+        self.assertEqual(expected, result)
+
+    def test_python_batch_directory_entries_move_without_cycling(self):
+        """Ensures batch-directory order changes independently from script sorting."""
+        script_task = modules.TaskPythonScript(
+            settings={
+                "batch_directories": [
+                    {"path": "first", "include_patterns": "", "exclude_patterns": ""},
+                    {"path": "second", "include_patterns": "", "exclude_patterns": ""},
+                    {"path": "third", "include_patterns": "", "exclude_patterns": ""},
+                ]
+            }
+        )
+
+        expected = True
+        result = script_task.move_batch_directory_entry(1, 1)
+        self.assertEqual(expected, result)
+        expected = ["first", "third", "second"]
+        result = [entry.get("path") for entry in script_task.get_batch_directory_entries()]
+        self.assertEqual(expected, result)
+        expected = False
+        result = script_task.move_batch_directory_entry(2, 1)
+        self.assertEqual(expected, result)
+        expected = ["first", "third", "second"]
+        result = [entry.get("path") for entry in script_task.get_batch_directory_entries()]
         self.assertEqual(expected, result)
 
     def test_python_task_executes_inline_script_with_context(self):
@@ -1834,6 +1884,18 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertIs(result.get("environment_variables"), result.get("env"))
         self.assertEqual("Animation", result.get("export_mode"))
         self.assertEqual("test", result.get("runner"))
+
+    def test_fbx_export_validation_reports_missing_or_empty_output(self):
+        """Ensures a silent FBX exporter failure becomes a task error."""
+        export_task = modules.create_task(constants.TaskType.FBX_EXPORT)
+        missing_path = os.path.join(self.temp_dir, "missing.fbx")
+        empty_path = os.path.join(self.temp_dir, "empty.fbx")
+        self._write_file(empty_path, "")
+
+        with self.assertRaisesRegex(RuntimeError, "did not create the expected file"):
+            export_task.validate_exported_file(missing_path)
+        with self.assertRaisesRegex(RuntimeError, "created an empty file"):
+            export_task.validate_exported_file(empty_path)
 
     def test_run_validator_instance_forwards_node_type(self):
         calls = []
@@ -3861,6 +3923,27 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertEqual("succeeded", result.status)
         self.assertTrue(os.path.isfile(file_path))
         self.assertTrue(os.path.isfile(report_path))
+
+    def test_delete_path_project_validation_ignores_hidden_common_io_paths(self):
+        """Ensures Delete Path validates only its dedicated delete path setting."""
+        delete_dir = os.path.join(self.temp_dir, "generated")
+        os.makedirs(delete_dir)
+        model = batch_processor_model.BatchProcessorModel()
+        model.project_file_path = os.path.join(self.temp_dir, "project.batch")
+        model.get_input_tasks()[0].enabled = False
+        model.add_task(
+            modules.TaskDeleteProjectFiles(
+                settings={
+                    "source_path": "",
+                    "target_path": "",
+                    "delete_path": delete_dir,
+                }
+            )
+        )
+
+        expected = []
+        result = model.validate_project(task_list=model.get_enabled_tasks()).errors
+        self.assertEqual(expected, result)
 
     def _write_file(self, file_path, content):
         """Writes a small test file.

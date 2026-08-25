@@ -23,6 +23,26 @@ class TaskDeleteProjectFiles(task_base.BatchTask):
     is_delete_task = True
     supports_run_once_after_jobs = True
 
+    def uses_incoming_files(self):
+        """Makes Delete Path preserve the work items from earlier tasks.
+
+        Delete Path acts only on its dedicated ``delete_path`` setting. It does
+        not discover source files, but passing incoming items through allows a
+        later task to keep using the same processing stream.
+
+        Returns:
+            bool: Always True because this task never uses a source path.
+        """
+        return True
+
+    def writes_to_target_path(self):
+        """Prevents validation of the hidden common target path.
+
+        Returns:
+            bool: Always False because this task has no task output directory.
+        """
+        return False
+
     def get_default_settings(self):
         """Gets default delete task settings.
 

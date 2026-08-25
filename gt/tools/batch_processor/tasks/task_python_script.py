@@ -177,6 +177,22 @@ class TaskPythonScript(task_base.BatchTask):
         """
         self.settings["external_scripts"] = self._normalize_external_script_entries(entries)
 
+    def move_external_script_entry(self, script_index, index_offset):
+        """Moves one external script entry by the requested list offset.
+
+        Args:
+            script_index (int): Zero-based index of the script to move.
+            index_offset (int): Positive or negative number of positions to move.
+
+        Returns:
+            bool: True when the script entry changed position.
+        """
+        entries = self.get_external_script_entries()
+        if not self._move_ordered_entry(entries, script_index, index_offset):
+            return False
+        self.set_external_script_entries(entries)
+        return True
+
     def get_batch_directory_entries(self):
         """Gets ordered batch-directory entries.
 
@@ -194,6 +210,44 @@ class TaskPythonScript(task_base.BatchTask):
             entries (list): Batch-directory entries to store.
         """
         self.settings["batch_directories"] = self._normalize_batch_directory_entries(entries)
+
+    def move_batch_directory_entry(self, directory_index, index_offset):
+        """Moves one batch-directory entry by the requested list offset.
+
+        Args:
+            directory_index (int): Zero-based index of the directory to move.
+            index_offset (int): Positive or negative number of positions to move.
+
+        Returns:
+            bool: True when the directory entry changed position.
+        """
+        entries = self.get_batch_directory_entries()
+        if not self._move_ordered_entry(entries, directory_index, index_offset):
+            return False
+        self.set_batch_directory_entries(entries)
+        return True
+
+    @staticmethod
+    def _move_ordered_entry(entries, entry_index, index_offset):
+        """Swaps an ordered entry with a nearby entry without cycling the list.
+
+        Args:
+            entries (list): Mutable list of ordered entry dictionaries.
+            entry_index (int): Zero-based index of the entry to move.
+            index_offset (int): Positive or negative number of positions to move.
+
+        Returns:
+            bool: True when an entry was moved.
+        """
+        if not isinstance(entry_index, int) or not isinstance(index_offset, int):
+            return False
+        if entry_index < 0 or entry_index >= len(entries) or not index_offset:
+            return False
+        target_index = max(0, min(len(entries) - 1, entry_index + index_offset))
+        if target_index == entry_index:
+            return False
+        entries[entry_index], entries[target_index] = entries[target_index], entries[entry_index]
+        return True
 
     @staticmethod
     def normalize_script_mode(script_mode):

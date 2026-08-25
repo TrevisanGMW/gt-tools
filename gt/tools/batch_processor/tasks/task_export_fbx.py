@@ -209,8 +209,13 @@ class TaskExportFbx(task_base.BatchTask):
         output_dir = os.path.dirname(output_path)
         if output_dir and not os.path.isdir(output_dir):
             os.makedirs(output_dir)
+        export_selection = bool(self.settings.get("export_selection", False))
+        if export_selection and not (cmds.ls(selection=True, long=True) or []):
+            raise RuntimeError(
+                "FBX Export Selection is enabled, but the loaded scene has no selected nodes to export."
+            )
         with utils_fbx.FbxExporter(
-            selection=bool(self.settings.get("export_selection", False)),
+            selection=export_selection,
             key_reducer=bool(self.settings.get("key_reducer", False)),
         ) as fbx_exporter:
             export_mode = self.settings.get("export_mode") or FBX_EXPORT_MODE_ANIMATION
@@ -227,7 +232,24 @@ class TaskExportFbx(task_base.BatchTask):
                 fbx_exporter.set_preferences_animation(start_frame=frame_start, end_frame=frame_end)
             cmds.FBXExportInAscii("-v", bool(self.settings.get("ascii", False)))
             cmds.FBXExportGenerateLog("-v", bool(self.settings.get("generate_log", False)))
+            # A false selection setting invokes Maya's all-scene FBX export path.
             fbx_exporter.export_file(path=output_path)
+        self.validate_exported_file(output_path)
+
+    @staticmethod
+    def validate_exported_file(output_path):
+        """Ensures the FBX exporter created a usable output file.
+
+        Args:
+            output_path (str): Expected FBX output path.
+
+        Raises:
+            RuntimeError: If no file was created or the created file is empty.
+        """
+        if not os.path.isfile(output_path):
+            raise RuntimeError(f"FBX export did not create the expected file: {output_path}")
+        if os.path.getsize(output_path) <= 0:
+            raise RuntimeError(f"FBX export created an empty file: {output_path}")
 
     @staticmethod
     def validate_frame_value(result, value, label):

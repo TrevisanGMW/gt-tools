@@ -335,6 +335,8 @@ class SingleInstanceBatchRunner:
                 "total_items": len(work_items),
                 "work_items": list(work_items),
                 "run_id": self.run_id,
+                "is_last_item": index == len(work_items),
+                "cleanup_report_parts": True,
             }
             self.tracker.record_message(
                 "[INFO] - ({0}) - Processing {1}/{2}: {3}".format(

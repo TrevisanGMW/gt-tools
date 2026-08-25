@@ -1,5 +1,6 @@
 """Qt regression tests for the Batch Processor user interface."""
 
+import json
 import os
 import shutil
 import sys
@@ -101,6 +102,210 @@ class TestBatchProcessorUi(unittest.TestCase):
         selection_changed.assert_not_called()
         expected = self.task.id
         self.assertEqual(expected, self.view.get_selected_task_id())
+
+    def test_controller_modified_state_detects_nested_extra_data_changes(self):
+        """Ensures clean-state comparisons retain an independent data snapshot."""
+        controller = batch_processor_controller.BatchProcessorController.__new__(
+            batch_processor_controller.BatchProcessorController
+        )
+        controller.model = self.model
+        self.model.extra_data["legacy_settings"] = {"version": 1}
+
+        controller.mark_project_clean()
+
+        self.assertFalse(controller.has_unsaved_changes())
+        self.model.extra_data["legacy_settings"]["version"] = 2
+        self.assertTrue(controller.has_unsaved_changes())
+
+    def test_clean_project_does_not_open_unsaved_changes_dialog(self):
+        """Ensures closing or loading a clean project requires no confirmation."""
+        controller = batch_processor_controller.BatchProcessorController.__new__(
+            batch_processor_controller.BatchProcessorController
+        )
+        controller.model = self.model
+        controller.mark_project_clean()
+
+        with mock.patch.object(batch_processor_controller.ui_qt.QtWidgets, "QMessageBox") as message_box:
+            result = controller.show_unsaved_changes_warning_dialog(
+                window=self.view,
+                is_close_event=False,
+            )
+
+        self.assertFalse(result)
+        message_box.assert_not_called()
+
+    def test_view_close_event_displays_unsaved_changes_dialog(self):
+        """Ensures a modified standalone view can cancel its native close event."""
+        controller = batch_processor_controller.BatchProcessorController.__new__(
+            batch_processor_controller.BatchProcessorController
+        )
+        controller.model = self.model
+        controller.view = self.view
+        controller.mark_project_clean()
+        self.model.project_name = "Modified Batch Project"
+        self.view.set_close_event_function(controller.show_unsaved_changes_warning_dialog)
+
+        save_button = object()
+        dont_save_button = object()
+        cancel_button = object()
+        message_box = mock.MagicMock()
+        message_box.addButton.side_effect = [save_button, dont_save_button, cancel_button]
+        message_box.clickedButton.return_value = cancel_button
+        close_event = ui_qt.QtGui.QCloseEvent()
+
+        with mock.patch.object(
+            batch_processor_controller.ui_qt.QtWidgets,
+            "QMessageBox",
+            return_value=message_box,
+        ):
+            self.view.closeEvent(close_event)
+
+        self.assertFalse(close_event.isAccepted())
+        message_box.exec_.assert_called_once_with()
+        self.view.close_func = None
+
+    def test_view_close_event_matches_auto_rigger_callback_signature(self):
+        """Ensures standalone closes forward the window and native close event."""
+        close_callback = mock.MagicMock(return_value=False)
+        close_event = ui_qt.QtGui.QCloseEvent()
+        self.view.set_close_event_function(close_callback)
+
+        self.view.closeEvent(close_event)
+
+        close_callback.assert_called_once_with(self.view, close_event)
+        self.view.close_func = None
+
+    def test_modified_project_uses_parentless_dialog_when_view_is_stale(self):
+        """Ensures Maya wrapper changes cannot suppress unsaved-changes warnings."""
+        controller = batch_processor_controller.BatchProcessorController.__new__(
+            batch_processor_controller.BatchProcessorController
+        )
+        controller.model = self.model
+        controller.mark_project_clean()
+        self.model.project_name = "Modified Batch Project"
+
+        save_button = object()
+        dont_save_button = object()
+        cancel_button = object()
+        message_box = mock.MagicMock()
+        message_box.addButton.side_effect = [save_button, dont_save_button, cancel_button]
+        message_box.clickedButton.return_value = dont_save_button
+
+        with mock.patch.object(
+            batch_processor_controller.ui_qt_utils,
+            "is_qt_object_valid",
+            return_value=False,
+        ), mock.patch.object(
+            batch_processor_controller.ui_qt.QtWidgets,
+            "QMessageBox",
+            return_value=message_box,
+        ) as message_box_class:
+            result = controller.show_unsaved_changes_warning_dialog(
+                window=self.view,
+                is_close_event=False,
+            )
+
+        self.assertFalse(result)
+        message_box_class.assert_called_once_with(None)
+        message_box.exec_.assert_called_once_with()
+
+    def test_dock_close_event_displays_unsaved_changes_dialog(self):
+        """Ensures the Maya dock close hook invokes the unsaved-changes dialog."""
+        controller = batch_processor_controller.BatchProcessorController.__new__(
+            batch_processor_controller.BatchProcessorController
+        )
+        controller.model = self.model
+        controller.view = self.view
+        controller.mark_project_clean()
+        self.model.project_name = "Modified Batch Project"
+        self.view.set_close_event_function(controller.show_unsaved_changes_warning_dialog)
+
+        save_button = object()
+        dont_save_button = object()
+        cancel_button = object()
+        message_box = mock.MagicMock()
+        message_box.addButton.side_effect = [save_button, dont_save_button, cancel_button]
+        message_box.clickedButton.return_value = dont_save_button
+
+        with mock.patch.object(
+            batch_processor_controller.ui_qt.QtWidgets,
+            "QMessageBox",
+            return_value=message_box,
+        ):
+            self.view.dockCloseEventTriggered()
+
+        message_box.exec_.assert_called_once_with()
+        self.view.close_func = None
+
+    def test_dock_close_event_matches_auto_rigger_callback_signature(self):
+        """Ensures docked closes forward the view using Auto Rigger's keyword form."""
+        close_callback = mock.MagicMock(return_value=False)
+        self.view.set_close_event_function(close_callback)
+
+        self.view.dockCloseEventTriggered()
+
+        close_callback.assert_called_once_with(window=self.view)
+        self.view.close_func = None
+
+    def test_host_close_event_uses_the_view_close_callback(self):
+        """Ensures a Maya workspace-control host cannot bypass the close callback."""
+        host_window = ui_qt.QtWidgets.QDialog()
+        self.view.setParent(host_window)
+        close_callback = mock.MagicMock(return_value=True)
+        close_event = ui_qt.QtGui.QCloseEvent()
+        self.view.set_close_event_function(close_callback)
+        self.view.install_host_close_event_filter()
+
+        self.application.sendEvent(host_window, close_event)
+
+        close_callback.assert_called_once_with(self.view, close_event)
+        self.assertFalse(close_event.isAccepted())
+        self.application.removeEventFilter(self.view)
+        self.view._close_event_filter_installed = False
+        self.view.close_func = None
+        host_window.setParent(None)
+        host_window.deleteLater()
+
+    def test_loading_project_stops_when_unsaved_changes_are_cancelled(self):
+        """Ensures cancelling the warning preserves the active project."""
+        file_descriptor, project_path = tempfile.mkstemp(suffix=".batch")
+        os.close(file_descriptor)
+        with open(project_path, "w", encoding="utf-8") as project_file:
+            json.dump(self.model.to_dict(), project_file)
+        self.addCleanup(os.remove, project_path)
+
+        controller = batch_processor_controller.BatchProcessorController.__new__(
+            batch_processor_controller.BatchProcessorController
+        )
+        controller.model = self.model
+        controller.view = self.view
+        controller._recent_projects = mock.MagicMock()
+        controller._recent_projects.normalize_path.return_value = project_path
+        controller.show_unsaved_changes_warning_dialog = mock.MagicMock(return_value=True)
+
+        result = controller.load_project_from_path(project_path)
+
+        self.assertFalse(result)
+        self.assertIs(self.model, controller.model)
+        controller.show_unsaved_changes_warning_dialog.assert_called_once_with(
+            window=controller.view,
+            is_close_event=False,
+        )
+
+    def test_saving_loaded_template_uses_save_as(self):
+        """Ensures templates cannot overwrite their source file through Save."""
+        template_project = batch_processor_model.BatchProcessorModel()
+        template_project.project_file_path = None
+        controller = batch_processor_controller.BatchProcessorController.__new__(
+            batch_processor_controller.BatchProcessorController
+        )
+        controller.model = template_project
+        controller.save_project_as = mock.MagicMock(return_value=True)
+
+        result = controller.save_project()
+
+        self.assertTrue(result)
+        controller.save_project_as.assert_called_once_with()
 
     def test_clip_snapshot_summary_displays_file_and_clip_counts(self):
         """Ensures Clip Snapshot displays summary counts from its JSON file."""

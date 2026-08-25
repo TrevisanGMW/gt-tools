@@ -243,7 +243,7 @@ def run_tracker(args):
     scheduler = tracker_scheduler.TrackerScheduler(
         session=session,
         options=args,
-        project=project if segmented else None,
+        project=project,
         segments=scheduler_segments,
     )
     controller = tracker_controller.TrackerController(session=session, scheduler=scheduler, view=view)
