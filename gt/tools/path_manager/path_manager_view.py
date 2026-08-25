@@ -64,7 +64,6 @@ class PathManagerView(metaclass=MayaWindowMeta):
         self.browse_button = ui_qt.QtWidgets.QPushButton()
         self.browse_button.setIcon(ui_qt.QtGui.QIcon(":fileOpen.png"))
         self.browse_button.setToolTip("Select the directory searched by Auto Path Repair.")
-        self.browse_button.setFixedSize(32, 28)
 
         self.path_table = ui_qt.QtWidgets.QTableWidget()
         self.path_table.setColumnCount(len(constants.TABLE_HEADERS))
@@ -101,6 +100,7 @@ class PathManagerView(metaclass=MayaWindowMeta):
         self.search_replace_button.setToolTip("Replace text in every path managed by this tool.")
         self.refresh_button = self._create_action_button("Refresh")
         self.refresh_button.setToolTip("Rebuild the table and check every path again.")
+        self._match_browse_button_size()
 
     def create_layout(self):
         """Creates an edge-padded, responsive Path Manager layout."""
@@ -242,6 +242,19 @@ class PathManagerView(metaclass=MayaWindowMeta):
             ui_qt.QtLib.AlignmentFlag.AlignHCenter | ui_qt.QtLib.AlignmentFlag.AlignVCenter
         )
         self.path_table.setItem(row, constants.TABLE_COLUMN_STATUS, item)
+
+    def _match_browse_button_size(self):
+        """Matches Browse to the footer action-button height as a square.
+
+        The action buttons use a shared stylesheet with vertical padding, so
+        their height must be obtained from Qt instead of a fixed pixel value.
+        The browse icon receives equal inset on all sides to preserve its
+        square visual balance.
+        """
+        button_size = self.repair_button.sizeHint().height()
+        icon_size = max(button_size - (constants.BROWSE_BUTTON_ICON_PADDING * 2), 16)
+        self.browse_button.setFixedSize(button_size, button_size)
+        self.browse_button.setIconSize(ui_qt.QtCore.QSize(icon_size, icon_size))
 
     def _set_data_item(
         self,
