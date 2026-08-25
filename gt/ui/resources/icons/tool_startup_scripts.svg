@@ -7,7 +7,7 @@
     <path d="M203 218l-55 49 55 49M292 218l55 49-55 49M263 202l-28 132"
           fill="none" stroke="#1D1D1D" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
     <path d="M139 383h128" fill="none" stroke="#5B5B5B" stroke-width="18" stroke-linecap="round"/>
-    <path d="M344 348c51 0 92 41 92 92h-35l43 43 43-43h-35c0-70-57-127-127-127-35 0-67 14-90 37l25 25c17-17 39-27 64-27z"
-          fill="#8E8D8D" stroke="#1D1D1D" stroke-width="14" stroke-linejoin="round"/>
+    <path d="M344 338c58 0 106 47 106 106h-35l39 39 39-39h-35c0-78-64-142-142-142-39 0-75 16-102 42l28 28c20-21 48-34 76-34z"
+          fill="#D0D0D0" stroke="#1D1D1D" stroke-width="26" stroke-linejoin="round"/>
   </g>
 </svg>
