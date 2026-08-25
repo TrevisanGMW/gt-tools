@@ -30,15 +30,22 @@ def load_package_menu(package_path=None):
         return
     if package_path not in sys.path:
         sys.path.append(package_path)
+    if not cmds.about(batch=True):
+        try:
+            from gt.tools.package_setup import gt_tools_maya_menu
+
+            gt_tools_maya_menu.load_menu()
+            from gt.tools.package_updater import silently_check_for_updates
+
+            silently_check_for_updates()
+        except Exception as e:
+            logger.warning(f"Unable to load GT Tools menu. Issue: {str(e)}")
     try:
-        from gt.tools.package_setup import gt_tools_maya_menu
-        gt_tools_maya_menu.load_menu()
-        from gt.tools.package_updater import silently_check_for_updates
-        silently_check_for_updates()
         from gt.tools.startup_scripts import startup_scripts_runtime
+
         utils.executeDeferred(startup_scripts_runtime.initialize_startup_scripts)
     except Exception as e:
-        logger.warning(f"Unable to load GT Tools. Issue: {str(e)}")
+        logger.warning(f"Unable to initialize Startup Scripts. Issue: {str(e)}")
 
 
 utils.executeDeferred(load_package_menu)

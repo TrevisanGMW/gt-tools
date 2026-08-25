@@ -4,7 +4,7 @@ Provides a configurable, preference-backed alternative to ``userSetup.py``
 for scripts that should run after GT Tools is available in Maya.
 """
 
-__version_tuple__ = (1, 0, 0)
+__version_tuple__ = (1, 1, 0)
 __version_suffix__ = ""
 __version__ = ".".join(str(number) for number in __version_tuple__) + __version_suffix__
 
