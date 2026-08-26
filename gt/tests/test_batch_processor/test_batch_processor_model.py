@@ -1853,6 +1853,34 @@ class TestBatchProcessorModel(unittest.TestCase):
 
         self.assertTrue(any("no inline script is set" in error for error in result.errors))
 
+    def test_fbx_export_animation_mesh_mode_uses_mesh_animation_preferences(self):
+        """Ensures Animation + Mesh retains animation settings and exports meshes."""
+        export_task = modules.create_task(constants.TaskType.FBX_EXPORT)
+        export_task.settings["export_mode"] = "Animation + Mesh"
+        export_task.settings["auto_frame_range"] = False
+        export_task.settings["frame_start"] = 10
+        export_task.settings["frame_end"] = 30
+        fbx_exporter = mock.Mock()
+
+        export_task.set_export_mode_preferences(fbx_exporter)
+
+        fbx_exporter.set_preferences_animation_with_meshes.assert_called_once_with(
+            start_frame=10.0,
+            end_frame=30.0,
+        )
+        fbx_exporter.set_preferences_animation.assert_not_called()
+        fbx_exporter.set_preferences_skeletal_mesh.assert_not_called()
+        fbx_exporter.set_preferences_mesh.assert_not_called()
+
+    def test_fbx_export_animation_mesh_mode_is_valid(self):
+        """Ensures Animation + Mesh is accepted as an FBX export mode."""
+        export_task = modules.create_task(constants.TaskType.FBX_EXPORT)
+        export_task.settings["export_mode"] = "Animation + Mesh"
+
+        result = export_task.validate(batch_processor_model.BatchProcessorModel())
+
+        self.assertTrue(result.is_valid())
+
     def test_fbx_export_pre_script_receives_export_context(self):
         """Ensures FBX pre-export scripts receive standard and export-specific values."""
         export_task = modules.create_task(constants.TaskType.FBX_EXPORT)
@@ -3923,6 +3951,277 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertEqual("succeeded", result.status)
         self.assertTrue(os.path.isfile(file_path))
         self.assertTrue(os.path.isfile(report_path))
+
+    def test_multi_instance_runner_runs_leading_delete_task_without_input_files(self):
+        input_dir = os.path.join(self.temp_dir, "01_input")
+        delete_dir = os.path.join(self.temp_dir, "02_tasks")
+        os.makedirs(input_dir)
+        os.makedirs(delete_dir)
+        model = batch_processor_model.BatchProcessorModel()
+        model.project_file_path = os.path.join(self.temp_dir, "project.batch")
+        delete_task = model.add_task(
+            modules.TaskDeleteProjectFiles(
+                settings={
+                    "delete_path": delete_dir,
+                    "dry_run": False,
+                    "write_report": False,
+                    "run_once_before_multi_instance": True,
+                }
+            )
+        )
+        model.add_task(modules.TaskRename(settings={"pattern": "processed_{index}"}))
+
+        with mock.patch.object(batch_processor_worker.subprocess, "Popen") as popen_mock:
+            result = batch_processor_worker.MultiInstanceBatchRunner().run(model)
+
+        self.assertEqual("succeeded", result.status)
+        self.assertEqual(0, result.total_files)
+        self.assertFalse(popen_mock.called)
+        self.assertTrue(os.path.isdir(delete_dir))
+        self.assertTrue(any(delete_task.display_name in message for message in result.messages))
+
+    def test_multi_instance_runner_runs_multiple_leading_delete_tasks_without_input_files(self):
+        input_dir = os.path.join(self.temp_dir, "01_input")
+        first_delete_dir = os.path.join(self.temp_dir, "02_tasks")
+        second_delete_dir = os.path.join(self.temp_dir, "03_output")
+        os.makedirs(input_dir)
+        os.makedirs(first_delete_dir)
+        os.makedirs(second_delete_dir)
+        first_deleted_file = os.path.join(first_delete_dir, "stale_task.cache")
+        second_deleted_file = os.path.join(second_delete_dir, "stale_output.cache")
+        self._write_file(first_deleted_file, "delete me")
+        self._write_file(second_deleted_file, "delete me")
+        model = batch_processor_model.BatchProcessorModel()
+        model.project_file_path = os.path.join(self.temp_dir, "project.batch")
+        first_delete_task = model.add_task(
+            modules.TaskDeleteProjectFiles(
+                settings={
+                    "delete_path": first_delete_dir,
+                    "dry_run": False,
+                    "write_report": False,
+                    "run_once_before_multi_instance": True,
+                }
+            )
+        )
+        second_delete_task = model.add_task(
+            modules.TaskDeleteProjectFiles(
+                settings={
+                    "delete_path": second_delete_dir,
+                    "dry_run": False,
+                    "write_report": False,
+                    "run_once_before_multi_instance": True,
+                }
+            )
+        )
+
+        with mock.patch.object(batch_processor_worker.subprocess, "Popen") as popen_mock:
+            result = batch_processor_worker.MultiInstanceBatchRunner().run(model)
+
+        self.assertEqual("succeeded", result.status)
+        self.assertEqual(0, result.total_files)
+        self.assertFalse(popen_mock.called)
+        self.assertFalse(os.path.isfile(first_deleted_file))
+        self.assertFalse(os.path.isfile(second_deleted_file))
+        self.assertTrue(any(first_delete_task.display_name in message for message in result.messages))
+        self.assertTrue(any(second_delete_task.display_name in message for message in result.messages))
+
+    def test_multi_instance_runner_reports_delete_path_dry_run(self):
+        input_dir = os.path.join(self.temp_dir, "01_input")
+        delete_dir = os.path.join(self.temp_dir, "02_tasks")
+        os.makedirs(input_dir)
+        os.makedirs(delete_dir)
+        deleted_file = os.path.join(delete_dir, "stale_task.cache")
+        self._write_file(deleted_file, "keep me during dry run")
+        model = batch_processor_model.BatchProcessorModel()
+        model.project_file_path = os.path.join(self.temp_dir, "project.batch")
+        model.add_task(
+            modules.TaskDeleteProjectFiles(
+                settings={
+                    "delete_path": delete_dir,
+                    "dry_run": True,
+                    "write_report": False,
+                    "run_once_before_multi_instance": True,
+                }
+            )
+        )
+
+        result = batch_processor_worker.MultiInstanceBatchRunner().run(model)
+
+        self.assertEqual("succeeded", result.status)
+        self.assertTrue(os.path.isfile(deleted_file))
+        self.assertTrue(any("dry run" in message for message in result.messages))
+
+    def test_multi_instance_runner_runs_leading_delete_task_before_workers(self):
+        input_dir = os.path.join(self.temp_dir, "01_input")
+        delete_dir = os.path.join(self.temp_dir, "02_tasks")
+        os.makedirs(input_dir)
+        os.makedirs(delete_dir)
+        self._write_file(os.path.join(input_dir, "clip.ma"), "maya scene")
+        deleted_file = os.path.join(delete_dir, "stale.cache")
+        self._write_file(deleted_file, "delete me")
+        model = batch_processor_model.BatchProcessorModel()
+        model.project_file_path = os.path.join(self.temp_dir, "project.batch")
+        delete_task = model.add_task(
+            modules.TaskDeleteProjectFiles(
+                settings={
+                    "delete_path": delete_dir,
+                    "dry_run": False,
+                    "write_report": False,
+                    "run_once_before_multi_instance": True,
+                }
+            )
+        )
+        model.add_task(modules.TaskRename(settings={"pattern": "processed_{index}"}))
+        captured_data = {}
+
+        def fake_popen(command, *args, **kwargs):
+            """Captures the tracker command without launching it.
+
+            Args:
+                command (list): Command passed to Popen.
+                *args: Positional arguments.
+                **kwargs: Additional Popen keyword arguments.
+
+            Returns:
+                object: Dummy process object.
+            """
+            captured_data["command"] = command
+            return object()
+
+        with mock.patch.object(batch_processor_worker, "find_mayapy_executable", return_value=sys.executable):
+            with mock.patch.object(batch_processor_worker.subprocess, "Popen", side_effect=fake_popen):
+                batch_processor_worker.MultiInstanceBatchRunner().run(model)
+
+        command = captured_data.get("command")
+        skipped_ids = [command[index + 1] for index, item in enumerate(command) if item == "--skip-task-id"]
+        self.assertFalse(os.path.isfile(deleted_file))
+        self.assertIn(delete_task.id, skipped_ids)
+
+    def test_multi_instance_runner_uses_input_after_preflight_tasks(self):
+        input_dir = os.path.join(self.temp_dir, "01_input")
+        tasks_dir = os.path.join(self.temp_dir, "02_tasks")
+        output_dir = os.path.join(self.temp_dir, "03_output")
+        os.makedirs(input_dir)
+        os.makedirs(tasks_dir)
+        os.makedirs(output_dir)
+        self._write_file(os.path.join(input_dir, "clip.ma"), "maya scene")
+        stale_task_file = os.path.join(tasks_dir, "stale_task.cache")
+        stale_output_file = os.path.join(output_dir, "stale_output.cache")
+        self._write_file(stale_task_file, "delete me")
+        self._write_file(stale_output_file, "delete me")
+        model = batch_processor_model.BatchProcessorModel()
+        model.project_file_path = os.path.join(self.temp_dir, "project.batch")
+        first_delete_task = model.insert_task(
+            modules.TaskDeleteProjectFiles(
+                settings={
+                    "delete_path": tasks_dir,
+                    "dry_run": False,
+                    "write_report": False,
+                    "run_once_before_multi_instance": True,
+                }
+            ),
+            index=0,
+        )
+        second_delete_task = model.insert_task(
+            modules.TaskDeleteProjectFiles(
+                settings={
+                    "delete_path": output_dir,
+                    "dry_run": False,
+                    "write_report": False,
+                    "run_once_before_multi_instance": True,
+                }
+            ),
+            index=1,
+        )
+        model.add_task(modules.TaskRename(settings={"pattern": "processed_{index}"}))
+        captured_data = {}
+
+        def fake_popen(command, *args, **kwargs):
+            """Captures the standalone tracker launch command.
+
+            Args:
+                command (list): Command passed to Popen.
+                *args: Positional arguments.
+                **kwargs: Additional Popen keyword arguments.
+
+            Returns:
+                object: Dummy process object.
+            """
+            captured_data["command"] = command
+            return object()
+
+        with mock.patch.object(batch_processor_worker, "find_mayapy_executable", return_value=sys.executable):
+            with mock.patch.object(batch_processor_worker.subprocess, "Popen", side_effect=fake_popen):
+                result = batch_processor_worker.MultiInstanceBatchRunner().run(model)
+
+        command = captured_data.get("command")
+        preflight_ids = [
+            command[index + 1]
+            for index, item in enumerate(command)
+            if item == "--completed-preflight-task-id"
+        ]
+        self.assertEqual("running", result.status)
+        self.assertEqual(1, result.total_files)
+        self.assertFalse(os.path.isfile(stale_task_file))
+        self.assertFalse(os.path.isfile(stale_output_file))
+        self.assertEqual([first_delete_task.id, second_delete_task.id], preflight_ids)
+
+    def test_multi_instance_runner_requires_preflight_delete_task_to_be_first(self):
+        input_dir = os.path.join(self.temp_dir, "01_input")
+        delete_dir = os.path.join(self.temp_dir, "02_tasks")
+        os.makedirs(input_dir)
+        os.makedirs(delete_dir)
+        model = batch_processor_model.BatchProcessorModel()
+        model.project_file_path = os.path.join(self.temp_dir, "project.batch")
+        model.add_task(modules.TaskRename(settings={"pattern": "processed_{index}"}))
+        model.add_task(
+            modules.TaskDeleteProjectFiles(
+                settings={
+                    "delete_path": delete_dir,
+                    "run_once_before_multi_instance": True,
+                }
+            )
+        )
+
+        runner = batch_processor_worker.MultiInstanceBatchRunner()
+
+        self.assertRaisesRegex(
+            RuntimeError,
+            "must be the first enabled processing task",
+            runner.run,
+            model,
+        )
+
+    def test_delete_path_as_first_task_preserves_following_task_source_path(self):
+        input_dir = os.path.join(self.temp_dir, "01_input")
+        delete_dir = os.path.join(self.temp_dir, "02_tasks")
+        os.makedirs(input_dir)
+        os.makedirs(delete_dir)
+        self._write_file(os.path.join(input_dir, "clip.ma"), "maya scene")
+        stale_file = os.path.join(delete_dir, "stale.cache")
+        self._write_file(stale_file, "delete me")
+        model = batch_processor_model.BatchProcessorModel()
+        model.project_file_path = os.path.join(self.temp_dir, "project.batch")
+        model.add_task(
+            modules.TaskDeleteProjectFiles(
+                settings={
+                    "delete_path": delete_dir,
+                    "dry_run": False,
+                    "write_report": False,
+                }
+            )
+        )
+        rename_task = model.add_task(modules.TaskRename(settings={"pattern": "processed_{index}"}))
+
+        result = batch_processor_worker.SingleInstanceBatchRunner().run(model)
+
+        expected_file = os.path.join(
+            rename_task.resolve_task_path(model),
+            "processed_001.ma",
+        )
+        self.assertEqual("succeeded", result.status)
+        self.assertFalse(os.path.isfile(stale_file))
+        self.assertTrue(os.path.isfile(expected_file))
 
     def test_delete_path_project_validation_ignores_hidden_common_io_paths(self):
         """Ensures Delete Path validates only its dedicated delete path setting."""

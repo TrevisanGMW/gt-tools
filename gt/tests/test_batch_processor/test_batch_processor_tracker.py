@@ -294,6 +294,40 @@ class TestBatchProcessorTracker(unittest.TestCase):
         self.assertFalse(scheduler.can_restart_job(active_job))
         self.assertFalse(scheduler.can_restart_job(final_job))
 
+    def test_preflight_job_is_completed_and_does_not_replace_finalization(self):
+        preflight_job = tracker_model.TrackerJob(
+            "preflight",
+            0,
+            "",
+            [{"id": "delete", "number": 1, "name": "Delete Path"}],
+            is_finalization=True,
+            is_preflight=True,
+        )
+        final_job = tracker_model.TrackerJob(
+            "finalization",
+            2,
+            "",
+            [{"id": "archive", "number": 1, "name": "Archive"}],
+            is_finalization=True,
+        )
+        preflight_job.mark_preflight_completed()
+        session_dir = tempfile.mkdtemp(prefix="gt_tracker_preflight_test_")
+        self.addCleanup(lambda: os.path.isdir(session_dir) and shutil.rmtree(session_dir))
+        session = tracker_model.TrackerSession(
+            "Test",
+            "C:/project",
+            1,
+            [preflight_job, final_job],
+            session_dir,
+        )
+        options = types.SimpleNamespace(no_log=True, task_time_logs=False)
+        scheduler = tracker_scheduler.TrackerScheduler(session=session, options=options)
+
+        self.assertEqual(tracker_constants.Status.COMPLETED, preflight_job.status)
+        self.assertEqual(tracker_constants.Status.COMPLETED, preflight_job.tasks[0].status)
+        self.assertEqual([], session.regular_jobs)
+        self.assertIs(final_job, scheduler.finalization_job)
+
     def test_restart_preserves_terminal_finalization_state(self):
         """Tests that a single-job restart does not rerun project finalization."""
         session_dir = tempfile.mkdtemp(prefix="gt_tracker_restart_final_test_")

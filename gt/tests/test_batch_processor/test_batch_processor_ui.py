@@ -26,7 +26,9 @@ from gt.tools.batch_processor import batch_processor_view
 from gt.tools.batch_processor.tasks import task_clip
 from gt.tools.batch_processor.tasks import task_utils
 from gt.tools.batch_processor.widgets import attr_widget_clip
+from gt.tools.batch_processor.widgets import attr_widget_delete_path
 from gt.tools.batch_processor.widgets import attr_widget_export_fbx
+from gt.tools.batch_processor.widgets import attr_widget_project
 from gt.tools.batch_processor.widgets import attr_widget_python_script
 from gt.tools.batch_processor.widgets import attr_widget_task
 from gt.tools.batch_processor.widgets.inline_python_editor import InlinePythonEditorWidget
@@ -102,6 +104,41 @@ class TestBatchProcessorUi(unittest.TestCase):
         selection_changed.assert_not_called()
         expected = self.task.id
         self.assertEqual(expected, self.view.get_selected_task_id())
+
+    def test_delete_path_widget_shows_run_once_before_jobs_option(self):
+        """Ensures Delete Path exposes the multi-instance preflight option."""
+        delete_task = self.model.add_task(batch_processor_tasks.TaskDeleteProjectFiles())
+        task_widget = attr_widget_delete_path.AttrWidgetDeleteProjectFilesTask(
+            task=delete_task,
+            project=self.model,
+        )
+
+        checkbox_labels = [
+            label.text()
+            for label in task_widget.findChildren(ui_qt.QtWidgets.QLabel)
+        ]
+
+        self.assertIn("Run Once Before All Jobs:", checkbox_labels)
+        task_widget.deleteLater()
+
+    def test_project_notes_expand_with_the_details_panel(self):
+        """Ensures Notes receives the available vertical space in the project panel."""
+        project_widget = attr_widget_project.AttrWidgetProject(project=self.model)
+        self.view.set_task_widget(project_widget)
+        self.view.resize(850, 560)
+        self.view.show()
+        self.application.processEvents()
+
+        initial_notes_height = project_widget.notes_text_area.height()
+        initial_panel_height = project_widget.height()
+        self.view.resize(1400, 1400)
+        self.application.processEvents()
+
+        notes_height_increase = project_widget.notes_text_area.height() - initial_notes_height
+        panel_height_increase = project_widget.height() - initial_panel_height
+
+        self.assertGreater(notes_height_increase, 0)
+        self.assertGreater(notes_height_increase, panel_height_increase * 0.75)
 
     def test_controller_modified_state_detects_nested_extra_data_changes(self):
         """Ensures clean-state comparisons retain an independent data snapshot."""

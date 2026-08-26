@@ -201,6 +201,7 @@ class TaskSceneReport(task_base.BatchTask):
     category_icon = ui_res_lib.Icon.root_utilities
     is_indexless_task = True
     supports_run_once_after_jobs = True
+    supports_run_once_before_jobs = True
 
     def get_default_settings(self):
         """Gets default report settings.
@@ -220,6 +221,7 @@ class TaskSceneReport(task_base.BatchTask):
             "report_notes": DEFAULT_REPORT_NOTES,
             "report_notes_collapsed": True,
             "overwrite": True,
+            "run_once_before_multi_instance": False,
             "run_once_after_multi_instance": True,
             "force_segment_separator": False,
             "segment_name": "",

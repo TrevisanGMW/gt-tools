@@ -508,7 +508,9 @@ class BatchTask:
     is_output_task = False
     is_delete_task = False
     is_data_load_task = False
+    is_task_path_passthrough = False
     supports_run_once_after_jobs = False
+    supports_run_once_before_jobs = False
 
     def __init__(self, task_id=None, display_name=None, enabled=True, settings=None, extra_data=None, **kwargs):
         """Initializes a batch task.
@@ -808,6 +810,15 @@ class BatchTask:
         result = ValidationResult()
         if self.is_input_task:
             return result
+        if (
+            getattr(self, "supports_run_once_before_jobs", False)
+            and getattr(self, "supports_run_once_after_jobs", False)
+            and self.settings.get("run_once_before_multi_instance")
+            and self.settings.get("run_once_after_multi_instance")
+        ):
+            result.add_error(
+                f'Task "{self.display_name}" cannot run once both before and after all jobs.'
+            )
         if self.uses_incoming_files() and self.modifies_in_place():
             result.add_error(
                 (

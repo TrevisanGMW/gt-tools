@@ -141,7 +141,16 @@ class TrackerTask:
 class TrackerJob:
     """Tracks one source-file job."""
 
-    def __init__(self, job_id, number, source_file, task_definitions, is_finalization=False, segment_index=0):
+    def __init__(
+        self,
+        job_id,
+        number,
+        source_file,
+        task_definitions,
+        is_finalization=False,
+        is_preflight=False,
+        segment_index=0,
+    ):
         """Initializes job state.
 
         Args:
@@ -150,13 +159,21 @@ class TrackerJob:
             source_file (str): Source file assigned to the job.
             task_definitions (list): Task definition dictionaries.
             is_finalization (bool, optional): Whether this is the final run-once phase.
+            is_preflight (bool, optional): Whether this is the completed run-once
+                phase that ran before worker jobs were launched.
             segment_index (int, optional): Zero-based input segment this job belongs to.
         """
         self.id = job_id
         self.number = int(number)
         self.source_file = source_file
-        self.name = "Finalization" if is_finalization else os.path.basename(source_file)
+        if is_preflight:
+            self.name = "Preflight"
+        elif is_finalization:
+            self.name = "Finalization"
+        else:
+            self.name = os.path.basename(source_file)
         self.is_finalization = bool(is_finalization)
+        self.is_preflight = bool(is_preflight)
         self.segment_index = int(segment_index)
         self.status = (
             tracker_constants.Status.PENDING_FINALIZATION
@@ -192,6 +209,23 @@ class TrackerJob:
             TrackerTask or None: Matching task.
         """
         return next((task for task in self.tasks if task.id == task_id), None)
+
+    def mark_preflight_completed(self):
+        """Marks a preflight job as completed before tracker startup."""
+        completion_time = tracker_events.utc_now_iso()
+        self.status = tracker_constants.Status.COMPLETED
+        self.started_at = completion_time
+        self.completed_at = completion_time
+        self.completion_result = "completed"
+        for task in self.tasks:
+            task.status = tracker_constants.Status.COMPLETED
+            task.progress = 100
+            task.completed_items = 1
+            task.total_items = 1
+            task.completion_result = "succeeded"
+            task.started_at = completion_time
+            task.completed_at = completion_time
+            task.messages.append(("Info", "Completed before worker jobs were launched."))
 
     def get_source_size(self):
         """Gets the source file size in bytes, cached after the first lookup.

@@ -1517,10 +1517,23 @@ class BatchProcessorController:
                 run_to_task_id=run_to_task_id,
             )
             self.append_log(self._format_tracker(tracker))
-            if self.model.run_settings.get("multi_instance"):
+            if (
+                self.model.run_settings.get("multi_instance")
+                and tracker.status == constants.RunStatus.RUNNING
+            ):
                 launch_message = "Run launched in standalone tracker."
                 self.append_log(f"[OPERATION] - (Multi-instance) - {launch_message}")
                 self.view.set_status(launch_message, status="success")
+            elif (
+                self.model.run_settings.get("multi_instance")
+                and tracker.status == constants.RunStatus.SUCCEEDED
+                and tracker.total_files == 0
+            ):
+                cleanup_message = (
+                    "Cleanup run finished: "
+                    f"{tracker.total_steps} preflight task(s) completed; no worker jobs were needed."
+                )
+                self.log_status(cleanup_message, status="success")
             else:
                 self.log_status("Run finished: {0}".format(tracker.status))
         except Exception as exception:

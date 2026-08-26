@@ -117,6 +117,26 @@ class TestFbxUtils(unittest.TestCase):
         expected = [1.0, 50.0, 100.0]
         self.assertEqual(expected, result)
 
+    def test_animation_mesh_export(self):
+        """Ensures animation exports retain meshes skinned to selected joints."""
+        import_test_rig_file()
+        cmds.setKeyframe("C_root_JNT", attribute="translateX", time=1, value=0)
+        cmds.setKeyframe("C_root_JNT", attribute="translateX", time=10, value=5)
+        cmds.select("C_root_JNT")
+        fbx_exp = utils_fbx.FbxExporter()
+        with fbx_exp as fbx:
+            fbx.set_preferences_animation_with_meshes()
+            fbx.export_file(path=self.file_path)
+
+        maya_test_tools.force_new_scene()
+        self.import_exported_file()
+        result = cmds.ls(dag=True, v=True)
+        expected = ["test_cylinder", "test_cylinderShape", "test_cylinderShapeOrig", "C_root_JNT"]
+        self.assertEqual(sorted(expected), sorted(result))
+        result = cmds.keyframe("C_root_JNT", q=True, attribute="translateX")
+        expected = [1.0, 10.0]
+        self.assertEqual(expected, result)
+
     def test_mesh_export(self):
         import_test_rig_file()
         cmds.select("test_cylinder")

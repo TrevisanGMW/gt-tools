@@ -49,7 +49,10 @@ class TrackerScheduler:
         self.readers = {}
         self.worker_log_offsets = {}
         self.regular_queue = list(session.regular_jobs)
-        self.finalization_job = next((job for job in session.jobs if job.is_finalization), None)
+        self.finalization_job = next(
+            (job for job in session.jobs if job.is_finalization and not getattr(job, "is_preflight", False)),
+            None,
+        )
         self.final_task_index = 0
         self.abort_requested_at = None
         self._finish_notified = False
@@ -495,7 +498,7 @@ class TrackerScheduler:
             int: Insertion index.
         """
         for index, job in enumerate(self.session.jobs):
-            if job.is_finalization:
+            if job.is_finalization and not getattr(job, "is_preflight", False):
                 return index
         return len(self.session.jobs)
 
@@ -593,6 +596,8 @@ class TrackerScheduler:
             if self.options.run_to_task_id:
                 command.extend(["--run-to-task-id", self.options.run_to_task_id])
             for task_id in self.options.final_task_id:
+                command.extend(["--skip-task-id", task_id])
+            for task_id in getattr(self.options, "skip_task_id", []) or []:
                 command.extend(["--skip-task-id", task_id])
         if log_path:
             command.extend(["--log-file", log_path])
