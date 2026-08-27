@@ -1143,6 +1143,12 @@ def get_task_widget_class(task):
         from gt.tools.batch_processor.widgets.attr_widget_clip import AttrWidgetClipSnapshotTask
 
         return AttrWidgetClipSnapshotTask
+    if task.task_type == constants.TaskType.ANNOTATION_SNAPSHOT:
+        from gt.tools.batch_processor.widgets.attr_widget_annotation import (
+            AttrWidgetAnnotationSnapshotTask,
+        )
+
+        return AttrWidgetAnnotationSnapshotTask
     if task.task_type == constants.TaskType.MAP_HIERARCHY:
         from gt.tools.batch_processor.widgets.attr_widget_map_hierarchy import AttrWidgetMapHierarchyTask
 

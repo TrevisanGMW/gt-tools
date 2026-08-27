@@ -1,11 +1,16 @@
-<svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-	<path d="M64,80 H286 L448,242 L286,404 H64 Z" style="fill:#BDBDBD;stroke:#1D1D1D;stroke-width:20;stroke-linejoin:round;"/>
-	<circle cx="126" cy="158" r="22" style="fill:#FF6A6A;stroke:#1D1D1D;stroke-width:14;"/>
-	<line x1="184" y1="158" x2="302" y2="158" style="fill:none;stroke:#1D1D1D;stroke-width:18;stroke-linecap:round;"/>
-	<rect x="112" y="220" width="208" height="58" rx="12" style="fill:#FF6A6A;stroke:#1D1D1D;stroke-width:14;"/>
-	<rect x="112" y="306" width="148" height="58" rx="12" style="fill:#FF6A6A;stroke:#1D1D1D;stroke-width:14;"/>
-	<line x1="82" y1="452" x2="430" y2="452" style="fill:none;stroke:#1D1D1D;stroke-width:20;stroke-linecap:round;"/>
-	<circle cx="128" cy="452" r="18" style="fill:#FF6A6A;stroke:#1D1D1D;stroke-width:12;"/>
-	<circle cx="256" cy="452" r="18" style="fill:#FF6A6A;stroke:#1D1D1D;stroke-width:12;"/>
-	<circle cx="384" cy="452" r="18" style="fill:#FF6A6A;stroke:#1D1D1D;stroke-width:12;"/>
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" version="1.1">
+  <title>Annotation Tracker</title>
+  <style>
+    .node { fill: #bdbdbd; stroke: #1d1d1d; stroke-width: 11.7; stroke-linejoin: round; }
+    .accent { fill: #df8388; stroke: #1d1d1d; stroke-width: 11.7; stroke-linejoin: round; }
+    .detail { fill: #1d1d1d; stroke: none; }
+  </style>
+<path class="node" d="M40.53 354.13H471.47C484.27 354.13 494.93 364.8 494.93 377.6V450.13C494.93 462.93 484.27 473.6 471.47 473.6H40.53C27.73 473.6 17.07 462.93 17.07 450.13V377.6C17.07 364.8 27.73 354.13 40.53 354.13Z"/>
+<path class="detail" d="M140.8 354.13H160V473.6H140.8V354.13Z"/>
+<path class="detail" d="M246.4 354.13H265.6V473.6H246.4V354.13Z"/>
+<path class="detail" d="M352 354.13H371.2V473.6H352V354.13Z"/>
+<path class="accent" d="M64 29.87H448C473.6 29.87 494.93 51.2 494.93 76.8V241.07C494.93 266.67 473.6 288 448 288H270.93L174.93 349.87V288H64C38.4 288 17.07 266.67 17.07 241.07V76.8C17.07 51.2 38.4 29.87 64 29.87Z"/>
+<path class="detail" d="M93.87 100.27H418.13C426.67 100.27 433.07 106.67 433.07 115.2C433.07 123.73 426.67 130.13 418.13 130.13H93.87C85.33 130.13 78.93 123.73 78.93 115.2C78.93 106.67 85.33 100.27 93.87 100.27Z"/>
+<path class="detail" d="M93.87 187.73H302.93C311.47 187.73 317.87 194.13 317.87 202.67C317.87 211.2 311.47 217.6 302.93 217.6H93.87C85.33 217.6 78.93 211.2 78.93 202.67C78.93 194.13 85.33 187.73 93.87 187.73Z"/>
 </svg>

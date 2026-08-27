@@ -29,6 +29,7 @@ from gt.tools.batch_processor.batch_processor_task_base import normalize_path
 from gt.tools.batch_processor.batch_processor_task_base import path_is_inside_directory
 from gt.tools.batch_processor.batch_processor_task_base import sanitize_filename
 from gt.tools.batch_processor.tasks.task_input import TaskInput
+from gt.tools.batch_processor.tasks.task_annotation import TaskAnnotationSnapshot
 from gt.tools.batch_processor.tasks.task_archive import TaskArchive
 from gt.tools.batch_processor.tasks.task_auto_rig_build import TaskAutoRigBuild
 from gt.tools.batch_processor.tasks.task_batch_render import TaskBatchRender
@@ -82,6 +83,7 @@ TASK_TYPES = {
     constants.TaskType.AUTO_RIG_BUILD: TaskAutoRigBuild,
     constants.TaskType.CLIP_SPLIT: TaskClipSplit,
     constants.TaskType.CLIP_SNAPSHOT: TaskClipSnapshot,
+    constants.TaskType.ANNOTATION_SNAPSHOT: TaskAnnotationSnapshot,
     constants.TaskType.DELETE_PROJECT_FILES: TaskDeleteProjectFiles,
     constants.TaskType.ZIP_COMPRESS: TaskArchive,
     constants.TaskType.MAYA_SCENE_VALIDATE: TaskValidationMayaScene,

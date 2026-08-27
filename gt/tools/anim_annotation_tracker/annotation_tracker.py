@@ -809,6 +809,7 @@ class RangeToolWindow(QtWidgets.QDialog):
         """
         super(RangeToolWindow, self).__init__(parent)
         self.setWindowTitle("Annotation Tracker")
+        self.setWindowIcon(QtGui.QIcon(ui_res_lib.Icon.tool_annotation_tracker))
         self.resize(900, 450)
         self.setWindowFlags(QtCore.Qt.WindowType.WindowStaysOnTopHint)
         self.sj_id = None

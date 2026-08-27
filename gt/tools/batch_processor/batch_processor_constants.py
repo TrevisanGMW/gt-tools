@@ -60,6 +60,7 @@ class TaskType:
     AUTO_RIG_BUILD = "auto_rig_build"
     CLIP_SPLIT = "clip_split"
     CLIP_SNAPSHOT = "clip_snapshot"
+    ANNOTATION_SNAPSHOT = "annotation_snapshot"
     MAP_HIERARCHY = "map_hierarchy"
     SCENE_REPORT = "scene_report"
     DELETE_PROJECT_FILES = "delete_project_files"

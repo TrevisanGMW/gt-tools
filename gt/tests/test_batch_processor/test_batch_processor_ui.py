@@ -23,9 +23,11 @@ from gt.tools.batch_processor import batch_processor_controller
 from gt.tools.batch_processor import batch_processor_model
 from gt.tools.batch_processor import batch_processor_tasks
 from gt.tools.batch_processor import batch_processor_view
+from gt.tools.batch_processor.tasks import task_annotation
 from gt.tools.batch_processor.tasks import task_batch_render
 from gt.tools.batch_processor.tasks import task_clip
 from gt.tools.batch_processor.tasks import task_utils
+from gt.tools.batch_processor.widgets import attr_widget_annotation
 from gt.tools.batch_processor.widgets import attr_widget_batch_render
 from gt.tools.batch_processor.widgets import attr_widget_clip
 from gt.tools.batch_processor.widgets import attr_widget_delete_path
@@ -345,6 +347,30 @@ class TestBatchProcessorUi(unittest.TestCase):
 
         self.assertTrue(result)
         controller.save_project_as.assert_called_once_with()
+
+    def test_annotation_snapshot_summary_displays_file_and_range_counts(self):
+        """Ensures Annotation Snapshot displays summary counts from its JSON file."""
+        snapshot_directory = tempfile.mkdtemp(prefix="gt_annotation_snapshot_ui_test_")
+        self.addCleanup(shutil.rmtree, snapshot_directory)
+        snapshot_path = os.path.join(snapshot_directory, "annotation_snapshot.json")
+        task_annotation.update_annotation_snapshot(
+            snapshot_path=snapshot_path,
+            source_root=snapshot_directory,
+            annotation_data_by_path={
+                "walk.ma": {"file_data": {"shot": "sh010"}, "range_data": [{"name": "walk"}]},
+                "run.ma": {"file_data": {}, "range_data": [{"name": "run"}, {"name": "run_end"}]},
+            },
+        )
+        task = batch_processor_tasks.TaskAnnotationSnapshot(settings={"snapshot_path": snapshot_path})
+        widget = attr_widget_annotation.AttrWidgetAnnotationSnapshotTask(task=task, project=self.model)
+        self.addCleanup(widget.close)
+
+        files_label, _ = widget.summary_cells.get("file_count")
+        ranges_label, _ = widget.summary_cells.get("range_count")
+
+        self.assertIn("2", files_label.text())
+        self.assertIn("3", ranges_label.text())
+        self.assertIn(task_annotation.SNAPSHOT_STATUS_READY, widget.status_label.text())
 
     def test_clip_snapshot_summary_displays_file_and_clip_counts(self):
         """Ensures Clip Snapshot displays summary counts from its JSON file."""

@@ -497,6 +497,7 @@ class Icon:
     batch_task_humanik = get_icon_path(r"batch_task_humanik.svg")
     batch_task_clip_split = get_icon_path(r"batch_task_clip_split.svg")
     batch_task_clip_snapshot = get_icon_path(r"batch_task_clip_snapshot.svg")
+    batch_task_annotation_snapshot = get_icon_path(r"batch_task_annotation_snapshot.svg")
     batch_task_generic = get_icon_path(r"batch_task_generic.svg")
     batch_project = get_icon_path(r"batch_project.svg")
 

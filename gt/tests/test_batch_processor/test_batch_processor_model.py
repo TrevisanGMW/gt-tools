@@ -2222,6 +2222,157 @@ class TestBatchProcessorModel(unittest.TestCase):
         expected = {"file_count": worker_count, "clip_count": worker_count}
         self.assertEqual(expected, result.get("metadata"))
 
+    def test_annotation_snapshot_default_path_uses_project_data_folder(self):
+        annotation_task = modules.create_task(constants.TaskType.ANNOTATION_SNAPSHOT)
+
+        expected = "{project-dir}/data/annotation_snapshot_data.json"
+        self.assertEqual(expected, annotation_task.settings.get("snapshot_path"))
+
+    def test_annotation_snapshot_merge_preserves_existing_entries_and_updates_metadata(self):
+        from gt.tools.batch_processor.tasks import task_annotation
+
+        previous_payload = {
+            "source_root": self.temp_dir,
+            "annotations": {
+                "walk.ma": {
+                    "file_data": {"shot": "sh010"},
+                    "range_data": [{"name": "walk", "start": 1, "end": 24}],
+                },
+            },
+        }
+
+        result = task_annotation.merge_annotation_snapshot_payload(
+            snapshot_payload=previous_payload,
+            source_root=self.temp_dir,
+            annotation_data_by_path={
+                "run.ma": {
+                    "file_data": {"shot": "sh020"},
+                    "range_data": [
+                        {"name": "run", "start": 1, "end": 12},
+                        {"name": "run_end", "start": 13, "end": 24},
+                    ],
+                },
+            },
+        )
+
+        expected = ["run.ma", "walk.ma"]
+        self.assertEqual(expected, sorted(result.get("annotations").keys()))
+        expected = {"file_count": 2, "range_count": 3}
+        self.assertEqual(expected, result.get("metadata"))
+
+    def test_annotation_snapshot_entry_key_uses_active_source_path_before_original_metadata(self):
+        from gt.tools.batch_processor.tasks import task_annotation
+
+        source_root = os.path.join(self.temp_dir, "annotation_outputs")
+        item = modules.WorkItem(
+            source_path=os.path.join(self.temp_dir, "source.ma"),
+            current_path=os.path.join(source_root, "walk", "source_walk.ma"),
+            metadata={"source_relative_path": "source.ma"},
+        )
+
+        result = task_annotation.TaskAnnotationSnapshot.get_snapshot_entry_key(
+            item=item,
+            source_root=source_root,
+        )
+
+        expected = "walk/source_walk.ma"
+        self.assertEqual(expected, result)
+
+    def test_annotation_snapshot_is_excluded_from_task_index_by_default(self):
+        annotation_task = modules.create_task(constants.TaskType.ANNOTATION_SNAPSHOT)
+
+        expected = False
+        self.assertEqual(expected, annotation_task.settings.get("include_in_task_index"))
+        self.assertFalse(annotation_task.includes_task_index())
+
+    def test_annotation_snapshot_bypass_mode_validates_without_snapshot_path(self):
+        from gt.tools.batch_processor.tasks import task_annotation
+
+        annotation_task = modules.create_task(constants.TaskType.ANNOTATION_SNAPSHOT)
+        annotation_task.settings["mode"] = task_annotation.ANNOTATION_SNAPSHOT_MODE_BYPASS
+        annotation_task.settings["snapshot_path"] = ""
+
+        result = annotation_task.validate(batch_processor_model.BatchProcessorModel())
+
+        self.assertTrue(result.is_valid())
+
+    def test_annotation_snapshot_bypass_skips_and_preserves_incoming_items(self):
+        from gt.tools.batch_processor import batch_processor_task_base as task_base
+        from gt.tools.batch_processor.tasks import task_annotation
+
+        annotation_task = modules.create_task(constants.TaskType.ANNOTATION_SNAPSHOT)
+        annotation_task.settings["mode"] = task_annotation.ANNOTATION_SNAPSHOT_MODE_BYPASS
+        work_items = [
+            modules.WorkItem(source_path=os.path.join(self.temp_dir, "walk.ma")),
+            modules.WorkItem(source_path=os.path.join(self.temp_dir, "run.ma")),
+        ]
+
+        with self.assertRaises(task_base.TaskSkip) as context_manager:
+            annotation_task.execute(
+                work_item=None,
+                project=batch_processor_model.BatchProcessorModel(),
+                step_output_dir=self.temp_dir,
+                context={"work_items": work_items},
+            )
+
+        self.assertEqual(work_items, context_manager.exception.work_item)
+
+    def test_annotation_snapshot_load_missing_entry_warning_keeps_items(self):
+        from gt.tools.batch_processor.tasks import task_annotation
+
+        snapshot_path = os.path.join(self.temp_dir, "annotation_snapshot.json")
+        task_annotation.update_annotation_snapshot(
+            snapshot_path=snapshot_path,
+            source_root=self.temp_dir,
+            annotation_data_by_path={
+                "walk.ma": {"file_data": {}, "range_data": [{"name": "walk", "start": 1, "end": 24}]},
+            },
+        )
+        annotation_task = modules.create_task(constants.TaskType.ANNOTATION_SNAPSHOT)
+        annotation_task.settings["missing_snapshot_severity"] = task_annotation.ANNOTATION_SEVERITY_WARNING
+        work_items = [modules.WorkItem(source_path=os.path.join(self.temp_dir, "unknown.ma"))]
+
+        result = annotation_task.load_snapshot(snapshot_path=snapshot_path, work_items=work_items)
+
+        self.assertEqual(work_items, result)
+
+    def test_annotation_snapshot_concurrent_workers_merge_entries(self):
+        snapshot_path = os.path.join(self.temp_dir, "annotation_snapshot.json")
+        worker_count = 8
+        worker_processes = []
+        repository_root_dir = os.path.dirname(package_root_dir)
+        environment = dict(os.environ)
+        environment["PYTHONPATH"] = os.pathsep.join(
+            value for value in [repository_root_dir, environment.get("PYTHONPATH")] if value
+        )
+        for index in range(worker_count):
+            worker_code = (
+                "from gt.tools.batch_processor.tasks import task_annotation\n"
+                "task_annotation.update_annotation_snapshot(\n"
+                f"    {snapshot_path!r}, {self.temp_dir!r}, \n"
+                f"    {{'scenes/scene_{index}.ma': "
+                f"{{'file_data': {{}}, 'range_data': [{{'name': 'range_{index}'}}]}}}}\n"
+                ")\n"
+            )
+            worker_processes.append(
+                subprocess.Popen(
+                    [sys.executable, "-c", worker_code],
+                    cwd=repository_root_dir,
+                    env=environment,
+                )
+            )
+        for worker_process in worker_processes:
+            expected = 0
+            self.assertEqual(expected, worker_process.wait())
+
+        with open(snapshot_path, "r", encoding="utf-8") as snapshot_file:
+            result = json.load(snapshot_file)
+
+        expected = worker_count
+        self.assertEqual(expected, len(result.get("annotations") or {}))
+        expected = {"file_count": worker_count, "range_count": worker_count}
+        self.assertEqual(expected, result.get("metadata"))
+
     def test_clip_split_default_target_path_uses_clips_task_folder(self):
         clip_split_task = modules.create_task(constants.TaskType.CLIP_SPLIT)
 
