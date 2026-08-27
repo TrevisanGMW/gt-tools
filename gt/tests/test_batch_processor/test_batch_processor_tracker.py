@@ -59,6 +59,95 @@ class TestBatchProcessorTracker(unittest.TestCase):
         expected = 75
         self.assertEqual(expected, job.progress)
 
+    def test_task_unit_progress_advances_the_bar_inside_one_item(self):
+        job = self.create_job()
+        task = job.tasks[0]
+        task.apply_event({"event": "task_started", "task_id": "rename", "total_items": 1})
+
+        expected = 0
+        self.assertEqual(expected, task.progress)
+
+        task.apply_event(
+            {
+                "event": "task_unit_progress",
+                "task_id": "rename",
+                "completed_units": 42,
+                "total_units": 100,
+                "unit_label": "frames",
+            }
+        )
+
+        expected = 42
+        self.assertEqual(expected, task.progress)
+
+        expected = "0/1 (42/100 frames)"
+        self.assertEqual(expected, task.get_count_text())
+
+    def test_task_unit_progress_is_scaled_across_multiple_items(self):
+        job = self.create_job()
+        task = job.tasks[0]
+        task.apply_event({"event": "task_started", "task_id": "rename", "total_items": 4})
+        task.apply_event({"event": "task_progress", "task_id": "rename", "completed_items": 1, "total_items": 4})
+        task.apply_event(
+            {
+                "event": "task_unit_progress",
+                "task_id": "rename",
+                "completed_units": 50,
+                "total_units": 100,
+            }
+        )
+
+        expected = 37
+        self.assertEqual(expected, task.progress)
+
+    def test_completed_item_clears_pending_unit_progress(self):
+        job = self.create_job()
+        task = job.tasks[0]
+        task.apply_event({"event": "task_started", "task_id": "rename", "total_items": 2})
+        task.apply_event(
+            {
+                "event": "task_unit_progress",
+                "task_id": "rename",
+                "completed_units": 100,
+                "total_units": 100,
+            }
+        )
+        task.apply_event({"event": "task_progress", "task_id": "rename", "completed_items": 1, "total_items": 2})
+
+        expected = 50
+        self.assertEqual(expected, task.progress)
+
+        expected = "1/2"
+        self.assertEqual(expected, task.get_count_text())
+
+    def test_finished_task_clears_unit_progress_from_its_counts(self):
+        job = self.create_job()
+        task = job.tasks[0]
+        task.apply_event({"event": "task_started", "task_id": "rename", "total_items": 1})
+        task.apply_event(
+            {
+                "event": "task_unit_progress",
+                "task_id": "rename",
+                "completed_units": 99,
+                "total_units": 100,
+            }
+        )
+        task.apply_event(
+            {
+                "event": "task_finished",
+                "task_id": "rename",
+                "status": "succeeded",
+                "completed_items": 1,
+                "total_items": 1,
+            }
+        )
+
+        expected = 100
+        self.assertEqual(expected, task.progress)
+
+        expected = "1/1"
+        self.assertEqual(expected, task.get_count_text())
+
     def test_session_health_state_uses_expected_precedence(self):
         job = self.create_job()
         session = tracker_model.TrackerSession("Test", "C:/project", 1, [job], "C:/session")

@@ -31,6 +31,7 @@ from gt.tools.batch_processor.batch_processor_task_base import sanitize_filename
 from gt.tools.batch_processor.tasks.task_input import TaskInput
 from gt.tools.batch_processor.tasks.task_archive import TaskArchive
 from gt.tools.batch_processor.tasks.task_auto_rig_build import TaskAutoRigBuild
+from gt.tools.batch_processor.tasks.task_batch_render import TaskBatchRender
 from gt.tools.batch_processor.tasks.task_external_blender import TaskBlenderScript
 from gt.tools.batch_processor.tasks.task_external_blender import find_blender_executable
 from gt.tools.batch_processor.tasks.task_external_blender import get_blender_executable_candidates
@@ -88,6 +89,7 @@ TASK_TYPES = {
     constants.TaskType.FOLDER_COMPARE_VALIDATE: TaskValidationFolderCompare,
     constants.TaskType.THUMBNAIL_CAPTURE: TaskCaptureThumbnail,
     constants.TaskType.PLAYBLAST_CAPTURE: TaskCapturePlayblast,
+    constants.TaskType.BATCH_RENDER: TaskBatchRender,
 }
 
 LEGACY_TASK_TYPES = {

@@ -203,6 +203,16 @@ def main():
                     "report_log": lambda path, task_id=task.id: event_writer.emit(
                         "log_artifact", task_id=task_id, path=path, kind="task_log"
                     ),
+                    "report_message": lambda message: print(message, flush=True),
+                    "report_progress": lambda completed_units, total_units, unit_label="", task_id=task.id: (
+                        event_writer.emit(
+                            "task_unit_progress",
+                            task_id=task_id,
+                            completed_units=completed_units,
+                            total_units=total_units,
+                            unit_label=unit_label,
+                        )
+                    ),
                 }
                 print(
                     "[INFO] - ({0}) - Processing aggregate task with {1} incoming file(s).".format(
@@ -247,6 +257,16 @@ def main():
                         "cleanup_report_parts": bool(args.final_task_id),
                         "report_log": lambda path, task_id=task.id: event_writer.emit(
                             "log_artifact", task_id=task_id, path=path, kind="task_log"
+                        ),
+                        "report_message": lambda message: print(message, flush=True),
+                        "report_progress": lambda completed_units, total_units, unit_label="", task_id=task.id: (
+                            event_writer.emit(
+                                "task_unit_progress",
+                                task_id=task_id,
+                                completed_units=completed_units,
+                                total_units=total_units,
+                                unit_label=unit_label,
+                            )
                         ),
                     }
                     print(

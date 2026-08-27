@@ -299,6 +299,7 @@ class SingleInstanceBatchRunner:
                 "total_items": len(work_items),
                 "work_items": list(work_items),
                 "run_id": self.run_id,
+                "report_message": self.tracker.record_message,
             }
             self.tracker.record_message(
                 "[INFO] - ({0}) - Processing aggregate task with {1} incoming file(s).".format(
@@ -337,6 +338,7 @@ class SingleInstanceBatchRunner:
                 "run_id": self.run_id,
                 "is_last_item": index == len(work_items),
                 "cleanup_report_parts": True,
+                "report_message": self.tracker.record_message,
             }
             self.tracker.record_message(
                 "[INFO] - ({0}) - Processing {1}/{2}: {3}".format(

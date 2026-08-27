@@ -493,6 +493,7 @@ class Icon:
     batch_task_archive = get_icon_path(r"batch_task_archive.svg")
     batch_task_capture_thumbnail = get_icon_path(r"batch_task_capture_thumbnail.svg")
     batch_task_capture_playblast = get_icon_path(r"batch_task_capture_playblast.svg")
+    batch_task_render = get_icon_path(r"batch_task_render.svg")
     batch_task_humanik = get_icon_path(r"batch_task_humanik.svg")
     batch_task_clip_split = get_icon_path(r"batch_task_clip_split.svg")
     batch_task_clip_snapshot = get_icon_path(r"batch_task_clip_snapshot.svg")

@@ -69,6 +69,7 @@ class TaskType:
     FOLDER_COMPARE_VALIDATE = "validate_folder_compare"
     THUMBNAIL_CAPTURE = "thumbnail_capture"
     PLAYBLAST_CAPTURE = "playblast_capture"
+    BATCH_RENDER = "output_batch_render"
 
 
 class ModuleType(TaskType):

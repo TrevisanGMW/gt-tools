@@ -1179,4 +1179,8 @@ def get_task_widget_class(task):
         from gt.tools.batch_processor.widgets.attr_widget_capture import AttrWidgetPlayblastCaptureTask
 
         return AttrWidgetPlayblastCaptureTask
+    if task.task_type == constants.TaskType.BATCH_RENDER:
+        from gt.tools.batch_processor.widgets.attr_widget_batch_render import AttrWidgetBatchRenderTask
+
+        return AttrWidgetBatchRenderTask
     return AttrWidgetTask

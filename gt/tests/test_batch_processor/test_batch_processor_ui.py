@@ -23,8 +23,10 @@ from gt.tools.batch_processor import batch_processor_controller
 from gt.tools.batch_processor import batch_processor_model
 from gt.tools.batch_processor import batch_processor_tasks
 from gt.tools.batch_processor import batch_processor_view
+from gt.tools.batch_processor.tasks import task_batch_render
 from gt.tools.batch_processor.tasks import task_clip
 from gt.tools.batch_processor.tasks import task_utils
+from gt.tools.batch_processor.widgets import attr_widget_batch_render
 from gt.tools.batch_processor.widgets import attr_widget_clip
 from gt.tools.batch_processor.widgets import attr_widget_delete_path
 from gt.tools.batch_processor.widgets import attr_widget_export_fbx
@@ -387,6 +389,60 @@ class TestBatchProcessorUi(unittest.TestCase):
         self.assertTrue(widget.frame_start_spin.isEnabled())
         self.assertTrue(widget.frame_end_label.isEnabled())
         self.assertTrue(widget.frame_end_spin.isEnabled())
+
+    def test_batch_render_overrides_gate_their_controls(self):
+        """Ensures render override checkboxes enable only the widgets they own."""
+        task = batch_processor_tasks.TaskBatchRender()
+        widget = attr_widget_batch_render.AttrWidgetBatchRenderTask(task=task, project=self.model)
+        self.addCleanup(widget.close)
+
+        expected = [False, False]
+        self.assertEqual(expected, [item.isEnabled() for item in widget.override_widgets["override_resolution"]])
+
+        widget.override_checkboxes["override_resolution"].setChecked(True)
+
+        expected = [True, True]
+        self.assertEqual(expected, [item.isEnabled() for item in widget.override_widgets["override_resolution"]])
+
+        expected = True
+        self.assertEqual(expected, task.settings["override_resolution"])
+
+        expected = [False, False, False]
+        self.assertEqual(expected, [item.isEnabled() for item in widget.override_widgets["override_frame_range"]])
+
+    def test_batch_render_project_path_requires_custom_project_mode(self):
+        """Ensures the Maya project path field follows the project mode and toggle."""
+        task = batch_processor_tasks.TaskBatchRender()
+        widget = attr_widget_batch_render.AttrWidgetBatchRenderTask(task=task, project=self.model)
+        self.addCleanup(widget.close)
+
+        expected = False
+        self.assertEqual(expected, widget.project_path_widgets["field"].isEnabled())
+
+        widget.set_project_mode(task_batch_render.PROJECT_MODE_CUSTOM)
+
+        expected = True
+        self.assertEqual(expected, widget.project_path_widgets["field"].isEnabled())
+
+        widget.set_project_enabled(False)
+
+        expected = False
+        self.assertEqual(expected, widget.project_mode_combo.isEnabled())
+        self.assertEqual(expected, widget.project_path_widgets["field"].isEnabled())
+
+    def test_batch_render_prefix_tokens_are_inserted_at_the_cursor(self):
+        """Ensures prefix tokens append to the field and update the task setting."""
+        task = batch_processor_tasks.TaskBatchRender()
+        widget = attr_widget_batch_render.AttrWidgetBatchRenderTask(task=task, project=self.model)
+        self.addCleanup(widget.close)
+
+        widget.prefix_field.setText("")
+        widget.insert_prefix_token(token="<Scene>")
+        widget.insert_prefix_token(token="_{name}")
+
+        expected = "<Scene>_{name}"
+        self.assertEqual(expected, widget.prefix_field.text())
+        self.assertEqual(expected, task.settings["file_name_prefix"])
 
     def test_update_task_tree_item_updates_label_and_enabled_state(self):
         """Ensures an existing tree row reflects task changes in place."""
