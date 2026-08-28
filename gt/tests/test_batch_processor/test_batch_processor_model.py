@@ -1356,6 +1356,31 @@ class TestBatchProcessorModel(unittest.TestCase):
         expected = ["02_second.py", "03_third.py"]
         self.assertEqual(expected, result)
 
+    def test_python_external_script_entries_move_without_cycling(self):
+        """Ensures external script order can change while list edges stay fixed."""
+        script_task = modules.TaskPythonScript(
+            settings={
+                "external_scripts": [
+                    {"path": "first.py", "enabled": True},
+                    {"path": "second.py", "enabled": True},
+                    {"path": "third.py", "enabled": True},
+                ]
+            }
+        )
+
+        expected = True
+        result = script_task.move_external_script_entry(1, -1)
+        self.assertEqual(expected, result)
+        expected = ["second.py", "first.py", "third.py"]
+        result = [entry.get("path") for entry in script_task.get_external_script_entries()]
+        self.assertEqual(expected, result)
+        expected = False
+        result = script_task.move_external_script_entry(0, -1)
+        self.assertEqual(expected, result)
+        expected = ["second.py", "first.py", "third.py"]
+        result = [entry.get("path") for entry in script_task.get_external_script_entries()]
+        self.assertEqual(expected, result)
+
     def test_legacy_python_scripts_folder_deserializes_as_python_batch(self):
         scripts_dir = os.path.join(self.temp_dir, "scripts")
         os.makedirs(scripts_dir)
@@ -1434,6 +1459,31 @@ class TestBatchProcessorModel(unittest.TestCase):
         ]
 
         expected = ["01_first.py", "02_second.py", "01_third.py"]
+        self.assertEqual(expected, result)
+
+    def test_python_batch_directory_entries_move_without_cycling(self):
+        """Ensures batch-directory order changes independently from script sorting."""
+        script_task = modules.TaskPythonScript(
+            settings={
+                "batch_directories": [
+                    {"path": "first", "include_patterns": "", "exclude_patterns": ""},
+                    {"path": "second", "include_patterns": "", "exclude_patterns": ""},
+                    {"path": "third", "include_patterns": "", "exclude_patterns": ""},
+                ]
+            }
+        )
+
+        expected = True
+        result = script_task.move_batch_directory_entry(1, 1)
+        self.assertEqual(expected, result)
+        expected = ["first", "third", "second"]
+        result = [entry.get("path") for entry in script_task.get_batch_directory_entries()]
+        self.assertEqual(expected, result)
+        expected = False
+        result = script_task.move_batch_directory_entry(2, 1)
+        self.assertEqual(expected, result)
+        expected = ["first", "third", "second"]
+        result = [entry.get("path") for entry in script_task.get_batch_directory_entries()]
         self.assertEqual(expected, result)
 
     def test_python_task_executes_inline_script_with_context(self):
@@ -1803,6 +1853,34 @@ class TestBatchProcessorModel(unittest.TestCase):
 
         self.assertTrue(any("no inline script is set" in error for error in result.errors))
 
+    def test_fbx_export_animation_mesh_mode_uses_mesh_animation_preferences(self):
+        """Ensures Animation + Mesh retains animation settings and exports meshes."""
+        export_task = modules.create_task(constants.TaskType.FBX_EXPORT)
+        export_task.settings["export_mode"] = "Animation + Mesh"
+        export_task.settings["auto_frame_range"] = False
+        export_task.settings["frame_start"] = 10
+        export_task.settings["frame_end"] = 30
+        fbx_exporter = mock.Mock()
+
+        export_task.set_export_mode_preferences(fbx_exporter)
+
+        fbx_exporter.set_preferences_animation_with_meshes.assert_called_once_with(
+            start_frame=10.0,
+            end_frame=30.0,
+        )
+        fbx_exporter.set_preferences_animation.assert_not_called()
+        fbx_exporter.set_preferences_skeletal_mesh.assert_not_called()
+        fbx_exporter.set_preferences_mesh.assert_not_called()
+
+    def test_fbx_export_animation_mesh_mode_is_valid(self):
+        """Ensures Animation + Mesh is accepted as an FBX export mode."""
+        export_task = modules.create_task(constants.TaskType.FBX_EXPORT)
+        export_task.settings["export_mode"] = "Animation + Mesh"
+
+        result = export_task.validate(batch_processor_model.BatchProcessorModel())
+
+        self.assertTrue(result.is_valid())
+
     def test_fbx_export_pre_script_receives_export_context(self):
         """Ensures FBX pre-export scripts receive standard and export-specific values."""
         export_task = modules.create_task(constants.TaskType.FBX_EXPORT)
@@ -1834,6 +1912,18 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertIs(result.get("environment_variables"), result.get("env"))
         self.assertEqual("Animation", result.get("export_mode"))
         self.assertEqual("test", result.get("runner"))
+
+    def test_fbx_export_validation_reports_missing_or_empty_output(self):
+        """Ensures a silent FBX exporter failure becomes a task error."""
+        export_task = modules.create_task(constants.TaskType.FBX_EXPORT)
+        missing_path = os.path.join(self.temp_dir, "missing.fbx")
+        empty_path = os.path.join(self.temp_dir, "empty.fbx")
+        self._write_file(empty_path, "")
+
+        with self.assertRaisesRegex(RuntimeError, "did not create the expected file"):
+            export_task.validate_exported_file(missing_path)
+        with self.assertRaisesRegex(RuntimeError, "created an empty file"):
+            export_task.validate_exported_file(empty_path)
 
     def test_run_validator_instance_forwards_node_type(self):
         calls = []
@@ -2130,6 +2220,157 @@ class TestBatchProcessorModel(unittest.TestCase):
         expected = worker_count
         self.assertEqual(expected, len(result.get("clips") or {}))
         expected = {"file_count": worker_count, "clip_count": worker_count}
+        self.assertEqual(expected, result.get("metadata"))
+
+    def test_annotation_snapshot_default_path_uses_project_data_folder(self):
+        annotation_task = modules.create_task(constants.TaskType.ANNOTATION_SNAPSHOT)
+
+        expected = "{project-dir}/data/annotation_snapshot_data.json"
+        self.assertEqual(expected, annotation_task.settings.get("snapshot_path"))
+
+    def test_annotation_snapshot_merge_preserves_existing_entries_and_updates_metadata(self):
+        from gt.tools.batch_processor.tasks import task_annotation
+
+        previous_payload = {
+            "source_root": self.temp_dir,
+            "annotations": {
+                "walk.ma": {
+                    "file_data": {"shot": "sh010"},
+                    "range_data": [{"name": "walk", "start": 1, "end": 24}],
+                },
+            },
+        }
+
+        result = task_annotation.merge_annotation_snapshot_payload(
+            snapshot_payload=previous_payload,
+            source_root=self.temp_dir,
+            annotation_data_by_path={
+                "run.ma": {
+                    "file_data": {"shot": "sh020"},
+                    "range_data": [
+                        {"name": "run", "start": 1, "end": 12},
+                        {"name": "run_end", "start": 13, "end": 24},
+                    ],
+                },
+            },
+        )
+
+        expected = ["run.ma", "walk.ma"]
+        self.assertEqual(expected, sorted(result.get("annotations").keys()))
+        expected = {"file_count": 2, "range_count": 3}
+        self.assertEqual(expected, result.get("metadata"))
+
+    def test_annotation_snapshot_entry_key_uses_active_source_path_before_original_metadata(self):
+        from gt.tools.batch_processor.tasks import task_annotation
+
+        source_root = os.path.join(self.temp_dir, "annotation_outputs")
+        item = modules.WorkItem(
+            source_path=os.path.join(self.temp_dir, "source.ma"),
+            current_path=os.path.join(source_root, "walk", "source_walk.ma"),
+            metadata={"source_relative_path": "source.ma"},
+        )
+
+        result = task_annotation.TaskAnnotationSnapshot.get_snapshot_entry_key(
+            item=item,
+            source_root=source_root,
+        )
+
+        expected = "walk/source_walk.ma"
+        self.assertEqual(expected, result)
+
+    def test_annotation_snapshot_is_excluded_from_task_index_by_default(self):
+        annotation_task = modules.create_task(constants.TaskType.ANNOTATION_SNAPSHOT)
+
+        expected = False
+        self.assertEqual(expected, annotation_task.settings.get("include_in_task_index"))
+        self.assertFalse(annotation_task.includes_task_index())
+
+    def test_annotation_snapshot_bypass_mode_validates_without_snapshot_path(self):
+        from gt.tools.batch_processor.tasks import task_annotation
+
+        annotation_task = modules.create_task(constants.TaskType.ANNOTATION_SNAPSHOT)
+        annotation_task.settings["mode"] = task_annotation.ANNOTATION_SNAPSHOT_MODE_BYPASS
+        annotation_task.settings["snapshot_path"] = ""
+
+        result = annotation_task.validate(batch_processor_model.BatchProcessorModel())
+
+        self.assertTrue(result.is_valid())
+
+    def test_annotation_snapshot_bypass_skips_and_preserves_incoming_items(self):
+        from gt.tools.batch_processor import batch_processor_task_base as task_base
+        from gt.tools.batch_processor.tasks import task_annotation
+
+        annotation_task = modules.create_task(constants.TaskType.ANNOTATION_SNAPSHOT)
+        annotation_task.settings["mode"] = task_annotation.ANNOTATION_SNAPSHOT_MODE_BYPASS
+        work_items = [
+            modules.WorkItem(source_path=os.path.join(self.temp_dir, "walk.ma")),
+            modules.WorkItem(source_path=os.path.join(self.temp_dir, "run.ma")),
+        ]
+
+        with self.assertRaises(task_base.TaskSkip) as context_manager:
+            annotation_task.execute(
+                work_item=None,
+                project=batch_processor_model.BatchProcessorModel(),
+                step_output_dir=self.temp_dir,
+                context={"work_items": work_items},
+            )
+
+        self.assertEqual(work_items, context_manager.exception.work_item)
+
+    def test_annotation_snapshot_load_missing_entry_warning_keeps_items(self):
+        from gt.tools.batch_processor.tasks import task_annotation
+
+        snapshot_path = os.path.join(self.temp_dir, "annotation_snapshot.json")
+        task_annotation.update_annotation_snapshot(
+            snapshot_path=snapshot_path,
+            source_root=self.temp_dir,
+            annotation_data_by_path={
+                "walk.ma": {"file_data": {}, "range_data": [{"name": "walk", "start": 1, "end": 24}]},
+            },
+        )
+        annotation_task = modules.create_task(constants.TaskType.ANNOTATION_SNAPSHOT)
+        annotation_task.settings["missing_snapshot_severity"] = task_annotation.ANNOTATION_SEVERITY_WARNING
+        work_items = [modules.WorkItem(source_path=os.path.join(self.temp_dir, "unknown.ma"))]
+
+        result = annotation_task.load_snapshot(snapshot_path=snapshot_path, work_items=work_items)
+
+        self.assertEqual(work_items, result)
+
+    def test_annotation_snapshot_concurrent_workers_merge_entries(self):
+        snapshot_path = os.path.join(self.temp_dir, "annotation_snapshot.json")
+        worker_count = 8
+        worker_processes = []
+        repository_root_dir = os.path.dirname(package_root_dir)
+        environment = dict(os.environ)
+        environment["PYTHONPATH"] = os.pathsep.join(
+            value for value in [repository_root_dir, environment.get("PYTHONPATH")] if value
+        )
+        for index in range(worker_count):
+            worker_code = (
+                "from gt.tools.batch_processor.tasks import task_annotation\n"
+                "task_annotation.update_annotation_snapshot(\n"
+                f"    {snapshot_path!r}, {self.temp_dir!r}, \n"
+                f"    {{'scenes/scene_{index}.ma': "
+                f"{{'file_data': {{}}, 'range_data': [{{'name': 'range_{index}'}}]}}}}\n"
+                ")\n"
+            )
+            worker_processes.append(
+                subprocess.Popen(
+                    [sys.executable, "-c", worker_code],
+                    cwd=repository_root_dir,
+                    env=environment,
+                )
+            )
+        for worker_process in worker_processes:
+            expected = 0
+            self.assertEqual(expected, worker_process.wait())
+
+        with open(snapshot_path, "r", encoding="utf-8") as snapshot_file:
+            result = json.load(snapshot_file)
+
+        expected = worker_count
+        self.assertEqual(expected, len(result.get("annotations") or {}))
+        expected = {"file_count": worker_count, "range_count": worker_count}
         self.assertEqual(expected, result.get("metadata"))
 
     def test_clip_split_default_target_path_uses_clips_task_folder(self):
@@ -3861,6 +4102,298 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertEqual("succeeded", result.status)
         self.assertTrue(os.path.isfile(file_path))
         self.assertTrue(os.path.isfile(report_path))
+
+    def test_multi_instance_runner_runs_leading_delete_task_without_input_files(self):
+        input_dir = os.path.join(self.temp_dir, "01_input")
+        delete_dir = os.path.join(self.temp_dir, "02_tasks")
+        os.makedirs(input_dir)
+        os.makedirs(delete_dir)
+        model = batch_processor_model.BatchProcessorModel()
+        model.project_file_path = os.path.join(self.temp_dir, "project.batch")
+        delete_task = model.add_task(
+            modules.TaskDeleteProjectFiles(
+                settings={
+                    "delete_path": delete_dir,
+                    "dry_run": False,
+                    "write_report": False,
+                    "run_once_before_multi_instance": True,
+                }
+            )
+        )
+        model.add_task(modules.TaskRename(settings={"pattern": "processed_{index}"}))
+
+        with mock.patch.object(batch_processor_worker.subprocess, "Popen") as popen_mock:
+            result = batch_processor_worker.MultiInstanceBatchRunner().run(model)
+
+        self.assertEqual("succeeded", result.status)
+        self.assertEqual(0, result.total_files)
+        self.assertFalse(popen_mock.called)
+        self.assertTrue(os.path.isdir(delete_dir))
+        self.assertTrue(any(delete_task.display_name in message for message in result.messages))
+
+    def test_multi_instance_runner_runs_multiple_leading_delete_tasks_without_input_files(self):
+        input_dir = os.path.join(self.temp_dir, "01_input")
+        first_delete_dir = os.path.join(self.temp_dir, "02_tasks")
+        second_delete_dir = os.path.join(self.temp_dir, "03_output")
+        os.makedirs(input_dir)
+        os.makedirs(first_delete_dir)
+        os.makedirs(second_delete_dir)
+        first_deleted_file = os.path.join(first_delete_dir, "stale_task.cache")
+        second_deleted_file = os.path.join(second_delete_dir, "stale_output.cache")
+        self._write_file(first_deleted_file, "delete me")
+        self._write_file(second_deleted_file, "delete me")
+        model = batch_processor_model.BatchProcessorModel()
+        model.project_file_path = os.path.join(self.temp_dir, "project.batch")
+        first_delete_task = model.add_task(
+            modules.TaskDeleteProjectFiles(
+                settings={
+                    "delete_path": first_delete_dir,
+                    "dry_run": False,
+                    "write_report": False,
+                    "run_once_before_multi_instance": True,
+                }
+            )
+        )
+        second_delete_task = model.add_task(
+            modules.TaskDeleteProjectFiles(
+                settings={
+                    "delete_path": second_delete_dir,
+                    "dry_run": False,
+                    "write_report": False,
+                    "run_once_before_multi_instance": True,
+                }
+            )
+        )
+
+        with mock.patch.object(batch_processor_worker.subprocess, "Popen") as popen_mock:
+            result = batch_processor_worker.MultiInstanceBatchRunner().run(model)
+
+        self.assertEqual("succeeded", result.status)
+        self.assertEqual(0, result.total_files)
+        self.assertFalse(popen_mock.called)
+        self.assertFalse(os.path.isfile(first_deleted_file))
+        self.assertFalse(os.path.isfile(second_deleted_file))
+        self.assertTrue(any(first_delete_task.display_name in message for message in result.messages))
+        self.assertTrue(any(second_delete_task.display_name in message for message in result.messages))
+
+    def test_multi_instance_runner_reports_delete_path_dry_run(self):
+        input_dir = os.path.join(self.temp_dir, "01_input")
+        delete_dir = os.path.join(self.temp_dir, "02_tasks")
+        os.makedirs(input_dir)
+        os.makedirs(delete_dir)
+        deleted_file = os.path.join(delete_dir, "stale_task.cache")
+        self._write_file(deleted_file, "keep me during dry run")
+        model = batch_processor_model.BatchProcessorModel()
+        model.project_file_path = os.path.join(self.temp_dir, "project.batch")
+        model.add_task(
+            modules.TaskDeleteProjectFiles(
+                settings={
+                    "delete_path": delete_dir,
+                    "dry_run": True,
+                    "write_report": False,
+                    "run_once_before_multi_instance": True,
+                }
+            )
+        )
+
+        result = batch_processor_worker.MultiInstanceBatchRunner().run(model)
+
+        self.assertEqual("succeeded", result.status)
+        self.assertTrue(os.path.isfile(deleted_file))
+        self.assertTrue(any("dry run" in message for message in result.messages))
+
+    def test_multi_instance_runner_runs_leading_delete_task_before_workers(self):
+        input_dir = os.path.join(self.temp_dir, "01_input")
+        delete_dir = os.path.join(self.temp_dir, "02_tasks")
+        os.makedirs(input_dir)
+        os.makedirs(delete_dir)
+        self._write_file(os.path.join(input_dir, "clip.ma"), "maya scene")
+        deleted_file = os.path.join(delete_dir, "stale.cache")
+        self._write_file(deleted_file, "delete me")
+        model = batch_processor_model.BatchProcessorModel()
+        model.project_file_path = os.path.join(self.temp_dir, "project.batch")
+        delete_task = model.add_task(
+            modules.TaskDeleteProjectFiles(
+                settings={
+                    "delete_path": delete_dir,
+                    "dry_run": False,
+                    "write_report": False,
+                    "run_once_before_multi_instance": True,
+                }
+            )
+        )
+        model.add_task(modules.TaskRename(settings={"pattern": "processed_{index}"}))
+        captured_data = {}
+
+        def fake_popen(command, *args, **kwargs):
+            """Captures the tracker command without launching it.
+
+            Args:
+                command (list): Command passed to Popen.
+                *args: Positional arguments.
+                **kwargs: Additional Popen keyword arguments.
+
+            Returns:
+                object: Dummy process object.
+            """
+            captured_data["command"] = command
+            return object()
+
+        with mock.patch.object(batch_processor_worker, "find_mayapy_executable", return_value=sys.executable):
+            with mock.patch.object(batch_processor_worker.subprocess, "Popen", side_effect=fake_popen):
+                batch_processor_worker.MultiInstanceBatchRunner().run(model)
+
+        command = captured_data.get("command")
+        skipped_ids = [command[index + 1] for index, item in enumerate(command) if item == "--skip-task-id"]
+        self.assertFalse(os.path.isfile(deleted_file))
+        self.assertIn(delete_task.id, skipped_ids)
+
+    def test_multi_instance_runner_uses_input_after_preflight_tasks(self):
+        input_dir = os.path.join(self.temp_dir, "01_input")
+        tasks_dir = os.path.join(self.temp_dir, "02_tasks")
+        output_dir = os.path.join(self.temp_dir, "03_output")
+        os.makedirs(input_dir)
+        os.makedirs(tasks_dir)
+        os.makedirs(output_dir)
+        self._write_file(os.path.join(input_dir, "clip.ma"), "maya scene")
+        stale_task_file = os.path.join(tasks_dir, "stale_task.cache")
+        stale_output_file = os.path.join(output_dir, "stale_output.cache")
+        self._write_file(stale_task_file, "delete me")
+        self._write_file(stale_output_file, "delete me")
+        model = batch_processor_model.BatchProcessorModel()
+        model.project_file_path = os.path.join(self.temp_dir, "project.batch")
+        first_delete_task = model.insert_task(
+            modules.TaskDeleteProjectFiles(
+                settings={
+                    "delete_path": tasks_dir,
+                    "dry_run": False,
+                    "write_report": False,
+                    "run_once_before_multi_instance": True,
+                }
+            ),
+            index=0,
+        )
+        second_delete_task = model.insert_task(
+            modules.TaskDeleteProjectFiles(
+                settings={
+                    "delete_path": output_dir,
+                    "dry_run": False,
+                    "write_report": False,
+                    "run_once_before_multi_instance": True,
+                }
+            ),
+            index=1,
+        )
+        model.add_task(modules.TaskRename(settings={"pattern": "processed_{index}"}))
+        captured_data = {}
+
+        def fake_popen(command, *args, **kwargs):
+            """Captures the standalone tracker launch command.
+
+            Args:
+                command (list): Command passed to Popen.
+                *args: Positional arguments.
+                **kwargs: Additional Popen keyword arguments.
+
+            Returns:
+                object: Dummy process object.
+            """
+            captured_data["command"] = command
+            return object()
+
+        with mock.patch.object(batch_processor_worker, "find_mayapy_executable", return_value=sys.executable):
+            with mock.patch.object(batch_processor_worker.subprocess, "Popen", side_effect=fake_popen):
+                result = batch_processor_worker.MultiInstanceBatchRunner().run(model)
+
+        command = captured_data.get("command")
+        preflight_ids = [
+            command[index + 1]
+            for index, item in enumerate(command)
+            if item == "--completed-preflight-task-id"
+        ]
+        self.assertEqual("running", result.status)
+        self.assertEqual(1, result.total_files)
+        self.assertFalse(os.path.isfile(stale_task_file))
+        self.assertFalse(os.path.isfile(stale_output_file))
+        self.assertEqual([first_delete_task.id, second_delete_task.id], preflight_ids)
+
+    def test_multi_instance_runner_requires_preflight_delete_task_to_be_first(self):
+        input_dir = os.path.join(self.temp_dir, "01_input")
+        delete_dir = os.path.join(self.temp_dir, "02_tasks")
+        os.makedirs(input_dir)
+        os.makedirs(delete_dir)
+        model = batch_processor_model.BatchProcessorModel()
+        model.project_file_path = os.path.join(self.temp_dir, "project.batch")
+        model.add_task(modules.TaskRename(settings={"pattern": "processed_{index}"}))
+        model.add_task(
+            modules.TaskDeleteProjectFiles(
+                settings={
+                    "delete_path": delete_dir,
+                    "run_once_before_multi_instance": True,
+                }
+            )
+        )
+
+        runner = batch_processor_worker.MultiInstanceBatchRunner()
+
+        self.assertRaisesRegex(
+            RuntimeError,
+            "must be the first enabled processing task",
+            runner.run,
+            model,
+        )
+
+    def test_delete_path_as_first_task_preserves_following_task_source_path(self):
+        input_dir = os.path.join(self.temp_dir, "01_input")
+        delete_dir = os.path.join(self.temp_dir, "02_tasks")
+        os.makedirs(input_dir)
+        os.makedirs(delete_dir)
+        self._write_file(os.path.join(input_dir, "clip.ma"), "maya scene")
+        stale_file = os.path.join(delete_dir, "stale.cache")
+        self._write_file(stale_file, "delete me")
+        model = batch_processor_model.BatchProcessorModel()
+        model.project_file_path = os.path.join(self.temp_dir, "project.batch")
+        model.add_task(
+            modules.TaskDeleteProjectFiles(
+                settings={
+                    "delete_path": delete_dir,
+                    "dry_run": False,
+                    "write_report": False,
+                }
+            )
+        )
+        rename_task = model.add_task(modules.TaskRename(settings={"pattern": "processed_{index}"}))
+
+        result = batch_processor_worker.SingleInstanceBatchRunner().run(model)
+
+        expected_file = os.path.join(
+            rename_task.resolve_task_path(model),
+            "processed_001.ma",
+        )
+        self.assertEqual("succeeded", result.status)
+        self.assertFalse(os.path.isfile(stale_file))
+        self.assertTrue(os.path.isfile(expected_file))
+
+    def test_delete_path_project_validation_ignores_hidden_common_io_paths(self):
+        """Ensures Delete Path validates only its dedicated delete path setting."""
+        delete_dir = os.path.join(self.temp_dir, "generated")
+        os.makedirs(delete_dir)
+        model = batch_processor_model.BatchProcessorModel()
+        model.project_file_path = os.path.join(self.temp_dir, "project.batch")
+        model.get_input_tasks()[0].enabled = False
+        model.add_task(
+            modules.TaskDeleteProjectFiles(
+                settings={
+                    "source_path": "",
+                    "target_path": "",
+                    "delete_path": delete_dir,
+                }
+            )
+        )
+
+        expected = []
+        result = model.validate_project(task_list=model.get_enabled_tasks()).errors
+        self.assertEqual(expected, result)
 
     def _write_file(self, file_path, content):
         """Writes a small test file.

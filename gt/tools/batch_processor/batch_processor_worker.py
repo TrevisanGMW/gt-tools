@@ -299,6 +299,7 @@ class SingleInstanceBatchRunner:
                 "total_items": len(work_items),
                 "work_items": list(work_items),
                 "run_id": self.run_id,
+                "report_message": self.tracker.record_message,
             }
             self.tracker.record_message(
                 "[INFO] - ({0}) - Processing aggregate task with {1} incoming file(s).".format(
@@ -335,6 +336,9 @@ class SingleInstanceBatchRunner:
                 "total_items": len(work_items),
                 "work_items": list(work_items),
                 "run_id": self.run_id,
+                "is_last_item": index == len(work_items),
+                "cleanup_report_parts": True,
+                "report_message": self.tracker.record_message,
             }
             self.tracker.record_message(
                 "[INFO] - ({0}) - Processing {1}/{2}: {3}".format(
@@ -480,10 +484,38 @@ class MultiInstanceBatchRunner:
                     "enabled processing tasks, in list order."
                 )
 
-        project_snapshot_path = self._write_project_snapshot(project)
-        source_files = self._get_source_files_for_multi_run(project, run_from_task_id)
+        self._validate_preflight_multi_instance_tasks(process_tasks)
+        preflight_tasks = self._get_preflight_multi_instance_tasks(process_tasks)
+        preflight_messages = self._run_preflight_multi_instance_tasks(project, preflight_tasks)
+        remaining_processing_tasks = [
+            task
+            for task in process_tasks
+            if not task.is_input_task and task not in preflight_tasks
+        ]
+        if preflight_tasks and not remaining_processing_tasks:
+            return self._finish_preflight_multi_instance_run(
+                project=project,
+                preflight_tasks=preflight_tasks,
+                preflight_messages=preflight_messages,
+                completion_message="No remaining processing tasks. No worker jobs launched.",
+            )
+
+        source_files = self._get_source_files_for_multi_run(
+            project=project,
+            run_from_task_id=run_from_task_id,
+            task_list=process_tasks,
+            excluded_task_ids=[task.id for task in preflight_tasks],
+        )
         if not source_files:
+            if preflight_tasks:
+                return self._finish_preflight_multi_instance_run(
+                    project=project,
+                    preflight_tasks=preflight_tasks,
+                    preflight_messages=preflight_messages,
+                    completion_message="No source files found after preflight. No worker jobs launched.",
+                )
             raise RuntimeError("No source files found for multi-instance run.")
+        project_snapshot_path = self._write_project_snapshot(project)
         job_file_path = self._write_job_file(source_files)
         tracker_script_path = os.path.join(os.path.dirname(__file__), "tracker", "tracker_main.py")
         preferred_maya_version = project.run_settings.get("preferred_maya_version")
@@ -518,6 +550,9 @@ class MultiInstanceBatchRunner:
             command.extend(["--run-to-task-id", run_to_task_id])
         for final_task in final_tasks:
             command.extend(["--final-task-id", final_task.id])
+        for preflight_task in preflight_tasks:
+            command.extend(["--skip-task-id", preflight_task.id])
+            command.extend(["--completed-preflight-task-id", preflight_task.id])
         if max_retries:
             command.extend(["--max-retries", str(max_retries)])
         if timeout_minutes:
@@ -553,10 +588,128 @@ class MultiInstanceBatchRunner:
             active_workers=worker_count,
             run_mode="multi-instance",
         )
+        for message in preflight_messages:
+            self.tracker.record_message(message)
         self.tracker.record_message("Launched standalone batch tracker: {0}".format(project_snapshot_path))
         if maya_version_warning:
             self.tracker.record_message("[WARNING] - (maya) - {0}".format(maya_version_warning))
         return self.tracker
+
+    def _finish_preflight_multi_instance_run(
+        self,
+        project,
+        preflight_tasks,
+        preflight_messages,
+        completion_message,
+    ):
+        """Finishes a cleanup-only multi-instance run without worker jobs.
+
+        Args:
+            project (BatchProcessorModel): Project being processed.
+            preflight_tasks (list): Preflight tasks completed before worker discovery.
+            preflight_messages (list): Messages emitted by the completed tasks.
+            completion_message (str): Explanation for why no worker jobs were launched.
+
+        Returns:
+            BatchProgressTracker: Completed tracker state.
+        """
+        self.tracker.start_run(
+            project_name=project.project_name,
+            total_steps=len(preflight_tasks),
+            total_files=0,
+            active_workers=0,
+            run_mode="multi-instance",
+        )
+        for message in preflight_messages:
+            self.tracker.record_message(message)
+        self.tracker.record_message(f"[INFO] - (multi-instance) - {completion_message}")
+        self.tracker.finish()
+        return self.tracker
+
+    @staticmethod
+    def _get_preflight_multi_instance_tasks(process_tasks):
+        """Gets leading tasks that must run before multi-instance jobs.
+
+        Args:
+            process_tasks (list): Enabled tasks selected for the run.
+
+        Returns:
+            list: Leading preflight tasks in project order.
+        """
+        preflight_tasks = []
+        for task in process_tasks:
+            if task.is_input_task:
+                continue
+            if not getattr(task, "supports_run_once_before_jobs", False):
+                break
+            if not task.settings.get("run_once_before_multi_instance", False):
+                break
+            preflight_tasks.append(task)
+        return preflight_tasks
+
+    @staticmethod
+    def _validate_preflight_multi_instance_tasks(process_tasks):
+        """Validates the placement of tasks configured to run before worker jobs.
+
+        Args:
+            process_tasks (list): Enabled tasks selected for the run.
+
+        Raises:
+            RuntimeError: If a preflight task is not at the start of the processing list.
+        """
+        configured_tasks = [
+            task
+            for task in process_tasks
+            if getattr(task, "supports_run_once_before_jobs", False)
+            and task.settings.get("run_once_before_multi_instance", False)
+        ]
+        if not configured_tasks:
+            return
+        processing_tasks = [task for task in process_tasks if not task.is_input_task]
+        leading_tasks = processing_tasks[: len(configured_tasks)]
+        if leading_tasks == configured_tasks:
+            return
+        offending_task = next(
+            (task for task in configured_tasks if task not in leading_tasks),
+            configured_tasks[0],
+        )
+        raise RuntimeError(
+            f'Task "{offending_task.display_name}" must be the first enabled processing task '
+            'when "Run Once Before All Jobs" is enabled.'
+        )
+
+    @staticmethod
+    def _run_preflight_multi_instance_tasks(project, preflight_tasks):
+        """Runs preflight tasks once before multi-instance workers are launched.
+
+        Args:
+            project (BatchProcessorModel): Project being processed.
+            preflight_tasks (list): Leading aggregate tasks to execute.
+
+        Returns:
+            list: Readable completion messages for the tracker log.
+        """
+        messages = []
+        for task in preflight_tasks:
+            preflight_runner = SingleInstanceBatchRunner()
+            tracker = preflight_runner.run(
+                project=project,
+                run_from_task_id=task.id,
+                run_to_task_id=task.id,
+            )
+            if task.settings.get("dry_run", False):
+                messages.append(
+                    f'[INFO] - (multi-instance) - Preflight task "{task.display_name}" '
+                    "completed as a dry run; no files were deleted."
+                )
+            elif tracker.skipped:
+                messages.append(
+                    f'[SKIPPED] - (multi-instance) - Preflight task "{task.display_name}" '
+                    f"completed with {tracker.skipped} skipped item(s)."
+                )
+            else:
+                messages.append(f'[INFO] - (multi-instance) - Preflight task "{task.display_name}" completed.')
+        return messages
 
     @staticmethod
     def _get_final_multi_instance_tasks(process_tasks):
@@ -576,12 +729,20 @@ class MultiInstanceBatchRunner:
         ]
 
     @staticmethod
-    def _get_source_files_for_multi_run(project, run_from_task_id=None):
+    def _get_source_files_for_multi_run(
+        project,
+        run_from_task_id=None,
+        task_list=None,
+        excluded_task_ids=None,
+    ):
         """Gets source files for a multi-instance job queue.
 
         Args:
             project (BatchProcessorModel): Project to inspect.
             run_from_task_id (str, optional): Optional selected start task.
+            task_list (list, optional): Enabled tasks selected for this run.
+            excluded_task_ids (list, optional): Task ids that already completed before
+                source discovery.
 
         Returns:
             list: Source file paths.
@@ -591,7 +752,10 @@ class MultiInstanceBatchRunner:
             if task and not task.is_input_task and not task.uses_incoming_files():
                 task_index = project.get_task_environment_index(task)
                 return task.discover_source_files(project=project, task_index=task_index)
-        segments = project.get_task_segments()
+        excluded_task_ids = set(excluded_task_ids or [])
+        selected_tasks = task_list if task_list is not None else project.get_enabled_tasks()
+        source_tasks = [task for task in selected_tasks if task.id not in excluded_task_ids]
+        segments = project.get_task_segments(task_list=source_tasks)
         if len(segments) > 1:
             # Segmented runs fan out one segment at a time. The initial queue only
             # needs the first segment's files; later segments are discovered by the

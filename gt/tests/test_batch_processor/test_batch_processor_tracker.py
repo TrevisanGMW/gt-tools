@@ -59,6 +59,95 @@ class TestBatchProcessorTracker(unittest.TestCase):
         expected = 75
         self.assertEqual(expected, job.progress)
 
+    def test_task_unit_progress_advances_the_bar_inside_one_item(self):
+        job = self.create_job()
+        task = job.tasks[0]
+        task.apply_event({"event": "task_started", "task_id": "rename", "total_items": 1})
+
+        expected = 0
+        self.assertEqual(expected, task.progress)
+
+        task.apply_event(
+            {
+                "event": "task_unit_progress",
+                "task_id": "rename",
+                "completed_units": 42,
+                "total_units": 100,
+                "unit_label": "frames",
+            }
+        )
+
+        expected = 42
+        self.assertEqual(expected, task.progress)
+
+        expected = "0/1 (42/100 frames)"
+        self.assertEqual(expected, task.get_count_text())
+
+    def test_task_unit_progress_is_scaled_across_multiple_items(self):
+        job = self.create_job()
+        task = job.tasks[0]
+        task.apply_event({"event": "task_started", "task_id": "rename", "total_items": 4})
+        task.apply_event({"event": "task_progress", "task_id": "rename", "completed_items": 1, "total_items": 4})
+        task.apply_event(
+            {
+                "event": "task_unit_progress",
+                "task_id": "rename",
+                "completed_units": 50,
+                "total_units": 100,
+            }
+        )
+
+        expected = 37
+        self.assertEqual(expected, task.progress)
+
+    def test_completed_item_clears_pending_unit_progress(self):
+        job = self.create_job()
+        task = job.tasks[0]
+        task.apply_event({"event": "task_started", "task_id": "rename", "total_items": 2})
+        task.apply_event(
+            {
+                "event": "task_unit_progress",
+                "task_id": "rename",
+                "completed_units": 100,
+                "total_units": 100,
+            }
+        )
+        task.apply_event({"event": "task_progress", "task_id": "rename", "completed_items": 1, "total_items": 2})
+
+        expected = 50
+        self.assertEqual(expected, task.progress)
+
+        expected = "1/2"
+        self.assertEqual(expected, task.get_count_text())
+
+    def test_finished_task_clears_unit_progress_from_its_counts(self):
+        job = self.create_job()
+        task = job.tasks[0]
+        task.apply_event({"event": "task_started", "task_id": "rename", "total_items": 1})
+        task.apply_event(
+            {
+                "event": "task_unit_progress",
+                "task_id": "rename",
+                "completed_units": 99,
+                "total_units": 100,
+            }
+        )
+        task.apply_event(
+            {
+                "event": "task_finished",
+                "task_id": "rename",
+                "status": "succeeded",
+                "completed_items": 1,
+                "total_items": 1,
+            }
+        )
+
+        expected = 100
+        self.assertEqual(expected, task.progress)
+
+        expected = "1/1"
+        self.assertEqual(expected, task.get_count_text())
+
     def test_session_health_state_uses_expected_precedence(self):
         job = self.create_job()
         session = tracker_model.TrackerSession("Test", "C:/project", 1, [job], "C:/session")
@@ -293,6 +382,40 @@ class TestBatchProcessorTracker(unittest.TestCase):
 
         self.assertFalse(scheduler.can_restart_job(active_job))
         self.assertFalse(scheduler.can_restart_job(final_job))
+
+    def test_preflight_job_is_completed_and_does_not_replace_finalization(self):
+        preflight_job = tracker_model.TrackerJob(
+            "preflight",
+            0,
+            "",
+            [{"id": "delete", "number": 1, "name": "Delete Path"}],
+            is_finalization=True,
+            is_preflight=True,
+        )
+        final_job = tracker_model.TrackerJob(
+            "finalization",
+            2,
+            "",
+            [{"id": "archive", "number": 1, "name": "Archive"}],
+            is_finalization=True,
+        )
+        preflight_job.mark_preflight_completed()
+        session_dir = tempfile.mkdtemp(prefix="gt_tracker_preflight_test_")
+        self.addCleanup(lambda: os.path.isdir(session_dir) and shutil.rmtree(session_dir))
+        session = tracker_model.TrackerSession(
+            "Test",
+            "C:/project",
+            1,
+            [preflight_job, final_job],
+            session_dir,
+        )
+        options = types.SimpleNamespace(no_log=True, task_time_logs=False)
+        scheduler = tracker_scheduler.TrackerScheduler(session=session, options=options)
+
+        self.assertEqual(tracker_constants.Status.COMPLETED, preflight_job.status)
+        self.assertEqual(tracker_constants.Status.COMPLETED, preflight_job.tasks[0].status)
+        self.assertEqual([], session.regular_jobs)
+        self.assertIs(final_job, scheduler.finalization_job)
 
     def test_restart_preserves_terminal_finalization_state(self):
         """Tests that a single-job restart does not rerun project finalization."""

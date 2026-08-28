@@ -1,5 +1,6 @@
 """Qt regression tests for the Batch Processor user interface."""
 
+import json
 import os
 import shutil
 import sys
@@ -22,10 +23,16 @@ from gt.tools.batch_processor import batch_processor_controller
 from gt.tools.batch_processor import batch_processor_model
 from gt.tools.batch_processor import batch_processor_tasks
 from gt.tools.batch_processor import batch_processor_view
+from gt.tools.batch_processor.tasks import task_annotation
+from gt.tools.batch_processor.tasks import task_batch_render
 from gt.tools.batch_processor.tasks import task_clip
 from gt.tools.batch_processor.tasks import task_utils
+from gt.tools.batch_processor.widgets import attr_widget_annotation
+from gt.tools.batch_processor.widgets import attr_widget_batch_render
 from gt.tools.batch_processor.widgets import attr_widget_clip
+from gt.tools.batch_processor.widgets import attr_widget_delete_path
 from gt.tools.batch_processor.widgets import attr_widget_export_fbx
+from gt.tools.batch_processor.widgets import attr_widget_project
 from gt.tools.batch_processor.widgets import attr_widget_python_script
 from gt.tools.batch_processor.widgets import attr_widget_task
 from gt.tools.batch_processor.widgets.inline_python_editor import InlinePythonEditorWidget
@@ -102,6 +109,269 @@ class TestBatchProcessorUi(unittest.TestCase):
         expected = self.task.id
         self.assertEqual(expected, self.view.get_selected_task_id())
 
+    def test_delete_path_widget_shows_run_once_before_jobs_option(self):
+        """Ensures Delete Path exposes the multi-instance preflight option."""
+        delete_task = self.model.add_task(batch_processor_tasks.TaskDeleteProjectFiles())
+        task_widget = attr_widget_delete_path.AttrWidgetDeleteProjectFilesTask(
+            task=delete_task,
+            project=self.model,
+        )
+
+        checkbox_labels = [
+            label.text()
+            for label in task_widget.findChildren(ui_qt.QtWidgets.QLabel)
+        ]
+
+        self.assertIn("Run Once Before All Jobs:", checkbox_labels)
+        task_widget.deleteLater()
+
+    def test_project_notes_expand_with_the_details_panel(self):
+        """Ensures Notes receives the available vertical space in the project panel."""
+        project_widget = attr_widget_project.AttrWidgetProject(project=self.model)
+        self.view.set_task_widget(project_widget)
+        self.view.resize(850, 560)
+        self.view.show()
+        self.application.processEvents()
+
+        initial_notes_height = project_widget.notes_text_area.height()
+        initial_panel_height = project_widget.height()
+        self.view.resize(1400, 1400)
+        self.application.processEvents()
+
+        notes_height_increase = project_widget.notes_text_area.height() - initial_notes_height
+        panel_height_increase = project_widget.height() - initial_panel_height
+
+        self.assertGreater(notes_height_increase, 0)
+        self.assertGreater(notes_height_increase, panel_height_increase * 0.75)
+
+    def test_controller_modified_state_detects_nested_extra_data_changes(self):
+        """Ensures clean-state comparisons retain an independent data snapshot."""
+        controller = batch_processor_controller.BatchProcessorController.__new__(
+            batch_processor_controller.BatchProcessorController
+        )
+        controller.model = self.model
+        self.model.extra_data["legacy_settings"] = {"version": 1}
+
+        controller.mark_project_clean()
+
+        self.assertFalse(controller.has_unsaved_changes())
+        self.model.extra_data["legacy_settings"]["version"] = 2
+        self.assertTrue(controller.has_unsaved_changes())
+
+    def test_clean_project_does_not_open_unsaved_changes_dialog(self):
+        """Ensures closing or loading a clean project requires no confirmation."""
+        controller = batch_processor_controller.BatchProcessorController.__new__(
+            batch_processor_controller.BatchProcessorController
+        )
+        controller.model = self.model
+        controller.mark_project_clean()
+
+        with mock.patch.object(batch_processor_controller.ui_qt.QtWidgets, "QMessageBox") as message_box:
+            result = controller.show_unsaved_changes_warning_dialog(
+                window=self.view,
+                is_close_event=False,
+            )
+
+        self.assertFalse(result)
+        message_box.assert_not_called()
+
+    def test_view_close_event_displays_unsaved_changes_dialog(self):
+        """Ensures a modified standalone view can cancel its native close event."""
+        controller = batch_processor_controller.BatchProcessorController.__new__(
+            batch_processor_controller.BatchProcessorController
+        )
+        controller.model = self.model
+        controller.view = self.view
+        controller.mark_project_clean()
+        self.model.project_name = "Modified Batch Project"
+        self.view.set_close_event_function(controller.show_unsaved_changes_warning_dialog)
+
+        save_button = object()
+        dont_save_button = object()
+        cancel_button = object()
+        message_box = mock.MagicMock()
+        message_box.addButton.side_effect = [save_button, dont_save_button, cancel_button]
+        message_box.clickedButton.return_value = cancel_button
+        close_event = ui_qt.QtGui.QCloseEvent()
+
+        with mock.patch.object(
+            batch_processor_controller.ui_qt.QtWidgets,
+            "QMessageBox",
+            return_value=message_box,
+        ):
+            self.view.closeEvent(close_event)
+
+        self.assertFalse(close_event.isAccepted())
+        message_box.exec_.assert_called_once_with()
+        self.view.close_func = None
+
+    def test_view_close_event_matches_auto_rigger_callback_signature(self):
+        """Ensures standalone closes forward the window and native close event."""
+        close_callback = mock.MagicMock(return_value=False)
+        close_event = ui_qt.QtGui.QCloseEvent()
+        self.view.set_close_event_function(close_callback)
+
+        self.view.closeEvent(close_event)
+
+        close_callback.assert_called_once_with(self.view, close_event)
+        self.view.close_func = None
+
+    def test_modified_project_uses_parentless_dialog_when_view_is_stale(self):
+        """Ensures Maya wrapper changes cannot suppress unsaved-changes warnings."""
+        controller = batch_processor_controller.BatchProcessorController.__new__(
+            batch_processor_controller.BatchProcessorController
+        )
+        controller.model = self.model
+        controller.mark_project_clean()
+        self.model.project_name = "Modified Batch Project"
+
+        save_button = object()
+        dont_save_button = object()
+        cancel_button = object()
+        message_box = mock.MagicMock()
+        message_box.addButton.side_effect = [save_button, dont_save_button, cancel_button]
+        message_box.clickedButton.return_value = dont_save_button
+
+        with mock.patch.object(
+            batch_processor_controller.ui_qt_utils,
+            "is_qt_object_valid",
+            return_value=False,
+        ), mock.patch.object(
+            batch_processor_controller.ui_qt.QtWidgets,
+            "QMessageBox",
+            return_value=message_box,
+        ) as message_box_class:
+            result = controller.show_unsaved_changes_warning_dialog(
+                window=self.view,
+                is_close_event=False,
+            )
+
+        self.assertFalse(result)
+        message_box_class.assert_called_once_with(None)
+        message_box.exec_.assert_called_once_with()
+
+    def test_dock_close_event_displays_unsaved_changes_dialog(self):
+        """Ensures the Maya dock close hook invokes the unsaved-changes dialog."""
+        controller = batch_processor_controller.BatchProcessorController.__new__(
+            batch_processor_controller.BatchProcessorController
+        )
+        controller.model = self.model
+        controller.view = self.view
+        controller.mark_project_clean()
+        self.model.project_name = "Modified Batch Project"
+        self.view.set_close_event_function(controller.show_unsaved_changes_warning_dialog)
+
+        save_button = object()
+        dont_save_button = object()
+        cancel_button = object()
+        message_box = mock.MagicMock()
+        message_box.addButton.side_effect = [save_button, dont_save_button, cancel_button]
+        message_box.clickedButton.return_value = dont_save_button
+
+        with mock.patch.object(
+            batch_processor_controller.ui_qt.QtWidgets,
+            "QMessageBox",
+            return_value=message_box,
+        ):
+            self.view.dockCloseEventTriggered()
+
+        message_box.exec_.assert_called_once_with()
+        self.view.close_func = None
+
+    def test_dock_close_event_matches_auto_rigger_callback_signature(self):
+        """Ensures docked closes forward the view using Auto Rigger's keyword form."""
+        close_callback = mock.MagicMock(return_value=False)
+        self.view.set_close_event_function(close_callback)
+
+        self.view.dockCloseEventTriggered()
+
+        close_callback.assert_called_once_with(window=self.view)
+        self.view.close_func = None
+
+    def test_host_close_event_uses_the_view_close_callback(self):
+        """Ensures a Maya workspace-control host cannot bypass the close callback."""
+        host_window = ui_qt.QtWidgets.QDialog()
+        self.view.setParent(host_window)
+        close_callback = mock.MagicMock(return_value=True)
+        close_event = ui_qt.QtGui.QCloseEvent()
+        self.view.set_close_event_function(close_callback)
+        self.view.install_host_close_event_filter()
+
+        self.application.sendEvent(host_window, close_event)
+
+        close_callback.assert_called_once_with(self.view, close_event)
+        self.assertFalse(close_event.isAccepted())
+        self.application.removeEventFilter(self.view)
+        self.view._close_event_filter_installed = False
+        self.view.close_func = None
+        host_window.setParent(None)
+        host_window.deleteLater()
+
+    def test_loading_project_stops_when_unsaved_changes_are_cancelled(self):
+        """Ensures cancelling the warning preserves the active project."""
+        file_descriptor, project_path = tempfile.mkstemp(suffix=".batch")
+        os.close(file_descriptor)
+        with open(project_path, "w", encoding="utf-8") as project_file:
+            json.dump(self.model.to_dict(), project_file)
+        self.addCleanup(os.remove, project_path)
+
+        controller = batch_processor_controller.BatchProcessorController.__new__(
+            batch_processor_controller.BatchProcessorController
+        )
+        controller.model = self.model
+        controller.view = self.view
+        controller._recent_projects = mock.MagicMock()
+        controller._recent_projects.normalize_path.return_value = project_path
+        controller.show_unsaved_changes_warning_dialog = mock.MagicMock(return_value=True)
+
+        result = controller.load_project_from_path(project_path)
+
+        self.assertFalse(result)
+        self.assertIs(self.model, controller.model)
+        controller.show_unsaved_changes_warning_dialog.assert_called_once_with(
+            window=controller.view,
+            is_close_event=False,
+        )
+
+    def test_saving_loaded_template_uses_save_as(self):
+        """Ensures templates cannot overwrite their source file through Save."""
+        template_project = batch_processor_model.BatchProcessorModel()
+        template_project.project_file_path = None
+        controller = batch_processor_controller.BatchProcessorController.__new__(
+            batch_processor_controller.BatchProcessorController
+        )
+        controller.model = template_project
+        controller.save_project_as = mock.MagicMock(return_value=True)
+
+        result = controller.save_project()
+
+        self.assertTrue(result)
+        controller.save_project_as.assert_called_once_with()
+
+    def test_annotation_snapshot_summary_displays_file_and_range_counts(self):
+        """Ensures Annotation Snapshot displays summary counts from its JSON file."""
+        snapshot_directory = tempfile.mkdtemp(prefix="gt_annotation_snapshot_ui_test_")
+        self.addCleanup(shutil.rmtree, snapshot_directory)
+        snapshot_path = os.path.join(snapshot_directory, "annotation_snapshot.json")
+        task_annotation.update_annotation_snapshot(
+            snapshot_path=snapshot_path,
+            source_root=snapshot_directory,
+            annotation_data_by_path={
+                "walk.ma": {"file_data": {"shot": "sh010"}, "range_data": [{"name": "walk"}]},
+                "run.ma": {"file_data": {}, "range_data": [{"name": "run"}, {"name": "run_end"}]},
+            },
+        )
+        task = batch_processor_tasks.TaskAnnotationSnapshot(settings={"snapshot_path": snapshot_path})
+        widget = attr_widget_annotation.AttrWidgetAnnotationSnapshotTask(task=task, project=self.model)
+        self.addCleanup(widget.close)
+
+        files_label, _ = widget.summary_cells.get("file_count")
+        ranges_label, _ = widget.summary_cells.get("range_count")
+
+        self.assertIn("2", files_label.text())
+        self.assertIn("3", ranges_label.text())
+        self.assertIn(task_annotation.SNAPSHOT_STATUS_READY, widget.status_label.text())
+
     def test_clip_snapshot_summary_displays_file_and_clip_counts(self):
         """Ensures Clip Snapshot displays summary counts from its JSON file."""
         snapshot_directory = tempfile.mkdtemp(prefix="gt_clip_snapshot_ui_test_")
@@ -145,6 +415,60 @@ class TestBatchProcessorUi(unittest.TestCase):
         self.assertTrue(widget.frame_start_spin.isEnabled())
         self.assertTrue(widget.frame_end_label.isEnabled())
         self.assertTrue(widget.frame_end_spin.isEnabled())
+
+    def test_batch_render_overrides_gate_their_controls(self):
+        """Ensures render override checkboxes enable only the widgets they own."""
+        task = batch_processor_tasks.TaskBatchRender()
+        widget = attr_widget_batch_render.AttrWidgetBatchRenderTask(task=task, project=self.model)
+        self.addCleanup(widget.close)
+
+        expected = [False, False]
+        self.assertEqual(expected, [item.isEnabled() for item in widget.override_widgets["override_resolution"]])
+
+        widget.override_checkboxes["override_resolution"].setChecked(True)
+
+        expected = [True, True]
+        self.assertEqual(expected, [item.isEnabled() for item in widget.override_widgets["override_resolution"]])
+
+        expected = True
+        self.assertEqual(expected, task.settings["override_resolution"])
+
+        expected = [False, False, False]
+        self.assertEqual(expected, [item.isEnabled() for item in widget.override_widgets["override_frame_range"]])
+
+    def test_batch_render_project_path_requires_custom_project_mode(self):
+        """Ensures the Maya project path field follows the project mode and toggle."""
+        task = batch_processor_tasks.TaskBatchRender()
+        widget = attr_widget_batch_render.AttrWidgetBatchRenderTask(task=task, project=self.model)
+        self.addCleanup(widget.close)
+
+        expected = False
+        self.assertEqual(expected, widget.project_path_widgets["field"].isEnabled())
+
+        widget.set_project_mode(task_batch_render.PROJECT_MODE_CUSTOM)
+
+        expected = True
+        self.assertEqual(expected, widget.project_path_widgets["field"].isEnabled())
+
+        widget.set_project_enabled(False)
+
+        expected = False
+        self.assertEqual(expected, widget.project_mode_combo.isEnabled())
+        self.assertEqual(expected, widget.project_path_widgets["field"].isEnabled())
+
+    def test_batch_render_prefix_tokens_are_inserted_at_the_cursor(self):
+        """Ensures prefix tokens append to the field and update the task setting."""
+        task = batch_processor_tasks.TaskBatchRender()
+        widget = attr_widget_batch_render.AttrWidgetBatchRenderTask(task=task, project=self.model)
+        self.addCleanup(widget.close)
+
+        widget.prefix_field.setText("")
+        widget.insert_prefix_token(token="<Scene>")
+        widget.insert_prefix_token(token="_{name}")
+
+        expected = "<Scene>_{name}"
+        self.assertEqual(expected, widget.prefix_field.text())
+        self.assertEqual(expected, task.settings["file_name_prefix"])
 
     def test_update_task_tree_item_updates_label_and_enabled_state(self):
         """Ensures an existing tree row reflects task changes in place."""

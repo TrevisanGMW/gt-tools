@@ -22,6 +22,7 @@
   <li><a href="#path-manager">Path Manager</a></li>
   <li><a href="#renamer">Renamer</a></li>
   <li><a href="#selection-manager">Selection Manager</a></li>
+  <li><a href="#script-library">Script Library</a></li>
   <li><a href="#transfer-transforms">Transfer Transforms</a></li>
 </ul>
 <h3><b>Curves:</b></h3>
@@ -68,6 +69,7 @@
   <li><a href="#maya-to-discord">Maya to Discord</a></li>
   <li><a href="#render-calculator">Render Calculator</a></li>
   <li><a href="#startup-booster">Startup Booster</a></li>
+  <li><a href="#startup-scripts">Startup Scripts</a></li>
 </ul>
 <h3><b>Utilities:</b></h3>
 <ul>
@@ -243,6 +245,7 @@ After installing, you can delete the downloaded/extracted files (as they have al
   <li><b>Build Auto Rig:</b> Builds an Auto Rigger project as a batch step.</li>
   <li><b>Clip Split:</b> Separates an animation range into individual clips.</li>
   <li><b>Clip Snapshot:</b> Creates a saved snapshot of an animation clip.</li>
+  <li><b>Annotation Snapshot:</b> Stores and restores Annotation Tracker data for a sequence of files.</li>
   <li><b>Report:</b> Collects read-only information about the processed files into a report.</li>
   <li><b>Delete Path:</b> Deletes files under a configured project path.</li>
   <li><b>Archive:</b> Compresses selected results into an archive.</li>
@@ -398,6 +401,30 @@ The icon on the left describes the validity of the path. If the file or director
 
 <p><b>Create New Selection: </b>Uses all objects as initial selection<br><b>Update Current Selection: </b>Considers only selected objects</p>
 <br>
+</div>
+
+<!-- Script Library -->
+<div>
+<h1 id="script-library">Script Library</h1>
+
+<p>Script Library stores, organizes, and runs a personal collection of quick Python scripts. It is useful for small Maya actions that you run often but do not want to maintain as individual shelf buttons or separate files. The library stores its managed <code>.py</code> files and metadata in your GT Tools user files folder.</p>
+
+<p><b>Quick workflow:</b></p>
+<ol>
+  <li>Enable <b>Edit Mode</b> and click <b>Add</b>, or import an existing Python script.</li>
+  <li>Set the display name, edit the script content, and optionally add a description.</li>
+  <li>Save the changes, or enable <b>Auto Save Changes</b> to save as fields are edited.</li>
+  <li>Return to use mode, select the script, and click <b>Run</b>. You can also right-click a list item to run it, open its file, or add it to the current Maya shelf.</li>
+</ol>
+
+<p><b>Organizing scripts:</b><br>The search field matches display names, file names, and descriptions. Each item can have a package icon, a copied custom image, or a viewport snapshot; it can also be hidden from use mode without being deleted. The script file name and the display name are separate, so a file can retain a stable technical name while using a friendlier label in the library.</p>
+
+<p><b>Importing and sharing:</b><br><b>Import Script</b> accepts Python files and individual <code>.gtscript</code> archives. <b>Export Script</b> creates a self-contained <code>.gtscript</code> archive containing the script and any managed custom icon or snapshot. <b>Export Library Backup</b> creates a <code>.gtscriptlib</code> archive for the complete library. When a library backup contains a script with the same stable ID, the import flow offers to replace that script while preserving other library entries.</p>
+
+<p><b>Safety:</b><br>Running a library item executes its Python code in Maya. Only import or run scripts from trusted sources, and review scripts before adding them to a shared shelf or library backup.</p>
+
+<br>
+
 </div>
 
 <!-- Transfer Transforms -->
@@ -1294,6 +1321,30 @@ Do not change the resolution of the image file or crop the image or it might not
 <p><b>Total Number of Machines: </b>
 <br>The number of computers rendering the same job.
 <br>The render time may vary per machine based on the available setup.</p>
+
+<br>
+
+</div>
+
+<!-- Startup Scripts -->
+<div>
+<h1 id="startup-scripts">Startup Scripts</h1>
+
+<p>Startup Scripts is a preference-backed way to configure Python that runs after GT Tools has loaded. It is intended for personal or studio defaults that need Maya to be available first, without manually editing <code>userSetup.py</code>. Configure a script to run in Interactive Maya, in <code>mayapy</code>, after a scene finishes opening, or in any supported combination of those events.</p>
+
+<p><b>Quick workflow:</b></p>
+<ol>
+  <li>Click <b>Add</b>, give the configuration a descriptive name, and leave it enabled.</li>
+  <li>Choose the run mode that matches the code: Interactive Maya for UI or viewport work, <code>mayapy</code> for headless automation, and File Open for scene-dependent setup.</li>
+  <li>Add inline Python, external <code>.py</code> files, and/or script directories. Sources execute in this order: inline code, external files in their list order, then every Python file in each enabled directory and subdirectory in alphabetical order.</li>
+  <li>Use <b>Run Selected</b> to test the configuration immediately. This manual run ignores the selected trigger and any frequency limit.</li>
+</ol>
+
+<p><b>Frequency and source controls:</b><br>Each source file or directory can be disabled without removing its path. A configuration can also be limited to run every chosen number of days, weeks, months, or years; the date is recorded only after a successful scheduled run. If one source fails, the error is written to Maya's output while later sources in that configuration are still allowed to run.</p>
+
+<p><b>Examples and backups:</b><br>The <b>Examples</b> menu loads editable samples for common Maya preferences, scene defaults, and timeline settings. <b>Export Backup</b> saves all Startup Scripts configurations as JSON. <b>Import Backup</b> replaces the current Startup Scripts configuration list after confirmation, so export a backup before importing a different setup.</p>
+
+<p><b>Safety:</b><br>Startup Scripts executes arbitrary Python automatically. Test new configurations with <b>Run Selected</b> first, use trusted external files only, and keep destructive or scene-changing scripts disabled until their behavior has been verified.</p>
 
 <br>
 

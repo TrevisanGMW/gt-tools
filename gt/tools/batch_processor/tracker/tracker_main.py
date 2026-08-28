@@ -30,6 +30,13 @@ def parse_args():
     parser.add_argument("--run-from-task-id", default="", help="Optional first task id.")
     parser.add_argument("--run-to-task-id", default="", help="Optional last task id.")
     parser.add_argument("--final-task-id", action="append", default=[], help="Deferred run-once task id.")
+    parser.add_argument("--skip-task-id", action="append", default=[], help="Task id already run before workers.")
+    parser.add_argument(
+        "--completed-preflight-task-id",
+        action="append",
+        default=[],
+        help="Run-once task id completed by the launcher before tracker startup.",
+    )
     parser.add_argument("--worker-count", type=int, default=1, help="Maximum concurrent workers.")
     parser.add_argument(
         "--max-retries",
@@ -84,9 +91,39 @@ def build_task_definitions(project, args):
         args.run_to_task_id or None,
     )
     final_ids = set(args.final_task_id or [])
-    regular_tasks = [task for task in selected_tasks if not task.is_input_task and task.id not in final_ids]
+    skipped_ids = set(getattr(args, "skip_task_id", []) or [])
+    regular_tasks = [
+        task
+        for task in selected_tasks
+        if not task.is_input_task and task.id not in final_ids and task.id not in skipped_ids
+    ]
     final_tasks = [task for task in selected_tasks if not task.is_input_task and task.id in final_ids]
     return create_definitions(regular_tasks), create_definitions(final_tasks)
+
+
+def build_preflight_task_definitions(project, args):
+    """Builds tracker definitions for tasks completed before worker jobs start.
+
+    Args:
+        project (BatchProcessorModel): Snapshot project.
+        args (argparse.Namespace): Tracker options.
+
+    Returns:
+        list: Completed preflight task definitions in project order.
+    """
+    from gt.tools.batch_processor import batch_processor_worker
+
+    runner = batch_processor_worker.SingleInstanceBatchRunner()
+    selected_tasks = runner._trim_tasks(
+        project.get_enabled_tasks(),
+        args.run_from_task_id or None,
+        args.run_to_task_id or None,
+    )
+    preflight_ids = set(getattr(args, "completed_preflight_task_id", []) or [])
+    preflight_tasks = [
+        task for task in selected_tasks if not task.is_input_task and task.id in preflight_ids
+    ]
+    return create_definitions(preflight_tasks)
 
 
 def build_segments(project, args):
@@ -109,9 +146,10 @@ def build_segments(project, args):
         args.run_to_task_id or None,
     )
     final_ids = set(args.final_task_id or [])
+    skipped_ids = set(getattr(args, "skip_task_id", []) or [])
     final_tasks = [task for task in selected_tasks if not task.is_input_task and task.id in final_ids]
     final_definitions = create_definitions(final_tasks)
-    content_tasks = [task for task in selected_tasks if task.id not in final_ids]
+    content_tasks = [task for task in selected_tasks if task.id not in final_ids and task.id not in skipped_ids]
     segments = []
     for segment_tasks in project.get_task_segments(task_list=content_tasks):
         processing_tasks = [task for task in segment_tasks if not task.is_input_task]
@@ -185,6 +223,7 @@ def run_tracker(args):
 
     project = batch_processor_model.BatchProcessorModel.from_file(args.project_file)
     segments, segmented_final_definitions, _segmented_final_tasks = build_segments(project, args)
+    preflight_definitions = build_preflight_task_definitions(project, args)
     segmented = len(segments) > 1
     finalization_number = 10_000_000
     if segmented:
@@ -225,6 +264,17 @@ def run_tracker(args):
                 )
             )
         scheduler_segments = None
+    if preflight_definitions:
+        preflight_job = tracker_model.TrackerJob(
+            job_id="preflight",
+            number=0,
+            source_file=args.project_file,
+            task_definitions=preflight_definitions,
+            is_finalization=True,
+            is_preflight=True,
+        )
+        preflight_job.mark_preflight_completed()
+        jobs.insert(0, preflight_job)
     session = tracker_model.TrackerSession(
         project_name=project.project_name,
         project_path=project.get_project_dir(),
@@ -243,7 +293,7 @@ def run_tracker(args):
     scheduler = tracker_scheduler.TrackerScheduler(
         session=session,
         options=args,
-        project=project if segmented else None,
+        project=project,
         segments=scheduler_segments,
     )
     controller = tracker_controller.TrackerController(session=session, scheduler=scheduler, view=view)

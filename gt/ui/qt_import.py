@@ -233,13 +233,16 @@ class QtLib:
         UserRole = None
         DisplayRole = None
         ForegroundRole = None
+        ToolTipRole = None
         if IS_PYSIDE6:  # PySide6
             UserRole = QtCore.Qt.ItemDataRole.UserRole
             ForegroundRole = QtCore.Qt.ItemDataRole.ForegroundRole
+            ToolTipRole = QtCore.Qt.ItemDataRole.ToolTipRole
         else:  # PySide2
             UserRole = QtCore.Qt.UserRole
             DisplayRole = QtCore.Qt.DisplayRole
             ForegroundRole = QtCore.Qt.ForegroundRole
+            ToolTipRole = QtCore.Qt.ToolTipRole
 
     # ------------------------------------------- ItemDataRoles ----------------------------------------
     class StandardButton:

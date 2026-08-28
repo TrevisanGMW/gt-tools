@@ -49,11 +49,15 @@ class TrackerScheduler:
         self.readers = {}
         self.worker_log_offsets = {}
         self.regular_queue = list(session.regular_jobs)
-        self.finalization_job = next((job for job in session.jobs if job.is_finalization), None)
+        self.finalization_job = next(
+            (job for job in session.jobs if job.is_finalization and not getattr(job, "is_preflight", False)),
+            None,
+        )
         self.final_task_index = 0
         self.abort_requested_at = None
         self._finish_notified = False
         self._preserve_terminal_finalization = False
+        self._report_parts_cleaned = False
         os.makedirs(self.session.session_dir, exist_ok=True)
         os.makedirs(self.get_events_dir(), exist_ok=True)
         os.makedirs(self.get_logs_dir(), exist_ok=True)
@@ -93,6 +97,7 @@ class TrackerScheduler:
             changed = self._launch_available_jobs() or changed
             changed = self._advance_finalization() or changed
         if self._is_finished() and not self.session.finished:
+            self.cleanup_report_parts()
             self.session.finish()
             self._append_project_summary()
             changed = True
@@ -493,7 +498,7 @@ class TrackerScheduler:
             int: Insertion index.
         """
         for index, job in enumerate(self.session.jobs):
-            if job.is_finalization:
+            if job.is_finalization and not getattr(job, "is_preflight", False):
                 return index
         return len(self.session.jobs)
 
@@ -591,6 +596,8 @@ class TrackerScheduler:
             if self.options.run_to_task_id:
                 command.extend(["--run-to-task-id", self.options.run_to_task_id])
             for task_id in self.options.final_task_id:
+                command.extend(["--skip-task-id", task_id])
+            for task_id in getattr(self.options, "skip_task_id", []) or []:
                 command.extend(["--skip-task-id", task_id])
         if log_path:
             command.extend(["--log-file", log_path])
@@ -925,6 +932,51 @@ class TrackerScheduler:
         if self.finalization_job:
             return self.finalization_job.status in tracker_constants.TERMINAL_STATUSES
         return all(job.status in tracker_constants.TERMINAL_STATUSES for job in self.session.regular_jobs)
+
+    def cleanup_report_parts(self):
+        """Removes completed report parts after all tracker workers have stopped.
+
+        Each worker writes a partial report so files must remain available while
+        the queue is active. The scheduler is the only component that can
+        safely clean them in regular multi-worker mode because it knows every
+        worker has reached a terminal state.
+        """
+        if self._report_parts_cleaned or not self.project:
+            return
+        self._report_parts_cleaned = True
+        try:
+            from gt.tools.batch_processor import batch_processor_task_base as task_base
+            from gt.tools.batch_processor.tasks import task_report
+        except ImportError:
+            return
+
+        run_id = task_base.build_run_id(self.get_events_dir())
+        for task in self.project.get_enabled_tasks():
+            if not isinstance(task, task_report.TaskSceneReport):
+                continue
+            task_index = self.project.get_task_environment_index(task)
+            step_output_dir = task.resolve_task_path(self.project, task_index=task_index)
+            base_report_path = task_report.build_report_path(
+                task=task,
+                step_output_dir=step_output_dir,
+                project=self.project,
+            )
+            parts_dir = task_report.get_parts_dir(base_report_path)
+            try:
+                with task_report.report_lock(parts_dir, timeout_seconds=0) as acquired:
+                    if not acquired:
+                        continue
+                    deleted_count = task_report.cleanup_report_parts(parts_dir, run_id)
+                task_report.remove_parts_directory_if_empty(parts_dir)
+                if deleted_count:
+                    self._append_project_log(
+                        f"[INFO] - (Report) - Removed {deleted_count} temporary report part file(s).\n"
+                    )
+            except Exception as exception:
+                self._append_project_log(
+                    f"[WARNING] - (Report) - Unable to clean temporary report parts: {exception}\n"
+                )
+                continue
 
     @staticmethod
     def _mark_job_canceled(job):

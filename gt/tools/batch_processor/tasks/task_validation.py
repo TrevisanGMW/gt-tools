@@ -54,6 +54,7 @@ class TaskValidationMayaScene(task_base.BatchTask):
     category_icon = ui_res_lib.Icon.batch_category_validation
     is_indexless_task = True
     supports_run_once_after_jobs = True
+    supports_run_once_before_jobs = True
     pre_validation_script_samples_directory = PRE_VALIDATION_SCRIPT_SAMPLES_DIRECTORY
 
     def __init__(self, *args, **kwargs):
@@ -89,6 +90,7 @@ class TaskValidationMayaScene(task_base.BatchTask):
             "pre_validation_script_font_size": 14,
             "pre_validation_script_pass_standard_arguments": True,
             "pre_validation_script_pass_environment_arguments": True,
+            "run_once_before_multi_instance": False,
             "run_once_after_multi_instance": False,
             "force_segment_separator": False,
             "segment_name": "",
@@ -303,6 +305,7 @@ class TaskValidationFileIntegrity(task_base.BatchTask):
     category_icon = ui_res_lib.Icon.batch_category_validation
     is_indexless_task = True
     supports_run_once_after_jobs = True
+    supports_run_once_before_jobs = True
 
     def __init__(self, *args, **kwargs):
         """Initializes a file integrity validation task.
@@ -332,6 +335,7 @@ class TaskValidationFileIntegrity(task_base.BatchTask):
             "detect_duplicate_checksums": False,
             "checksum_algorithm": "sha1",
             "overwrite": True,
+            "run_once_before_multi_instance": False,
             "run_once_after_multi_instance": False,
             "force_segment_separator": False,
             "segment_name": "",
@@ -505,6 +509,7 @@ class TaskValidationFolderCompare(task_base.BatchTask):
     is_indexless_task = True
     is_aggregate_task = True
     supports_run_once_after_jobs = True
+    supports_run_once_before_jobs = True
 
     def __init__(self, *args, **kwargs):
         """Initializes a folder parity validation task.
@@ -532,6 +537,7 @@ class TaskValidationFolderCompare(task_base.BatchTask):
             "log_mode": VALIDATION_LOG_ISSUES,
             "fail_on_differences": False,
             "overwrite": True,
+            "run_once_before_multi_instance": False,
             "run_once_after_multi_instance": False,
             "force_segment_separator": False,
             "segment_name": "",

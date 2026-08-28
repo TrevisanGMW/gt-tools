@@ -21,7 +21,29 @@ class TaskDeleteProjectFiles(task_base.BatchTask):
     category_icon = ui_res_lib.Icon.root_utilities
     is_aggregate_task = True
     is_delete_task = True
+    is_task_path_passthrough = True
     supports_run_once_after_jobs = True
+    supports_run_once_before_jobs = True
+
+    def uses_incoming_files(self):
+        """Makes Delete Path preserve the work items from earlier tasks.
+
+        Delete Path acts only on its dedicated ``delete_path`` setting. It does
+        not discover source files, but passing incoming items through allows a
+        later task to keep using the same processing stream.
+
+        Returns:
+            bool: Always True because this task never uses a source path.
+        """
+        return True
+
+    def writes_to_target_path(self):
+        """Prevents validation of the hidden common target path.
+
+        Returns:
+            bool: Always False because this task has no task output directory.
+        """
+        return False
 
     def get_default_settings(self):
         """Gets default delete task settings.
@@ -42,6 +64,7 @@ class TaskDeleteProjectFiles(task_base.BatchTask):
             "dry_run": True,
             "write_report": True,
             "report_path": "{project-dir}/logs/delete_path_{task-idx}.json",
+            "run_once_before_multi_instance": False,
             "run_once_after_multi_instance": False,
             "force_segment_separator": False,
             "segment_name": "",

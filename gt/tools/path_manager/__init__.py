@@ -1,17 +1,7 @@
 """
- Path Manager - A script for quickly re-pathing many elements in Maya.
+Path Manager - A script for quickly re-pathing many elements in Maya.
  github.com/TrevisanGMW/gt-tools - 2020-08-26
-
- ATTENTION!!: This is a legacy tool. It was created before version "3.0.0" and it should NOT be used as an example of
- how to create new tools. As a legacy tool, its code and structure may not align with the current package standards.
- Please read the "CONTRIBUTING.md" file for more details and examples on how to create new tools.
 """
-import logging
-
-# Logging Setup
-logging.basicConfig()
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 # Tool Version
 __version_tuple__ = (1, 2, 3)
@@ -20,20 +10,22 @@ __version__ = '.'.join(str(n) for n in __version_tuple__) + __version_suffix__
 
 
 def launch_tool():
+    """Creates, connects, and launches the Path Manager MVC tool.
+
+    Returns:
+        PathManagerController: Active Path Manager controller.
     """
-    Launch user interface and create any necessary connections for the tool to function.
-    Entry point for when using the tool Path Manager.
-    """
-    from gt.tools.path_manager import path_manager
-    path_manager.script_version = __version__
-    try:
-        path_manager_dialog.close()
-        path_manager_dialog.deleteLater()
-    except Exception as e:
-        logger.debug(f'Initializing tool variable for the first time. Debug description: "{str(e)}".')
-    path_manager.try_to_close_gt_path_manager()
-    path_manager_dialog = path_manager.GTPathManagerDialog()
-    path_manager_dialog.show()
+    from gt.tools.path_manager import path_manager_controller
+    from gt.tools.path_manager import path_manager_model
+    from gt.tools.path_manager import path_manager_view
+    from gt.ui import qt_utils
+
+    with qt_utils.QtApplicationContext() as context:
+        view = path_manager_view.PathManagerView(parent=context.get_parent(), version=__version__)
+        model = path_manager_model.PathManagerModel()
+        controller = path_manager_controller.PathManagerController(model=model, view=view)
+        controller.start()
+        return controller
 
 
 if __name__ == "__main__":

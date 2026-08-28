@@ -689,17 +689,29 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
             header_lines=header_lines,
         )
 
-    def add_segmentation_section(self, main_label, main_key, main_tooltip):
-        """Adds a collapsible Segmentation section with a main toggle and divider controls.
+    def add_segmentation_section(
+        self,
+        main_label,
+        main_key,
+        main_tooltip,
+        secondary_label=None,
+        secondary_key=None,
+        secondary_tooltip=None,
+    ):
+        """Adds a collapsible Segmentation section with run-once and divider controls.
 
         The section is shared by tasks that participate in segmentation. It always
-        provides an "Add Separator" toggle plus segment name and color controls; the
-        primary checkbox is task-specific and defined by the caller.
+        provides an "Add Separator" toggle plus segment name and color controls. Tasks
+        supporting the preflight run-once phase automatically receive a "Run Once Before
+        All Jobs" checkbox before the task-specific controls.
 
         Args:
-            main_label (str): Label for the section's primary checkbox.
-            main_key (str): Task setting key toggled by the primary checkbox.
-            main_tooltip (str): Tooltip for the primary checkbox.
+            main_label (str): Label for the task-specific checkbox.
+            main_key (str): Task setting key toggled by the task-specific checkbox.
+            main_tooltip (str): Tooltip for the task-specific checkbox.
+            secondary_label (str, optional): Label for an additional checkbox.
+            secondary_key (str, optional): Task setting key for the additional checkbox.
+            secondary_tooltip (str, optional): Tooltip for the additional checkbox.
         """
         self.task.settings.setdefault("segmentation_collapsed", True)
         section = self.add_collapsible_section(
@@ -714,6 +726,17 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         checkbox_row.setSpacing(6)
         section_layout.addLayout(checkbox_row)
         checkbox_row.addStretch()
+        if getattr(self.task, "supports_run_once_before_jobs", False):
+            self.add_checkbox(
+                "Run Once Before All Jobs",
+                self.task.settings.get("run_once_before_multi_instance"),
+                partial(self.set_task_setting, key="run_once_before_multi_instance"),
+                layout=checkbox_row,
+                tooltip=(
+                    "In multi-instance mode, run this task once before worker jobs start. "
+                    "The task must be one of the first enabled processing tasks."
+                ),
+            )
         self.add_checkbox(
             main_label,
             self.task.settings.get(main_key),
@@ -721,7 +744,14 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
             layout=checkbox_row,
             tooltip=main_tooltip,
         )
-        checkbox_row.addStretch()
+        if secondary_label and secondary_key:
+            self.add_checkbox(
+                secondary_label,
+                self.task.settings.get(secondary_key),
+                partial(self.set_task_setting, key=secondary_key),
+                layout=checkbox_row,
+                tooltip=secondary_tooltip,
+            )
         self.add_checkbox(
             "Add Separator",
             self.task.settings.get("force_segment_separator"),
@@ -1113,6 +1143,12 @@ def get_task_widget_class(task):
         from gt.tools.batch_processor.widgets.attr_widget_clip import AttrWidgetClipSnapshotTask
 
         return AttrWidgetClipSnapshotTask
+    if task.task_type == constants.TaskType.ANNOTATION_SNAPSHOT:
+        from gt.tools.batch_processor.widgets.attr_widget_annotation import (
+            AttrWidgetAnnotationSnapshotTask,
+        )
+
+        return AttrWidgetAnnotationSnapshotTask
     if task.task_type == constants.TaskType.MAP_HIERARCHY:
         from gt.tools.batch_processor.widgets.attr_widget_map_hierarchy import AttrWidgetMapHierarchyTask
 
@@ -1149,4 +1185,8 @@ def get_task_widget_class(task):
         from gt.tools.batch_processor.widgets.attr_widget_capture import AttrWidgetPlayblastCaptureTask
 
         return AttrWidgetPlayblastCaptureTask
+    if task.task_type == constants.TaskType.BATCH_RENDER:
+        from gt.tools.batch_processor.widgets.attr_widget_batch_render import AttrWidgetBatchRenderTask
+
+        return AttrWidgetBatchRenderTask
     return AttrWidgetTask

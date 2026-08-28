@@ -133,7 +133,7 @@ def main():
     skipped = 0
     succeeded = 0
     global_item_index = get_global_item_index(args.worker_id)
-    run_id = tasks.build_run_id(args.event_file)
+    run_id = tasks.build_run_id(os.path.dirname(args.event_file))
     active_task = None
     active_task_index = 0
     active_task_started = None
@@ -203,6 +203,16 @@ def main():
                     "report_log": lambda path, task_id=task.id: event_writer.emit(
                         "log_artifact", task_id=task_id, path=path, kind="task_log"
                     ),
+                    "report_message": lambda message: print(message, flush=True),
+                    "report_progress": lambda completed_units, total_units, unit_label="", task_id=task.id: (
+                        event_writer.emit(
+                            "task_unit_progress",
+                            task_id=task_id,
+                            completed_units=completed_units,
+                            total_units=total_units,
+                            unit_label=unit_label,
+                        )
+                    ),
                 }
                 print(
                     "[INFO] - ({0}) - Processing aggregate task with {1} incoming file(s).".format(
@@ -243,8 +253,20 @@ def main():
                         "work_items": list(current_items),
                         "worker_id": args.worker_id,
                         "run_id": run_id,
+                        "is_last_item": index == len(current_items),
+                        "cleanup_report_parts": bool(args.final_task_id),
                         "report_log": lambda path, task_id=task.id: event_writer.emit(
                             "log_artifact", task_id=task_id, path=path, kind="task_log"
+                        ),
+                        "report_message": lambda message: print(message, flush=True),
+                        "report_progress": lambda completed_units, total_units, unit_label="", task_id=task.id: (
+                            event_writer.emit(
+                                "task_unit_progress",
+                                task_id=task_id,
+                                completed_units=completed_units,
+                                total_units=total_units,
+                                unit_label=unit_label,
+                            )
                         ),
                     }
                     print(

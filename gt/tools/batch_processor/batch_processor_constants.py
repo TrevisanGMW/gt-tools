@@ -60,6 +60,7 @@ class TaskType:
     AUTO_RIG_BUILD = "auto_rig_build"
     CLIP_SPLIT = "clip_split"
     CLIP_SNAPSHOT = "clip_snapshot"
+    ANNOTATION_SNAPSHOT = "annotation_snapshot"
     MAP_HIERARCHY = "map_hierarchy"
     SCENE_REPORT = "scene_report"
     DELETE_PROJECT_FILES = "delete_project_files"
@@ -69,6 +70,7 @@ class TaskType:
     FOLDER_COMPARE_VALIDATE = "validate_folder_compare"
     THUMBNAIL_CAPTURE = "thumbnail_capture"
     PLAYBLAST_CAPTURE = "playblast_capture"
+    BATCH_RENDER = "output_batch_render"
 
 
 class ModuleType(TaskType):

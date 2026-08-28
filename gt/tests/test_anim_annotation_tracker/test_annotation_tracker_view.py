@@ -59,6 +59,7 @@ class TestAnnotationTrackerView(unittest.TestCase):
             chk_bounds=checkbox,
             chk_razor_colors=checkbox,
             chk_run_all_auto=checkbox,
+            chk_hide_private_auto=checkbox,
             chk_val_status=checkbox,
             chk_write_node=checkbox,
             timeline=SimpleNamespace(tool_mode="razor"),

@@ -98,6 +98,7 @@ TaskRetargetHumanIK = batch_processor_tasks.TaskRetargetHumanIK
 TaskAutoRigBuild = batch_processor_tasks.TaskAutoRigBuild
 TaskClipSplit = batch_processor_tasks.TaskClipSplit
 TaskClipSnapshot = batch_processor_tasks.TaskClipSnapshot
+TaskAnnotationSnapshot = batch_processor_tasks.TaskAnnotationSnapshot
 TaskMapHierarchy = batch_processor_tasks.TaskMapHierarchy
 TaskDeleteProjectFiles = batch_processor_tasks.TaskDeleteProjectFiles
 TaskArchive = batch_processor_tasks.TaskArchive

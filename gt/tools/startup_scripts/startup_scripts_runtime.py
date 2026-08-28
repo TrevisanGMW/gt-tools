@@ -11,9 +11,13 @@ import sys
 import traceback
 
 
-EVENT_MAYA_STARTUP = model.RUN_MODE_MAYA_STARTUP
+EVENT_INTERACTIVE_MAYA = model.RUN_MODE_INTERACTIVE_MAYA
+EVENT_MAYAPY = model.RUN_MODE_MAYAPY
 EVENT_FILE_OPEN = model.RUN_MODE_FILE_OPEN
 EVENT_MANUAL = "Manual Run"
+
+# Maintains the previous public event name for integrations that import it.
+EVENT_MAYA_STARTUP = EVENT_INTERACTIVE_MAYA
 
 _CALLBACK_STATE_ATTRIBUTE = "_gt_tools_startup_scripts_callback_id"
 _INITIALIZED_STATE_ATTRIBUTE = "_gt_tools_startup_scripts_runtime_initialized"
@@ -42,12 +46,35 @@ def matches_event(configuration, event_name):
     """
     if not isinstance(configuration, dict):
         return False
-    run_mode = configuration.get("run_mode")
-    if event_name == EVENT_MAYA_STARTUP:
-        return run_mode in [model.RUN_MODE_MAYA_STARTUP, model.RUN_MODE_BOTH]
-    if event_name == EVENT_FILE_OPEN:
-        return run_mode in [model.RUN_MODE_FILE_OPEN, model.RUN_MODE_BOTH]
-    return True
+    if event_name == EVENT_MANUAL:
+        return True
+    return event_name in model.get_run_mode_events(configuration.get("run_mode"))
+
+
+def get_startup_event(session_module=None):
+    """Gets the current Maya startup event for this Python process.
+
+    Args:
+        session_module (module, optional): Session helper module, injected for testing.
+
+    Returns:
+        str: Interactive Maya or mayapy event name, or an empty string outside Maya.
+    """
+    if session_module is None:
+        try:
+            from gt.core import session
+
+            session_module = session
+        except Exception:
+            return ""
+    try:
+        if session_module.is_script_in_interactive_maya():
+            return EVENT_INTERACTIVE_MAYA
+        if session_module.is_script_in_py_maya():
+            return EVENT_MAYAPY
+    except Exception:
+        return ""
+    return ""
 
 
 def build_script_namespace(event_name, extra_globals=None):
@@ -119,6 +146,7 @@ def run_script_configuration(
     configuration,
     event_name=EVENT_MANUAL,
     ignore_run_mode=False,
+    ignore_run_interval=False,
     extra_globals=None,
 ):
     """Runs all available sources from a script configuration.
@@ -131,6 +159,7 @@ def run_script_configuration(
         configuration (dict): Startup-script configuration to execute.
         event_name (str, optional): Trigger responsible for the execution.
         ignore_run_mode (bool, optional): Whether to ignore the stored trigger.
+        ignore_run_interval (bool, optional): Whether to ignore the optional run frequency.
         extra_globals (dict, optional): Additional globals, primarily for testing.
 
     Returns:
@@ -142,6 +171,8 @@ def run_script_configuration(
     if not configuration.get("enabled", True):
         return False
     if not ignore_run_mode and not matches_event(configuration, event_name):
+        return False
+    if not ignore_run_interval and not model.is_script_run_due(configuration):
         return False
     if not model.has_runnable_source(configuration):
         return False
@@ -166,20 +197,25 @@ def run_script_configuration(
     return ran_successfully
 
 
-def run_configurations(configurations, event_name):
+def run_configurations(configurations, event_name, startup_model=None):
     """Runs every configuration that is enabled for the requested event.
 
     Args:
         configurations (list): Ordered startup-script configurations.
         event_name (str): Trigger responsible for the execution.
+        startup_model (StartupScriptsModel, optional): Model used to persist scheduled run dates.
 
     Returns:
         int: Number of configurations that ran at least one source successfully.
     """
     run_count = 0
+    successful_script_ids = []
     for configuration in configurations if isinstance(configurations, list) else []:
         if run_script_configuration(configuration, event_name=event_name):
             run_count += 1
+            successful_script_ids.append(configuration.get("id"))
+    if startup_model and successful_script_ids:
+        startup_model.record_scheduled_runs(successful_script_ids)
     return run_count
 
 
@@ -229,7 +265,7 @@ def _on_file_opened(*args):
     startup_model = model.StartupScriptsModel()
     if not startup_model.has_valid_preferences_file():
         return
-    run_configurations(startup_model.get_scripts(), EVENT_FILE_OPEN)
+    run_configurations(startup_model.get_scripts(), EVENT_FILE_OPEN, startup_model=startup_model)
 
 
 def refresh_file_open_callback():
@@ -263,10 +299,11 @@ def refresh_file_open_callback():
 
 
 def initialize_startup_scripts():
-    """Runs valid Maya Startup scripts and configures the File Open callback.
+    """Runs valid startup scripts for the current Maya context.
 
-    This is called after the GT Tools menu is built and then deferred one more
-    Maya idle event by ``gt.utils.system.load_package_menu``.
+    This is called after GT Tools has loaded. It runs only configurations whose
+    run mode includes the current Interactive Maya or mayapy event. The File
+    Open callback is installed for Interactive Maya only.
 
     Returns:
         bool: True when valid preferences were found and initialized.
@@ -274,10 +311,14 @@ def initialize_startup_scripts():
     if getattr(builtins, _INITIALIZED_STATE_ATTRIBUTE, False):
         return False
     setattr(builtins, _INITIALIZED_STATE_ATTRIBUTE, True)
+    startup_event = get_startup_event()
+    if not startup_event:
+        return False
     startup_model = model.StartupScriptsModel()
     if not startup_model.has_valid_preferences_file():
         return False
     configurations = startup_model.get_scripts()
-    refresh_file_open_callback()
-    run_configurations(configurations, EVENT_MAYA_STARTUP)
+    if startup_event == EVENT_INTERACTIVE_MAYA:
+        refresh_file_open_callback()
+    run_configurations(configurations, startup_event, startup_model=startup_model)
     return True

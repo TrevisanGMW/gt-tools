@@ -2,17 +2,12 @@
 Batch Processor View
 """
 
-import logging
-
 import gt.ui.tree_widget_enhanced as ui_tree_enhanced
 import gt.ui.resource_library as ui_res_lib
 import gt.core.session as core_session
 from gt.ui.qt_utils import MayaWindowMeta
 import gt.ui.qt_utils as qt_utils
 import gt.ui.qt_import as ui_qt
-
-
-logger = logging.getLogger(__name__)
 
 
 class BatchProcessorView(metaclass=MayaWindowMeta):
@@ -44,6 +39,9 @@ class BatchProcessorView(metaclass=MayaWindowMeta):
         self.status_text = None
         self.project_item = None
         self.close_func = None
+        self._close_event_filter_installed = False
+        self._is_processing_close_request = False
+        self._is_close_request_approved = False
 
         self.set_window_title()
         self.setGeometry(100, 100, 850, 560)
@@ -199,31 +197,98 @@ class BatchProcessorView(metaclass=MayaWindowMeta):
         Args:
             event (QCloseEvent): Close event.
         """
-        self._run_close_callback(self, event)
+        self.request_close_confirmation(close_event=event)
 
     def dockCloseEventTriggered(self):
         """Runs a custom function when closing the dockable Maya window."""
-        self._run_close_callback(window=self)
+        self.request_close_confirmation()
 
-    def _run_close_callback(self, *args, **kwargs):
-        """Runs the close callback while ignoring stale Maya Qt wrappers.
+    def install_host_close_event_filter(self):
+        """Installs a close-event bridge for the Maya workspace-control host.
+
+        Maya can send a close event to the dock's workspace-control widget rather
+        than to this child view. Monitoring only this view's ancestor widgets
+        ensures unsaved changes are still protected without reacting to other
+        tool windows.
+        """
+        if self._close_event_filter_installed:
+            return
+        application = ui_qt.QtWidgets.QApplication.instance()
+        if not application:
+            return
+        application.installEventFilter(self)
+        self._close_event_filter_installed = True
+
+    def eventFilter(self, watched, event):
+        """Intercepts close events emitted by the Batch Processor dock host.
 
         Args:
-            *args: Positional arguments forwarded to the close callback.
-            **kwargs: Keyword arguments forwarded to the close callback.
+            watched (QObject): Object that received the event.
+            event (QEvent): Event currently being processed.
+
+        Returns:
+            bool: True when the close was cancelled; otherwise False.
         """
-        if not qt_utils.is_qt_object_valid(self):
-            logger.debug("Ignored close callback for a deleted Batch Processor view.")
-            return
+        if event.type() == ui_qt.QtCore.QEvent.Close and self.is_host_close_event_target(watched):
+            if self.request_close_confirmation(close_event=event):
+                event.ignore()
+                return True
+        return super().eventFilter(watched, event)
+
+    def is_host_close_event_target(self, watched):
+        """Checks whether an event target is a Qt ancestor hosting this view.
+
+        Args:
+            watched (QObject): Object that received the event.
+
+        Returns:
+            bool: True when the target is an ancestor of this view.
+        """
+        if watched is self or not isinstance(watched, ui_qt.QtWidgets.QWidget):
+            return False
+        parent_widget = self.parentWidget()
+        while parent_widget:
+            if watched is parent_widget:
+                return True
+            parent_widget = parent_widget.parentWidget()
+        return False
+
+    def request_close_confirmation(self, close_event=None):
+        """Runs the close callback once for the current close request.
+
+        Args:
+            close_event (QCloseEvent, optional): Native Qt close event, when one
+                is available.
+
+        Returns:
+            bool: True when the close request was cancelled.
+        """
+        if self._is_processing_close_request or self._is_close_request_approved:
+            return False
+        if not self.close_func or not callable(self.close_func):
+            return False
+
+        self._is_processing_close_request = True
         try:
-            close_callback = self.close_func
-            if not close_callback or not callable(close_callback):
-                return
-            close_callback(*args, **kwargs)
-        except RuntimeError as exception:
-            if "Internal C++ object" not in str(exception) or "already deleted" not in str(exception):
-                raise
-            logger.debug(f"Ignored stale Batch Processor close callback. Issue: {exception}")
+            if close_event is not None:
+                is_cancelled = bool(self.close_func(self, close_event))
+            else:
+                is_cancelled = bool(self.close_func(window=self))
+        finally:
+            self._is_processing_close_request = False
+
+        if is_cancelled:
+            if isinstance(close_event, ui_qt.QtGui.QCloseEvent):
+                close_event.ignore()
+            return True
+
+        self._is_close_request_approved = True
+        ui_qt.QtCore.QTimer.singleShot(100, self.reset_close_request_approval)
+        return False
+
+    def reset_close_request_approval(self):
+        """Allows a later close attempt to request confirmation again."""
+        self._is_close_request_approved = False
 
     def clear_task_widget(self):
         """Clears the task attribute area."""

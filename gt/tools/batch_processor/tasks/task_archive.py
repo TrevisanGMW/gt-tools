@@ -26,6 +26,7 @@ class TaskArchive(task_base.BatchTask):
     is_aggregate_task = True
     is_output_task = True
     supports_run_once_after_jobs = True
+    supports_run_once_before_jobs = True
 
     def get_default_settings(self):
         """Gets default zip task settings.
@@ -41,6 +42,7 @@ class TaskArchive(task_base.BatchTask):
             "archive_version_auto": False,
             "archive_version_padding": 2,
             "compression": "Deflated",
+            "run_once_before_multi_instance": False,
             "run_once_after_multi_instance": True,
             "use_source_path_as_relative_root": True,
             "preserve_relative_paths": True,

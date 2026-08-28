@@ -3,6 +3,7 @@ try:
 except ImportError:
     cmds = None
 import copy
+import math
 import uuid
 import random
 import json
@@ -180,9 +181,13 @@ def pack_range_lanes(ranges):
 
 
 class CustomTimelineWidget(QtWidgets.QWidget):
-    rangeSelected = QtCore.Signal(object) 
+    rangeSelected = QtCore.Signal(object)
     timeChanged = QtCore.Signal(int)
-    rangesChanged = QtCore.Signal() 
+    rangesChanged = QtCore.Signal()
+    viewChanged = QtCore.Signal()
+
+    MIN_VIEW_SPAN = 4
+    WHEEL_ZOOM_STEP = 1.2
 
     def __init__(self, parent=None):
         """Initializes the interactive range timeline widget.
@@ -197,6 +202,9 @@ class CustomTimelineWidget(QtWidgets.QWidget):
         self.start_frame = int(cmds.playbackOptions(q=True, min=True))
         self.end_frame = int(cmds.playbackOptions(q=True, max=True))
         self.current_frame = int(cmds.currentTime(q=True))
+        self.view_start = float(self.start_frame)
+        self.view_end = float(self.end_frame)
+        self._pan_last_x = 0
         self.ranges = []
         
         self.pref_show_frames = True
@@ -270,9 +278,9 @@ class CustomTimelineWidget(QtWidgets.QWidget):
             float: Corresponding widget x-coordinate.
         """
         width = self.width()
-        frame_range = self.end_frame - self.start_frame
-        if frame_range <= 0: return 0
-        return int(((frame - self.start_frame) / frame_range) * width)
+        view_span = self.view_end - self.view_start
+        if view_span <= 0: return 0
+        return int(((frame - self.view_start) / view_span) * width)
 
     def x_to_frame(self, x):
         """Converts a timeline x-coordinate to a Maya frame value.
@@ -284,9 +292,160 @@ class CustomTimelineWidget(QtWidgets.QWidget):
             float: Corresponding frame value.
         """
         width = self.width()
-        frame_range = self.end_frame - self.start_frame
-        frame = self.start_frame + (float(x) / width) * frame_range
+        view_span = self.view_end - self.view_start
+        if width <= 0 or view_span <= 0:
+            return round(self.view_start)
+        frame = self.view_start + (float(x) / width) * view_span
         return round(frame)
+
+    def get_view_span(self):
+        """Gets the width of the visible frame window.
+
+        Returns:
+            float: Number of frames currently visible.
+        """
+        return self.view_end - self.view_start
+
+    def is_zoomed(self):
+        """Checks whether the visible window differs from the full timeline.
+
+        Returns:
+            bool: True when the timeline is zoomed or panned.
+        """
+        return (
+            self.view_start > self.start_frame + 0.01
+            or self.view_end < self.end_frame - 0.01
+        )
+
+    def set_view_range(self, view_start, view_end):
+        """Sets the visible frame window without changing timeline bounds.
+
+        The window is clamped to the timeline start and end frames and to a
+        minimum span, so zooming can never alter the tracked frame range.
+
+        Args:
+            view_start (float): Requested first visible frame.
+            view_end (float): Requested last visible frame.
+        """
+        timeline_start = float(self.start_frame)
+        timeline_end = float(self.end_frame)
+        full_span = timeline_end - timeline_start
+        if full_span <= 0:
+            view_start, view_end = timeline_start, timeline_end
+        else:
+            minimum_span = float(min(self.MIN_VIEW_SPAN, full_span))
+            span = float(view_end) - float(view_start)
+            span = max(minimum_span, min(span, full_span))
+            view_start = max(
+                timeline_start,
+                min(float(view_start), timeline_end - span),
+            )
+            view_end = view_start + span
+        if (view_start, view_end) == (self.view_start, self.view_end):
+            return
+        self.view_start = view_start
+        self.view_end = view_end
+        self.viewChanged.emit()
+        self.update()
+
+    def reset_zoom(self):
+        """Restores the visible window to the full timeline range."""
+        self.set_view_range(self.start_frame, self.end_frame)
+
+    def zoom_view(self, zoom_factor, anchor_x=None):
+        """Zooms the visible window around a widget x-coordinate.
+
+        Args:
+            zoom_factor (float): Values above 1 zoom in, below 1 zoom out.
+            anchor_x (float, optional): Widget x-coordinate kept stationary.
+                Defaults to the widget center.
+        """
+        if zoom_factor <= 0:
+            return
+        span = self.get_view_span()
+        if span <= 0:
+            return
+        width = max(self.width(), 1)
+        if anchor_x is None:
+            anchor_x = width / 2.0
+        anchor_ratio = min(max(float(anchor_x) / width, 0.0), 1.0)
+        anchor_frame = self.view_start + span * anchor_ratio
+        new_span = span / zoom_factor
+        self.set_view_range(
+            anchor_frame - new_span * anchor_ratio,
+            anchor_frame + new_span * (1.0 - anchor_ratio),
+        )
+
+    def pan_view(self, delta_frames):
+        """Shifts the visible window without changing its span.
+
+        Args:
+            delta_frames (float): Frames to shift; positive moves forward.
+        """
+        span = self.get_view_span()
+        timeline_start = float(self.start_frame)
+        timeline_end = float(self.end_frame)
+        view_start = max(
+            timeline_start,
+            min(self.view_start + float(delta_frames), timeline_end - span),
+        )
+        self.set_view_range(view_start, view_start + span)
+
+    def frame_view_range(self, range_item):
+        """Zooms the visible window to one range with a small margin.
+
+        Args:
+            range_item (RangeItem): Range to frame in the visible window.
+        """
+        range_start = min(range_item.start, range_item.end)
+        range_end = max(range_item.start, range_item.end)
+        margin = max((range_end - range_start) * 0.1, 2.0)
+        self.set_view_range(range_start - margin, range_end + margin)
+
+    def set_timeline_bounds(self, start_frame, end_frame):
+        """Updates the timeline bounds while preserving the zoomed window.
+
+        Args:
+            start_frame (int): New timeline start frame.
+            end_frame (int): New timeline end frame.
+        """
+        was_zoomed = self.is_zoomed()
+        self.start_frame = start_frame
+        self.end_frame = end_frame
+        if was_zoomed:
+            self.set_view_range(self.view_start, self.view_end)
+        else:
+            self.view_start = float(start_frame)
+            self.view_end = float(end_frame)
+        self.viewChanged.emit()
+        self.update()
+
+    def wheelEvent(self, event):
+        """Zooms or pans the visible window from mouse-wheel input.
+
+        Args:
+            event (QWheelEvent): Qt wheel event.
+        """
+        angle_delta = event.angleDelta()
+        if event.modifiers() & QtCore.Qt.KeyboardModifier.ShiftModifier:
+            wheel_direction = angle_delta.y() or angle_delta.x()
+            if wheel_direction:
+                pan_step = self.get_view_span() * 0.1
+                self.pan_view(-pan_step if wheel_direction > 0 else pan_step)
+            event.accept()
+            return
+        if angle_delta.x() and not angle_delta.y():
+            self.pan_view(-(angle_delta.x() / 120.0) * self.get_view_span() * 0.05)
+            event.accept()
+            return
+        wheel_steps = angle_delta.y() / 120.0
+        if wheel_steps:
+            if hasattr(event, "position"):
+                anchor_x = event.position().x()
+            else:
+                anchor_x = event.pos().x()
+            self.zoom_view(self.WHEEL_ZOOM_STEP ** wheel_steps, anchor_x)
+        event.accept()
 
     def get_range_and_zone_at_x(self, x, y=None):
         """Finds the range and edge zone under a widget coordinate.
@@ -493,6 +652,10 @@ class CustomTimelineWidget(QtWidgets.QWidget):
             QtGui.QIcon(ui_res_lib.Icon.ui_delete),
             "Delete",
         )
+        menu.addSeparator()
+        action_frame_range = menu.addAction("Zoom to Range")
+        action_reset_zoom = menu.addAction("Reset Zoom")
+        action_reset_zoom.setEnabled(self.is_zoomed())
         action = self.execute_menu(menu, self.get_event_global_position(event))
         if action == action_set_start:
             self.set_range_boundary_to_current_frame(range_item, "start")
@@ -509,6 +672,10 @@ class CustomTimelineWidget(QtWidgets.QWidget):
             self.rangeSelected.emit(None)
             self.rangesChanged.emit()
             self.update()
+        elif action == action_frame_range:
+            self.frame_view_range(range_item)
+        elif action == action_reset_zoom:
+            self.reset_zoom()
 
     def show_gap_context_menu(self, event, clicked_frame):
         """Shows actions for an uncovered timeline area.
@@ -542,6 +709,9 @@ class CustomTimelineWidget(QtWidgets.QWidget):
             action_fill_entire = None
         menu.addSeparator()
         action_fill_all = menu.addAction("Fill All Gaps")
+        menu.addSeparator()
+        action_reset_zoom = menu.addAction("Reset Zoom")
+        action_reset_zoom.setEnabled(self.is_zoomed())
         action = self.execute_menu(menu, self.get_event_global_position(event))
         if action == action_to_current and gap_range:
             self.create_ranges([(gap_start, current_frame)])
@@ -559,6 +729,8 @@ class CustomTimelineWidget(QtWidgets.QWidget):
                     timeline_end,
                 )
             )
+        elif action == action_reset_zoom:
+            self.reset_zoom()
 
     def paintEvent(self, event):
         """Paints timeline ranges, titles, and interaction markers.
@@ -572,9 +744,12 @@ class CustomTimelineWidget(QtWidgets.QWidget):
         
         painter.fillRect(rect, QtGui.QColor(40, 40, 40))
         painter.setPen(QtGui.QColor(150, 150, 150))
-        frame_range = int(self.end_frame - self.start_frame)
-        step = max(1, frame_range // 20) 
-        for f in range(int(self.start_frame), int(self.end_frame) + 1, step):
+        view_start = int(math.floor(self.view_start))
+        view_end = int(math.ceil(self.view_end))
+        frame_range = max(1, view_end - view_start)
+        step = max(1, frame_range // 20)
+        first_tick = view_start - (view_start % step)
+        for f in range(first_tick, view_end + 1, step):
             x = self.frame_to_x(f)
             painter.drawLine(x, rect.height() - 15, x, rect.height())
             painter.drawText(x + 2, rect.height() - 2, str(f))
@@ -630,6 +805,12 @@ class CustomTimelineWidget(QtWidgets.QWidget):
         event_x = int(event_position.x())
         clicked_range, zone = self.get_range_and_zone_at_x(event_x, int(event_position.y()))
         playhead_x = self.frame_to_x(self.current_frame)
+
+        if event.button() == QtCore.Qt.MouseButton.MiddleButton:
+            self.interaction_state = 'panning'
+            self._pan_last_x = event_x
+            self.setCursor(QtCore.Qt.CursorShape.ClosedHandCursor)
+            return
 
         if event.button() == QtCore.Qt.MouseButton.RightButton:
             if clicked_range:
@@ -709,10 +890,17 @@ class CustomTimelineWidget(QtWidgets.QWidget):
         current_x = int(event.position().x())
         current_hover_frame = self.x_to_frame(current_x)
         playhead_x = self.frame_to_x(self.current_frame)
-        
+
+        if self.interaction_state == 'panning':
+            width = max(self.width(), 1)
+            delta_frames = (self._pan_last_x - current_x) * self.get_view_span() / width
+            self._pan_last_x = current_x
+            self.pan_view(delta_frames)
+            return
+
         if not self.interaction_state:
             if self.tool_mode == 'select' and abs(current_x - playhead_x) <= 8:
-                self.setCursor(QtCore.Qt.CursorShape.SizeWECursor)
+                self.setCursor(QtCore.Qt.CursorShape.SizeHorCursor)
             elif self.tool_mode == 'edit':
                 _, zone = self.get_range_and_zone_at_x(current_x, int(event.position().y()))
                 if zone in ('left', 'right'): self.setCursor(QtCore.Qt.CursorShape.SplitHCursor)
@@ -797,6 +985,8 @@ class CustomTimelineWidget(QtWidgets.QWidget):
         if self.interaction_state in ['creating', 'moving', 'resizing_left', 'resizing_right']:
             self.adjust_adjacent_ranges()
             self.rangesChanged.emit()
+        elif self.interaction_state == 'panning':
+            self.setCursor(QtCore.Qt.CursorShape.ArrowCursor)
         self.interaction_state = None
         self.update()
 
@@ -809,6 +999,7 @@ class RangeToolWindow(QtWidgets.QDialog):
         """
         super(RangeToolWindow, self).__init__(parent)
         self.setWindowTitle("Annotation Tracker")
+        self.setWindowIcon(QtGui.QIcon(ui_res_lib.Icon.tool_annotation_tracker))
         self.resize(900, 450)
         self.setWindowFlags(QtCore.Qt.WindowType.WindowStaysOnTopHint)
         self.sj_id = None
@@ -870,7 +1061,23 @@ class RangeToolWindow(QtWidgets.QDialog):
         self.timeline.timeChanged.connect(self.sync_current_field)
         self.timeline.rangeSelected.connect(self.populate_edit_area)
         self.timeline.rangesChanged.connect(self.on_ranges_changed) # Hooks into save loop
-        main_layout.addWidget(self.timeline)
+        self._is_syncing_zoom_bar = False
+        self.timeline_zoom_bar = QtWidgets.QScrollBar(QtCore.Qt.Orientation.Horizontal)
+        self.timeline_zoom_bar.setVisible(False)
+        self.timeline_zoom_bar.setToolTip(
+            "Pans the zoomed timeline view.\n"
+            "Mouse Wheel: Zoom at cursor. Shift+Wheel or Middle-Drag: Pan.\n"
+            "Right-click the timeline for Reset Zoom."
+        )
+        self.timeline_zoom_bar.valueChanged.connect(self.on_timeline_zoom_bar_moved)
+        self.timeline.viewChanged.connect(self.update_timeline_zoom_bar)
+        self.timeline_container = QtWidgets.QWidget()
+        timeline_container_layout = QtWidgets.QVBoxLayout(self.timeline_container)
+        timeline_container_layout.setContentsMargins(0, 0, 0, 0)
+        timeline_container_layout.setSpacing(0)
+        timeline_container_layout.addWidget(self.timeline)
+        timeline_container_layout.addWidget(self.timeline_zoom_bar)
+        main_layout.addWidget(self.timeline_container)
         
         # --- TABS ---
         self.tabs = QtWidgets.QTabWidget()
@@ -1119,18 +1326,26 @@ class RangeToolWindow(QtWidgets.QDialog):
             "Show 'Run Checked' Automations Button"
         )
         self.chk_run_all_auto.setChecked(True)
+        self.chk_hide_private_auto = QtWidgets.QCheckBox("Hide Private Automations")
+        self.chk_hide_private_auto.setChecked(True)
+        self.chk_hide_private_auto.setToolTip(
+            "Hides automation scripts whose file name starts with an\n"
+            'underscore, e.g. "_private_script.py", from the Automations tab.'
+        )
         self.chk_val_status = QtWidgets.QCheckBox("Show Validation Status")
         self.chk_val_status.setChecked(True)
         self.chk_val_status.setToolTip("Displays the real-time validation status bar\nat the bottom of the tool.")
         behaviors_layout.addWidget(self.chk_sync)
         behaviors_layout.addWidget(self.chk_bounds)
         behaviors_layout.addWidget(self.chk_run_all_auto)
+        behaviors_layout.addWidget(self.chk_hide_private_auto)
         behaviors_layout.addWidget(self.chk_val_status)
         self.pref_layout.addWidget(behaviors_group)
-        
+
         for cb in [self.chk_frames, self.chk_names, self.chk_colors, self.chk_sync, self.chk_bounds, self.chk_razor_colors, self.chk_val_status]:
             cb.stateChanged.connect(self.on_pref_changed)
         self.chk_run_all_auto.stateChanged.connect(lambda: self.build_automations_ui())
+        self.chk_hide_private_auto.stateChanged.connect(lambda: self.build_automations_ui())
         
         data_mng_group = QtWidgets.QGroupBox("Data Management")
         data_mng_layout = QtWidgets.QHBoxLayout(data_mng_group)
@@ -1817,7 +2032,15 @@ class RangeToolWindow(QtWidgets.QDialog):
             return
             
         py_files = sorted(glob.glob(os.path.join(folder, "*.py")))
-        info_lbl = QtWidgets.QLabel(f"<b>Found {len(py_files)} automation scripts</b><br><span style='color:gray'>{folder}</span><br>")
+        hidden_private_count = 0
+        if self.chk_hide_private_auto.isChecked():
+            visible_files = annotation_tracker_model.filter_private_automation_paths(py_files)
+            hidden_private_count = len(py_files) - len(visible_files)
+            py_files = visible_files
+        hidden_note = ""
+        if hidden_private_count:
+            hidden_note = f" ({hidden_private_count} private hidden)"
+        info_lbl = QtWidgets.QLabel(f"<b>Found {len(py_files)} automation scripts</b>{hidden_note}<br><span style='color:gray'>{folder}</span><br>")
         info_lbl.setWordWrap(True)
         self.auto_btn_layout.addWidget(info_lbl)
         
@@ -1887,9 +2110,12 @@ class RangeToolWindow(QtWidgets.QDialog):
         else:
             folder = self.auto_path_fld.text().strip(' "\'')
             check_states = self.model.get_automation_check_states(folder)
+            py_files = sorted(glob.glob(os.path.join(folder, "*.py")))
+            if self.chk_hide_private_auto.isChecked():
+                py_files = annotation_tracker_model.filter_private_automation_paths(py_files)
             script_paths = [
                 fpath
-                for fpath in sorted(glob.glob(os.path.join(folder, "*.py")))
+                for fpath in py_files
                 if check_states.get(os.path.basename(fpath), True)
             ]
         for fpath in script_paths:
@@ -2386,9 +2612,42 @@ class RangeToolWindow(QtWidgets.QDialog):
         self.start_fld.setText(str(s))
         self.end_fld.setText(str(e))
         self.sync_current_field(c)
-        self.timeline.start_frame, self.timeline.end_frame, self.timeline.current_frame = s, e, c
-        self.timeline.update()
+        self.timeline.current_frame = c
+        self.timeline.set_timeline_bounds(s, e)
         self.highlight_validation()
+
+    def update_timeline_zoom_bar(self):
+        """Synchronizes the pan scrollbar with the visible timeline window."""
+        zoom_bar = getattr(self, "timeline_zoom_bar", None)
+        if not ui_qt_utils.is_qt_object_valid(zoom_bar):
+            return
+        self._is_syncing_zoom_bar = True
+        try:
+            if not self.timeline.is_zoomed():
+                zoom_bar.setVisible(False)
+                return
+            view_span = int(round(self.timeline.get_view_span()))
+            zoom_bar.setRange(
+                int(self.timeline.start_frame),
+                int(self.timeline.end_frame) - view_span,
+            )
+            zoom_bar.setPageStep(view_span)
+            zoom_bar.setSingleStep(max(1, view_span // 10))
+            zoom_bar.setValue(int(round(self.timeline.view_start)))
+            zoom_bar.setVisible(True)
+        finally:
+            self._is_syncing_zoom_bar = False
+
+    def on_timeline_zoom_bar_moved(self, value):
+        """Pans the visible timeline window from the scrollbar.
+
+        Args:
+            value (int): First visible frame requested by the scrollbar.
+        """
+        if getattr(self, "_is_syncing_zoom_bar", False):
+            return
+        view_span = self.timeline.get_view_span()
+        self.timeline.set_view_range(value, value + view_span)
 
     def sync_current_field(self, frame):
         """Synchronizes the current-frame field with a timeline frame.

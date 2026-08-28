@@ -297,48 +297,52 @@ class FbxExporter:
         return export_anim_bs
 
     @staticmethod
-    def get_skin_related_meshes_with_blendshapes():
-        """
-        Returns meshes influenced by selected joints that have blendshapes.
+    def get_skin_related_meshes():
+        """Gets meshes influenced by the currently selected joints.
 
         Returns:
-            list[str]: List of mesh names that are skinned and have blendshapes.
+            list[str]: Full paths to meshes skinned to selected joints.
         """
-        meshes_with_blendshapes = []
         current_selection = cmds.ls(sl=True)
+        related_meshes = []
 
         if current_selection:
-
             cmds.select(hi=True)
             expanded_selection = cmds.ls(sl=True)
-
             selected_joints = [obj for obj in expanded_selection if cmds.nodeType(obj) == "joint"]
             related_skin_clusters = []
-
-            # Get Skin Clusters related to selected joints
             for jnt in selected_joints:
                 skin = cmds.listConnections(jnt, type="skinCluster")
                 if skin:
                     if skin[0] not in related_skin_clusters:
                         related_skin_clusters.append(skin[0])
-            related_goes = []
 
-            # Get Meshes related to skin clusters
             for skin in related_skin_clusters:
                 shapes = cmds.skinCluster(skin, g=True, q=True)
                 if shapes:
                     geos = cmds.listRelatives(shapes, parent=True, fullPath=True)
-                    [related_goes.append(geo) for geo in geos if geo not in related_goes]
-
-            # Check if the meshes have blendshapes and in case add them to the selection
-            for geo in related_goes:
-                related_blendshapes = cmds.ls(*cmds.listHistory(geo) or [], type="blendShape")
-                if related_blendshapes:
-                    meshes_with_blendshapes.append(geo)
+                    for geo in geos or []:
+                        if geo not in related_meshes:
+                            related_meshes.append(geo)
 
             cmds.select(cl=True)
             cmds.select(current_selection)
 
+        return related_meshes
+
+    @staticmethod
+    def get_skin_related_meshes_with_blendshapes():
+        """Gets selected-joint meshes that include blendshape deformers.
+
+        Returns:
+            list[str]: Full paths to skinned meshes with blendshapes.
+        """
+        meshes_with_blendshapes = []
+        related_meshes = FbxExporter.get_skin_related_meshes()
+        for geo in related_meshes:
+            related_blendshapes = cmds.ls(*cmds.listHistory(geo) or [], type="blendShape")
+            if related_blendshapes:
+                meshes_with_blendshapes.append(geo)
         return meshes_with_blendshapes
 
     def set_preferences_animation(self, start_frame=None, end_frame=None):
@@ -435,6 +439,45 @@ class FbxExporter:
             meshes_with_bs = self.get_skin_related_meshes_with_blendshapes()
             cmds.select(meshes_with_bs, add=True)
 
+    def set_preferences_animation_with_meshes(self, start_frame=None, end_frame=None):
+        """Sets FBX preferences to export baked animation with deforming meshes.
+
+        The skeletal mesh preset establishes the geometry, skin, and shape
+        settings. Animation baking is then enabled so deforming meshes
+        accompany the exported skeleton animation.
+
+        Args:
+            start_frame (int, optional): Start frame to bake. When omitted,
+                the scene playback start frame is used.
+            end_frame (int, optional): End frame to bake. When omitted, the
+                scene playback end frame is used.
+        """
+        self.set_preferences_skeletal_mesh()
+
+        self._bake_start = self._original_start
+        self._bake_end = self._original_end
+        if start_frame is not None:
+            cmds.playbackOptions(e=True, min=start_frame, ast=start_frame)
+            self._bake_start = start_frame
+        if end_frame is not None:
+            cmds.playbackOptions(e=True, max=end_frame, aet=end_frame)
+            self._bake_end = end_frame
+
+        cmds.FBXProperty("Export|IncludeGrp|Animation", "-v", 1)
+        cmds.FBXExportBakeComplexAnimation("-v", True)
+        cmds.FBXExportBakeComplexStart("-v", self._bake_start)
+        cmds.FBXExportBakeComplexEnd("-v", self._bake_end)
+        cmds.FBXExportBakeComplexStep("-v", True)
+        cmds.FBXExportQuaternion("-v", "quaternion")
+        if self.key_reducer:
+            cmds.FBXExportApplyConstantKeyReducer("-v", True)
+        cmds.FBXExportShapes("-v", True)
+        cmds.FBXExportSkins("-v", True)
+        if self.selection:
+            related_meshes = self.get_skin_related_meshes()
+            if related_meshes:
+                cmds.select(related_meshes, add=True)
+
     def set_preferences_skeletal_mesh(self):
         """Sets the correct FBX preferences to export skeletal-mesh asset."""
         import gt.tools.auto_rigger.rig_constants as tools_rig_const
@@ -527,7 +570,7 @@ class FbxExporter:
             sdk_available = False
 
         # 2. Route the export logic
-        if sdk_available or not self._remove_parent_groups:
+        if sdk_available or not self._remove_parent_groups or not self.selection:
             # --- ORIGINAL BEHAVIOR ---
             try:
                 if self.selection:

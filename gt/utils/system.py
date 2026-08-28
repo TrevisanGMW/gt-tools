@@ -473,12 +473,13 @@ def load_package_menu(launch_maya_app=False, preferred_version=None):
         if DataDirConstants.DIR_PACKAGE not in sys.path:
             sys.path.append(DataDirConstants.DIR_PACKAGE)
         try:
+            import maya.cmds as cmds
             from gt.tools.package_setup import gt_tools_maya_menu
 
-            gt_tools_maya_menu.load_menu()
+            if not cmds.about(batch=True):
+                gt_tools_maya_menu.load_menu()
         except Exception as e:
-            logger.warning(f"Unable to load GT Tools. Issue: {str(e)}")
-            return
+            logger.warning(f"Unable to load GT Tools menu. Issue: {str(e)}")
         try:
             from gt.tools.startup_scripts import startup_scripts_runtime
 

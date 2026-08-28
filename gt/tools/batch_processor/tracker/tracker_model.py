@@ -26,6 +26,9 @@ class TrackerTask:
         self.progress = 0
         self.completed_items = 0
         self.total_items = 0
+        self.unit_completed = 0
+        self.unit_total = 0
+        self.unit_label = ""
         self.errors = 0
         self.warnings = 0
         self.reported_warnings = 0
@@ -54,8 +57,13 @@ class TrackerTask:
         elif event_name == "task_progress":
             self.completed_items = max(self.completed_items, int(event.get("completed_items") or 0))
             self.total_items = max(self.total_items, int(event.get("total_items") or 0))
-            if self.total_items:
-                self.progress = min(99, int(100 * self.completed_items / self.total_items))
+            self._reset_unit_progress()
+            self._refresh_progress()
+        elif event_name == "task_unit_progress":
+            self.unit_completed = max(0, int(event.get("completed_units") or 0))
+            self.unit_total = max(0, int(event.get("total_units") or 0))
+            self.unit_label = str(event.get("unit_label") or self.unit_label)
+            self._refresh_progress()
         elif event_name == "warning":
             self.reported_warnings += 1
             self._refresh_warning_count()
@@ -83,8 +91,23 @@ class TrackerTask:
                 self.reported_warnings = max(1, self.reported_warnings)
             self.completion_result = result or ""
             self._refresh_completed_status()
+            self._reset_unit_progress()
             self.progress = 100
             self.completed_at = event.get("timestamp") or self.completed_at
+
+    def _refresh_progress(self):
+        """Recalculates progress from completed items and in-flight unit progress."""
+        if not self.total_items:
+            return
+        completed = float(self.completed_items)
+        if self.unit_total:
+            completed += min(1.0, float(self.unit_completed) / float(self.unit_total))
+        self.progress = min(99, int(100 * completed / float(self.total_items)))
+
+    def _reset_unit_progress(self):
+        """Clears sub-item progress so a finished item cannot be counted twice."""
+        self.unit_completed = 0
+        self.unit_total = 0
 
     def _refresh_warning_count(self):
         """Recalculates visible warnings reported by the worker."""
@@ -117,7 +140,11 @@ class TrackerTask:
         """
         if not self.total_items:
             return "-"
-        return f"{self.completed_items}/{self.total_items}"
+        count_text = f"{self.completed_items}/{self.total_items}"
+        if self.unit_total:
+            unit_label = self.unit_label or "units"
+            count_text = f"{count_text} ({self.unit_completed}/{self.unit_total} {unit_label})"
+        return count_text
 
     def reset_for_restart(self):
         """Resets runtime state so the task can be executed again."""
@@ -125,6 +152,9 @@ class TrackerTask:
         self.progress = 0
         self.completed_items = 0
         self.total_items = 0
+        self.unit_completed = 0
+        self.unit_total = 0
+        self.unit_label = ""
         self.errors = 0
         self.warnings = 0
         self.reported_warnings = 0
@@ -141,7 +171,16 @@ class TrackerTask:
 class TrackerJob:
     """Tracks one source-file job."""
 
-    def __init__(self, job_id, number, source_file, task_definitions, is_finalization=False, segment_index=0):
+    def __init__(
+        self,
+        job_id,
+        number,
+        source_file,
+        task_definitions,
+        is_finalization=False,
+        is_preflight=False,
+        segment_index=0,
+    ):
         """Initializes job state.
 
         Args:
@@ -150,13 +189,21 @@ class TrackerJob:
             source_file (str): Source file assigned to the job.
             task_definitions (list): Task definition dictionaries.
             is_finalization (bool, optional): Whether this is the final run-once phase.
+            is_preflight (bool, optional): Whether this is the completed run-once
+                phase that ran before worker jobs were launched.
             segment_index (int, optional): Zero-based input segment this job belongs to.
         """
         self.id = job_id
         self.number = int(number)
         self.source_file = source_file
-        self.name = "Finalization" if is_finalization else os.path.basename(source_file)
+        if is_preflight:
+            self.name = "Preflight"
+        elif is_finalization:
+            self.name = "Finalization"
+        else:
+            self.name = os.path.basename(source_file)
         self.is_finalization = bool(is_finalization)
+        self.is_preflight = bool(is_preflight)
         self.segment_index = int(segment_index)
         self.status = (
             tracker_constants.Status.PENDING_FINALIZATION
@@ -192,6 +239,23 @@ class TrackerJob:
             TrackerTask or None: Matching task.
         """
         return next((task for task in self.tasks if task.id == task_id), None)
+
+    def mark_preflight_completed(self):
+        """Marks a preflight job as completed before tracker startup."""
+        completion_time = tracker_events.utc_now_iso()
+        self.status = tracker_constants.Status.COMPLETED
+        self.started_at = completion_time
+        self.completed_at = completion_time
+        self.completion_result = "completed"
+        for task in self.tasks:
+            task.status = tracker_constants.Status.COMPLETED
+            task.progress = 100
+            task.completed_items = 1
+            task.total_items = 1
+            task.completion_result = "succeeded"
+            task.started_at = completion_time
+            task.completed_at = completion_time
+            task.messages.append(("Info", "Completed before worker jobs were launched."))
 
     def get_source_size(self):
         """Gets the source file size in bytes, cached after the first lookup.

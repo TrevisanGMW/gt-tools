@@ -201,6 +201,7 @@ class TaskSceneReport(task_base.BatchTask):
     category_icon = ui_res_lib.Icon.root_utilities
     is_indexless_task = True
     supports_run_once_after_jobs = True
+    supports_run_once_before_jobs = True
 
     def get_default_settings(self):
         """Gets default report settings.
@@ -220,6 +221,7 @@ class TaskSceneReport(task_base.BatchTask):
             "report_notes": DEFAULT_REPORT_NOTES,
             "report_notes_collapsed": True,
             "overwrite": True,
+            "run_once_before_multi_instance": False,
             "run_once_after_multi_instance": True,
             "force_segment_separator": False,
             "segment_name": "",
@@ -308,6 +310,9 @@ class TaskSceneReport(task_base.BatchTask):
         entry = self.collect_entry(work_item.current_path)
         base_report_path = build_report_path(self, step_output_dir, project=project)
         parts_dir = get_parts_dir(base_report_path)
+        cleanup_parts = bool(
+            context.get("cleanup_report_parts") and context.get("is_last_item")
+        )
         self.purge_stale_parts_once(parts_dir, run_id)
         write_report_part(parts_dir, entry, run_id)
         try:
@@ -319,10 +324,14 @@ class TaskSceneReport(task_base.BatchTask):
                     project=project,
                     context=context,
                 )
+                if cleanup_parts:
+                    cleanup_report_parts(parts_dir, run_id)
         except Exception as exception:
             raise RuntimeError(f'Report could not be written to "{base_report_path}": {exception}')
         if not report_path or not os.path.isfile(report_path):
             raise RuntimeError(f'Report was not generated: expected report file was not found at "{report_path}".')
+        if cleanup_parts:
+            remove_parts_directory_if_empty(parts_dir)
         task_utils.report_log_artifact(context, report_path)
         return task_base.WorkItem(
             source_path=work_item.source_path,
@@ -893,6 +902,57 @@ def purge_stale_parts(parts_dir, run_id):
         except OSError:
             continue
     return deleted_count
+
+
+def cleanup_report_parts(parts_dir, run_id):
+    """Deletes the completed run's temporary report parts and reservation marker.
+
+    This function must be called only after the runner confirms that every
+    entry for the current report has been written. The report lock protects the
+    cleanup from concurrent report writes.
+
+    Args:
+        parts_dir (str): Directory holding partial report results.
+        run_id (str): Identifier of the completed run.
+
+    Returns:
+        int: Number of deleted temporary files.
+    """
+    deleted_count = 0
+    for part_path in list_part_paths(parts_dir):
+        part_data = read_json_file(part_path)
+        if not part_data or part_data.get("run_id") != run_id:
+            continue
+        try:
+            os.remove(part_path)
+            deleted_count += 1
+        except OSError:
+            continue
+    marker_path = os.path.join(parts_dir, REPORT_TARGET_MARKER_NAME)
+    marker_data = read_json_file(marker_path)
+    if marker_data and marker_data.get("run_id") == run_id:
+        try:
+            os.remove(marker_path)
+            deleted_count += 1
+        except OSError:
+            pass
+    return deleted_count
+
+
+def remove_parts_directory_if_empty(parts_dir):
+    """Removes the temporary parts directory after its lock has been released.
+
+    Args:
+        parts_dir (str): Directory holding temporary report files.
+
+    Returns:
+        bool: True when the empty directory was removed.
+    """
+    try:
+        os.rmdir(parts_dir)
+        return True
+    except OSError:
+        return False
 
 
 def list_part_paths(parts_dir):

@@ -1,16 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
 	<g id="tool_x5F_clip_x5F_tracker">
-		<rect x="42" y="70" width="428" height="372" rx="28" style="fill:#BDBDBD;stroke:#1D1D1D;stroke-width:20;"/>
-		<line x1="42" y1="146" x2="470" y2="146" style="fill:none;stroke:#1D1D1D;stroke-width:20;"/>
-		<circle cx="88" cy="108" r="12" style="fill:#FF6A6A;"/>
-		<circle cx="126" cy="108" r="12" style="fill:#FF6A6A;"/>
-		<circle cx="164" cy="108" r="12" style="fill:#FF6A6A;"/>
-		<rect x="72" y="184" width="156" height="72" rx="12" style="fill:#FF6A6A;stroke:#1D1D1D;stroke-width:16;"/>
-		<rect x="246" y="184" width="194" height="72" rx="12" style="fill:#FF6A6A;stroke:#1D1D1D;stroke-width:16;"/>
-		<rect x="72" y="286" width="238" height="72" rx="12" style="fill:#FF6A6A;stroke:#1D1D1D;stroke-width:16;"/>
-		<rect x="328" y="286" width="112" height="72" rx="12" style="fill:#FF6A6A;stroke:#1D1D1D;stroke-width:16;"/>
-		<path d="M276,154 L300,178 H252 Z" style="fill:#FF6A6A;stroke:#1D1D1D;stroke-width:12;stroke-linejoin:round;"/>
-		<line x1="276" y1="174" x2="276" y2="406" style="fill:none;stroke:#1D1D1D;stroke-width:14;stroke-linecap:round;"/>
+		<!-- Timeline panel. -->
+		<rect x="40" y="64" width="432" height="384" rx="30" style="fill:#BDBDBD;stroke:#1D1D1D;stroke-width:20;"/>
+
+		<!-- Frame ruler with alternating tick heights. -->
+		<line x1="40" y1="150" x2="472" y2="150" style="fill:none;stroke:#1D1D1D;stroke-width:18;"/>
+		<g style="fill:none;stroke:#1D1D1D;stroke-width:12;stroke-linecap:round;">
+			<line x1="92" y1="104" x2="92" y2="132"/>
+			<line x1="146" y1="116" x2="146" y2="132"/>
+			<line x1="200" y1="104" x2="200" y2="132"/>
+			<line x1="254" y1="116" x2="254" y2="132"/>
+			<line x1="308" y1="104" x2="308" y2="132"/>
+			<line x1="362" y1="116" x2="362" y2="132"/>
+			<line x1="416" y1="104" x2="416" y2="132"/>
+		</g>
+
+		<!-- Staggered clip bars across two tracks. -->
+		<rect x="74" y="184" width="152" height="80" rx="18" style="fill:#FF6A6A;stroke:#1D1D1D;stroke-width:16;"/>
+		<rect x="256" y="184" width="182" height="80" rx="18" style="fill:#E0E0E0;stroke:#1D1D1D;stroke-width:16;"/>
+		<rect x="74" y="296" width="110" height="80" rx="18" style="fill:#E0E0E0;stroke:#1D1D1D;stroke-width:16;"/>
+		<rect x="214" y="296" width="224" height="80" rx="18" style="fill:#FF6A6A;stroke:#1D1D1D;stroke-width:16;"/>
+
+		<!-- Keyframe diamonds on the tracked clip. -->
+		<rect x="244" y="322" width="28" height="28" transform="rotate(45 258 336)" style="fill:#1D1D1D;"/>
+		<rect x="358" y="322" width="28" height="28" transform="rotate(45 372 336)" style="fill:#1D1D1D;"/>
+
+		<!-- Playhead with outlined stem so it reads over the clips. -->
+		<line x1="308" y1="170" x2="308" y2="420" style="fill:none;stroke:#1D1D1D;stroke-width:26;stroke-linecap:round;"/>
+		<line x1="308" y1="170" x2="308" y2="420" style="fill:none;stroke:#FF6A6A;stroke-width:12;stroke-linecap:round;"/>
+		<path d="M272,158 H344 L308,206 Z" style="fill:#FF6A6A;stroke:#1D1D1D;stroke-width:14;stroke-linejoin:round;"/>
 	</g>
 </svg>

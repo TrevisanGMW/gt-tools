@@ -20,6 +20,7 @@ import gt.utils.request as utils_request
 import gt.utils.system as utils_system
 import gt.core.prefs as core_prefs
 from functools import partial
+import copy
 import json
 import logging
 import os
@@ -92,6 +93,7 @@ class BatchProcessorController:
         self.mark_project_clean()
         self.view.set_close_event_function(func=self.show_unsaved_changes_warning_dialog)
         self.view.show()
+        self.view.install_host_close_event_filter()
 
     def connect_view(self):
         """Connects view signals to controller methods."""
@@ -998,20 +1000,26 @@ class BatchProcessorController:
 
         Args:
             window (QDialog): Window receiving the dialog.
-            is_close_event (bool, optional): Whether this was called by a close event.
+            is_close_event (bool or QCloseEvent, optional): Whether this was called by a close event. The
+                native event is received here when the standalone view calls this function.
             *args: Optional close event arguments.
             **kwargs: Optional keyword arguments.
 
         Returns:
             bool: True if the pending operation was cancelled.
         """
-        if not ui_qt_utils.is_qt_object_valid(window):
-            logger.debug("Skipped unsaved-changes dialog for a deleted Batch Processor view.")
-            return False
+        close_event = kwargs.get("close_event")
+        if isinstance(is_close_event, ui_qt.QtGui.QCloseEvent):
+            close_event = is_close_event
+            is_close_event = True
+
         if not self.has_unsaved_changes():
             return False
+        dialog_parent = window if ui_qt_utils.is_qt_object_valid(window) else None
+        if window and not dialog_parent:
+            logger.debug("Showing the Batch Processor unsaved-changes dialog without its stale Qt parent.")
         try:
-            message_box = ui_qt.QtWidgets.QMessageBox(window)
+            message_box = ui_qt.QtWidgets.QMessageBox(dialog_parent)
             message_box.setWindowTitle("Warning: Unsaved changes!")
             message_box.setText("You have unsaved changes. What do you want to do?")
             save_button = message_box.addButton("Save", ui_qt.QtWidgets.QMessageBox.AcceptRole)
@@ -1026,35 +1034,49 @@ class BatchProcessorController:
             return False
         if clicked_button == save_button:
             if not self.save_project():
-                self.cancel_pending_close(window=window, is_close_event=is_close_event, close_args=args)
+                self.cancel_pending_close(
+                    window=window,
+                    is_close_event=is_close_event,
+                    close_args=args,
+                    close_event=close_event,
+                )
                 return True
             return False
         if clicked_button == dont_save_button:
             return False
         if clicked_button == cancel_button:
-            self.cancel_pending_close(window=window, is_close_event=is_close_event, close_args=args)
+            self.cancel_pending_close(
+                window=window,
+                is_close_event=is_close_event,
+                close_args=args,
+                close_event=close_event,
+            )
             return True
         return False
 
-    def cancel_pending_close(self, window, is_close_event=True, close_args=None):
+    def cancel_pending_close(self, window, is_close_event=True, close_args=None, close_event=None):
         """Cancels a pending close event when requested by the user.
 
         Args:
             window (QDialog): Window being closed.
             is_close_event (bool, optional): Whether a close event is active.
             close_args (tuple, optional): Close callback arguments.
+            close_event (QCloseEvent, optional): Native close event when available.
         """
         if not is_close_event:
             return
-        for close_event in close_args or []:
-            if isinstance(close_event, ui_qt.QtGui.QCloseEvent):
-                close_event.ignore()
-        if window:
+        close_events = list(close_args or [])
+        if close_event is not None:
+            close_events.append(close_event)
+        for pending_close_event in close_events:
+            if isinstance(pending_close_event, ui_qt.QtGui.QCloseEvent):
+                pending_close_event.ignore()
+        if window and ui_qt_utils.is_qt_object_valid(window):
             ui_qt.QtCore.QTimer.singleShot(100, partial(window.setVisible, True))
 
     def mark_project_clean(self):
-        """Stores the current project data as the clean state."""
-        self._saved_project_state = self.model.to_dict()
+        """Stores an independent copy of the current project as the clean state."""
+        self._saved_project_state = copy.deepcopy(self.model.to_dict())
 
     def has_unsaved_changes(self):
         """Checks whether the current project differs from the last clean state.
@@ -1495,10 +1517,23 @@ class BatchProcessorController:
                 run_to_task_id=run_to_task_id,
             )
             self.append_log(self._format_tracker(tracker))
-            if self.model.run_settings.get("multi_instance"):
+            if (
+                self.model.run_settings.get("multi_instance")
+                and tracker.status == constants.RunStatus.RUNNING
+            ):
                 launch_message = "Run launched in standalone tracker."
                 self.append_log(f"[OPERATION] - (Multi-instance) - {launch_message}")
                 self.view.set_status(launch_message, status="success")
+            elif (
+                self.model.run_settings.get("multi_instance")
+                and tracker.status == constants.RunStatus.SUCCEEDED
+                and tracker.total_files == 0
+            ):
+                cleanup_message = (
+                    "Cleanup run finished: "
+                    f"{tracker.total_steps} preflight task(s) completed; no worker jobs were needed."
+                )
+                self.log_status(cleanup_message, status="success")
             else:
                 self.log_status("Run finished: {0}".format(tracker.status))
         except Exception as exception:

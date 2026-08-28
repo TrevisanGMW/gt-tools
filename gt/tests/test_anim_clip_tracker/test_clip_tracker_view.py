@@ -164,6 +164,7 @@ class TestClipTrackerViewResponsiveLayout(unittest.TestCase):
         self.view.timeline_widget = clip_tracker_view.clip_tracker_timeline.ClipTimelineWidget(
             parent=self.view
         )
+        self.view.build_timeline_container()
         self.view.tabs = clip_tracker_view.ui_qt.QtWidgets.QTabWidget(parent=self.view)
         self.view.timeline_splitter = self.view.build_timeline_splitter()
         self.view.timeline_splitter.setParent(self.view)
@@ -179,7 +180,7 @@ class TestClipTrackerViewResponsiveLayout(unittest.TestCase):
 
         self.assertEqual(clip_tracker_view.ui_qt.QtCore.Qt.Vertical, self.view.timeline_splitter.orientation())
         self.assertFalse(self.view.timeline_splitter.childrenCollapsible())
-        self.assertTrue(self.view.timeline_widget.isHidden())
+        self.assertTrue(self.view.timeline_container.isHidden())
         self.assertTrue(splitter_handle.isHidden())
         self.assertEqual(timeline_height, self.view._timeline_height)
 

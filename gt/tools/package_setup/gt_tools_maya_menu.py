@@ -341,7 +341,8 @@ def load_menu(*args):
     menu.add_menu_item(
         label="Startup Scripts",
         command=IMPORT_TOOL + 'initialize_tool("startup_scripts")',
-        tooltip="Configures Python scripts that run after GT Tools loads or after Maya opens files.",
+        tooltip="Configures Python scripts that run after GT Tools loads in Interactive Maya or mayapy, or after "
+        "Interactive Maya opens files.",
         icon=ui_res_lib.Icon.tool_startup_scripts,
     )
     menu.add_menu_item(

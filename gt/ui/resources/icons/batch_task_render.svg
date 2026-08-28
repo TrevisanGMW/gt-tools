@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150">
+  <style>
+    .stack { fill: #bababa; stroke: #1d1d1d; stroke-width: 5; stroke-linejoin: round; }
+    .frame { fill: #75b9d1; stroke: #1d1d1d; stroke-width: 5; stroke-linejoin: round; }
+    .horizon { fill: none; stroke: #1d1d1d; stroke-width: 4; stroke-linecap: round; }
+    .shadow { fill: #1d1d1d; opacity: 0.3; }
+    .sphere-dark { fill: #8f9296; stroke: #1d1d1d; stroke-width: 5; }
+    .sphere-light { fill: #d9dcde; }
+    .highlight { fill: #ffffff; }
+  </style>
+  <rect class="stack" x="36" y="15" width="99" height="74" rx="7"/>
+  <rect class="stack" x="26" y="26" width="99" height="74" rx="7"/>
+  <rect class="frame" x="16" y="37" width="99" height="74" rx="7"/>
+  <line class="horizon" x1="24" y1="94" x2="107" y2="94"/>
+  <ellipse class="shadow" cx="66" cy="95" rx="26" ry="5"/>
+  <circle class="sphere-dark" cx="66" cy="73" r="23"/>
+  <circle class="sphere-light" cx="61" cy="68" r="16"/>
+  <circle class="highlight" cx="57" cy="64" r="6"/>
+</svg>

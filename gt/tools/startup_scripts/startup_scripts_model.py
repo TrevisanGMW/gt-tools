@@ -4,19 +4,249 @@ This module purposely contains no Maya imports so preference data and source
 collection can be tested outside Maya.
 """
 
+import calendar
 import copy
+import json
 import os
 import uuid
+from datetime import date, datetime, timedelta
 
 
 PREFS_FILENAME = "startup_scripts"
 PREFS_KEY_CONFIGURATION = "configuration"
 PREFS_SCHEMA_VERSION = 1
 
-RUN_MODE_MAYA_STARTUP = "Maya Startup"
+RUN_MODE_INTERACTIVE_MAYA = "Interactive Maya"
+RUN_MODE_MAYAPY = "mayapy"
 RUN_MODE_FILE_OPEN = "File Open"
-RUN_MODE_BOTH = "Both"
-RUN_MODE_VALUES = [RUN_MODE_MAYA_STARTUP, RUN_MODE_FILE_OPEN, RUN_MODE_BOTH]
+RUN_MODE_INTERACTIVE_MAYA_AND_MAYAPY = "Interactive Maya and mayapy"
+RUN_MODE_INTERACTIVE_MAYA_AND_FILE_OPEN = "Interactive Maya and File Open"
+RUN_MODE_MAYAPY_AND_FILE_OPEN = "mayapy and File Open"
+RUN_MODE_ALL = "Interactive Maya, mayapy, and File Open"
+RUN_MODE_VALUES = [
+    RUN_MODE_INTERACTIVE_MAYA,
+    RUN_MODE_MAYAPY,
+    RUN_MODE_FILE_OPEN,
+    RUN_MODE_INTERACTIVE_MAYA_AND_MAYAPY,
+    RUN_MODE_INTERACTIVE_MAYA_AND_FILE_OPEN,
+    RUN_MODE_MAYAPY_AND_FILE_OPEN,
+    RUN_MODE_ALL,
+]
+RUN_MODE_EVENTS = {
+    RUN_MODE_INTERACTIVE_MAYA: [RUN_MODE_INTERACTIVE_MAYA],
+    RUN_MODE_MAYAPY: [RUN_MODE_MAYAPY],
+    RUN_MODE_FILE_OPEN: [RUN_MODE_FILE_OPEN],
+    RUN_MODE_INTERACTIVE_MAYA_AND_MAYAPY: [RUN_MODE_INTERACTIVE_MAYA, RUN_MODE_MAYAPY],
+    RUN_MODE_INTERACTIVE_MAYA_AND_FILE_OPEN: [RUN_MODE_INTERACTIVE_MAYA, RUN_MODE_FILE_OPEN],
+    RUN_MODE_MAYAPY_AND_FILE_OPEN: [RUN_MODE_MAYAPY, RUN_MODE_FILE_OPEN],
+    RUN_MODE_ALL: [RUN_MODE_INTERACTIVE_MAYA, RUN_MODE_MAYAPY, RUN_MODE_FILE_OPEN],
+}
+RUN_MODE_TOOLTIPS = {
+    RUN_MODE_INTERACTIVE_MAYA: (
+        "Runs after GT Tools loads in the standard Maya application with its user interface.\n"
+        "Choose this for scripts that need Maya panels, the viewport, Qt widgets, or user interaction.\n"
+        "It does not run in mayapy."
+    ),
+    RUN_MODE_MAYAPY: (
+        "Runs after GT Tools loads in mayapy, Maya's command-line Python interpreter without the interactive "
+        "Maya user interface.\n"
+        "Choose this for headless or batch automation.\n"
+        "It does not run in Interactive Maya."
+    ),
+    RUN_MODE_FILE_OPEN: (
+        "Runs in Interactive Maya after a scene finishes opening.\n"
+        "Choose this for scene-dependent setup that must be reapplied for each opened file.\n"
+        "It does not run when Maya or mayapy first starts."
+    ),
+    RUN_MODE_INTERACTIVE_MAYA_AND_MAYAPY: (
+        "Runs once after GT Tools finishes loading in Interactive Maya or mayapy."
+    ),
+    RUN_MODE_INTERACTIVE_MAYA_AND_FILE_OPEN: (
+        "Runs after GT Tools finishes loading in Interactive Maya and after Interactive Maya opens a scene file."
+    ),
+    RUN_MODE_MAYAPY_AND_FILE_OPEN: (
+        "Runs after GT Tools finishes loading in mayapy and after Interactive Maya opens a scene file."
+    ),
+    RUN_MODE_ALL: (
+        "Runs after GT Tools finishes loading in Interactive Maya or mayapy, and after Interactive Maya opens "
+        "a scene file."
+    ),
+}
+
+# Legacy labels remain readable so existing preferences can migrate when edited.
+LEGACY_RUN_MODE_MAYA_STARTUP = "Maya Startup"
+LEGACY_RUN_MODE_BOTH = "Both"
+LEGACY_RUN_MODE_MIGRATION = {
+    LEGACY_RUN_MODE_MAYA_STARTUP: RUN_MODE_INTERACTIVE_MAYA,
+    LEGACY_RUN_MODE_BOTH: RUN_MODE_INTERACTIVE_MAYA_AND_FILE_OPEN,
+}
+
+# Backward-compatible names for external code that imports the previous constants.
+RUN_MODE_MAYA_STARTUP = RUN_MODE_INTERACTIVE_MAYA
+RUN_MODE_BOTH = RUN_MODE_INTERACTIVE_MAYA_AND_FILE_OPEN
+
+RUN_INTERVAL_DAYS = "Days"
+RUN_INTERVAL_WEEKS = "Weeks"
+RUN_INTERVAL_MONTHS = "Months"
+RUN_INTERVAL_YEARS = "Years"
+RUN_INTERVAL_UNITS = [
+    RUN_INTERVAL_DAYS,
+    RUN_INTERVAL_WEEKS,
+    RUN_INTERVAL_MONTHS,
+    RUN_INTERVAL_YEARS,
+]
+
+
+def normalize_run_interval_value(run_interval_value):
+    """Normalizes a startup-script run-interval number.
+
+    Args:
+        run_interval_value (int): Requested number of calendar units.
+
+    Returns:
+        int: Supported positive interval value.
+    """
+    try:
+        run_interval_value = int(run_interval_value)
+    except (TypeError, ValueError):
+        return 1
+    return max(1, min(9999, run_interval_value))
+
+
+def normalize_run_interval_unit(run_interval_unit):
+    """Normalizes a startup-script run-interval calendar unit.
+
+    Args:
+        run_interval_unit (str): Requested calendar unit.
+
+    Returns:
+        str: Supported run-interval calendar unit.
+    """
+    run_interval_unit = str(run_interval_unit or "")
+    if run_interval_unit not in RUN_INTERVAL_UNITS:
+        return RUN_INTERVAL_DAYS
+    return run_interval_unit
+
+
+def normalize_last_run_date(last_run_date):
+    """Normalizes a stored startup-script last-run date.
+
+    Args:
+        last_run_date (str): Stored ISO date string.
+
+    Returns:
+        str: ISO date string, or an empty string when the date is invalid.
+    """
+    try:
+        return datetime.strptime(str(last_run_date or ""), "%Y-%m-%d").date().isoformat()
+    except (TypeError, ValueError):
+        return ""
+
+
+def get_next_run_date(last_run_date, run_interval_value, run_interval_unit):
+    """Gets the first date a frequency-limited startup script may run again.
+
+    Args:
+        last_run_date (date): Date on which the script last ran successfully.
+        run_interval_value (int): Number of calendar units between runs.
+        run_interval_unit (str): Calendar unit between runs.
+
+    Returns:
+        date: Next eligible calendar date.
+    """
+    run_interval_value = normalize_run_interval_value(run_interval_value)
+    run_interval_unit = normalize_run_interval_unit(run_interval_unit)
+    if run_interval_unit == RUN_INTERVAL_DAYS:
+        return last_run_date + timedelta(days=run_interval_value)
+    if run_interval_unit == RUN_INTERVAL_WEEKS:
+        return last_run_date + timedelta(weeks=run_interval_value)
+
+    if run_interval_unit == RUN_INTERVAL_MONTHS:
+        month_index = last_run_date.month - 1 + run_interval_value
+        target_year = last_run_date.year + month_index // 12
+        target_month = month_index % 12 + 1
+    else:
+        target_year = last_run_date.year + run_interval_value
+        target_month = last_run_date.month
+    target_day = min(last_run_date.day, calendar.monthrange(target_year, target_month)[1])
+    return date(target_year, target_month, target_day)
+
+
+def is_script_run_due(configuration, current_date=None):
+    """Checks whether a startup script is due according to its optional frequency.
+
+    Disabled frequencies return immediately without parsing dates. This keeps the
+    default startup path limited to a single Boolean check per configuration.
+
+    Args:
+        configuration (dict): Startup-script configuration.
+        current_date (date, optional): Date used for comparison, primarily for testing.
+
+    Returns:
+        bool: True when the script may run.
+    """
+    if not isinstance(configuration, dict):
+        return False
+    if not configuration.get("run_interval_enabled", False):
+        return True
+    last_run_date = normalize_last_run_date(configuration.get("last_run_date"))
+    if not last_run_date:
+        return True
+    last_run_date = datetime.strptime(last_run_date, "%Y-%m-%d").date()
+    if isinstance(current_date, datetime):
+        current_date = current_date.date()
+    if not isinstance(current_date, date):
+        current_date = date.today()
+    next_run_date = get_next_run_date(
+        last_run_date,
+        configuration.get("run_interval_value"),
+        configuration.get("run_interval_unit"),
+    )
+    return current_date >= next_run_date
+
+
+def get_current_run_date(current_date=None):
+    """Gets an ISO date for recording a successful frequency-limited run.
+
+    Args:
+        current_date (date, optional): Date to serialize, primarily for testing.
+
+    Returns:
+        str: Current ISO calendar date.
+    """
+    if isinstance(current_date, datetime):
+        current_date = current_date.date()
+    if not isinstance(current_date, date):
+        current_date = date.today()
+    return current_date.isoformat()
+
+
+def normalize_run_mode(run_mode):
+    """Normalizes current and legacy run-mode labels.
+
+    Args:
+        run_mode (str): Stored or requested run-mode label.
+
+    Returns:
+        str: A current supported run-mode label.
+    """
+    run_mode = str(run_mode or "")
+    run_mode = LEGACY_RUN_MODE_MIGRATION.get(run_mode, run_mode)
+    if run_mode not in RUN_MODE_VALUES:
+        return RUN_MODE_INTERACTIVE_MAYA
+    return run_mode
+
+
+def get_run_mode_events(run_mode):
+    """Gets the events included by one run-mode label.
+
+    Args:
+        run_mode (str): Stored or requested run-mode label.
+
+    Returns:
+        list: Ordered startup events enabled by the run mode.
+    """
+    return list(RUN_MODE_EVENTS.get(normalize_run_mode(run_mode), []))
 
 
 def create_default_script(name="Startup Script"):
@@ -32,7 +262,11 @@ def create_default_script(name="Startup Script"):
         "id": str(uuid.uuid4()),
         "name": str(name or "Startup Script"),
         "enabled": True,
-        "run_mode": RUN_MODE_MAYA_STARTUP,
+        "run_mode": RUN_MODE_INTERACTIVE_MAYA,
+        "run_interval_enabled": False,
+        "run_interval_value": 1,
+        "run_interval_unit": RUN_INTERVAL_DAYS,
+        "last_run_date": "",
         "print_execution_message": True,
         "script_text": "",
         "external_files": [],
@@ -80,7 +314,17 @@ def normalize_script_configuration(configuration):
         "id": str(source.get("id") or default["id"]),
         "name": str(source.get("name") or default["name"]),
         "enabled": bool(source.get("enabled", default["enabled"])),
-        "run_mode": source.get("run_mode", default["run_mode"]),
+        "run_mode": normalize_run_mode(source.get("run_mode", default["run_mode"])),
+        "run_interval_enabled": bool(
+            source.get("run_interval_enabled", default["run_interval_enabled"])
+        ),
+        "run_interval_value": normalize_run_interval_value(
+            source.get("run_interval_value", default["run_interval_value"])
+        ),
+        "run_interval_unit": normalize_run_interval_unit(
+            source.get("run_interval_unit", default["run_interval_unit"])
+        ),
+        "last_run_date": normalize_last_run_date(source.get("last_run_date", default["last_run_date"])),
         "print_execution_message": bool(
             source.get("print_execution_message", default["print_execution_message"])
         ),
@@ -89,8 +333,6 @@ def normalize_script_configuration(configuration):
         "script_directories": normalize_source_entries(source.get("script_directories")),
         "font_size": int(source.get("font_size", default["font_size"]) or 14),
     }
-    if normalized["run_mode"] not in RUN_MODE_VALUES:
-        normalized["run_mode"] = RUN_MODE_MAYA_STARTUP
     normalized["font_size"] = max(8, min(24, normalized["font_size"]))
     return normalized
 
@@ -139,8 +381,23 @@ def is_script_configuration_valid(configuration):
     for key, expected_type in required_types.items():
         if not isinstance(configuration.get(key), expected_type):
             return False
-    if not configuration.get("id") or configuration.get("run_mode") not in RUN_MODE_VALUES:
+    run_mode = configuration.get("run_mode")
+    if not configuration.get("id") or run_mode not in RUN_MODE_VALUES + list(LEGACY_RUN_MODE_MIGRATION):
         return False
+    optional_types = {
+        "run_interval_enabled": bool,
+        "run_interval_value": int,
+        "run_interval_unit": str,
+        "last_run_date": str,
+    }
+    for key, expected_type in optional_types.items():
+        if key in configuration and not isinstance(configuration.get(key), expected_type):
+            return False
+    if "run_interval_unit" in configuration and configuration.get("run_interval_unit") not in RUN_INTERVAL_UNITS:
+        return False
+    if "last_run_date" in configuration and configuration.get("last_run_date"):
+        if normalize_last_run_date(configuration.get("last_run_date")) != configuration.get("last_run_date"):
+            return False
     return is_source_entries_valid(configuration.get("external_files")) and is_source_entries_valid(
         configuration.get("script_directories")
     )
@@ -347,7 +604,9 @@ class StartupScriptsModel:
             return False
         raw_preferences = self.prefs.get_raw_preferences()
         configuration = raw_preferences.get(PREFS_KEY_CONFIGURATION)
-        self.scripts = copy.deepcopy(configuration.get("scripts", []))
+        self.scripts = [
+            normalize_script_configuration(script) for script in configuration.get("scripts", [])
+        ]
         return True
 
     def save_preferences(self):
@@ -364,6 +623,89 @@ class StartupScriptsModel:
         self.prefs.save()
         self.loaded_preferences = True
         return configuration
+
+    def record_scheduled_runs(self, script_ids, current_date=None):
+        """Records successful scheduled runs for frequency-limited configurations.
+
+        Configurations without frequency limiting are deliberately ignored so
+        normal startup executions do not create preference-file writes.
+
+        Args:
+            script_ids (list): Stable identifiers for successfully run scripts.
+            current_date (date, optional): Date to record, primarily for testing.
+
+        Returns:
+            bool: True when one or more run dates were persisted.
+        """
+        if not isinstance(script_ids, list):
+            return False
+        script_ids = set(script_ids)
+        if not script_ids:
+            return False
+        last_run_date = get_current_run_date(current_date=current_date)
+        changed = False
+        for script in self.scripts:
+            if script.get("id") not in script_ids:
+                continue
+            if not script.get("run_interval_enabled", False):
+                continue
+            if script.get("last_run_date") == last_run_date:
+                continue
+            script["last_run_date"] = last_run_date
+            changed = True
+        if changed:
+            self.save_preferences()
+        return changed
+
+    def export_backup(self, file_path):
+        """Exports the complete startup-script setup to a JSON backup file.
+
+        Args:
+            file_path (str): Destination JSON backup file path.
+
+        Returns:
+            str: Written JSON backup file path.
+
+        Raises:
+            ValueError: If no destination path is provided.
+            OSError: If the backup file cannot be written.
+        """
+        file_path = str(file_path or "").strip()
+        if not file_path:
+            raise ValueError("A backup destination path is required.")
+        if not file_path.lower().endswith(".json"):
+            file_path += ".json"
+        configuration = {
+            "schema_version": PREFS_SCHEMA_VERSION,
+            "scripts": copy.deepcopy(self.scripts),
+        }
+        with open(file_path, "w", encoding="utf-8") as backup_file:
+            json.dump(configuration, backup_file, indent=4, ensure_ascii=False)
+        return file_path
+
+    def import_backup(self, file_path):
+        """Imports and persists a complete startup-script setup from a JSON backup.
+
+        Args:
+            file_path (str): Existing JSON backup file path.
+
+        Returns:
+            list: Imported startup-script configuration dictionaries.
+
+        Raises:
+            ValueError: If the backup data is not a valid startup-script setup.
+            OSError: If the backup file cannot be read.
+            json.JSONDecodeError: If the backup file is not valid JSON.
+        """
+        with open(file_path, "r", encoding="utf-8") as backup_file:
+            configuration = json.load(backup_file)
+        if not is_preferences_data_valid(configuration):
+            raise ValueError("The selected file is not a valid Startup Scripts backup.")
+        self.scripts = [
+            normalize_script_configuration(script) for script in configuration.get("scripts", [])
+        ]
+        self.save_preferences()
+        return self.get_scripts()
 
     def get_scripts(self):
         """Gets a safe copy of all configured startup scripts.

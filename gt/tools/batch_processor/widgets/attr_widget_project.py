@@ -175,14 +175,18 @@ class AttrWidgetProject(attr_widget_base.AttrWidgetBase):
         )
 
         self.refresh_log_preferences_enabled_state()
-        self.add_text_area(
+        self.notes_text_area = self.add_text_area(
             "Notes",
             self.project.notes,
             self.set_project_notes,
             placeholder="Optional notes for this batch project.",
             tooltip="Free-form project notes saved in the .batch file.",
         )
-        self.content_layout.addStretch()
+        self.notes_text_area.setSizePolicy(
+            ui_qt.QtLib.SizePolicy.Expanding,
+            ui_qt.QtLib.SizePolicy.Expanding,
+        )
+        self.content_layout.setStretch(self.content_layout.indexOf(self.notes_text_area), 1)
 
     def add_widget_project_header(self):
         """Adds the project header with icon, editable name, and JSON button."""

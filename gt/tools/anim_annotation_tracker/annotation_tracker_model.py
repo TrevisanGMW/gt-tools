@@ -77,6 +77,7 @@ DEFAULT_PREFERENCES = {
     "limit_bounds": True,
     "razor_random_colors": True,
     "run_all_automations": True,
+    "hide_private_automations": True,
     "show_validation_status": True,
     "write_scene_node": True,
     TOOL_MODE_PREFERENCE_KEY: DEFAULT_TOOL_MODE,
@@ -195,6 +196,38 @@ def copy_sample_automation_scripts(destination_directory):
         shutil.copyfile(source_path, destination_path)
         copied_paths.append(destination_path)
     return copied_paths, skipped_paths
+
+
+def is_private_automation_path(script_path):
+    """Checks whether an automation script is private.
+
+    Automation scripts whose file name starts with an underscore are
+    treated as private and can be hidden from the Automations tab.
+
+    Args:
+        script_path (str): Automation file name or path.
+
+    Returns:
+        bool: True when the automation script is private.
+    """
+    return os.path.basename(str(script_path or "")).startswith("_")
+
+
+def filter_private_automation_paths(script_paths):
+    """Filters private automation scripts out of a path list.
+
+    Args:
+        script_paths (list): Automation file names or paths.
+
+    Returns:
+        list: Automation paths whose file names do not start with an
+            underscore, preserving the incoming order.
+    """
+    return [
+        script_path
+        for script_path in (script_paths or [])
+        if not is_private_automation_path(script_path)
+    ]
 
 
 def get_default_preferences():

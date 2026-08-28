@@ -1,4 +1,4 @@
-"""Sets 30fps timing, a 0-120 frame range, grid defaults, Y-up, and undo."""
+"""Sets 30fps timing, a 0-120 frame range, grid defaults, Y-up, undo, and anti-aliasing."""
 
 import maya.cmds as cmds
 
@@ -17,6 +17,8 @@ UP_AXIS = "y"
 ROTATE_VIEW_FOR_UP_AXIS_CHANGE = True
 
 ENABLE_UNDO_QUEUE = True
+
+ANTI_ALIASING_SAMPLE_COUNT = 16
 
 
 # Scene timing
@@ -44,3 +46,7 @@ if cmds.upAxis(query=True, axis=True).lower() != UP_AXIS.lower():
 if ENABLE_UNDO_QUEUE:
     if not cmds.undoInfo(query=True, state=True):
         cmds.undoInfo(state=True)
+
+# Viewport anti-aliasing
+cmds.setAttr("hardwareRenderingGlobals.multiSampleEnable", 1)
+cmds.setAttr("hardwareRenderingGlobals.multiSampleCount", ANTI_ALIASING_SAMPLE_COUNT)

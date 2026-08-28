@@ -205,8 +205,30 @@ class TestBatchProcessorSegments(unittest.TestCase):
             task = tasks.create_task(task_type=task_type)
             self.assertTrue(task.supports_run_once_after_jobs, task_type)
             self.assertFalse(task.settings.get("run_once_after_multi_instance"), task_type)
+            self.assertFalse(task.settings.get("run_once_before_multi_instance"), task_type)
             self.assertFalse(task.shows_segment_separator(), task_type)
             self.assertEqual("blue_light_sky", task.get_segment_color_name(), task_type)
+
+    def test_delete_path_task_supports_run_once_before_jobs(self):
+        delete_task = tasks.create_task(task_type=constants.TaskType.DELETE_PROJECT_FILES)
+
+        self.assertTrue(delete_task.supports_run_once_before_jobs)
+        self.assertFalse(delete_task.settings.get("run_once_before_multi_instance"))
+
+    def test_segmented_tasks_support_run_once_before_jobs(self):
+        task_types = [
+            constants.TaskType.ZIP_COMPRESS,
+            constants.TaskType.MAP_HIERARCHY,
+            constants.TaskType.SCENE_REPORT,
+            constants.TaskType.MAYA_SCENE_VALIDATE,
+            constants.TaskType.FILE_INTEGRITY_VALIDATE,
+            constants.TaskType.FOLDER_COMPARE_VALIDATE,
+        ]
+
+        for task_type in task_types:
+            task = tasks.create_task(task_type=task_type)
+            self.assertTrue(task.supports_run_once_before_jobs, task_type)
+            self.assertFalse(task.settings.get("run_once_before_multi_instance"), task_type)
 
     def test_zip_task_supports_separator(self):
         zip_task = tasks.create_task(task_type=constants.TaskType.ZIP_COMPRESS)

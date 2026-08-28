@@ -10,9 +10,15 @@ import os
 
 
 FBX_EXPORT_MODE_ANIMATION = "Animation"
+FBX_EXPORT_MODE_ANIMATION_MESH = "Animation + Mesh"
 FBX_EXPORT_MODE_SKELETAL_MESH = "Skeletal Mesh"
 FBX_EXPORT_MODE_MESH = "Mesh"
-FBX_EXPORT_MODE_VALUES = [FBX_EXPORT_MODE_ANIMATION, FBX_EXPORT_MODE_SKELETAL_MESH, FBX_EXPORT_MODE_MESH]
+FBX_EXPORT_MODE_VALUES = [
+    FBX_EXPORT_MODE_ANIMATION,
+    FBX_EXPORT_MODE_ANIMATION_MESH,
+    FBX_EXPORT_MODE_SKELETAL_MESH,
+    FBX_EXPORT_MODE_MESH,
+]
 PRE_EXPORT_SCRIPT_SAMPLES_DIRECTORY = "export_fbx"
 
 
@@ -69,7 +75,7 @@ class TaskExportFbx(task_base.BatchTask):
         if self.modifies_in_place():
             result.add_error("FBX export cannot modify source files in place. Use a target path instead.")
         if self.settings.get("export_mode") not in FBX_EXPORT_MODE_VALUES:
-            result.add_error("FBX export mode must be Animation, Skeletal Mesh, or Mesh.")
+            result.add_error("FBX export mode must be Animation, Animation + Mesh, Skeletal Mesh, or Mesh.")
         script_text = self.settings.get("pre_export_script_text") or ""
         if self.settings.get("run_pre_export_script") and not script_text.strip():
             result.add_error("FBX export pre-script is enabled but no inline script is set.")
@@ -209,25 +215,63 @@ class TaskExportFbx(task_base.BatchTask):
         output_dir = os.path.dirname(output_path)
         if output_dir and not os.path.isdir(output_dir):
             os.makedirs(output_dir)
+        export_selection = bool(self.settings.get("export_selection", False))
+        if export_selection and not (cmds.ls(selection=True, long=True) or []):
+            raise RuntimeError(
+                "FBX Export Selection is enabled, but the loaded scene has no selected nodes to export."
+            )
         with utils_fbx.FbxExporter(
-            selection=bool(self.settings.get("export_selection", False)),
+            selection=export_selection,
             key_reducer=bool(self.settings.get("key_reducer", False)),
         ) as fbx_exporter:
-            export_mode = self.settings.get("export_mode") or FBX_EXPORT_MODE_ANIMATION
-            if export_mode == FBX_EXPORT_MODE_SKELETAL_MESH:
-                fbx_exporter.set_preferences_skeletal_mesh()
-            elif export_mode == FBX_EXPORT_MODE_MESH:
-                fbx_exporter.set_preferences_mesh()
-            else:
-                frame_start = None
-                frame_end = None
-                if not self.settings.get("auto_frame_range", True):
-                    frame_start = float(self.settings.get("frame_start"))
-                    frame_end = float(self.settings.get("frame_end"))
-                fbx_exporter.set_preferences_animation(start_frame=frame_start, end_frame=frame_end)
+            self.set_export_mode_preferences(fbx_exporter)
             cmds.FBXExportInAscii("-v", bool(self.settings.get("ascii", False)))
             cmds.FBXExportGenerateLog("-v", bool(self.settings.get("generate_log", False)))
+            # A false selection setting invokes Maya's all-scene FBX export path.
             fbx_exporter.export_file(path=output_path)
+        self.validate_exported_file(output_path)
+
+    def set_export_mode_preferences(self, fbx_exporter):
+        """Configures FBX exporter preferences for the selected export mode.
+
+        Args:
+            fbx_exporter (FbxExporter): Configured FBX exporter instance.
+        """
+        export_mode = self.settings.get("export_mode") or FBX_EXPORT_MODE_ANIMATION
+        if export_mode == FBX_EXPORT_MODE_SKELETAL_MESH:
+            fbx_exporter.set_preferences_skeletal_mesh()
+            return
+        if export_mode == FBX_EXPORT_MODE_MESH:
+            fbx_exporter.set_preferences_mesh()
+            return
+
+        frame_start = None
+        frame_end = None
+        if not self.settings.get("auto_frame_range", True):
+            frame_start = float(self.settings.get("frame_start"))
+            frame_end = float(self.settings.get("frame_end"))
+        if export_mode == FBX_EXPORT_MODE_ANIMATION_MESH:
+            fbx_exporter.set_preferences_animation_with_meshes(
+                start_frame=frame_start,
+                end_frame=frame_end,
+            )
+            return
+        fbx_exporter.set_preferences_animation(start_frame=frame_start, end_frame=frame_end)
+
+    @staticmethod
+    def validate_exported_file(output_path):
+        """Ensures the FBX exporter created a usable output file.
+
+        Args:
+            output_path (str): Expected FBX output path.
+
+        Raises:
+            RuntimeError: If no file was created or the created file is empty.
+        """
+        if not os.path.isfile(output_path):
+            raise RuntimeError(f"FBX export did not create the expected file: {output_path}")
+        if os.path.getsize(output_path) <= 0:
+            raise RuntimeError(f"FBX export created an empty file: {output_path}")
 
     @staticmethod
     def validate_frame_value(result, value, label):

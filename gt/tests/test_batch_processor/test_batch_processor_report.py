@@ -5,6 +5,7 @@ import os
 import shutil
 import sys
 import tempfile
+import types
 import unittest
 from unittest import mock
 
@@ -25,6 +26,8 @@ from gt.tools.batch_processor import batch_processor_model
 from gt.tools.batch_processor import batch_processor_task_base as task_base
 from gt.tools.batch_processor import batch_processor_tasks as tasks
 from gt.tools.batch_processor.tasks import task_report
+from gt.tools.batch_processor.tracker import tracker_model
+from gt.tools.batch_processor.tracker import tracker_scheduler
 
 
 class TestBatchProcessorReport(unittest.TestCase):
@@ -284,6 +287,84 @@ class TestBatchProcessorReport(unittest.TestCase):
         self.assertEqual(expected, [entry.get("path") for entry in entries])
         self.assertEqual(1, deleted_count)
         self.assertEqual(1, len(task_report.list_part_paths(parts_dir)))
+
+    def test_cleanup_report_parts_removes_completed_run_files_and_empty_directory(self):
+        """Ensures a completed report run does not leave its temporary folder behind."""
+        parts_dir = os.path.join(self.temp_dir, "report_parts")
+        run_id = "current_run"
+        task_report.write_report_part(parts_dir, {"path": "a.ma", "values": {}}, run_id)
+        task_report.write_file_atomically(
+            os.path.join(parts_dir, task_report.REPORT_TARGET_MARKER_NAME),
+            '{"run_id": "current_run", "report_path": "report.txt"}',
+        )
+
+        expected = 2
+        result = task_report.cleanup_report_parts(parts_dir, run_id)
+        self.assertEqual(expected, result)
+        expected = True
+        result = task_report.remove_parts_directory_if_empty(parts_dir)
+        self.assertEqual(expected, result)
+
+    def test_execute_cleans_parts_after_runner_confirms_last_report_entry(self):
+        """Ensures runner completion removes report parts after the final entry writes."""
+        file_path = os.path.join(self.temp_dir, "sample.ma")
+        with open(file_path, "w", encoding="utf-8") as sample_file:
+            sample_file.write("12345")
+        self.task.settings["report_metrics"] = ["file_size"]
+        run_id = "completed_run"
+        work_item = task_base.WorkItem(source_path=file_path)
+
+        report_item = self.task.execute(
+            work_item,
+            project=None,
+            step_output_dir=self.temp_dir,
+            context={
+                "run_id": run_id,
+                "is_last_item": True,
+                "cleanup_report_parts": True,
+            },
+        )
+
+        expected = file_path
+        result = report_item.current_path
+        self.assertEqual(expected, result)
+        expected = False
+        result = os.path.isdir(task_report.get_parts_dir(task_report.build_report_path(self.task, self.temp_dir)))
+        self.assertEqual(expected, result)
+
+    def test_tracker_cleanup_removes_parts_after_regular_multi_worker_reports_finish(self):
+        """Ensures the scheduler cleans shared report parts after all workers stop."""
+        project = batch_processor_model.BatchProcessorModel()
+        project.project_file_path = os.path.join(self.temp_dir, "project.batch")
+        project.get_input_tasks()[0].enabled = False
+        report_task = project.add_task(
+            task_report.TaskSceneReport(settings={"target_path": self.temp_dir})
+        )
+        session_dir = os.path.join(self.temp_dir, "tracker_session")
+        session = tracker_model.TrackerSession(
+            "Report Cleanup",
+            self.temp_dir,
+            1,
+            [],
+            session_dir,
+        )
+        scheduler = tracker_scheduler.TrackerScheduler(
+            session=session,
+            options=types.SimpleNamespace(no_log=True, task_time_logs=False),
+            project=project,
+        )
+        task_index = project.get_task_environment_index(report_task)
+        step_output_dir = report_task.resolve_task_path(project, task_index=task_index)
+        base_report_path = task_report.build_report_path(report_task, step_output_dir, project=project)
+        parts_dir = task_report.get_parts_dir(base_report_path)
+        run_id = task_base.build_run_id(scheduler.get_events_dir())
+        task_report.write_report_part(parts_dir, {"path": "a.ma", "values": {}}, run_id)
+
+        scheduler.cleanup_report_parts()
+
+        expected = False
+        result = os.path.isdir(parts_dir)
+        self.assertEqual(expected, result)
 
     def test_workers_share_one_numbered_report_when_overwrite_is_disabled(self):
         self.task.settings["overwrite"] = False

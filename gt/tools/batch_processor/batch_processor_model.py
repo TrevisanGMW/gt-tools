@@ -616,6 +616,10 @@ class BatchProcessorModel:
         """
         if not task:
             return ""
+        if getattr(task, "is_task_path_passthrough", False):
+            previous_task = self.get_previous_task(task=task, enabled_only=True)
+            previous_index = self.get_task_environment_index(previous_task)
+            return self.resolve_task_path_without_neighbor_paths(previous_task, previous_index)
         return self.resolve_template_path(
             task.get_task_path_template(),
             task=task,
