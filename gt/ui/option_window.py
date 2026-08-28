@@ -85,6 +85,7 @@ class OptionWindow(metaclass=qt_utils.MayaWindowMeta):
         super().__init__(parent=parent)
 
         self.controls = {}
+        self._row_labels = {}
         self._title = title
         self.workspace_restore_factory = workspace_restore_factory
         self.allow_workspace_restore = bool(workspace_restore_factory)
@@ -183,6 +184,7 @@ class OptionWindow(metaclass=qt_utils.MayaWindowMeta):
         if trailing_control is not None:
             row_layout.addWidget(trailing_control)
         self._main_layout.addLayout(row_layout)
+        self._row_labels[control] = label_widget
 
     def _create_button(self, spec):
         """
@@ -412,6 +414,20 @@ class OptionWindow(metaclass=qt_utils.MayaWindowMeta):
         self.controls[key or label] = checkbox
         return checkbox
 
+    def set_row_enabled(self, control, enabled=True):
+        """
+        Enables or disables a labeled row, so the label is greyed out alongside its control.
+
+        Args:
+            control (QWidget): Control created by one of the labeled "add_" methods.
+            enabled (bool, optional): Whether the row should be enabled. Defaults to True.
+        """
+        is_enabled = bool(enabled)
+        control.setEnabled(is_enabled)
+        label_widget = self._row_labels.get(control)
+        if label_widget is not None:
+            label_widget.setEnabled(is_enabled)
+
     def add_button(
         self,
         label,
@@ -524,9 +540,18 @@ class OptionWindow(metaclass=qt_utils.MayaWindowMeta):
             QLabel#optionSection { color: #aaaaaa; font-weight: bold; }
             QLabel#optionDescription { color: #aaaaaa; font-style: italic; }
             QLabel#optionFieldLabel { color: #dddddd; }
+            QLabel#optionFieldLabel:disabled { color: #5e5e5e; }
             QCheckBox { color: #dddddd; }
+            QCheckBox:disabled { color: #5e5e5e; }
             QComboBox { background-color: #2b2b2b; border: 1px solid #444444; padding: 1px 4px; }
+            QComboBox:disabled {
+                background-color: #242424; border: 1px solid #333333; color: #5e5e5e;
+            }
+            QComboBox::drop-down:disabled { background-color: #242424; border: none; }
             QLineEdit { background-color: #2b2b2b; border: 1px solid #444444; padding: 1px 4px; }
+            QLineEdit:disabled {
+                background-color: #242424; border: 1px solid #333333; color: #5e5e5e;
+            }
             QPushButton#option_normal_button {
                 background-color: #5c5c5c; border: 1px solid #444444; color: #dddddd; padding: 2px 6px;
             }
