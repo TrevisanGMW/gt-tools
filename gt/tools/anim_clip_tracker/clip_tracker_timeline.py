@@ -5,6 +5,8 @@ A pure Qt timeline used to visualize and edit clip ranges.
 This module must remain importable outside Maya, so it never imports "maya.cmds".
 Scene state is pushed into the widget by the controller and changes are reported back through signals.
 """
+import math
+
 import gt.ui.qt_import as ui_qt
 
 from gt.tools.anim_clip_tracker.clip_tracker_constants import (
@@ -36,6 +38,8 @@ MIN_LANE_HEIGHT = 8
 DRAG_THRESHOLD = 8
 FRAME_LABEL_COLOR = (165, 165, 165)
 NAME_LABEL_COLOR = (235, 235, 235)
+MIN_VIEW_SPAN = 4
+WHEEL_ZOOM_STEP = 1.2
 
 
 def get_clip_color(index):
@@ -312,6 +316,7 @@ class ClipTimelineWidget(ui_qt.QtWidgets.QWidget):
     add_clip_requested = ui_qt.QtCore.Signal()
     add_timeline_clip_requested = ui_qt.QtCore.Signal()
     refresh_requested = ui_qt.QtCore.Signal()
+    view_changed = ui_qt.QtCore.Signal()
 
     def __init__(self, parent=None):
         """Initializes the clip timeline widget.
@@ -340,6 +345,11 @@ class ClipTimelineWidget(ui_qt.QtWidgets.QWidget):
         self.initial_start = 0
         self.initial_end = 0
         self.preview_frame = 0
+        # A None view window means the timeline is fully zoomed out and keeps
+        # following the dynamic display bounds as clips and ranges change.
+        self.view_start = None
+        self.view_end = None
+        self._pan_last_x = 0
 
     # ------------------------------------------------------------------ state
     def set_mode(self, mode):
@@ -440,13 +450,165 @@ class ClipTimelineWidget(ui_qt.QtWidgets.QWidget):
         self.update()
 
     # ------------------------------------------------------------- coordinates
+    def get_full_display_range(self):
+        """Gets the frame bounds of the fully zoomed-out timeline.
+
+        Returns:
+            tuple: Lowest and highest frames the timeline can display.
+        """
+        return get_display_bounds(self.clips, self.range_start, self.range_end)
+
     def get_display_range(self):
         """Gets the frame bounds currently displayed.
+
+        The zoomed view window is re-clamped against the full display bounds on
+        every access, so clip and range changes can never strand the view.
 
         Returns:
             tuple: Lowest and highest displayed frames.
         """
-        return get_display_bounds(self.clips, self.range_start, self.range_end)
+        low_frame, high_frame = self.get_full_display_range()
+        if self.view_start is None or self.view_end is None:
+            return low_frame, high_frame
+        full_span = high_frame - low_frame
+        view_span = min(self.view_end - self.view_start, full_span)
+        view_start = max(
+            float(low_frame),
+            min(self.view_start, high_frame - view_span),
+        )
+        return view_start, view_start + view_span
+
+    def get_view_span(self):
+        """Gets the width of the visible frame window.
+
+        Returns:
+            float: Number of frames currently visible.
+        """
+        low_frame, high_frame = self.get_display_range()
+        return high_frame - low_frame
+
+    def is_zoomed(self):
+        """Checks whether the visible window differs from the full timeline.
+
+        Returns:
+            bool: True when the timeline is zoomed or panned.
+        """
+        if self.view_start is None or self.view_end is None:
+            return False
+        low_frame, high_frame = self.get_full_display_range()
+        view_low, view_high = self.get_display_range()
+        return view_low > low_frame + 0.01 or view_high < high_frame - 0.01
+
+    def set_view_range(self, view_start, view_end):
+        """Sets the visible frame window without changing the display bounds.
+
+        The window is clamped to the full display bounds and to a minimum
+        span, so zooming can never alter clip data or the playback range.
+
+        Args:
+            view_start (float): Requested first visible frame.
+            view_end (float): Requested last visible frame.
+        """
+        low_frame, high_frame = self.get_full_display_range()
+        full_span = high_frame - low_frame
+        minimum_span = min(MIN_VIEW_SPAN, full_span)
+        view_span = max(minimum_span, min(float(view_end) - float(view_start), full_span))
+        view_start = max(float(low_frame), min(float(view_start), high_frame - view_span))
+        if view_span >= full_span:
+            self.view_start = None
+            self.view_end = None
+        else:
+            self.view_start = view_start
+            self.view_end = view_start + view_span
+        self.view_changed.emit()
+        self.update()
+
+    def reset_zoom(self):
+        """Restores the fully zoomed-out timeline view."""
+        self.view_start = None
+        self.view_end = None
+        self.view_changed.emit()
+        self.update()
+
+    def zoom_view(self, zoom_factor, anchor_x=None):
+        """Zooms the visible window around a widget x-coordinate.
+
+        Args:
+            zoom_factor (float): Values above 1 zoom in, below 1 zoom out.
+            anchor_x (float, optional): Widget x-coordinate kept stationary.
+                Defaults to the widget center.
+        """
+        if zoom_factor <= 0:
+            return
+        view_low, view_high = self.get_display_range()
+        view_span = view_high - view_low
+        if view_span <= 0:
+            return
+        usable_width = max(1, self.width() - (SIDE_MARGIN * 2))
+        if anchor_x is None:
+            anchor_x = SIDE_MARGIN + usable_width / 2.0
+        anchor_ratio = (float(anchor_x) - SIDE_MARGIN) / usable_width
+        anchor_ratio = min(max(anchor_ratio, 0.0), 1.0)
+        anchor_frame = view_low + view_span * anchor_ratio
+        new_span = view_span / zoom_factor
+        self.set_view_range(
+            anchor_frame - new_span * anchor_ratio,
+            anchor_frame + new_span * (1.0 - anchor_ratio),
+        )
+
+    def pan_view(self, delta_frames):
+        """Shifts the visible window without changing its span.
+
+        Args:
+            delta_frames (float): Frames to shift; positive moves forward.
+        """
+        low_frame, high_frame = self.get_full_display_range()
+        view_low, view_high = self.get_display_range()
+        view_span = view_high - view_low
+        view_start = max(
+            float(low_frame),
+            min(view_low + float(delta_frames), high_frame - view_span),
+        )
+        self.set_view_range(view_start, view_start + view_span)
+
+    def zoom_to_clip(self, clip_index):
+        """Zooms the visible window to one clip with a small margin.
+
+        Args:
+            clip_index (int): Index of the clip to frame.
+        """
+        if clip_index < 0 or clip_index >= len(self.clips):
+            return
+        clip_low, clip_high = get_clip_span(self.clips[clip_index])
+        margin = max((clip_high - clip_low) * 0.1, 2.0)
+        self.set_view_range(clip_low - margin, clip_high + 1 + margin)
+
+    def wheelEvent(self, event):
+        """Zooms or pans the visible window from mouse-wheel input.
+
+        Args:
+            event (QWheelEvent): Qt wheel event.
+        """
+        angle_delta = event.angleDelta()
+        if event.modifiers() & ui_qt.QtLib.KeyboardModifier.ShiftModifier:
+            wheel_direction = angle_delta.y() or angle_delta.x()
+            if wheel_direction:
+                pan_step = self.get_view_span() * 0.1
+                self.pan_view(-pan_step if wheel_direction > 0 else pan_step)
+            event.accept()
+            return
+        if angle_delta.x() and not angle_delta.y():
+            self.pan_view(-(angle_delta.x() / 120.0) * self.get_view_span() * 0.05)
+            event.accept()
+            return
+        wheel_steps = angle_delta.y() / 120.0
+        if wheel_steps:
+            if hasattr(event, "position"):
+                anchor_x = event.position().x()
+            else:
+                anchor_x = event.pos().x()
+            self.zoom_view(WHEEL_ZOOM_STEP ** wheel_steps, anchor_x)
+        event.accept()
 
     def frame_to_x(self, frame):
         """Converts a frame value into a widget x-coordinate.
@@ -616,11 +778,15 @@ class ClipTimelineWidget(ui_qt.QtWidgets.QWidget):
             widget_rect (QRect): Widget rectangle.
         """
         low_frame, high_frame = self.get_display_range()
-        frame_span = max(1, high_frame - low_frame)
+        low_tick = int(math.floor(low_frame))
+        high_tick = int(math.ceil(high_frame))
+        frame_span = max(1, high_tick - low_tick)
         step = max(1, int(frame_span / 10))
+        # Ticks start at a multiple of the step so they stay put while panning
+        first_tick = low_tick - (low_tick % step)
         painter.setPen(ui_qt.QtGui.QColor(150, 150, 150))
         base_y = widget_rect.height()
-        for frame in range(low_frame, high_frame + 1, step):
+        for frame in range(first_tick, high_tick + 1, step):
             tick_x = self.frame_to_x(frame)
             painter.drawLine(tick_x, base_y - 5, tick_x, base_y)
             painter.drawText(tick_x + 2, base_y - 5, str(frame))
@@ -710,6 +876,11 @@ class ClipTimelineWidget(ui_qt.QtWidgets.QWidget):
         """
         position = get_event_position(event)
         clip_index, zone = self.get_clip_and_zone_at(position)
+        if event.button() == ui_qt.QtLib.MouseButton.MiddleButton:
+            self.interaction_state = "pan"
+            self._pan_last_x = position.x()
+            self.setCursor(ui_qt.QtLib.CursorShape.ClosedHandCursor)
+            return
         if event.button() == ui_qt.QtLib.MouseButton.RightButton:
             self.show_context_menu(event, clip_index)
             return
@@ -753,6 +924,12 @@ class ClipTimelineWidget(ui_qt.QtWidgets.QWidget):
         position = get_event_position(event)
         if not self.interaction_state:
             self.update_hover_state(position)
+            return
+        if self.interaction_state == "pan":
+            usable_width = max(1, self.width() - (SIDE_MARGIN * 2))
+            delta_frames = (self._pan_last_x - position.x()) * self.get_view_span() / usable_width
+            self._pan_last_x = position.x()
+            self.pan_view(delta_frames)
             return
         hover_frame = self.x_to_frame(position.x())
         if self.interaction_state == "scrub":
@@ -812,7 +989,9 @@ class ClipTimelineWidget(ui_qt.QtWidgets.QWidget):
         position = get_event_position(event)
         state = self.interaction_state
         self.interaction_state = None
-        if state == "create":
+        if state == "pan":
+            self.unsetCursor()
+        elif state == "create":
             release_frame = self.x_to_frame(position.x())
             start_frame = self.limit_frame(min(self.press_frame, release_frame))
             end_frame = self.limit_frame(max(self.press_frame, release_frame))
@@ -866,7 +1045,8 @@ class ClipTimelineWidget(ui_qt.QtWidgets.QWidget):
                 "Navigate: drag to change the current frame.\n"
                 "Select: click a clip to highlight it.\n"
                 "Edit: drag clip edges to resize, drag a clip to move it,\n"
-                "drag an empty area to create a new clip."
+                "drag an empty area to create a new clip.\n"
+                "Zoom: mouse wheel at cursor. Pan: middle-drag or Shift+Wheel."
             )
         clip = self.clips[clip_index]
         start_frame = int(clip.get("start", 0))
@@ -974,10 +1154,18 @@ class ClipTimelineWidget(ui_qt.QtWidgets.QWidget):
             action_swap = menu.addAction("Swap Start and End") if is_inverted_clip(clip) else None
             menu.addSeparator()
             action_delete = menu.addAction("Delete Clip")
+            menu.addSeparator()
+            action_zoom_clip = menu.addAction("Zoom to Clip")
+            action_reset_zoom = menu.addAction("Reset Zoom")
+            action_reset_zoom.setEnabled(self.is_zoomed())
             triggered = execute_menu(menu, get_event_global_position(event))
             if triggered is None:
                 return
-            if triggered == action_range:
+            if triggered == action_zoom_clip:
+                self.zoom_to_clip(int(clip_index))
+            elif triggered == action_reset_zoom:
+                self.reset_zoom()
+            elif triggered == action_range:
                 self.clip_range_requested.emit(int(clip_index))
             elif triggered == action_play:
                 self.clip_play_requested.emit(int(clip_index))
@@ -1006,6 +1194,9 @@ class ClipTimelineWidget(ui_qt.QtWidgets.QWidget):
         action_add_timeline = menu.addAction("Add Timeline Range as Clip")
         menu.addSeparator()
         action_refresh = menu.addAction("Refresh Clip List")
+        menu.addSeparator()
+        action_reset_zoom = menu.addAction("Reset Zoom")
+        action_reset_zoom.setEnabled(self.is_zoomed())
         triggered = execute_menu(menu, get_event_global_position(event))
         if triggered is None:
             return
@@ -1015,3 +1206,5 @@ class ClipTimelineWidget(ui_qt.QtWidgets.QWidget):
             self.add_timeline_clip_requested.emit()
         elif triggered == action_refresh:
             self.refresh_requested.emit()
+        elif triggered == action_reset_zoom:
+            self.reset_zoom()

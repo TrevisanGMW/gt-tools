@@ -76,6 +76,9 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
         self.clips_content = None
         self.clips_layout = None
         self.timeline_widget = None
+        self.timeline_container = None
+        self.timeline_zoom_bar = None
+        self._is_syncing_zoom_bar = False
         self.timeline_splitter = None
         self._timeline_height = TIMELINE_HEIGHT
         self.preferences_panel = None
@@ -122,6 +125,7 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
         # Keep this widget alive while hidden. Rebuilding a docked workspace
         # control from the preference signal can leave Maya with stale Qt state.
         self.timeline_widget = clip_tracker_timeline.ClipTimelineWidget(parent=self)
+        self.build_timeline_container()
         self.tabs = ui_qt.QtWidgets.QTabWidget()
         self.tabs.setMinimumSize(0, 0)
         self.tabs.setElideMode(ui_qt.QtCore.Qt.ElideRight)
@@ -174,6 +178,8 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
         layout.setParent(None)
         layout.deleteLater()
         self.timeline_widget = None
+        self.timeline_container = None
+        self.timeline_zoom_bar = None
         self.timeline_splitter = None
         self.preferences_panel = None
         self.clips_scroll = None
@@ -414,6 +420,33 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
         )
         return toolbar_layout
 
+    def build_timeline_container(self):
+        """Builds the timeline area with its zoom pan scrollbar.
+
+        The scrollbar only appears while the timeline is zoomed in, letting
+        users pan the visible window without changing the frame range.
+
+        Returns:
+            QWidget: Container holding the timeline widget and its scrollbar.
+        """
+        self.timeline_zoom_bar = ui_qt.QtWidgets.QScrollBar(ui_qt.QtCore.Qt.Horizontal)
+        self.timeline_zoom_bar.setVisible(False)
+        self.timeline_zoom_bar.setToolTip(
+            "Pans the zoomed timeline view.\n"
+            "Mouse Wheel: Zoom at cursor. Shift+Wheel or Middle-Drag: Pan.\n"
+            "Right-click the timeline for Reset Zoom."
+        )
+        self.timeline_zoom_bar.valueChanged.connect(self.on_timeline_zoom_bar_moved)
+        self.timeline_widget.view_changed.connect(self.update_timeline_zoom_bar)
+        self.timeline_container = ui_qt.QtWidgets.QWidget()
+        self.timeline_container.setMinimumSize(0, 0)
+        timeline_container_layout = ui_qt.QtWidgets.QVBoxLayout(self.timeline_container)
+        timeline_container_layout.setContentsMargins(0, 0, 0, 0)
+        timeline_container_layout.setSpacing(0)
+        timeline_container_layout.addWidget(self.timeline_widget)
+        timeline_container_layout.addWidget(self.timeline_zoom_bar)
+        return self.timeline_container
+
     def build_timeline_splitter(self):
         """Builds the draggable container for the timeline and tracker tabs.
 
@@ -428,7 +461,7 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
             ui_qt.QtWidgets.QSizePolicy.Ignored,
             ui_qt.QtWidgets.QSizePolicy.Ignored,
         )
-        splitter.addWidget(self.timeline_widget)
+        splitter.addWidget(self.timeline_container)
         splitter.addWidget(self.tabs)
         splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 1)
@@ -730,7 +763,7 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
         The stored size lets the timeline return to its last user-selected height
         when the Show Timeline preference is enabled again.
         """
-        if not self.timeline_splitter_alive() or self.timeline_widget.isHidden():
+        if not self.timeline_splitter_alive() or self.timeline_container.isHidden():
             return
         splitter_sizes = self.timeline_splitter.sizes()
         if not splitter_sizes:
@@ -768,7 +801,7 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
         splitter_handle = self.get_timeline_splitter_handle()
         if not is_visible:
             self.remember_timeline_height()
-        self.timeline_widget.setVisible(is_visible)
+        self.timeline_container.setVisible(is_visible)
         if splitter_handle:
             splitter_handle.setVisible(is_visible)
         if is_visible:
@@ -787,6 +820,39 @@ class ClipTrackerView(metaclass=ui_qt_utils.MayaWindowMeta):
         self.timeline_widget.set_magnet_state(model.timeline_magnet_enabled, model.timeline_snap_tolerance)
         self.timeline_widget.set_clips(model.get_data())
         self.timeline_widget.set_selected_index(self.controller.selected_index)
+        self.update_timeline_zoom_bar()
+
+    def update_timeline_zoom_bar(self):
+        """Synchronizes the pan scrollbar with the visible timeline window."""
+        zoom_bar = self.timeline_zoom_bar
+        if not ui_qt_utils.is_qt_object_valid(zoom_bar) or not self.timeline_widget_alive():
+            return
+        self._is_syncing_zoom_bar = True
+        try:
+            if not self.timeline_widget.is_zoomed():
+                zoom_bar.setVisible(False)
+                return
+            low_frame, high_frame = self.timeline_widget.get_full_display_range()
+            view_low, _ = self.timeline_widget.get_display_range()
+            view_span = int(round(self.timeline_widget.get_view_span()))
+            zoom_bar.setRange(int(low_frame), int(high_frame) - view_span)
+            zoom_bar.setPageStep(view_span)
+            zoom_bar.setSingleStep(max(1, view_span // 10))
+            zoom_bar.setValue(int(round(view_low)))
+            zoom_bar.setVisible(True)
+        finally:
+            self._is_syncing_zoom_bar = False
+
+    def on_timeline_zoom_bar_moved(self, value):
+        """Pans the visible timeline window from the scrollbar.
+
+        Args:
+            value (int): First visible frame requested by the scrollbar.
+        """
+        if self._is_syncing_zoom_bar or not self.timeline_widget_alive():
+            return
+        view_span = self.timeline_widget.get_view_span()
+        self.timeline_widget.set_view_range(value, value + view_span)
 
     def get_scene_info(self):
         """Gets formatted scene information for the toolbar.

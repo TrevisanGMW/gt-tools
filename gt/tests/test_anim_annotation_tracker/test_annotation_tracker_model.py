@@ -100,6 +100,44 @@ class TestAnnotationTrackerModel(unittest.TestCase):
             preferences[annotation_tracker_model.TOOL_MODE_PREFERENCE_KEY],
         )
 
+    def test_default_preferences_hide_private_automations(self):
+        """Checks underscore-prefixed scripts start hidden for new trackers."""
+        preferences = annotation_tracker_model.get_default_preferences()
+
+        self.assertTrue(preferences["hide_private_automations"])
+
+    def test_is_private_automation_path_checks_file_name_only(self):
+        """Checks privacy comes from the file name, not parent folders."""
+        self.assertTrue(
+            annotation_tracker_model.is_private_automation_path(
+                os.path.join("scripts", "_private_script.py")
+            )
+        )
+        self.assertFalse(
+            annotation_tracker_model.is_private_automation_path(
+                os.path.join("_scripts", "public_script.py")
+            )
+        )
+        self.assertFalse(annotation_tracker_model.is_private_automation_path(""))
+
+    def test_filter_private_automation_paths_preserves_order(self):
+        """Checks only underscore-prefixed scripts are removed."""
+        script_paths = [
+            os.path.join("scripts", "a_export.py"),
+            os.path.join("scripts", "_helper.py"),
+            os.path.join("scripts", "b_report.py"),
+        ]
+
+        expected_paths = [
+            os.path.join("scripts", "a_export.py"),
+            os.path.join("scripts", "b_report.py"),
+        ]
+        actual_paths = annotation_tracker_model.filter_private_automation_paths(
+            script_paths
+        )
+
+        self.assertEqual(expected_paths, actual_paths)
+
     def test_default_preferences_use_high_auto_adjust_tolerances(self):
         """Checks crop and stretch are useful with fresh preferences."""
         preferences = annotation_tracker_model.get_default_preferences()

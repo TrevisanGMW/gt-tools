@@ -102,6 +102,96 @@ class TestClipTrackerTimeline(unittest.TestCase):
         self.assertEqual(clip_timeline.get_clip_color(0), clip_timeline.get_clip_color(color_count))
         self.assertEqual(clip_timeline.CLIP_COLORS[1], clip_timeline.get_clip_color(1))
 
+    def make_zoomable_timeline(self, range_start=1, range_end=100):
+        """Builds a resized timeline widget for view-window tests.
+
+        Args:
+            range_start (int): Playback range start.
+            range_end (int): Playback range end.
+
+        Returns:
+            ClipTimelineWidget: Timeline sized for coordinate math.
+        """
+        timeline = clip_timeline.ClipTimelineWidget()
+        timeline.resize(400, 100)
+        timeline.set_frame_state(range_start, range_end, range_start)
+        return timeline
+
+    def test_set_view_range_zooms_without_changing_playback_range(self):
+        """Checks zooming never alters the playback range or clip data."""
+        timeline = self.make_zoomable_timeline()
+        timeline.set_clips([{"start": 10, "end": 20}])
+
+        timeline.set_view_range(20, 40)
+
+        self.assertEqual(True, timeline.is_zoomed())
+        self.assertEqual(1, timeline.range_start)
+        self.assertEqual(100, timeline.range_end)
+        self.assertEqual(10, timeline.clips[0]["start"])
+        self.assertEqual(20, timeline.clips[0]["end"])
+
+    def test_set_view_range_clamps_to_display_bounds(self):
+        """Checks the view window cannot leave the displayable frame range."""
+        timeline = self.make_zoomable_timeline()
+        low_frame, high_frame = timeline.get_full_display_range()
+
+        timeline.set_view_range(low_frame - 500, low_frame - 480)
+
+        view_low, view_high = timeline.get_display_range()
+        self.assertEqual(float(low_frame), view_low)
+        self.assertEqual(True, view_high <= high_frame)
+
+    def test_set_view_range_full_span_resets_the_zoom(self):
+        """Checks zooming all the way out returns to the dynamic bounds."""
+        timeline = self.make_zoomable_timeline()
+        timeline.set_view_range(20, 40)
+
+        low_frame, high_frame = timeline.get_full_display_range()
+        timeline.set_view_range(low_frame, high_frame)
+
+        self.assertEqual(False, timeline.is_zoomed())
+        self.assertEqual(None, timeline.view_start)
+        self.assertEqual(None, timeline.view_end)
+
+    def test_zoom_view_keeps_the_anchor_frame_stationary(self):
+        """Checks the frame under the cursor stays put while zooming."""
+        timeline = self.make_zoomable_timeline()
+        anchor_x = clip_timeline.SIDE_MARGIN + 96
+        usable_width = timeline.width() - (clip_timeline.SIDE_MARGIN * 2)
+        anchor_ratio = 96.0 / usable_width
+        view_low, view_high = timeline.get_display_range()
+        anchor_frame = view_low + (view_high - view_low) * anchor_ratio
+
+        timeline.zoom_view(2.0, anchor_x)
+
+        view_low, view_high = timeline.get_display_range()
+        zoomed_anchor = view_low + (view_high - view_low) * anchor_ratio
+        self.assertAlmostEqual(anchor_frame, zoomed_anchor, places=6)
+
+    def test_pan_view_preserves_span_at_display_edges(self):
+        """Checks panning clamps to the end without shrinking the window."""
+        timeline = self.make_zoomable_timeline()
+        timeline.set_view_range(40, 60)
+        low_frame, high_frame = timeline.get_full_display_range()
+
+        timeline.pan_view(10000)
+
+        view_low, view_high = timeline.get_display_range()
+        self.assertEqual(float(high_frame), view_high)
+        self.assertEqual(20.0, view_high - view_low)
+
+    def test_zoom_to_clip_frames_the_clip_with_a_margin(self):
+        """Checks the clip zoom action shows the whole clip plus a margin."""
+        timeline = self.make_zoomable_timeline()
+        timeline.set_clips([{"start": 30, "end": 50}])
+
+        timeline.zoom_to_clip(0)
+
+        view_low, view_high = timeline.get_display_range()
+        self.assertEqual(True, timeline.is_zoomed())
+        self.assertEqual(True, view_low < 30)
+        self.assertEqual(True, view_high > 50)
+
     def test_context_menu_set_current_frame_as_start(self):
         """Checks the start action preserves the clip end frame."""
         expected = [(0, 15, 20)]

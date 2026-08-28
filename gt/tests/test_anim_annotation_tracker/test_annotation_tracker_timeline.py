@@ -36,6 +36,116 @@ class TestAnnotationTrackerTimeline(unittest.TestCase):
 
         self.assertEqual(expected_lanes, actual_lanes)
 
+    @staticmethod
+    def _make_timeline_view_state(start_frame=0, end_frame=100, width=200):
+        """Builds a stand-in timeline for view-window math tests.
+
+        Args:
+            start_frame (int): Timeline start frame.
+            end_frame (int): Timeline end frame.
+            width (int): Simulated widget width in pixels.
+
+        Returns:
+            SimpleNamespace: Object usable with unbound timeline methods.
+        """
+        timeline = SimpleNamespace(
+            start_frame=start_frame,
+            end_frame=end_frame,
+            view_start=float(start_frame),
+            view_end=float(end_frame),
+            MIN_VIEW_SPAN=annotation_tracker.CustomTimelineWidget.MIN_VIEW_SPAN,
+            width=lambda: width,
+            viewChanged=SimpleNamespace(emit=lambda: None),
+            update=lambda: None,
+        )
+        timeline.get_view_span = (
+            lambda: annotation_tracker.CustomTimelineWidget.get_view_span(timeline)
+        )
+        timeline.set_view_range = (
+            lambda view_start, view_end: (
+                annotation_tracker.CustomTimelineWidget.set_view_range(
+                    timeline,
+                    view_start,
+                    view_end,
+                )
+            )
+        )
+        return timeline
+
+    def test_set_view_range_clamps_to_timeline_bounds(self):
+        """Checks zooming can never move the view past the frame range."""
+        timeline = self._make_timeline_view_state(start_frame=10, end_frame=110)
+
+        timeline.set_view_range(-50, 40)
+
+        self.assertEqual(10.0, timeline.view_start)
+        self.assertEqual(100.0, timeline.view_end)
+
+    def test_set_view_range_enforces_a_minimum_span(self):
+        """Checks extreme zoom-in stops at the minimum visible span."""
+        timeline = self._make_timeline_view_state(start_frame=0, end_frame=100)
+
+        timeline.set_view_range(50, 50.5)
+
+        expected_span = annotation_tracker.CustomTimelineWidget.MIN_VIEW_SPAN
+        self.assertEqual(expected_span, timeline.view_end - timeline.view_start)
+
+    def test_zoom_view_keeps_the_anchor_frame_stationary(self):
+        """Checks the frame under the cursor stays put while zooming."""
+        timeline = self._make_timeline_view_state(
+            start_frame=0,
+            end_frame=100,
+            width=200,
+        )
+
+        annotation_tracker.CustomTimelineWidget.zoom_view(timeline, 2.0, 100)
+
+        self.assertEqual(25.0, timeline.view_start)
+        self.assertEqual(75.0, timeline.view_end)
+
+    def test_pan_view_preserves_span_at_timeline_edges(self):
+        """Checks panning clamps to the end without shrinking the window."""
+        timeline = self._make_timeline_view_state(start_frame=0, end_frame=100)
+        timeline.set_view_range(40, 60)
+
+        annotation_tracker.CustomTimelineWidget.pan_view(timeline, 1000)
+
+        self.assertEqual(80.0, timeline.view_start)
+        self.assertEqual(100.0, timeline.view_end)
+
+    def test_set_timeline_bounds_resets_an_unzoomed_view(self):
+        """Checks a full view keeps following Maya's playback range."""
+        timeline = self._make_timeline_view_state(start_frame=0, end_frame=100)
+        timeline.is_zoomed = (
+            lambda: annotation_tracker.CustomTimelineWidget.is_zoomed(timeline)
+        )
+
+        annotation_tracker.CustomTimelineWidget.set_timeline_bounds(
+            timeline,
+            0,
+            250,
+        )
+
+        self.assertEqual(0.0, timeline.view_start)
+        self.assertEqual(250.0, timeline.view_end)
+
+    def test_set_timeline_bounds_reclamps_a_zoomed_view(self):
+        """Checks shrinking the playback range pulls the zoom window inside."""
+        timeline = self._make_timeline_view_state(start_frame=0, end_frame=200)
+        timeline.is_zoomed = (
+            lambda: annotation_tracker.CustomTimelineWidget.is_zoomed(timeline)
+        )
+        timeline.set_view_range(150, 200)
+
+        annotation_tracker.CustomTimelineWidget.set_timeline_bounds(
+            timeline,
+            0,
+            100,
+        )
+
+        self.assertEqual(50.0, timeline.view_start)
+        self.assertEqual(100.0, timeline.view_end)
+
     def test_apply_schema_refreshes_controls_and_discards_only_removed_data(self):
         """Checks a confirmed schema change rebuilds with compatible values."""
         range_item = SimpleNamespace(

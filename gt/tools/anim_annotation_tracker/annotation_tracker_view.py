@@ -53,12 +53,12 @@ class AnnotationTrackerView(
     def _build_timeline_splitter(self):
         """Replaces the timeline and tabs stack with a draggable splitter."""
         main_layout = self.layout()
-        timeline_index = main_layout.indexOf(self.timeline)
+        timeline_index = main_layout.indexOf(self.timeline_container)
         tabs_index = main_layout.indexOf(self.tabs)
         if timeline_index < 0 or tabs_index < 0:
             return
 
-        main_layout.removeWidget(self.timeline)
+        main_layout.removeWidget(self.timeline_container)
         main_layout.removeWidget(self.tabs)
         splitter = QtWidgets.QSplitter(ui_qt.QtCore.Qt.Vertical, self)
         splitter.setMinimumSize(0, 0)
@@ -68,7 +68,7 @@ class AnnotationTrackerView(
             QtWidgets.QSizePolicy.Ignored,
             QtWidgets.QSizePolicy.Ignored,
         )
-        splitter.addWidget(self.timeline)
+        splitter.addWidget(self.timeline_container)
         splitter.addWidget(self.tabs)
         splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 1)
@@ -282,6 +282,7 @@ class AnnotationTrackerView(
             "limit_bounds": self.chk_bounds,
             "razor_random_colors": self.chk_razor_colors,
             "run_all_automations": self.chk_run_all_auto,
+            "hide_private_automations": self.chk_hide_private_auto,
             "show_validation_status": self.chk_val_status,
             "write_scene_node": self.chk_write_node,
         }
@@ -337,6 +338,7 @@ class AnnotationTrackerView(
             self.chk_bounds,
             self.chk_razor_colors,
             self.chk_run_all_auto,
+            self.chk_hide_private_auto,
             self.chk_val_status,
             self.chk_write_node,
         ):
@@ -369,6 +371,7 @@ class AnnotationTrackerView(
                 "limit_bounds": self.chk_bounds.isChecked(),
                 "razor_random_colors": self.chk_razor_colors.isChecked(),
                 "run_all_automations": self.chk_run_all_auto.isChecked(),
+                "hide_private_automations": self.chk_hide_private_auto.isChecked(),
                 "show_validation_status": self.chk_val_status.isChecked(),
                 "write_scene_node": self.chk_write_node.isChecked(),
                 annotation_tracker_model.TOOL_MODE_PREFERENCE_KEY: (
@@ -397,7 +400,7 @@ class AnnotationTrackerView(
 
     def _remember_timeline_height(self):
         """Stores the current timeline height before hiding it."""
-        if not self._timeline_splitter_is_valid() or self.timeline.isHidden():
+        if not self._timeline_splitter_is_valid() or self.timeline_container.isHidden():
             return
         splitter_sizes = self.timeline_splitter.sizes()
         if not splitter_sizes:
@@ -430,7 +433,7 @@ class AnnotationTrackerView(
         splitter_handle = self._get_timeline_splitter_handle()
         if not is_visible:
             self._remember_timeline_height()
-        self.timeline.setVisible(is_visible)
+        self.timeline_container.setVisible(is_visible)
         if splitter_handle:
             splitter_handle.setVisible(is_visible)
         if is_visible:
