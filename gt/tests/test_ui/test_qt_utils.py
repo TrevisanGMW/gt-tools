@@ -104,16 +104,27 @@ class TestQtUtilities(unittest.TestCase):
 
         self.assertFalse(qt_utils.is_qt_object_valid(widget))
 
-    def test_batch_processor_skips_unsaved_dialog_for_deleted_view(self):
+    def test_batch_processor_handles_unsaved_changes_for_deleted_view(self):
+        """Handles unsaved changes without using a deleted Qt parent."""
         controller = Mock()
         controller.has_unsaved_changes.return_value = True
         widget = ui_qt.QtWidgets.QWidget()
         ui_qt.shiboken.delete(widget)
 
-        result = BatchProcessorController.show_unsaved_changes_warning_dialog(controller, widget)
+        message_box = MagicMock()
+        save_button = object()
+        dont_save_button = object()
+        cancel_button = object()
+        message_box.addButton.side_effect = [save_button, dont_save_button, cancel_button]
+        message_box.clickedButton.return_value = dont_save_button
+
+        with patch.object(ui_qt.QtWidgets, "QMessageBox", return_value=message_box) as message_box_class:
+            result = BatchProcessorController.show_unsaved_changes_warning_dialog(controller, widget)
 
         expected = False
         self.assertEqual(expected, result)
+        message_box_class.assert_called_once_with(None)
+        message_box.exec_.assert_called_once_with()
 
     def test_batch_processor_close_callback_ignores_deleted_cpp_wrapper(self):
         stale_view = Mock()
