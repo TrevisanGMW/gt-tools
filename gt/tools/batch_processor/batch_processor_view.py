@@ -2,12 +2,16 @@
 Batch Processor View
 """
 
+import logging
+
 import gt.ui.tree_widget_enhanced as ui_tree_enhanced
 import gt.ui.resource_library as ui_res_lib
 import gt.core.session as core_session
 from gt.ui.qt_utils import MayaWindowMeta
 import gt.ui.qt_utils as qt_utils
 import gt.ui.qt_import as ui_qt
+
+logger = logging.getLogger(__name__)
 
 
 class BatchProcessorView(metaclass=MayaWindowMeta):
@@ -203,6 +207,31 @@ class BatchProcessorView(metaclass=MayaWindowMeta):
         """Runs a custom function when closing the dockable Maya window."""
         self.request_close_confirmation()
 
+    def _run_close_callback(self, *args, **kwargs):
+        """Runs the close callback while ignoring a deleted Qt wrapper.
+
+        Args:
+            *args: Positional arguments forwarded to the close callback.
+            **kwargs: Keyword arguments forwarded to the close callback.
+
+        Returns:
+            object: The close callback result, or False when no callback can run.
+
+        Raises:
+            RuntimeError: If the close callback raises an unrelated runtime error.
+        """
+        try:
+            close_callback = self.close_func
+            if not close_callback or not callable(close_callback):
+                return False
+            return close_callback(*args, **kwargs)
+        except RuntimeError as exception:
+            error_message = str(exception).lower()
+            if "internal c++ object" not in error_message or "already deleted" not in error_message:
+                raise
+            logger.debug("Ignored stale Batch Processor close callback. Issue: %s", exception)
+            return False
+
     def install_host_close_event_filter(self):
         """Installs a close-event bridge for the Maya workspace-control host.
 
@@ -271,9 +300,9 @@ class BatchProcessorView(metaclass=MayaWindowMeta):
         self._is_processing_close_request = True
         try:
             if close_event is not None:
-                is_cancelled = bool(self.close_func(self, close_event))
+                is_cancelled = bool(self._run_close_callback(self, close_event))
             else:
-                is_cancelled = bool(self.close_func(window=self))
+                is_cancelled = bool(self._run_close_callback(window=self))
         finally:
             self._is_processing_close_request = False
 

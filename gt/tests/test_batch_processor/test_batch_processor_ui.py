@@ -63,6 +63,7 @@ class TestBatchProcessorUi(unittest.TestCase):
         self.view.close()
         self.application.processEvents()
 
+    @unittest.skipIf(ui_qt.QtTest is None, "PySide QtTest module is unavailable.")
     def test_task_rename_does_not_replace_widget_during_focus_change(self):
         """Ensures task-name focus loss updates the tree without deleting its widget."""
         controller = batch_processor_controller.BatchProcessorController.__new__(

@@ -8,8 +8,9 @@ Use Example:
     ui_qt.QtWidgets.QLabel("My Label")
 """
 
-import pkg_resources
+import importlib
 import logging
+import pkg_resources
 
 # Logging Setup
 logging.basicConfig()
@@ -18,6 +19,25 @@ logger.setLevel(logging.INFO)
 logger.setLevel(logging.DEBUG)
 
 IS_PYSIDE6 = False
+
+
+def _import_optional_qt_module(pyside_package, module_name):
+    """Imports an optional module from a PySide package.
+
+    Args:
+        pyside_package (module): Imported PySide package.
+        module_name (str): Name of the optional Qt module.
+
+    Returns:
+        module or None: Imported Qt module, or None when it is unavailable.
+    """
+    module_path = f"{pyside_package.__name__}.{module_name}"
+    try:
+        return importlib.import_module(module_path)
+    except ImportError:
+        logging.debug(f'Optional Qt module "{module_path}" is unavailable.')
+        return None
+
 
 try:
     import PySide2 as PySide
@@ -33,7 +53,6 @@ try:
         QtQuick,
         QtQuickWidgets,
         QtOpenGL,
-        QtTest,
         QtWebEngineWidgets,
         QtWebSockets,
         Qt3DCore,
@@ -56,7 +75,6 @@ except ImportError:
         QtQuick,
         QtQuickWidgets,
         QtOpenGL,
-        QtTest,
         QtWebEngineWidgets,
         QtWebSockets,
         Qt3DCore,
@@ -65,6 +83,8 @@ except ImportError:
     import shiboken6 as shiboken
 
     IS_PYSIDE6 = True
+
+QtTest = _import_optional_qt_module(PySide, "QtTest")
 
 
 def get_pyside_version(major_only=False):
