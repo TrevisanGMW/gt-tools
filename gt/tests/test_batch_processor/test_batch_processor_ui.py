@@ -10,6 +10,7 @@ from unittest import mock
 
 import gt.ui.qt_import as ui_qt
 import gt.ui.qt_utils as ui_qt_utils
+import gt.ui.resource_library as ui_res_lib
 
 
 test_package_dir = os.path.dirname(__file__)
@@ -35,6 +36,9 @@ from gt.tools.batch_processor.widgets import attr_widget_export_fbx
 from gt.tools.batch_processor.widgets import attr_widget_project
 from gt.tools.batch_processor.widgets import attr_widget_python_script
 from gt.tools.batch_processor.widgets import attr_widget_task
+from gt.tools.batch_processor.widgets.custom_environment_variables_dialog import (
+    CustomEnvironmentVariablesDialog,
+)
 from gt.tools.batch_processor.widgets.inline_python_editor import InlinePythonEditorWidget
 
 
@@ -144,6 +148,45 @@ class TestBatchProcessorUi(unittest.TestCase):
 
         self.assertGreater(notes_height_increase, 0)
         self.assertGreater(notes_height_increase, panel_height_increase * 0.75)
+
+    def test_project_widget_shows_custom_environment_variable_count(self):
+        """Ensures project details expose the count with state-aware styling."""
+        project_widget = attr_widget_project.AttrWidgetProject(project=self.model)
+
+        expected = "0 custom variables"
+        self.assertEqual(expected, project_widget.custom_environment_variable_count_label.text())
+        self.assertEqual(1, project_widget.custom_environment_variable_layout.stretch(0))
+        self.assertEqual(2, project_widget.custom_environment_variable_layout.stretch(1))
+        expected = ui_res_lib.Color.Hex.gray_dim
+        self.assertIn(expected, project_widget.custom_environment_variable_count_label.styleSheet())
+
+        self.model.set_custom_environment_variables(
+            {
+                "textures-dir": {"value": "D:/studio/textures", "query": False},
+                "maya-selection": {"value": "cmds.ls(selection=True)", "query": True},
+            }
+        )
+        project_widget.refresh_custom_environment_variable_count()
+
+        expected = "2 custom variables"
+        self.assertEqual(expected, project_widget.custom_environment_variable_count_label.text())
+        expected = ui_res_lib.Color.Hex.green_pale
+        self.assertIn(expected, project_widget.custom_environment_variable_count_label.styleSheet())
+        project_widget.deleteLater()
+
+    def test_custom_environment_variable_dialog_validates_variable_names(self):
+        """Ensures the custom-variable editor accepts the documented name syntax."""
+        dialog = CustomEnvironmentVariablesDialog(parent=self.view)
+        dialog.add_variable_row(name="{textures-dir}", value="D:/studio/textures")
+
+        expected = {"textures-dir": {"value": "D:/studio/textures", "query": False}}
+        result = dialog.get_custom_environment_variables()
+        self.assertEqual(expected, result)
+        dialog.variable_table.item(0, 0).setText("textures-dir")
+        result = dialog.get_custom_environment_variables()
+        self.assertIsNone(result)
+        self.assertIn("must use the pattern", dialog.status_label.text())
+        dialog.deleteLater()
 
     def test_controller_modified_state_detects_nested_extra_data_changes(self):
         """Ensures clean-state comparisons retain an independent data snapshot."""

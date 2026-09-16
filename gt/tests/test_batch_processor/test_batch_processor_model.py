@@ -388,6 +388,112 @@ class TestBatchProcessorModel(unittest.TestCase):
         expected = os.path.join(self.temp_dir, "custom_tasks", "02_rename")
         self.assertEqual(os.path.normpath(expected), result)
 
+    def test_custom_environment_variables_round_trip_and_template_resolution(self):
+        model = batch_processor_model.BatchProcessorModel()
+        textures_dir = os.path.join(self.temp_dir, "textures")
+        model.set_custom_environment_variables(
+            {
+                "textures-dir": {
+                    "value": textures_dir,
+                    "query": False,
+                }
+            }
+        )
+
+        expected = textures_dir
+        result = model.get_environment_variables(include_braces=True)
+        self.assertEqual(expected, result.get("{textures-dir}"))
+        expected = os.path.join(textures_dir, "hero.png")
+        result = model.resolve_template("{textures-dir}/hero.png")
+        self.assertEqual(os.path.normpath(expected), os.path.normpath(result))
+
+        serialized_data = model.to_dict()
+        loaded_model = batch_processor_model.BatchProcessorModel()
+        loaded_model.read_data_from_dict(serialized_data)
+
+        expected = {"textures-dir": {"value": textures_dir, "query": False}}
+        self.assertEqual(expected, loaded_model.get_custom_environment_variables())
+
+    def test_legacy_custom_environment_variable_migrates_to_custom_schema(self):
+        model = batch_processor_model.BatchProcessorModel()
+        model.read_data_from_dict(
+            {
+                "environment_variables": {
+                    "textures-dir": "D:/studio/textures",
+                }
+            }
+        )
+
+        expected = {"textures-dir": {"value": "D:/studio/textures", "query": False}}
+        self.assertEqual(expected, model.get_custom_environment_variables())
+        self.assertNotIn("textures-dir", model.environment_variables)
+        expected = "D:/studio/textures"
+        result = model.get_environment_variables(include_braces=True)
+        self.assertEqual(expected, result.get("{textures-dir}"))
+
+    def test_custom_environment_query_resolves_maya_command_result(self):
+        model = batch_processor_model.BatchProcessorModel()
+        model.set_custom_environment_variables(
+            {
+                "maya-selection": {
+                    "value": "cmds.ls(selection=True)",
+                    "query": True,
+                }
+            }
+        )
+        maya_module = types.ModuleType("maya")
+        maya_cmds_module = types.ModuleType("maya.cmds")
+        maya_cmds_module.ls = mock.MagicMock(return_value=["hero_ctrl", "prop_ctrl"])
+        maya_module.cmds = maya_cmds_module
+
+        with mock.patch.dict(
+            sys.modules,
+            {"maya": maya_module, "maya.cmds": maya_cmds_module},
+        ):
+            expected = ["hero_ctrl", "prop_ctrl"]
+            result = model.get_environment_variables(include_braces=True)
+        self.assertEqual(expected, result.get("{maya-selection}"))
+        maya_cmds_module.ls.assert_called_once_with(selection=True)
+
+    def test_custom_environment_query_failure_logs_and_returns_empty_value(self):
+        model = batch_processor_model.BatchProcessorModel()
+        model.set_custom_environment_variables(
+            {
+                "maya-selection": {
+                    "value": "cmds.invalid_query()",
+                    "query": True,
+                }
+            }
+        )
+        maya_module = types.ModuleType("maya")
+        maya_cmds_module = types.ModuleType("maya.cmds")
+        maya_module.cmds = maya_cmds_module
+
+        with mock.patch.dict(
+            sys.modules,
+            {"maya": maya_module, "maya.cmds": maya_cmds_module},
+        ), mock.patch.object(batch_processor_model.logger, "error") as mock_log_error:
+            expected = ""
+            result = model.get_environment_variables(include_braces=True)
+
+        self.assertEqual(expected, result.get("{maya-selection}"))
+        mock_log_error.assert_called_once()
+
+    def test_custom_environment_name_requires_braces_and_avoids_reserved_tokens(self):
+        self.assertTrue(batch_processor_model.is_valid_custom_environment_name("{textures-dir}"))
+        self.assertFalse(batch_processor_model.is_valid_custom_environment_name("textures-dir"))
+        self.assertFalse(batch_processor_model.is_valid_custom_environment_name("{textures dir}"))
+        self.assertTrue(
+            batch_processor_model.BatchProcessorModel.is_custom_environment_name_available(
+                "{textures-dir}"
+            )
+        )
+        self.assertFalse(
+            batch_processor_model.BatchProcessorModel.is_custom_environment_name_available(
+                "{project-dir}"
+            )
+        )
+
     def test_environment_variables_include_task_dependent_neighbors(self):
         model = batch_processor_model.BatchProcessorModel()
         model.project_file_path = os.path.join(self.temp_dir, "project.batch")
