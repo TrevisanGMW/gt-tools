@@ -1,3 +1,4 @@
+import builtins
 import logging
 import contextlib
 import io
@@ -455,6 +456,60 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertEqual(expected, result.get("{maya-selection}"))
         maya_cmds_module.ls.assert_called_once_with(selection=True)
 
+    def test_custom_environment_query_parses_json_attribute_list(self):
+        model = batch_processor_model.BatchProcessorModel()
+        model.set_custom_environment_variables(
+            {
+                "usd-attributes": {
+                    "value": "', '.join(json.loads(cmds.getAttr('node.outputAttributes')))",
+                    "query": True,
+                }
+            }
+        )
+        maya_module = types.ModuleType("maya")
+        maya_cmds_module = types.ModuleType("maya.cmds")
+        maya_cmds_module.getAttr = mock.MagicMock(
+            return_value='["hero.assetType", "hero.assetName"]'
+        )
+        maya_module.cmds = maya_cmds_module
+
+        with mock.patch.dict(
+            sys.modules,
+            {"maya": maya_module, "maya.cmds": maya_cmds_module},
+        ):
+            result = model.get_environment_variables(include_braces=True)
+
+        expected = "hero.assetType, hero.assetName"
+        self.assertEqual(expected, result.get("{usd-attributes}"))
+        maya_cmds_module.getAttr.assert_called_once_with("node.outputAttributes")
+
+    def test_custom_environment_query_imports_module_in_expression(self):
+        model = batch_processor_model.BatchProcessorModel()
+        model.set_custom_environment_variables(
+            {
+                "first-usd-attribute": {
+                    "value": "import_module('json').loads(cmds.getAttr('node.outputAttributes'))[0]",
+                    "query": True,
+                }
+            }
+        )
+        maya_module = types.ModuleType("maya")
+        maya_cmds_module = types.ModuleType("maya.cmds")
+        maya_cmds_module.getAttr = mock.MagicMock(
+            return_value='["hero.assetType", "hero.assetName"]'
+        )
+        maya_module.cmds = maya_cmds_module
+
+        with mock.patch.dict(
+            sys.modules,
+            {"maya": maya_module, "maya.cmds": maya_cmds_module},
+        ):
+            result = model.get_environment_variables(include_braces=True)
+
+        expected = "hero.assetType"
+        self.assertEqual(expected, result.get("{first-usd-attribute}"))
+        maya_cmds_module.getAttr.assert_called_once_with("node.outputAttributes")
+
     def test_custom_environment_query_failure_logs_and_returns_empty_value(self):
         model = batch_processor_model.BatchProcessorModel()
         model.set_custom_environment_variables(
@@ -478,6 +533,34 @@ class TestBatchProcessorModel(unittest.TestCase):
 
         self.assertEqual(expected, result.get("{maya-selection}"))
         mock_log_error.assert_called_once()
+
+    def test_custom_environment_query_failure_suppresses_traceback_while_editing(self):
+        model = batch_processor_model.BatchProcessorModel()
+        model.set_custom_environment_variables(
+            {
+                "maya-selection": {
+                    "value": "cmds.invalid_query()",
+                    "query": True,
+                }
+            }
+        )
+        model.set_suppress_custom_environment_query_errors(True)
+        maya_module = types.ModuleType("maya")
+        maya_cmds_module = types.ModuleType("maya.cmds")
+        maya_module.cmds = maya_cmds_module
+
+        with mock.patch.dict(
+            sys.modules,
+            {"maya": maya_module, "maya.cmds": maya_cmds_module},
+        ), mock.patch.object(batch_processor_model.logger, "error") as mock_log_error, mock.patch.object(
+            builtins, "print"
+        ) as mock_print:
+            expected = ""
+            result = model.get_environment_variables(include_braces=True)
+
+        self.assertEqual(expected, result.get("{maya-selection}"))
+        mock_log_error.assert_not_called()
+        mock_print.assert_called_once()
 
     def test_custom_environment_name_requires_braces_and_avoids_reserved_tokens(self):
         self.assertTrue(batch_processor_model.is_valid_custom_environment_name("{textures-dir}"))
@@ -3725,6 +3808,84 @@ class TestBatchProcessorModel(unittest.TestCase):
 
         self.assertFalse(result.is_valid())
         self.assertTrue(any("USD format" in error for error in result.errors))
+
+    def test_usd_custom_attribute_settings_resolve_environment_variables(self):
+        project = batch_processor_model.BatchProcessorModel()
+        project.set_custom_environment_variables(
+            {
+                "usd-attributes": {
+                    "value": "character_root.assetType, character_root.assetName",
+                    "query": False,
+                },
+                "usd-metadata-attributes": {
+                    "value": "character_info.collections\ncharacter_info.author",
+                    "query": False,
+                },
+            }
+        )
+        usd_task = modules.TaskExportUsd(
+            settings={
+                "native_custom_attributes": ["{usd-attributes}"],
+                "custom_data_attributes": ["{usd-metadata-attributes}"],
+            }
+        )
+
+        expected = ["character_root.assetType", "character_root.assetName"]
+        result = usd_task.get_resolved_export_settings(project)
+        self.assertEqual(expected, result.get("native_custom_attributes"))
+        expected = ["character_info.collections", "character_info.author"]
+        self.assertEqual(expected, result.get("custom_data_attributes"))
+        expected = ["{usd-attributes}"]
+        self.assertEqual(expected, usd_task.settings.get("native_custom_attributes"))
+        expected = ["{usd-metadata-attributes}"]
+        self.assertEqual(expected, usd_task.settings.get("custom_data_attributes"))
+
+    def test_usd_export_resolves_custom_attributes_after_loading_source(self):
+        source_path = os.path.join(self.temp_dir, "source.ma")
+        work_item = modules.WorkItem(source_path=source_path)
+        usd_task = modules.TaskExportUsd()
+        execution_steps = []
+
+        def record_source_load(path):
+            """Records source-scene loading for the execution-order test.
+
+            Args:
+                path (str): Scene path passed to the task.
+            """
+            execution_steps.append("load")
+
+        def record_setting_resolution(project):
+            """Records custom-setting resolution for the execution-order test.
+
+            Args:
+                project (BatchProcessorModel): Project passed to the task.
+
+            Returns:
+                dict: Export settings used by the mocked exporter.
+            """
+            execution_steps.append("resolve")
+            return dict(usd_task.settings)
+
+        def record_export(output_path, settings):
+            """Records USD export for the execution-order test.
+
+            Args:
+                output_path (str): Export destination.
+                settings (dict): Settings passed to the exporter.
+            """
+            execution_steps.append("export")
+
+        with mock.patch.object(usd_task, "load_source_scene", side_effect=record_source_load):
+            with mock.patch.object(
+                usd_task,
+                "get_resolved_export_settings",
+                side_effect=record_setting_resolution,
+            ):
+                with mock.patch.object(utils_usd, "export_scene_to_usd", side_effect=record_export):
+                    usd_task.execute(work_item, object(), self.temp_dir)
+
+        expected = ["load", "resolve", "export"]
+        self.assertEqual(expected, execution_steps)
 
     def test_usd_export_utility_defaults_match_task_defaults(self):
         result = utils_usd.build_export_options({})

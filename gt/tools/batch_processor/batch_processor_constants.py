@@ -36,6 +36,7 @@ class Project:
     PREFS_KEY_FLAG_SKIPPED_TASKS = "flag_skipped_tasks"
     PREFS_KEY_IGNORE_DISABLED_TASKS_FOR_TASK_INDEX = "ignore_disabled_tasks_for_task_index"
     PREFS_KEY_AUTO_SEGMENT_IMPORTED_PROJECTS = "auto_segment_imported_projects"
+    PREFS_KEY_SUPPRESS_CUSTOM_ENVIRONMENT_QUERY_ERRORS = "suppress_custom_environment_query_errors"
     PREFS_KEY_RECENT_PROJECTS = "recent_projects"
     PREFS_KEY_SHOW_PACKAGE_TEMPLATES = "show_package_templates"
     MAX_RECENT_PROJECTS = 5

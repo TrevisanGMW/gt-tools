@@ -77,11 +77,16 @@ class BatchProcessorController:
             key=constants.Project.PREFS_KEY_AUTO_SEGMENT_IMPORTED_PROJECTS,
             default=True,
         )
+        self._suppress_custom_environment_query_errors = self._prefs.get_bool(
+            key=constants.Project.PREFS_KEY_SUPPRESS_CUSTOM_ENVIRONMENT_QUERY_ERRORS,
+            default=True,
+        )
         self._show_package_templates = self._prefs.get_bool(
             key=constants.Project.PREFS_KEY_SHOW_PACKAGE_TEMPLATES,
             default=True,
         )
         self.apply_task_index_automation()
+        self.apply_custom_environment_query_error_suppression()
         self.add_menu_file()
         self.add_menu_tasks()
         self.add_menu_utils()
@@ -393,6 +398,17 @@ class BatchProcessorController:
 
         self.create_menu_checkbox_action(
             parent_menu=menu_preferences,
+            text="Suppress Custom Env-Var Errors",
+            checked=self._suppress_custom_environment_query_errors,
+            tooltip=(
+                "Print failed custom environment-variable queries without displaying their tracebacks. "
+                "Batch runs always keep full diagnostics."
+            ),
+            callback=self.toggle_suppress_custom_environment_query_errors,
+        )
+
+        self.create_menu_checkbox_action(
+            parent_menu=menu_preferences,
             text="Flag Skipped Tasks in Single-Instance Log",
             checked=self._flag_skipped_tasks,
             tooltip="Print explicit log warnings when single-instance processing skips work.",
@@ -563,6 +579,22 @@ class BatchProcessorController:
         state_name = "enabled" if self._confirm_delete_task else "disabled"
         self.log_status("Task delete confirmation {0}.".format(state_name))
 
+    def toggle_suppress_custom_environment_query_errors(self, checked):
+        """Stores whether custom query failures are suppressed while editing.
+
+        Args:
+            checked (bool): New preference state.
+        """
+        self._suppress_custom_environment_query_errors = bool(checked)
+        self._prefs.set_bool(
+            key=constants.Project.PREFS_KEY_SUPPRESS_CUSTOM_ENVIRONMENT_QUERY_ERRORS,
+            value=self._suppress_custom_environment_query_errors,
+        )
+        self._prefs.save()
+        self.apply_custom_environment_query_error_suppression()
+        state_name = "enabled" if self._suppress_custom_environment_query_errors else "disabled"
+        self.log_status(f"Custom environment-variable error suppression {state_name}.")
+
     def toggle_flag_skipped_tasks(self, checked):
         """Stores whether skipped tasks should emit explicit tracker warnings.
 
@@ -616,6 +648,12 @@ class BatchProcessorController:
             self._ignore_disabled_tasks_for_task_index
         )
 
+    def apply_custom_environment_query_error_suppression(self):
+        """Applies the editing-only query error preference to the active project model."""
+        self.model.set_suppress_custom_environment_query_errors(
+            self._suppress_custom_environment_query_errors
+        )
+
     def get_convert_abs_paths_to_relative(self):
         """Gets the global project-relative path conversion preference.
 
@@ -654,6 +692,7 @@ class BatchProcessorController:
         template_project = template_func()
         self.model = template_project
         self.apply_task_index_automation()
+        self.apply_custom_environment_query_error_suppression()
         self.refresh_widgets()
         self.view.set_window_title(prefix=None)
         self.mark_project_clean()
@@ -790,6 +829,7 @@ class BatchProcessorController:
             return False
         self.model = loaded_model
         self.apply_task_index_automation()
+        self.apply_custom_environment_query_error_suppression()
         self.refresh_widgets()
         self.view.set_window_title(prefix=os.path.basename(file_path))
         self.mark_project_clean()
@@ -1491,26 +1531,27 @@ class BatchProcessorController:
             force_single_instance (bool, optional): Whether to bypass multi-instance execution for this run.
         """
         self._active_log_file_path = None
-        creates_any_log = bool(
-            self.model.run_settings.get("create_log", True)
-            or self.model.run_settings.get("create_task_time_log", True)
-        )
-        if creates_any_log and self.model.run_settings.get("purge_logs_on_run", True):
-            self.purge_logs_for_run()
-        if self.model.run_settings.get("create_log", True):
-            self._active_log_file_path = self.create_run_log_file()
-        if self.model.run_settings.get("multi_instance") and not force_single_instance:
-            runner = batch_processor_worker.MultiInstanceBatchRunner(project_log_path=self._active_log_file_path)
-        else:
-            if force_single_instance and self.model.run_settings.get("multi_instance"):
-                self.append_log("[INFO] - (single-instance) - Running selected aggregate task in this process.")
-            tracker = batch_processor_tracker.BatchProgressTracker(message_callback=self.append_log)
-            runner = batch_processor_worker.SingleInstanceBatchRunner(
-                tracker=tracker,
-                flag_skipped_tasks=self._flag_skipped_tasks,
-                task_time_log_path=self.create_task_time_log_file(),
-            )
+        self.model.set_suppress_custom_environment_query_errors(False)
         try:
+            creates_any_log = bool(
+                self.model.run_settings.get("create_log", True)
+                or self.model.run_settings.get("create_task_time_log", True)
+            )
+            if creates_any_log and self.model.run_settings.get("purge_logs_on_run", True):
+                self.purge_logs_for_run()
+            if self.model.run_settings.get("create_log", True):
+                self._active_log_file_path = self.create_run_log_file()
+            if self.model.run_settings.get("multi_instance") and not force_single_instance:
+                runner = batch_processor_worker.MultiInstanceBatchRunner(project_log_path=self._active_log_file_path)
+            else:
+                if force_single_instance and self.model.run_settings.get("multi_instance"):
+                    self.append_log("[INFO] - (single-instance) - Running selected aggregate task in this process.")
+                tracker = batch_processor_tracker.BatchProgressTracker(message_callback=self.append_log)
+                runner = batch_processor_worker.SingleInstanceBatchRunner(
+                    tracker=tracker,
+                    flag_skipped_tasks=self._flag_skipped_tasks,
+                    task_time_log_path=self.create_task_time_log_file(),
+                )
             tracker = runner.run(
                 self.model,
                 run_from_task_id=run_from_task_id,
@@ -1541,6 +1582,7 @@ class BatchProcessorController:
             self.log_status("Run failed: {0}".format(exception))
         finally:
             self._active_log_file_path = None
+            self.apply_custom_environment_query_error_suppression()
 
     def log_status(self, message, status="info"):
         """Updates the status bar and appends to the log window.

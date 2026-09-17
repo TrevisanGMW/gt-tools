@@ -8,6 +8,7 @@ tool remains usable without loading the UI.
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_tasks as tasks
 import datetime
+import importlib
 import json
 import logging
 import os
@@ -124,6 +125,7 @@ class BatchProcessorModel:
         self.notes = ""
         self.environment_variables = dict(constants.Project.DEFAULT_ENVIRONMENT_VARIABLES)
         self.custom_environment_variables = {}
+        self._suppress_custom_environment_query_errors = False
         self.run_settings = dict(constants.Project.DEFAULT_RUN_SETTINGS)
         self.tasks = []
         self.extra_data = {}
@@ -202,6 +204,19 @@ class BatchProcessorModel:
         self.custom_environment_variables = self._normalize_custom_environment_variables(
             custom_environment_variables
         )
+
+    def set_suppress_custom_environment_query_errors(self, suppress_errors):
+        """Sets whether custom query failures use concise console output.
+
+        This runtime setting is intentionally excluded from project data. The
+        controller enables it only while the user edits a project; batch runs
+        always restore full error diagnostics.
+
+        Args:
+            suppress_errors (bool): Whether query failures should omit their
+                traceback from the interactive output.
+        """
+        self._suppress_custom_environment_query_errors = bool(suppress_errors)
 
     @staticmethod
     def is_custom_environment_name_available(name):
@@ -1170,11 +1185,19 @@ class BatchProcessorModel:
             query_namespace = {
                 "cmds": cmds,
                 "env": dict(environment_variables),
+                "json": json,
+                "import_module": importlib.import_module,
                 "project": self,
                 "task": task,
             }
             return eval(query, query_namespace, query_namespace)
         except Exception as exception:
+            if self._suppress_custom_environment_query_errors:
+                print(
+                    f'Custom environment variable "{{{name}}}" query failed. '
+                    f'Resolved as an empty value: {exception}'
+                )
+                return ""
             logger.error(
                 f'Unable to evaluate custom environment variable "{{{name}}}": {exception}',
                 exc_info=True,
