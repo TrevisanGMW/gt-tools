@@ -478,6 +478,19 @@ class TestBatchProcessorUi(unittest.TestCase):
         host_window.setParent(None)
         host_window.deleteLater()
 
+    def test_event_filter_ignores_events_after_view_is_deleted(self):
+        """Ensures a stale dock-view wrapper does not raise during event dispatch."""
+        view = self.view
+        view.deleteLater()
+        self.application.sendPostedEvents(None, ui_qt.QtCore.QEvent.DeferredDelete)
+
+        self.assertFalse(ui_qt_utils.is_qt_object_valid(view))
+        event = ui_qt.QtCore.QEvent(ui_qt.QtCore.QEvent.Show)
+        result = batch_processor_view.BatchProcessorView.eventFilter(view, object(), event)
+
+        self.assertFalse(result)
+        self.view = ui_qt.QtWidgets.QDialog()
+
     def test_loading_project_stops_when_unsaved_changes_are_cancelled(self):
         """Ensures cancelling the warning preserves the active project."""
         file_descriptor, project_path = tempfile.mkstemp(suffix=".batch")
