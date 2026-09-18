@@ -262,7 +262,10 @@ class BatchProcessorView(metaclass=MayaWindowMeta):
             if self.request_close_confirmation(close_event=event):
                 event.ignore()
                 return True
-        return super().eventFilter(watched, event)
+        # QObject.eventFilter() only returns False. Calling it through super()
+        # can fail after Maya deletes this docked view's C++ wrapper while the
+        # application is still dispatching an event to the Python filter.
+        return False
 
     def is_host_close_event_target(self, watched):
         """Checks whether an event target is a Qt ancestor hosting this view.

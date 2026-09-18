@@ -182,12 +182,43 @@ class TaskExportUsd(task_base.BatchTask):
             )
 
         self.load_source_scene(work_item.current_path)
-        utils_usd.export_scene_to_usd(output_path=output_path, settings=self.settings)
+        export_settings = self.get_resolved_export_settings(project=project)
+        utils_usd.export_scene_to_usd(output_path=output_path, settings=export_settings)
         metadata = dict(work_item.metadata)
         metadata["last_task_id"] = self.id
         metadata["last_task_type"] = self.task_type
         metadata["settings_hash"] = task_base.hash_settings(self.settings)
         return task_base.WorkItem(source_path=work_item.source_path, current_path=output_path, metadata=metadata)
+
+    def get_resolved_export_settings(self, project):
+        """Builds USD export settings with custom attribute templates resolved.
+
+        The source scene is loaded before this method is called by ``execute``,
+        allowing query environment variables to inspect that scene without
+        changing the project data saved on the task.
+
+        Args:
+            project (BatchProcessorModel): Project used to resolve environment
+                variable templates.
+
+        Returns:
+            dict: Copy of the task settings with custom attribute lists resolved.
+        """
+        export_settings = dict(self.settings)
+        if not project or not callable(getattr(project, "resolve_template", None)):
+            return export_settings
+        for setting_key in ["native_custom_attributes", "custom_data_attributes"]:
+            attribute_paths = utils_usd.split_attribute_paths(
+                export_settings.get(setting_key)
+            )
+            resolved_attribute_paths = [
+                project.resolve_template(attribute_path, task=self)
+                for attribute_path in attribute_paths
+            ]
+            export_settings[setting_key] = utils_usd.split_attribute_paths(
+                "\n".join(resolved_attribute_paths)
+            )
+        return export_settings
 
     def load_source_scene(self, source_path):
         """Loads the source file into Maya for export.

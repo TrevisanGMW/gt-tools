@@ -4,6 +4,9 @@ Batch Processor Project Attribute Widget
 
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor.widgets import attr_widget_base
+from gt.tools.batch_processor.widgets.custom_environment_variables_dialog import (
+    CustomEnvironmentVariablesDialog,
+)
 import gt.ui.python_output_view as ui_python_output_view
 import gt.ui.resource_library as ui_res_lib
 import gt.ui.qt_utils as ui_qt_utils
@@ -31,6 +34,8 @@ class AttrWidgetProject(attr_widget_base.AttrWidgetBase):
         self.create_task_time_log_checkbox = None
         self.purge_logs_checkbox = None
         self.log_path_widgets = None
+        self.custom_environment_variable_layout = None
+        self.custom_environment_variable_count_label = None
         self.add_widget_project_header()
         self.add_widget_separator_line(
             label_text="Environment Variables",
@@ -58,6 +63,7 @@ class AttrWidgetProject(attr_widget_base.AttrWidgetBase):
             "Output Dir",
             "Folder name or path fragment used as {output-dir}.",
         )
+        self.add_custom_environment_variables_button()
 
         self.add_widget_separator_line(label_text="Run Preferences")
         worker_layout = self.add_labeled_layout(
@@ -246,6 +252,65 @@ class AttrWidgetProject(attr_widget_base.AttrWidgetBase):
                 placeholder=placeholder,
                 tooltip=tooltip,
             )
+
+    def add_custom_environment_variables_button(self):
+        """Adds the custom environment-variable editor control and count."""
+        layout = ui_qt.QtWidgets.QHBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 5)
+        layout.setSpacing(4)
+        self.custom_environment_variable_layout = layout
+        button = ui_qt.QtWidgets.QPushButton("Custom Variables")
+        button.setMinimumHeight(35)
+        button.setSizePolicy(ui_qt.QtLib.SizePolicy.Expanding, ui_qt.QtLib.SizePolicy.Fixed)
+        button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_env_var))
+        button.setToolTip(
+            "Add project-specific environment variables for use in task templates."
+        )
+        button.clicked.connect(self.edit_custom_environment_variables)
+        self.custom_environment_variable_count_label = ui_qt.QtWidgets.QLabel()
+        self.custom_environment_variable_count_label.setMinimumHeight(35)
+        self.custom_environment_variable_count_label.setSizePolicy(
+            ui_qt.QtLib.SizePolicy.Expanding,
+            ui_qt.QtLib.SizePolicy.Fixed,
+        )
+        self.custom_environment_variable_count_label.setAlignment(
+            ui_qt.QtLib.AlignmentFlag.AlignCenter
+        )
+        self.custom_environment_variable_count_label.setToolTip(
+            "Number of custom environment variables stored in this batch project."
+        )
+        layout.addWidget(self.custom_environment_variable_count_label, 1)
+        layout.addWidget(button, 2)
+        self.content_layout.addLayout(layout)
+        self.refresh_custom_environment_variable_count()
+
+    def edit_custom_environment_variables(self):
+        """Opens the project custom environment-variable editor."""
+        dialog = CustomEnvironmentVariablesDialog(
+            custom_environment_variables=self.project.get_custom_environment_variables(),
+            parent=self,
+        )
+        if self.exec_dialog(dialog) != ui_qt.QtWidgets.QDialog.Accepted:
+            return
+        custom_environment_variables = dialog.get_custom_environment_variables()
+        if custom_environment_variables is None:
+            return
+        self.project.set_custom_environment_variables(custom_environment_variables)
+        self.refresh_custom_environment_variable_count()
+        count = len(custom_environment_variables)
+        self.emit_status_message(f"Saved {count} custom environment variable(s).")
+
+    def refresh_custom_environment_variable_count(self):
+        """Refreshes the visible custom environment-variable count."""
+        if not self.custom_environment_variable_count_label:
+            return
+        count = len(self.project.get_custom_environment_variables())
+        label = "variable" if count == 1 else "variables"
+        self.custom_environment_variable_count_label.setText(f"{count} custom {label}")
+        color = ui_res_lib.Color.Hex.green_pale if count else ui_res_lib.Color.Hex.gray_dim
+        self.custom_environment_variable_count_label.setStyleSheet(
+            f"color: {color}; font-weight: bold;"
+        )
 
     def set_project_name(self):
         """Updates the project name from the header field."""

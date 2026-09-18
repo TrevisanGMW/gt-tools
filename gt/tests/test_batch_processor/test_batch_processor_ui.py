@@ -1,15 +1,18 @@
 """Qt regression tests for the Batch Processor user interface."""
 
+import builtins
 import json
 import os
 import shutil
 import sys
 import tempfile
+import types
 import unittest
 from unittest import mock
 
 import gt.ui.qt_import as ui_qt
 import gt.ui.qt_utils as ui_qt_utils
+import gt.ui.resource_library as ui_res_lib
 
 
 test_package_dir = os.path.dirname(__file__)
@@ -20,6 +23,7 @@ for path_to_append in [package_root_dir, tests_dir]:
         sys.path.append(path_to_append)
 
 from gt.tools.batch_processor import batch_processor_controller
+from gt.tools.batch_processor import batch_processor_constants
 from gt.tools.batch_processor import batch_processor_model
 from gt.tools.batch_processor import batch_processor_tasks
 from gt.tools.batch_processor import batch_processor_view
@@ -35,6 +39,9 @@ from gt.tools.batch_processor.widgets import attr_widget_export_fbx
 from gt.tools.batch_processor.widgets import attr_widget_project
 from gt.tools.batch_processor.widgets import attr_widget_python_script
 from gt.tools.batch_processor.widgets import attr_widget_task
+from gt.tools.batch_processor.widgets.custom_environment_variables_dialog import (
+    CustomEnvironmentVariablesDialog,
+)
 from gt.tools.batch_processor.widgets.inline_python_editor import InlinePythonEditorWidget
 
 
@@ -145,6 +152,86 @@ class TestBatchProcessorUi(unittest.TestCase):
         self.assertGreater(notes_height_increase, 0)
         self.assertGreater(notes_height_increase, panel_height_increase * 0.75)
 
+    def test_project_widget_shows_custom_environment_variable_count(self):
+        """Ensures project details expose the count with state-aware styling."""
+        project_widget = attr_widget_project.AttrWidgetProject(project=self.model)
+
+        expected = "0 custom variables"
+        self.assertEqual(expected, project_widget.custom_environment_variable_count_label.text())
+        self.assertEqual(1, project_widget.custom_environment_variable_layout.stretch(0))
+        self.assertEqual(2, project_widget.custom_environment_variable_layout.stretch(1))
+        expected = ui_res_lib.Color.Hex.gray_dim
+        self.assertIn(expected, project_widget.custom_environment_variable_count_label.styleSheet())
+
+        self.model.set_custom_environment_variables(
+            {
+                "textures-dir": {"value": "D:/studio/textures", "query": False},
+                "maya-selection": {"value": "cmds.ls(selection=True)", "query": True},
+            }
+        )
+        project_widget.refresh_custom_environment_variable_count()
+
+        expected = "2 custom variables"
+        self.assertEqual(expected, project_widget.custom_environment_variable_count_label.text())
+        expected = ui_res_lib.Color.Hex.green_pale
+        self.assertIn(expected, project_widget.custom_environment_variable_count_label.styleSheet())
+        project_widget.deleteLater()
+
+    def test_custom_environment_variable_dialog_validates_variable_names(self):
+        """Ensures the custom-variable editor accepts the documented name syntax."""
+        dialog = CustomEnvironmentVariablesDialog(parent=self.view)
+        dialog.add_variable_row(name="{textures-dir}", value="D:/studio/textures")
+
+        expected = {"textures-dir": {"value": "D:/studio/textures", "query": False}}
+        result = dialog.get_custom_environment_variables()
+        self.assertEqual(expected, result)
+        dialog.variable_table.item(0, 0).setText("textures-dir")
+        result = dialog.get_custom_environment_variables()
+        self.assertIsNone(result)
+        self.assertIn("must use the pattern", dialog.status_label.text())
+        dialog.deleteLater()
+
+    def test_custom_environment_variable_dialog_exposes_examples(self):
+        """Ensures the custom-variable dialog adds its local query examples."""
+        dialog = CustomEnvironmentVariablesDialog(parent=self.view)
+        dialog.refresh_examples_menu()
+        action_labels = [action.text() for action in dialog.examples_menu.actions()]
+
+        expected = [
+            "Literal String",
+            "Maya Selection",
+            "Custom Attribute",
+            "JSON Attribute",
+        ]
+        self.assertEqual(expected, action_labels)
+        expected = "Examples  ▼"
+        self.assertEqual(expected, dialog.examples_button.text())
+        expected = "padding: 4px 8px;"
+        self.assertEqual(expected, dialog.examples_button.styleSheet())
+        self.assertEqual(expected, dialog.add_variable_button.styleSheet())
+
+        for action in dialog.examples_menu.actions():
+            action.trigger()
+
+        expected = {
+            "custom-path": {"value": "example/custom/path", "query": False},
+            "maya-selection": {"value": "cmds.ls(selection=True)", "query": True},
+            "custom-attr": {
+                "value": "cmds.getAttr('object.attr')",
+                "query": True,
+            },
+            "custom-json-attr": {
+                "value": (
+                    "', '.join(import_module('json').loads("
+                    "cmds.getAttr('object.attr')))"
+                ),
+                "query": True,
+            },
+        }
+        result = dialog.get_custom_environment_variables()
+        self.assertEqual(expected, result)
+        dialog.deleteLater()
+
     def test_controller_modified_state_detects_nested_extra_data_changes(self):
         """Ensures clean-state comparisons retain an independent data snapshot."""
         controller = batch_processor_controller.BatchProcessorController.__new__(
@@ -158,6 +245,89 @@ class TestBatchProcessorUi(unittest.TestCase):
         self.assertFalse(controller.has_unsaved_changes())
         self.model.extra_data["legacy_settings"]["version"] = 2
         self.assertTrue(controller.has_unsaved_changes())
+
+    def test_controller_stores_custom_query_error_suppression_preference(self):
+        """Ensures the editing preference updates the active project model."""
+        controller = batch_processor_controller.BatchProcessorController.__new__(
+            batch_processor_controller.BatchProcessorController
+        )
+        controller.model = self.model
+        controller._prefs = mock.MagicMock()
+        controller.log_status = mock.MagicMock()
+
+        controller.toggle_suppress_custom_environment_query_errors(True)
+
+        self.assertTrue(controller._suppress_custom_environment_query_errors)
+        self.assertTrue(self.model._suppress_custom_environment_query_errors)
+        controller._prefs.set_bool.assert_called_once_with(
+            key=batch_processor_constants.Project.PREFS_KEY_SUPPRESS_CUSTOM_ENVIRONMENT_QUERY_ERRORS,
+            value=True,
+        )
+        controller._prefs.save.assert_called_once()
+
+    def test_controller_run_keeps_full_custom_query_error_diagnostics(self):
+        """Ensures execution temporarily disables the editing-only suppression preference."""
+        self.model.set_custom_environment_variables(
+            {
+                "maya-selection": {
+                    "value": "cmds.invalid_query()",
+                    "query": True,
+                }
+            }
+        )
+        self.model.set_suppress_custom_environment_query_errors(True)
+        self.model.run_settings["create_log"] = False
+        self.model.run_settings["create_task_time_log"] = False
+        self.model.run_settings["multi_instance"] = False
+        controller = batch_processor_controller.BatchProcessorController.__new__(
+            batch_processor_controller.BatchProcessorController
+        )
+        controller.model = self.model
+        controller._suppress_custom_environment_query_errors = True
+        controller._flag_skipped_tasks = False
+        controller.create_task_time_log_file = mock.MagicMock(return_value=None)
+        controller.append_log = mock.MagicMock()
+        controller.log_status = mock.MagicMock()
+        controller._format_tracker = mock.MagicMock(return_value="Run complete")
+        tracker = mock.MagicMock(status="succeeded")
+        runner = mock.MagicMock()
+        observed_suppression = []
+
+        def run_project(project, **kwargs):
+            """Records the model state and evaluates the failing query.
+
+            Args:
+                project (BatchProcessorModel): Project passed to the runner.
+                **kwargs: Runner options.
+
+            Returns:
+                MagicMock: Completed tracker result.
+            """
+            observed_suppression.append(project._suppress_custom_environment_query_errors)
+            project.get_environment_variables(include_braces=True)
+            return tracker
+
+        runner.run.side_effect = run_project
+        maya_module = types.ModuleType("maya")
+        maya_cmds_module = types.ModuleType("maya.cmds")
+        maya_module.cmds = maya_cmds_module
+
+        with mock.patch.dict(
+            sys.modules,
+            {"maya": maya_module, "maya.cmds": maya_cmds_module},
+        ), mock.patch.object(
+            batch_processor_controller.batch_processor_worker,
+            "SingleInstanceBatchRunner",
+            return_value=runner,
+        ), mock.patch.object(batch_processor_model.logger, "error") as mock_log_error, mock.patch.object(
+            builtins, "print"
+        ) as mock_print:
+            controller._run_project()
+
+        self.assertEqual([False], observed_suppression)
+        self.assertTrue(self.model._suppress_custom_environment_query_errors)
+        mock_log_error.assert_called_once()
+        mock_print.assert_not_called()
 
     def test_clean_project_does_not_open_unsaved_changes_dialog(self):
         """Ensures closing or loading a clean project requires no confirmation."""
@@ -307,6 +477,19 @@ class TestBatchProcessorUi(unittest.TestCase):
         self.view.close_func = None
         host_window.setParent(None)
         host_window.deleteLater()
+
+    def test_event_filter_ignores_events_after_view_is_deleted(self):
+        """Ensures a stale dock-view wrapper does not raise during event dispatch."""
+        view = self.view
+        view.deleteLater()
+        self.application.sendPostedEvents(None, ui_qt.QtCore.QEvent.DeferredDelete)
+
+        self.assertFalse(ui_qt_utils.is_qt_object_valid(view))
+        event = ui_qt.QtCore.QEvent(ui_qt.QtCore.QEvent.Show)
+        result = batch_processor_view.BatchProcessorView.eventFilter(view, object(), event)
+
+        self.assertFalse(result)
+        self.view = ui_qt.QtWidgets.QDialog()
 
     def test_loading_project_stops_when_unsaved_changes_are_cancelled(self):
         """Ensures cancelling the warning preserves the active project."""

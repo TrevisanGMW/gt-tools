@@ -8,6 +8,7 @@ tool remains usable without loading the UI.
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_tasks as tasks
 import datetime
+import importlib
 import json
 import logging
 import os
@@ -21,6 +22,58 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 _ENVIRONMENT_PATTERN = re.compile(r"\{([a-zA-Z0-9_-]+)\}")
+_CUSTOM_ENVIRONMENT_NAME_PATTERN = re.compile(r"^\{[a-zA-Z0-9_-]+\}$")
+_RESERVED_ENVIRONMENT_KEYS = {
+    "project-name",
+    "project-sanitized-name",
+    "project-notes",
+    "project-dir",
+    "project-file-dir",
+    "project-path",
+    "project-parent-dir",
+    "project-grandparent-dir",
+    "input-dir",
+    "task-dir",
+    "output-dir",
+    "temp-dir",
+    "home-dir",
+    "desktop-dir",
+    "year",
+    "month",
+    "day",
+    "time",
+    "hostname",
+    "worker-count",
+    "multi-instance",
+    "log-dir",
+    "task-name",
+    "task-sanitized-name",
+    "task-type",
+    "task-id",
+    "task-idx",
+    "task-index",
+    "previous-task-name",
+    "previous-task-sanitized-name",
+    "previous-task-path",
+    "previous-previous-task-path",
+    "pre-previous-task-path",
+    "previous-previous-task-name",
+    "previous-previous-task-sanitized-name",
+    "previous-previous-task-idx",
+    "previous-previous-task-index",
+    "pre-previous-task-name",
+    "pre-previous-task-sanitized-name",
+    "pre-previous-task-idx",
+    "pre-previous-task-index",
+    "previous-task-idx",
+    "previous-task-index",
+    "next-task-name",
+    "next-task-sanitized-name",
+    "next-task-path",
+    "future-task-path",
+    "next-task-idx",
+    "next-task-index",
+}
 
 
 def normalize_environment_key(key):
@@ -50,6 +103,18 @@ def format_environment_key(key):
     return "{" + normalize_environment_key(key) + "}"
 
 
+def is_valid_custom_environment_name(name):
+    """Checks whether a custom environment variable name uses placeholder syntax.
+
+    Args:
+        name (str): Variable name to validate.
+
+    Returns:
+        bool: True if the name matches the required ``{name}`` pattern.
+    """
+    return bool(_CUSTOM_ENVIRONMENT_NAME_PATTERN.match(str(name or "").strip()))
+
+
 class BatchProcessorModel:
     """Data model for a batch processing project."""
 
@@ -59,6 +124,8 @@ class BatchProcessorModel:
         self.project_name = constants.Project.DEFAULT_NAME
         self.notes = ""
         self.environment_variables = dict(constants.Project.DEFAULT_ENVIRONMENT_VARIABLES)
+        self.custom_environment_variables = {}
+        self._suppress_custom_environment_query_errors = False
         self.run_settings = dict(constants.Project.DEFAULT_RUN_SETTINGS)
         self.tasks = []
         self.extra_data = {}
@@ -111,9 +178,69 @@ class BatchProcessorModel:
         self.project_name = constants.Project.DEFAULT_NAME
         self.notes = ""
         self.environment_variables = dict(constants.Project.DEFAULT_ENVIRONMENT_VARIABLES)
+        self.custom_environment_variables = {}
         self.run_settings = dict(constants.Project.DEFAULT_RUN_SETTINGS)
         self.tasks = [tasks.TaskInput()]
         self.extra_data = {}
+
+    def get_custom_environment_variables(self):
+        """Gets a copy of the project custom environment-variable definitions.
+
+        Returns:
+            dict: Custom variables keyed by normalized, unbraced name.
+        """
+        return {
+            key: dict(value)
+            for key, value in self.custom_environment_variables.items()
+        }
+
+    def set_custom_environment_variables(self, custom_environment_variables):
+        """Stores normalized project custom environment-variable definitions.
+
+        Args:
+            custom_environment_variables (dict): Variable data keyed by a
+                braced or unbraced variable name.
+        """
+        self.custom_environment_variables = self._normalize_custom_environment_variables(
+            custom_environment_variables
+        )
+
+    def set_suppress_custom_environment_query_errors(self, suppress_errors):
+        """Sets whether custom query failures use concise console output.
+
+        This runtime setting is intentionally excluded from project data. The
+        controller enables it only while the user edits a project; batch runs
+        always restore full error diagnostics.
+
+        Args:
+            suppress_errors (bool): Whether query failures should omit their
+                traceback from the interactive output.
+        """
+        self._suppress_custom_environment_query_errors = bool(suppress_errors)
+
+    @staticmethod
+    def is_custom_environment_name_available(name):
+        """Checks whether a variable name can be used by a custom definition.
+
+        Args:
+            name (str): Variable name using the required ``{name}`` syntax.
+
+        Returns:
+            bool: True if the name is valid and does not replace a built-in
+            environment variable.
+        """
+        if not is_valid_custom_environment_name(name):
+            return False
+        return normalize_environment_key(name) not in _RESERVED_ENVIRONMENT_KEYS
+
+    @staticmethod
+    def get_reserved_environment_keys():
+        """Gets names reserved for built-in batch environment variables.
+
+        Returns:
+            set: Normalized environment variable names that cannot be custom.
+        """
+        return set(_RESERVED_ENVIRONMENT_KEYS)
 
     def get_project_dir(self):
         """Gets the project folder used to resolve relative paths.
@@ -735,6 +862,7 @@ class BatchProcessorModel:
                 "project_name": self.project_name,
                 "notes": self.notes,
                 "environment_variables": dict(self.environment_variables),
+                "custom_environment_variables": self.get_custom_environment_variables(),
                 "run_settings": run_settings,
                 "tasks": [task.to_dict() for task in self.tasks],
             }
@@ -755,6 +883,7 @@ class BatchProcessorModel:
                 "notes",
                 "paths",
                 "environment_variables",
+                "custom_environment_variables",
                 "run_settings",
                 "tasks",
                 "modules",
@@ -770,6 +899,15 @@ class BatchProcessorModel:
         self.environment_variables.update(self._environment_from_legacy_paths(data.get("paths") or {}))
         self.environment_variables.update(
             self._normalize_environment_variables(data.get("environment_variables") or {})
+        )
+        legacy_custom_variables = self._get_legacy_custom_environment_variables(
+            self.environment_variables
+        )
+        for key in legacy_custom_variables:
+            self.environment_variables.pop(key, None)
+        self.set_custom_environment_variables(legacy_custom_variables)
+        self.custom_environment_variables.update(
+            self._normalize_custom_environment_variables(data.get("custom_environment_variables") or {})
         )
         self.run_settings = dict(constants.Project.DEFAULT_RUN_SETTINGS)
         self.run_settings.update(self._filter_current_run_settings(data.get("run_settings") or {}))
@@ -902,6 +1040,12 @@ class BatchProcessorModel:
                     "next-task-index": str(int(next_task_index)),
                 }
             )
+        environment_variables.update(
+            self._resolve_custom_environment_variables(
+                task=task,
+                environment_variables=environment_variables,
+            )
+        )
         if include_braces:
             return {format_environment_key(key): value for key, value in environment_variables.items()}
         return environment_variables
@@ -936,6 +1080,129 @@ class BatchProcessorModel:
             for key, value in (environment_variables or {}).items()
             if normalize_environment_key(key)
         }
+
+    @staticmethod
+    def _normalize_custom_environment_variables(custom_environment_variables):
+        """Normalizes serialized custom environment-variable definitions.
+
+        Args:
+            custom_environment_variables (dict): Variable definitions keyed by
+                braced or unbraced names.
+
+        Returns:
+            dict: Normalized custom variable definitions.
+        """
+        normalized_variables = {}
+        for raw_name, raw_definition in (custom_environment_variables or {}).items():
+            normalized_name = normalize_environment_key(raw_name)
+            formatted_name = format_environment_key(normalized_name)
+            if (
+                not _CUSTOM_ENVIRONMENT_NAME_PATTERN.match(formatted_name)
+                or normalized_name in _RESERVED_ENVIRONMENT_KEYS
+            ):
+                continue
+            if isinstance(raw_definition, dict):
+                value = raw_definition.get("value", "")
+                is_query = raw_definition.get("query", False)
+            else:
+                value = raw_definition
+                is_query = False
+            if isinstance(is_query, str):
+                is_query = is_query.strip().lower() in {"1", "true", "yes", "on"}
+            normalized_variables[normalized_name] = {
+                "value": "" if value is None else str(value),
+                "query": bool(is_query),
+            }
+        return normalized_variables
+
+    @staticmethod
+    def _get_legacy_custom_environment_variables(environment_variables):
+        """Extracts pre-schema custom variables from the legacy mapping.
+
+        Args:
+            environment_variables (dict): Existing environment variable data.
+
+        Returns:
+            dict: Custom variable definitions migrated from legacy values.
+        """
+        legacy_variables = {}
+        for key, value in (environment_variables or {}).items():
+            normalized_key = normalize_environment_key(key)
+            if normalized_key and normalized_key not in _RESERVED_ENVIRONMENT_KEYS:
+                legacy_variables[normalized_key] = {"value": value, "query": False}
+        return legacy_variables
+
+    def _resolve_custom_environment_variables(self, task, environment_variables):
+        """Resolves all custom environment variables for the current context.
+
+        Args:
+            task (BatchTask or None): Task currently requesting environment data.
+            environment_variables (dict): Built-in and task environment data.
+
+        Returns:
+            dict: Custom environment values keyed by normalized name.
+        """
+        resolved_variables = {}
+        query_environment = dict(environment_variables)
+        for name, definition in self.custom_environment_variables.items():
+            value = self._resolve_custom_environment_variable(
+                name=name,
+                definition=definition,
+                task=task,
+                environment_variables=query_environment,
+            )
+            resolved_variables[name] = value
+            query_environment[name] = value
+        return resolved_variables
+
+    def _resolve_custom_environment_variable(self, name, definition, task, environment_variables):
+        """Resolves one custom environment-variable definition.
+
+        Query definitions are intentionally evaluated at request time so scene
+        queries reflect the current file and selection. Errors are logged and
+        resolve as an empty value to keep batch execution running.
+
+        Args:
+            name (str): Normalized variable name.
+            definition (dict): Stored value and query state.
+            task (BatchTask or None): Task requesting environment data.
+            environment_variables (dict): Values available to the query.
+
+        Returns:
+            object: Literal value or a query result. Failed queries return an
+            empty string.
+        """
+        definition = definition or {}
+        value = definition.get("value", "")
+        if not definition.get("query"):
+            return value
+        query = str(value or "").strip()
+        if not query:
+            return ""
+        try:
+            import maya.cmds as cmds
+
+            query_namespace = {
+                "cmds": cmds,
+                "env": dict(environment_variables),
+                "json": json,
+                "import_module": importlib.import_module,
+                "project": self,
+                "task": task,
+            }
+            return eval(query, query_namespace, query_namespace)
+        except Exception as exception:
+            if self._suppress_custom_environment_query_errors:
+                print(
+                    f'Custom environment variable "{{{name}}}" query failed. '
+                    f'Resolved as an empty value: {exception}'
+                )
+                return ""
+            logger.error(
+                f'Unable to evaluate custom environment variable "{{{name}}}": {exception}',
+                exc_info=True,
+            )
+            return ""
 
     @staticmethod
     def _filter_current_run_settings(run_settings):

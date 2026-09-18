@@ -202,7 +202,10 @@ class AttrWidgetUsdExportTask(AttrWidgetTask):
             partial(self.set_task_setting_list_from_text, key="native_custom_attributes"),
             placeholder="One Maya attribute per line, e.g. contact_heel_end_l.contactWeight.\n"
             "These are tagged for native MayaUSD attribute export.",
-            tooltip="Attributes tagged through MayaUSD's USD_UserExportedAttributesJson mechanism.",
+            tooltip=(
+                "Attributes tagged through MayaUSD's USD_UserExportedAttributesJson mechanism. "
+                "Batch environment variables are resolved before export."
+            ),
         )
         self.add_text_area(
             "Post Custom Data",
@@ -210,7 +213,10 @@ class AttrWidgetUsdExportTask(AttrWidgetTask):
             partial(self.set_task_setting_list_from_text, key="custom_data_attributes"),
             placeholder="One Maya attribute per line, e.g. SK_Universal_Simplified.collections.\n"
             "Values are injected into matching USD prim custom data after export.",
-            tooltip="Attributes injected as USD prim custom data after export.",
+            tooltip=(
+                "Attributes injected as USD prim custom data after export. "
+                "Batch environment variables are resolved before export."
+            ),
         )
         self.content_layout.addStretch()
 
