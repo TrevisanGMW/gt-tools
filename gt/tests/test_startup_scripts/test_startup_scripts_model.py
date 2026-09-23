@@ -6,7 +6,9 @@ from gt.tools.startup_scripts import startup_scripts_runtime as startup_runtime
 import json
 import os
 import shutil
+import sys
 import tempfile
+import types
 import unittest
 from unittest import mock
 from datetime import date
@@ -481,6 +483,41 @@ class TestStartupScriptsModel(unittest.TestCase):
         source_text = startup_model.load_script_file(sample_paths[expected_path])
         self.assertIn("CURRENT_FRAME = 1", source_text)
         self.assertIn("cmds.currentTime(CURRENT_FRAME, edit=True)", source_text)
+
+    def test_user_prefs_sample_normalizes_and_filters_sidebar_urls(self):
+        """Ensures sidebar paths are valid, canonical, and not duplicated by slash style."""
+        samples = startup_model.get_sample_scripts()
+        sample_paths = {sample.get("relative_path"): sample.get("path") for sample in samples}
+        source_text = startup_model.load_script_file(sample_paths["set_user_prefs.py"])
+        helpers_source = source_text.split("\nVALID_SIDEBAR_URLS =", 1)[0]
+        maya_module = types.ModuleType("maya")
+        maya_cmds_module = types.ModuleType("maya.cmds")
+        maya_module.cmds = maya_cmds_module
+        sample_globals = {"__name__": "__test_user_prefs_sample__"}
+
+        with mock.patch.dict(
+            sys.modules,
+            {"maya": maya_module, "maya.cmds": maya_cmds_module},
+        ):
+            compiled_helpers = compile(
+                helpers_source,
+                sample_paths["set_user_prefs.py"],
+                "exec",
+            )
+            exec(compiled_helpers, sample_globals)
+
+        existing_directory = os.path.join(self.temp_dir, "sidebar_directory")
+        os.makedirs(existing_directory)
+        expected = [existing_directory.replace("\\", "/")]
+        result = sample_globals["get_valid_sidebar_urls"](
+            [
+                existing_directory,
+                existing_directory.replace("\\", "/"),
+                "Z:Repositories",
+                os.path.join(self.temp_dir, "missing_directory"),
+            ]
+        )
+        self.assertEqual(expected, result)
 
     def test_extra_maya_preferences_sample_is_discoverable_and_is_disabled_by_default(self):
         """Ensures the Extra Maya Preferences sample exposes every requested setting safely."""
