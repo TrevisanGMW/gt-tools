@@ -7,7 +7,7 @@ last_used_data = context["get_last_used_data"]()
 print("Last used tracker data from Prefs:")
 print(last_used_data)
 
-context["update_file_data"]("quality", "high")
+context["update_file_data"]("quality", 85)
 context["update_file_data"]("source", "mocap_shoot_01")
 context["update_file_data"]("clipped", True)
 context["update_file_data"]("annotated", True)

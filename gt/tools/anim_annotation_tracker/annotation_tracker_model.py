@@ -376,6 +376,33 @@ def get_reserved_range_field_names(schema):
     ]
 
 
+def coerce_schema_integer(value, field_definition=None):
+    """Converts a stored value into an integer clamped to its schema range.
+
+    Args:
+        value (object): Stored value, possibly a string or ``None``.
+        field_definition (dict, optional): Integer field definition holding
+            ``minimum``, ``maximum``, and ``default`` keys.
+
+    Returns:
+        int: Clamped integer, or the field default when unparseable.
+    """
+    field_definition = field_definition if isinstance(field_definition, dict) else {}
+    minimum = int(field_definition.get("minimum", 0))
+    maximum = int(field_definition.get("maximum", 100))
+    try:
+        default = int(float(field_definition.get("default", minimum)))
+    except (TypeError, ValueError):
+        default = minimum
+    if value in (None, "", "---"):
+        return max(minimum, min(maximum, default))
+    try:
+        integer_value = int(round(float(value)))
+    except (TypeError, ValueError):
+        return max(minimum, min(maximum, default))
+    return max(minimum, min(maximum, integer_value))
+
+
 def _is_schema_value_supported(field_definition, value):
     """Checks whether a value is representable by its schema field.
 
@@ -390,7 +417,16 @@ def _is_schema_value_supported(field_definition, value):
         return False
     if value in (None, "", "---"):
         return True
-    if field_definition.get("type") != "enum":
+    field_type = field_definition.get("type")
+    if field_type == "integer":
+        try:
+            numeric_value = float(value)
+        except (TypeError, ValueError):
+            return False
+        minimum = float(field_definition.get("minimum", 0))
+        maximum = float(field_definition.get("maximum", 100))
+        return minimum <= numeric_value <= maximum
+    if field_type != "enum":
         return True
     options = field_definition.get("options", [])
     return str(value) in [str(option) for option in options]

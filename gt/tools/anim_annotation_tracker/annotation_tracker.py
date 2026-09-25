@@ -1883,6 +1883,7 @@ class RangeToolWindow(QtWidgets.QDialog):
                 if isinstance(widget, QtWidgets.QComboBox): widget.setCurrentText(str(val))
                 elif isinstance(widget, QtWidgets.QLineEdit): widget.setText(str(val))
                 elif isinstance(widget, QtWidgets.QCheckBox): widget.setChecked(bool(val))
+                elif isinstance(widget, QtWidgets.QSpinBox): widget.setValue(annotation_tracker_model.coerce_schema_integer(val))
             widget.blockSignals(False)
 
         self._is_building_ui = False
@@ -1980,6 +1981,16 @@ class RangeToolWindow(QtWidgets.QDialog):
                 elif itype == "boolean":
                     widget = QtWidgets.QCheckBox()
                     widget.stateChanged.connect(callback)
+                elif itype == "integer":
+                    widget = QtWidgets.QSpinBox()
+                    widget.setRange(
+                        int(item.get("minimum", 0)),
+                        int(item.get("maximum", 100)),
+                    )
+                    widget.setValue(
+                        annotation_tracker_model.coerce_schema_integer(item.get("default"), item)
+                    )
+                    widget.valueChanged.connect(callback)
                     
                 if widget:
                     widget_registry[name] = widget
@@ -2194,13 +2205,16 @@ class RangeToolWindow(QtWidgets.QDialog):
             if not self.timeline.active_range:
                 cmds.warning("No range selected. Please select a range first.")
                 return
-            self.timeline.active_range.custom_data[field_name] = str(val)
+            self.timeline.active_range.custom_data[field_name] = (
+                val if isinstance(val, (int, float, bool)) else str(val)
+            )
             w = self.ui_widgets_range.get(field_name)
             if w:
                 w.blockSignals(True)
                 if isinstance(w, QtWidgets.QLineEdit): w.setText(str(val))
                 elif isinstance(w, QtWidgets.QComboBox): w.setCurrentText(str(val))
                 elif isinstance(w, QtWidgets.QCheckBox): w.setChecked(bool(val))
+                elif isinstance(w, QtWidgets.QSpinBox): w.setValue(annotation_tracker_model.coerce_schema_integer(val))
                 w.blockSignals(False)
             self.highlight_validation()
             self.save_to_scene()
@@ -2212,13 +2226,16 @@ class RangeToolWindow(QtWidgets.QDialog):
                 field_name (str): Name of the file field to update.
                 val (object): New field value.
             """
-            self.file_data[field_name] = str(val)
+            self.file_data[field_name] = (
+                val if isinstance(val, (int, float, bool)) else str(val)
+            )
             w = self.ui_widgets_file.get(field_name)
             if w:
                 w.blockSignals(True)
                 if isinstance(w, QtWidgets.QLineEdit): w.setText(str(val))
                 elif isinstance(w, QtWidgets.QComboBox): w.setCurrentText(str(val))
                 elif isinstance(w, QtWidgets.QCheckBox): w.setChecked(bool(val))
+                elif isinstance(w, QtWidgets.QSpinBox): w.setValue(annotation_tracker_model.coerce_schema_integer(val))
                 w.blockSignals(False)
             self.highlight_validation()
             self.save_to_scene()
@@ -2290,6 +2307,8 @@ class RangeToolWindow(QtWidgets.QDialog):
                     widget.setCurrentText(str(value))
                 elif isinstance(widget, QtWidgets.QCheckBox):
                     widget.setChecked(bool(value))
+                elif isinstance(widget, QtWidgets.QSpinBox):
+                    widget.setValue(annotation_tracker_model.coerce_schema_integer(value))
                 widget.blockSignals(False)
 
             self.timeline.ranges = loaded_ranges
@@ -2351,6 +2370,7 @@ class RangeToolWindow(QtWidgets.QDialog):
                 self.file_data[name] = "" if val == "---" else val
             elif isinstance(widget, QtWidgets.QLineEdit): self.file_data[name] = widget.text()
             elif isinstance(widget, QtWidgets.QCheckBox): self.file_data[name] = widget.isChecked()
+            elif isinstance(widget, QtWidgets.QSpinBox): self.file_data[name] = widget.value()
         self.highlight_validation()
         self.save_to_scene()
 
@@ -2364,6 +2384,7 @@ class RangeToolWindow(QtWidgets.QDialog):
                 data[name] = "" if val == "---" else val
             elif isinstance(widget, QtWidgets.QLineEdit): data[name] = widget.text()
             elif isinstance(widget, QtWidgets.QCheckBox): data[name] = widget.isChecked()
+            elif isinstance(widget, QtWidgets.QSpinBox): data[name] = widget.value()
         self.highlight_validation()
         self.save_to_scene()
 

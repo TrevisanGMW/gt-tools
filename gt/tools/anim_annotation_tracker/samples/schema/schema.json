@@ -5,12 +5,14 @@
   },
   "file_level": [
     {
-      "type": "enum",
+      "type": "integer",
       "name": "quality",
       "label": "Quality",
-      "options": ["low", "medium", "high"],
+      "minimum": 0,
+      "maximum": 100,
+      "default": 0,
       "required": true,
-      "description": "Defines overall animation fidelity and usability."
+      "description": "Overall animation fidelity score from 0 (unusable) to 100 (clean). 0 also means not yet rated. The validation automation suggests a score from jitter, pops, foot slides, ground penetration, and limb intersections."
     },
     {
       "type": "row",
