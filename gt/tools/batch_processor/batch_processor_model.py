@@ -1155,7 +1155,7 @@ class BatchProcessorModel:
             query_environment[name] = value
         return resolved_variables
 
-    def _resolve_custom_environment_variable(self, name, definition, task, environment_variables):
+    def _resolve_custom_environment_variable(self, name, definition, task, environment_variables, raise_errors=False):
         """Resolves one custom environment-variable definition.
 
         Query definitions are intentionally evaluated at request time so scene
@@ -1167,10 +1167,14 @@ class BatchProcessorModel:
             definition (dict): Stored value and query state.
             task (BatchTask or None): Task requesting environment data.
             environment_variables (dict): Values available to the query.
+            raise_errors (bool, optional): Whether to propagate failures for explicit query tests.
 
         Returns:
             object: Literal value or a query result. Failed queries return an
             empty string.
+
+        Raises:
+            Exception: If a query fails and raise_errors is True.
         """
         definition = definition or {}
         value = definition.get("value", "")
@@ -1192,6 +1196,8 @@ class BatchProcessorModel:
             }
             return eval(query, query_namespace, query_namespace)
         except Exception as exception:
+            if raise_errors:
+                raise
             if self._suppress_custom_environment_query_errors:
                 print(
                     f'Custom environment variable "{{{name}}}" query failed. '
@@ -1294,18 +1300,19 @@ class BatchProcessorModel:
         return model.load_from_file(file_path)
 
     @staticmethod
-    def _atomic_write_json(file_path, data):
+    def _atomic_write_json(file_path, data, sort_keys=True):
         """Writes a JSON file atomically.
 
         Args:
             file_path (str): Destination file path.
             data (dict): Serializable data to write.
+            sort_keys (bool, optional): Whether to sort dictionary keys.
         """
         file_dir = os.path.dirname(file_path)
         file_handle, temp_path = tempfile.mkstemp(prefix=".batch_tmp_", suffix=".json", dir=file_dir)
         try:
             with os.fdopen(file_handle, "w", encoding="utf-8") as temp_file:
-                json.dump(data, temp_file, indent=4, sort_keys=True)
+                json.dump(data, temp_file, indent=4, sort_keys=sort_keys)
             os.replace(temp_path, file_path)
         except Exception:
             if os.path.exists(temp_path):

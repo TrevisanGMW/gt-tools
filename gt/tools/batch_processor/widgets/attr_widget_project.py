@@ -289,6 +289,7 @@ class AttrWidgetProject(attr_widget_base.AttrWidgetBase):
         dialog = CustomEnvironmentVariablesDialog(
             custom_environment_variables=self.project.get_custom_environment_variables(),
             parent=self,
+            project=self.project,
         )
         if self.exec_dialog(dialog) != ui_qt.QtWidgets.QDialog.Accepted:
             return
