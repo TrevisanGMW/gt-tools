@@ -259,6 +259,12 @@ def main():
                             "log_artifact", task_id=task_id, path=path, kind="task_log"
                         ),
                         "report_message": lambda message: print(message, flush=True),
+                        "register_remote_job": lambda url, remote_id, token_environment: event_writer.emit(
+                            "kimodo_job", url=url, remote_id=remote_id, token_environment=token_environment
+                        ),
+                        "unregister_remote_job": lambda remote_id: event_writer.emit(
+                            "kimodo_job_done", remote_id=remote_id
+                        ),
                         "report_progress": lambda completed_units, total_units, unit_label="", task_id=task.id: (
                             event_writer.emit(
                                 "task_unit_progress",

@@ -51,6 +51,8 @@ from gt.tools.batch_processor.tasks.task_hik_retarget import HIK_BAKE_TARGETS
 from gt.tools.batch_processor.tasks.task_map_hierarchy import TaskMapHierarchy
 from gt.tools.batch_processor.tasks.task_maya_import import TaskMayaImport
 from gt.tools.batch_processor.tasks.task_maya_save import TaskMayaSave
+from gt.tools.batch_processor.tasks.task_kimodo_definition import TaskKimodoDefinition
+from gt.tools.batch_processor.tasks.task_kimodo_generate import TaskKimodoGenerate
 from gt.tools.batch_processor.tasks.task_external_mobu import TaskMotionBuilderScript
 from gt.tools.batch_processor.tasks.task_external_mobu import find_motionbuilder_executable
 from gt.tools.batch_processor.tasks.task_external_mobu import get_motionbuilder_executable_candidates
@@ -80,6 +82,8 @@ TASK_TYPES = {
     constants.TaskType.FBX_EXPORT: TaskExportFbx,
     constants.TaskType.RETARGET: TaskRetarget,
     constants.TaskType.HIK_RETARGET: TaskRetargetHumanIK,
+    constants.TaskType.KIMODO_DEFINITION: TaskKimodoDefinition,
+    constants.TaskType.KIMODO_GENERATE: TaskKimodoGenerate,
     constants.TaskType.AUTO_RIG_BUILD: TaskAutoRigBuild,
     constants.TaskType.CLIP_SPLIT: TaskClipSplit,
     constants.TaskType.CLIP_SNAPSHOT: TaskClipSnapshot,

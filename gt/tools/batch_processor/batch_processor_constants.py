@@ -58,6 +58,8 @@ class TaskType:
     FBX_EXPORT = "output_fbx_export"
     RETARGET = "retarget"
     HIK_RETARGET = "retarget_hik"
+    KIMODO_DEFINITION = "kimodo_definition"
+    KIMODO_GENERATE = "kimodo_generate"
     AUTO_RIG_BUILD = "auto_rig_build"
     CLIP_SPLIT = "clip_split"
     CLIP_SNAPSHOT = "clip_snapshot"
