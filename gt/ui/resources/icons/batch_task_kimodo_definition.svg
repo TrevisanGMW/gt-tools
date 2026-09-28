@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <title>Kimodo Definition</title>
+  <desc>Coral pose figure in capture brackets with a gray definition sheet and keyframes.</desc>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M103 42H41V109M345 42H407V109M41 329V401H105"
+          stroke="#1D1D1D" stroke-width="30"/>
+    <path d="M103 42H41V109M345 42H407V109M41 329V401H105"
+          stroke="#BDBDBD" stroke-width="14"/>
+    <path d="M219 176V284M110 204L219 177L321 211M219 284L159 397M219 284L278 390"
+          stroke="#1D1D1D" stroke-width="50"/>
+    <path d="M219 176V284M110 204L219 177L321 211M219 284L159 397M219 284L278 390"
+          stroke="#FF6A6A" stroke-width="28"/>
+  </g>
+  <circle cx="219" cy="105" r="39" fill="#FF6A6A" stroke="#1D1D1D" stroke-width="17"/>
+  <circle cx="219" cy="284" r="18" fill="#BDBDBD" stroke="#1D1D1D" stroke-width="10"/>
+  <path d="M318 269H426L478 322V475H318Z" fill="#BDBDBD" stroke="#1D1D1D"
+        stroke-width="17" stroke-linejoin="round"/>
+  <path d="M424 272V324H475M347 438H448" fill="none" stroke="#1D1D1D"
+        stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M365 353L383 377L365 401L347 377ZM429 353L447 377L429 401L411 377Z"
+        fill="#FF6A6A" stroke="#1D1D1D" stroke-width="9" stroke-linejoin="round"/>
+</svg>

@@ -338,9 +338,12 @@ def create_definition(character_name="Character"):
         if not cmds.pluginInfo("mayaHIK", query=True, loaded=True):
             cmds.loadPlugin("mayaHIK")
 
-        mel.eval(f'hikCreateCharacter("{character_name}")')
-        logger.info(f'Created HIK character definition: "{character_name}"')
-        return character_name
+        _source_mel_procedure("hikCreateCharacter")
+        created = mel.eval(f'hikCreateCharacter("{character_name}")')
+        if not isinstance(created, str) or not cmds.objExists(created):
+            raise RuntimeError(f"Maya did not return an existing HumanIK character: {created!r}")
+        logger.info(f'Created HIK character definition: "{created}"')
+        return created
     except Exception as e:
         logger.error(f'Failed to create character definition. Issue: {e}')
         return ""

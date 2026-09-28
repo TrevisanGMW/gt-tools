@@ -149,12 +149,13 @@ def write_json(path, data):
         logging.warning(f"An error occurred while writing JSON to {path}: {e}")
 
 
-def read_json_dict(path):
+def read_json_dict(path, raise_errors=False):
     """
     Reads a JSON file and returns its content as a dictionary.
 
     Args:
         path (str): The file path of the JSON file to read.
+        raise_errors (bool): Propagate read/parse errors instead of returning an empty dictionary.
 
     Returns:
         dict: A dictionary containing the content of the JSON file.
@@ -170,16 +171,22 @@ def read_json_dict(path):
         {'name': 'John Doe', 'age': 30, 'city': 'New York'}
     """
     try:
-        with open(path, "r") as json_file:
+        with open(path, "r", encoding="utf-8") as json_file:
             json_as_dict = json.load(json_file)
         return json_as_dict
     except FileNotFoundError as fnf_err:
+        if raise_errors:
+            raise
         logging.warning(f"Error: The file '{path}' was not found.")
         return {}
     except json.JSONDecodeError as json_err:
+        if raise_errors:
+            raise
         logging.warning(f"Error: Invalid JSON data in '{path}': {json_err}")
         return {}
     except Exception as e:
+        if raise_errors:
+            raise
         logging.warning(f"An error occurred while reading JSON from {path}: {e}")
         return {}
 

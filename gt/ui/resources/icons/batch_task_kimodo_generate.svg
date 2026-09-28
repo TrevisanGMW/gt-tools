@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <title>Kimodo Generate</title>
+  <desc>Coral running figure and motion trails with a large play badge.</desc>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M142 92H57M115 146H32M99 201H43"
+          stroke="#1D1D1D" stroke-width="30"/>
+    <path d="M142 92H57M115 146H32M99 201H43"
+          stroke="#BDBDBD" stroke-width="14"/>
+    <path d="M235 166L203 282M230 182L177 217L118 178M232 181L291 215L332 173
+             M203 282L279 337L291 410M203 282L144 369L64 408"
+          stroke="#1D1D1D" stroke-width="52"/>
+    <path d="M235 166L203 282M230 182L177 217L118 178M232 181L291 215L332 173
+             M203 282L279 337L291 410M203 282L144 369L64 408"
+          stroke="#FF6A6A" stroke-width="28"/>
+  </g>
+  <circle cx="253" cy="96" r="40" fill="#FF6A6A" stroke="#1D1D1D" stroke-width="17"/>
+  <circle cx="203" cy="282" r="18" fill="#BDBDBD" stroke="#1D1D1D" stroke-width="10"/>
+  <circle cx="392" cy="389" r="91" fill="#BDBDBD" stroke="#1D1D1D" stroke-width="20"/>
+  <path d="M369 340L438 389L369 438Z" fill="#FF6A6A" stroke="#1D1D1D"
+        stroke-width="14" stroke-linejoin="round"/>
+</svg>

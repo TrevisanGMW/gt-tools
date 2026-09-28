@@ -311,6 +311,12 @@ def load_menu(*args):
         icon=ui_res_lib.Icon.tool_retargeter,
     )
     menu.add_menu_item(
+        label="Kimodo Generator",
+        command=IMPORT_TOOL + 'initialize_tool("kimodo_generator")',
+        tooltip="Generate animation from text and pose constraints using a local or remote Kimodo bridge.",
+        icon=ui_res_lib.Icon.tool_kimodo_generator,
+    )
+    menu.add_menu_item(
         label="World Space Baker",
         command=IMPORT_TOOL + 'initialize_tool("world_space_baker")',
         tooltip="Extracts and bakes translate and rotate animation in world space.",
