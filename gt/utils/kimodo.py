@@ -162,6 +162,26 @@ def map_constraint_frames(frames, start, end, source_fps, model_fps, frame_count
     return indices, count
 
 
+def distribute_constraint_frames(key_count, frame_count):
+    """Spreads ordered constraint keys across the full generated clip.
+
+    Args:
+        key_count (int): Number of ordered path transforms.
+        frame_count (int): Number of generated clip frames.
+
+    Returns:
+        list: Zero-based, evenly distributed destination frames.
+
+    Raises:
+        ValueError: If fewer than two keys or insufficient clip frames are provided.
+    """
+    if type(key_count) is not int or type(frame_count) is not int or key_count < 2 or frame_count < 2:
+        raise ValueError("Automatic path timing requires at least two transforms and two generated frames.")
+    if key_count > frame_count:
+        raise ValueError("There are more path transforms than generated frames; reduce the selected transforms.")
+    return [int(math.floor(index * (frame_count - 1) / (key_count - 1) + 0.5)) for index in range(key_count)]
+
+
 def set_definition_frame_count(definition, count, fps):
     """Scales prompt durations to yield exactly the requested bridge sample count.
 
@@ -209,7 +229,8 @@ class KimodoGenerationDefinition:
     def __init__(self, prompt, duration_seconds=4.0, model=DEFAULT_MODEL,
                  seed=12345, diffusion_steps=100, postprocess=True, name="Motion",
                  prompts=None, constraints=None, num_samples=1, guidance=None,
-                 transition_frames=5, heading=0.0, auto_humanik=True):
+                 transition_frames=5, heading=0.0, auto_humanik=True,
+                 limit_body_joint_translations=True):
         """Creates and validates a generation definition.
 
         Args:
@@ -222,12 +243,14 @@ class KimodoGenerationDefinition:
             name (str): User-facing label.
             prompts (list, optional): Ordered text/duration segment dictionaries.
             constraints (list, optional): Kimodo constraint dictionaries.
-            num_samples (int): Number of alternatives, from 1 through 8.
+            num_samples (int): Number of alternatives, from 1 through 10.
             guidance (list, optional): Text and constraint guidance weights.
             transition_frames (int): Blending frames between segments.
             heading (float): Initial heading in radians.
             auto_humanik (bool): Add HumanIK when this definition creates a pose skeleton.
                 Local Maya authoring option; never sent to the generation server.
+            limit_body_joint_translations (bool): Keep non-root joint translations at their rest offsets
+                on pose skeletons created from this definition. Local Maya authoring option.
         """
         self.data = {
             "schema_version": SCHEMA_VERSION,
@@ -241,7 +264,8 @@ class KimodoGenerationDefinition:
                            "guidance": guidance or [2.0, 2.0], "transition_frames": transition_frames,
                            "heading": heading},
             "constraints": copy.deepcopy(constraints or []),
-            "maya": {"auto_humanik": auto_humanik},
+            "maya": {"auto_humanik": auto_humanik,
+                     "limit_body_joint_translations": limit_body_joint_translations},
         }
         self.validate()
 
@@ -255,10 +279,14 @@ class KimodoGenerationDefinition:
         expected = {"schema_version", "id", "name", "model", "prompts", "parameters", "constraints"}
         if not isinstance(data, dict) or set(data) - {"maya"} != expected:
             raise ValueError("Definition fields do not match schema version 1.")
-        options = data.setdefault("maya", {"auto_humanik": True})
-        if (not isinstance(options, dict) or set(options) != {"auto_humanik"}
-                or type(options["auto_humanik"]) is not bool):
-            raise ValueError("maya requires a boolean auto_humanik option.")
+        options = data.setdefault("maya", {})
+        if not isinstance(options, dict):
+            raise ValueError("maya options must be a dictionary.")
+        options.setdefault("auto_humanik", True)
+        options.setdefault("limit_body_joint_translations", True)
+        if (set(options) != {"auto_humanik", "limit_body_joint_translations"}
+                or any(type(value) is not bool for value in options.values())):
+            raise ValueError("maya requires boolean auto_humanik and limit_body_joint_translations options.")
         if type(data["schema_version"]) is not int or data["schema_version"] != SCHEMA_VERSION:
             raise ValueError("Unsupported definition schema version.")
         for key in ("id", "name", "model"):
@@ -284,8 +312,8 @@ class KimodoGenerationDefinition:
         if (not isinstance(parameters, dict) or not required_parameters <= set(parameters)
                 or set(parameters) - required_parameters - optional_parameters):
             raise ValueError("Unsupported generation parameter fields.")
-        if type(parameters["num_samples"]) is not int or not 1 <= parameters["num_samples"] <= 8:
-            raise ValueError("Choose 1 through 8 samples.")
+        if type(parameters["num_samples"]) is not int or not 1 <= parameters["num_samples"] <= 10:
+            raise ValueError("Choose 1 through 10 samples.")
         parameters.setdefault("guidance", [2.0, 2.0])
         parameters.setdefault("transition_frames", 5)
         parameters.setdefault("heading", 0.0)
@@ -340,7 +368,9 @@ class KimodoGenerationDefinition:
             dict: Created joints, group, and humanik character name (or None).
         """
         self.validate()
-        return create_pose_skeleton(skeleton_motion, namespace, self.data["maya"]["auto_humanik"], humanik_settings)
+        return create_pose_skeleton(
+            skeleton_motion, namespace, self.data["maya"]["auto_humanik"], humanik_settings,
+            self.data["maya"]["limit_body_joint_translations"])
 
 
 class KimodoConnection:
@@ -884,8 +914,12 @@ def validate_constraints(constraints, frame_count=None):
         frames = constraint.get("frame_indices")
         if not isinstance(frames, list) or not frames or len(frames) > 7200:
             raise ValueError("Constraints require nonempty frame_indices.")
-        if any(type(frame) is not int or frame < 0 or (frame_count and frame >= frame_count) for frame in frames):
+        if any(type(frame) is not int or frame < 0 for frame in frames):
             raise ValueError("Constraint frames must be zero-based integers inside the clip.")
+        if frame_count is not None and any(frame >= frame_count for frame in frames):
+            largest_frame = max(frames)
+            raise ValueError(f"Constraint frame {largest_frame + 1} is outside the generated clip. "
+                             f"Use frames 1 through {frame_count}.")
         channels = constraint.get("joint_names", [kind]) if kind == "end-effector" else [kind]
         if not isinstance(channels, list) or not channels or any(not isinstance(name, str) for name in channels):
             raise ValueError("End-effector constraints require joint_names.")
@@ -974,9 +1008,17 @@ def capture_pose(group=None, frame_index=0, constraint_type="fullbody", bone_off
         translation = [value * scale for value in cmds.getAttr(f"{joint}.translate")[0]]
         if index == 0:
             root = translation
-        elif any(abs(actual - expected) > bone_offset_tolerance
-                 for actual, expected in zip(translation, skeleton["offsets"][index])):
-            raise ValueError(f"Bone offset changed beyond {bone_offset_tolerance:g} meters: {joint}.")
+        else:
+            expected_offset = skeleton["offsets"][index]
+            offset_delta = [actual - expected for actual, expected in zip(translation, expected_offset)]
+            if any(abs(value) > bone_offset_tolerance for value in offset_delta):
+                expected_text = ", ".join(f"{value:.6f}" for value in expected_offset)
+                actual_text = ", ".join(f"{value:.6f}" for value in translation)
+                delta_text = ", ".join(f"{value:+.6f}" for value in offset_delta)
+                raise ValueError(
+                    f"Bone offset changed beyond {bone_offset_tolerance:g} meters: {joint}. "
+                    f"Expected local offset (m): [{expected_text}]; found: [{actual_text}]; "
+                    f"delta: [{delta_text}]. Pose joints by rotating them; only the root may be translated.")
     constraint = {"type": constraint_type, "frame_indices": [frame_index],
                   "root_positions": [root], "local_joints_rot": [rotations]}
     validate_constraints([constraint])
@@ -1014,7 +1056,8 @@ def capture_root_path(nodes, frame_indices, group=None):
     elif len(nodes) == len(frame_indices):
         positions = [om.MPoint(cmds.xform(node, query=True, worldSpace=True, translation=True)) for node in nodes]
     else:
-        raise ValueError("Use one locator per destination frame, or select a single curve.")
+        raise ValueError("Ordered locator paths need one locator per destination frame; a single NURBS curve "
+                         "can use any number of samples.")
     points = [point * inverse for point in positions]
     if group or cmds.upAxis(query=True, axis=True) == "y":
         coordinates = [[point.x * scale, point.z * scale] for point in points]
@@ -1058,7 +1101,8 @@ def probe_text_encoder(url="http://127.0.0.1:9550", timeout=3.0):
     return {"status": "ready", "url": url.rstrip("/"), "api_name": "DemoWrapper"}
 
 
-def create_pose_skeleton(skeleton_motion, namespace="kimodo_pose", auto_humanik=True, humanik_settings=None):
+def create_pose_skeleton(skeleton_motion, namespace="kimodo_pose", auto_humanik=True, humanik_settings=None,
+                         limit_body_joint_translations=True):
     """Creates an unkeyed authoring skeleton, optionally characterized for Maya HumanIK.
 
     The character can receive other animation through Maya HumanIK to author pose
@@ -1070,12 +1114,15 @@ def create_pose_skeleton(skeleton_motion, namespace="kimodo_pose", auto_humanik=
         namespace (str): Unused Maya namespace.
         auto_humanik (bool): Add a default Kimodo HumanIK definition; enabled by default.
         humanik_settings (dict, optional): Optional local characterization overrides.
+        limit_body_joint_translations (bool): Restrict non-root body-joint translations to their rest offsets.
 
     Returns:
-        dict: Imported hierarchy metadata plus humanik (character name or None).
+        dict: Imported hierarchy metadata, HumanIK name, and limited joint names.
     """
     if type(auto_humanik) is not bool:
         raise ValueError("auto_humanik must be a boolean.")
+    if type(limit_body_joint_translations) is not bool:
+        raise ValueError("limit_body_joint_translations must be a boolean.")
     if threading.current_thread() is not threading.main_thread():
         raise RuntimeError("Create pose skeletons on Maya's main thread.")
     validate_motion(skeleton_motion)
@@ -1105,6 +1152,8 @@ def create_pose_skeleton(skeleton_motion, namespace="kimodo_pose", auto_humanik=
         result["humanik"] = None
         if auto_humanik:
             result["humanik"] = create_humanik_definition(result["group"], humanik_settings)["character"]
+        result["translation_limited_joints"] = (
+            apply_body_joint_translation_limits(result["joints"]) if limit_body_joint_translations else [])
         return result
     except Exception:
         if result:
@@ -1113,6 +1162,33 @@ def create_pose_skeleton(skeleton_motion, namespace="kimodo_pose", auto_humanik=
         raise
     finally:
         cmds.undoInfo(closeChunk=True)
+
+
+def apply_body_joint_translation_limits(joints):
+    """Limits every body joint after the root to its existing local rest offset.
+
+    Args:
+        joints (list): Ordered skeleton joints, with the root joint first.
+
+    Returns:
+        list: Joint names with translation limits applied; excludes the root.
+    """
+    import maya.cmds as cmds
+
+    if not isinstance(joints, (list, tuple)) or not joints:
+        raise ValueError("Provide the ordered Kimodo joints, with its root joint first.")
+    if threading.current_thread() is not threading.main_thread():
+        raise RuntimeError("Apply joint translation limits on Maya's main thread.")
+    limited_joints = []
+    for joint in joints[1:]:
+        translation = cmds.getAttr(f"{joint}.translate")[0]
+        limits = {}
+        for axis, value in zip("XYZ", translation):
+            limits[f"translation{axis}"] = (value, value)
+            limits[f"enableTranslation{axis}"] = (True, True)
+        cmds.transformLimits(joint, **limits)
+        limited_joints.append(joint)
+    return limited_joints
 
 
 def create_humanik_definition(group, settings=None):
@@ -1130,19 +1206,31 @@ def create_humanik_definition(group, settings=None):
     return kimodo_generator_hik.create_definition(group, settings)
 
 
-def preview_pose(constraint, skeleton_motion, namespace="kimodo_pose"):
-    """Creates an editable one-frame preview from the first key of a pose.
+POSE_PREVIEW_ATTRIBUTE = "gtKimodoPosePreview"
+PATH_PREVIEW_ATTRIBUTE = "gtKimodoPathPreview"
+
+
+def preview_pose(constraint, skeleton_motion, namespace="kimodo_pose", template=True, display_name=None):
+    """Creates a tracked one-frame preview from the first key of a pose.
 
     Args:
         constraint (dict): Captured/imported pose constraint.
         skeleton_motion (dict): Matching rest skeleton from the bridge.
         namespace (str): New preview namespace.
+        template (bool): Make the preview unselectable and display it as a template.
+        display_name (str, optional): Maya-safe name for the preview's root group.
 
     Returns:
         dict: Imported preview objects.
     """
     import maya.api.OpenMaya as om
+    import maya.cmds as cmds
 
+    if type(template) is not bool:
+        raise ValueError("template must be a boolean.")
+    if display_name is not None and (not isinstance(display_name, str)
+                                     or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", display_name)):
+        raise ValueError("display_name must be a Maya-safe name.")
     validate_constraints([constraint])
     if constraint["type"] == "root2d":
         raise ValueError("Select a pose constraint to preview.")
@@ -1160,7 +1248,63 @@ def preview_pose(constraint, skeleton_motion, namespace="kimodo_pose"):
     with tempfile.TemporaryDirectory() as directory:
         path = os.path.join(directory, "pose.json")
         _write_json(path, motion)
-        return import_motion(path, namespace=namespace)
+        result = import_motion(path, namespace=namespace)
+    group = result["group"]
+    if display_name:
+        joint_names = [joint.rsplit("|", 1)[-1] for joint in result["joints"]]
+        group = cmds.rename(group, f"{namespace}:{display_name}")
+        result["group"] = group
+        descendants = cmds.listRelatives(group, allDescendents=True, type="joint", fullPath=True) or []
+        by_name = {joint.rsplit("|", 1)[-1]: joint for joint in descendants}
+        result["joints"] = [by_name[name] for name in joint_names if name in by_name]
+    cmds.addAttr(group, longName=POSE_PREVIEW_ATTRIBUTE, attributeType="bool", hidden=True)
+    cmds.setAttr(f"{group}.{POSE_PREVIEW_ATTRIBUTE}", True, lock=True, keyable=False, channelBox=False)
+    if template:
+        nodes = [group] + (cmds.listRelatives(group, allDescendents=True, fullPath=True) or [])
+        for node in nodes:
+            if cmds.attributeQuery("overrideEnabled", node=node, exists=True):
+                cmds.setAttr(f"{node}.overrideEnabled", True)
+                cmds.setAttr(f"{node}.overrideDisplayType", 1)
+    return result
+
+
+def remove_pose_previews():
+    """Deletes only pose and root-path previews created by the Kimodo tool.
+
+    Returns:
+        int: Number of preview skeleton groups removed.
+    """
+    import maya.cmds as cmds
+
+    groups = []
+    for node in cmds.ls(type="transform", long=True) or []:
+        markers = (POSE_PREVIEW_ATTRIBUTE, PATH_PREVIEW_ATTRIBUTE)
+        if any(cmds.attributeQuery(marker, node=node, exists=True)
+               and cmds.getAttr(f"{node}.{marker}") for marker in markers):
+            groups.append(node)
+    if not groups:
+        return 0
+    cmds.undoInfo(openChunk=True, chunkName="Remove Kimodo Pose Previews")
+    try:
+        cmds.delete(groups)
+    finally:
+        cmds.undoInfo(closeChunk=True)
+    return len(groups)
+
+
+def tag_path_preview(node):
+    """Marks a root-path preview transform so the cleanup action can find it.
+
+    Args:
+        node (str): Maya transform returned by ``cmds.curve``.
+    """
+    import maya.cmds as cmds
+
+    if not cmds.objExists(node) or cmds.nodeType(node) != "transform":
+        raise ValueError("A root-path preview must be a valid Maya transform.")
+    if not cmds.attributeQuery(PATH_PREVIEW_ATTRIBUTE, node=node, exists=True):
+        cmds.addAttr(node, longName=PATH_PREVIEW_ATTRIBUTE, attributeType="bool", hidden=True)
+    cmds.setAttr(f"{node}.{PATH_PREVIEW_ATTRIBUTE}", True, lock=True, keyable=False, channelBox=False)
 
 
 def _finite_array(data, dimensions, label):
@@ -1360,7 +1504,7 @@ class _KimodoBackend:
                 if len(rates) == 1:
                     metadata["fps"] = _positive_number(float(rates.pop()), "model fps")
             models.append(metadata)
-        return {"models": models, "skeleton": "somaskel77", "max_prompts": 16, "max_samples": 8,
+        return {"models": models, "skeleton": "somaskel77", "max_prompts": 16, "max_samples": 10,
                 "constraints": True, "max_duration_seconds": 120,
                 "formats": list(ARTIFACT_NAMES), "device": self.device}
 

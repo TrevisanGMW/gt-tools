@@ -1,6 +1,7 @@
 """Compact task panels for Kimodo capture and generation automation."""
 
 import json
+import math
 import os
 from functools import partial
 from gt.ui import qt_import as qt
@@ -8,8 +9,9 @@ from gt.tools.batch_processor.widgets.attr_widget_task import AttrWidgetTask
 
 
 FIELD_HELP = {
-    ("pose_source",): ("Kimodo placement group or descendant to capture. Leave blank to detect exactly one "
-                       "Kimodo skeleton; multiple matches are an error.", "Auto-detect, or kimodo_pose:motion"),
+    ("pose_source",): ("Kimodo placement group or descendant to capture. Blank auto-detects one skeleton; if "
+                       "none is found, pose constraints are skipped with a warning. Multiple matches are an error.",
+                       "Auto-detect, or kimodo_pose:motion"),
     ("range_mode",): ("Use the source's saved playback range, full animation range, or the custom start/end below. "
                       "Source scene frames are converted to zero-based model indices.", "Playback range"),
     ("start_frame",): ("Inclusive source start frame, used only with Custom range. Negative and fractional "
@@ -34,13 +36,17 @@ FIELD_HELP = {
                         ""),
     ("sample_step",): ("Source-frame spacing for evaluated marker scans. Use 1 to inspect every frame. "
                         "Does not change explicitly entered pose frames or the model FPS.", "1"),
-    ("path_nodes",): ("One Maya curve or comma-separated ordered locators for a root trajectory. Blank adds no "
-                       "path constraint. Positions are sampled at the range start in Kimodo placement space.",
-                       "root_path_curve or path_start, path_middle, path_end"),
-    ("path_frames",): ("Source frames assigned to path samples. Blank spreads Path samples across the selected range. "
-                        "For locators, the number of times must match the number of locators.", "296, 423, 648"),
-    ("path_samples",): ("Number of evenly spaced curve samples when Path frames is blank. For a locator path, "
-                         "match the locator count. Allowed range: 2–7200.", "8"),
+    ("path_nodes",): ("One NURBS curve or a comma-separated list of ordered locators. With multiple locators, "
+                       "blank Path frames automatically spaces one point per locator. To choose among curves, "
+                       "enable Random curve per variation.", "curve_path or start, mid, end"),
+    ("path_frames",): ("Optional source frames for the root path. Blank automatically spaces points across the "
+                        "capture range: one per locator, or Path samples along a curve. Explicit locator paths "
+                        "need one frame per locator.", "296, 423, 648"),
+    ("path_samples",): ("Number of evenly spaced samples for a curve when Path frames is blank. Locator lists "
+                        "automatically use one sample per locator. Allowed range: 2–7200.", "8"),
+    ("randomize_root_path",): ("Use only a list of two or more NURBS curve transforms. One curve is selected "
+                                "per definition variation. The curve list is shuffled from the first resolved seed "
+                                "and cycles before repeating; saved definitions retain their selected paths.", ""),
     ("template_path",): ("Optional Generator setup or portable definition JSON. Replaces the local model, prompts, "
                           "and generation settings below. Project path variables are supported.",
                           "Optional: {project-dir}/kimodo/setup.json"),
@@ -50,7 +56,7 @@ FIELD_HELP = {
                                  "Use Add Segment, double-click cells to edit, "
                                  "and move rows to set the action sequence.",
                                  "A person walks to a chair and sits down."),
-    ("definition", "parameters", "num_samples"): ("Independent animations generated per definition, from 1 to 8. "
+    ("definition", "parameters", "num_samples"): ("Independent animations generated per definition, from 1 to 10. "
                                                      "Each receives its own output file.", "1"),
     ("definition", "parameters", "diffusion_steps"): ("Denoising iterations, from 1 to 1000. The default is 100. "
                                                          "Very low counts are useful for smoke tests "
@@ -76,21 +82,34 @@ FIELD_HELP = {
     ("variations",): ("Resolved definition files per source scene, from 1 to 1000. This differs from Samples, "
                        "which generates multiple animations from a single definition.", "1"),
     ("seed_policy",): ("Fixed reuses Base seed; Repeatable derives a stable seed from source identity and variation; "
-                        "Random picks seeds once and saves them in the definition/recovery record.", ""),
+                        "Random chooses a new seed for each definition. Resolved seeds are saved in the JSON "
+                        "definition. Add _seed_{seed} to Filename suffix to show a seed in output names.", ""),
     ("base_seed",): ("Unsigned integer from 0 to 4294967295 used for fixed or repeatable generation. "
                       "Changing it also invalidates the definition capture cache.", "12345"),
     ("prompt_choices",): ("Optional alternative texts for the first prompt, one per line. A choice is resolved "
                            "per definition variation and saved for reproducibility.",
                            "A person sits down slowly.\nA person sits down briskly."),
-    ("variation_ranges",): ("Optional JSON min/max ranges for diffusion_steps, heading, guidance_text, "
-                             "guidance_constraints, or duration_seconds. Duration variation requires retiming.",
-                             '{"guidance_text": [1.5, 2.5]}'),
+    ("variation_ranges",): ("Check a parameter and set its minimum and maximum. A value is sampled once for each "
+                             "definition variation. Duration variation requires retiming.", ""),
     ("sequential_evaluation",): ("Step through intervening source frames before pose capture to help evaluate "
                                   "live HumanIK and other time-dependent animation.", ""),
     ("bone_offset_tolerance",): ("Maximum accepted joint-translation drift in meters, up to 0.01. Default 0.001 "
                                   "allows small HumanIK deviations; source joints are unchanged.", "0.001"),
     ("name_pattern",): ("Output filename without extension. Tokens: {source}, {variation:03d}, {seed}, "
-                         "{sample:03d}. Missing variation/sample suffixes are added when needed.", "{source}"),
+                         "{sample:03d}, {model}, {steps}, {guidance_text}, {guidance_constraints}, "
+                         "{duration}, and {prompt}. Automatic variation suffixes can be turned off below; "
+                         "sample suffixes remain when needed.",
+                         "{source}"),
+    ("filename_suffix",): ("Optional text appended to the output name. It supports the same tokens as Output name. "
+                            "For example, _seed_{seed}_steps_{steps} records the resolved seed and step count.",
+                            ""),
+    ("include_version_suffix",): ("Keep version suffixes in output names. Definition adds _v001, _v002, etc. "
+                                   "for multiple variations; Generate keeps a trailing _v### from the input "
+                                   "definition filename. Turn this off when {seed} already identifies outputs. "
+                                   "Multiple samples still receive their own _s### suffix.", ""),
+    ("purge_cache_on_success",): ("Remove this input's recovery files after successful completion. Failed jobs "
+                                   "keep their cache for retry; worker locks and output claims are stored "
+                                   "separately from the removable cache.", ""),
     ("connection", "url"): ("HTTP address of the Kimodo Bridge, accessible from the Maya worker on Windows.",
                               "http://127.0.0.1:7861"),
     ("connection", "mode"): ("Use an existing Bridge or start/reuse one in WSL or a native Python environment. "
@@ -108,9 +127,11 @@ FIELD_HELP = {
     ("connection", "start_encoder"): ("Start the text encoder with a local Bridge. Disable when the encoder "
                                          "service is already managed separately.", ""),
     ("token_environment",): ("Optional environment variable containing the Bridge access token. Enter its name, "
-                               "not the token itself. It must be available to the Maya worker.", "KIMODO_BRIDGE_TOKEN"),
+                               "not the token itself. It must be available to the Maya worker.",
+                               "KIMODO_BRIDGE_TOKEN"),
     ("result_mode",): ("Save one Maya scene per sample, optionally retain every generated artifact, or output "
-                        "only an artifact manifest. Recovery downloads are retained in .kimodo-cache.", ""),
+                        "only an artifact manifest. Recovery downloads are stored in .kimodo-cache while a job "
+                        "runs; Purge cache after success controls retention.", ""),
     ("output_extension",): ("Maya ASCII (.ma) or Maya Binary (.mb) output. Ignored for artifacts-only output.", ""),
     ("namespace",): ("Namespace for the generated skeleton in its new Maya scene. Use letters, digits, and "
                       "underscores; begin with a letter or underscore.", "kimodo"),
@@ -148,6 +169,40 @@ FIELD_HELP = {
 }
 
 
+class KimodoComboBox(qt.QtWidgets.QComboBox):
+    """Prevents wheel scrolling from changing an option while scrolling the panel."""
+
+    def wheelEvent(self, event):
+        """Ignores wheel changes so the containing settings panel can scroll instead.
+
+        Args:
+            event (QWheelEvent): Mouse wheel event.
+        """
+        event.ignore()
+
+
+def _get_numeric_range_default(value, fallback, integer=False):
+    """Converts a definition value to a safe spin-box default.
+
+    Args:
+        value (object): Requested value.
+        fallback (int or float): Value used when conversion fails.
+        integer (bool, optional): Whether to return a whole number.
+
+    Returns:
+        int or float: Finite default value.
+    """
+    try:
+        if isinstance(value, bool):
+            raise ValueError("Boolean values are not numeric range defaults.")
+        numeric_value = int(value) if integer else float(value)
+        if not math.isfinite(numeric_value):
+            raise ValueError("Numeric range defaults must be finite.")
+        return numeric_value
+    except (TypeError, ValueError, OverflowError):
+        return fallback
+
+
 class AttrWidgetKimodo(AttrWidgetTask):
     """Shared form binding for nested Kimodo task settings."""
 
@@ -160,6 +215,7 @@ class AttrWidgetKimodo(AttrWidgetTask):
         """
         super().__init__(*args, **kwargs)
         self.invalid_fields = set()
+        self.sections = {}
         self.add_common_task_settings(collapsible=False)
         self.modify_checkbox.setEnabled(False)
         self.modify_checkbox.setToolTip("Kimodo outputs always use a separate target folder.")
@@ -179,7 +235,9 @@ class AttrWidgetKimodo(AttrWidgetTask):
         Returns:
             QLayout: Section content layout.
         """
-        return self.add_collapsible_section(title, collapsed=collapsed)["content_layout"]
+        section_data = self.add_collapsible_section(title, collapsed=collapsed)
+        self.sections[title] = section_data
+        return section_data["content_layout"]
 
     def add_labeled_layout(self, label_text, label_width=110, tooltip=None, parent_layout=None):
         """Keeps labels compact while giving the remaining row width to its editor.
@@ -261,13 +319,14 @@ class AttrWidgetKimodo(AttrWidgetTask):
             self.control_extras[path] = [widgets[name] for name in ("info_button", "open_button", "browse_button")]
         elif kind == "boolean":
             if row is None:
-                row = self.add_labeled_layout(label, parent_layout=layout, tooltip=tooltip)
-            control = qt.QtWidgets.QCheckBox(label if inline_row is not None else "")
+                row = qt.QtWidgets.QHBoxLayout()
+                row.setContentsMargins(0, 0, 0, 0)
+                layout.addLayout(row)
+            control = qt.QtWidgets.QCheckBox(label)
             control.setChecked(bool(value))
             control.toggled.connect(setter)
-            row.addWidget(control)
-            if inline_row is None:
-                row.addStretch(1)
+            control.setSizePolicy(qt.QtLib.SizePolicy.Expanding, qt.QtLib.SizePolicy.Preferred)
+            row.addWidget(control, 1)
         elif kind in ("integer", "number"):
             if row is None:
                 row = self.add_labeled_layout(label, parent_layout=layout, tooltip=tooltip)
@@ -291,7 +350,7 @@ class AttrWidgetKimodo(AttrWidgetTask):
         elif kind == "choice":
             if row is None:
                 row = self.add_labeled_layout(label, parent_layout=layout, tooltip=tooltip)
-            control = qt.QtWidgets.QComboBox()
+            control = KimodoComboBox()
             for option, text in choices:
                 control.addItem(text, option)
             control.setCurrentIndex(max(0, control.findData(value)))
@@ -363,8 +422,10 @@ class AttrWidgetKimodo(AttrWidgetTask):
 
     def finish(self):
         """Adds naming, validation, and persistent status feedback."""
-        self.field(self.content_layout, "Output name", "name_pattern",
-                   tooltip="Tokens: {source}, {variation:03d}, {seed}, {sample:03d}. Default matches the input.")
+        section = self.section("Output Naming")
+        self.field(section, "Output name", "name_pattern")
+        self.field(section, "Filename suffix", "filename_suffix")
+        self.field(section, "Include version suffix", "include_version_suffix", "boolean")
         button = qt.QtWidgets.QPushButton("Validate Settings")
         button.setToolTip("Check task settings and profile paths without opening scenes or submitting generation.")
         button.clicked.connect(self.validate_settings)
@@ -375,8 +436,15 @@ class AttrWidgetKimodo(AttrWidgetTask):
         self.update_enabled_state()
 
     def validate_settings(self):
-        """Displays validation diagnostics without opening a modal dialog."""
+        """Displays diagnostics and expands each area with an error."""
         result = self.task.validate(self.project)
+        for error in result.errors:
+            if not error.startswith("[") or "]" not in error:
+                continue
+            section_name = error[1:error.find("]")]
+            section_data = self.sections.get(section_name)
+            if section_data and not section_data["button"].isChecked():
+                section_data["button"].click()
         self.status.setText("\n".join(result.errors + result.warnings) or "Settings are valid.")
 
 
@@ -391,7 +459,7 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
             **kwargs: Standard task-widget keyword arguments.
         """
         super().__init__(*args, **kwargs)
-        section = self.section("Pose Capture", False)
+        section = self.section("Pose Capture")
         self.field(section, "Skeleton", "pose_source",
                    tooltip="Group or descendant. Blank requires one Kimodo skeleton.")
         self.field(section, "Range", "range_mode", "choice", [
@@ -422,10 +490,9 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
         button.clicked.connect(self.preview_frames)
         section.addWidget(button)
         section = self.section("Root Path")
-        self.field(section, "Curve / locators", "path_nodes",
-                   tooltip="One curve or comma-separated ordered locators, sampled at the range start.")
-        self.field(section, "Path frames", "path_frames",
-                   tooltip="Scene frames. Blank spreads Path Samples over the range.")
+        self.field(section, "Curve / locator list", "path_nodes")
+        self.field(section, "Random curve per variation", "randomize_root_path", "boolean")
+        self.field(section, "Path frames", "path_frames")
         self.field(section, "Path samples", "path_samples", "integer")
         section = self.section("Generation")
         self.field(section, "Setup / definition", "template_path", "path",
@@ -460,15 +527,57 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
         self.field(section, "Seed policy", "seed_policy", "choice", [
             ("fixed", "Fixed seed"), ("per_file", "Repeatable per file / variation"), ("random", "Random")])
         self.field(section, "Base seed", "base_seed", "number")
+        seed_hint = qt.QtWidgets.QLabel(
+            "Random seeds are stored in each definition. To include one in its filename, "
+            "set Filename suffix to _seed_{seed} under Output Naming."
+        )
+        seed_hint.setWordWrap(True)
+        section.addWidget(seed_hint)
         self.field(section, "Prompt choices", "prompt_choices", "area",
                    tooltip="Optional alternatives for the first prompt, one per line.")
-        self.field(section, "Parameter ranges", "variation_ranges", "json",
-                   tooltip='Optional min/max pairs, e.g. {"guidance_text": [1.5, 2.5]}. See task documentation.')
+        from gt.tools.batch_processor.widgets.kimodo_variation_editor import KimodoVariationRangeEditor
+
+        self.variation_editor = KimodoVariationRangeEditor(
+            self.value(("variation_ranges",)), partial(self.store, ("variation_ranges",)),
+            defaults=self.get_variation_range_defaults())
+        self.variation_editor.setToolTip(FIELD_HELP[("variation_ranges",)][0])
+        self.controls[("variation_ranges",)] = self.variation_editor
+        section.addWidget(self.variation_editor)
         section = self.section("Evaluation")
         self.field(section, "Sequential stepping", "sequential_evaluation", "boolean")
         self.field(section, "Bone tolerance (m)", "bone_offset_tolerance", "number",
                    tooltip="Allowed HumanIK translation drift. Default 0.001 m; offsets normalize to model bones.")
+        section = self.section("Recovery")
+        self.field(section, "Purge cache after success", "purge_cache_on_success", "boolean")
         self.finish()
+
+    def get_variation_range_defaults(self):
+        """Gets neutral min/max defaults from the task's local definition.
+
+        Returns:
+            dict: Default bounds for each supported range, used only while unchecked.
+        """
+        definition = self.value(("definition",))
+        parameters = definition.get("parameters", {}) if isinstance(definition, dict) else {}
+        prompts = definition.get("prompts", []) if isinstance(definition, dict) else []
+        guidance = parameters.get("guidance", [2, 2])
+        if not isinstance(guidance, (list, tuple)) or len(guidance) < 2:
+            guidance = [2, 2]
+        try:
+            duration = sum(float(prompt.get("duration_seconds", 0))
+                           for prompt in prompts if isinstance(prompt, dict))
+            if not math.isfinite(duration):
+                duration = 1
+        except (TypeError, ValueError, OverflowError):
+            duration = 1
+        values = {
+            "diffusion_steps": _get_numeric_range_default(parameters.get("diffusion_steps"), 100, integer=True),
+            "heading": _get_numeric_range_default(parameters.get("heading"), 0),
+            "guidance_text": _get_numeric_range_default(guidance[0], 2),
+            "guidance_constraints": _get_numeric_range_default(guidance[1], 2),
+            "duration_seconds": duration if duration > 0 else 1,
+        }
+        return {key: [value, value] for key, value in values.items()}
 
     def update_enabled_state(self):
         """Clarifies active capture inputs and template overrides without clearing local settings."""
@@ -479,8 +588,12 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
             self.set_field_enabled(key, settings["use_marker"])
         self.set_field_enabled("sample_step", settings["use_marker"] and settings["marker_mode"] != "keyed")
         path_enabled = bool(settings["path_nodes"].strip())
+        path_nodes = [value.strip() for value in settings["path_nodes"].split(",") if value.strip()]
         self.set_field_enabled("path_frames", path_enabled)
-        self.set_field_enabled("path_samples", path_enabled and not settings["path_frames"].strip())
+        self.set_field_enabled("randomize_root_path", path_enabled)
+        curve_sampling = settings.get("randomize_root_path", False) or len(path_nodes) == 1
+        self.set_field_enabled("path_samples", path_enabled and not settings["path_frames"].strip()
+                               and curve_sampling)
         local_definition = not settings["template_path"].strip()
         for path in self.controls:
             if path[0] == "definition":
@@ -499,7 +612,9 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
             indices, count = kimodo.map_constraint_frames(result["frames"], result["start"], result["end"],
                                                     result["source_fps"], self.task.settings["model_fps"])
             prefix = "Dense capture: " if len(indices) > 64 else ""
-            self.status.setText(f"{prefix}{len(indices)} poses / {count} model frames.\n"
+            warning = result.get("group_warning")
+            warning_text = f"WARNING: {warning}\n" if warning else ""
+            self.status.setText(f"{warning_text}{prefix}{len(indices)} poses / {count} model frames.\n"
                                 f"Scene frames: {result['frames']}\nModel indices: {indices}")
         except Exception as error:
             self.status.setText(str(error))
@@ -536,7 +651,7 @@ class AttrWidgetKimodoGenerate(AttrWidgetKimodo):
         button.setToolTip("Check the configured Bridge and list available models without starting a job.")
         button.clicked.connect(self.test_connection)
         section.addWidget(button)
-        section = self.section("Results", False)
+        section = self.section("Results")
         self.field(section, "Output", "result_mode", "choice", [
             ("maya", "Maya scenes only"), ("maya_and_artifacts", "Maya scenes + all artifacts"),
             ("artifacts", "All artifacts only")])
@@ -571,6 +686,7 @@ class AttrWidgetKimodoGenerate(AttrWidgetKimodo):
         self.field(section, "Cancel on timeout", "cancel_on_timeout", "boolean", inline_row=row)
         self.field(section, "Retry failed jobs", "retry_failed", "boolean", inline_row=row)
         row.addStretch(1)
+        self.field(section, "Purge cache after success", "purge_cache_on_success", "boolean")
         self.finish()
 
     def update_enabled_state(self):

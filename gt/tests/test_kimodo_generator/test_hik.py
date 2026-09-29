@@ -140,6 +140,15 @@ class TestHumanIKMaya(unittest.TestCase):
         self.assertEqual("kimodo", pose["humanik"])
         self.assertEqual(True, self.cmds.getAttr(f"{pose['humanik']}.InputCharacterizationLock"))
         self.assertFalse(self.cmds.listConnections(pose["joints"], type="animCurve"))
+        self.assertEqual(pose["joints"][1:], pose["translation_limited_joints"])
+        for axis in "XYZ":
+            self.assertEqual([False, False], self.cmds.transformLimits(
+                pose["joints"][0], query=True, **{f"enableTranslation{axis}": True}))
+            self.assertEqual([True, True], self.cmds.transformLimits(
+                pose["joints"][1], query=True, **{f"enableTranslation{axis}": True}))
+        offset = self.cmds.getAttr(f"{pose['joints'][1]}.translateX")
+        self.cmds.setAttr(f"{pose['joints'][1]}.translateX", offset + 0.5)
+        self.assertAlmostEqual(offset, self.cmds.getAttr(f"{pose['joints'][1]}.translateX"))
         lowest = min(self.cmds.xform(joint, query=True, translation=True, worldSpace=True)[1]
                      for joint in pose["joints"])
         self.assertAlmostEqual(0, lowest, places=5)
@@ -159,6 +168,53 @@ class TestHumanIKMaya(unittest.TestCase):
         self.assertFalse(self.cmds.namespace(exists="failed_pose"))
         self.assertTrue(self.cmds.objExists(plain["group"]))
         self.assertTrue(self.cmds.objExists(self.result["group"]))
+
+    def test_python_definition_can_disable_body_translation_limits(self):
+        """Exposes the Maya joint-limit option to definition-driven Python workflows."""
+        definition = kimodo.KimodoGenerationDefinition(
+            "Walk", auto_humanik=False, limit_body_joint_translations=False)
+        pose = definition.create_pose_skeleton(self.rest_motion, namespace="unlimited_pose")
+        self.assertEqual([], pose["translation_limited_joints"])
+        for axis in "XYZ":
+            self.assertEqual([False, False], self.cmds.transformLimits(
+                pose["joints"][1], query=True, **{f"enableTranslation{axis}": True}))
+
+    def test_pose_previews_are_tracked_templateable_and_safely_removed(self):
+        """Marks only preview roots, optionally templates their hierarchy, and removes previews by tag."""
+        cmds = self.cmds
+        joint_count = len(self.rest_motion["skeleton"]["joint_names"])
+        constraint = {
+            "type": "fullbody",
+            "frame_indices": [0],
+            "root_positions": [[0, 0, 0]],
+            "local_joints_rot": [[[0, 0, 0] for unused in range(joint_count)]],
+        }
+        template = kimodo.preview_pose(
+            constraint, self.rest_motion, namespace="pose_template_test", display_name="kimodo_walk_frame_005")
+        editable = kimodo.preview_pose(constraint, self.rest_motion, namespace="pose_editable_test", template=False)
+        marker = kimodo.POSE_PREVIEW_ATTRIBUTE
+        self.assertTrue(cmds.getAttr(f"{template['group']}.{marker}"))
+        self.assertTrue(cmds.getAttr(f"{editable['group']}.{marker}"))
+        self.assertTrue(template["group"].endswith(":kimodo_walk_frame_005"))
+
+        template_nodes = [template["group"]] + (cmds.listRelatives(
+            template["group"], allDescendents=True, fullPath=True) or [])
+        self.assertTrue(template_nodes)
+        for node in template_nodes:
+            if cmds.attributeQuery("overrideEnabled", node=node, exists=True):
+                self.assertTrue(cmds.getAttr(f"{node}.overrideEnabled"), node)
+                self.assertEqual(1, cmds.getAttr(f"{node}.overrideDisplayType"), node)
+        self.assertFalse(cmds.getAttr(f"{editable['group']}.overrideEnabled"))
+
+        path_preview = cmds.createNode("transform", name="kimodo_path_preview_test")
+        kimodo.tag_path_preview(path_preview)
+
+        self.assertEqual(3, kimodo.remove_pose_previews())
+        self.assertFalse(cmds.objExists(template["group"]))
+        self.assertFalse(cmds.objExists(editable["group"]))
+        self.assertFalse(cmds.objExists(path_preview))
+        self.assertTrue(cmds.objExists(self.result["group"]))
+        self.assertEqual(0, kimodo.remove_pose_previews())
 
     def test_pose_skeleton_accepts_humanik_overrides(self):
         """Script callers can pass the same optional settings as the HumanIK tab."""

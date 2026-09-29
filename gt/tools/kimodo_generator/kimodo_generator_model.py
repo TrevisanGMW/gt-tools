@@ -137,18 +137,26 @@ class KimodoGeneratorModel:
         """Resets editable settings without deleting any files or server jobs."""
         self.connection = {"url": kimodo.DEFAULT_URL, "mode": "existing", "python_path": "",
                            "distribution": "", "device": "auto", "text_encoder_url": "http://127.0.0.1:9550",
-                           "start_encoder": True, "show_console": True}
+                           "start_encoder": True, "show_console": True, "auto_connect": False}
         self.token = ""
         self.definition = kimodo.KimodoGenerationDefinition("A person walks forward and comes to a stop.").as_dict()
+        self.prompt_durations_in_frames = False
         self.constraints = []
+        self.path_curve_samples = 4
         self.jobs = []
         self.auto_download = True
         self.auto_maya_file = True
+        self.auto_import_maya = True
+        self.auto_import_all_samples = True
+        self.auto_clear_scene = True
+        self.auto_frame_rate = True
+        self.auto_frame_range = True
         self.table_widths = {}
         self.output_directory = default_download_directory()
         self.namespace = "kimodo"
         self.start_frame = 1.0
         self.pose_group = ""
+        self.pose_previews_template = True
         self.capabilities = {}
         self.rest_motion = None
         self.humanik = humanik.default_settings()
@@ -161,10 +169,18 @@ class KimodoGeneratorModel:
         """
         return copy.deepcopy({"connection": self.connection, "definition": self.definition,
                               "constraints": self.constraints, "jobs": self.jobs,
+                              "path_curve_samples": self.path_curve_samples,
                               "output_directory": self.output_directory, "namespace": self.namespace,
                               "start_frame": self.start_frame, "humanik": self.humanik,
                               "auto_download": self.auto_download, "auto_maya_file": self.auto_maya_file,
-                              "table_widths": self.table_widths})
+                              "auto_import_maya": self.auto_import_maya,
+                              "auto_import_all_samples": self.auto_import_all_samples,
+                              "auto_frame_rate": self.auto_frame_rate,
+                              "auto_frame_range": self.auto_frame_range,
+                              "prompt_durations_in_frames": self.prompt_durations_in_frames,
+                              "auto_clear_scene": self.auto_clear_scene,
+                              "table_widths": self.table_widths,
+                              "pose_previews_template": self.pose_previews_template})
 
     def restore(self, data):
         """Validates saved data before replacing the current state.
@@ -180,6 +196,11 @@ class KimodoGeneratorModel:
         self.definition = definition
         self.humanik = hik_settings
         self.constraints = constraints
+        try:
+            path_curve_samples = int(data.get("path_curve_samples", 4))
+        except (TypeError, ValueError):
+            path_curve_samples = 4
+        self.path_curve_samples = min(max(path_curve_samples, 2), 7200)
         self.connection.update(data.get("connection", {}))
         self.connection.pop("token", None)
         self.jobs = copy.deepcopy(data.get("jobs", []))
@@ -188,6 +209,13 @@ class KimodoGeneratorModel:
             job.pop("exporting_maya", None)
         self.auto_download = bool(data.get("auto_download", True))
         self.auto_maya_file = bool(data.get("auto_maya_file", True))
+        self.auto_import_maya = bool(data.get("auto_import_maya", True))
+        self.auto_import_all_samples = bool(data.get("auto_import_all_samples", True))
+        self.auto_frame_rate = bool(data.get("auto_frame_rate", True))
+        self.auto_frame_range = bool(data.get("auto_frame_range", True))
+        self.prompt_durations_in_frames = bool(data.get("prompt_durations_in_frames", False))
+        self.auto_clear_scene = bool(data.get("auto_clear_scene", True))
+        self.pose_previews_template = bool(data.get("pose_previews_template", True))
         raw_widths = data.get("table_widths", {})
         self.table_widths = {}
         if isinstance(raw_widths, dict):
@@ -238,7 +266,9 @@ class KimodoGeneratorModel:
         Returns:
             KimodoConnection: Runtime connection settings.
         """
-        return kimodo.KimodoConnection(token=self.token or None, **self.connection)
+        settings = dict(self.connection)
+        settings.pop("auto_connect", None)
+        return kimodo.KimodoConnection(token=self.token or None, **settings)
 
     def add_constraint(self, parameters, name=None):
         """Adds a detached constraint entry with a fresh stable identity.

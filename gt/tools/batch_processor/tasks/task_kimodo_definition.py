@@ -41,7 +41,8 @@ class TaskKimodoDefinition(TaskKimodoBase):
             capture_first=True, capture_last=True, pose_frames="", use_marker=False,
             marker_attribute="kimodo_pose:motion.isConstraintPose", marker_value=1, marker_mode="evaluated",
             sample_step=1, pose_type="fullbody", sequential_evaluation=True, bone_offset_tolerance=0.001,
-            path_nodes="", path_frames="", path_samples=8, model_fps=30, duration_mode="source",
+            path_nodes="", path_frames="", path_samples=8, randomize_root_path=False,
+            model_fps=30, duration_mode="source",
             retime_constraints=False, constraint_mode="replace", variations=1, seed_policy="per_file",
             base_seed=12345, variation_ranges="{}", prompt_choices="", output_extension=".json",
         )
@@ -69,44 +70,75 @@ class TaskKimodoDefinition(TaskKimodoBase):
             ValidationResult: Collected diagnostics.
         """
         result = super().validate(project)
+        area = "Generation"
         try:
             definition = self.base_definition(project)
-            kimodo.parse_scene_frames(self.settings["pose_frames"])
-            kimodo.parse_scene_frames(self.settings["path_frames"])
-            if not 1 <= int(self.settings["variations"]) <= 1000:
-                raise ValueError("Choose 1 through 1000 definitions per source.")
+
             if float(self.settings["model_fps"]) <= 0:
                 raise ValueError("Model FPS must be positive.")
-            for key in ("model_fps", "sample_step", "bone_offset_tolerance"):
-                kimodo._positive_number(float(self.settings[key]), key)
-            if float(self.settings["bone_offset_tolerance"]) > 0.01:
-                raise ValueError("Bone tolerance cannot exceed 0.01 meters.")
+            kimodo._positive_number(float(self.settings["model_fps"]), "model_fps")
+            for key, allowed in (("duration_mode", ("source", "definition")),
+                                 ("constraint_mode", ("replace", "append"))):
+                if self.settings[key] not in allowed:
+                    raise ValueError(f"Invalid {key}.")
+
+            area = "Pose Capture"
+            kimodo.parse_scene_frames(self.settings["pose_frames"])
             if self.settings["use_marker"] and not self.settings["marker_attribute"].strip():
                 raise ValueError("Provide a marker attribute when marker capture is enabled.")
             if self.settings["range_mode"] == "custom":
                 select_frames(float(self.settings["start_frame"]), float(self.settings["end_frame"]))
             for key, allowed in (("range_mode", ("playback", "animation", "custom")),
-                                 ("duration_mode", ("source", "definition")),
-                                 ("constraint_mode", ("replace", "append")),
                                  ("marker_mode", ("evaluated", "keyed", "rising"))):
                 if self.settings[key] not in allowed:
                     raise ValueError(f"Invalid {key}.")
+
+            area = "Root Path"
+            path_frames = kimodo.parse_scene_frames(self.settings["path_frames"])
+            path_nodes = [value.strip() for value in self.settings["path_nodes"].split(",") if value.strip()]
+            if path_nodes and path_frames and len(path_frames) < 2:
+                raise ValueError("A root path needs at least two destination frames.")
+            if not isinstance(self.settings.get("randomize_root_path", False), bool):
+                raise ValueError("Random curve selection must be enabled or disabled.")
+            if self.settings["randomize_root_path"] and len(path_nodes) < 2:
+                raise ValueError("Random curve selection requires at least two curve transforms.")
+            if path_nodes and (self.settings["randomize_root_path"] or len(path_nodes) == 1):
+                path_samples = int(self.settings["path_samples"])
+                if not 2 <= path_samples <= 7200:
+                    raise ValueError("Curve path samples must be from 2 through 7200.")
+            elif len(path_nodes) > 1 and path_frames and len(path_frames) != len(path_nodes):
+                raise ValueError("Enter one Path frame per locator, or leave Path frames blank to space them evenly.")
+
+            area = "Pose Capture"
+            kimodo._positive_number(float(self.settings["sample_step"]), "sample_step")
+
+            area = "Evaluation"
+            kimodo._positive_number(float(self.settings["bone_offset_tolerance"]), "bone_offset_tolerance")
+            if float(self.settings["bone_offset_tolerance"]) > 0.01:
+                raise ValueError("Bone tolerance cannot exceed 0.01 meters.")
+
+            area = "Variations"
+            if not 1 <= int(self.settings["variations"]) <= 1000:
+                raise ValueError("Choose 1 through 1000 definitions per source.")
             ranges = self.settings["variation_ranges"]
             ranges = json.loads(ranges) if isinstance(ranges, str) else ranges
             if "duration_seconds" in ranges and not self.settings["retime_constraints"]:
                 raise ValueError("Duration variation requires Retime Constraints.")
             vary_definition(definition, self.settings, "validation", 1)
         except (ValueError, TypeError, KeyError, OSError) as error:
-            result.add_error(str(error))
+            self.add_area_error(result, area, error)
+        if not isinstance(self.settings.get("purge_cache_on_success", True), bool):
+            self.add_area_error(result, "Recovery", "Purge cache after success must be enabled or disabled.")
         return result
 
-    def build_definitions(self, captured, definition, identity):
+    def build_definitions(self, captured, definition, identity, report=None):
         """Applies timing, captured constraints, and deterministic variations.
 
         Args:
             captured (dict): Evaluated poses and source timing.
             definition (dict): Base generation request.
             identity (str): Stable source identity.
+            report (callable, optional): Status reporter for selected curve paths.
 
         Returns:
             list: Fully resolved definitions.
@@ -115,8 +147,24 @@ class TaskKimodoDefinition(TaskKimodoBase):
         fps = float(self.settings["model_fps"])
         ranges = self.settings["variation_ranges"]
         ranges = json.loads(ranges) if isinstance(ranges, str) else ranges
-        for variation in range(1, int(self.settings["variations"]) + 1):
-            resolved = vary_definition(definition, self.settings, identity, variation)
+        variations = [vary_definition(definition, self.settings, identity, variation)
+                      for variation in range(1, int(self.settings["variations"]) + 1)]
+        path_options = captured.get("path_options") or []
+        if path_options:
+            path_options = list(path_options)
+            first_seed = variations[0]["parameters"]["seed"]
+            path_rng_seed = int(fingerprint([
+                first_seed, [option["name"] for option in path_options], "root-path-cycle",
+            ])[:8], 16)
+            random.Random(path_rng_seed).shuffle(path_options)
+        for variation, resolved in enumerate(variations, 1):
+            path = captured["path"]
+            if path_options:
+                selected_path = path_options[(variation - 1) % len(path_options)]
+                path = selected_path["constraint"]
+                if report:
+                    report(f"Variation {variation} (seed {resolved['parameters']['seed']}) uses root path: "
+                           f"{selected_path['name']}")
             original_count = sum(int(prompt["duration_seconds"] * fps) for prompt in definition["prompts"])
             requested = None
             if self.settings["duration_mode"] == "definition" or "duration_seconds" in ranges:
@@ -136,7 +184,7 @@ class TaskKimodoDefinition(TaskKimodoBase):
                 for constraint in constraints:
                     constraint["frame_indices"], unused_count = kimodo.map_constraint_frames(
                         constraint["frame_indices"], 0, original_count - 1, fps, fps, count)
-            if len(captured["poses"]) + len(constraints) + bool(captured["path"]) > 256:
+            if len(captured["poses"]) + len(constraints) + bool(path) > 256:
                 packed = {"type": self.settings["pose_type"], "frame_indices": indices}
                 for key in captured["poses"][0]:
                     if key not in ("type", "frame_indices"):
@@ -145,10 +193,11 @@ class TaskKimodoDefinition(TaskKimodoBase):
             else:
                 for pose, index in zip(captured["poses"], indices):
                     constraints.append(dict(copy.deepcopy(pose), frame_indices=[index]))
-            if captured["path"]:
+            if path:
                 path_indices, unused_count = kimodo.map_constraint_frames(
-                    captured["path_frames"], captured["start"], captured["end"], captured["source_fps"], fps, requested)
-                constraints.append(dict(copy.deepcopy(captured["path"]), frame_indices=path_indices))
+                    captured["path_frames"], captured["start"], captured["end"],
+                    captured["source_fps"], fps, requested)
+                constraints.append(dict(copy.deepcopy(path), frame_indices=path_indices))
             resolved["constraints"] = constraints
             kimodo.validate_constraints(constraints, count)
             definitions.append(kimodo.KimodoGenerationDefinition.from_dict(resolved).as_dict())
@@ -176,40 +225,52 @@ class TaskKimodoDefinition(TaskKimodoBase):
         definition = self.base_definition(project)
         stat = os.stat(work_item.current_path)
         signature = fingerprint([self.settings, definition, stat.st_size, stat.st_mtime_ns])
-        with ClipSnapshotFileLock(record_path, timeout_seconds=3600):
-            record = read_json(record_path) if os.path.isfile(record_path) else {}
-            if record.get("signature") != signature:
-                cmds = batch_processor_maya.get_maya_cmds()
-                cmds.file(work_item.current_path, open=True, force=True, executeScriptNodes=False, prompt=False)
-                captured = capture_scene(self.settings, report)
-                identity = base.get_work_item_relative_path(work_item) or work_item.current_path
-                definitions = self.build_definitions(captured, definition, identity)
-                record = {"signature": signature, "source": work_item.current_path, "definitions": definitions,
-                          "source_frames": captured["frames"], "source_start": captured["start"],
-                          "source_end": captured["end"], "source_fps": captured["source_fps"],
-                          "model_fps": float(self.settings["model_fps"])}
-                write_record(record_path, record)
-            paths = [self.output_path(work_item, step_output_dir, variation=index,
-                                      seed=value["parameters"]["seed"])
-                     for index, value in enumerate(record["definitions"], 1)]
-            if len({os.path.normcase(path) for path in paths}) != len(paths):
-                raise ValueError("Definition output names collide.")
-            self.reserve_outputs(work_item, paths, step_output_dir)
-            items = []
-            skipped = 0
-            for path, resolved in zip(paths, record["definitions"]):
-                if os.path.exists(path) and not self.settings["overwrite"]:
-                    kimodo.normalize_definition(read_json(path))
-                    report(f"Skipped existing definition: {path}")
-                    skipped += 1
-                else:
-                    resolved["name"] = os.path.splitext(os.path.basename(path))[0]
-                    write_record(path, resolved)
-                    report(f"Saved definition: {path}")
-                items.append(self.output_item(work_item, path, dict(
-                    manifest=record_path, model_fps=record["model_fps"], source_frames=record["source_frames"])))
-            if skipped == len(items):
-                raise base.TaskSkip("All Kimodo definitions already exist.", work_item=items)
+        with self.recovery_lock(work_item, step_output_dir, timeout_seconds=3600):
+            try:
+                with ClipSnapshotFileLock(record_path, timeout_seconds=3600):
+                    record = read_json(record_path) if os.path.isfile(record_path) else {}
+                    if record.get("signature") != signature:
+                        cmds = batch_processor_maya.get_maya_cmds()
+                        cmds.file(work_item.current_path, open=True, force=True,
+                                  executeScriptNodes=False, prompt=False)
+                        captured = capture_scene(self.settings, report)
+                        identity = base.get_work_item_relative_path(work_item) or work_item.current_path
+                        definitions = self.build_definitions(captured, definition, identity, report=report)
+                        record = {"signature": signature, "source": work_item.current_path, "definitions": definitions,
+                                  "source_frames": captured["frames"], "source_start": captured["start"],
+                                  "source_end": captured["end"], "source_fps": captured["source_fps"],
+                                  "model_fps": float(self.settings["model_fps"]),
+                                  "group_warning": captured.get("group_warning")}
+                        write_record(record_path, record)
+                    if record.get("group_warning"):
+                        report(f"[WARNING] {record['group_warning']}")
+                    paths = [self.output_path(work_item, step_output_dir, variation=index,
+                                              seed=value["parameters"]["seed"], definition=value)
+                             for index, value in enumerate(record["definitions"], 1)]
+                    if len({os.path.normcase(path) for path in paths}) != len(paths):
+                        raise ValueError("Definition output names collide.")
+                    self.reserve_outputs(work_item, paths, step_output_dir)
+                    items = []
+                    skipped = 0
+                    for path, resolved in zip(paths, record["definitions"]):
+                        if os.path.exists(path) and not self.settings["overwrite"]:
+                            kimodo.normalize_definition(read_json(path))
+                            report(f"Skipped existing definition: {path}")
+                            skipped += 1
+                        else:
+                            resolved["name"] = os.path.splitext(os.path.basename(path))[0]
+                            write_record(path, resolved)
+                            report(f"Saved definition: {path}")
+                        metadata = {"model_fps": record["model_fps"], "source_frames": record["source_frames"]}
+                        if not self.settings.get("purge_cache_on_success", True):
+                            metadata["manifest"] = record_path
+                        items.append(self.output_item(work_item, path, metadata))
+                    if skipped == len(items):
+                        raise base.TaskSkip("All Kimodo definitions already exist.", work_item=items)
+            except base.TaskSkip:
+                self.cleanup_recovery_cache(work_item, step_output_dir, cache, context)
+                raise
+            self.cleanup_recovery_cache(work_item, step_output_dir, cache, context)
             return items
 
 
@@ -307,7 +368,7 @@ def resolve_group(requested):
         requested (str): Group or descendant name; empty enables unique detection.
 
     Returns:
-        str: Full path of a Kimodo placement group.
+        str or None: Full path of a Kimodo placement group, or None when auto-detect finds none.
     """
     import maya.cmds as cmds
 
@@ -315,6 +376,8 @@ def resolve_group(requested):
         matches = cmds.ls(requested, long=True) or []
     else:
         matches = cmds.ls("*.kimodoSkeleton", objectsOnly=True, long=True, recursive=True) or []
+    if not matches and not requested:
+        return None
     if len(matches) != 1:
         raise ValueError(f"Expected one Kimodo skeleton; found {len(matches)} for '{requested or 'auto-detect'}'.")
     return kimodo.find_pose_group(matches[0])
@@ -359,7 +422,12 @@ def resolve_frames(settings):
     import maya.cmds as cmds
     import maya.api.OpenMaya as om
 
-    group = resolve_group(settings["pose_source"])
+    pose_source = settings.get("pose_source") or ""
+    group = resolve_group(pose_source)
+    group_warning = None
+    if group is None:
+        group_warning = ("No Kimodo skeleton was found for auto-detect. Pose constraints will not be "
+                         "captured or used.")
     start, end = scene_range(settings)
     select_frames(start, end)
     step = float(settings["sample_step"])
@@ -369,7 +437,7 @@ def resolve_frames(settings):
     markers = []
     try:
         attribute = settings["marker_attribute"].strip()
-        if settings["use_marker"]:
+        if group and settings["use_marker"]:
             if not cmds.objExists(attribute):
                 raise ValueError(f"Pose marker attribute does not exist: {attribute}")
             if settings["marker_mode"] == "keyed":
@@ -386,10 +454,11 @@ def resolve_frames(settings):
                     raise ValueError("Pose marker must evaluate to a scalar numeric or boolean value.")
                 markers.append((frame, abs(float(value) - float(settings["marker_value"])) <= 0.000001))
         frames = select_frames(start, end, kimodo.parse_scene_frames(settings["pose_frames"]),
-                                    settings["capture_first"], settings["capture_last"], markers,
-                                    settings["marker_mode"])
+                               settings["capture_first"], settings["capture_last"], markers,
+                               settings["marker_mode"]) if group else []
         return {"group": group, "start": start, "end": end, "frames": frames,
-                "source_fps": om.MTime(1, om.MTime.kSeconds).asUnits(om.MTime.uiUnit())}
+                "source_fps": om.MTime(1, om.MTime.kSeconds).asUnits(om.MTime.uiUnit()),
+                "group_warning": group_warning}
     finally:
         cmds.currentTime(previous_time, edit=True, update=True)
 
@@ -402,7 +471,7 @@ def capture_scene(settings, report):
         report (callable): Status reporter.
 
     Returns:
-        dict: Capture metadata, poses, and optional root path with source times.
+        dict: Capture metadata, poses, and optional root path choices with source times.
     """
     import maya.cmds as cmds
 
@@ -425,24 +494,52 @@ def capture_scene(settings, report):
                                               float(settings["bone_offset_tolerance"])))
             previous = frame
         path = None
+        path_options = []
         path_frames = []
         if settings["path_nodes"].strip():
             nodes = [value.strip() for value in settings["path_nodes"].split(",") if value.strip()]
-            for node in nodes:
-                if len(cmds.ls(node, long=True) or []) != 1:
-                    raise ValueError(f"Root path node is missing or ambiguous: {node}")
+            resolved_nodes = []
+            curve_flags = []
+            for requested_node in nodes:
+                matches = cmds.ls(requested_node, long=True) or []
+                if len(matches) != 1:
+                    raise ValueError(f"Root path node is missing or ambiguous: {requested_node}")
+                node = matches[0]
+                resolved_nodes.append(node)
+                shapes = cmds.listRelatives(node, shapes=True, fullPath=True) or []
+                curve_flags.append(any(cmds.nodeType(shape) == "nurbsCurve" for shape in shapes))
+            randomize_path = settings.get("randomize_root_path", False)
+            if randomize_path and (len(resolved_nodes) < 2 or not all(curve_flags)):
+                raise ValueError("Random curve selection requires two or more NURBS curve transforms only.")
+            if not randomize_path and len(resolved_nodes) > 1 and any(curve_flags):
+                raise ValueError("Use one curve, or enable Random curve per variation for a curve list.")
+            if not randomize_path and len(resolved_nodes) == 1 and not curve_flags[0]:
+                raise ValueError("A locator path needs at least two locators; one path node must be a NURBS curve.")
+
+            sample_curves = randomize_path or (len(resolved_nodes) == 1 and curve_flags[0])
             path_frames = kimodo.parse_scene_frames(settings["path_frames"])
             if not path_frames:
-                count = int(settings["path_samples"])
+                count = int(settings["path_samples"]) if sample_curves else len(resolved_nodes)
                 if not 2 <= count <= 7200:
                     raise ValueError("Root path sample count must be from 2 through 7200.")
                 path_frames = [resolved["start"] + index * (resolved["end"] - resolved["start"]) / (count - 1)
                                for index in range(count)]
+            elif not sample_curves and len(path_frames) != len(resolved_nodes):
+                raise ValueError("Enter one Path frame per locator, or leave Path frames blank to space them evenly.")
             if any(frame < resolved["start"] or frame > resolved["end"] for frame in path_frames):
                 raise ValueError("Root path frames must be inside the capture range.")
+            if len(path_frames) < 2:
+                raise ValueError("A root path needs at least two destination frames.")
             cmds.currentTime(resolved["start"], edit=True, update=True)
-            path = kimodo.capture_root_path(nodes, list(range(len(path_frames))), resolved["group"])
-        resolved.update(poses=poses, path=path, path_frames=path_frames)
+            if randomize_path:
+                for node in resolved_nodes:
+                    constraint = kimodo.capture_root_path([node], list(range(len(path_frames))), resolved["group"])
+                    path_options.append({"name": node, "constraint": constraint})
+            elif sample_curves:
+                path = kimodo.capture_root_path(resolved_nodes, list(range(len(path_frames))), resolved["group"])
+            else:
+                path = kimodo.capture_root_path(resolved_nodes, list(range(len(path_frames))), resolved["group"])
+        resolved.update(poses=poses, path=path, path_options=path_options, path_frames=path_frames)
         return resolved
     finally:
         cmds.currentTime(current_time, edit=True, update=True)

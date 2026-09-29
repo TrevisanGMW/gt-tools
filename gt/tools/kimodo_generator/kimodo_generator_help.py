@@ -22,6 +22,9 @@ ACTION_TOOLTIPS = {
                          "animation and a locked HumanIK source definition using HumanIK tab overrides or Kimodo "
                          "defaults. Saves beside motion JSON files; never changes your open scene or overwrites "
                          "existing/edited scenes. Also retries failed exports and repairs missing exported scenes.",
+    "import_maya_file": "Import the selected job's generated .ma file into the current Maya scene. This does not "
+                        "clear the scene; use the automatic processing options to force-clear before an automatic "
+                        "import. For multi-sample jobs, the selected sample is imported when available.",
     "print_server_location": "Query the selected job's bridge and print its actual server-side directory to Maya's "
                              "Script Editor and the status field. WSL returns a Linux path; native Windows returns "
                              "a Windows path. This is not the local download folder. Requires an updated bridge.",
@@ -31,6 +34,11 @@ ACTION_TOOLTIPS = {
     "clear_history": "Clear all tracked jobs after confirmation. Active jobs are cancelled first; their history "
                      "stays until they stop and cleanup succeeds. Choose server/WSL deletion and optional local "
                      "artifact deletion. Uncheck both for history-only removal. File deletion is permanent.",
+    "delete_server_files": "Permanently delete server-side job records and folders for completed jobs associated "
+                           "with the bridge URL currently shown in Connection. Maya asks for confirmation first. "
+                           "Active jobs are not "
+                           "deleted, local downloads and Maya scenes are untouched, and the job-history rows remain "
+                           "available for reference. This only affects this bridge's managed job directory.",
     "hik_export_pose": "Export the selected Kimodo source's CURRENT pose as a complete .pose JSON and set it as "
                        "the T-pose override. First pose the skeleton in a valid T-pose. Clears Reference Frame. "
                        "This exports the current pose, not automatically the default Kimodo T-pose.",
@@ -45,6 +53,9 @@ ACTION_TOOLTIPS = {
     "load_setup": "Load a saved Kimodo setup or generation definition JSON. Replaces the editable prompts and "
                   "constraints; it does not open a Maya scene or submit a job. Save your current setup first "
         "if needed.",
+    "load_default_setup": "Reset generation prompts, sampling and import options, HumanIK overrides, and constraints "
+                          "to their defaults while preserving the current bridge URL, launch mode, Kimodo Python, "
+                          "WSL distribution, token, and job history. No Maya scene or server files are changed.",
     "save_setup": "Save prompts, sampling settings, and named pose/path constraints to JSON for reuse. "
                   "This does not save the Maya scene, connection credentials, or generated animations.",
     "connect": "Check the bridge and load its model list and SOMA pose skeleton. If no server is reachable, Start "
@@ -68,6 +79,9 @@ ACTION_TOOLTIPS = {
                       "Track this download in Results; this is separate from downloading generated clips to Maya.",
     "add_prompt": "Append another text-and-duration segment. Segments run in table order; describe the next "
         "action here.",
+    "randomize_seed": "Choose a new unsigned 32-bit seed from 0 to 4294967295. The value is placed in the Seed "
+                      "field and used by the next generation request; keep it to reproduce a request on the same "
+                      "model and runtime.",
     "remove_prompt": "Remove the selected prompt row. At least one row is retained. This does not modify "
         "submitted jobs.",
     "prompt_up": "Move the selected segment earlier in the sequence, preserving its text and duration.",
@@ -92,16 +106,28 @@ ACTION_TOOLTIPS = {
     "preview_pose": "Select a stored body/hand/foot constraint and create a separate preview skeleton from "
         "its saved pose. "
                     "Connect first to load the reference skeleton. Previewing does not replace the authoring "
-        "skeleton.",
+        "skeleton. Its Outliner name includes the constraint name and first clip frame.",
+    "preview_all_constraints": "Create one Maya preview for every constraint row: pose rows create tagged skeletons, "
+                               "and root paths create tagged curves. Disabled rows are included so you can inspect "
+                               "them too. Pose preview names include the constraint name and first clip frame. "
+                               "Connect first if any pose rows are present.",
+    "remove_pose_previews": "Delete all pose skeleton and root-path curve previews created by this tool. Each "
+                            "preview has a private Maya attribute for safe identification, so the authoring skeleton, "
+                            "imported animation, and other scene objects are left untouched. The action is undoable.",
+    "remove_all_constraints": "After confirmation, remove every pose and root-path row from the current setup. "
+                              "The setup is saved immediately. This does not delete preview objects already in the "
+                              "Maya scene; use Remove All Previews for those.",
     "duplicate_constraint": "Copy the selected constraint with a fresh identity. Its first key moves to the "
         "Clip frame "
                             "field; spacing between remaining keys is preserved. Retiming can avoid "
         "duplicate-key warnings.",
     "remove_constraint": "Remove the selected constraint row from this setup. This does not delete Maya "
         "objects or JSON files.",
-    "capture_path": "Select one locator per listed frame, in order, or select one NURBS curve. A curve is sampled at "
-                    "equal arc-length intervals. Positions become ground-plane root constraints in the pose source's "
-                    "placement space, or converted Maya world space if no source is assigned.",
+    "capture_path": "Capture selected Maya transforms as a root trajectory: select one locator/transform per listed "
+                    "frame in order, or select one NURBS curve transform. Curves are sampled at equal arc-length "
+                    "intervals. When Root path frames is blank, Curve samples controls how many points are distributed "
+                    "across the clip; explicit frames determine the sample count instead. Positions become ground-plane "
+                    "root constraints in the pose source's placement space, or Maya world space if no source is assigned.",
     "import_constraints": "Append native Kimodo/demo constraint JSON, or the constraints from a generation "
         "definition. "
                           "Multi-key entries become separately editable rows. Source files are never changed.",
@@ -125,10 +151,11 @@ ACTION_TOOLTIPS = {
     "browse_output": "Choose where generated clips are downloaded on this computer. The selection is saved "
         "immediately "
                      "in GT preferences and reused next time. Changing it does not move or delete previous downloads.",
-    "use_cache": "Use PackageCache/kimodo/downloads as the download destination and save that choice immediately. "
+    "use_cache": "Reset the download destination to PackageCache/kimodo/downloads and save that choice immediately. "
                  "This changes the target folder only; it does not clear the cache or remove previous results.",
-    "open_folder": "Select a job whose results have already been downloaded, then open that job's local folder. "
-                   "If you have not downloaded it yet, click Download Results first.",
+    "open_folder": "Open the selected job's local folder after its results have been downloaded. If no job is "
+                   "selected, open the configured Download Folder and show a warning so you know the fallback was used. "
+                   "A missing Download Folder is created before opening.",
     "create_humanik": "Select one Kimodo group or joint; with no selection, use the current pose source "
                       "or latest import. "
                       "Create a native HumanIK character using the SOMA77 mapping and rest T-pose, then restore "
@@ -142,6 +169,13 @@ ACTION_TOOLTIPS = {
                        "unless a reference frame is supplied.",
 }
 
+TABLE_ACTION_TOOLTIPS = {
+    "preview_root_path": "Select a root-path constraint and create a Maya curve showing its stored path in the "
+                         "generation plane. When a pose source is assigned, the preview is parented beneath its "
+                         "placement group so the curve appears in the same space used during capture. The saved "
+                         "constraint and source animation are not changed.",
+}
+
 CONTROL_TOOLTIPS = {
     "auto_maya_file": "Enabled by default and saved in preferences. After a job is downloaded, create one .ma per "
                       "sample beside its JSON file, with animation at its native FPS starting at frame 1 and a "
@@ -153,10 +187,42 @@ CONTROL_TOOLTIPS = {
                      "configured folder while this window is open. Status becomes Downloaded after verification. "
                      "Missing files are flagged; use Download Results to repair them. Failed automatic downloads "
                      "require a manual retry, and model-download jobs are excluded. Saved in preferences.",
+    "auto_import_maya": "Enabled by default and saved in preferences. After Auto-create Maya + HumanIK finishes, "
+                        "import the generated .ma file(s) into the current scene. Import all samples controls whether "
+                        "a multi-sample job imports every alternative or only the selected/first sample. Optional "
+                        "timing adjustments match Maya's scene frame-rate and playback range. Force-clear runs once "
+                        "before automatic import when enabled.",
+    "auto_import_all_samples": "Checked by default and saved in preferences. With Auto-import Maya file enabled, "
+                               "import every generated sample from the job into the same Maya scene, each under a "
+                               "distinct namespace. Force-clear runs once before the group of imports. Uncheck to "
+                               "import only the selected sample, or the first sample when none is selected.",
+    "auto_clear_scene": "Off by default and saved in preferences. Applies only to automatic Maya imports. When "
+                        "enabled, the tool force-creates a new scene immediately before importing the generated .ma, "
+                        "without prompting to save. This discards unsaved scene contents; enable only when that is "
+                        "the intended workflow. It is disabled when Auto-import Maya file is off.",
+    "auto_frame_rate": "Enabled by default and saved in preferences. On automatic Maya-file import, set the open "
+                       "Maya scene's time unit to the generated motion's FPS. Existing keyframe numbers are kept "
+                       "unchanged, so this changes their real-time interpretation; enable only when the scene should "
+                       "use the generated clip's rate. Disabled unless Auto-import Maya file is checked.",
+    "auto_frame_range": "Enabled by default and saved in preferences. On automatic Maya-file import, set Maya's "
+                        "playback and animation range to frames 1 through the generated motion's frame count. Other "
+                        "scene content is not deleted unless Force-clear scene before import is also enabled. "
+                        "Disabled unless Auto-import Maya file is checked.",
     "auto_humanik": "Enabled by default: Create Pose Skeleton also adds a Kimodo HumanIK definition, using any "
                     "overrides in the HumanIK tab. You can then use Maya HumanIK to feed other animations to this "
                     "skeleton and capture desired poses. Disable for a plain editable skeleton. This local option "
                     "is saved with your definition and preferences; it does not change server generation.",
+    "limit_body_joint_translations": "Enabled by default. On Create Pose Skeleton, set Maya translation limits on "
+                                     "each non-root body joint to its current rest offset; the root remains free for "
+                                     "motion. This prevents moving a bone or HumanIK from changing its offset and "
+                                     "triggering the pose-capture warning. Rotate joints to pose them. Saved with the "
+                                     "generation definition and available as a Python definition option. This only "
+                                     "affects skeletons created with this tool; Use Selected Skeleton is not changed.",
+    "template_pose_previews": "Enabled by default. Preview Pose creates the preview skeleton as a Maya template, "
+                              "so it displays distinctly and cannot be selected or mistaken for the animated "
+                              "authoring skeleton. Disable this if you need to select or edit preview joints. "
+                              "Every preview is tracked either way, so Remove All Previews only deletes previews "
+                              "created by this tool. Saved in preferences.",
     "hik_name": "Leave blank to automatically name the default Kimodo definition kimodo. If a node or namespace "
                 "already uses that name, use kimodo1, kimodo2, etc. A supplied name overrides the default; "
                 "existing nodes are never replaced.",
@@ -198,22 +264,36 @@ CONTROL_TOOLTIPS = {
                     "the bridge runs. Closing that window stops the bridge. Disable this for a hidden background "
                     "process; startup output is then written to the log path shown in Bridge status. This setting "
                     "does not affect an already-running bridge or Connect to existing bridge.",
+    "auto_connect": "When enabled, the tool runs the same action as Connect / Start after it opens. Existing mode "
+                    "tests the configured URL; WSL and Windows modes start the selected local bridge if needed. "
+                    "Connection failures are reported in the tool status and can be retried manually. This setting "
+                    "is saved in preferences and defaults off.",
     "model": "Motion model advertised by the connected Kimodo installation. Select a model compatible with your pose "
              "constraints; the authoring skeleton is SOMA77. A cached configuration does not guarantee all weights "
              "are present. Missing weights may download on first use.",
     "prompts": "Double-click cells to edit durations and motion descriptions. Rows execute in order; punctuation does "
                "not split a row. Up to 16 segments, 30 seconds each, 120 seconds total. Each segment must be longer "
                "than the advanced transition overlap at the model's sample rate. Right-click for add, duplicate, "
-               "copy, paste, reorder, and remove actions.",
+               "copy, paste, reorder, and remove actions. Enable Enter durations in frames to type integer model "
+               "frames; the selected model's FPS converts them to seconds for the API. Stored setup values remain "
+               "seconds.",
+    "prompt_frames": "When checked, the first prompt column accepts whole frame counts and displays Frames. Values "
+                     "are converted to seconds using the selected model's advertised FPS (30 FPS if unavailable) "
+                     "before validation and submission. Switching models preserves the prompt durations in seconds "
+                     "and updates their displayed frame counts. When unchecked, values are seconds as before. This "
+                     "choice is saved in preferences; setup/API definitions continue to store seconds.",
     "seed": "Unsigned integer seed from 0 to 4294967295. Leave blank to choose a random seed, recorded in Results. "
             "A fixed seed helps repeat a request; different hardware/model versions can still produce differences.",
-    "samples": "Number of alternative clips generated by one request, from 1 to 8. Higher values use more memory. "
-               "Download the completed job, then choose an individual sample on the Results tab.",
+    "samples": "Number of alternative clips generated by one request, from 1 to 10, matching Kimodo's demo limit. "
+               "Higher values use more memory. "
+               "Download the completed job, then choose a sample for manual import; Automatic Processing can import "
+               "every sample into the same scene.",
     "steps": "Number of diffusion/denoising steps, from 1 to 1000. More steps take longer and may improve refinement. "
              "The default 100 follows the current integration's sampling settings.",
     "postprocess": "Apply Kimodo's foot cleanup and constraint post-processing after generation. Disable to inspect "
                    "the model's unprocessed motion. This happens on the bridge, before Maya import.",
-    "advanced": "Expand additional sampling controls. Collapsing this area does not reset their values.",
+    "advanced": "Expand optional generation controls, including foot cleanup, text and constraint guidance, "
+                "transition overlap, and initial heading. Collapsing this area keeps its current values.",
     "text_guidance": "Text guidance weight, from 0 to 20; default 2. Larger values push generation toward the prompt "
                      "but can affect motion quality. This is the first separated-guidance weight.",
     "constraint_guidance": "Constraint guidance weight, from 0 to 20; default 2. Controls the strength of pose/path "
@@ -234,17 +314,28 @@ CONTROL_TOOLTIPS = {
     "pose_kind": "Choose full-body, left/right hand, or left/right foot conditioning. All modes capture a compatible "
                  "skeleton pose; Kimodo uses the relevant joint positions. These are not arbitrary "
         "rig-control targets.",
-    "pose_frame": "Destination frame within the generated clip, starting at 1. Capture stores Maya's current "
-                  "evaluated pose at this clip frame. For a four-second 30 FPS SOMA clip, frames run from 1 to 120. "
-                  "Duplicate uses this field to place the copied constraint's first key.",
+    "pose_frame": "Destination frame within the generated clip, starting at 1. Capture stores the skeleton's "
+                  "currently evaluated Maya pose at this clip frame; it does not change Maya's current time. "
+                  "Right-click this number and choose Set Clip Frame to Current Maya Frame to query Maya's timeline "
+                  "time and copy its nearest whole frame here. For a four-second 30 FPS SOMA clip, frames run from "
+                  "1 to 120. Duplicate uses this field to place the copied constraint's first key.",
     "constraints": "Use toggles whether a row is sent to Kimodo. Double-click Clip frame(s) or Name to edit. "
                    "Frames are one-based here and zero-based in JSON. Right-click to preview, enable, change the "
                    "pose type, duplicate, copy, paste, remove, or exchange constraint JSON. Root paths cannot "
                    "change pose type. Duplicate channel/frame constraints are "
                    "rejected.",
-    "path_frames": "Comma-separated destination clip frames, for example 1, 30, 60, 90. Select one locator for each "
-                   "frame, or a single curve to sample evenly along its length. Frame spacing determines speed; "
-                   "root paths constrain the ground plane, not height.",
+    "path_frames": "Optional comma-separated destination clip frames, for example 1, 30, 60, 90. Select one "
+                   "transform for each frame. Leave empty with two or more selected transforms to spread the path "
+                   "keys from the first through the last generated frame. With one selected NURBS curve, the Curve "
+                   "samples control chooses how many evenly spaced points are captured when this field is blank. "
+                   "Entering frames disables that control and samples one point per frame. Frames must fit the prompt "
+                   "duration; Generate checks this before submitting. Frame spacing controls path timing; root paths "
+                   "constrain the ground plane, not height.",
+    "path_curve_samples": "Number of equally spaced points to capture from a selected NURBS curve when Root path "
+                          "frames is blank. These samples are spread across the generated clip. Two or more selected "
+                          "transforms ignore this value. Enter explicit Root path frames to determine the count from "
+                          "that list; this control will disable. The default is four samples and the setting is saved "
+                          "in preferences.",
     "jobs": "One row per server request, not per imported Maya skeleton. Right-click for refresh, download, "
             "Maya-file, import, copy-ID/location, cancel, Clear Finished, Clear All History, and scoped cleanup "
             "actions. "

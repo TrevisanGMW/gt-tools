@@ -152,7 +152,10 @@ class KimodoJobActions:
                 self.message(f"Download failed: {error}. Use Download Results to retry.", warning=True)
             else:
                 job["paths"] = paths
-                self.message("Results downloaded. Select a sample and click Import Sample.")
+                if self.model.auto_maya_file:
+                    self.message("Results downloaded. Maya + HumanIK files will be created automatically.")
+                else:
+                    self.message("Results downloaded. Select a sample and click Import Sample.")
             self.model.save_preferences()
             self.populate_jobs()
         self.run_network(f"download:{job['url']}:{job['job_id']}", operation, downloaded)
@@ -164,6 +167,44 @@ class KimodoJobActions:
             self.model.auto_maya_file = self.view.auto_maya_file.isChecked()
             self.model.save_preferences()
             self.poll_jobs()
+
+    def save_auto_import_maya(self):
+        """Persists automatic import and enables its dependent scene-clear option."""
+        if not self.loading:
+            self.model.auto_import_maya = self.view.auto_import_maya.isChecked()
+            for widget in (self.view.auto_import_all_samples, self.view.auto_clear_scene,
+                           self.view.auto_frame_rate, self.view.auto_frame_range):
+                widget.setEnabled(self.model.auto_import_maya)
+            self.model.save_preferences()
+            self.update_project_summary()
+
+    def save_auto_import_all_samples(self):
+        """Persists whether automatic import brings every sample into the current scene."""
+        if not self.loading:
+            self.model.auto_import_all_samples = self.view.auto_import_all_samples.isChecked()
+            self.model.save_preferences()
+            self.update_project_summary()
+
+    def save_auto_clear_scene(self):
+        """Persists force-clearing the current scene before an automatic Maya import."""
+        if not self.loading:
+            self.model.auto_clear_scene = self.view.auto_clear_scene.isChecked()
+            self.model.save_preferences()
+            self.update_project_summary()
+
+    def save_auto_frame_rate(self):
+        """Persists matching Maya's time unit to the generated motion rate on auto-import."""
+        if not self.loading:
+            self.model.auto_frame_rate = self.view.auto_frame_rate.isChecked()
+            self.model.save_preferences()
+            self.update_project_summary()
+
+    def save_auto_frame_range(self):
+        """Persists matching the playback range to the generated motion length on auto-import."""
+        if not self.loading:
+            self.model.auto_frame_range = self.view.auto_frame_range.isChecked()
+            self.model.save_preferences()
+            self.update_project_summary()
 
     def create_maya_files(self):
         """Creates or repairs scenes for every downloaded sample in the selected job."""
@@ -213,6 +254,14 @@ class KimodoJobActions:
                 self.message(f"Created {len(files)} Maya file(s) with locked HumanIK definitions.")
             self.model.save_preferences()
             self.populate_jobs()
+            if not error and self.model.auto_import_maya:
+                try:
+                    self.import_generated_maya_file(job, automatic=True)
+                except Exception as import_error:
+                    job["maya_import_error"] = str(import_error)
+                    self.model.save_preferences()
+                    self.populate_jobs()
+                    self.message(f"Automatic Maya import failed: {import_error}", warning=True)
         self.run_network(f"maya:{job['url']}:{job['job_id']}", operation, exported)
         self.populate_jobs()
 
@@ -277,6 +326,72 @@ class KimodoJobActions:
     def clear_finished(self):
         """Confirms cleanup of succeeded, failed and cancelled jobs only."""
         self._confirm_cleanup([job for job in self.model.jobs if job["status"] in kimodo.TERMINAL_STATUSES])
+
+    def delete_server_files(self):
+        """Deletes server directories for completed tracked jobs but keeps local history/files."""
+        current_url = self.view.url.text().strip().rstrip("/")
+        if not current_url:
+            raise ValueError("Enter the bridge URL whose completed server files should be deleted.")
+        jobs = [job for job in self.model.jobs
+                if job.get("status") in kimodo.TERMINAL_STATUSES and not job.get("server_missing")
+                and (job.get("url") or current_url).rstrip("/") == current_url]
+        if not jobs:
+            raise ValueError("No completed server jobs for this bridge are tracked in Results history.")
+        answer = QtWidgets.QMessageBox.question(
+            self.view, "Delete Completed Server Files",
+            f"Permanently delete the server job records and folders for {len(jobs)} completed job(s) on "
+            f"{current_url}?\n\n"
+            "Local Maya history and downloaded files will remain. Active jobs, model weights, and text encoders "
+            "are not affected.",
+            QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No,
+            QtWidgets.QMessageBox.StandardButton.No)
+        if answer != QtWidgets.QMessageBox.StandardButton.Yes:
+            return
+
+        snapshots = copy.deepcopy(jobs)
+        for job in snapshots:
+            job["url"] = job.get("url") or current_url
+
+        def operation():
+            """Deletes each exact terminal job remotely without touching local artifacts."""
+            outcomes = []
+            for job in snapshots:
+                try:
+                    response = self._job_client(job).delete_job(job["job_id"])
+                    outcomes.append({"url": job["url"], "job_id": job["job_id"],
+                                     "deleted": True, "response": response})
+                except Exception as error:
+                    outcomes.append({"url": job["url"], "job_id": job["job_id"],
+                                     "deleted": False, "error": str(error)})
+            return outcomes
+
+        def completed(outcomes):
+            """Marks server cleanup outcomes while retaining local job rows and downloads."""
+            deleted = 0
+            failed = 0
+            by_key = {(job.get("url") or current_url, job["job_id"]): job for job in self.model.jobs}
+            for outcome in outcomes:
+                job = by_key.get((outcome["url"], outcome["job_id"]))
+                if not job:
+                    continue
+                if outcome["deleted"]:
+                    job["server_missing"] = True
+                    job["server_files_deleted"] = True
+                    job.pop("server_cleanup_error", None)
+                    deleted += 1
+                else:
+                    job["server_cleanup_error"] = outcome["error"]
+                    failed += 1
+            self.model.save_preferences()
+            self.populate_jobs()
+            if failed:
+                self.message(f"Deleted server files for {deleted} job(s); {failed} cleanup(s) failed. "
+                             "Failed jobs remain available for retry.", warning=True)
+            else:
+                self.message(f"Deleted server files and folders for {deleted} completed job(s). "
+                             "Local history and downloads were preserved.")
+
+        self.run_network("delete_server_files", operation, completed)
 
     def clear_history(self):
         """Confirms cleanup of all tracked jobs, cancelling active work first."""

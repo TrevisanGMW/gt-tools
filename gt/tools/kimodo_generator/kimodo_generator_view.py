@@ -57,7 +57,8 @@ class KimodoGeneratorView(metaclass=qt_utils.MayaWindowMeta):
         heading_font.setBold(True)
         heading.setFont(heading_font)
         title = self.row(heading, self.button("load_setup", "Load Setup"),
-                         self.button("save_setup", "Save Setup"))
+                         self.button("save_setup", "Save Setup"),
+                         self.button("load_default_setup", "Reset to Default Setup"))
         title.setStretch(0, 1)
         layout.addLayout(title)
         self.tabs = QtWidgets.QTabWidget()
@@ -243,7 +244,7 @@ class KimodoGeneratorView(metaclass=qt_utils.MayaWindowMeta):
             table.setProperty("gt_adjusting_columns", False)
 
     def collapsible_group(self, title, checked=False, tooltip=None):
-        """Creates a compact checkable group whose contents hide when collapsed.
+        """Creates an arrow-toggle section without a checkbox-style group title.
 
         Args:
             title (str): Visible group title.
@@ -251,20 +252,40 @@ class KimodoGeneratorView(metaclass=qt_utils.MayaWindowMeta):
             tooltip (str): Optional group guidance.
 
         Returns:
-            tuple: Group box, content layout and content widget.
+            tuple: Section widget, content layout and content widget.
         """
-        group = QtWidgets.QGroupBox(title)
-        group.setCheckable(True)
-        group.setChecked(checked)
+        group = QtWidgets.QWidget()
+        group_layout = QtWidgets.QVBoxLayout(group)
+        group_layout.setContentsMargins(0, 0, 0, 0)
+        toggle = QtWidgets.QToolButton()
+        toggle.setText(title)
+        toggle.setCheckable(True)
+        toggle.setChecked(checked)
+        toggle.setToolButtonStyle(QtCore.Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        toggle.setArrowType(QtCore.Qt.ArrowType.DownArrow if checked else QtCore.Qt.ArrowType.RightArrow)
+        toggle.setSizePolicy(QtWidgets.QSizePolicy.Policy.Expanding, QtWidgets.QSizePolicy.Policy.Fixed)
+        toggle.setStyleSheet("QToolButton { border: none; font-weight: bold; text-align: left; }")
         if tooltip:
             group.setToolTip(tooltip)
-        group_layout = QtWidgets.QVBoxLayout(group)
+            toggle.setToolTip(tooltip)
+        group_layout.addWidget(toggle)
         content = QtWidgets.QWidget()
         content_layout = QtWidgets.QVBoxLayout(content)
         content_layout.setContentsMargins(0, 2, 0, 0)
         group_layout.addWidget(content)
         content.setVisible(checked)
-        group.toggled.connect(content.setVisible)
+
+        def update_section(expanded):
+            """Updates the disclosure arrow and section visibility.
+
+            Args:
+                expanded (bool): Whether the section is open.
+            """
+            toggle.setArrowType(QtCore.Qt.ArrowType.DownArrow if expanded else QtCore.Qt.ArrowType.RightArrow)
+            content.setVisible(expanded)
+
+        toggle.toggled.connect(update_section)
+        group.toggle_button = toggle
         return group, content_layout, content
 
     def build_connection(self):
@@ -292,6 +313,7 @@ class KimodoGeneratorView(metaclass=qt_utils.MayaWindowMeta):
         self.device.addItems(["auto", "cuda", "cpu"])
         self.start_encoder = QtWidgets.QCheckBox("Auto-start text encoder")
         self.show_console = QtWidgets.QCheckBox("Open bridge console")
+        self.auto_connect = QtWidgets.QCheckBox("Auto-connect on launch")
         for label, widget in (("Connection", self.mode), ("Bridge URL", self.url),
                               ("Kimodo Python", self.row(self.python_path,
                                                          self.button("browse_python", "Browse Folder"))),
@@ -299,9 +321,10 @@ class KimodoGeneratorView(metaclass=qt_utils.MayaWindowMeta):
                               ("Text encoder URL", self.encoder_url), ("Inference device", self.device),
                               ("Access token", self.token)):
             form.addRow(label, widget)
-        self.launch_options = self.row(self.start_encoder, self.show_console)
+        self.launch_options = self.row(self.start_encoder, self.show_console, self.auto_connect)
         self.launch_options.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         form.addRow(self.launch_options)
+        self.auto_connect_options = self.launch_options
         layout.addLayout(form)
 
         self.bridge_control = QtWidgets.QGroupBox("Bridge control")
@@ -337,7 +360,9 @@ class KimodoGeneratorView(metaclass=qt_utils.MayaWindowMeta):
         self.model.setSizeAdjustPolicy(QtWidgets.QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
         layout.addLayout(self.row(QtWidgets.QLabel("Model"), self.model,
                                   self.button("download_model", "Download Model")))
-        layout.addWidget(QtWidgets.QLabel("Prompt sequence — each row follows the previous segment."))
+        self.prompt_frames = QtWidgets.QCheckBox("Enter durations in frames")
+        layout.addLayout(self.row(QtWidgets.QLabel("Prompt sequence — each row follows the previous segment."),
+                                  self.prompt_frames))
         self.prompts = self.table(["Seconds", "Motion description"], "prompts")
         layout.addWidget(self.prompts)
         layout.addLayout(self.row(self.button("add_prompt", "Add Segment"), self.button("remove_prompt", "Remove"),
@@ -345,24 +370,26 @@ class KimodoGeneratorView(metaclass=qt_utils.MayaWindowMeta):
         settings = self.form()
         self.seed = QtWidgets.QLineEdit("12345")
         self.seed.setPlaceholderText("Blank = random")
+        seed_controls = self.row(self.seed, self.button("randomize_seed", "Randomize"),
+                                 QtWidgets.QLabel("Samples"))
         self.samples = QtWidgets.QSpinBox()
-        self.samples.setRange(1, 8)
+        self.samples.setRange(1, 10)
         self.steps = QtWidgets.QSpinBox()
         self.steps.setRange(1, 1000)
         self.steps.setValue(100)
         self.postprocess = QtWidgets.QCheckBox("Apply foot cleanup")
         self.postprocess.setChecked(True)
-        settings.addRow("Seed", self.row(self.seed, QtWidgets.QLabel("Samples"), self.samples,
-                                         QtWidgets.QLabel("Steps"), self.steps))
-        settings.addRow(self.postprocess)
+        seed_controls.addWidget(self.samples)
+        seed_controls.addWidget(QtWidgets.QLabel("Steps"))
+        seed_controls.addWidget(self.steps)
+        settings.addRow("Seed", seed_controls)
         layout.addLayout(settings)
-        self.advanced = QtWidgets.QGroupBox("Advanced settings")
-        self.advanced.setCheckable(True)
-        self.advanced.setChecked(False)
-        advanced_layout = QtWidgets.QVBoxLayout(self.advanced)
-        self.advanced_content = QtWidgets.QWidget()
+        self.advanced, advanced_layout, self.advanced_content = self.collapsible_group(
+            "Advanced Settings", checked=False,
+            tooltip="Optional generation controls. Expand to adjust foot cleanup, guidance, transition overlap, or "
+                    "initial heading; collapsing this area keeps all current values.")
         advanced_form = self.form()
-        self.advanced_content.setLayout(advanced_form)
+        advanced_layout.addLayout(advanced_form)
         self.text_guidance = QtWidgets.QDoubleSpinBox()
         self.constraint_guidance = QtWidgets.QDoubleSpinBox()
         for spin in (self.text_guidance, self.constraint_guidance):
@@ -377,9 +404,7 @@ class KimodoGeneratorView(metaclass=qt_utils.MayaWindowMeta):
         advanced_form.addRow("Text / constraint guidance", self.row(self.text_guidance, self.constraint_guidance))
         advanced_form.addRow("Transition frames", self.transition)
         advanced_form.addRow("Initial heading (degrees)", self.heading)
-        advanced_layout.addWidget(self.advanced_content)
-        self.advanced_content.hide()
-        self.advanced.toggled.connect(self.advanced_content.setVisible)
+        advanced_form.addRow(self.postprocess)
         layout.addWidget(self.advanced)
         layout.addLayout(self.row(self.button("validate", "Validate Request"),
                                   self.button("generate", "Generate Motion")))
@@ -399,28 +424,67 @@ class KimodoGeneratorView(metaclass=qt_utils.MayaWindowMeta):
         layout.addWidget(self.pose_source)
         layout.addLayout(self.row(self.button("create_skeleton", "Create Pose Skeleton"),
                                   self.button("use_selection", "Use Selected Skeleton")))
-        self.auto_humanik = QtWidgets.QCheckBox("Automatically add HumanIK to new pose skeletons")
+        self.auto_humanik = QtWidgets.QCheckBox("Automatically add HumanIK")
         self.auto_humanik.setChecked(True)
-        layout.addWidget(self.auto_humanik)
+        self.template_pose_previews = QtWidgets.QCheckBox("Template pose previews (unselectable)")
+        self.template_pose_previews.setChecked(True)
+        self.limit_body_joint_translations = QtWidgets.QCheckBox("Limit non-root joint translations")
+        self.limit_body_joint_translations.setChecked(True)
+        layout.addLayout(self.row(self.auto_humanik, self.template_pose_previews,
+                                  self.limit_body_joint_translations))
         self.pose_kind = QtWidgets.QComboBox()
         for label, key in (("Full body", "fullbody"), ("Left hand", "left-hand"), ("Right hand", "right-hand"),
                            ("Left foot", "left-foot"), ("Right foot", "right-foot")):
             self.pose_kind.addItem(label, key)
         self.pose_frame = QtWidgets.QSpinBox()
         self.pose_frame.setRange(1, 7200)
-        layout.addLayout(self.row(self.pose_kind, QtWidgets.QLabel("Clip frame"), self.pose_frame,
-                                  self.button("capture_pose", "Capture Pose")))
+        context_policy = getattr(QtCore.Qt, "CustomContextMenu", None)
+        if context_policy is None:
+            context_policy = QtCore.Qt.ContextMenuPolicy.CustomContextMenu
+        self.pose_frame.setContextMenuPolicy(context_policy)
+        frame_field = QtWidgets.QWidget()
+        frame_field_layout = QtWidgets.QHBoxLayout(frame_field)
+        frame_field_layout.setContentsMargins(0, 0, 0, 0)
+        frame_field_layout.setSpacing(4)
+        self.pose_frame_label = QtWidgets.QLabel("Clip Frame: ")
+        self.pose_frame.setSizePolicy(QtWidgets.QSizePolicy.Policy.Maximum, QtWidgets.QSizePolicy.Policy.Fixed)
+        frame_field_layout.addWidget(self.pose_frame_label)
+        frame_field_layout.addWidget(self.pose_frame)
+        frame_field.setSizePolicy(QtWidgets.QSizePolicy.Policy.Maximum, QtWidgets.QSizePolicy.Policy.Fixed)
+        layout.addLayout(self.row(self.pose_kind, frame_field, self.button("capture_pose", "Capture Pose")))
         self.constraints = self.table(["Use", "Clip frame(s)", "Type", "Name"], "constraints")
         layout.addWidget(self.constraints)
-        layout.addLayout(self.row(self.button("preview_pose", "Preview Pose"),
-                                  self.button("duplicate_constraint", "Duplicate"),
-                                  self.button("remove_constraint", "Remove")))
-        self.path_frames = QtWidgets.QLineEdit("1, 30, 60, 90")
-        self.path_frames.setToolTip("Clip frames for ordered selected locators, or evenly spaced curve samples.")
-        layout.addLayout(self.row(QtWidgets.QLabel("Root path frames"), self.path_frames,
-                                  self.button("capture_path", "Capture Selected Path")))
-        layout.addLayout(self.row(self.button("import_constraints", "Load Constraints JSON"),
-                                  self.button("export_constraints", "Save Constraints JSON")))
+        layout.addLayout(self.row(self.button("preview_all_constraints", "Preview All Constraints"),
+                                  self.button("remove_pose_previews", "Remove All Previews")))
+        self.path_frames = QtWidgets.QLineEdit()
+        self.path_frames.setPlaceholderText("Blank = auto spread over clip")
+        self.path_frames.setToolTip(
+            "Optional comma-separated destination clip frames, one per selected transform. Leave empty with two or "
+            "more selected transforms to spread them from the first through last generated frame. With one selected "
+            "NURBS curve and no explicit frames, the Curve samples setting controls how many points are distributed "
+            "evenly across the full generated clip. Entering explicit frames disables that setting and uses one "
+            "curve point per frame. Frames must fit inside the generated duration.")
+        path_frames_form = self.form()
+        path_frames_form.addRow("Root path frames", self.path_frames)
+        layout.addLayout(path_frames_form)
+        self.path_curve_samples = QtWidgets.QSpinBox()
+        self.path_curve_samples.setRange(2, 7200)
+        self.path_curve_samples.setValue(4)
+        self.path_curve_samples.setToolTip(
+            "Number of equally spaced points captured from one selected NURBS curve when Root path frames is blank. "
+            "The point keys span the generated clip. Two or more selected transforms ignore this value. If explicit "
+            "frames are entered, the count is determined by that list and this control is disabled. The default is "
+            "four samples.")
+        self.path_frames.textChanged.connect(lambda text: self.path_curve_samples.setEnabled(not text.strip()))
+        samples_field = QtWidgets.QWidget()
+        samples_layout = QtWidgets.QHBoxLayout(samples_field)
+        samples_layout.setContentsMargins(0, 0, 0, 0)
+        samples_layout.setSpacing(4)
+        self.path_curve_samples_label = QtWidgets.QLabel("Curve samples")
+        samples_layout.addWidget(self.path_curve_samples_label)
+        samples_layout.addWidget(self.path_curve_samples)
+        samples_field.setSizePolicy(QtWidgets.QSizePolicy.Policy.Maximum, QtWidgets.QSizePolicy.Policy.Fixed)
+        layout.addLayout(self.row(samples_field, self.button("capture_path", "Capture Path from Transforms")))
         note = QtWidgets.QLabel(
             "Full-body keys guide joint positions, not exact rotation locks. Pose capture uses the skeleton's "
             "placement space. Move the placement group to position previews; rotate joints to pose them.")
@@ -432,36 +496,80 @@ class KimodoGeneratorView(metaclass=qt_utils.MayaWindowMeta):
         self.results_tab_index = self.tabs.count()
         layout, footer_layout = self.page_with_footer("Results")
 
-        self.results_automation = QtWidgets.QGroupBox("Automatic processing")
-        self.results_automation.setToolTip(
-            "Configure the normal automatic flow: completed jobs download locally, then a separate Maya process "
-            "creates retarget-ready scenes with HumanIK definitions.")
-        automation_layout = QtWidgets.QVBoxLayout(self.results_automation)
+        self.results_automation, automation_layout, self.results_automation_content = self.collapsible_group(
+            "Automatic Processing", checked=False,
+            tooltip="Configure the normal automatic flow: completed jobs download locally, then a separate Maya "
+            "process creates retarget-ready scenes with HumanIK definitions.")
+        self.results_automation_toggle = self.results_automation.toggle_button
         automation_note = QtWidgets.QLabel(
-            "Normal flow: generate motion â†’ download results â†’ create Maya + HumanIK files. "
-            "Both automatic steps are enabled by default.")
+            "All options are enabled by default: completed jobs download, get a retarget-ready Maya + HumanIK file, "
+            "then force-clear the current scene and import it. Uncheck Force-clear to preserve the open scene.")
         automation_note.setWordWrap(True)
         automation_layout.addWidget(automation_note)
         self.output = QtWidgets.QLineEdit()
         output_form = self.form()
         output_form.addRow("Download folder", self.row(self.output, self.button("browse_output", "Browse"),
-                                                      self.button("use_cache", "Package Cache")))
+                                                      self.button("use_cache", "Reset to Package Cache")))
         automation_layout.addLayout(output_form)
-        self.auto_download = QtWidgets.QCheckBox("Auto-download finished results")
-        automation_layout.addWidget(self.auto_download)
-        self.auto_maya_file = QtWidgets.QCheckBox("Auto-create Maya + HumanIK files")
-        automation_layout.addWidget(self.auto_maya_file)
-        layout.addWidget(self.results_automation)
+        options_layout = QtWidgets.QVBoxLayout()
+        self.auto_download = QtWidgets.QCheckBox("Auto-download results")
+        self.auto_download.setChecked(True)
+        self.auto_download.setToolTip(
+            "Download generated motion files as soon as the server reports the job succeeded. "
+            "Downloaded files are stored under the selected output folder.")
+        self.auto_maya_file = QtWidgets.QCheckBox("Auto-create Maya + HumanIK")
+        self.auto_maya_file.setChecked(True)
+        self.auto_maya_file.setToolTip(
+            "Use a separate mayapy process to create a retarget-ready Maya file for each downloaded motion. "
+            "This does not modify the currently open Maya scene.")
+        self.auto_import_maya = QtWidgets.QCheckBox("Auto-import Maya file")
+        self.auto_import_maya.setChecked(True)
+        self.auto_import_maya.setToolTip(
+            "After generated Maya file(s) are ready, import the result into the current scene. "
+            "Import all samples chooses every generated alternative; otherwise the selected sample, or the first "
+            "available sample when none is selected, is imported. Requires Auto-create Maya + HumanIK for newly "
+            "generated results.")
+        self.auto_import_all_samples = QtWidgets.QCheckBox("Import all samples into one scene")
+        self.auto_import_all_samples.setChecked(True)
+        self.auto_import_all_samples.setToolTip(
+            "When Auto-import Maya file is enabled, import every generated sample scene into the same Maya scene "
+            "instead of importing only the selected or first sample. Force-clear runs once before importing them. "
+            "Each sample gets a distinct namespace. Requires Auto-create Maya + HumanIK.")
+        self.auto_clear_scene = QtWidgets.QCheckBox("Force-clear scene before import")
+        self.auto_clear_scene.setChecked(True)
+        self.auto_clear_scene.setToolTip(
+            "When Auto-import Maya file is enabled, run Maya's force-new-scene command immediately before import. "
+            "This discards current scene contents without a save prompt. Leave off to import into the current scene.")
+        self.auto_frame_rate = QtWidgets.QCheckBox("Match Maya frame-rate to motion")
+        self.auto_frame_range = QtWidgets.QCheckBox("Match playback range to generated frames")
+        self.auto_frame_rate.setChecked(True)
+        self.auto_frame_range.setChecked(True)
+        for widget in (self.auto_import_all_samples, self.auto_clear_scene,
+                       self.auto_frame_rate, self.auto_frame_range):
+            widget.setEnabled(self.auto_import_maya.isChecked())
+        options_layout.addLayout(self.row(self.auto_download, self.auto_maya_file))
+        options_layout.addLayout(self.row(self.auto_import_maya, self.auto_import_all_samples))
+        options_layout.addLayout(self.row(self.auto_clear_scene, self.auto_frame_rate))
+        options_layout.addLayout(self.row(self.auto_frame_range))
+        automation_layout.addLayout(options_layout)
+        import_heading = QtWidgets.QLabel("Maya import defaults")
+        import_heading_font = ui_qt.QtGui.QFont(import_heading.font())
+        import_heading_font.setBold(True)
+        import_heading.setFont(import_heading_font)
+        automation_layout.addWidget(import_heading)
+        self.namespace = QtWidgets.QLineEdit("kimodo")
+        self.start_frame = QtWidgets.QDoubleSpinBox()
+        self.start_frame.setRange(-1000000, 1000000)
+        self.start_frame.setValue(1)
+        import_form = self.form()
+        import_form.addRow("Import namespace", self.namespace)
+        import_form.addRow("Start frame", self.start_frame)
+        automation_layout.addLayout(import_form)
 
         self.results_jobs = QtWidgets.QGroupBox("Jobs")
         self.results_jobs.setToolTip(
             "Monitor server requests and their local download/Maya-file state. Select a row to inspect or act on it.")
         jobs_layout = QtWidgets.QVBoxLayout(self.results_jobs)
-        description = QtWidgets.QLabel(
-            "Each row is one server request (generation or model download). Ready to download means the server "
-            "has finished; Downloaded means its tracked local files exist.")
-        description.setWordWrap(True)
-        jobs_layout.addWidget(description)
         self.jobs = self.table(["Job", "Created", "Status", "Stage / Model"], "jobs")
         self.jobs.setEditTriggers(QtWidgets.QAbstractItemView.EditTrigger.NoEditTriggers)
         jobs_layout.addWidget(self.jobs)
@@ -475,40 +583,34 @@ class KimodoGeneratorView(metaclass=qt_utils.MayaWindowMeta):
         jobs_layout.addLayout(self.row(self.button("refresh_job", "Refresh Selected Job"),
                                        self.button("cancel_job", "Cancel Job")))
         layout.addWidget(self.results_jobs)
+        layout.addWidget(self.results_automation)
 
         self.results_manual, manual_layout, self.results_manual_content = self.collapsible_group(
-            "Manual / recovery actions", tooltip="These actions are normally handled by automatic processing. "
-            "Expand this section to repair a download, rebuild Maya files, or characterize a current-scene import.")
+            "Recovery And Job Management", tooltip="Use these actions to recover a failed automatic step, work with "
+            "the selected result, inspect its server location, or clean job history.")
+        self.results_manual_toggle = self.results_manual.toggle_button
         manual_note = QtWidgets.QLabel(
-            "Normally unnecessary: use these actions to retry a failed automatic step or work with a clip "
-            "imported into the current scene.")
+            "Use these if automatic processing is disabled or needs repair. History cleanup and server diagnostics "
+            "are grouped here as well.")
         manual_note.setWordWrap(True)
         manual_layout.addWidget(manual_note)
         manual_layout.addLayout(self.row(self.button("download_results", "Download / Repair Results"),
-                                         self.button("create_maya_files", "Create / Repair Maya Files"),
+                                         self.button("create_maya_files", "Create / Repair Maya Files")))
+        manual_layout.addLayout(self.row(self.button("import_maya_file", "Import Generated Maya File"),
                                          self.button("create_humanik", "Add HIK to Current Import")))
+        manual_layout.addLayout(self.row(self.button("print_server_location", "Print Server Location"),
+                                         self.button("delete_server_files", "Delete Server Files")))
+        manual_layout.addLayout(self.row(self.button("clear_finished", "Clear Finished"),
+                                         self.button("clear_history", "Clear All History")))
         layout.addWidget(self.results_manual)
-
-        self.results_history, history_layout, self.results_history_content = self.collapsible_group(
-            "History / diagnostics", tooltip="Inspect the selected job's server directory or clean tracked history "
-            "and server files after confirmation.")
-        history_layout.addLayout(self.row(self.button("print_server_location", "Print Server Location"),
-                                          self.button("clear_finished", "Clear Finished"),
-                                          self.button("clear_history", "Clear All History")))
-        layout.addWidget(self.results_history)
 
         self.results_selected = QtWidgets.QGroupBox("Selected result")
         self.results_selected.setToolTip(
             "Open the downloaded job folder, or import its motion skeleton into the current Maya scene. "
-            "The sample chooser appears only for jobs containing multiple alternatives.")
+            "The sample chooser appears only for jobs containing multiple alternatives. Expand Automatic Processing "
+            "to choose automatic import of every generated sample into one scene, or edit the import namespace and "
+            "start frame used by Import Sample.")
         selected_layout = QtWidgets.QVBoxLayout(self.results_selected)
-        self.namespace = QtWidgets.QLineEdit("kimodo")
-        self.start_frame = QtWidgets.QDoubleSpinBox()
-        self.start_frame.setRange(-1000000, 1000000)
-        self.start_frame.setValue(1)
-        import_form = self.form()
-        import_form.addRow("Import namespace / start frame", self.row(self.namespace, self.start_frame))
-        selected_layout.addLayout(import_form)
         self.sample_selector = QtWidgets.QWidget()
         sample_layout = QtWidgets.QHBoxLayout(self.sample_selector)
         sample_layout.setContentsMargins(0, 0, 0, 0)
@@ -600,7 +702,8 @@ class KimodoGeneratorView(metaclass=qt_utils.MayaWindowMeta):
     def apply_tooltips(self):
         """Attaches detailed, wrapping help to controls, actions, tabs, and table headers."""
         for key, text in ACTION_TOOLTIPS.items():
-            self.buttons[key].setToolTip(f"<qt>{html.escape(text)}</qt>")
+            if key in self.buttons:
+                self.buttons[key].setToolTip(f"<qt>{html.escape(text)}</qt>")
         for name, text in CONTROL_TOOLTIPS.items():
             getattr(self, name).setToolTip(f"<qt>{html.escape(text)}</qt>")
         for index, text in enumerate(TAB_TOOLTIPS):
@@ -621,7 +724,9 @@ class KimodoGeneratorView(metaclass=qt_utils.MayaWindowMeta):
                              for index in range(field.layout().count()) if field.layout().itemAt(index).widget()]
                     label.widget().setToolTip("<br>".join(texts))
         caption_controls = {"Samples": "samples", "Steps": "steps", "Clip frame": "pose_frame",
-                            "Root path frames": "path_frames", "Sample": "sample", "Model": "model"}
+                            "Root path frames": "path_frames", "Curve samples": "path_curve_samples",
+                            "Import namespace": "namespace", "Start frame": "start_frame",
+                            "Sample": "sample", "Model": "model"}
         for label in self.findChildren(QtWidgets.QLabel):
             label.setWordWrap(True)
             if not label.toolTip():
@@ -643,11 +748,12 @@ class KimodoGeneratorView(metaclass=qt_utils.MayaWindowMeta):
             padding = max(8, round(line_height * 0.5))
             for widget in self.findChildren(QtWidgets.QWidget):
                 if isinstance(widget, (QtWidgets.QLabel, QtWidgets.QLineEdit, QtWidgets.QComboBox,
-                                       QtWidgets.QAbstractSpinBox, QtWidgets.QPushButton, QtWidgets.QCheckBox,
-                                       QtWidgets.QTableWidget, QtWidgets.QGroupBox, QtWidgets.QTabBar)):
+                                       QtWidgets.QToolButton, QtWidgets.QAbstractSpinBox, QtWidgets.QPushButton,
+                                       QtWidgets.QCheckBox, QtWidgets.QTableWidget, QtWidgets.QGroupBox,
+                                       QtWidgets.QTabBar)):
                     widget.setFont(self.font())
-                if isinstance(widget, (QtWidgets.QLineEdit, QtWidgets.QComboBox, QtWidgets.QAbstractSpinBox,
-                                       QtWidgets.QPushButton)):
+                if isinstance(widget, (QtWidgets.QLineEdit, QtWidgets.QComboBox, QtWidgets.QToolButton,
+                                       QtWidgets.QAbstractSpinBox, QtWidgets.QPushButton)):
                     widget.setMinimumHeight(max(widget.minimumSizeHint().height(), line_height + padding))
                 if isinstance(widget, QtWidgets.QComboBox):
                     widget.setSizeAdjustPolicy(
@@ -677,6 +783,10 @@ class KimodoGeneratorView(metaclass=qt_utils.MayaWindowMeta):
             self.reflow_rows()
         finally:
             self._updating_metrics = False
+        controller = getattr(self, "controller", None)
+        if controller:
+            controller.fit_jobs_table_width()
+            controller.fit_constraints_table_width()
 
     def reflow_rows(self):
         """Stacks crowded rows vertically while preserving the active widgets."""
@@ -684,7 +794,8 @@ class KimodoGeneratorView(metaclass=qt_utils.MayaWindowMeta):
             widths = [layout.itemAt(index).widget().sizeHint().width() for index in range(layout.count())
                       if layout.itemAt(index).widget()]
             required = sum(widths) + max(0, len(widths) - 1) * max(0, layout.spacing())
-            available = layout.geometry().width() or max(1, self.width() - 50)
+            available = min(layout.geometry().width() or max(1, self.width() - 50),
+                            max(1, self.width() - 50))
             direction = (QtWidgets.QBoxLayout.Direction.TopToBottom if required > available
                          else QtWidgets.QBoxLayout.Direction.LeftToRight)
             if layout.direction() != direction:
@@ -739,6 +850,10 @@ class KimodoGeneratorView(metaclass=qt_utils.MayaWindowMeta):
         super().resizeEvent(event)
         if hasattr(self, "responsive_rows"):
             self.reflow_rows()
+        controller = getattr(self, "controller", None)
+        if controller:
+            controller.fit_jobs_table_width()
+            controller.fit_constraints_table_width()
 
     def changeEvent(self, event):
         """Recomputes metrics after font or application-style changes.

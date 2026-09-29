@@ -57,8 +57,15 @@ class TestKimodoGeneratorModel(unittest.TestCase):
         self.model.add_constraint(constraint)
         with self.assertRaises(ValueError):
             self.model.build_definition()
-        with self.assertRaises(ValueError):
+        with self.assertRaisesRegex(ValueError, "Constraint frame 121.*frames 1 through 120"):
             kimodo.validate_constraints([dict(constraint, frame_indices=[120])], frame_count=120)
+
+    def test_distribute_constraint_frames_spans_the_clip(self):
+        """Places ordered path keys from the first through final generated frame."""
+        self.assertEqual([0, 24, 47], kimodo.distribute_constraint_frames(3, 48))
+        self.assertEqual([0, 39], kimodo.distribute_constraint_frames(2, 40))
+        with self.assertRaisesRegex(ValueError, "more path transforms"):
+            kimodo.distribute_constraint_frames(4, 3)
 
     def test_multiple_prompts_samples_and_old_definitions(self):
         """Accepts sequences and fills defaults when loading milestone-one definitions."""
@@ -71,6 +78,13 @@ class TestKimodoGeneratorModel(unittest.TestCase):
         loaded = kimodo.KimodoGenerationDefinition.from_dict(data).as_dict()
         self.assertEqual([2.0, 2.0], loaded["parameters"]["guidance"])
 
+    def test_generation_sample_limit_matches_kimodo_demo(self):
+        """Accepts the demo's 10-sample maximum and rejects higher counts."""
+        definition = kimodo.KimodoGenerationDefinition("Walk", num_samples=10)
+        self.assertEqual(10, definition.as_dict()["parameters"]["num_samples"])
+        with self.assertRaisesRegex(ValueError, "1 through 10"):
+            kimodo.KimodoGenerationDefinition("Walk", num_samples=11)
+
     def test_history_keeps_origin_server(self):
         """Keeps old jobs associated with the URL that accepted them."""
         connection = kimodo.KimodoConnection(url="http://localhost:9000")
@@ -78,11 +92,61 @@ class TestKimodoGeneratorModel(unittest.TestCase):
         self.model.connection["url"] = "http://localhost:9001"
         self.assertEqual("http://localhost:9000", self.model.jobs[0]["url"])
 
+    def test_prompt_frame_mode_and_import_timing_preferences_restore(self):
+        """Persists frame entry and auto-import timing toggles with compatible defaults."""
+        self.model.prompt_durations_in_frames = True
+        self.model.auto_frame_rate = False
+        self.model.auto_frame_range = False
+        restored = KimodoGeneratorModel(preferences=False)
+        restored.restore(self.model.snapshot())
+        self.assertTrue(restored.prompt_durations_in_frames)
+        self.assertFalse(restored.auto_frame_rate)
+        self.assertFalse(restored.auto_frame_range)
+
+        old_preferences = self.model.snapshot()
+        old_preferences.pop("prompt_durations_in_frames")
+        old_preferences.pop("auto_frame_rate")
+        old_preferences.pop("auto_frame_range")
+        restored.restore(old_preferences)
+        self.assertFalse(restored.prompt_durations_in_frames)
+        self.assertTrue(restored.auto_frame_rate)
+        self.assertTrue(restored.auto_frame_range)
+
+    def test_pose_preview_template_defaults_and_persists(self):
+        """Makes new previews templates by default and retains the user's explicit choice."""
+        self.assertTrue(self.model.pose_previews_template)
+        saved = self.model.snapshot()
+        saved.pop("pose_previews_template")
+        restored = KimodoGeneratorModel(preferences=False)
+        restored.restore(saved)
+        self.assertTrue(restored.pose_previews_template)
+
+        self.model.pose_previews_template = False
+        restored.restore(self.model.snapshot())
+        self.assertFalse(restored.pose_previews_template)
+
+    def test_curve_sample_count_defaults_clamps_and_persists(self):
+        """Restores a valid automatic curve-sample count, defaulting older preferences to four."""
+        self.assertEqual(4, self.model.path_curve_samples)
+        saved = self.model.snapshot()
+        saved.pop("path_curve_samples")
+        restored = KimodoGeneratorModel(preferences=False)
+        restored.restore(saved)
+        self.assertEqual(4, restored.path_curve_samples)
+
+        saved["path_curve_samples"] = 8
+        restored.restore(saved)
+        self.assertEqual(8, restored.path_curve_samples)
+        saved["path_curve_samples"] = 10000
+        restored.restore(saved)
+        self.assertEqual(7200, restored.path_curve_samples)
+
     def test_package_cache_default_and_saved_override(self):
         """Resolves the shared cache while preserving an explicitly chosen folder."""
+        from gt.core import prefs
+
         cache = SimpleNamespace(cache_dir=self.temporary.name)
-        module = SimpleNamespace(PackageCache=lambda: cache)
-        with patch.dict(sys.modules, {"gt.core.prefs": module}):
+        with patch.object(prefs, "PackageCache", return_value=cache):
             expected = os.path.join(self.temporary.name, "kimodo", "downloads")
             self.assertEqual(expected, default_download_directory())
             restored = KimodoGeneratorModel(preferences=False)
@@ -163,6 +227,18 @@ class TestKimodoGeneratorModel(unittest.TestCase):
             self.model.load_setup(path)
             self.assertEqual(False, self.model.definition["maya"]["auto_humanik"])
 
+    def test_pose_translation_limit_definition_option_is_backward_compatible(self):
+        """Persists the translation-limit choice and upgrades definitions without the new key."""
+        definition = kimodo.KimodoGenerationDefinition("Walk", limit_body_joint_translations=False)
+        data = definition.as_dict()
+        self.assertFalse(data["maya"]["limit_body_joint_translations"])
+
+        legacy_data = dict(data)
+        legacy_data["maya"] = dict(data["maya"])
+        legacy_data["maya"].pop("limit_body_joint_translations")
+        restored = kimodo.KimodoGenerationDefinition.from_dict(legacy_data)
+        self.assertTrue(restored.as_dict()["maya"]["limit_body_joint_translations"])
+
     def test_history_is_not_silently_truncated_and_auto_download_persists(self):
         """Keeps every tracked job available for explicit cleanup after restart."""
         self.model.auto_download = True
@@ -174,19 +250,28 @@ class TestKimodoGeneratorModel(unittest.TestCase):
         self.assertNotIn("downloading", restored.jobs[0])
 
     def test_automatic_results_defaults_and_explicit_preferences(self):
-        """Defaults both automatic steps on, preserving saved opt-outs and clearing busy flags."""
+        """Checks the complete automatic processing flow by default and preserves saved opt-outs."""
         self.assertEqual((True, True), (self.model.auto_download, self.model.auto_maya_file))
+        self.assertEqual((True, True, True), (self.model.auto_import_maya,
+                                               self.model.auto_import_all_samples, self.model.auto_clear_scene))
         snapshot = self.model.snapshot()
         snapshot.pop("auto_download")
         snapshot.pop("auto_maya_file")
+        snapshot.pop("auto_import_maya")
+        snapshot.pop("auto_clear_scene")
         self.model.restore(snapshot)
         self.assertEqual((True, True), (self.model.auto_download, self.model.auto_maya_file))
+        self.assertEqual((True, True, True), (self.model.auto_import_maya,
+                                               self.model.auto_import_all_samples, self.model.auto_clear_scene))
         snapshot.update(auto_download=False, auto_maya_file=False,
+                        auto_import_maya=True, auto_import_all_samples=False, auto_clear_scene=True,
                         jobs=[{"job_id": "test", "exporting_maya": True}])
         self.model.restore(snapshot)
         restored = KimodoGeneratorModel(preferences=False)
         restored.restore(self.model.snapshot())
         self.assertEqual((False, False), (restored.auto_download, restored.auto_maya_file))
+        self.assertEqual((True, False, True), (restored.auto_import_maya,
+                                                restored.auto_import_all_samples, restored.auto_clear_scene))
         self.assertNotIn("exporting_maya", restored.jobs[0])
 
     def test_bridge_console_defaults_on_and_persists(self):
@@ -201,6 +286,20 @@ class TestKimodoGeneratorModel(unittest.TestCase):
         saved = KimodoGeneratorModel(preferences=False)
         saved.restore(restored.snapshot())
         self.assertEqual(False, saved.connection["show_console"])
+
+    def test_auto_connect_defaults_off_and_persists(self):
+        """Requires an explicit opt-in before connecting on tool launch."""
+        self.assertFalse(self.model.connection["auto_connect"])
+        self.model.connection["auto_connect"] = True
+        restored = KimodoGeneratorModel(preferences=False)
+        restored.restore(self.model.snapshot())
+        self.assertTrue(restored.connection["auto_connect"])
+
+        legacy_state = self.model.snapshot()
+        legacy_state["connection"].pop("auto_connect")
+        legacy_restored = KimodoGeneratorModel(preferences=False)
+        legacy_restored.restore(legacy_state)
+        self.assertFalse(legacy_restored.connection["auto_connect"])
 
     def test_table_widths_round_trip_and_reject_invalid_values(self):
         """Persists named user widths without accepting malformed preference payloads."""

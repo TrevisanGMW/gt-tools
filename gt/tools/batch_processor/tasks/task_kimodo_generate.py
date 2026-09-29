@@ -70,24 +70,34 @@ class TaskKimodoGenerate(TaskKimodoBase):
             ValidationResult: Collected diagnostics.
         """
         result = super().validate(project)
+        area = "Connection"
         try:
-            settings = self.resolved_settings(project)
+            settings = self.settings
             kimodo.KimodoConnection(**settings["connection"])
+
+            area = "Results"
             if settings["result_mode"] not in ("maya", "maya_and_artifacts", "artifacts"):
                 raise ValueError("Unknown result mode.")
             if settings["output_extension"] not in (".ma", ".mb"):
                 raise ValueError("Maya output extension must be .ma or .mb.")
-            for key in ("startup_timeout", "queue_timeout", "generation_timeout", "poll_interval",
-                        "expected_model_fps"):
+            kimodo._positive_number(float(settings["expected_model_fps"]), "expected_model_fps")
+            if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", settings["namespace"]):
+                raise ValueError("Use a simple Maya namespace containing letters, numbers, and underscores.")
+
+            area = "Recovery and Timeouts"
+            for key in ("startup_timeout", "queue_timeout", "generation_timeout", "poll_interval"):
                 kimodo._positive_number(float(settings[key]), key)
             if not 0 <= int(settings["network_retries"]) <= 100:
                 raise ValueError("Network retries must be from 0 through 100.")
-            if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", settings["namespace"]):
-                raise ValueError("Use a simple Maya namespace containing letters, numbers, and underscores.")
+            if not isinstance(settings.get("purge_cache_on_success", True), bool):
+                raise ValueError("Purge cache after success must be enabled or disabled.")
+
+            area = "HumanIK"
             if settings["add_humanik"] and settings["result_mode"] != "artifacts":
-                humanik.validate_settings(settings["humanik"], check_files=True)
+                humanik_settings = self.resolved_settings(project)["humanik"]
+                humanik.validate_settings(humanik_settings, check_files=True)
         except (ValueError, TypeError, KeyError, OSError) as error:
-            result.add_error(str(error))
+            self.add_area_error(result, area, error)
         return result
 
     def execute(self, work_item, project, step_output_dir, context=None):
@@ -110,9 +120,16 @@ class TaskKimodoGenerate(TaskKimodoBase):
         definition = kimodo.normalize_definition(read_json(work_item.current_path))
         cache = self.recovery_directory(work_item, step_output_dir)
         record_path = os.path.join(cache, "generation.json")
-        with ClipSnapshotFileLock(record_path, timeout_seconds=86400):
-            return self.run_generation(work_item, step_output_dir, context or {}, settings,
-                                       definition, cache, record_path)
+        with self.recovery_lock(work_item, step_output_dir, timeout_seconds=86400):
+            try:
+                with ClipSnapshotFileLock(record_path, timeout_seconds=86400):
+                    items = self.run_generation(work_item, step_output_dir, context or {}, settings,
+                                                definition, cache, record_path)
+            except base.TaskSkip:
+                self.cleanup_recovery_cache(work_item, step_output_dir, cache, context)
+                raise
+            self.cleanup_recovery_cache(work_item, step_output_dir, cache, context)
+            return items
 
     def run_generation(self, item, directory, context, settings, definition, cache, record_path):
         """Runs one generation under an exclusive per-input recovery lock.
@@ -141,23 +158,32 @@ class TaskKimodoGenerate(TaskKimodoBase):
         definition = record["definition"]
         count = definition["parameters"]["num_samples"]
         paths = [self.output_path(item, directory, seed=definition["parameters"]["seed"],
-                                  sample=index, samples=count) for index in range(1, count + 1)]
-        bundle = os.path.splitext(self.output_path(item, directory, seed=definition["parameters"]["seed"]))[0]
+                                  sample=index, samples=count, definition=definition)
+                 for index in range(1, count + 1)]
+        bundle = os.path.splitext(self.output_path(
+            item, directory, seed=definition["parameters"]["seed"], definition=definition))[0]
         planned = paths if settings["result_mode"] != "artifacts" else []
         if settings["result_mode"] != "maya":
             planned = planned + [f"{bundle}_artifacts"]
         self.reserve_outputs(item, planned, directory)
-        metadata = {"manifest": record_path, "job_id": record["job_id"],
-                    "definition": item.current_path, "seed": definition["parameters"]["seed"]}
+        metadata = {"job_id": record["job_id"], "definition": item.current_path,
+                    "seed": definition["parameters"]["seed"]}
+        if not settings.get("purge_cache_on_success", True):
+            metadata["manifest"] = record_path
         if not settings["overwrite"]:
             scenes_ready = settings["result_mode"] == "artifacts" or all(
                 os.path.isfile(path) and os.path.getsize(path) for path in paths)
+            artifact_manifest = record.get("artifact_manifest")
+            artifact_job_id = record["job_id"]
+            if settings["result_mode"] != "maya" and not artifact_manifest:
+                artifact_manifest, artifact_job_id = find_published_bundle(f"{bundle}_artifacts")
             bundle_ready = settings["result_mode"] == "maya" or verify_bundle(
-                record.get("artifact_manifest"), record["job_id"])
+                artifact_manifest, artifact_job_id)
             if scenes_ready and bundle_ready:
-                if record.get("artifact_manifest"):
-                    metadata["artifacts"] = record["artifact_manifest"]
-                outputs = ([self.output_item(item, record["artifact_manifest"], metadata)]
+                if artifact_manifest:
+                    metadata["job_id"] = artifact_job_id
+                    metadata["artifacts"] = artifact_manifest
+                outputs = ([self.output_item(item, artifact_manifest, metadata)]
                            if settings["result_mode"] == "artifacts" else [
                                self.output_item(item, path, dict(metadata, sample=index))
                                for index, path in enumerate(paths, 1)])
@@ -426,6 +452,31 @@ def verify_bundle(manifest, job_id):
         if not os.path.isfile(path) or kimodo.artifact_digest(path) != artifact["sha256"]:
             raise ValueError(f"Published artifact is missing or changed: {path}")
     return True
+
+
+def find_published_bundle(directory):
+    """Finds a valid persisted artifact bundle after its recovery cache was purged.
+
+    Args:
+        directory (str): Bundle directory containing job-specific subfolders.
+
+    Returns:
+        tuple: Manifest path and job ID, or (None, None) when no complete bundle exists.
+    """
+    if not os.path.isdir(directory):
+        return None, None
+    for name in sorted(os.listdir(directory)):
+        job_directory = os.path.join(directory, name)
+        manifest = os.path.join(job_directory, "result.json")
+        if os.path.islink(job_directory) or not os.path.isfile(manifest):
+            continue
+        try:
+            job_id = read_json(manifest).get("job_id")
+            if job_id and verify_bundle(manifest, job_id):
+                return manifest, job_id
+        except (KeyError, OSError, TypeError, ValueError):
+            continue
+    return None, None
 
 
 def save_motion_scene(motion_path, output_path, settings):

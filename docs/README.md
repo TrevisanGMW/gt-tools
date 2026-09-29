@@ -573,7 +573,8 @@ environment, or an existing Kimodo bridge server. Kimodo runs in its own environ
   Python environment with <b>Browse Folder</b>; WSL distributions can be discovered with <b>Query WSL</b>.
   You may enter either the environment folder (for example <code>/home/user/kimodo_env</code>) or its Python
   executable; environment folders are resolved automatically. The last selected or entered WSL distribution is
-  saved immediately, even if startup later fails. Click <b>Connect / Start</b>.</li>
+  saved immediately, even if startup later fails. Optional <b>Auto-connect on launch</b> runs the same action from
+  your saved connection settings when the tool opens. Click <b>Connect / Start</b> to connect manually.</li>
   <li>The Connection tab's <b>Bridge control</b> explains and manages the separate server process.
   <b>Test Bridge</b> reports its WSL/Windows location, PID, Python/code paths, job store, device, encoder URL,
   and activity. <b>Test Text Encoder</b> checks port 9550 independently. <b>Stop Bridge</b> refuses active jobs;
@@ -591,15 +592,17 @@ environment, or an existing Kimodo bridge server. Kimodo runs in its own environ
   HumanIK configuration, and job counts. Its <b>Generate Motion</b> button submits the same validated request as the
   Generate tab. Tabs are ordered Connection, Generate, Constraints, HumanIK, Summary, and Results.</li>
   <li>In <b>Generate</b>, select a discovered model and enter one or more text segments with durations.
-  Choose the seed and sample count. <b>Download Model</b> queues an explicit model download
+  Choose the seed and sample count. Open <b>Advanced Settings</b> for foot cleanup, guidance, transition overlap,
+  and initial heading. <b>Download Model</b> queues an explicit model download
   in the server environment; model access must already be authorized there.</li>
   <li>For pose guidance, open <b>Constraints</b>, click <b>Create Pose Skeleton</b>, rotate its joints in Maya,
   set a destination clip frame, and click <b>Capture Pose</b>. Repeat for multiple poses. Edit timing,
-  duplicate, enable/disable, or preview individual keys. <b>Load Constraints JSON</b> also accepts demo exports.</li>
+  duplicate, enable/disable, or preview individual keys from the table's right-click menu. The same menu provides
+  <b>Load Constraints JSON</b> (which accepts demo exports) and <b>Save Constraints JSON</b>.</li>
   <li>Use <b>Validate Request</b>, then <b>Generate Motion</b>. The interface stays available while the server
   processes the job. In <b>Results</b>, choose the <b>Download folder</b>, download the artifacts, choose a sample,
   and click <b>Import Sample</b>. Folder choices save immediately through Prefs; the default is
-  <code>PackageCache/kimodo/downloads</code>, restored with the <b>Package Cache</b> button.
+  <code>PackageCache/kimodo/downloads</code>, restored with the <b>Reset to Package Cache</b> button.
   <b>Auto-download finished results</b> is enabled by default and persistent. Status distinguishes ready-to-download,
   downloaded and missing local files; Download Results repairs missing files without overwriting existing artifacts.</li>
   <li><b>Auto-create Maya + HumanIK files</b> is also enabled by default and persistent. After download, a separate
@@ -611,8 +614,9 @@ environment, or an existing Kimodo bridge server. Kimodo runs in its own environ
   <li><b>Print Server Location</b> prints the selected job's actual server directory in the Script Editor and status
   field: a Linux path for WSL, or a Windows path for native Windows. Restart an older bridge with the updated code
   to enable this field. Automatic Maya export uses local mayapy and needs no additional WSL dependencies.</li>
-  <li>The Results tab groups the normal flow into <b>Automatic processing</b>, <b>Jobs</b>, and
+  <li>The Results tab groups the normal flow into <b>Automatic Processing</b>, <b>Jobs</b>, and
   <b>Selected result</b>. Less common retry, cleanup, and diagnostic actions live in collapsed sections.
+  The recovery area is titled <b>Recovery And Job Management</b>.
   Open Results Folder and current-scene import remain fixed at the bottom while the categorized controls scroll.
   Jobs include their bridge submission time in the local timezone. Status and stage text use title case; Stage / Model
   also summarizes the immutable model, duration, segment count, and step count. Right-click any Generate, Constraints,

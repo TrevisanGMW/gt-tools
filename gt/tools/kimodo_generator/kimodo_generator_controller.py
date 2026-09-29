@@ -7,6 +7,7 @@ import html
 import json
 import math
 import os
+import re
 import threading
 import time
 import uuid
@@ -19,13 +20,89 @@ from gt.tools.kimodo_generator import kimodo_generator_hik as humanik
 from gt.tools.kimodo_generator import kimodo_generator_hik_tools as hik_tools
 from gt.tools.kimodo_generator import kimodo_generator_results as job_results
 from gt.tools.kimodo_generator.kimodo_generator_job_actions import KimodoJobActions
+from gt.tools.kimodo_generator.kimodo_generator_help import ACTION_TOOLTIPS, TABLE_ACTION_TOOLTIPS
 from gt.tools.kimodo_generator.kimodo_generator_model import (
-    default_download_directory, query_wsl_distributions, resolve_environment_python,
+    KimodoGeneratorModel, default_download_directory, query_wsl_distributions, resolve_environment_python,
 )
 
 QtWidgets = ui_qt.QtWidgets
 QtCore = ui_qt.QtCore
 logger = logging.getLogger(__name__)
+
+
+class _CenteredCheckBoxCell(QtWidgets.QWidget):
+    """Centers a checkbox within a resizable table cell."""
+
+    def __init__(self, parent=None):
+        """Creates a cell widget with one checkbox.
+
+        Args:
+            parent (QWidget, optional): Parent table.
+        """
+        super().__init__(parent)
+        self.checkbox = QtWidgets.QCheckBox(self)
+        self._position_checkbox()
+
+    def _position_checkbox(self):
+        """Centers the checkbox using its style-aware size hint."""
+        size = self.checkbox.sizeHint()
+        x_position = max(0, int((self.width() - size.width()) / 2))
+        y_position = max(0, int((self.height() - size.height()) / 2))
+        self.checkbox.setGeometry(x_position, y_position, size.width(), size.height())
+
+    def resizeEvent(self, event):
+        """Re-centers the checkbox when the table cell is resized.
+
+        Args:
+            event (QResizeEvent): Cell resize event.
+        """
+        self._position_checkbox()
+        super().resizeEvent(event)
+
+
+class _CenteredIconTextDelegate(QtWidgets.QStyledItemDelegate):
+    """Paints a constraint icon and label together, centered in their table cell."""
+
+    def paint(self, painter, option, index):
+        """Draws selection/background through Qt, then centers the icon-label pair.
+
+        Args:
+            painter (QPainter): Active item painter.
+            option (QStyleOptionViewItem): Style and geometry for the cell.
+            index (QModelIndex): Model index supplying display text and icon.
+        """
+        style = option.widget.style() if option.widget else QtWidgets.QApplication.style()
+        background_option = QtWidgets.QStyleOptionViewItem(option)
+        background_option.text = ""
+        background_option.icon = ui_qt.QtGui.QIcon()
+        style.drawControl(QtWidgets.QStyle.ControlElement.CE_ItemViewItem,
+                          background_option, painter, option.widget)
+
+        text = str(index.data(QtCore.Qt.ItemDataRole.DisplayRole) or "")
+        icon = index.data(QtCore.Qt.ItemDataRole.DecorationRole)
+        icon_size = option.decorationSize
+        icon_width = max(1, icon_size.width())
+        icon_height = max(1, icon_size.height())
+        spacing = 5 if text and icon else 0
+        text_width = option.fontMetrics.horizontalAdvance(text)
+        group_width = min(option.rect.width(), icon_width + spacing + text_width)
+        text_width = max(0, group_width - icon_width - spacing)
+        left = option.rect.x() + max(0, (option.rect.width() - group_width) // 2)
+
+        painter.save()
+        if icon:
+            icon_rect = QtCore.QRect(left, option.rect.y() + (option.rect.height() - icon_height) // 2,
+                                     icon_width, icon_height)
+            icon.paint(painter, icon_rect, QtCore.Qt.AlignmentFlag.AlignCenter)
+        text_rect = QtCore.QRect(left + icon_width + spacing, option.rect.y(), text_width, option.rect.height())
+        selected = bool(option.state & QtWidgets.QStyle.StateFlag.State_Selected)
+        role = (ui_qt.QtGui.QPalette.ColorRole.HighlightedText if selected
+                else ui_qt.QtGui.QPalette.ColorRole.Text)
+        painter.setPen(option.palette.color(role))
+        display_text = option.fontMetrics.elidedText(text, QtCore.Qt.TextElideMode.ElideRight, text_width)
+        painter.drawText(text_rect, QtCore.Qt.AlignmentFlag.AlignVCenter | QtCore.Qt.AlignmentFlag.AlignLeft,
+                         display_text)
+        painter.restore()
 
 
 class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
@@ -51,6 +128,7 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
         self.tokens_by_url = {}
         self.submitting_job = None
         self.imported_group = None
+        self.prompt_display_fps = 30.0
         self.completed.connect(self._finished)
         # Maya can delete a retained workspace-control child without delivering
         # the view's closeEvent. Keep the controller from outliving its widgets.
@@ -62,6 +140,8 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
                 functools.partial(self.save_table_widths, name, table))
             table.customContextMenuRequested.connect(
                 functools.partial(self.show_table_context_menu, name, table))
+        view.constraints.setItemDelegateForColumn(2, _CenteredIconTextDelegate(view.constraints))
+        view.constraints.horizontalHeader().sectionResized.connect(self.schedule_center_constraint_checkboxes)
         view.jobs.itemSelectionChanged.connect(self.refresh_job_details)
         view.tabs.currentChanged.connect(self.update_project_summary)
         view.mode.currentIndexChanged.connect(self.update_launch_fields)
@@ -72,15 +152,30 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
             field.editingFinished.connect(self._action_callback("save_humanik_settings"))
         view.hik_lock.toggled.connect(self._action_callback("save_humanik_settings"))
         view.auto_humanik.toggled.connect(self._action_callback("save_auto_humanik"))
+        view.limit_body_joint_translations.toggled.connect(self._action_callback("save_auto_humanik"))
+        view.template_pose_previews.toggled.connect(self._action_callback("save_pose_preview_template"))
+        view.pose_frame.customContextMenuRequested.connect(self.show_pose_frame_context_menu)
+        view.path_frames.textChanged.connect(self.update_path_sample_controls)
+        view.path_curve_samples.valueChanged.connect(self._action_callback("save_path_curve_samples"))
+        view.prompt_frames.toggled.connect(self._action_callback("set_prompt_duration_mode"))
+        view.model.currentIndexChanged.connect(self._action_callback("generation_model_changed"))
         view.auto_download.toggled.connect(self._action_callback("save_auto_download"))
         view.auto_maya_file.toggled.connect(self._action_callback("save_auto_maya_file"))
+        view.auto_import_maya.toggled.connect(self._action_callback("save_auto_import_maya"))
+        view.auto_import_all_samples.toggled.connect(self._action_callback("save_auto_import_all_samples"))
+        view.auto_clear_scene.toggled.connect(self._action_callback("save_auto_clear_scene"))
+        view.auto_frame_rate.toggled.connect(self._action_callback("save_auto_frame_rate"))
+        view.auto_frame_range.toggled.connect(self._action_callback("save_auto_frame_range"))
         view.show_console.toggled.connect(self._action_callback("save_show_console"))
+        view.auto_connect.toggled.connect(self._action_callback("save_auto_connect"))
         self.timer = QtCore.QTimer(view)
         self.timer.setInterval(1500)
         self.timer.timeout.connect(self.poll_jobs)
         self.load_widgets()
         self.timer.start()
         self.view.show()
+        if self.view.auto_connect.isChecked():
+            QtCore.QTimer.singleShot(0, self.auto_connect_on_launch)
 
     def _view_is_valid(self):
         """Checks that the controller's C++ view still exists.
@@ -238,6 +333,22 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
             self.model.connection["show_console"] = self.view.show_console.isChecked()
             self.model.save_preferences()
 
+    def save_auto_connect(self):
+        """Persists whether the bridge connection action runs when the tool opens."""
+        if not self.loading:
+            self.model.connection["auto_connect"] = self.view.auto_connect.isChecked()
+            self.model.save_preferences()
+
+    def auto_connect_on_launch(self):
+        """Runs the normal Connect / Start action when the saved option is enabled."""
+        if self.closed or not self._view_is_valid() or not self.view.auto_connect.isChecked():
+            return
+        try:
+            self.connect_bridge()
+        except (ValueError, FileNotFoundError) as warning:
+            logger.warning("%s", warning)
+            self.message(str(warning), warning=True)
+
     def save_wsl_distribution(self):
         """Persists the latest selected or manually entered WSL distribution."""
         if self.loading:
@@ -259,6 +370,8 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
             unused_current (int): New section width.
         """
         if self.loading or table.property("gt_adjusting_columns"):
+            return
+        if table.horizontalHeader().sectionResizeMode(unused_column) == QtWidgets.QHeaderView.ResizeMode.Stretch:
             return
         self.model.table_widths[name] = [table.columnWidth(index) for index in range(table.columnCount())]
         table.setProperty("gt_user_widths", True)
@@ -283,9 +396,98 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
                     self.view.fit_table_columns(table, force=True)
             finally:
                 table.setProperty("gt_adjusting_columns", False)
+        self.fit_jobs_table_width()
+        self.fit_constraints_table_width()
+
+    def fit_jobs_table_width(self):
+        """Fits the Results table's final column to the available viewport width."""
+        self._fit_table_to_viewport(self.view.jobs, "jobs", "Stage / Model")
+
+    def fit_constraints_table_width(self):
+        """Fits the Constraints table's name column to the available viewport width."""
+        self._fit_table_to_viewport(self.view.constraints, "constraints", "Name")
+        self.center_constraint_checkboxes()
+        self.schedule_center_constraint_checkboxes()
+
+    def schedule_center_constraint_checkboxes(self, *unused):
+        """Defers checkbox centering until Qt finishes updating index-widget geometry.
+
+        Args:
+            *unused: Optional header-resize signal arguments.
+        """
+        if not self.closed:
+            QtCore.QTimer.singleShot(0, self.center_constraint_checkboxes)
+
+    def center_constraint_checkboxes(self, *unused):
+        """Keeps Use checkboxes centered after table and column layout changes.
+
+        Args:
+            *unused: Optional header-resize signal arguments.
+        """
+        if self.closed or not qt_utils.is_qt_object_valid(self.view.constraints):
+            return
+        for row in range(self.view.constraints.rowCount()):
+            cell = self.view.constraints.cellWidget(row, 0)
+            if isinstance(cell, _CenteredCheckBoxCell):
+                cell._position_checkbox()
+
+    def _fit_table_to_viewport(self, table, preference_key, last_column_label):
+        """Keeps a table within its viewport while preserving saved fixed widths.
+
+        The final column fills the available remainder. Earlier columns retain saved
+        widths where possible, but shrink proportionally on narrower displays.
+
+        Args:
+            table (QTableWidget): Table to constrain.
+            preference_key (str): Persistent width entry for the table.
+            last_column_label (str): Header text used to size the final column.
+        """
+        if not qt_utils.is_qt_object_valid(table) or table.columnCount() < 2:
+            return
+
+        last_column = table.columnCount() - 1
+        viewport_width = table.viewport().width()
+        if viewport_width <= 0:
+            return
+
+        header = table.horizontalHeader()
+        metrics = table.fontMetrics()
+        minimum_last_width = metrics.horizontalAdvance(last_column_label) + max(24, metrics.height())
+        available_fixed_width = max(1, viewport_width - minimum_last_width)
+        saved_widths = self.model.table_widths.get(preference_key, [])
+        preferred_widths = []
+        for column in range(last_column):
+            try:
+                saved_width = int(saved_widths[column]) if len(saved_widths) == table.columnCount() else 0
+            except (TypeError, ValueError):
+                saved_width = 0
+            preferred_widths.append(saved_width if saved_width > 0 else max(1, table.columnWidth(column)))
+
+        preferred_total = sum(preferred_widths)
+        if preferred_total > available_fixed_width:
+            ratio = available_fixed_width / float(preferred_total)
+            fixed_widths = [max(1, int(width * ratio)) for width in preferred_widths]
+            overflow = sum(fixed_widths) - available_fixed_width
+            for index in reversed(range(len(fixed_widths))):
+                if overflow <= 0:
+                    break
+                reduction = min(overflow, max(0, fixed_widths[index] - 1))
+                fixed_widths[index] -= reduction
+                overflow -= reduction
+        else:
+            fixed_widths = preferred_widths
+
+        table.setProperty("gt_adjusting_columns", True)
+        try:
+            for column, width in enumerate(fixed_widths):
+                header.setSectionResizeMode(column, QtWidgets.QHeaderView.ResizeMode.Interactive)
+                table.setColumnWidth(column, width)
+            header.setSectionResizeMode(last_column, QtWidgets.QHeaderView.ResizeMode.Stretch)
+        finally:
+            table.setProperty("gt_adjusting_columns", False)
 
     @staticmethod
-    def _add_menu_action(menu, label, callback, enabled=True, icon_path=None):
+    def _add_menu_action(menu, label, callback, enabled=True, icon_path=None, tooltip=None):
         """Adds one consistently configured table-menu action.
 
         Args:
@@ -294,6 +496,7 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
             callback (callable): Slot invoked when the action is selected.
             enabled (bool): Whether the action can currently run.
             icon_path (str, optional): Icon resource path.
+            tooltip (str, optional): Detailed action help.
 
         Returns:
             QAction: Created menu action.
@@ -301,6 +504,8 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
         action = menu.addAction(label)
         if icon_path:
             action.setIcon(ui_qt.QtGui.QIcon(icon_path))
+        if tooltip:
+            action.setToolTip(tooltip)
         action.setEnabled(enabled)
         action.triggered.connect(callback)
         return action
@@ -338,16 +543,22 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
             self._add_menu_action(menu, "Remove Segment", invoke("remove_prompt"),
                                   selected and table.rowCount() > 1, resources.Icon.ui_trash)
         elif name == "constraints":
-            self._add_menu_action(menu, "Preview Pose", invoke("preview_pose"), selected,
-                                  resources.Icon.ui_open)
+            current_type = None
+            if selected and row < len(self.model.constraints):
+                current_type = self.model.constraints[row]["parameters"].get("type")
+            pose_types = ("fullbody", "left-hand", "right-hand", "left-foot", "right-foot")
+            self._add_menu_action(menu, "Preview Pose", invoke("preview_pose"),
+                                  selected and current_type in pose_types,
+                                  resources.Icon.ui_open, ACTION_TOOLTIPS["preview_pose"])
+            self._add_menu_action(
+                menu, "Preview Root Path", invoke("preview_root_path"),
+                selected and current_type == "root2d", resources.Icon.kimodo_action_preview_path,
+                TABLE_ACTION_TOOLTIPS["preview_root_path"])
             self._add_menu_action(menu, "Enable / Disable", invoke("toggle_constraint"), selected,
                                   resources.Icon.ui_toggle_disabled)
             pose_types = (("Full Body", "fullbody"), ("Left Hand", "left-hand"),
                           ("Right Hand", "right-hand"), ("Left Foot", "left-foot"),
                           ("Right Foot", "right-foot"))
-            current_type = None
-            if selected and row < len(self.model.constraints):
-                current_type = self.model.constraints[row]["parameters"].get("type")
             type_menu = menu.addMenu("Change Pose Type")
             type_menu.menuAction().setIcon(ui_qt.QtGui.QIcon(resources.Icon.ui_edit))
             type_menu.setEnabled(current_type in dict(pose_types).values())
@@ -358,26 +569,34 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
                 action.setCheckable(True)
                 action.setChecked(current_type == constraint_type)
             menu.addSeparator()
+            self._add_menu_action(menu, "Load Constraints JSON", invoke("import_constraints"),
+                                  icon_path=resources.Icon.rigger_action_import_grayscale,
+                                  tooltip=ACTION_TOOLTIPS["import_constraints"])
+            self._add_menu_action(menu, "Save Constraints JSON", invoke("export_constraints"),
+                                  icon_path=resources.Icon.rigger_action_export_grayscale,
+                                  tooltip=ACTION_TOOLTIPS["export_constraints"])
+            menu.addSeparator()
             self._add_menu_action(menu, "Duplicate Constraint", invoke("duplicate_constraint"), selected,
-                                  resources.Icon.rigger_action_duplicate_grayscale)
+                                  resources.Icon.rigger_action_duplicate_grayscale,
+                                  ACTION_TOOLTIPS["duplicate_constraint"])
             self._add_menu_action(menu, "Copy Constraint", invoke("copy_constraint"), selected,
                                   resources.Icon.rigger_action_copy_grayscale)
             self._add_menu_action(menu, "Paste Constraint", invoke("paste_constraint"),
                                   icon_path=resources.Icon.rigger_action_paste_grayscale)
-            self._add_menu_action(menu, "Remove Constraint", invoke("remove_constraint"), selected,
-                                  resources.Icon.ui_trash)
             menu.addSeparator()
-            self._add_menu_action(menu, "Load Constraints JSON", invoke("import_constraints"),
-                                  icon_path=resources.Icon.rigger_action_import_grayscale)
-            self._add_menu_action(menu, "Save Constraints JSON", invoke("export_constraints"),
-                                  icon_path=resources.Icon.rigger_action_export_grayscale)
+            self._add_menu_action(menu, "Remove All Constraints", invoke("remove_all_constraints"),
+                                  bool(self.model.constraints), resources.Icon.ui_trash,
+                                  ACTION_TOOLTIPS["remove_all_constraints"])
+            menu.addSeparator()
+            self._add_menu_action(menu, "Remove Constraint", invoke("remove_constraint"), selected,
+                                  resources.Icon.ui_trash, ACTION_TOOLTIPS["remove_constraint"])
         elif name == "jobs":
             job = self.model.jobs[row] if selected and row < len(self.model.jobs) else None
             terminal = bool(job and job.get("status") in kimodo.TERMINAL_STATUSES)
             generation = bool(job and job.get("operation") != "download_model")
             succeeded = bool(job and job.get("status") == "succeeded")
             self._add_menu_action(menu, "Refresh Job", invoke("refresh_job"), selected,
-                                  resources.Icon.tool_check_for_updates)
+                                  resources.Icon.tool_package_updater)
             self._add_menu_action(menu, "Cancel Job", invoke("cancel_job"), selected and not terminal,
                                   resources.Icon.setup_close)
             menu.addSeparator()
@@ -385,6 +604,8 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
                                   succeeded and generation, resources.Icon.rigger_action_import_grayscale)
             self._add_menu_action(menu, "Create / Repair Maya Files", invoke("create_maya_files"),
                                   succeeded and generation, resources.Icon.ui_new)
+            self._add_menu_action(menu, "Import Generated Maya File", invoke("import_maya_file"),
+                                  bool(job and job.get("maya_files")), resources.Icon.rigger_action_import_grayscale)
             self._add_menu_action(menu, "Open Results Folder", invoke("open_folder"), selected,
                                   resources.Icon.util_open_dir)
             self._add_menu_action(menu, "Import Sample", invoke("import_sample"),
@@ -451,7 +672,11 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
         view.device.setCurrentText(settings["device"])
         view.start_encoder.setChecked(settings["start_encoder"])
         view.show_console.setChecked(settings.get("show_console", True))
+        view.auto_connect.setChecked(settings.get("auto_connect", False))
         view.token.setText(self.model.token)
+        view.prompt_frames.setChecked(self.model.prompt_durations_in_frames)
+        self.populate_models()
+        self.prompt_display_fps = self._model_fps(model_id=self.model.definition.get("model"))
         self.populate_prompts()
         parameters = self.model.definition["parameters"]
         view.seed.setText("" if parameters["seed"] is None else str(parameters["seed"]))
@@ -465,6 +690,8 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
         view.output.setText(self.model.output_directory)
         view.namespace.setText(self.model.namespace)
         view.start_frame.setValue(self.model.start_frame)
+        view.path_curve_samples.setValue(self.model.path_curve_samples)
+        self.update_path_sample_controls()
         hik = self.model.humanik
         view.hik_name.setText(hik["character_name"])
         view.hik_xml.setText(hik["definition_path"])
@@ -472,9 +699,19 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
         view.hik_frame.setText("" if hik["reference_frame"] is None else str(hik["reference_frame"]))
         view.hik_lock.setChecked(hik["lock_definition"])
         view.auto_humanik.setChecked(self.model.definition["maya"]["auto_humanik"])
+        view.limit_body_joint_translations.setChecked(
+            self.model.definition["maya"]["limit_body_joint_translations"])
+        view.template_pose_previews.setChecked(self.model.pose_previews_template)
         view.auto_download.setChecked(self.model.auto_download)
         view.auto_maya_file.setChecked(self.model.auto_maya_file)
-        self.populate_models()
+        view.auto_import_maya.setChecked(self.model.auto_import_maya)
+        view.auto_import_all_samples.setChecked(self.model.auto_import_all_samples)
+        view.auto_clear_scene.setChecked(self.model.auto_clear_scene)
+        view.auto_frame_rate.setChecked(self.model.auto_frame_rate)
+        view.auto_frame_range.setChecked(self.model.auto_frame_range)
+        for widget in (view.auto_import_all_samples, view.auto_clear_scene,
+                       view.auto_frame_rate, view.auto_frame_range):
+            widget.setEnabled(self.model.auto_import_maya)
         self.populate_constraints()
         self.populate_jobs()
         self.restore_table_widths()
@@ -498,6 +735,7 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
         self.model.output_directory = view.output.text().strip()
         self.model.namespace = view.namespace.text().strip()
         self.model.start_frame = view.start_frame.value()
+        self.model.path_curve_samples = view.path_curve_samples.value()
         self.gather_humanik()
 
     def gather_prompts(self):
@@ -505,9 +743,75 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
         view = self.view
         prompts = []
         for row in range(view.prompts.rowCount()):
-            prompts.append({"duration_seconds": float(view.prompts.item(row, 0).text()),
+            duration = view.prompts.item(row, 0).text()
+            prompts.append({"duration_seconds": self._read_prompt_duration(duration),
                             "text": view.prompts.item(row, 1).text()})
         self.model.definition["prompts"] = prompts
+
+    def _read_prompt_duration(self, value):
+        """Converts the visible duration cell into the seconds stored by Kimodo.
+
+        Args:
+            value (str): Editable seconds or frame count.
+
+        Returns:
+            float: Duration in seconds.
+
+        Raises:
+            ValueError: When the duration is not numeric or frame mode has a non-integer value.
+        """
+        try:
+            duration = float(value)
+        except (TypeError, ValueError) as error:
+            raise ValueError("Prompt durations must be numeric.") from error
+        if not self.model.prompt_durations_in_frames:
+            return duration
+        if not math.isfinite(duration) or duration < 1 or not duration.is_integer():
+            raise ValueError("Frame durations must be positive whole numbers.")
+        frame_count = int(duration)
+        seconds = frame_count / self.prompt_display_fps
+        # Kimodo truncates seconds * fps. Avoid binary rounding losing the last frame.
+        if int(seconds * self.prompt_display_fps) < frame_count:
+            seconds = math.nextafter(seconds, math.inf)
+        return seconds
+
+    def set_prompt_duration_mode(self):
+        """Changes the prompt editor unit without changing the seconds-based request."""
+        if self.loading:
+            return
+        requested_mode = self.view.prompt_frames.isChecked()
+        try:
+            self.gather_prompts()
+        except ValueError:
+            blocker = QtCore.QSignalBlocker(self.view.prompt_frames)
+            self.view.prompt_frames.setChecked(self.model.prompt_durations_in_frames)
+            del blocker
+            raise
+        self.model.prompt_durations_in_frames = requested_mode
+        self.prompt_display_fps = self._model_fps(model_id=self.view.model.currentData())
+        self.populate_prompts()
+        self.model.save_preferences()
+        self.update_project_summary()
+
+    def generation_model_changed(self):
+        """Keeps prompt seconds stable while the displayed model-frame rate changes."""
+        model_id = self.view.model.currentData() or kimodo.DEFAULT_MODEL
+        if self.loading:
+            self.prompt_display_fps = self._model_fps(model_id=model_id)
+            return
+        previous_model = self.model.definition.get("model")
+        try:
+            self.gather_prompts()
+        except ValueError:
+            blocker = QtCore.QSignalBlocker(self.view.model)
+            self.view.model.setCurrentIndex(max(0, self.view.model.findData(previous_model)))
+            del blocker
+            raise
+        self.model.definition["model"] = model_id
+        self.prompt_display_fps = self._model_fps(model_id=model_id)
+        self.populate_prompts()
+        self.model.save_preferences()
+        self.update_project_summary()
 
     def gather_connection(self):
         """Copies only server fields so connection management ignores unfinished generation edits."""
@@ -518,7 +822,8 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
                                      device=view.device.currentText(),
                                      text_encoder_url=view.encoder_url.text().strip(),
                                      start_encoder=view.start_encoder.isChecked(),
-                                     show_console=view.show_console.isChecked())
+                                     show_console=view.show_console.isChecked(),
+                                     auto_connect=view.auto_connect.isChecked())
         self.model.token = view.token.text()
         self.tokens_by_url[view.url.text().strip().rstrip("/")] = self.model.token
         self.model.save_preferences()
@@ -527,12 +832,24 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
         """Applies edited names, enabled states, and one-based UI timing."""
         for row, entry in enumerate(self.model.constraints):
             table = self.view.constraints
-            entry["enabled"] = table.item(row, 0).checkState() == QtCore.Qt.CheckState.Checked
+            entry["enabled"] = self.constraint_is_enabled(row)
             entry["name"] = table.item(row, 3).text()
             frames = self.parse_frames(table.item(row, 1).text())
             if len(frames) != len(entry["parameters"]["frame_indices"]):
                 raise ValueError("Keep the same number of keys when retiming a constraint row.")
             entry["parameters"]["frame_indices"] = frames
+
+    def constraint_is_enabled(self, row):
+        """Reads the single checkbox widget that represents a constraint's Use state.
+
+        Args:
+            row (int): Constraint table row.
+
+        Returns:
+            bool: Whether the row's Use checkbox is checked.
+        """
+        cell = self.view.constraints.cellWidget(row, 0)
+        return bool(cell and cell.checkbox.isChecked())
 
     @staticmethod
     def parse_frames(text):
@@ -549,12 +866,54 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
             raise ValueError("Clip frames must be positive integers, separated by commas.")
         return frames
 
+    def _generation_frame_count(self, definition):
+        """Estimates generated clip length using selected-model metadata when available.
+
+        Args:
+            definition (dict): Current generation request.
+
+        Returns:
+            int: Expected number of model frames.
+        """
+        model_id = definition.get("model")
+        model_fps = self._model_fps(model_id=model_id)
+        return sum(int(segment["duration_seconds"] * model_fps) for segment in definition["prompts"])
+
+    def _model_fps(self, model_id=None):
+        """Resolves the selected model's frame rate with Kimodo's 30 FPS fallback.
+
+        Args:
+            model_id (str, optional): Model identifier. The current selection is used by default.
+
+        Returns:
+            float: Positive finite model frame rate.
+        """
+        model_id = model_id or self.view.model.currentData() or self.model.definition.get("model")
+        model_info = next((item for item in self.model.capabilities.get("models", [])
+                           if item.get("id") == model_id), {})
+        try:
+            model_fps = float(model_info.get("fps", 30.0))
+        except (TypeError, ValueError):
+            model_fps = 30.0
+        if not math.isfinite(model_fps) or model_fps <= 0:
+            model_fps = 30.0
+        return model_fps
+
     def populate_prompts(self):
         """Displays the ordered prompt segments."""
         table = self.view.prompts
+        duration_header = "Frames" if self.model.prompt_durations_in_frames else "Seconds"
+        table.setHorizontalHeaderItem(0, QtWidgets.QTableWidgetItem(duration_header))
+        table.horizontalHeaderItem(0).setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        table.horizontalHeaderItem(0).setToolTip(table.toolTip())
+        fps = self._model_fps(model_id=self.view.model.currentData())
         table.setRowCount(len(self.model.definition["prompts"]))
         for row, segment in enumerate(self.model.definition["prompts"]):
-            table.setItem(row, 0, QtWidgets.QTableWidgetItem(str(segment["duration_seconds"])))
+            duration = int(segment["duration_seconds"] * fps) if self.model.prompt_durations_in_frames \
+                else segment["duration_seconds"]
+            duration_item = QtWidgets.QTableWidgetItem(str(duration))
+            duration_item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+            table.setItem(row, 0, duration_item)
             table.setItem(row, 1, QtWidgets.QTableWidgetItem(segment["text"]))
         self.view.fit_table_columns(table)
 
@@ -562,35 +921,78 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
         """Displays discovered models while preserving an explicitly saved model."""
         combo = self.view.model
         current = self.model.definition["model"]
-        combo.clear()
-        for info in self.model.capabilities.get("models", []):
-            suffix = "cached config" if info.get("cached") else "download on first use"
-            combo.addItem(f"{info['name']} ({suffix})", info["id"])
-        if combo.findData(current) < 0:
-            combo.addItem(current, current)
-        combo.setCurrentIndex(combo.findData(current))
+        blocker = QtCore.QSignalBlocker(combo)
+        try:
+            combo.clear()
+            for info in self.model.capabilities.get("models", []):
+                suffix = "cached config" if info.get("cached") else "download on first use"
+                combo.addItem(f"{info['name']} ({suffix})", info["id"])
+            if combo.findData(current) < 0:
+                combo.addItem(current, current)
+            combo.setCurrentIndex(combo.findData(current))
+        finally:
+            del blocker
+        if not self.loading:
+            new_fps = self._model_fps(model_id=combo.currentData())
+            if new_fps != self.prompt_display_fps:
+                self.gather_prompts()
+                self.prompt_display_fps = new_fps
+                if self.model.prompt_durations_in_frames:
+                    self.populate_prompts()
 
     def populate_constraints(self):
         """Displays stable authoring entries with editable timing and labels."""
         table = self.view.constraints
         selected = table.currentRow()
         table.setRowCount(len(self.model.constraints))
+        table.horizontalHeaderItem(1).setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        table.horizontalHeaderItem(2).setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         for row, entry in enumerate(self.model.constraints):
             check = QtWidgets.QTableWidgetItem()
-            check.setFlags(QtCore.Qt.ItemFlag.ItemIsEnabled | QtCore.Qt.ItemFlag.ItemIsUserCheckable |
-                           QtCore.Qt.ItemFlag.ItemIsSelectable)
-            check.setCheckState(QtCore.Qt.CheckState.Checked if entry["enabled"] else QtCore.Qt.CheckState.Unchecked)
+            check.setFlags(QtCore.Qt.ItemFlag.ItemIsEnabled | QtCore.Qt.ItemFlag.ItemIsSelectable)
             check.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
             table.setItem(row, 0, check)
-            table.setItem(row, 1, QtWidgets.QTableWidgetItem(
-                ", ".join(str(frame + 1) for frame in entry["parameters"]["frame_indices"])))
-            kind = QtWidgets.QTableWidgetItem(entry["parameters"]["type"])
+            checkbox_cell = _CenteredCheckBoxCell(table)
+            checkbox = checkbox_cell.checkbox
+            checkbox.setChecked(entry["enabled"])
+            checkbox.clicked.connect(lambda unused=False, active_row=row: table.selectRow(active_row))
+            checkbox.toggled.connect(self.update_project_summary)
+            table.setCellWidget(row, 0, checkbox_cell)
+            checkbox_cell._position_checkbox()
+            frame_item = QtWidgets.QTableWidgetItem(
+                ", ".join(str(frame + 1) for frame in entry["parameters"]["frame_indices"]))
+            frame_item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+            table.setItem(row, 1, frame_item)
+            constraint_type = entry["parameters"]["type"]
+            icon_paths = {
+                "fullbody": resources.Icon.kimodo_constraint_body,
+                "left-hand": resources.Icon.kimodo_constraint_hand,
+                "right-hand": resources.Icon.kimodo_constraint_hand,
+                "left-foot": resources.Icon.kimodo_constraint_foot,
+                "right-foot": resources.Icon.kimodo_constraint_foot,
+                "root2d": resources.Icon.kimodo_constraint_path,
+            }
+            type_labels = {
+                "fullbody": "Full Body",
+                "left-hand": "Left Hand",
+                "right-hand": "Right Hand",
+                "left-foot": "Left Foot",
+                "right-foot": "Right Foot",
+                "root2d": "Root Path",
+            }
+            kind = QtWidgets.QTableWidgetItem(type_labels.get(constraint_type, constraint_type))
             kind.setFlags(kind.flags() & ~QtCore.Qt.ItemFlag.ItemIsEditable)
+            kind.setIcon(ui_qt.QtGui.QIcon(icon_paths.get(constraint_type, resources.Icon.kimodo_constraint_body)))
+            kind.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+            kind.setToolTip(f"{type_labels.get(constraint_type, constraint_type)} constraint")
             table.setItem(row, 2, kind)
-            table.setItem(row, 3, QtWidgets.QTableWidgetItem(entry["name"]))
+            name = QtWidgets.QTableWidgetItem(entry["name"])
+            name.setToolTip(entry["name"])
+            table.setItem(row, 3, name)
         if table.rowCount():
             table.selectRow(min(max(selected, 0), table.rowCount() - 1))
         self.view.fit_table_columns(table)
+        self.fit_constraints_table_width()
 
     def populate_jobs(self):
         """Updates job history without changing the selected job."""
@@ -599,6 +1001,8 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
             return
         table = self.view.jobs
         selected = table.currentRow()
+        for column in (0, 1):
+            table.horizontalHeaderItem(column).setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         table.blockSignals(True)
         table.setRowCount(len(self.model.jobs))
         for row, job in enumerate(self.model.jobs):
@@ -607,13 +1011,16 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
             values = (job["job_id"][:12], submitted, status, job_results.display_stage_and_request(job))
             for column, text in enumerate(values):
                 item = QtWidgets.QTableWidgetItem(text)
-                if column == 2:
+                if column in (0, 1, 2):
                     item.setTextAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+                elif column == 3:
+                    item.setToolTip(text)
                 table.setItem(row, column, item)
         if table.rowCount():
             table.selectRow(min(selected if selected >= 0 else table.rowCount() - 1, table.rowCount() - 1))
         table.blockSignals(False)
         self.view.fit_table_columns(table)
+        self.fit_jobs_table_width()
         self.refresh_job_details()
         self.update_project_summary()
 
@@ -667,8 +1074,7 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
         enabled_constraints = 0
         constraint_types = []
         for row in range(view.constraints.rowCount()):
-            item = view.constraints.item(row, 0)
-            if item and item.checkState() == QtCore.Qt.CheckState.Checked:
+            if self.constraint_is_enabled(row):
                 enabled_constraints += 1
                 kind = view.constraints.item(row, 2)
                 if kind:
@@ -703,7 +1109,12 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
             f"({html.escape(constraint_summary)})"
             f"<h3>Output and HumanIK</h3><b>Folder:</b> {self._summary_path(view.output.text().strip())}<br>"
             f"<b>Automation:</b> download {'on' if view.auto_download.isChecked() else 'off'}, "
-            f"Maya + HIK {'on' if view.auto_maya_file.isChecked() else 'off'}<br>"
+            f"Maya + HIK {'on' if view.auto_maya_file.isChecked() else 'off'}, "
+            f"import {'all samples' if view.auto_import_all_samples.isChecked() else 'selected sample'} "
+            f"({'on' if view.auto_import_maya.isChecked() else 'off'}), "
+            f"force-clear {'on' if view.auto_clear_scene.isChecked() else 'off'}, "
+            f"frame-rate match {'on' if view.auto_frame_rate.isChecked() else 'off'}, "
+            f"frame-range match {'on' if view.auto_frame_range.isChecked() else 'off'}<br>"
             f"<b>HumanIK:</b> {hik_mode}"
             f"<h3>Jobs</h3><b>History:</b> {len(self.model.jobs)} ({html.escape(status_text)})<br>"
             f"<b>Local:</b> {downloaded} downloaded, {maya_ready} Maya-ready")
@@ -739,9 +1150,14 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
         text += f"\nMaya files: {job_results.maya_status(job)}"
         if job.get("maya_files"):
             text += "\n" + "\n".join(job["maya_files"].values())
-        for key in ("cleanup_error", "download_error", "refresh_error", "maya_export_error"):
+        for key in ("cleanup_error", "download_error", "refresh_error", "maya_export_error", "maya_import_error"):
             if job.get(key):
                 text += f"\n{job[key]}"
+        imported_files = job.get("maya_imported_files") or {}
+        if len(imported_files) > 1:
+            text += "\nImported Maya files:\n" + "\n".join(imported_files.values())
+        elif job.get("maya_imported"):
+            text += f"\nImported Maya file: {job['maya_imported']}"
         if job.get("server_missing"):
             text += "\nServer job is missing; existing local files are still available."
         if resolved:
@@ -972,6 +1388,9 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
             return
         self.gather()
         definition = self.model.build_definition()
+        definition_data = definition.as_dict()
+        frame_count = self._generation_frame_count(definition_data)
+        kimodo.validate_constraints(definition_data["constraints"], frame_count)
         connection = self.model.make_connection()
         job_id = uuid.uuid4().hex
         entry = self.model.add_job({"job_id": job_id, "status": "submitting", "stage": "submitting",
@@ -997,6 +1416,19 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
     def summary_generate(self):
         """Submits the current project from the Summary tab."""
         self.generate()
+
+    def randomize_seed(self):
+        """Writes a new unsigned 32-bit seed into the generation settings.
+
+        Returns:
+            int: Seed written to the Seed field.
+        """
+        import secrets
+
+        seed = secrets.randbits(32)
+        self.view.seed.setText(str(seed))
+        self.message(f"Random seed selected: {seed}.")
+        return seed
 
     def download_model(self):
         """Queues a model download after an explicit size/access notice."""
@@ -1081,6 +1513,106 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
         self.message(
             f"Imported {len(result['joints'])} joints, frames {result['start_frame']:g}–{result['end_frame']:g}.")
 
+    def import_maya_file(self):
+        """Imports the selected job's generated Maya file without clearing the current scene."""
+        self.import_generated_maya_file(self.selected_job())
+
+    def import_generated_maya_file(self, job, automatic=False):
+        """Imports a generated Maya scene, optionally force-clearing first.
+
+        Args:
+            job (dict): Completed generation job containing exported Maya files.
+            automatic (bool): Whether the persistent automatic scene-clear option applies.
+
+        Returns:
+            str: Absolute path imported first into the current Maya scene.
+        """
+        maya_files = job.get("maya_files") or {}
+        if not maya_files:
+            raise ValueError("Create Maya Files first; this job has no generated Maya scene.")
+
+        import_all_samples = automatic and self.model.auto_import_all_samples
+        if import_all_samples:
+            sample_names = sorted(maya_files, key=lambda name: (name != "motion.json", name))
+        else:
+            sample_name = None
+            try:
+                if self.selected_job() is job:
+                    sample_name = self.view.sample.currentText()
+            except ValueError:
+                pass
+            if sample_name not in maya_files:
+                sample_name = "motion.json" if "motion.json" in maya_files else sorted(maya_files)[0]
+            sample_names = [sample_name]
+
+        paths = {}
+        for sample_name in sample_names:
+            path = os.path.abspath(maya_files[sample_name])
+            if not os.path.isfile(path) or os.path.splitext(path)[1].lower() != ".ma":
+                raise ValueError(f"Generated Maya file is missing or invalid: {path}")
+            paths[sample_name] = path
+
+        import maya.cmds as cmds
+
+        motion_metadata = None
+        metadata_error = None
+        if automatic and (self.model.auto_frame_rate or self.model.auto_frame_range):
+            motion_path = job.get("paths", {}).get(sample_names[0])
+            try:
+                from gt.core.io import read_json_dict
+
+                if not motion_path or not os.path.isfile(motion_path):
+                    raise ValueError("The matching downloaded motion JSON is unavailable.")
+                motion = read_json_dict(motion_path)
+                kimodo.validate_motion(motion)
+                motion_metadata = {"fps": motion["fps"], "frame_count": motion["frame_count"]}
+            except Exception as error:
+                metadata_error = str(error)
+
+        clear_scene = automatic and self.model.auto_clear_scene
+        if clear_scene:
+            cmds.file(new=True, force=True)
+        use_sample_namespaces = import_all_samples and len(sample_names) > 1
+        for sample_name in sample_names:
+            import_options = {"i": True, "type": "mayaAscii", "ignoreVersion": True,
+                              "mergeNamespacesOnClash": False}
+            if use_sample_namespaces:
+                requested_namespace = self.view.namespace.text().strip() or "kimodo"
+                base = re.sub(r"[^A-Za-z0-9_]+", "_", requested_namespace)
+                sample = re.sub(r"[^A-Za-z0-9_]+", "_", os.path.splitext(sample_name)[0])
+                namespace = f"{base}_{sample}".strip("_") or "kimodo_sample"
+                if namespace[0].isdigit():
+                    namespace = f"kimodo_{namespace}"
+                import_options["namespace"] = self._namespace(namespace)
+            cmds.file(paths[sample_name], **import_options)
+        adjustments = []
+        if automatic and motion_metadata:
+            if self.model.auto_frame_rate:
+                cmds.currentUnit(time=f"{motion_metadata['fps']:g}fps", updateAnimation=False)
+                adjustments.append(f"{motion_metadata['fps']:g} FPS")
+            if self.model.auto_frame_range:
+                end_frame = motion_metadata["frame_count"]
+                cmds.playbackOptions(minTime=1, maxTime=end_frame,
+                                     animationStartTime=1, animationEndTime=end_frame)
+                adjustments.append(f"frames 1–{end_frame}")
+        if clear_scene:
+            cmds.viewFit(all=True)
+        job["maya_imported"] = paths[sample_names[0]]
+        job["maya_imported_files"] = {sample_name: paths[sample_name] for sample_name in sample_names}
+        job.pop("maya_import_error", None)
+        self.model.save_preferences()
+        self.populate_jobs()
+        action = "Cleared the current scene and imported" if clear_scene else "Imported"
+        imported_text = (f"{len(sample_names)} generated Maya files into the same scene"
+                         if len(sample_names) > 1 else f"generated Maya file: {paths[sample_names[0]]}")
+        if metadata_error:
+            self.message(f"{action} {imported_text}, but automatic timing adjustments were skipped: "
+                         f"{metadata_error}", warning=True)
+        else:
+            adjustment_text = f" Set {', '.join(adjustments)}." if adjustments else ""
+            self.message(f"{action} {imported_text}.{adjustment_text}")
+        return paths[sample_names[0]]
+
     def create_skeleton(self):
         """Creates an editable SOMA rest skeleton for pose authoring."""
         if not self.model.rest_motion:
@@ -1099,9 +1631,28 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
         self.message(f"Editable pose skeleton created.{state} Pose it in Maya, then capture each desired pose.")
 
     def save_auto_humanik(self):
-        """Persists the local authoring option without requiring completed generation inputs."""
+        """Persists HumanIK and joint-translation authoring options."""
         if not self.loading:
-            self.model.definition["maya"] = {"auto_humanik": self.view.auto_humanik.isChecked()}
+            self.model.definition["maya"] = {
+                "auto_humanik": self.view.auto_humanik.isChecked(),
+                "limit_body_joint_translations": self.view.limit_body_joint_translations.isChecked(),
+            }
+            self.model.save_preferences()
+
+    def save_pose_preview_template(self):
+        """Persists whether newly created pose previews are unselectable templates."""
+        if not self.loading:
+            self.model.pose_previews_template = self.view.template_pose_previews.isChecked()
+            self.model.save_preferences()
+
+    def update_path_sample_controls(self, *unused):
+        """Enables automatic curve sampling only when explicit root-path frames are blank."""
+        self.view.path_curve_samples.setEnabled(not self.view.path_frames.text().strip())
+
+    def save_path_curve_samples(self, *unused):
+        """Persists the requested automatic NURBS curve sample count."""
+        if not self.loading:
+            self.model.path_curve_samples = self.view.path_curve_samples.value()
             self.model.save_preferences()
 
     def use_selection(self):
@@ -1120,26 +1671,236 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
         self.message(f"Captured pose at clip frame {frame + 1}.")
 
     def capture_path(self):
-        """Captures selected locators or a curve using explicit destination timing."""
+        """Captures selected locators or a curve using explicit or automatic timing."""
         import maya.cmds as cmds
 
         self.gather_constraints()
-        constraint = kimodo.capture_root_path(cmds.ls(selection=True, long=True),
-            self.parse_frames(self.view.path_frames.text()), self.model.pose_group or None)
+        selected_nodes = cmds.ls(selection=True, long=True) or []
+        path_nodes = []
+        for node in selected_nodes:
+            node_type = cmds.nodeType(node)
+            if node_type in ("transform", "joint"):
+                path_nodes.append(node)
+            elif node_type == "nurbsCurve":
+                parent = cmds.listRelatives(node, parent=True, fullPath=True) or []
+                path_nodes.extend(parent[:1])
+        path_nodes = list(dict.fromkeys(path_nodes))
+        frame_text = self.view.path_frames.text().strip()
+        self.gather_prompts()
+        frame_count = self._generation_frame_count(self.model.definition)
+        automatic_curve = False
+        if frame_text:
+            frames = self.parse_frames(frame_text)
+        else:
+            curve_shapes = []
+            if len(path_nodes) == 1:
+                curve_shapes = [shape for shape in cmds.listRelatives(
+                    path_nodes[0], shapes=True, fullPath=True) or [] if cmds.nodeType(shape) == "nurbsCurve"]
+            if len(path_nodes) >= 2:
+                key_count = len(path_nodes)
+            elif curve_shapes:
+                key_count = min(self.view.path_curve_samples.value(), frame_count)
+                automatic_curve = True
+            else:
+                raise ValueError("Leave Root path frames blank to evenly spread two or more selected transforms, "
+                                 "or to sample one selected NURBS curve across the generated clip.")
+            frames = kimodo.distribute_constraint_frames(key_count, frame_count)
+        constraint = kimodo.capture_root_path(path_nodes, frames, self.model.pose_group or None)
+        kimodo.validate_constraints([constraint], frame_count)
         self.model.add_constraint(constraint, "Root path")
         self.populate_constraints()
         self.model.save_preferences()
-        self.message("Root path captured in the pose skeleton's placement space.")
+        if automatic_curve:
+            requested_samples = self.view.path_curve_samples.value()
+            timing = f"with {len(frames)} curve samples"
+            if len(frames) < requested_samples:
+                timing += f" (requested {requested_samples}; limited by clip length)"
+            timing += " evenly spread across the generated clip"
+        elif frame_text:
+            timing = "at the entered clip frames"
+        else:
+            timing = "evenly across the generated clip"
+        self.message(f"Root path captured {timing} in the pose skeleton's placement space.")
 
     def preview_pose(self):
         """Creates a separate pose preview without changing the authoring skeleton."""
         self.gather_constraints()
         row = self.view.constraints.currentRow()
-        if row < 0 or not self.model.rest_motion:
+        if row < 0 or row >= len(self.model.constraints):
             raise ValueError("Connect and select a pose constraint first.")
-        kimodo.preview_pose(self.model.constraints[row]["parameters"], self.model.rest_motion,
-                            namespace=self._namespace("kimodo_preview"))
-        self.message("Pose preview created in a new namespace.")
+        entry = self.model.constraints[row]
+        if entry["parameters"].get("type") == "root2d":
+            raise ValueError("Select a pose constraint; use Preview Root Path for a path constraint.")
+        self._preview_pose_entry(entry)
+        style = "template (unselectable)" if self.view.template_pose_previews.isChecked() else "selectable"
+        self.message(f"Pose preview created as a {style} skeleton: {self._preview_display_name(entry)}.")
+
+    @staticmethod
+    def _preview_display_name(entry):
+        """Builds a Maya-safe label identifying a constraint preview by name and first frame.
+
+        Args:
+            entry (dict): Named Kimodo constraint row.
+
+        Returns:
+            str: Maya-safe display name.
+        """
+        parameters = entry["parameters"]
+        label = re.sub(r"[^A-Za-z0-9_]+", "_", entry.get("name") or parameters.get("type", "constraint"))
+        label = label.strip("_") or "constraint"
+        if label[0].isdigit():
+            label = f"constraint_{label}"
+        frame = parameters.get("frame_indices", [0])[0] + 1
+        return f"kimodo_{label[:48]}_frame_{frame:03d}"
+
+    def _preview_pose_entry(self, entry):
+        """Creates and names one pose preview from a constraint row."""
+        if not self.model.rest_motion:
+            raise ValueError("Connect first to load the reference skeleton for pose previews.")
+        display_name = self._preview_display_name(entry)
+        kimodo.preview_pose(
+            entry["parameters"], self.model.rest_motion, namespace=self._namespace("kimodo_preview"),
+            template=self.view.template_pose_previews.isChecked(), display_name=display_name)
+
+    def preview_all_constraints(self):
+        """Creates previews for all pose and root-path constraint rows, including disabled rows."""
+        self.gather_constraints()
+        entries = list(self.model.constraints)
+        if not entries:
+            raise ValueError("Add at least one pose or root path constraint to preview.")
+        has_poses = any(entry["parameters"].get("type") != "root2d" for entry in entries)
+        if has_poses and not self.model.rest_motion:
+            raise ValueError("Connect first to load the reference skeleton for pose previews.")
+
+        created = 0
+        failures = []
+        for entry in entries:
+            display_name = self._preview_display_name(entry)
+            try:
+                if entry["parameters"].get("type") == "root2d":
+                    self._create_root_path_preview(entry["parameters"], display_name, select=False)
+                else:
+                    self._preview_pose_entry(entry)
+                created += 1
+            except Exception as error:
+                failures.append(f"{entry.get('name') or display_name}: {error}")
+                logger.warning("Could not preview Kimodo constraint %s: %s", display_name, error)
+        if not created:
+            raise ValueError("No constraint previews were created. " + "; ".join(failures))
+        if failures:
+            self.message(f"Created {created} previews; {len(failures)} failed. See the Script Editor for details.",
+                         warning=True)
+        else:
+            self.message(f"Created previews for all {created} constraints.")
+
+    def remove_all_constraints(self):
+        """Confirms and removes all constraint rows from this setup, without deleting scene objects."""
+        count = len(self.model.constraints)
+        if not count:
+            self.message("There are no constraints to remove.", warning=True)
+            return
+        answer = QtWidgets.QMessageBox.question(
+            self.view, "Remove All Constraints", f"Remove all {count} constraints from this setup?\n\n"
+            "This does not delete Maya preview objects.",
+            QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No,
+            QtWidgets.QMessageBox.StandardButton.No)
+        if answer != QtWidgets.QMessageBox.StandardButton.Yes:
+            return
+        self.model.constraints = []
+        self.populate_constraints()
+        self.model.save_preferences()
+        self.message(f"Removed {count} constraints from this setup.")
+
+    def remove_pose_previews(self):
+        """Deletes tracked Kimodo pose and root-path previews without touching other scene objects."""
+        count = kimodo.remove_pose_previews()
+        if not count:
+            self.message("No Kimodo constraint previews were found in the current Maya scene.", warning=True)
+            return
+        self.message(f"Removed {count} Kimodo constraint preview{'s' if count != 1 else ''}.")
+
+    def show_pose_frame_context_menu(self, position):
+        """Opens the frame spinbox menu with a Maya-current-time shortcut.
+
+        Args:
+            position (QPoint): Position relative to the pose frame spinbox.
+        """
+        menu = QtWidgets.QMenu(self.view.pose_frame)
+        self._add_menu_action(
+            menu,
+            "Set Clip Frame to Current Maya Frame",
+            self._action_callback("set_pose_frame_to_current_time"),
+            icon_path=resources.Icon.ui_goto_location,
+            tooltip="Query Maya's current timeline time when clicked and copy its nearest whole frame into Clip "
+                    "frame. This sets the pose's destination in the generated clip; it does not change Maya time "
+                    "or sample a different pose.")
+        execute = getattr(menu, "exec_", None) or getattr(menu, "exec")
+        execute(self.view.pose_frame.mapToGlobal(position))
+
+    def set_pose_frame_to_current_time(self):
+        """Copies Maya's current timeline frame into the pose destination field."""
+        import maya.cmds as cmds
+
+        maya_frame = int(round(cmds.currentTime(query=True)))
+        self.view.pose_frame.setValue(maya_frame)
+        clip_frame = self.view.pose_frame.value()
+        if clip_frame != maya_frame:
+            self.message(f"Maya frame {maya_frame} is outside the Clip frame range; using {clip_frame} instead.",
+                         warning=True)
+            return
+        self.message(f"Clip frame set to Maya frame {clip_frame}.")
+
+    def preview_root_path(self):
+        """Creates a Maya curve showing one selected root-path constraint."""
+        self.gather_constraints()
+        row = self.view.constraints.currentRow()
+        if row < 0 or row >= len(self.model.constraints):
+            raise ValueError("Select a root path constraint to preview.")
+        entry = self.model.constraints[row]
+        parameters = entry["parameters"]
+        if parameters.get("type") != "root2d":
+            raise ValueError("The selected row is not a root path constraint.")
+        curve = self._create_root_path_preview(parameters, self._preview_display_name(entry))
+        self.message(f"Root path preview created: {curve}")
+        return curve
+
+    def _create_root_path_preview(self, parameters, display_name, select=True):
+        """Builds a tracked Maya curve from one native root-path constraint.
+
+        Args:
+            parameters (dict): Native root-path conditioning data.
+            display_name (str): Maya-safe display label.
+            select (bool): Select the curve after creation for an individual preview.
+
+        Returns:
+            str: Created curve transform.
+        """
+        import maya.cmds as cmds
+        import maya.api.OpenMaya as om
+
+        kimodo.validate_constraints([parameters])
+        coordinates = parameters.get("smooth_root_2d", [])
+        if len(coordinates) < 2:
+            raise ValueError("A root path preview requires at least two path samples.")
+
+        units_per_meter = 1.0 / om.MDistance(1, om.MDistance.uiUnit()).asMeters()
+        group = self.model.pose_group
+        if group:
+            if not cmds.objExists(group):
+                raise ValueError("The pose placement group no longer exists; choose the pose source again.")
+            points = [(x * units_per_meter, 0.0, z * units_per_meter) for x, z in coordinates]
+        elif cmds.upAxis(query=True, axis=True) == "y":
+            points = [(x * units_per_meter, 0.0, z * units_per_meter) for x, z in coordinates]
+        else:
+            points = [(x * units_per_meter, -y * units_per_meter, 0.0) for x, y in coordinates]
+
+        curve = cmds.curve(name=display_name, degree=1, point=points)
+        if group:
+            curve = (cmds.parent(curve, group, relative=True) or [curve])[0]
+        kimodo.tag_path_preview(curve)
+        if select:
+            cmds.select(curve, replace=True)
+        return curve
 
     def duplicate_constraint(self):
         """Duplicates a constraint with a fresh ID and the chosen destination frame."""
@@ -1310,12 +2071,11 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
         self.move_prompt(1)
 
     def validate(self):
-        """Validates the complete request and estimates SOMA timing."""
+        """Validates the complete request and estimates generated clip timing."""
         self.gather()
         data = self.model.build_definition().as_dict()
-        if "soma" in data["model"]:
-            frames = sum(int(segment["duration_seconds"] * 30) for segment in data["prompts"])
-            kimodo.validate_constraints(data["constraints"], frames)
+        frame_count = self._generation_frame_count(data)
+        kimodo.validate_constraints(data["constraints"], frame_count)
         self.message(f"Valid request: {len(data['prompts'])} segments, {len(data['constraints'])} constraints.")
 
     def import_constraints(self):
@@ -1343,6 +2103,42 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
             self.model.load_setup(path)
             self.load_widgets()
             self.message("Setup loaded.")
+
+    def load_default_setup(self):
+        """Resets generation and project settings while preserving connection and history."""
+        answer = QtWidgets.QMessageBox.question(
+            self.view, "Reset to Default Setup",
+            "Reset prompts, constraints, HumanIK overrides, and generation/import settings to their defaults?\n\n"
+            "The current bridge connection, WSL/Python settings, token, job history, and Maya scene are preserved.",
+            QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No,
+            QtWidgets.QMessageBox.StandardButton.No)
+        if answer != QtWidgets.QMessageBox.StandardButton.Yes:
+            return
+
+        defaults = KimodoGeneratorModel(preferences=False)
+        preserved_widths = copy.deepcopy(self.model.table_widths)
+        self.model.definition = copy.deepcopy(defaults.definition)
+        self.model.constraints = copy.deepcopy(defaults.constraints)
+        self.model.prompt_durations_in_frames = defaults.prompt_durations_in_frames
+        self.model.path_curve_samples = defaults.path_curve_samples
+        self.model.pose_previews_template = defaults.pose_previews_template
+        self.model.output_directory = defaults.output_directory
+        self.model.namespace = defaults.namespace
+        self.model.start_frame = defaults.start_frame
+        self.model.humanik = copy.deepcopy(defaults.humanik)
+        self.model.auto_download = defaults.auto_download
+        self.model.auto_maya_file = defaults.auto_maya_file
+        self.model.auto_import_maya = defaults.auto_import_maya
+        self.model.auto_import_all_samples = defaults.auto_import_all_samples
+        self.model.auto_clear_scene = defaults.auto_clear_scene
+        self.model.auto_frame_rate = defaults.auto_frame_rate
+        self.model.auto_frame_range = defaults.auto_frame_range
+        self.model.table_widths = preserved_widths
+        self.model.pose_group = ""
+        self.load_widgets()
+        self.view.pose_source.setText("Pose source: select a Kimodo skeleton")
+        self.model.save_preferences()
+        self.message("Default generation setup loaded. The bridge connection and job history were preserved.")
 
     def save_setup(self):
         """Saves prompt and pose authoring data."""
@@ -1438,11 +2234,32 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
         self.run_network("query_wsl", query_wsl_distributions, queried)
 
     def open_folder(self):
-        """Opens the selected job's existing download folder."""
+        """Opens a job's download folder, or the configured target when no job is selected."""
+        row = self.view.jobs.currentRow()
+        if not 0 <= row < len(self.model.jobs):
+            folder = self.model.output_directory
+            if not folder:
+                raise ValueError("Choose a Download Folder first.")
+            folder = os.path.abspath(folder)
+            try:
+                os.makedirs(folder, exist_ok=True)
+            except OSError as error:
+                self.message(f"No job was selected, and the Download Folder could not be prepared: {error}",
+                             warning=True)
+                return
+            opened = ui_qt.QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromLocalFile(folder))
+            if not opened:
+                self.message(f"No job was selected. Could not open the Download Folder: {folder}", warning=True)
+                return
+            self.message(f"No job selected; opened the configured Download Folder: {folder}", warning=True)
+            return
+
         path = self.selected_job().get("paths", {}).get("result.json")
         if not path or not os.path.isfile(path):
             raise ValueError("Download the job first.")
-        ui_qt.QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromLocalFile(os.path.dirname(path)))
+        folder = os.path.dirname(path)
+        if not ui_qt.QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromLocalFile(folder)):
+            raise ValueError(f"Could not open the results folder: {folder}")
 
     def gather_humanik(self):
         """Validates the optional HumanIK fields independently of generation inputs."""
