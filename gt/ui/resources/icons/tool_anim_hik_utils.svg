@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <title>HumanIK Utilities</title>
+  <path d="M256 38v438" fill="none" stroke="#6B6B6B" stroke-width="14" stroke-dasharray="18 18"/>
+  <g stroke="#2B2B2B" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="164" cy="100" r="37" fill="#E0E0E0"/>
+    <circle cx="348" cy="100" r="37" fill="#FF6A6A"/>
+    <path d="M112 159h99v47l-28 29v60l32 90-38 14-34-88-26 86-39-14 36-104v-56l-40 41-29-30z"
+          fill="#BDBDBD"/>
+    <path d="M400 159h-99v47l28 29v60l-32 90 38 14 34-88 26 86 39-14-36-104v-56l40 41 29-30z"
+          fill="#FF6A6A"/>
+  </g>
+  <path d="M166 452h180m-155-25-25 25 25 25m130-50 25 25-25 25" fill="none"
+        stroke="#FF6A6A" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
