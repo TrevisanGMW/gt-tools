@@ -98,6 +98,12 @@ class TrackerScheduler:
             changed = self._advance_finalization() or changed
         if self._is_finished() and not self.session.finished:
             self.cleanup_report_parts()
+            if self.project:
+                from gt.tools.batch_processor.tasks.task_kimodo_base import cleanup_project_coordination
+
+                task_ids = {task.id for job in self.session.jobs for task in job.tasks}
+                run_tasks = [task for task in self.project.get_enabled_tasks() if task.id in task_ids]
+                cleanup_project_coordination(self.project, run_tasks, report=self._append_project_log)
             self.session.finish()
             self._append_project_summary()
             changed = True

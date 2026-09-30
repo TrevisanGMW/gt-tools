@@ -564,7 +564,31 @@ with the provided prefix "Left Side Tag".</p>
 <img src="../gt/ui/resources/icons/tool_kimodo_generator.svg" height="72" align="right" alt="Kimodo Generator icon">
 
 <p>Generate animation in Maya from text, timed poses, and root paths using Kimodo in WSL, a native Windows Python
-environment, or an existing Kimodo bridge server. Kimodo runs in its own environment; Maya only needs GT Tools.</p>
+environment, or an existing Kimodo bridge server. <b>WSL with Ubuntu is the recommended setup:</b> it keeps Kimodo's
+Linux/PyTorch environment separate from Maya's Python. Maya only needs GT Tools; native Windows and existing-server
+connections are also supported.</p>
+
+<p><b>Recommended setup: install Kimodo in WSL</b></p>
+<ol>
+  <li><b>Install WSL.</b> Follow Microsoft's
+  <a href="https://learn.microsoft.com/en-us/windows/wsl/install">official WSL installation guide</a>.
+  On a current Windows version, the quick-start command is <code>wsl --install</code> from an elevated PowerShell
+  window. Restart Windows if prompted.</li>
+  <li><b>Install a Linux distribution.</b> WSL runs a Linux distribution (often informally called an image) alongside
+  Windows. To choose one, run <code>wsl --list --online</code>, then install it with
+  <code>wsl --install -d Ubuntu</code> (or replace <code>Ubuntu</code> with the distribution name you chose).
+  Launch the distribution once from the Start menu and create its Linux username and password. See Microsoft's
+  <a href="https://learn.microsoft.com/en-us/windows/wsl/install">distribution installation instructions</a> and
+  Canonical's <a href="https://ubuntu.com/wsl/docs/latest">official Ubuntu on WSL guide</a>.</li>
+  <li><b>Install Kimodo inside that distribution.</b> Follow NVIDIA's
+  <a href="https://research.nvidia.com/labs/sil/projects/kimodo/docs/getting_started/installation.html">official
+  Kimodo installation guide</a>, including its environment and GPU prerequisites. Keep Kimodo and its dependencies
+  in the Linux environment; do not install them into Maya's Python.</li>
+</ol>
+
+<p>After setup, launch Maya and connect using the WSL mode described below. The tool can query available WSL
+distributions, launch the bridge with the selected Kimodo environment, and make requests from Maya. GT Tools does not
+install WSL, a Linux distribution, CUDA, or Kimodo itself.</p>
 
 <p><b>How to use it:</b></p>
 <ol>
@@ -609,8 +633,11 @@ environment, or an existing Kimodo bridge server. Kimodo runs in its own environ
   local Maya process saves <code>motion.ma</code> (and one scene per additional sample) beside the motion JSON.
   Scenes contain animation at its native FPS from frame 1 and a locked HumanIK definition, using HumanIK overrides
   or built-in defaults. Your open scene stays untouched. <b>Create Maya Files</b> runs/retries manually; existing
-  verified exports are reused, edited files are never overwritten, and missing scenes are flagged. Automatic
-  processing runs while the tool is open; disabling auto-download requires downloading manually first.</li>
+  verified exports are reused, edited files are never overwritten, and missing scenes are flagged. With
+  <b>Auto-import Maya file</b> enabled, <b>Import all samples into one scene</b> (checked by default) imports each
+  generated sample under its own namespace; <b>Force-clear scene before import</b> clears the scene once before that
+  batch. Auto-adjust frame rate and auto-match frame range update Maya's scene settings for the generated motion.
+  Automatic processing runs while the tool is open; disabling auto-download requires downloading manually first.</li>
   <li><b>Print Server Location</b> prints the selected job's actual server directory in the Script Editor and status
   field: a Linux path for WSL, or a Windows path for native Windows. Restart an older bridge with the updated code
   to enable this field. Automatic Maya export uses local mayapy and needs no additional WSL dependencies.</li>
@@ -626,7 +653,7 @@ environment, or an existing Kimodo bridge server. Kimodo runs in its own environ
   and constraint Use cells are centered. User-adjusted widths for the Generate,
   Constraints, and Results tables persist when the tool is reopened.
   Generate defaults to one motion, so the
-  Sample chooser stays hidden; it appears only when a request explicitly asks for 2â€“8 alternatives.</li>
+  Sample chooser stays hidden; it appears only when a request explicitly asks for 2-8 alternatives.</li>
   <li><b>Clear Finished</b> or <b>Clear All History</b> confirms cleanup of tracked server/WSL job files and optional
   local artifacts. Active jobs are cancelled before deletion. Automatic Maya files and their verification receipts,
   edited/extra local files, imported Maya animation and

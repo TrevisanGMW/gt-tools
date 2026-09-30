@@ -86,6 +86,46 @@ class TestKimodoData(unittest.TestCase):
         with self.assertRaises(ValueError):
             data.resolve_path("relative/path", None)
 
+    def test_prompt_replacements_apply_per_variation_without_cascading(self):
+        """Applies both walk/walking rules to every segment without consuming longer matches."""
+        task = TaskKimodoDefinition(settings={"variations": 3, "prompt_replacements": [
+            {"variation": 1, "search": "walk", "replace": "run"},
+            {"variation": 1, "search": "walking", "replace": "running"},
+            {"variation": 1, "search": "run", "replace": "sprint"},
+            {"variation": 2, "search": "walk", "replace": "jog"},
+            {"variation": 2, "search": "walking", "replace": "jogging"},
+        ]})
+        task.settings["definition"]["prompts"] = [
+            {"text": "walk then walking", "duration_seconds": 4},
+            {"text": "walking then walk", "duration_seconds": 4},
+        ]
+        for number, expected in ((1, ["run then running", "running then run"]),
+                                 (2, ["jog then jogging", "jogging then jog"]),
+                                 (3, ["walk then walking", "walking then walk"])):
+            resolved = definition_task.vary_definition(task.base_definition(None), task.settings, "walk.ma", number)
+            self.assertEqual(expected, [prompt["text"] for prompt in resolved["prompts"]])
+        self.assertEqual("walk then walking", task.settings["definition"]["prompts"][0]["text"])
+        restored = tasks.create_task_from_dict(task.to_dict())
+        self.assertEqual(task.settings["prompt_replacements"], restored.settings["prompt_replacements"])
+
+    def test_prompt_replacements_are_literal_and_follow_prompt_choices(self):
+        """Uses literal case-sensitive matching after choosing the first prompt."""
+        task = TaskKimodoDefinition(settings={"prompt_choices": "walk.* Walk", "prompt_replacements": [
+            {"variation": 1, "search": "walk.*", "replace": "run\\1"},
+            {"variation": 1, "search": " Walk", "replace": ""},
+        ]})
+        resolved = definition_task.vary_definition(task.base_definition(None), task.settings, "walk.ma", 1)
+        self.assertEqual("run\\1", resolved["prompts"][0]["text"])
+
+    def test_prompt_replacement_validation_checks_every_variation(self):
+        """Rejects incomplete, out-of-range, and ambiguous rules before scene capture."""
+        valid = {"variation": 2, "search": "walk", "replace": "run"}
+        for rules in ([dict(valid, variation=3)], [dict(valid, variation=1.5)],
+                      [dict(valid, search="")], [valid, valid], [dict(valid, replace=None)]):
+            task = TaskKimodoDefinition(settings={"variations": 2, "prompt_replacements": rules})
+            with self.subTest(rules=rules):
+                self.assertTrue(any("[Variations]" in error for error in task.validate(None).errors))
+
     def test_task_serialization_and_registry(self):
         """Preserves nested settings through the production task registry."""
         for task in (TaskKimodoDefinition(), TaskKimodoGenerate()):
@@ -219,10 +259,27 @@ class TestKimodoGeneration(unittest.TestCase):
                 mock.patch.object(generation, "publish_scene", side_effect=self.save_scene):
             result = self.task.execute(self.item, None, self.output)
         self.assertEqual(["walk_s001.ma", "walk_s002.ma"], [os.path.basename(item.current_path) for item in result])
+        self.assertEqual(["walk_s001.ma", "walk_s002.ma"], sorted(os.listdir(self.output)))
         with mock.patch.object(generation, "connect") as connect, self.assertRaises(tasks.TaskSkip) as skipped:
             self.task.execute(self.item, None, self.output)
         connect.assert_not_called()
         self.assertEqual(2, len(skipped.exception.work_item))
+        self.assertEqual(["walk_s001.ma", "walk_s002.ma"], sorted(os.listdir(self.output)))
+
+    def test_cleanup_options_are_independent(self):
+        """Keeps requested diagnostics while purging the other kind of temporary data."""
+        self.task.settings["purge_coordination_on_finish"] = False
+        with mock.patch.object(generation, "connect", return_value=self.client), \
+                mock.patch.object(generation, "publish_scene", side_effect=self.save_scene):
+            self.task.execute(self.item, None, self.output)
+        self.assertTrue(os.path.isdir(os.path.join(self.output, ".kimodo-coordination")))
+        self.assertFalse(os.path.exists(os.path.join(self.output, ".kimodo-cache")))
+        self.task.settings.update(purge_coordination_on_finish=True, purge_cache_on_success=False)
+        with self.assertRaises(tasks.TaskSkip):
+            self.task.execute(self.item, None, self.output)
+        self.assertFalse(os.path.exists(os.path.join(self.output, ".kimodo-coordination")))
+        self.assertTrue(os.path.isfile(os.path.join(self.task.recovery_directory(self.item, self.output),
+                                                    "generation.json")))
 
     def test_partial_publication_resumes_same_remote_job(self):
         """Keeps sample one and reuses the job when sample two fails to save."""

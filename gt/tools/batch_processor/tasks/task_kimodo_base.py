@@ -6,7 +6,9 @@ import string
 import hashlib
 import json
 import shutil
+import tempfile
 from functools import partial
+from contextlib import ExitStack, contextmanager
 from gt.core import io as core_io
 from gt.tools.batch_processor import batch_processor_task_base as base
 from gt.tools.batch_processor.tasks.task_clip import ClipSnapshotFileLock
@@ -45,7 +47,7 @@ class TaskKimodoBase(base.BatchTask):
         settings = super().get_default_settings()
         settings.update(source_mode=base.SOURCE_MODE_INCOMING, name_pattern="{source}", filename_suffix="",
                         source_include_subdirectories=True, include_version_suffix=True,
-                        purge_cache_on_success=True)
+                        purge_cache_on_success=True, purge_coordination_on_finish=True)
         return settings
 
     def discover_source_files(self, project, task_index=None):
@@ -73,6 +75,8 @@ class TaskKimodoBase(base.BatchTask):
             ValidationResult: Validation diagnostics.
         """
         result = base.ValidationResult()
+        if not isinstance(self.settings.get("purge_coordination_on_finish", True), bool):
+            self.add_area_error(result, "Recovery", "Purge coordination folders must be enabled or disabled.")
         if not self.writes_to_target_path():
             self.add_area_error(result, "Task Setup", "Kimodo tasks require a separate target folder.")
         try:
@@ -207,20 +211,34 @@ class TaskKimodoBase(base.BatchTask):
         identity = fingerprint([self.id, os.path.normcase(os.path.abspath(item.current_path))])[:24]
         return os.path.join(os.path.abspath(directory), ".kimodo-cache", identity)
 
-    def recovery_lock(self, item, directory, timeout_seconds=3600):
+    @contextmanager
+    def recovery_lock(self, item, directory, timeout_seconds=3600, context=None):
         """Locks one task/input independently of its removable recovery folder.
 
         Args:
             item (WorkItem): Input whose recovery data is being accessed.
             directory (str): Output root.
             timeout_seconds (float, optional): Maximum time to wait for the lock.
+            context (dict, optional): Runner context controlling end-of-run cleanup.
 
-        Returns:
+        Yields:
             ClipSnapshotFileLock: Stable coordination lock for this task/input pair.
         """
         identity = fingerprint([self.id, os.path.normcase(os.path.abspath(item.current_path))])[:24]
-        lock_path = os.path.join(os.path.abspath(directory), ".kimodo-coordination", "locks", identity)
-        return ClipSnapshotFileLock(lock_path, timeout_seconds=timeout_seconds)
+        with coordination_guard(directory):
+            root = checked_coordination_root(directory)
+            lock = ClipSnapshotFileLock(os.path.join(root, "locks", identity), timeout_seconds=timeout_seconds)
+            lock.acquire()
+        try:
+            yield lock
+        finally:
+            lock.release()
+            if (self.settings.get("purge_coordination_on_finish", True)
+                    and not (context or {}).get("defer_kimodo_coordination_cleanup")):
+                try:
+                    purge_coordination(directory)
+                except (OSError, RuntimeError, ValueError) as error:
+                    report_message(context, f"Could not purge coordination folder: {error}")
 
     def purge_recovery_directory(self, item, directory, cache):
         """Removes one recovery folder and prunes the cache root when it is safe.
@@ -383,6 +401,131 @@ class TaskKimodoBase(base.BatchTask):
         values = dict(item.metadata)
         values.update(last_task_id=self.id, last_task_type=self.task_type, kimodo=metadata)
         return base.WorkItem(item.source_path, path, values)
+
+
+def coordination_guard(directory):
+    """Returns a stable lock outside the output tree to protect lock-file lifetimes.
+
+    Args:
+        directory (str): Explicit output directory.
+
+    Returns:
+        ClipSnapshotFileLock: Guard shared by entrants and coordination cleanup.
+    """
+    if not directory or not os.path.isabs(directory):
+        raise ValueError("Kimodo coordination requires an explicit absolute output directory.")
+    identity = os.path.normcase(os.path.realpath(directory))
+    digest = hashlib.sha256(identity.encode("utf-8")).hexdigest()
+    return ClipSnapshotFileLock(os.path.join(tempfile.gettempdir(), "gt-kimodo-guards", digest))
+
+
+def checked_coordination_root(directory):
+    """Resolves the task-owned folder, rejecting links outside the output directory.
+
+    Args:
+        directory (str): Output directory.
+
+    Returns:
+        str: Absolute coordination folder.
+
+    Raises:
+        ValueError: If coordination was redirected through a symbolic link or junction.
+    """
+    if not directory or not os.path.isabs(directory):
+        raise ValueError("Kimodo coordination cleanup requires an explicit absolute output directory.")
+    output_root = os.path.realpath(os.path.abspath(directory))
+    root = os.path.join(output_root, ".kimodo-coordination")
+    if os.path.normcase(os.path.realpath(root)) != os.path.normcase(root):
+        raise ValueError(f"Refusing linked Kimodo coordination folder: {root}")
+    return root
+
+
+def purge_coordination(directory):
+    """Removes recognized coordination files only when no worker holds their locks.
+
+    Entrants acquire the external guard before opening their per-input lock. The
+    guard stays stable after cleanup, preventing waiting workers on POSIX from
+    acquiring a deleted lock inode while a new worker uses a different one.
+
+    Args:
+        directory (str): Output directory whose coordination files are disposable.
+
+    Returns:
+        bool: Whether the folder was removed or was already absent.
+    """
+    with coordination_guard(directory):
+        root = checked_coordination_root(directory)
+        if not os.path.exists(root):
+            return True
+        patterns = {"locks": r"[0-9a-f]{24}\.lock",
+                    "outputs": r"[0-9a-f]{64}\.json(?:\.lock)?",
+                    "maintenance": r"legacy-cache\.lock"}
+        paths = []
+        folders = []
+        with os.scandir(root) as entries:
+            root_entries = list(entries)
+        for entry in root_entries:
+            if entry.name not in patterns or not entry.is_dir(follow_symlinks=False):
+                return False
+            if os.path.normcase(os.path.realpath(entry.path)) != os.path.normcase(entry.path):
+                return False
+            folders.append(entry.path)
+            with os.scandir(entry.path) as children:
+                child_entries = list(children)
+            for child in child_entries:
+                if (not child.is_file(follow_symlinks=False)
+                        or not re.fullmatch(patterns[entry.name], child.name)):
+                    return False
+                paths.append(child.path)
+        try:
+            with ExitStack() as locks:
+                for path in sorted(paths):
+                    if path.endswith(".lock"):
+                        locks.enter_context(ClipSnapshotFileLock(path[:-5], timeout_seconds=0))
+        except (OSError, RuntimeError):
+            return False
+        # No new worker can open a lock until the external guard is released.
+        for path in paths:
+            os.remove(path)
+        for folder in folders:
+            os.rmdir(folder)
+        os.rmdir(root)
+        return True
+
+
+def cleanup_project_coordination(project, task_list=None, report=None):
+    """Cleans enabled Kimodo destinations after the owning runner stops its workers.
+
+    Args:
+        project (BatchProcessorModel): Owning project.
+        task_list (list, optional): Tasks selected for this run.
+        report (callable, optional): Receives concise cleanup status.
+    """
+    destinations = {}
+    for task in project.get_enabled_tasks() if task_list is None else task_list:
+        if not isinstance(task, TaskKimodoBase):
+            continue
+        try:
+            task_index = project.get_task_environment_index(task)
+            directory = task.resolve_task_path(project, task_index=task_index)
+        except (OSError, RuntimeError, ValueError) as error:
+            if report:
+                report(f"[Kimodo] Could not resolve coordination cleanup directory: {error}")
+            continue
+        if not directory:
+            continue
+        key = os.path.normcase(os.path.realpath(directory))
+        enabled = task.settings.get("purge_coordination_on_finish", True)
+        destinations[key] = destinations.get(key, True) and enabled
+    for directory, enabled in destinations.items():
+        if not enabled:
+            continue
+        try:
+            if not purge_coordination(directory) and report:
+                report(f"[Kimodo] Kept coordination folder containing active locks or unrecognized files: {directory}")
+        except (OSError, RuntimeError, ValueError) as error:
+            if report:
+                report(f"[Kimodo] Could not purge coordination folder: {error}")
 
 
 def report_message(context, message):

@@ -69,6 +69,7 @@ class SingleInstanceBatchRunner:
         active_task_index = 0
         active_task_started = None
         task_timing_recorded = True
+        executed_tasks = []
         try:
             current_items = []
             for step_index, task in enumerate(process_tasks, 1):
@@ -125,6 +126,7 @@ class SingleInstanceBatchRunner:
                 for warning in validation.warnings:
                     self.tracker.record_warning()
                     self.tracker.record_message("[WARNING] - ({0}) - {1}".format(task.task_type, warning))
+                executed_tasks.append(task)
                 current_items = self._run_task(project, task, current_items, step_output_dir)
                 task_status = constants.RunStatus.SUCCEEDED
                 if self.tracker.failed > failures_before:
@@ -152,6 +154,10 @@ class SingleInstanceBatchRunner:
                 )
             self.tracker.finish(failed=True)
             raise
+        finally:
+            from gt.tools.batch_processor.tasks.task_kimodo_base import cleanup_project_coordination
+
+            cleanup_project_coordination(project, executed_tasks, self.tracker.record_message)
 
     def _record_task_timing(self, task, task_index, total_tasks, started_at, status):
         """Appends timing information for one task when timing logs are enabled.
@@ -338,6 +344,7 @@ class SingleInstanceBatchRunner:
                 "run_id": self.run_id,
                 "is_last_item": index == len(work_items),
                 "cleanup_report_parts": True,
+                "defer_kimodo_coordination_cleanup": True,
                 "report_message": self.tracker.record_message,
             }
             self.tracker.record_message(

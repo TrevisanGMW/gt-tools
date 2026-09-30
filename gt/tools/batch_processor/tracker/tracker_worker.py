@@ -255,6 +255,7 @@ def main():
                         "run_id": run_id,
                         "is_last_item": index == len(current_items),
                         "cleanup_report_parts": bool(args.final_task_id),
+                        "defer_kimodo_coordination_cleanup": True,
                         "report_log": lambda path, task_id=task.id: event_writer.emit(
                             "log_artifact", task_id=task_id, path=path, kind="task_log"
                         ),

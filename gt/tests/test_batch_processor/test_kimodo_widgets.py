@@ -24,7 +24,7 @@ class TestKimodoWidgets(unittest.TestCase):
                 cls.application.setFont(qt.QtGui.QFont(families[0], 10))
 
     def test_definition_widget(self):
-        """Edits capture and generation values and keeps invalid JSON visible to validation."""
+        """Edits capture and generation values and validates parameter ranges."""
         task = TaskKimodoDefinition()
         project = batch_processor_model.BatchProcessorModel()
         widget = AttrWidgetKimodoDefinition(task=task, project=project)
@@ -33,9 +33,12 @@ class TestKimodoWidgets(unittest.TestCase):
             widget.controls[("definition", "parameters", "num_samples")].setValue(3)
             self.assertEqual("kimodo_pose:motion", task.settings["pose_source"])
             self.assertEqual(3, task.settings["definition"]["parameters"]["num_samples"])
-            widget.controls[("variation_ranges",)].setPlainText("{")
+            enabled, minimum, maximum, unused_integer = widget.variation_editor.inputs["guidance_text"]
+            enabled.setChecked(True)
+            minimum.setValue(3)
             self.assertTrue(task.validate(project).errors)
-            widget.controls[("variation_ranges",)].setPlainText('{"guidance_text": [1, 3]}')
+            minimum.setValue(1)
+            maximum.setValue(3)
             self.assertEqual([], task.validate(project).errors)
             self.assertFalse(widget.modify_checkbox.isEnabled())
         finally:
@@ -58,6 +61,68 @@ class TestKimodoWidgets(unittest.TestCase):
         finally:
             widget.close()
             widget.deleteLater()
+
+    def test_samples_limit_and_replacement_table_round_trip(self):
+        """Caps samples directly and saves numbered replacement rows through the task serializer."""
+        task = TaskKimodoDefinition(settings={"variations": 2})
+        project = batch_processor_model.BatchProcessorModel()
+        widget = AttrWidgetKimodoDefinition(task=task, project=project)
+        try:
+            samples = widget.controls[("definition", "parameters", "num_samples")]
+            samples.setValue(100)
+            self.assertEqual(8, samples.value())
+            self.assertEqual(8, task.settings["definition"]["parameters"]["num_samples"])
+            samples.setValue(0)
+            self.assertEqual(1, samples.value())
+            editor = widget.replacement_editor
+            editor.add_button.click()
+            editor.table.item(0, 1).setText("walk")
+            editor.table.item(0, 2).setText("run")
+            editor.add_button.click()
+            editor.table.item(1, 1).setText("walking")
+            editor.table.item(1, 2).setText("running")
+            self.assertEqual([1, 1], [rule["variation"] for rule in task.settings["prompt_replacements"]])
+            self.assertEqual([], task.validate(project).errors)
+            restored = AttrWidgetKimodoDefinition(task=TaskKimodoDefinition.from_dict(task.to_dict()), project=project)
+            try:
+                self.assertEqual("walking", restored.replacement_editor.table.item(1, 1).text())
+            finally:
+                restored.close()
+                restored.deleteLater()
+            editor.table.item(1, 0).setText("3")
+            self.assertTrue(task.validate(project).errors)
+            editor.remove_button.click()
+            self.assertEqual([], task.validate(project).errors)
+            self.assertTrue(widget.controls[("purge_coordination_on_finish",)].isChecked())
+        finally:
+            widget.close()
+            widget.deleteLater()
+
+    def test_inline_checkbox_spacing_and_labels(self):
+        """Keeps checkbox rows compact and places a label immediately beside each text field."""
+        for widget_type, task, checkbox_key, field_key, label_text, section_name in (
+                (AttrWidgetKimodoDefinition, TaskKimodoDefinition(), ("use_marker",),
+                 ("marker_attribute",), "Attribute", "Pose Capture"),
+                (AttrWidgetKimodoGenerate, TaskKimodoGenerate(), ("connection", "start_encoder"),
+                 ("connection", "text_encoder_url"), "URL", "Connection")):
+            widget = widget_type(task=task, project=batch_processor_model.BatchProcessorModel())
+            try:
+                button = widget.sections[section_name]["button"]
+                if not button.isChecked():
+                    button.click()
+                widget.resize(800, 900)
+                widget.show()
+                self.application.processEvents()
+                checkbox = widget.controls[checkbox_key]
+                field = widget.controls[field_key]
+                label = widget.control_extras[field_key][0]
+                self.assertEqual(label_text, label.text())
+                self.assertLessEqual(checkbox.width(), checkbox.sizeHint().width() + 2)
+                self.assertLess(label.x() - checkbox.geometry().right(), 20)
+                self.assertLess(field.x() - label.geometry().right(), 20)
+            finally:
+                widget.close()
+                widget.deleteLater()
 
     def test_labels_stay_compact_and_fields_explain_their_behavior(self):
         """Checks proportional layout, placeholder coverage, and both SVGs in real Qt."""
@@ -87,13 +152,19 @@ class TestKimodoWidgets(unittest.TestCase):
                     widget.grab().save(os.path.join(preview_folder, f"{task.task_type}.png"))
                     icon.pixmap(128, 128).save(os.path.join(preview_folder, f"{task.task_type}_icon.png"))
                 for button in widget.findChildren(qt.QtWidgets.QPushButton):
-                    if button.text() in ("Pose Capture", "Generation", "HumanIK", "Recovery and Timeouts"):
+                    if button.text() in ("Pose Capture", "Generation", "Variations", "HumanIK",
+                                         "Recovery and Timeouts"):
                         desired = button.text() != "Pose Capture"
                         if button.isChecked() != desired:
                             button.click()
                 widget.resize(650, 900)
                 self.application.processEvents()
+                self.application.processEvents()
                 self.assertLessEqual(widget.width(), 650)
+                if isinstance(task, TaskKimodoDefinition):
+                    editor = widget.replacement_editor
+                    self.assertLess(editor.table.geometry().bottom(), editor.add_button.geometry().top())
+                    self.assertLess(editor.geometry().bottom(), widget.variation_editor.geometry().top())
                 if preview_folder:
                     widget.grab().save(os.path.join(preview_folder, f"{task.task_type}_expanded.png"))
             finally:

@@ -56,7 +56,7 @@ FIELD_HELP = {
                                  "Use Add Segment, double-click cells to edit, "
                                  "and move rows to set the action sequence.",
                                  "A person walks to a chair and sits down."),
-    ("definition", "parameters", "num_samples"): ("Independent animations generated per definition, from 1 to 10. "
+    ("definition", "parameters", "num_samples"): ("Independent animations generated per definition, from 1 to 8. "
                                                      "Each receives its own output file.", "1"),
     ("definition", "parameters", "diffusion_steps"): ("Denoising iterations, from 1 to 1000. The default is 100. "
                                                          "Very low counts are useful for smoke tests "
@@ -102,14 +102,20 @@ FIELD_HELP = {
                          "{source}"),
     ("filename_suffix",): ("Optional text appended to the output name. It supports the same tokens as Output name. "
                             "For example, _seed_{seed}_steps_{steps} records the resolved seed and step count.",
-                            ""),
+                            "Optional: _seed_{seed}"),
     ("include_version_suffix",): ("Keep version suffixes in output names. Definition adds _v001, _v002, etc. "
                                    "for multiple variations; Generate keeps a trailing _v### from the input "
                                    "definition filename. Turn this off when {seed} already identifies outputs. "
                                    "Multiple samples still receive their own _s### suffix.", ""),
-    ("purge_cache_on_success",): ("Remove this input's recovery files after successful completion. Failed jobs "
-                                   "keep their cache for retry; worker locks and output claims are stored "
-                                   "separately from the removable cache.", ""),
+    ("prompt_replacements",): ("Apply Search / Replace rules to every prompt segment in the numbered variation, "
+                                "after Prompt choices. Matching is case-sensitive and literal; longer matches "
+                                "win and replacement text is not processed again.", ""),
+    ("purge_cache_on_success",): ("Remove this input's .kimodo-cache recovery files after success, including "
+                                   "temporary downloads. Failed jobs keep their cache for retry. "
+                                   "Published scenes and requested artifacts are kept.", ""),
+    ("purge_coordination_on_finish",): ("Remove .kimodo-coordination locks and output reservations when the "
+                                        "batch finishes and no workers are using them. Enabled by default. "
+                                        "Disable to retain output ownership records across runs.", ""),
     ("connection", "url"): ("HTTP address of the Kimodo Bridge, accessible from the Maya worker on Windows.",
                               "http://127.0.0.1:7861"),
     ("connection", "mode"): ("Use an existing Bridge or start/reuse one in WSL or a native Python environment. "
@@ -325,8 +331,8 @@ class AttrWidgetKimodo(AttrWidgetTask):
             control = qt.QtWidgets.QCheckBox(label)
             control.setChecked(bool(value))
             control.toggled.connect(setter)
-            control.setSizePolicy(qt.QtLib.SizePolicy.Expanding, qt.QtLib.SizePolicy.Preferred)
-            row.addWidget(control, 1)
+            control.setSizePolicy(qt.QtLib.SizePolicy.Fixed, qt.QtLib.SizePolicy.Preferred)
+            row.addWidget(control)
         elif kind in ("integer", "number"):
             if row is None:
                 row = self.add_labeled_layout(label, parent_layout=layout, tooltip=tooltip)
@@ -341,6 +347,8 @@ class AttrWidgetKimodo(AttrWidgetTask):
                 control.setRange(0, 20)
                 control.setSingleStep(0.25)
             control.valueChanged.connect(setter)
+            if path == ("definition", "parameters", "num_samples"):
+                control.setRange(1, 8)
             control.setMinimumHeight(35)
             control.setMinimumWidth(control.fontMetrics().horizontalAdvance("0000.000") + 24)
             ignored_policy = getattr(qt.QtWidgets.QSizePolicy, "Policy", qt.QtWidgets.QSizePolicy).Ignored
@@ -477,7 +485,7 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
             ("left-foot", "Left foot"), ("right-foot", "Right foot")])
         row = self.add_labeled_layout("Marker attribute", parent_layout=section)
         self.field(section, "Use", "use_marker", "boolean", inline_row=row)
-        self.field(section, "", "marker_attribute", inline_row=row)
+        self.field(section, "Attribute", "marker_attribute", inline_row=row)
         self.field(section, "Marker mode", "marker_mode", "choice", [
             ("evaluated", "Every active sample"), ("keyed", "Active keyed frames"),
             ("rising", "Start of active interval")])
@@ -523,6 +531,7 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
         self.field(section, "Template constraints", "constraint_mode", "choice", [
             ("replace", "Replace with captured constraints"), ("append", "Keep and append captures")])
         section = self.section("Variations")
+        section.parentWidget().setSizePolicy(qt.QtLib.SizePolicy.Preferred, qt.QtLib.SizePolicy.Minimum)
         self.field(section, "Definitions per file", "variations", "integer")
         self.field(section, "Seed policy", "seed_policy", "choice", [
             ("fixed", "Fixed seed"), ("per_file", "Repeatable per file / variation"), ("random", "Random")])
@@ -535,6 +544,13 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
         section.addWidget(seed_hint)
         self.field(section, "Prompt choices", "prompt_choices", "area",
                    tooltip="Optional alternatives for the first prompt, one per line.")
+        from gt.tools.batch_processor.widgets.kimodo_replacement_editor import KimodoReplacementEditor
+
+        self.replacement_editor = KimodoReplacementEditor(
+            self.value(("prompt_replacements",)), partial(self.store, ("prompt_replacements",)))
+        self.replacement_editor.setToolTip(FIELD_HELP[("prompt_replacements",)][0])
+        self.controls[("prompt_replacements",)] = self.replacement_editor
+        section.addWidget(self.replacement_editor)
         from gt.tools.batch_processor.widgets.kimodo_variation_editor import KimodoVariationRangeEditor
 
         self.variation_editor = KimodoVariationRangeEditor(
@@ -549,6 +565,7 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
                    tooltip="Allowed HumanIK translation drift. Default 0.001 m; offsets normalize to model bones.")
         section = self.section("Recovery")
         self.field(section, "Purge cache after success", "purge_cache_on_success", "boolean")
+        self.field(section, "Purge coordination folders after run", "purge_coordination_on_finish", "boolean")
         self.finish()
 
     def get_variation_range_defaults(self):
@@ -644,7 +661,7 @@ class AttrWidgetKimodoGenerate(AttrWidgetKimodo):
         self.field(section, "WSL distribution", ("connection", "distribution"))
         row = self.add_labeled_layout("Text encoder", parent_layout=section)
         self.field(section, "Auto-start", ("connection", "start_encoder"), "boolean", inline_row=row)
-        self.field(section, "", ("connection", "text_encoder_url"), inline_row=row)
+        self.field(section, "URL", ("connection", "text_encoder_url"), inline_row=row)
         self.field(section, "Token environment", "token_environment",
                    tooltip="Optional environment variable name. Token values are never stored in batch files.")
         button = qt.QtWidgets.QPushButton("Test Connection")
@@ -687,6 +704,7 @@ class AttrWidgetKimodoGenerate(AttrWidgetKimodo):
         self.field(section, "Retry failed jobs", "retry_failed", "boolean", inline_row=row)
         row.addStretch(1)
         self.field(section, "Purge cache after success", "purge_cache_on_success", "boolean")
+        self.field(section, "Purge coordination folders after run", "purge_coordination_on_finish", "boolean")
         self.finish()
 
     def update_enabled_state(self):

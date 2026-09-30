@@ -44,7 +44,8 @@ class TaskKimodoDefinition(TaskKimodoBase):
             path_nodes="", path_frames="", path_samples=8, randomize_root_path=False,
             model_fps=30, duration_mode="source",
             retime_constraints=False, constraint_mode="replace", variations=1, seed_policy="per_file",
-            base_seed=12345, variation_ranges="{}", prompt_choices="", output_extension=".json",
+            base_seed=12345, variation_ranges="{}", prompt_choices="", prompt_replacements=[],
+            output_extension=".json",
         )
         return settings
 
@@ -225,7 +226,7 @@ class TaskKimodoDefinition(TaskKimodoBase):
         definition = self.base_definition(project)
         stat = os.stat(work_item.current_path)
         signature = fingerprint([self.settings, definition, stat.st_size, stat.st_mtime_ns])
-        with self.recovery_lock(work_item, step_output_dir, timeout_seconds=3600):
+        with self.recovery_lock(work_item, step_output_dir, timeout_seconds=3600, context=context):
             try:
                 with ClipSnapshotFileLock(record_path, timeout_seconds=3600):
                     record = read_json(record_path) if os.path.isfile(record_path) else {}
@@ -357,8 +358,58 @@ def vary_definition(definition, settings, identity, variation):
     choices = [line.strip() for line in settings.get("prompt_choices", "").splitlines() if line.strip()]
     if choices:
         data["prompts"][0]["text"] = rng.choice(choices)
+    apply_prompt_replacements(data["prompts"], settings, variation)
     data["id"] = uuid.uuid4().hex
     return kimodo.KimodoGenerationDefinition.from_dict(data).as_dict()
+
+
+def apply_prompt_replacements(prompts, settings, variation):
+    """Validates all replacement rows and applies the selected variation in one pass.
+
+    Args:
+        prompts (list): Detached prompt dictionaries to update.
+        settings (dict): Task settings with numbered replacement rules.
+        variation (int): One-based variation to apply.
+
+    Raises:
+        ValueError: If a row is invalid or repeats a search within one variation.
+    """
+    rules = settings.get("prompt_replacements", [])
+    if not isinstance(rules, list):
+        raise ValueError("Prompt replacements must be a list of Variation / Search / Replace rows.")
+    replacements = {}
+    seen = set()
+    for index, rule in enumerate(rules, 1):
+        if not isinstance(rule, dict):
+            raise ValueError(f"Prompt replacement row {index} must contain Variation, Search, and Replace.")
+        number = rule.get("variation")
+        search = rule.get("search")
+        replacement = rule.get("replace")
+        if type(number) is not int or not 1 <= number <= int(settings.get("variations", 1)):
+            raise ValueError(f"Prompt replacement row {index}: Variation must be within Definitions per file.")
+        if not isinstance(search, str) or not search.strip() or not isinstance(replacement, str):
+            raise ValueError(f"Prompt replacement row {index}: enter Search text and a text replacement.")
+        if (number, search) in seen:
+            raise ValueError(f"Prompt replacement row {index}: duplicate Search text for variation {number}.")
+        seen.add((number, search))
+        if number == variation:
+            replacements[search] = replacement
+    if replacements:
+        pattern = re.compile("|".join(re.escape(search) for search in sorted(replacements, key=len, reverse=True)))
+
+        def replace_match(match):
+            """Returns literal replacement text without applying subsequent rules.
+
+            Args:
+                match (re.Match): Matched source text.
+
+            Returns:
+                str: Replacement for this match.
+            """
+            return replacements[match.group(0)]
+
+        for prompt in prompts:
+            prompt["text"] = pattern.sub(replace_match, prompt["text"])
 
 
 def resolve_group(requested):

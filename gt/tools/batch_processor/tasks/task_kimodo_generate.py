@@ -120,7 +120,7 @@ class TaskKimodoGenerate(TaskKimodoBase):
         definition = kimodo.normalize_definition(read_json(work_item.current_path))
         cache = self.recovery_directory(work_item, step_output_dir)
         record_path = os.path.join(cache, "generation.json")
-        with self.recovery_lock(work_item, step_output_dir, timeout_seconds=86400):
+        with self.recovery_lock(work_item, step_output_dir, timeout_seconds=86400, context=context):
             try:
                 with ClipSnapshotFileLock(record_path, timeout_seconds=86400):
                     items = self.run_generation(work_item, step_output_dir, context or {}, settings,
