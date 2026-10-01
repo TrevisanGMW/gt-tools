@@ -14,6 +14,7 @@ import tempfile
 import logging
 import json
 import os
+import math
 
 # Logging Setup
 logging.basicConfig()
@@ -23,6 +24,62 @@ logger.setLevel(logging.INFO)
 
 KEY_TYPE_TIME = ["animCurveTA", "animCurveTL", "animCurveTT", "animCurveTU"]
 KEY_TYPE_DOUBLE = ["animCurveUL", "animCurveUA", "animCurveUT", "animCurveUU"]
+
+
+def get_frame_sample_times(start_frame, end_frame, sample_by=1.0):
+    """Builds an inclusive, deterministic animation sampling range.
+
+    Args:
+        start_frame (float): First frame, including subframes.
+        end_frame (float): Last frame; always included.
+        sample_by (float): Positive interval between samples.
+
+    Returns:
+        list: Increasing sample times, including both endpoints.
+
+    Raises:
+        ValueError: If values are invalid or more than 100,000 samples are requested.
+    """
+    start_frame, end_frame, sample_by = map(float, (start_frame, end_frame, sample_by))
+    if not all(math.isfinite(value) for value in (start_frame, end_frame, sample_by)):
+        raise ValueError("Animation range and sample interval must be finite numbers.")
+    if end_frame < start_frame or sample_by <= 0:
+        raise ValueError("End frame must be at least Start frame, and sample interval must be positive.")
+    count = (end_frame - start_frame) / sample_by
+    if not math.isfinite(count) or count >= 100000:
+        raise ValueError("Choose a shorter range or larger interval (maximum 100,000 samples).")
+    times = [start_frame + index * sample_by for index in range(int(math.floor(count)) + 1)]
+    if math.isclose(times[-1], end_frame, rel_tol=0, abs_tol=1e-8):
+        times[-1] = end_frame
+    else:
+        times.append(end_frame)
+    if len(times) > 100000:
+        raise ValueError("Choose a shorter range or larger interval (maximum 100,000 samples).")
+    return times
+
+
+def sample_animation_range(capture, start_frame, end_frame, sample_by=1.0):
+    """Captures evaluated scene data without modifying animation curves.
+
+    Args:
+        capture (callable): Read-only function returning independent data per frame.
+        start_frame (float): First frame.
+        end_frame (float): Last frame.
+        sample_by (float): Positive sample interval.
+
+    Returns:
+        list: Ordered pairs of frame times and captured values.
+    """
+    times = get_frame_sample_times(start_frame, end_frame, sample_by)
+    original_time = cmds.currentTime(query=True)
+    try:
+        samples = []
+        for frame in times:
+            cmds.currentTime(frame)
+            samples.append((frame, capture()))
+        return samples
+    finally:
+        cmds.currentTime(original_time)
 
 
 class AnimationConstants:
