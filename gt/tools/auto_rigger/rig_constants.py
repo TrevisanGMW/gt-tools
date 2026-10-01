@@ -17,6 +17,7 @@ class RiggerConstants:
     PROJECT_FILE_FILTER = f"Rig Project (*.{PROJECT_EXTENSION});;"
     MODULE_FILE_FILTER = f"Rig Module (*.{PROJECT_EXTENSION});;"
     MAYA_FILE_FILTER = f"Maya Files (*.ma *.mb);;"
+    MODULE_TREE_CHILDREN_KEY = "child_modules"  # Descendants stored with an exported module (e.g. Group)
     # Preferences
     PREFS_FILENAME = "auto_rigger"
     PREFS_KEY_ON_BUILD_SHOW_LOG = "on_build_show_log"
@@ -25,6 +26,7 @@ class RiggerConstants:
     PREFS_KEY_ON_SET_PATH_ABS_TO_RELATIVE = "on_set_path_abs_to_relative"
     PREFS_KEY_SHOW_PACKAGE_TEMPLATES = "show_package_templates"
     PREFS_KEY_RECENT_PROJECTS = "recent_projects"
+    PREFS_KEY_ON_IMPORT_RANDOMIZE_UUIDS = "on_import_randomize_uuids"
     MAX_RECENT_PROJECTS = 5
     # Basic System Attributes
     ATTR_BASE_NAME = "baseName"

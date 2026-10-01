@@ -56,6 +56,40 @@ class TestRiggerController(unittest.TestCase):
 
         controller.log_view.show_if_not_visible.assert_called_once_with(dock_to_control=None)
 
+    @patch("gt.tools.auto_rigger.rigger_controller.core_io.read_data")
+    def test_import_project_from_file_uses_randomize_uuids_preference(self, mock_read_data):
+        """Appends project modules using the UUID randomization automation state."""
+        controller = object.__new__(RiggerController)
+        controller.model = MagicMock()
+        controller.refresh_widgets = MagicMock()
+        controller._on_import_randomize_uuids = False
+        mock_read_data.return_value = '{"modules": [{"module": "ModuleGeneric"}]}'
+        project = controller.model.get_project.return_value
+        project.import_modules_from_project_dict.return_value = [MagicMock()]
+
+        result = controller.import_project_from_file(file_path="project.rig")
+
+        self.assertTrue(result)
+        project.import_modules_from_project_dict.assert_called_once_with(
+            project_dict={"modules": [{"module": "ModuleGeneric"}]}, reinitialize_uuids=False
+        )
+        controller.refresh_widgets.assert_called_once_with()
+
+    @patch("gt.tools.auto_rigger.rigger_controller.core_io.read_data")
+    def test_import_project_from_file_skips_refresh_when_nothing_imported(self, mock_read_data):
+        """Keeps the current state when the imported project has no modules."""
+        controller = object.__new__(RiggerController)
+        controller.model = MagicMock()
+        controller.refresh_widgets = MagicMock()
+        controller._on_import_randomize_uuids = True
+        mock_read_data.return_value = "{}"
+        controller.model.get_project.return_value.import_modules_from_project_dict.return_value = []
+
+        result = controller.import_project_from_file(file_path="project.rig")
+
+        self.assertFalse(result)
+        controller.refresh_widgets.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

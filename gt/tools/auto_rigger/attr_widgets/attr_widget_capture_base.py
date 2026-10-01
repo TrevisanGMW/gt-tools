@@ -108,16 +108,31 @@ class AttrWidgetModuleBaseCapture(AttrWidget):
             self.clear_btn.setEnabled(False)
         else:  # Using, so determine what should be active
             cam_data = self.module.camera_data
-            if cam_data:  # Already has data set
-                self.apply_btn.setEnabled(True)
-                self.edit_btn.setEnabled(True)
-                self.clear_btn.setEnabled(True)
-                self.store_btn.setEnabled(False)
-            else:  # Ready to set initial data
-                self.apply_btn.setEnabled(False)
-                self.edit_btn.setEnabled(False)
-                self.clear_btn.setEnabled(False)
-                self.store_btn.setEnabled(True)
+            has_cam_data = bool(cam_data)
+            self.apply_btn.setEnabled(has_cam_data)
+            self.edit_btn.setEnabled(has_cam_data)
+            self.clear_btn.setEnabled(has_cam_data)
+            self.store_btn.setEnabled(True)
+        self.refresh_store_button_caption()
+
+    def refresh_store_button_caption(self):
+        """
+        Updates the store button caption and tooltip. It reads "Override" when camera data is already stored,
+        indicating that clicking it replaces the stored data with the current camera, otherwise it reads "Get".
+        """
+        camera_name = getattr(self.module, "camera_name", "persp") or "persp"
+        if self.module.camera_data:
+            self.store_btn.setText("Override")
+            self.store_btn.setToolTip(
+                f'Replaces the stored data (transform and properties) with the current "{camera_name}" camera.\n'
+                "The camera is then set to this exact values when the apply function is called."
+            )
+        else:
+            self.store_btn.setText("Get")
+            self.store_btn.setToolTip(
+                f'Stores the data (transform and properties) for the "{camera_name}" camera.\n'
+                "The camera is then set to this exact values when the apply function is called."
+            )
 
     def on_checkbox_use_cam_data_changed(self, state):
         """
@@ -139,8 +154,9 @@ class AttrWidgetModuleBaseCapture(AttrWidget):
         camera_name = getattr(self.module, "camera_name", "persp")  # Defined camera_name value, or "persp"
         camera_data = core_cam.get_camera_data(camera_name=camera_name)
         if camera_data:
+            was_overridden = bool(self.module.camera_data)
             self.module.camera_data = camera_data
-            logger.info(f"Camera Data was stored.")
+            logger.info("Camera Data was overridden." if was_overridden else "Camera Data was stored.")
             self.refresh_camera_buttons_enabled_state()
         else:
             logger.warning('Unable to retrieve camera data. "get_camera_data() returned an empty dictionary."')
