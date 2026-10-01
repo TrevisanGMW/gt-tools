@@ -232,4 +232,8 @@ class TestInputStrings(unittest.TestCase):
         for item, value in zip(project.tasks[0].prepare(project), project.tasks[0].settings["strings"]):
             path = definition_task.output_path(item, output_dir)
             with open(path, encoding="utf-8") as definition_file:
-                self.assertEqual(value, json.load(definition_file)["prompts"][0]["text"])
+                expected_prompts = [
+                    {"duration_seconds": seconds, "text": description}
+                    for seconds, description in json.loads(value)
+                ]
+                self.assertEqual(expected_prompts, json.load(definition_file)["prompts"])

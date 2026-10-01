@@ -15,9 +15,9 @@ from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_maya
 from gt.tools.batch_processor import batch_processor_task_base as base
 from gt.tools.batch_processor.batch_processor_item_context import is_string_scene
-from gt.tools.batch_processor.tasks import kimodo_motion_text
 from gt.tools.batch_processor.tasks.task_kimodo_base import (
     TaskKimodoBase, ClipSnapshotFileLock, report_message, write_record, read_json, fingerprint, resolve_path,
+    resolve_motion_text, uses_runtime_variables, parse_motion_text,
 )
 
 
@@ -70,14 +70,14 @@ class TaskKimodoDefinition(TaskKimodoBase):
             text = self.settings.get("prompt_text", "")
             if not isinstance(text, str):
                 raise ValueError("Motion text must be a string of JSON pairs.")
-            resolver = partial(kimodo_motion_text.resolve_motion_text, project=project,
+            resolver = partial(resolve_motion_text, project=project,
                                task=self, work_item=work_item)
             expanded = resolver(text)
             definition = data.get("definition", data)
-            if work_item is None and kimodo_motion_text.uses_runtime_variables(expanded):
+            if work_item is None and uses_runtime_variables(expanded):
                 definition["prompts"] = [{"text": "Motion text is resolved per input.", "duration_seconds": 4}]
             else:
-                definition["prompts"] = kimodo_motion_text.parse_motion_text(text, resolver)
+                definition["prompts"] = parse_motion_text(text, resolver)
         return kimodo.normalize_definition(data)
 
     def validate_work_items(self, work_items, project, step_output_dir, context=None):
@@ -116,8 +116,8 @@ class TaskKimodoDefinition(TaskKimodoBase):
         try:
             definition = self.base_definition(project)
             if self.settings.get("prompt_mode", "table") == "text":
-                expanded = kimodo_motion_text.resolve_motion_text(self.settings["prompt_text"], project, self)
-                if kimodo_motion_text.uses_runtime_variables(expanded):
+                expanded = resolve_motion_text(self.settings["prompt_text"], project, self)
+                if uses_runtime_variables(expanded):
                     result.add_warning("[Generation] Motion text variables are resolved and checked for each input.")
 
             if float(self.settings["model_fps"]) <= 0:

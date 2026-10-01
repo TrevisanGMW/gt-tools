@@ -10,7 +10,7 @@ from unittest import mock
 from gt.tools.batch_processor import batch_processor_model
 from gt.tools.batch_processor import batch_processor_task_base as base
 from gt.tools.batch_processor import batch_processor_maya
-from gt.tools.batch_processor.tasks import kimodo_motion_text as motion_text
+from gt.tools.batch_processor.tasks import task_kimodo_base as kimodo_base
 from gt.tools.batch_processor.tasks.task_kimodo_definition import TaskKimodoDefinition
 
 
@@ -24,7 +24,7 @@ class TestKimodoMotionText(unittest.TestCase):
         self.assertEqual([
             {"duration_seconds": 2.5, "text": descriptions[0]},
             {"duration_seconds": 1, "text": descriptions[1]},
-        ], motion_text.parse_motion_text(text))
+        ], kimodo_base.parse_motion_text(text))
 
     def test_invalid_sequences_and_limits(self):
         """Rejects malformed pairs, invalid numbers, empty descriptions, and excess lengths."""
@@ -39,14 +39,14 @@ class TestKimodoMotionText(unittest.TestCase):
         ]
         for text in invalid:
             with self.subTest(text=text[:60]), self.assertRaises(ValueError):
-                motion_text.parse_motion_text(text)
+                kimodo_base.parse_motion_text(text)
 
     def test_table_default_and_mode_round_trip(self):
         """Retains table rows across text mode changes and serialization."""
         task = TaskKimodoDefinition()
         self.assertEqual("table", task.settings["prompt_mode"])
         table = copy.deepcopy(task.settings["definition"]["prompts"])
-        task.settings.update(prompt_mode="text", prompt_text=motion_text.MOTION_TEXT_EXAMPLE)
+        task.settings.update(prompt_mode="text", prompt_text=kimodo_base.MOTION_TEXT_EXAMPLE)
         self.assertEqual([2, 1], [prompt["duration_seconds"] for prompt in task.base_definition(None)["prompts"]])
         self.assertEqual(table, task.settings["definition"]["prompts"])
         restored = TaskKimodoDefinition.from_dict(task.to_dict())

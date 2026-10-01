@@ -5,6 +5,7 @@ import re
 import string
 import hashlib
 import json
+import math
 import shutil
 import tempfile
 from functools import partial
@@ -17,6 +18,12 @@ from gt.utils import kimodo
 
 
 read_json = partial(core_io.read_json_dict, raise_errors=True)
+
+MOTION_TEXT_EXAMPLE = '[[2, "A person starts to walk"], [1, "A person comes to a stop"]]'
+RUNTIME_KEYS = {
+    "input-string", "input-string-index", "input-file-name", "input-file-stem", "input-file-path",
+}
+VARIABLE_PATTERN = re.compile(r"\{([\w-]+)\}")
 
 
 class TaskKimodoBase(base.BatchTask):
@@ -655,3 +662,127 @@ def resolve_path(value, project, task=None):
     if not path or not os.path.isabs(path):
         raise ValueError(f"Expected an absolute or project-relative path: {value}")
     return os.path.normpath(path)
+
+
+def resolve_motion_text(text, project=None, task=None, work_item=None):
+    """Expands project variables before inserting literal per-input values.
+
+    Args:
+        text (str): Text or a single segment value containing placeholders.
+        project (BatchProcessorModel, optional): Project variable provider.
+        task (BatchTask, optional): Task supplying scoped project variables.
+        work_item (WorkItem, optional): Current input; absent keeps runtime tokens unresolved.
+
+    Returns:
+        str: Resolved text, preserving braces inside inserted input values.
+    """
+    variables = project.get_environment_variables(
+        task=task, include_braces=False, include_neighbor_paths=False) if project else {}
+    resolved = os.path.expandvars(text)
+
+    def replace_project_variable(match):
+        """Resolves a project token while leaving per-input tokens for the final pass.
+
+        Args:
+            match (re.Match): Placeholder match.
+
+        Returns:
+            str: Project value or the unchanged placeholder.
+        """
+        key = match.group(1).lower().replace("_", "-")
+        if key in RUNTIME_KEYS or key not in variables:
+            return match.group(0)
+        return str(variables[key] if variables[key] is not None else "")
+
+    for unused_pass in range(10):
+        expanded = VARIABLE_PATTERN.sub(replace_project_variable, resolved)
+        if expanded == resolved:
+            break
+        resolved = expanded
+    if work_item is None:
+        return resolved
+    filename = os.path.basename(work_item.current_path)
+    values = {
+        "input-string": work_item.metadata.get("input_string", ""),
+        "input-string-index": work_item.metadata.get("input_string_index", ""),
+        "input-file-name": filename,
+        "input-file-stem": os.path.splitext(filename)[0],
+        "input-file-path": work_item.current_path,
+    }
+
+    def replace_runtime_variable(match):
+        """Inserts a runtime value once without expanding placeholders in its content.
+
+        Args:
+            match (re.Match): Placeholder match.
+
+        Returns:
+            str: Literal runtime value or unchanged placeholder.
+        """
+        key = match.group(1).lower().replace("_", "-")
+        return str(values[key]) if key in values else match.group(0)
+
+    return VARIABLE_PATTERN.sub(replace_runtime_variable, resolved)
+
+
+def uses_runtime_variables(text):
+    """Checks whether text needs a current input before it can be validated.
+
+    Args:
+        text (str): Expanded project text to inspect.
+
+    Returns:
+        bool: Whether a per-input placeholder is present.
+    """
+    return any(match.group(1).lower().replace("_", "-") in RUNTIME_KEYS
+               for match in VARIABLE_PATTERN.finditer(text))
+
+
+def parse_motion_text(text, resolver=None):
+    """Parses ordered JSON pairs, resolving complete sequences or individual values.
+
+    Args:
+        text (str): JSON list of [seconds, description] pairs or a sequence placeholder.
+        resolver (callable, optional): Expands a string's variables into literal text.
+
+    Returns:
+        list: Prompt dictionaries using text and duration_seconds.
+
+    Raises:
+        ValueError: If the format, segment values, or Kimodo duration limits are invalid.
+    """
+    if not isinstance(text, str) or not text.strip():
+        raise ValueError(f"Enter motion text as JSON pairs, for example {MOTION_TEXT_EXAMPLE}.")
+    resolve_values = True
+    try:
+        pairs = json.loads(text)
+    except ValueError:
+        try:
+            pairs = json.loads(resolver(text) if resolver else text)
+            resolve_values = False
+        except ValueError as error:
+            raise ValueError(f"Motion text must be JSON pairs, for example {MOTION_TEXT_EXAMPLE}.") from error
+    if not isinstance(pairs, list) or not 1 <= len(pairs) <= 16:
+        raise ValueError("Motion text requires between 1 and 16 [seconds, description] pairs.")
+    prompts = []
+    for index, pair in enumerate(pairs, 1):
+        if not isinstance(pair, list) or len(pair) != 2:
+            raise ValueError(f"Motion segment {index} must be [seconds, description].")
+        duration, description = pair
+        if resolver and resolve_values:
+            duration = resolver(duration) if isinstance(duration, str) else duration
+            description = resolver(description) if isinstance(description, str) else description
+        if isinstance(duration, str):
+            try:
+                duration = float(duration)
+            except ValueError:
+                pass
+        if (type(duration) not in (int, float) or not 0 < duration <= 30
+                or not math.isfinite(duration)):
+            raise ValueError(f"Motion segment {index}: seconds must be positive and at most 30.")
+        if not isinstance(description, str) or not description.strip() or len(description) > 10000:
+            raise ValueError(f"Motion segment {index}: enter a description of 1 through 10000 characters.")
+        prompts.append({"duration_seconds": duration, "text": description})
+    if sum(prompt["duration_seconds"] for prompt in prompts) > 120:
+        raise ValueError("Total motion duration cannot exceed 120 seconds.")
+    return prompts

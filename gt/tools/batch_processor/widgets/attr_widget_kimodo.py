@@ -6,7 +6,7 @@ import os
 from functools import partial
 from gt.ui import qt_import as qt
 from gt.tools.batch_processor.widgets.attr_widget_task import AttrWidgetTask
-from gt.tools.batch_processor.tasks.kimodo_motion_text import MOTION_TEXT_EXAMPLE
+from gt.tools.batch_processor.tasks.task_kimodo_base import MOTION_TEXT_EXAMPLE
 
 
 FIELD_HELP = {
