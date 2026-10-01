@@ -24,6 +24,8 @@ logger.setLevel(logging.INFO)
 _ENVIRONMENT_PATTERN = re.compile(r"\{([a-zA-Z0-9_-]+)\}")
 _CUSTOM_ENVIRONMENT_NAME_PATTERN = re.compile(r"^\{[a-zA-Z0-9_-]+\}$")
 _RESERVED_ENVIRONMENT_KEYS = {
+    "input-string",
+    "input-string-index",
     "project-name",
     "project-sanitized-name",
     "project-notes",
@@ -334,6 +336,8 @@ class BatchProcessorModel:
                     str: Replacement value.
                 """
                 key = normalize_environment_key(match.group(1))
+                if key == "input-string":
+                    return match.group(0)
                 if key not in environment_variables:
                     return match.group(0)
                 return str(environment_variables.get(key) or "")
@@ -342,7 +346,8 @@ class BatchProcessorModel:
             if new_resolved == resolved:
                 break
             resolved = new_resolved
-        return resolved
+        value = getattr(self, "_input_string_environment", {}).get("input-string", "")
+        return re.sub(r"\{input[-_]string\}", lambda match: value, resolved, flags=re.IGNORECASE)
 
     def resolve_template_path(self, path, task=None, task_index=None, include_neighbor_paths=True):
         """Resolves a path after expanding batch environment variables.
@@ -938,6 +943,8 @@ class BatchProcessorModel:
         project_path = tasks.normalize_path(self.project_file_path) if self.project_file_path else ""
         project_parent_dir = os.path.dirname(project_dir) if project_dir else ""
         environment_variables = {
+            "input-string": "",
+            "input-string-index": "",
             "project-name": project_name,
             "project-sanitized-name": tasks.sanitize_filename(project_name.lower().replace(" ", "_")),
             "project-notes": self.notes,
@@ -1040,6 +1047,7 @@ class BatchProcessorModel:
                     "next-task-index": str(int(next_task_index)),
                 }
             )
+        environment_variables.update(getattr(self, "_input_string_environment", {}))
         environment_variables.update(
             self._resolve_custom_environment_variables(
                 task=task,

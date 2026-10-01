@@ -1754,7 +1754,11 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
         return f"kimodo_{label[:48]}_frame_{frame:03d}"
 
     def _preview_pose_entry(self, entry):
-        """Creates and names one pose preview from a constraint row."""
+        """Creates and names one pose preview from a constraint row.
+
+        Args:
+            entry (dict): Named Kimodo constraint row containing pose parameters.
+        """
         if not self.model.rest_motion:
             raise ValueError("Connect first to load the reference skeleton for pose previews.")
         display_name = self._preview_display_name(entry)

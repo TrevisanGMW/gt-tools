@@ -62,6 +62,66 @@ class TestKimodoWidgets(unittest.TestCase):
             widget.close()
             widget.deleteLater()
 
+    def test_motion_text_mode_preserves_table_and_template_dependencies(self):
+        """Shows the active text source and retains rows while toggling modes and templates."""
+        task = TaskKimodoDefinition(settings={"use_input_string": True})
+        project = batch_processor_model.BatchProcessorModel()
+        widget = AttrWidgetKimodoDefinition(task=task, project=project)
+        try:
+            controls = widget.controls
+            mode = controls[("prompt_mode",)]
+            text = controls[("prompt_text",)]
+            self.assertEqual("table", mode.currentData())
+            self.assertFalse(text.isEnabled())
+            self.assertTrue(widget.prompt_editor.isEnabled())
+            original = widget.prompt_editor.table.item(0, 1).text()
+            mode.setCurrentIndex(mode.findData("text"))
+            self.assertTrue(text.isEnabled())
+            self.assertFalse(widget.prompt_editor.isEnabled())
+            self.assertFalse(controls[("use_input_string",)].isEnabled())
+            self.assertIn("Text", widget.motion_source_status.text())
+            self.assertTrue(controls[("definition", "parameters", "transition_frames")].isEnabled())
+            text.setText('[[2, "Walk"], [1, "Stop"]]')
+            self.assertEqual([], task.validate(project).errors)
+            self.assertEqual(original, widget.prompt_editor.table.item(0, 1).text())
+            controls[("template_path",)].setText("{project-dir}/setup.json")
+            self.assertTrue(text.isEnabled())
+            self.assertFalse(controls[("definition", "parameters", "guidance", 0)].isEnabled())
+            controls[("template_path",)].clear()
+            restored = AttrWidgetKimodoDefinition(task=TaskKimodoDefinition.from_dict(task.to_dict()), project=project)
+            try:
+                self.assertEqual("text", restored.controls[("prompt_mode",)].currentData())
+                self.assertEqual(text.text(), restored.controls[("prompt_text",)].text())
+                self.assertFalse(restored.prompt_editor.isEnabled())
+            finally:
+                restored.close()
+                restored.deleteLater()
+            mode.setCurrentIndex(mode.findData("table"))
+            self.assertTrue(widget.prompt_editor.isEnabled())
+            self.assertFalse(text.isEnabled())
+            self.assertEqual(original, widget.prompt_editor.table.item(0, 1).text())
+        finally:
+            widget.close()
+            widget.deleteLater()
+
+    def test_motion_table_actions_have_space_above_sampling(self):
+        """Keeps a visible gap beneath the motion-description action buttons in real Qt."""
+        widget = AttrWidgetKimodoDefinition(task=TaskKimodoDefinition(),
+                                           project=batch_processor_model.BatchProcessorModel())
+        try:
+            widget.sections["Generation"]["button"].click()
+            widget.resize(800, 1100)
+            widget.show()
+            self.application.processEvents()
+            button = widget.prompt_editor.buttons["add"]
+            sampling = widget.controls[("definition", "parameters", "num_samples")]
+            button_bottom = button.mapTo(widget, qt.QtCore.QPoint(0, button.height())).y()
+            sampling_top = sampling.mapTo(widget, qt.QtCore.QPoint(0, 0)).y()
+            self.assertGreaterEqual(sampling_top - button_bottom, 12)
+        finally:
+            widget.close()
+            widget.deleteLater()
+
     def test_samples_limit_and_replacement_table_round_trip(self):
         """Caps samples directly and saves numbered replacement rows through the task serializer."""
         task = TaskKimodoDefinition(settings={"variations": 2})

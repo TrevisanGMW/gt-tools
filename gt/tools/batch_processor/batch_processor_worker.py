@@ -7,6 +7,7 @@ Runner and launcher services used by the batch processor.
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_tasks as tasks
 from gt.tools.batch_processor import batch_processor_tracker
+from gt.tools.batch_processor.batch_processor_item_context import execute_work_item
 import json
 import logging
 import os
@@ -353,7 +354,7 @@ class SingleInstanceBatchRunner:
                 )
             )
             try:
-                output_item = task.execute(work_item, project, step_output_dir, context=context)
+                output_item = execute_work_item(task, work_item, project, step_output_dir, context=context)
                 if isinstance(output_item, list):
                     output_items.extend(output_item)
                 elif output_item:
@@ -867,6 +868,11 @@ def create_initial_work_item(project, source_file, run_from_task_id=None):
     Returns:
         WorkItem: Work item with relative source metadata when possible.
     """
+    for input_task in project.get_input_tasks(enabled_only=True):
+        if input_task.task_type == constants.TaskType.INPUT_STRINGS:
+            for item in input_task.prepare(project):
+                if os.path.normcase(item.source_path) == os.path.normcase(tasks.normalize_path(source_file)):
+                    return item
     source_root = get_initial_source_root(
         project=project,
         source_file=source_file,

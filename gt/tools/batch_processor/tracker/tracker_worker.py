@@ -285,7 +285,8 @@ def main():
                         )
                     )
                     try:
-                        output_item = task.execute(work_item, project, step_output_dir, context=context)
+                        output_item = batch_processor_worker.execute_work_item(
+                            task, work_item, project, step_output_dir, context=context)
                         if isinstance(output_item, list):
                             output_items.extend(output_item)
                         elif output_item:

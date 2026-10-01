@@ -373,7 +373,7 @@ class KimodoGeneratorView(metaclass=qt_utils.MayaWindowMeta):
         seed_controls = self.row(self.seed, self.button("randomize_seed", "Randomize"),
                                  QtWidgets.QLabel("Samples"))
         self.samples = QtWidgets.QSpinBox()
-        self.samples.setRange(1, 10)
+        self.samples.setRange(1, 8)
         self.steps = QtWidgets.QSpinBox()
         self.steps.setRange(1, 1000)
         self.steps.setValue(100)

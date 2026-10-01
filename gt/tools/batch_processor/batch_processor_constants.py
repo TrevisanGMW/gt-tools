@@ -46,6 +46,7 @@ class TaskType:
     """Known process task type keys."""
 
     INPUT = "input"
+    INPUT_STRINGS = "input_strings"
     MAYA_IMPORT = "import_maya"
     RENAME = "rename"
     PYTHON_SCRIPT = "python_script"

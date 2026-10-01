@@ -366,7 +366,12 @@ class KimodoJobActions:
             return outcomes
 
         def completed(outcomes):
-            """Marks server cleanup outcomes while retaining local job rows and downloads."""
+            """Marks server cleanup outcomes while retaining local job rows and downloads.
+
+            Args:
+                outcomes (list[dict]): Per-job server deletion results with URL, job ID,
+                    deletion status, and a response or error.
+            """
             deleted = 0
             failed = 0
             by_key = {(job.get("url") or current_url, job["job_id"]): job for job in self.model.jobs}

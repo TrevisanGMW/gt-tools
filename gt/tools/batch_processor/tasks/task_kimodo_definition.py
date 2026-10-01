@@ -14,6 +14,8 @@ from gt.ui import resource_library as resources
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_maya
 from gt.tools.batch_processor import batch_processor_task_base as base
+from gt.tools.batch_processor.batch_processor_item_context import is_string_scene
+from gt.tools.batch_processor.tasks import kimodo_motion_text
 from gt.tools.batch_processor.tasks.task_kimodo_base import (
     TaskKimodoBase, ClipSnapshotFileLock, report_message, write_record, read_json, fingerprint, resolve_path,
 )
@@ -45,21 +47,60 @@ class TaskKimodoDefinition(TaskKimodoBase):
             model_fps=30, duration_mode="source",
             retime_constraints=False, constraint_mode="replace", variations=1, seed_policy="per_file",
             base_seed=12345, variation_ranges="{}", prompt_choices="", prompt_replacements=[],
-            output_extension=".json",
+            output_extension=".json", use_input_string=False, prompt_mode="table", prompt_text="",
         )
         return settings
 
-    def base_definition(self, project):
+    def base_definition(self, project, work_item=None):
         """Loads the selected template or task-local generation settings.
 
         Args:
             project (BatchProcessorModel): Owning project.
+            work_item (WorkItem, optional): Current input used to resolve motion text.
 
         Returns:
             dict: Validated portable definition.
         """
         path = resolve_path(self.settings["template_path"], project, self)
-        return kimodo.normalize_definition(read_json(path) if path else self.settings["definition"])
+        data = copy.deepcopy(read_json(path) if path else self.settings["definition"])
+        mode = self.settings.get("prompt_mode", "table")
+        if mode not in ("table", "text"):
+            raise ValueError("Choose Table or Text for the motion description source.")
+        if mode == "text":
+            text = self.settings.get("prompt_text", "")
+            if not isinstance(text, str):
+                raise ValueError("Motion text must be a string of JSON pairs.")
+            resolver = partial(kimodo_motion_text.resolve_motion_text, project=project,
+                               task=self, work_item=work_item)
+            expanded = resolver(text)
+            definition = data.get("definition", data)
+            if work_item is None and kimodo_motion_text.uses_runtime_variables(expanded):
+                definition["prompts"] = [{"text": "Motion text is resolved per input.", "duration_seconds": 4}]
+            else:
+                definition["prompts"] = kimodo_motion_text.parse_motion_text(text, resolver)
+        return kimodo.normalize_definition(data)
+
+    def validate_work_items(self, work_items, project, step_output_dir, context=None):
+        """Validates each resolved motion sequence before any scene is opened.
+
+        Args:
+            work_items (list): Incoming scene or string items.
+            project (BatchProcessorModel): Owning project.
+            step_output_dir (str): Resolved output directory.
+            context (dict, optional): Tracker context.
+
+        Returns:
+            ValidationResult: Input, output, and motion-sequence diagnostics.
+        """
+        result = super().validate_work_items(work_items, project, step_output_dir, context)
+        if self.settings.get("prompt_mode", "table") == "text":
+            for item in work_items:
+                try:
+                    definition = self.base_definition(project, item)
+                    vary_definition(definition, self.settings, item.current_path, 1)
+                except (ValueError, TypeError, KeyError, OSError) as error:
+                    self.add_area_error(result, "Generation", f"{item.current_path}: {error}")
+        return result
 
     def validate(self, project):
         """Validates capture settings before opening source files.
@@ -74,6 +115,10 @@ class TaskKimodoDefinition(TaskKimodoBase):
         area = "Generation"
         try:
             definition = self.base_definition(project)
+            if self.settings.get("prompt_mode", "table") == "text":
+                expanded = kimodo_motion_text.resolve_motion_text(self.settings["prompt_text"], project, self)
+                if kimodo_motion_text.uses_runtime_variables(expanded):
+                    result.add_warning("[Generation] Motion text variables are resolved and checked for each input.")
 
             if float(self.settings["model_fps"]) <= 0:
                 raise ValueError("Model FPS must be positive.")
@@ -223,20 +268,37 @@ class TaskKimodoDefinition(TaskKimodoBase):
         report = partial(report_message, context)
         cache = self.recovery_directory(work_item, step_output_dir)
         record_path = os.path.join(cache, "capture.json")
-        definition = self.base_definition(project)
-        stat = os.stat(work_item.current_path)
-        signature = fingerprint([self.settings, definition, stat.st_size, stat.st_mtime_ns])
+        definition = self.base_definition(project, work_item)
+        if self.settings.get("use_input_string") and self.settings.get("prompt_mode", "table") == "table":
+            value = work_item.metadata.get("input_string")
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError("Use input string as prompt requires an Input Strings work item.")
+            definition["prompts"][0]["text"] = value
+        string_scene = is_string_scene(work_item)
+        if string_scene:
+            signature = fingerprint([self.settings, definition, work_item.metadata["input_string"]])
+        else:
+            stat = os.stat(work_item.current_path)
+            signature = fingerprint([self.settings, definition, stat.st_size, stat.st_mtime_ns])
         with self.recovery_lock(work_item, step_output_dir, timeout_seconds=3600, context=context):
             try:
                 with ClipSnapshotFileLock(record_path, timeout_seconds=3600):
                     record = read_json(record_path) if os.path.isfile(record_path) else {}
                     if record.get("signature") != signature:
-                        cmds = batch_processor_maya.get_maya_cmds()
-                        cmds.file(work_item.current_path, open=True, force=True,
-                                  executeScriptNodes=False, prompt=False)
-                        captured = capture_scene(self.settings, report)
                         identity = base.get_work_item_relative_path(work_item) or work_item.current_path
-                        definitions = self.build_definitions(captured, definition, identity, report=report)
+                        if string_scene:
+                            definitions = [vary_definition(definition, self.settings, identity, variation)
+                                           for variation in range(1, int(self.settings["variations"]) + 1)]
+                            fps = float(self.settings["model_fps"])
+                            count = sum(int(prompt["duration_seconds"] * fps) for prompt in definition["prompts"])
+                            captured = {"frames": [], "start": 0, "end": count - 1, "source_fps": fps}
+                            report("Building definitions from input text using prompt durations; no scene capture.")
+                        else:
+                            cmds = batch_processor_maya.get_maya_cmds()
+                            cmds.file(work_item.current_path, open=True, force=True,
+                                      executeScriptNodes=False, prompt=False)
+                            captured = capture_scene(self.settings, report)
+                            definitions = self.build_definitions(captured, definition, identity, report=report)
                         record = {"signature": signature, "source": work_item.current_path, "definitions": definitions,
                                   "source_frames": captured["frames"], "source_start": captured["start"],
                                   "source_end": captured["end"], "source_fps": captured["source_fps"],
@@ -273,6 +335,18 @@ class TaskKimodoDefinition(TaskKimodoBase):
                 raise
             self.cleanup_recovery_cache(work_item, step_output_dir, cache, context)
             return items
+
+    def check_source(self, item):
+        """Accepts virtual scenes while preserving file checks for ordinary inputs.
+
+        Args:
+            item (WorkItem): Incoming scene or string work item.
+        """
+        if is_string_scene(item):
+            if not self.writes_to_target_path():
+                raise ValueError("Kimodo definitions require a separate target folder.")
+            return
+        super().check_source(item)
 
 
 def select_frames(start, end, explicit=None, first=True, last=True, markers=None, mode="evaluated"):

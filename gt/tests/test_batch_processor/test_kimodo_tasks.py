@@ -181,13 +181,13 @@ class TestKimodoData(unittest.TestCase):
         self.assertEqual(list(range(300)), definitions[0]["constraints"][0]["frame_indices"])
 
     def test_packaged_presets_load(self):
-        """Loads the single Kimodo preset through the real project serializer and template loader."""
+        """Loads Kimodo presets through the real project serializer and template loader."""
         from gt.tools.batch_processor import batch_processor_model
 
         folder = os.path.join(os.path.dirname(tasks.__file__), "templates", "package_templates")
-        self.assertEqual(["Kimodo Animations.batch"], [name for name in os.listdir(folder)
-                                                       if name.startswith("Kimodo")])
-        for name in ("Kimodo Animations.batch",):
+        names = ["Kimodo Animations.batch", "Kimodo From Strings.batch"]
+        self.assertEqual(names, sorted(name for name in os.listdir(folder) if name.startswith("Kimodo")))
+        for name in names:
             project = batch_processor_model.BatchProcessorModel()
             project.load_from_file(os.path.join(folder, name))
             self.assertEqual("kimodo_generate", project.tasks[-1].task_type)
@@ -197,7 +197,7 @@ class TestKimodoData(unittest.TestCase):
 
         loaders = {}
         batch_processor_templates.BatchProcessorTemplates.populate_with_template_files(folder, loaders)
-        for name in ("Kimodo_Animations",):
+        for name in ("Kimodo_Animations", "Kimodo_From_Strings"):
             project = loaders[name]()
             self.assertEqual("{project-file-dir}", project.environment_variables["project-dir"])
             self.assertIsNone(project.project_file_path)

@@ -6,9 +6,19 @@ import os
 from functools import partial
 from gt.ui import qt_import as qt
 from gt.tools.batch_processor.widgets.attr_widget_task import AttrWidgetTask
+from gt.tools.batch_processor.tasks.kimodo_motion_text import MOTION_TEXT_EXAMPLE
 
 
 FIELD_HELP = {
+    ("prompt_mode",): ("Choose the motion description source. Table is the default. Text replaces all prompt "
+                        "segments, including those from a setup, while retaining the table for later use.", ""),
+    ("prompt_text",): ("Enter one JSON list of [seconds, description] pairs. Use {input-string} for a complete "
+                        "sequence, or placeholders inside quoted descriptions. Supports project variables, "
+                        "OS environment variables, {input-file-name}, {input-file-stem}, and {input-file-path}. "
+                        "Each duration must be positive and at most 30 seconds; up to 16 segments / 120 seconds.",
+                        MOTION_TEXT_EXAMPLE),
+    ("use_input_string",): ("Replace the first prompt with the current Input Strings row. String inputs "
+                            "use prompt durations and skip Maya pose/path capture.", ""),
     ("pose_source",): ("Kimodo placement group or descendant to capture. Blank auto-detects one skeleton; if "
                        "none is found, pose constraints are skipped with a warning. Multiple matches are an error.",
                        "Auto-detect, or kimodo_pose:motion"),
@@ -503,9 +513,22 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
         self.field(section, "Path frames", "path_frames")
         self.field(section, "Path samples", "path_samples", "integer")
         section = self.section("Generation")
+        self.field(section, "Use input string as prompt", "use_input_string", "boolean",
+                   tooltip="Replace the first prompt with the current Input Strings row. String inputs use "
+                           "prompt durations and skip Maya pose/path capture.")
         self.field(section, "Setup / definition", "template_path", "path",
                    tooltip="Optional template replaces the local generation settings below.")
         self.field(section, "Model", ("definition", "model"))
+        self.field(section, "Motion source", "prompt_mode", "choice", [("table", "Table"), ("text", "Text")])
+        self.field(section, "Motion text", "prompt_text")
+        self.motion_source_status = qt.QtWidgets.QLabel()
+        self.motion_source_status.setWordWrap(True)
+        section.addWidget(self.motion_source_status)
+        self.motion_text_help = qt.QtWidgets.QLabel(
+            f"Format: {MOTION_TEXT_EXAMPLE}\n"
+            "Use {input-string} for a complete sequence, or [[2, \"{input-file-stem}\"]] for a filename description.")
+        self.motion_text_help.setWordWrap(True)
+        section.addWidget(self.motion_text_help)
         from gt.tools.batch_processor.widgets.kimodo_prompt_editor import KimodoPromptEditor
 
         self.prompt_editor = KimodoPromptEditor(
@@ -513,6 +536,7 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
         self.prompt_editor.setToolTip(FIELD_HELP[("definition", "prompts")][0])
         self.controls[("definition", "prompts")] = self.prompt_editor
         section.addWidget(self.prompt_editor)
+        section.addSpacing(12)
         row = self.add_labeled_layout("Sampling", parent_layout=section)
         self.field(section, "Samples", ("definition", "parameters", "num_samples"), "integer", inline_row=row)
         self.field(section, "Steps", ("definition", "parameters", "diffusion_steps"), "integer", inline_row=row)
@@ -615,8 +639,22 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
         for path in self.controls:
             if path[0] == "definition":
                 self.set_field_enabled(path, local_definition)
+        text_mode = settings.get("prompt_mode", "table") == "text"
+        self.set_field_enabled("prompt_text", text_mode)
+        self.motion_text_help.setVisible(text_mode)
+        self.set_field_enabled(("definition", "prompts"), local_definition and not text_mode)
+        self.set_field_enabled("use_input_string", not text_mode)
+        if text_mode:
+            source_status = "Motion descriptions come from Text. The table is inactive; its rows are retained."
+        elif not local_definition:
+            source_status = "Motion descriptions come from the setup / definition file. The local table is inactive."
+        elif settings.get("use_input_string"):
+            source_status = "Motion descriptions come from the table; the first description uses the input string."
+        else:
+            source_status = "Motion descriptions come from the table."
+        self.motion_source_status.setText(source_status)
         self.set_field_enabled(("definition", "parameters", "transition_frames"),
-                               local_definition and self.prompt_editor.table.rowCount() > 1)
+                               local_definition and (text_mode or self.prompt_editor.table.rowCount() > 1))
         self.prompt_editor.set_timing_mode(settings["duration_mode"] == "source")
 
     def preview_frames(self):

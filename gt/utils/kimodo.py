@@ -243,7 +243,7 @@ class KimodoGenerationDefinition:
             name (str): User-facing label.
             prompts (list, optional): Ordered text/duration segment dictionaries.
             constraints (list, optional): Kimodo constraint dictionaries.
-            num_samples (int): Number of alternatives, from 1 through 10.
+            num_samples (int): Number of alternatives, from 1 through 8.
             guidance (list, optional): Text and constraint guidance weights.
             transition_frames (int): Blending frames between segments.
             heading (float): Initial heading in radians.
@@ -312,8 +312,8 @@ class KimodoGenerationDefinition:
         if (not isinstance(parameters, dict) or not required_parameters <= set(parameters)
                 or set(parameters) - required_parameters - optional_parameters):
             raise ValueError("Unsupported generation parameter fields.")
-        if type(parameters["num_samples"]) is not int or not 1 <= parameters["num_samples"] <= 10:
-            raise ValueError("Choose 1 through 10 samples.")
+        if type(parameters["num_samples"]) is not int or not 1 <= parameters["num_samples"] <= 8:
+            raise ValueError("Choose 1 through 8 samples.")
         parameters.setdefault("guidance", [2.0, 2.0])
         parameters.setdefault("transition_frames", 5)
         parameters.setdefault("heading", 0.0)
@@ -1504,7 +1504,7 @@ class _KimodoBackend:
                 if len(rates) == 1:
                     metadata["fps"] = _positive_number(float(rates.pop()), "model fps")
             models.append(metadata)
-        return {"models": models, "skeleton": "somaskel77", "max_prompts": 16, "max_samples": 10,
+        return {"models": models, "skeleton": "somaskel77", "max_prompts": 16, "max_samples": 8,
                 "constraints": True, "max_duration_seconds": 120,
                 "formats": list(ARTIFACT_NAMES), "device": self.device}
 
