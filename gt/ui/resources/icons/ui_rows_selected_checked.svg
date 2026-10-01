@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" viewBox="0 0 512 512" style="enable-background:new 0 0 512 512;" xml:space="preserve">
+<g id="ui_x5F_rows_x5F_selected_x5F_checked">
+	<rect style="fill:none;" width="512" height="512"/>
+	<rect x="56" y="64" rx="20" style="fill:#BDBDBD;stroke:#1D1D1D;stroke-width:12;" width="400" height="40"/>
+	<rect x="24" y="166" rx="18" style="fill:#BDBDBD;stroke:#1D1D1D;stroke-width:16;" width="464" height="180"/>
+	<rect x="62" y="204" style="fill:#1D1D1D;" width="112" height="104"/>
+	<path style="fill:none;stroke:#FFFFFF;stroke-width:26;stroke-linecap:round;stroke-linejoin:round;" d="M80,258l24,24l52-52"/>
+	<rect x="204" y="236" rx="20" style="fill:#1D1D1D;" width="248" height="40"/>
+	<rect x="56" y="408" rx="20" style="fill:#BDBDBD;stroke:#1D1D1D;stroke-width:12;" width="400" height="40"/>
+</g>
+</svg>
