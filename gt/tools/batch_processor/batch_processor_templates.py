@@ -180,7 +180,9 @@ class BatchProcessorTemplates:
                 project = batch_processor_model.BatchProcessorModel()
                 project.read_data_from_dict(data)
                 project.project_file_path = None
-                project.environment_variables["project-dir"] = ""
+                configured_root = project.environment_variables.get("project-dir", "")
+                if configured_root != "{project-file-dir}":
+                    project.environment_variables["project-dir"] = ""
                 return project
 
             template_store[variable_name] = file_loader

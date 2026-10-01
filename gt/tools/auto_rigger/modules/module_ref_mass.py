@@ -88,6 +88,57 @@ class ModuleAnimMassReferences(tools_rig_frm.ModuleGeneric):
         self.viewport_color = (0, 1, 0)
         self.outliner_color = (0.5, 1, 0.21)
 
+    def get_side_reference_attrs(self, side):
+        """
+        Gets the names of the side reference attributes that have a matching attribute on the opposite side.
+        e.g. "left_hand" is only listed if "right_hand" also exists.
+
+        Args:
+            side (str): Side to list. Accepted values: "left", "right".
+
+        Returns:
+            list: A list of attribute names in definition order. e.g. ["left_arm_upper", "left_arm_lower"]
+        """
+        opposite_side = "right" if side == "left" else "left"
+        side_attrs = []
+        for attr_name, attr_value in vars(self).items():
+            if not attr_name.startswith(f"{side}_") or not isinstance(attr_value, str):
+                continue
+            opposite_attr = f"{opposite_side}_{attr_name[len(side) + 1:]}"
+            if isinstance(getattr(self, opposite_attr, None), str):
+                side_attrs.append(attr_name)
+        return side_attrs
+
+    def mirror_side_references(self, source_side, search, replace):
+        """
+        Copies the reference objects from one side to the other, using a search and replace on their names.
+        e.g. source_side="left", search="L_", replace="R_" sets "right_hand" to "R_hand_JNT" when
+        "left_hand" is "L_hand_JNT".
+
+        Args:
+            source_side (str): Side used as source. Accepted values: "left", "right".
+            search (str): Text to search for in the source side names.
+            replace (str): Text used to replace the search text.
+
+        Returns:
+            dict: A dictionary with the updated target attributes as keys and their new values as values.
+                  Empty if the operation was cancelled (invalid side or empty search).
+        """
+        if source_side not in ("left", "right"):
+            logger.warning(f'Unable to mirror references. Invalid source side: "{source_side}".')
+            return {}
+        if not search:
+            logger.warning("Unable to mirror references. Search text cannot be empty.")
+            return {}
+        target_side = "right" if source_side == "left" else "left"
+        updated_attrs = {}
+        for source_attr in self.get_side_reference_attrs(source_side):
+            target_attr = f"{target_side}_{source_attr[len(source_side) + 1:]}"
+            target_value = getattr(self, source_attr).replace(search, replace)
+            setattr(self, target_attr, target_value)
+            updated_attrs[target_attr] = target_value
+        return updated_attrs
+
     def _create_anim_references(self):
         """
         Attempts to copy and connect attributes according to "self._reroute_attributes"

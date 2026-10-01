@@ -16,6 +16,7 @@ class TestBatchProcessorScripts(unittest.TestCase):
             ("external_unreal", "import_fbx_export_fbx.py", "import unreal"),
             ("hik_retarget", "print_post_retarget_context.py", "import maya.cmds as cmds"),
             ("hik_retarget", "print_pre_bake_context.py", "import maya.cmds as cmds"),
+            ("hik_retarget", "smooth_rotation_pops.py", "def smooth_rotation_pops("),
             ("maya_import", "print_import_context.py", "import maya.cmds as cmds"),
             ("python_script", "print_batch_context.py", "environment_variables"),
             ("export_fbx", "select_root_joints_and_hierarchy.py", "hierarchy=True"),

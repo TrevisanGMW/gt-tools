@@ -81,10 +81,17 @@ class SchemaEditorDialog(QtWidgets.QDialog):
         right_layout = QtWidgets.QVBoxLayout(right_widget)
         form_layout = QtWidgets.QFormLayout()
         self.type_combo = QtWidgets.QComboBox()
-        self.type_combo.addItems(["enum", "string", "boolean", "separator", "row"])
+        self.type_combo.addItems(["enum", "string", "boolean", "integer", "separator", "row"])
         self.name_edit = QtWidgets.QLineEdit()
         self.label_edit = QtWidgets.QLineEdit()
         self.options_edit = QtWidgets.QLineEdit()
+        self.minimum_spinbox = QtWidgets.QSpinBox()
+        self.minimum_spinbox.setRange(-1000000, 1000000)
+        self.maximum_spinbox = QtWidgets.QSpinBox()
+        self.maximum_spinbox.setRange(-1000000, 1000000)
+        self.maximum_spinbox.setValue(100)
+        self.default_spinbox = QtWidgets.QSpinBox()
+        self.default_spinbox.setRange(-1000000, 1000000)
         self.required_checkbox = QtWidgets.QCheckBox()
         self.automation_edit = QtWidgets.QLineEdit()
         self.placeholder_edit = QtWidgets.QLineEdit()
@@ -94,6 +101,9 @@ class SchemaEditorDialog(QtWidgets.QDialog):
         form_layout.addRow("Name:", self.name_edit)
         form_layout.addRow("Label:", self.label_edit)
         form_layout.addRow("Options (comma separated):", self.options_edit)
+        form_layout.addRow("Minimum (integer):", self.minimum_spinbox)
+        form_layout.addRow("Maximum (integer):", self.maximum_spinbox)
+        form_layout.addRow("Default (integer):", self.default_spinbox)
         form_layout.addRow("Required:", self.required_checkbox)
         form_layout.addRow("Automation:", self.automation_edit)
         form_layout.addRow("Placeholder:", self.placeholder_edit)
@@ -128,6 +138,9 @@ class SchemaEditorDialog(QtWidgets.QDialog):
             self.name_edit,
             self.label_edit,
             self.options_edit,
+            self.minimum_spinbox,
+            self.maximum_spinbox,
+            self.default_spinbox,
             self.required_checkbox,
             self.automation_edit,
             self.placeholder_edit,
@@ -137,6 +150,8 @@ class SchemaEditorDialog(QtWidgets.QDialog):
                 widget.currentIndexChanged.connect(self._save_current_item)
             elif isinstance(widget, QtWidgets.QCheckBox):
                 widget.stateChanged.connect(self._save_current_item)
+            elif isinstance(widget, QtWidgets.QSpinBox):
+                widget.valueChanged.connect(self._save_current_item)
             else:
                 widget.textChanged.connect(self._save_current_item)
 
@@ -209,6 +224,9 @@ class SchemaEditorDialog(QtWidgets.QDialog):
             self.name_edit,
             self.label_edit,
             self.options_edit,
+            self.minimum_spinbox,
+            self.maximum_spinbox,
+            self.default_spinbox,
             self.required_checkbox,
             self.automation_edit,
             self.placeholder_edit,
@@ -220,6 +238,9 @@ class SchemaEditorDialog(QtWidgets.QDialog):
         self.name_edit.setText(str(item.get("name", "")))
         self.label_edit.setText(str(item.get("label", "")))
         self.options_edit.setText(", ".join(item.get("options", [])))
+        self.minimum_spinbox.setValue(int(item.get("minimum", 0)))
+        self.maximum_spinbox.setValue(int(item.get("maximum", 100)))
+        self.default_spinbox.setValue(int(item.get("default", 0) or 0))
         self.required_checkbox.setChecked(bool(item.get("required", False)))
         self.automation_edit.setText(str(item.get("automation", "")))
         self.placeholder_edit.setText(str(item.get("placeholder", "")))
@@ -243,6 +264,9 @@ class SchemaEditorDialog(QtWidgets.QDialog):
             self.name_edit,
             self.label_edit,
             self.options_edit,
+            self.minimum_spinbox,
+            self.maximum_spinbox,
+            self.default_spinbox,
             self.required_checkbox,
             self.automation_edit,
             self.placeholder_edit,
@@ -267,6 +291,20 @@ class SchemaEditorDialog(QtWidgets.QDialog):
             for option in self.options_edit.text().split(",")
             if option.strip()
         ]
+        if item_type == "integer":
+            item["minimum"] = self.minimum_spinbox.value()
+            item["maximum"] = max(
+                self.minimum_spinbox.value(),
+                self.maximum_spinbox.value(),
+            )
+            item["default"] = max(
+                item["minimum"],
+                min(item["maximum"], self.default_spinbox.value()),
+            )
+            item.pop("options", None)
+        else:
+            for integer_key in ("minimum", "maximum"):
+                item.pop(integer_key, None)
         item["required"] = self.required_checkbox.isChecked()
         item["automation"] = self.automation_edit.text().strip()
         item["placeholder"] = self.placeholder_edit.text().strip()

@@ -299,6 +299,12 @@ def load_menu(*args):
         icon=ui_res_lib.Icon.tool_testing_keys,
     )
     menu.add_menu_item(
+        label="HumanIK Utilities",
+        command=IMPORT_TOOL + 'initialize_tool("anim_hik_utils")',
+        tooltip="Mirror poses, manage HumanIK definitions, transfer properties, and bake animation.",
+        icon=ui_res_lib.Icon.tool_anim_hik_utils,
+    )
+    menu.add_menu_item(
         label="Offset Keyframes",
         command=IMPORT_TOOL + 'initialize_tool("offset_keyframes")',
         tooltip="Offsets selected animation timing and provides selection-order staggering.",
@@ -309,6 +315,12 @@ def load_menu(*args):
         command=IMPORT_TOOL + 'initialize_tool("retargeter")',
         tooltip="Opens retargeter.",
         icon=ui_res_lib.Icon.tool_retargeter,
+    )
+    menu.add_menu_item(
+        label="Kimodo Generator",
+        command=IMPORT_TOOL + 'initialize_tool("kimodo_generator")',
+        tooltip="Generate animation from text and pose constraints using a local or remote Kimodo bridge.",
+        icon=ui_res_lib.Icon.tool_kimodo_generator,
     )
     menu.add_menu_item(
         label="World Space Baker",

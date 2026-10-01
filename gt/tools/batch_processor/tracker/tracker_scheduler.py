@@ -98,6 +98,12 @@ class TrackerScheduler:
             changed = self._advance_finalization() or changed
         if self._is_finished() and not self.session.finished:
             self.cleanup_report_parts()
+            if self.project:
+                from gt.tools.batch_processor.tasks.task_kimodo_base import cleanup_project_coordination
+
+                task_ids = {task.id for job in self.session.jobs for task in job.tasks}
+                run_tasks = [task for task in self.project.get_enabled_tasks() if task.id in task_ids]
+                cleanup_project_coordination(self.project, run_tasks, report=self._append_project_log)
             self.session.finish()
             self._append_project_summary()
             changed = True
@@ -115,6 +121,7 @@ class TrackerScheduler:
         if self.session.finished or self.session.aborting:
             return
         self.session.aborting = True
+        self._consume_events()
         self.abort_requested_at = time.monotonic()
         for job in self.regular_queue:
             self._mark_job_canceled(job)
@@ -123,6 +130,7 @@ class TrackerScheduler:
             self._mark_job_canceled(self.finalization_job)
         for process_data in self.running.values():
             process_data["job"].status = tracker_constants.Status.CANCELING
+            self._cancel_remote_jobs(process_data)
             tracker_process_utils.terminate_process_tree(process_data["process"], force=False)
         self.write_state()
         if callable(self.update_callback):
@@ -168,6 +176,8 @@ class TrackerScheduler:
             process_data["cancel_requested_at"] = time.monotonic()
             process_data["cancel_force_requested"] = False
             job.status = tracker_constants.Status.CANCELING
+            self._consume_events()
+            self._cancel_remote_jobs(process_data)
             tracker_process_utils.terminate_process_tree(process_data["process"], force=False)
             self._append_project_log(
                 f"[OPERATION] - (Multi-instance) - Cancellation requested for '{job.name}'.\n"
@@ -655,10 +665,32 @@ class TrackerScheduler:
             for event in reader.read_new():
                 self.session.apply_event(event)
                 process_data = self.running.get(event.get("job_id"))
+                if process_data and event.get("event") == "kimodo_job":
+                    process_data.setdefault("remote_jobs", []).append(event)
+                if process_data and event.get("event") == "kimodo_job_done":
+                    process_data["remote_jobs"] = [job for job in process_data.get("remote_jobs", [])
+                                                   if job["remote_id"] != event.get("remote_id")]
                 if process_data and process_data.get("cancel_requested_at") is not None:
                     process_data["job"].status = tracker_constants.Status.CANCELING
                 changed = True
         return changed
+
+    def _cancel_remote_jobs(self, process_data):
+        """Cancels Kimodo jobs explicitly registered by this worker before terminating it.
+
+        Args:
+            process_data (dict): Owned worker process and its remote job events.
+        """
+        from gt.utils import kimodo
+
+        for event in process_data.get("remote_jobs", []):
+            try:
+                token_name = event.get("token_environment")
+                connection = kimodo.KimodoConnection(
+                    url=event["url"], timeout=2, token=os.environ.get(token_name) if token_name else None)
+                kimodo.KimodoClient(connection).cancel(event["remote_id"])
+            except Exception as error:
+                self._append_project_log(f"[WARNING] - Remote Kimodo cancellation failed: {error}\n")
 
     def _collect_finished_processes(self):
         """Collects exited workers and applies fallback terminal states.

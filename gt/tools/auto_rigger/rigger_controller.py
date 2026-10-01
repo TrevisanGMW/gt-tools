@@ -192,6 +192,9 @@ class RiggerController:
         self._show_package_templates = self._prefs.get_bool(
             key=tools_rig_const.RiggerConstants.PREFS_KEY_SHOW_PACKAGE_TEMPLATES, default=True
         )
+        self._on_import_randomize_uuids = self._prefs.get_bool(
+            key=tools_rig_const.RiggerConstants.PREFS_KEY_ON_IMPORT_RANDOMIZE_UUIDS, default=True
+        )
 
         # Add Menubar
         self.add_menu_file()
@@ -225,6 +228,12 @@ class RiggerController:
         _save_as_func = partial(self.save_project_to_file, True)  # Save as keyword is True
         action_save_as.triggered.connect(_save_as_func)
 
+        action_import = ui_qt.QtLib.QtGui.QAction(
+            "Import Project", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.rigger_action_import_grayscale)
+        )
+        action_import.setToolTip("Appends the modules of another rig project to the current project.")
+        action_import.triggered.connect(self.import_project_from_file)
+
         # Menu Assembly -------------------------------------------------------------------------------------
         self.view.add_menu_action(parent_menu=menu_file, action=action_new)
         self.view.add_menu_action(parent_menu=menu_file, action=action_open)
@@ -236,6 +245,7 @@ class RiggerController:
         )
         self._recent_projects_menu.aboutToShow.connect(self.refresh_recent_projects_menu)
         self.refresh_recent_projects_menu()
+        self.view.add_menu_action(parent_menu=menu_file, action=action_import)
 
         self.view.add_menu_action(parent_menu=menu_file, action=action_save)
         self.view.add_menu_action(parent_menu=menu_file, action=action_save_as)
@@ -644,6 +654,20 @@ class RiggerController:
         self.view.add_menu_action(parent_menu=menu_prefs, action=on_abs_paths_to_relative_action)
         on_abs_paths_to_relative_action.setChecked(self._on_set_path_abs_to_relative)
 
+        # On Import Project, Randomize UUIDs
+        on_import_randomize_uuids_action = ui_qt.QtLib.QtGui.QAction(
+            "Randomize UUIDs on Project Import", checkable=True
+        )
+        on_import_randomize_uuids_action.triggered.connect(self.toggle_on_import_randomize_uuids)
+        tooltip = (
+            "If enabled, module and proxy UUIDs are replaced with new random values when importing a project.\n"
+            "This avoids conflicts with modules that already exist in the current project, while keeping\n"
+            "the relationships (hierarchy, drivers, mirror sources) between the imported modules."
+        )
+        on_import_randomize_uuids_action.setToolTip(tooltip)
+        self.view.add_menu_action(parent_menu=menu_prefs, action=on_import_randomize_uuids_action)
+        on_import_randomize_uuids_action.setChecked(self._on_import_randomize_uuids)
+
     def add_menu_log(self):
         """
         Adds log menu bar to the view
@@ -851,6 +875,47 @@ class RiggerController:
         self.refresh_widgets()
         self.set_opened_project(path=file_path)
         self._has_high_level_changes = False
+        return True
+
+    def import_project_from_file(self, file_path=None, *args):
+        """
+        Imports (appends) the modules of another project file into the current project.
+        When the "Randomize UUIDs on Project Import" automation is active, module and proxy UUIDs are randomized.
+        Args:
+            file_path (str, optional): If provided, this path is imported instead of opening a file dialog.
+            *args: Optional Qt signal arguments.
+
+        Returns:
+            bool: True when at least one module was imported.
+        """
+        if not file_path or not isinstance(file_path, str):
+            file_path = ui_file_dialog.file_dialog(
+                caption="Import Rig Project",
+                write_mode=False,
+                starting_directory=None,
+                file_filter=tools_rig_const.RiggerConstants.PROJECT_FILE_FILTER,
+                ok_caption="Import Project",
+                cancel_caption="Cancel",
+            )
+        if not file_path:
+            return False
+        try:
+            project_dict = json.loads(core_io.read_data(file_path))
+        except Exception as exception:
+            logger.exception(f'Unable to read rig project: "{file_path}"')
+            self.show_project_load_warning(
+                title="Unable to Import Project",
+                message=f"The project could not be read and the current project was preserved.\n\n{exception}",
+            )
+            return False
+        imported_modules = self.model.get_project().import_modules_from_project_dict(
+            project_dict=project_dict, reinitialize_uuids=self._on_import_randomize_uuids
+        )
+        if not imported_modules:
+            return False
+        self.refresh_widgets()
+        uuid_state = "randomized" if self._on_import_randomize_uuids else "preserved"
+        logger.info(f'Imported {len(imported_modules)} module(s) from "{file_path}" (UUIDs {uuid_state}).')
         return True
 
     def show_project_load_warning(self, title, message):
@@ -1168,7 +1233,7 @@ class RiggerController:
 
         # Duplicate
         action_duplicate = ui_qt.QtLib.QtGui.QAction(
-            "Duplicate", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.rigger_action_duplicate)
+            "Duplicate", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.rigger_action_duplicate_grayscale)
         )
         func_duplicate_module = partial(self.model.get_project().duplicate_module, source_module)
         action_duplicate.triggered.connect(func_duplicate_module)
@@ -1176,19 +1241,25 @@ class RiggerController:
         self.view.add_menu_action(parent_menu=menu, action=action_duplicate)
 
         # Copy
-        action_copy = ui_qt.QtLib.QtGui.QAction("Copy", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.rigger_action_copy))
+        action_copy = ui_qt.QtLib.QtGui.QAction(
+            "Copy", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.rigger_action_copy_grayscale)
+        )
         func_copy_module = partial(self.context_menu_copy_module, source_module)
         action_copy.triggered.connect(func_copy_module)
         self.view.add_menu_action(parent_menu=menu, action=action_copy)
 
         # Paste
-        action_paste = ui_qt.QtLib.QtGui.QAction("Paste", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.rigger_action_paste))
+        action_paste = ui_qt.QtLib.QtGui.QAction(
+            "Paste", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.rigger_action_paste_grayscale)
+        )
         action_paste.triggered.connect(self.context_menu_paste_module)
         action_paste.triggered.connect(self.refresh_widgets)
         self.view.add_menu_action(parent_menu=menu, action=action_paste)
 
         # Export
-        action_copy = ui_qt.QtLib.QtGui.QAction("Export", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.rigger_action_export))
+        action_copy = ui_qt.QtLib.QtGui.QAction(
+            "Export", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.rigger_action_export_grayscale)
+        )
         func_copy_module = partial(self.context_menu_export_module, source_module)
         action_copy.triggered.connect(func_copy_module)
         action_copy.triggered.connect(self.refresh_widgets)
@@ -1196,7 +1267,7 @@ class RiggerController:
 
         # Import
         action_paste = ui_qt.QtLib.QtGui.QAction(
-            "Import", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.rigger_action_import)
+            "Import", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.rigger_action_import_grayscale)
         )
         action_paste.triggered.connect(self.context_menu_import_module)
         action_paste.triggered.connect(self.refresh_widgets)
@@ -1205,7 +1276,9 @@ class RiggerController:
         menu.addSeparator()
 
         # Delete
-        action_delete = ui_qt.QtLib.QtGui.QAction("Delete", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_delete))
+        action_delete = ui_qt.QtLib.QtGui.QAction(
+            "Delete", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.rigger_action_delete_grayscale)
+        )
         func_delete_module = partial(self.delete_module_from_current_project, source_module)
         action_delete.triggered.connect(func_delete_module)
         action_delete.triggered.connect(self.view.clear_module_widget)
@@ -1261,18 +1334,21 @@ class RiggerController:
         except Exception as e:
             logger.warning(f"Failed to paste module. Unsupported data type. Issue: {e}")
 
-    @staticmethod
-    def context_menu_export_module(module):
+    def context_menu_export_module(self, module):
         """
         Exports a module to a file in a serialized JSON format.
+        Group modules are exported together with all their descendant modules.
         Args:
-            module (ModuleGeneric): A module to export to the clip board.
-                                    Gets converted to a dictionary and stored in the clipboard for later.
+            module (ModuleGeneric): A module to export to a file.
+                                    Gets converted to a dictionary and saved as JSON.
         """
         if not module or not isinstance(module, tools_rig_frm.ModuleGeneric):
             logger.warning('Unsupported data object. Please try again using a "ModuleGeneric" object.')
             return
-        _as_dict = module.get_module_as_dict()
+        if isinstance(module, tools_rig_modules.RigModules.Utils.ModuleGroup):
+            _as_dict = self.model.get_project().get_module_tree_as_dict(module)
+        else:
+            _as_dict = module.get_module_as_dict()
         _module_name = _as_dict.get("name", "")  # Default to the name of the module
         _save_path = ui_file_dialog.file_dialog(
             caption="Save Module",
@@ -1288,11 +1364,14 @@ class RiggerController:
             if _save_path and os.path.exists(_save_path):
                 core_io.set_file_permission_modifiable(_save_path)
             core_io.write_json(path=_save_path, data=_as_dict)
-            logger.info(f'Module "{_module_name}" saved to "{_save_path}".')
+            _children_count = len(_as_dict.get(tools_rig_const.RiggerConstants.MODULE_TREE_CHILDREN_KEY, []))
+            _children_msg = f" (including {_children_count} child module(s))" if _children_count else ""
+            logger.info(f'Module "{_module_name}"{_children_msg} saved to "{_save_path}".')
 
     def context_menu_import_module(self):
         """
-        Attempt to interpret the clipboard content as a dictionary, and builds a module with the data when available.
+        Opens a file dialog and imports the selected module file into the current project.
+        Files exported from a group also import all the group's descendant modules.
         """
 
         file_path = ui_file_dialog.file_dialog(
@@ -1309,7 +1388,7 @@ class RiggerController:
                 _as_dict = json.loads(module_data)
                 self.model.get_project().add_module_from_dict(_as_dict)
             except Exception as e:
-                logger.warning(f"Failed to paste module. Unsupported data type. Issue: {e}")
+                logger.warning(f"Failed to import module. Unsupported data type. Issue: {e}")
 
     def delete_module_from_current_project(self, module):
         """
@@ -1616,6 +1695,17 @@ class RiggerController:
         """
         self._on_set_path_abs_to_relative = checked
         self._prefs.set_bool(key=tools_rig_const.RiggerConstants.PREFS_KEY_ON_SET_PATH_ABS_TO_RELATIVE, value=checked)
+        self._prefs.save()
+
+    def toggle_on_import_randomize_uuids(self, checked):
+        """
+        Toggle the flag to randomize module and proxy UUIDs when importing a project.
+
+        Args:
+            checked (bool): The new state for randomizing UUIDs on project import.
+        """
+        self._on_import_randomize_uuids = checked
+        self._prefs.set_bool(key=tools_rig_const.RiggerConstants.PREFS_KEY_ON_IMPORT_RANDOMIZE_UUIDS, value=checked)
         self._prefs.save()
 
     # -------------------------------------------- General --------------------------------------------

@@ -1077,6 +1077,10 @@ def get_task_widget_class(task):
     Returns:
         type: Widget class used to edit the task.
     """
+    if task.task_type == constants.TaskType.INPUT_STRINGS:
+        from gt.tools.batch_processor.widgets.attr_widget_input_strings import AttrWidgetInputStringsTask
+
+        return AttrWidgetInputStringsTask
     if task.task_type == constants.TaskType.INPUT:
         from gt.tools.batch_processor.widgets.attr_widget_input import AttrWidgetInputTask
 
@@ -1123,6 +1127,14 @@ def get_task_widget_class(task):
         from gt.tools.batch_processor.widgets.attr_widget_retarget import AttrWidgetRetargetTask
 
         return AttrWidgetRetargetTask
+    if task.task_type == constants.TaskType.KIMODO_DEFINITION:
+        from gt.tools.batch_processor.widgets.attr_widget_kimodo import AttrWidgetKimodoDefinition
+
+        return AttrWidgetKimodoDefinition
+    if task.task_type == constants.TaskType.KIMODO_GENERATE:
+        from gt.tools.batch_processor.widgets.attr_widget_kimodo import AttrWidgetKimodoGenerate
+
+        return AttrWidgetKimodoGenerate
     if task.task_type == constants.TaskType.HIK_RETARGET:
         from gt.tools.batch_processor.widgets.attr_widget_hik_retarget import AttrWidgetRetargetHumanIK
 

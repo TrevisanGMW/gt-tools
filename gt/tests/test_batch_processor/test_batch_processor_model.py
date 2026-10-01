@@ -162,7 +162,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         expected = "Maya Scene Audit"
         self.assertEqual(expected, result.project_name)
         self.assertIsNone(result.project_file_path)
-        self.assertEqual("", result.environment_variables.get("project-dir"))
+        self.assertEqual("{project-file-dir}", result.environment_variables.get("project-dir"))
         expected = [constants.TaskType.INPUT, constants.TaskType.SCENE_REPORT]
         self.assertEqual(expected, [task.task_type for task in result.tasks])
 

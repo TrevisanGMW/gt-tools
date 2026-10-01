@@ -10,6 +10,7 @@ Import Line:
 
 import json
 import logging
+import math
 import os
 import tempfile
 import xml.etree.ElementTree as ET
@@ -338,9 +339,12 @@ def create_definition(character_name="Character"):
         if not cmds.pluginInfo("mayaHIK", query=True, loaded=True):
             cmds.loadPlugin("mayaHIK")
 
-        mel.eval(f'hikCreateCharacter("{character_name}")')
-        logger.info(f'Created HIK character definition: "{character_name}"')
-        return character_name
+        _source_mel_procedure("hikCreateCharacter")
+        created = mel.eval(f'hikCreateCharacter("{character_name}")')
+        if not isinstance(created, str) or not cmds.objExists(created):
+            raise RuntimeError(f"Maya did not return an existing HumanIK character: {created!r}")
+        logger.info(f'Created HIK character definition: "{created}"')
+        return created
     except Exception as e:
         logger.error(f'Failed to create character definition. Issue: {e}')
         return ""
@@ -1017,7 +1021,9 @@ def _get_control_depth(control):
     return long_names[0].count("|")
 
 
-def _apply_hik_pose_data(control_map, pose_data, world_space, chunk_name, prefer_channels=False):
+def _apply_hik_pose_data(
+    control_map, pose_data, world_space, chunk_name, prefer_channels=False, preserve_attributes=None,
+):
     """Applies captured pose data in hierarchy order inside an undo chunk.
 
     Args:
@@ -1027,6 +1033,8 @@ def _apply_hik_pose_data(control_map, pose_data, world_space, chunk_name, prefer
         chunk_name (str): Maya undo chunk label.
         prefer_channels (bool): Apply stored local channels instead of matrices
             when channel data is available.
+        preserve_attributes (dict, optional): Attributes per control identifier to
+            restore immediately, before applying child world matrices.
 
     Returns:
         list: Controls that received matrix or custom attribute data.
@@ -1043,6 +1051,11 @@ def _apply_hik_pose_data(control_map, pose_data, world_space, chunk_name, prefer
             control_data = pose_data.get(control_id)
             if not isinstance(control_data, dict):
                 continue
+            preserved_values = {}
+            for attribute in (preserve_attributes or {}).get(control_id, []):
+                plug = f"{control}.{attribute}"
+                if cmds.getAttr(plug, settable=True):
+                    preserved_values[plug] = cmds.getAttr(plug)
             matrix = control_data.get("matrix")
             use_channels = bool(control_data.get("apply_channels") or prefer_channels)
             transform_applied = False
@@ -1064,6 +1077,11 @@ def _apply_hik_pose_data(control_map, pose_data, world_space, chunk_name, prefer
                 control,
                 control_data.get("attributes", {}),
             )
+            for plug, value in preserved_values.items():
+                if isinstance(value, str):
+                    cmds.setAttr(plug, value, type="string")
+                else:
+                    cmds.setAttr(plug, value)
             if transform_applied or attributes_applied:
                 applied_controls.append(control)
     finally:
@@ -1205,6 +1223,201 @@ def flip_hik_pose(character_node, affect_center=False, world_space=False):
         world_space=world_space,
         chunk_name="Flip HumanIK Pose",
     )
+
+
+def _get_hik_animation_targets(control_map, source_side, affect_center):
+    """Maps animation destination identifiers to their original source identifiers.
+
+    Args:
+        control_map (dict): HumanIK control map.
+        source_side (str): left, right, or flip.
+        affect_center (bool): Include center controls.
+
+    Returns:
+        dict: Destination identifiers mapped to source identifiers.
+    """
+    pairs, centers = _get_hik_control_groups(control_map)
+    targets = {}
+    for left_id, right_id in pairs:
+        if source_side in ("left", "flip"):
+            targets[right_id] = left_id
+        if source_side in ("right", "flip"):
+            targets[left_id] = right_id
+    if affect_center:
+        targets.update({control_id: control_id for control_id in centers})
+    return targets
+
+
+def _get_hik_animation_channels(control_map, targets):
+    """Finds keyable channels and rejects drivers that cannot be safely replaced.
+
+    Args:
+        control_map (dict): HumanIK control map.
+        targets (dict): Target identifiers mapped to source identifiers.
+
+    Returns:
+        tuple: Writable attributes per target and skipped plug names.
+
+    Raises:
+        ValueError: If targets use constraints, layers, expressions, or driven keys.
+    """
+    from gt.core.anim import KEY_TYPE_TIME
+
+    channels, skipped = {}, []
+    for target_id in targets:
+        control = control_map[target_id]
+        attributes = set(HIK_MIRRORED_CHANNEL_MULTIPLIERS)
+        attributes.update(_get_hik_pose_attributes(control))
+        channels[target_id] = []
+        for attribute in sorted(attributes):
+            plug = f"{control}.{attribute}"
+            if not cmds.objExists(plug):
+                continue
+            if cmds.getAttr(plug, lock=True) or not cmds.getAttr(plug, keyable=True):
+                skipped.append(plug)
+                continue
+            if not isinstance(cmds.getAttr(plug), (bool, int, float)):
+                skipped.append(plug)
+                continue
+            drivers = cmds.listConnections(plug, source=True, destination=False) or []
+            if any(cmds.nodeType(driver) not in KEY_TYPE_TIME for driver in drivers):
+                raise ValueError(f"Bake or remove the layer/driver on {plug} before mirroring animation.")
+            channels[target_id].append(attribute)
+        if not channels[target_id]:
+            raise ValueError(f"No writable animation channels on {control}.")
+    return channels, skipped
+
+
+def mirror_hik_animation(
+    character_node, start_frame, end_frame, source_side="left", affect_center=False,
+    world_space=False, sample_by=1.0,
+):
+    """Mirrors sampled HumanIK motion, or swaps both sides when side is flip.
+
+    Captures the complete source range before editing either side. Replaces keys
+    only inside the range on writable target channels; outside keys are retained.
+    Output is sampled with linear tangents, not an exact copy of source tangents.
+    Time and auto-key are restored. Failures roll back through Maya Undo.
+    Run on baked control-rig animation; layered or driven targets are rejected.
+
+    Args:
+        character_node (str): HumanIK character definition.
+        start_frame (float): Inclusive first frame.
+        end_frame (float): Inclusive last frame.
+        source_side (str): left, right, or flip.
+        affect_center (bool): Mirror center controls in place.
+        world_space (bool): Mirror around the sampled Reference world matrix.
+        sample_by (float): Positive sample interval.
+
+    Returns:
+        dict: Modified controls, sample count, and skipped channel names.
+
+    Raises:
+        ValueError: Invalid range, missing controls, or unsafe target animation.
+        RuntimeError: Undo is disabled or a sampled pose could not be applied.
+    """
+    from functools import partial
+    from gt.core import anim as core_anim
+    from gt.core.undo import UndoChunk
+
+    source_side = str(source_side).strip().lower()
+    if source_side not in ("left", "right", "flip"):
+        raise ValueError("source_side must be left, right, or flip.")
+    core_anim.get_frame_sample_times(start_frame, end_frame, sample_by)
+    if not cmds.undoInfo(query=True, state=True):
+        raise RuntimeError("Enable Maya Undo before mirroring animation.")
+    control_map = _get_hik_control_map(character_node)
+    targets = _get_hik_animation_targets(control_map, source_side, affect_center)
+    if not targets:
+        raise ValueError("No mirrorable HumanIK control pairs found.")
+    channels, skipped = _get_hik_animation_channels(control_map, targets)
+    preserved = {
+        target_id: [plug.rpartition(".")[2] for plug in skipped
+                    if plug.rpartition(".")[0] == control_map[target_id]]
+        for target_id in targets
+    }
+    original_time = cmds.currentTime(query=True)
+    auto_key = cmds.autoKeyframe(query=True, state=True)
+    previous_rotations = {}
+    rotation_period = math.tau if cmds.currentUnit(query=True, angle=True) == "rad" else 360.0
+    with UndoChunk(chunk_name="Mirror HumanIK Animation"):
+        try:
+            cmds.autoKeyframe(state=False)
+            samples = core_anim.sample_animation_range(
+                partial(_capture_hik_pose, control_map, world_space=world_space),
+                start_frame, end_frame, sample_by,
+            )
+            for unused_frame, pose in samples:
+                if any(source_id not in pose for source_id in targets.values()):
+                    raise RuntimeError("A source control could not be sampled. No animation was replaced.")
+            for target_id, attributes in channels.items():
+                cmds.cutKey(control_map[target_id], attribute=attributes,
+                            time=(start_frame, end_frame), clear=True)
+            for frame, captured in samples:
+                cmds.currentTime(frame)
+                reference = captured.get("Reference", {}).get("matrix") if world_space else None
+                mirrored = {
+                    target_id: _build_mirrored_hik_control_data(target_id, captured[source_id], reference)
+                    for target_id, source_id in targets.items()
+                }
+                applied = _apply_hik_pose_data(
+                    control_map, mirrored, world_space, "Mirror HumanIK Sample", preserve_attributes=preserved
+                )
+                if set(applied) != {control_map[target_id] for target_id in targets}:
+                    raise RuntimeError(f"Could not apply all controls at frame {frame}. Animation rolled back.")
+                values = {
+                    f"{control_map[target_id]}.{attribute}": cmds.getAttr(f"{control_map[target_id]}.{attribute}")
+                    for target_id, attributes in channels.items() for attribute in attributes
+                }
+                for target_id, attributes in channels.items():
+                    rotation_attributes = ("rx", "ry", "rz")
+                    rotation_plugs = [f"{control_map[target_id]}.{attribute}" for attribute in rotation_attributes]
+                    if all(attribute in attributes for attribute in rotation_attributes):
+                        to_radians = math.tau / rotation_period
+                        rotation = om.MEulerRotation(
+                            *(values[plug] * to_radians for plug in rotation_plugs),
+                            cmds.getAttr(f"{control_map[target_id]}.rotateOrder"),
+                        )
+                        if target_id in previous_rotations:
+                            rotation = rotation.closestSolution(previous_rotations[target_id])
+                        previous_rotations[target_id] = rotation
+                        for plug, value in zip(rotation_plugs, (rotation.x, rotation.y, rotation.z)):
+                            values[plug] = value / to_radians
+                    for attribute in attributes:
+                        plug = f"{control_map[target_id]}.{attribute}"
+                        value = values[plug]
+                        if attribute in rotation_attributes:
+                            if plug in previous_rotations:
+                                value += rotation_period * round((previous_rotations[plug] - value) / rotation_period)
+                            previous_rotations[plug] = value
+                        tangent = "step" if cmds.getAttr(plug, type=True) in ("bool", "enum") else "linear"
+                        cmds.setKeyframe(plug, time=frame, value=value,
+                                         inTangentType="linear", outTangentType=tangent)
+        finally:
+            try:
+                cmds.currentTime(original_time)
+            finally:
+                cmds.autoKeyframe(state=auto_key)
+    return {"controls": [control_map[target_id] for target_id in targets],
+            "sample_count": len(samples), "skipped_channels": skipped}
+
+
+def flip_hik_animation(character_node, start_frame, end_frame, affect_center=False, world_space=False, sample_by=1.0):
+    """Swaps and mirrors both sides from the original sampled animation.
+
+    Args:
+        character_node (str): HumanIK definition.
+        start_frame (float): Inclusive first frame.
+        end_frame (float): Inclusive last frame.
+        affect_center (bool): Mirror center controls.
+        world_space (bool): Use the sampled Reference world-space mirror plane.
+        sample_by (float): Positive sample interval.
+
+    Returns:
+        dict: Modified controls, sample count, and skipped channels.
+    """
+    return mirror_hik_animation(character_node, start_frame, end_frame, source_side="flip",
+                                affect_center=affect_center, world_space=world_space, sample_by=sample_by)
 
 
 def export_hik_pose(character_node, file_path, world_space=False):

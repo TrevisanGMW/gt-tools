@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <title>Kimodo Generator</title>
+  <desc>A coral animated figure, motion trails, and a generation sparkle in the GT animation palette.</desc>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M168 83C101 124 71 195 88 253M51 286L133 286M37 335L115 335"
+          stroke="#1D1D1D" stroke-width="32"/>
+    <path d="M168 83C101 124 71 195 88 253M51 286L133 286M37 335L115 335"
+          stroke="#BDBDBD" stroke-width="16"/>
+    <path d="M266 178L237 298M260 196L203 226L147 189M262 199L324 221L365 178
+             M237 298L319 364L336 452M237 298L176 378L97 417"
+          stroke="#1D1D1D" stroke-width="54"/>
+    <path d="M266 178L237 298M260 196L203 226L147 189M262 199L324 221L365 178
+             M237 298L319 364L336 452M237 298L176 378L97 417"
+          stroke="#FF6A6A" stroke-width="30"/>
+  </g>
+  <circle cx="281" cy="105" r="43" fill="#FF6A6A" stroke="#1D1D1D" stroke-width="18"/>
+  <circle cx="237" cy="298" r="19" fill="#BDBDBD" stroke="#1D1D1D" stroke-width="12"/>
+  <path d="M414 35L429 78L474 94L429 109L414 154L398 109L354 94L398 78Z"
+        fill="#FF6A6A" stroke="#1D1D1D" stroke-width="14" stroke-linejoin="round"/>
+  <path d="M426 293L451 319L426 345L400 319Z"
+        fill="#BDBDBD" stroke="#1D1D1D" stroke-width="12" stroke-linejoin="round"/>
+</svg>

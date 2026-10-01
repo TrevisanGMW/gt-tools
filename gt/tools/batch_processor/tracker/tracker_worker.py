@@ -255,10 +255,17 @@ def main():
                         "run_id": run_id,
                         "is_last_item": index == len(current_items),
                         "cleanup_report_parts": bool(args.final_task_id),
+                        "defer_kimodo_coordination_cleanup": True,
                         "report_log": lambda path, task_id=task.id: event_writer.emit(
                             "log_artifact", task_id=task_id, path=path, kind="task_log"
                         ),
                         "report_message": lambda message: print(message, flush=True),
+                        "register_remote_job": lambda url, remote_id, token_environment: event_writer.emit(
+                            "kimodo_job", url=url, remote_id=remote_id, token_environment=token_environment
+                        ),
+                        "unregister_remote_job": lambda remote_id: event_writer.emit(
+                            "kimodo_job_done", remote_id=remote_id
+                        ),
                         "report_progress": lambda completed_units, total_units, unit_label="", task_id=task.id: (
                             event_writer.emit(
                                 "task_unit_progress",
@@ -278,7 +285,8 @@ def main():
                         )
                     )
                     try:
-                        output_item = task.execute(work_item, project, step_output_dir, context=context)
+                        output_item = batch_processor_worker.execute_work_item(
+                            task, work_item, project, step_output_dir, context=context)
                         if isinstance(output_item, list):
                             output_items.extend(output_item)
                         elif output_item:

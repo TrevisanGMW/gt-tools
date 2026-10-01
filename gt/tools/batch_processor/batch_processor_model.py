@@ -24,6 +24,8 @@ logger.setLevel(logging.INFO)
 _ENVIRONMENT_PATTERN = re.compile(r"\{([a-zA-Z0-9_-]+)\}")
 _CUSTOM_ENVIRONMENT_NAME_PATTERN = re.compile(r"^\{[a-zA-Z0-9_-]+\}$")
 _RESERVED_ENVIRONMENT_KEYS = {
+    "input-string",
+    "input-string-index",
     "project-name",
     "project-sanitized-name",
     "project-notes",
@@ -334,6 +336,8 @@ class BatchProcessorModel:
                     str: Replacement value.
                 """
                 key = normalize_environment_key(match.group(1))
+                if key == "input-string":
+                    return match.group(0)
                 if key not in environment_variables:
                     return match.group(0)
                 return str(environment_variables.get(key) or "")
@@ -342,7 +346,8 @@ class BatchProcessorModel:
             if new_resolved == resolved:
                 break
             resolved = new_resolved
-        return resolved
+        value = getattr(self, "_input_string_environment", {}).get("input-string", "")
+        return re.sub(r"\{input[-_]string\}", lambda match: value, resolved, flags=re.IGNORECASE)
 
     def resolve_template_path(self, path, task=None, task_index=None, include_neighbor_paths=True):
         """Resolves a path after expanding batch environment variables.
@@ -938,6 +943,8 @@ class BatchProcessorModel:
         project_path = tasks.normalize_path(self.project_file_path) if self.project_file_path else ""
         project_parent_dir = os.path.dirname(project_dir) if project_dir else ""
         environment_variables = {
+            "input-string": "",
+            "input-string-index": "",
             "project-name": project_name,
             "project-sanitized-name": tasks.sanitize_filename(project_name.lower().replace(" ", "_")),
             "project-notes": self.notes,
@@ -1040,6 +1047,7 @@ class BatchProcessorModel:
                     "next-task-index": str(int(next_task_index)),
                 }
             )
+        environment_variables.update(getattr(self, "_input_string_environment", {}))
         environment_variables.update(
             self._resolve_custom_environment_variables(
                 task=task,
@@ -1155,7 +1163,7 @@ class BatchProcessorModel:
             query_environment[name] = value
         return resolved_variables
 
-    def _resolve_custom_environment_variable(self, name, definition, task, environment_variables):
+    def _resolve_custom_environment_variable(self, name, definition, task, environment_variables, raise_errors=False):
         """Resolves one custom environment-variable definition.
 
         Query definitions are intentionally evaluated at request time so scene
@@ -1167,10 +1175,14 @@ class BatchProcessorModel:
             definition (dict): Stored value and query state.
             task (BatchTask or None): Task requesting environment data.
             environment_variables (dict): Values available to the query.
+            raise_errors (bool, optional): Whether to propagate failures for explicit query tests.
 
         Returns:
             object: Literal value or a query result. Failed queries return an
             empty string.
+
+        Raises:
+            Exception: If a query fails and raise_errors is True.
         """
         definition = definition or {}
         value = definition.get("value", "")
@@ -1192,6 +1204,8 @@ class BatchProcessorModel:
             }
             return eval(query, query_namespace, query_namespace)
         except Exception as exception:
+            if raise_errors:
+                raise
             if self._suppress_custom_environment_query_errors:
                 print(
                     f'Custom environment variable "{{{name}}}" query failed. '
@@ -1294,18 +1308,19 @@ class BatchProcessorModel:
         return model.load_from_file(file_path)
 
     @staticmethod
-    def _atomic_write_json(file_path, data):
+    def _atomic_write_json(file_path, data, sort_keys=True):
         """Writes a JSON file atomically.
 
         Args:
             file_path (str): Destination file path.
             data (dict): Serializable data to write.
+            sort_keys (bool, optional): Whether to sort dictionary keys.
         """
         file_dir = os.path.dirname(file_path)
         file_handle, temp_path = tempfile.mkstemp(prefix=".batch_tmp_", suffix=".json", dir=file_dir)
         try:
             with os.fdopen(file_handle, "w", encoding="utf-8") as temp_file:
-                json.dump(data, temp_file, indent=4, sort_keys=True)
+                json.dump(data, temp_file, indent=4, sort_keys=sort_keys)
             os.replace(temp_path, file_path)
         except Exception:
             if os.path.exists(temp_path):

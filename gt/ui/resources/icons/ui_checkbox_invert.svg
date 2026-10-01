@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" viewBox="0 0 512 512" style="enable-background:new 0 0 512 512;" xml:space="preserve">
+<g id="ui_x5F_checkbox_x5F_invert">
+	<rect style="fill:none;" width="512" height="512"/>
+	<rect x="64.943" y="65.208" style="fill:#BDBDBD;" width="382.474" height="382.475"/>
+	<path style="fill:#1D1D1D;" d="M435.917,76.708v359.474H76.443V76.708H435.917 M458.917,53.708h-23H76.443h-23v23v359.474v23h23
+		h359.474h23v-23V76.708V53.708L458.917,53.708z"/>
+	<polygon style="fill:#1D1D1D;" points="102.886,102.62 408.755,102.62 102.886,408.489"/>
+	<path style="fill:none;stroke:#1D1D1D;stroke-width:28;stroke-linejoin:round;" d="M408.755,102.62v305.869H102.886"/>
+	<path style="fill:none;stroke:#FFFFFF;stroke-width:44;stroke-linecap:round;stroke-linejoin:round;" d="M140,218l44,44l84-84"/>
+</g>
+</svg>

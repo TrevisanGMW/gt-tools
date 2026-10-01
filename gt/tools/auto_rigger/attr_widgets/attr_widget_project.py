@@ -540,6 +540,8 @@ class AttrWidgetProject(AttrWidget):
     def refresh_mirror_table(self):
         """
         Refresh the mirror table with the module list.
+        The target of each row is restored from the project, which stores the mirror source
+        as the "mirror_uuid" of the target module. (Serialized with the project)
         """
         self.clear_mirror_table()
         mirror_modules = self.get_available_mirror_modules()
@@ -570,8 +572,75 @@ class AttrWidgetProject(AttrWidget):
 
             # Target module
             combo_mirror_mod_list = self.create_widget_mirror_module_combobox(exclude_mod=[module])
-            combo_mirror_mod_list.currentIndexChanged.connect(self.update_table_mirror_target_status)
+            stored_target = self.get_mirror_target_module(source_module=module, mirror_modules=mirror_modules)
+            if stored_target:
+                target_index = combo_mirror_mod_list.findData(stored_target)
+                combo_mirror_mod_list.setCurrentIndex(max(target_index, 0))
+            _func = partial(self.on_mirror_target_changed, source_module=module, combobox=combo_mirror_mod_list)
+            combo_mirror_mod_list.currentIndexChanged.connect(_func)
             self.table_mirror_wdg.setCellWidget(row, 2, combo_mirror_mod_list)
+
+        self.refresh_mirror_rows_enabled_state()
+
+    def get_mirror_target_module(self, source_module, mirror_modules=None):
+        """
+        Gets the module that uses the provided module as its mirror source.
+
+        Args:
+            source_module (ModuleGeneric): The mirror source module.
+            mirror_modules (list, optional): Modules to search. Defaults to the available mirror modules.
+
+        Returns:
+            ModuleGeneric or None: The mirror target module, None if no module is mirroring the source.
+        """
+        if mirror_modules is None:
+            mirror_modules = self.get_available_mirror_modules()
+        source_uuid = source_module.get_uuid()
+        for module in mirror_modules:
+            if module is not source_module and module.get_mirror_uuid() == source_uuid:
+                return module
+        return None
+
+    def set_mirror_target(self, source_module, target_module):
+        """
+        Stores the mirror relationship in the project modules.
+        Any module that was previously mirroring the source is released, and the new target (if any)
+        receives the source UUID as its mirror UUID.
+
+        Args:
+            source_module (ModuleGeneric): The mirror source module.
+            target_module (ModuleGeneric, None): The new mirror target. None clears the relationship.
+        """
+        source_uuid = source_module.get_uuid()
+        for module in self.get_available_mirror_modules():
+            if module is not target_module and module.get_mirror_uuid() == source_uuid:
+                module.clear_mirror_uuid()
+        if target_module:
+            target_module.set_mirror_uuid(source_uuid)
+
+    def on_mirror_target_changed(self, index, source_module, combobox):
+        """
+        Stores the selected mirror target in the project and refreshes the row states.
+
+        Args:
+            index (int): The newly selected index in the combo box.
+            source_module (ModuleGeneric): The source module of the edited row.
+            combobox (QComboBox): The combo box that triggered the change.
+        """
+        self.set_mirror_target(source_module=source_module, target_module=combobox.itemData(index))
+        self.refresh_mirror_rows_enabled_state()
+
+    def refresh_mirror_rows_enabled_state(self):
+        """
+        Disables the target combo box of rows whose source module is already a mirror target of another module.
+        """
+        mirror_modules = self.get_available_mirror_modules()
+        mirror_uuids = [module.get_uuid() for module in mirror_modules]
+        for row_num in range(self.table_mirror_wdg.rowCount()):
+            source_module = self.table_mirror_wdg.item(row_num, 0).data(self.PROXY_ROLE)
+            target_module_item = self.table_mirror_wdg.cellWidget(row_num, 2)
+            is_target = source_module.get_mirror_uuid() in mirror_uuids
+            target_module_item.setEnabled(not is_target)
 
     def create_widget_mirror_module_combobox(self, exclude_mod=None):
         """
@@ -598,7 +667,6 @@ class AttrWidgetProject(AttrWidget):
 
         # Set No Parent at the beginning
         combobox.setCurrentIndex(0)
-        combobox.setProperty("lastindex", 0)
 
         return combobox
 
@@ -610,7 +678,9 @@ class AttrWidgetProject(AttrWidget):
         # Auto Assign mirror module
         auto_assign_mirror_btn = ui_qt.QtWidgets.QPushButton("Auto Assign Mirror Targets")
         auto_assign_mirror_btn.clicked.connect(self.on_button_auto_assign_mirror)
-        auto_assign_mirror_btn.setToolTip("Auto Assign Mirror Targets")
+        auto_assign_mirror_btn.setToolTip(
+            "Auto Assign Mirror Targets\nAssignments are stored with the project when it is saved."
+        )
         _layout.addWidget(auto_assign_mirror_btn)
         # Mirror Proxies
         mirror_proxies_btn = ui_qt.QtWidgets.QPushButton("Mirror Proxies")
@@ -621,7 +691,7 @@ class AttrWidgetProject(AttrWidget):
 
     def on_button_auto_assign_mirror(self):
         """
-        Auto-assigns the mirror modules in the mirror table.
+        Auto-assigns the mirror modules in the mirror table and stores the assignment in the project.
         """
 
         mirror_mod_map = self.get_auto_assigned_mirror_map()
@@ -631,24 +701,21 @@ class AttrWidgetProject(AttrWidget):
             message_box.setText(f"No suitable modules found to auto-assign as mirror targets.")
             question_icon = ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_exclamation)
             message_box.setIconPixmap(question_icon.pixmap(64, 64))
-            result = message_box.exec_()
+            message_box.exec_()
+            return
 
-        rows_to_disable = []
-        for row_num in range(self.table_mirror_wdg.rowCount()):
-            source_mod_name = self.table_mirror_wdg.item(row_num, 0).text()
-            target_name_assigned = mirror_mod_map[source_mod_name]
-            if not target_name_assigned:
+        mirror_modules = self.get_available_mirror_modules()
+        modules_by_name = {}
+        for module in mirror_modules:
+            modules_by_name.setdefault(module.get_name(), module)
+        for source_module in mirror_modules:
+            target_name_assigned = mirror_mod_map.get(source_module.get_name())
+            target_module = modules_by_name.get(target_name_assigned)
+            if not target_module or target_module is source_module:
                 continue
-            combo_target_item = self.table_mirror_wdg.cellWidget(row_num, 2)
-            target_index = combo_target_item.findText(target_name_assigned)
-            combo_target_item.setCurrentIndex(target_index)
+            self.set_mirror_target(source_module=source_module, target_module=target_module)
 
-            for t_num in range(self.table_mirror_wdg.rowCount()):
-                t_name = self.table_mirror_wdg.item(t_num, 0).text()
-                if t_name == target_name_assigned:
-                    rows_to_disable.append(t_num)
-
-        self.set_table_mirror_rows_status(row_list=rows_to_disable, status=False)
+        self.refresh_mirror_table()
 
     def on_button_mirror_proxies(self):
         """
@@ -658,6 +725,8 @@ class AttrWidgetProject(AttrWidget):
         failed_modules = {}
         for row_num in range(self.table_mirror_wdg.rowCount()):
             combo_target_item = self.table_mirror_wdg.cellWidget(row_num, 2)
+            if not combo_target_item.isEnabled():
+                continue  # Row source is itself a mirror target
             combo_target_module_obj = combo_target_item.currentData()
 
             if combo_target_module_obj:
@@ -697,55 +766,15 @@ class AttrWidgetProject(AttrWidget):
             combined_msg += mirrored_msg
             logger.info(mirrored_msg)
 
+        if not combined_msg:
+            combined_msg = "No mirror targets assigned. Select a target module or use auto assign first."
+            msg_icon = ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_yellow_circle)
+
         message_box = ui_qt.QtWidgets.QMessageBox(self)
         message_box.setWindowTitle("Mirror Proxies")
         message_box.setText(combined_msg)
         message_box.setIconPixmap(msg_icon.pixmap(64, 64))
-        result = message_box.exec_()
-
-    def update_table_mirror_target_status(self, target_index):
-        """
-        Updates the enabled/disabled status of mirror target widgets in the mirror table
-        based on the change in the combo box selection.
-
-        Args:
-            target_index (int): The newly selected index in the combo box.
-        """
-        combo_item = self.sender()
-        last_index = combo_item.property("lastindex")
-        last_name = combo_item.itemText(last_index)
-        new_name = combo_item.itemText(target_index)
-
-        # update status
-        for row_num in range(self.table_mirror_wdg.rowCount()):
-            source_module_name = self.table_mirror_wdg.item(row_num, 0).text()
-            target_module_item = self.table_mirror_wdg.cellWidget(row_num, 2)
-            if source_module_name == last_name:
-                target_module_item.setEnabled(True)
-            if source_module_name == new_name:
-                target_module_item.setEnabled(False)
-
-        # update combobox item value
-        combo_item.setProperty("lastindex", target_index)
-
-    def set_table_mirror_rows_status(self, row_list=None, status=True):
-        """
-        Sets the given table row status.
-        If row_list is None, the status will be applied to all the rows.
-
-        Args:
-            row_list (list): row indices of the rows to edit
-            status (bool): set enabled or disabled
-        """
-        if not row_list:
-            row_list = [row_num for row_num in range(self.table_mirror_wdg.rowCount())]
-        for row_num in range(self.table_mirror_wdg.rowCount()):
-            source_module_item = self.table_mirror_wdg.item(row_num, 0)
-            target_module_item = self.table_mirror_wdg.cellWidget(row_num, 2)
-            if row_num in row_list:
-                target_module_item.setEnabled(status)
-            else:
-                target_module_item.setEnabled(not status)
+        message_box.exec_()
 
     def refresh_current_widgets(self):
         """

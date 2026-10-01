@@ -1596,6 +1596,12 @@ class ModuleGeneric:
         else:
             logger.warning(error_message)
 
+    def clear_mirror_uuid(self):
+        """
+        Clears the module UUID used to mirror the proxies, so this module is no longer a mirror target.
+        """
+        self.mirror_uuid = None
+
     def set_proxies(self, proxy_list):
         """
         Sets a proxy list for this module.
@@ -1894,6 +1900,10 @@ class ModuleGeneric:
         if _parent is not None:
             self.set_parent_uuid(uuid=_parent)
 
+        _mirror = module_dict.get("mirror")
+        if _mirror:
+            self.set_mirror_uuid(uuid=_mirror)
+
         _orientation = module_dict.get("orientation")
         if _orientation:
             self.orientation.set_data_from_dict(orient_dict=_orientation)
@@ -2002,6 +2012,14 @@ class ModuleGeneric:
             str: uuid string for the potential parent of this proxy.
         """
         return self.parent_uuid
+
+    def get_mirror_uuid(self):
+        """
+        Gets the UUID of the module used as the mirror source for this module's proxies.
+        Returns:
+            str or None: The mirror source module UUID, None if not set.
+        """
+        return self.mirror_uuid
 
     def get_proxies(self, sort_by=None):
         """
@@ -3469,6 +3487,16 @@ class RigProject:
         if not module_dict or not isinstance(module_dict, dict) or not module_dict.get("module"):
             return
 
+        # Module trees (e.g. an exported group) carry their descendants under a dedicated key
+        children_key = tools_rig_const.RiggerConstants.MODULE_TREE_CHILDREN_KEY
+        if children_key in module_dict:
+            root_dict = dict(module_dict)
+            children_list = root_dict.pop(children_key) or []
+            added_modules = self.add_modules_from_dict_list(
+                modules_list=[root_dict] + list(children_list), reinitialize_uuids=reinitialize_uuids
+            )
+            return added_modules[0] if added_modules else None
+
         from gt.tools.auto_rigger.rig_modules import RigModules
 
         available_modules = RigModules.get_modules_dict()
@@ -3485,6 +3513,107 @@ class RigProject:
             _module.read_data_from_dict(module_dict=updated_data)
         self.add_to_modules(_module)
         return _module
+
+    @staticmethod
+    def get_uuid_mapping_for_modules_list(modules_list):
+        """
+        Creates a mapping of fresh UUIDs for all modules and proxies described in a list of module dictionaries.
+        Using one mapping for the whole list keeps references between the described modules intact.
+        e.g. Parent proxies, setup drivers and mirror sources.
+        Args:
+            modules_list (list): A list of module description dictionaries.
+        Returns:
+            dict: A dictionary where keys are the old UUIDs and values are the new randomized UUIDs.
+        """
+        uuid_mapping = {}
+        for module_dict in modules_list or []:
+            if not isinstance(module_dict, dict):
+                continue
+            module_uuid = module_dict.get("uuid")
+            if module_uuid and module_uuid not in uuid_mapping:
+                uuid_mapping[module_uuid] = core_uuid.generate_uuid(short=True, short_length=12)
+            proxies_dict = module_dict.get("proxies") or {}
+            if not isinstance(proxies_dict, dict):
+                continue
+            for proxy_uuid in proxies_dict.keys():
+                if proxy_uuid not in uuid_mapping:
+                    uuid_mapping[proxy_uuid] = core_uuid.generate_uuid(remove_dashes=True)
+        return uuid_mapping
+
+    def get_uuid_conflicts(self, modules_list):
+        """
+        Gets the module and proxy UUIDs from a list of module descriptions that already exist in this project.
+        Args:
+            modules_list (list): A list of module description dictionaries.
+        Returns:
+            list: Sorted list of conflicting UUIDs. Empty if no conflicts were found.
+        """
+        existing_uuids = set()
+        for module in self.modules:
+            existing_uuids.add(module.get_uuid())
+            existing_uuids.update(module.get_proxies_uuids())
+        incoming_uuids = set(self.get_uuid_mapping_for_modules_list(modules_list).keys())
+        return sorted(existing_uuids.intersection(incoming_uuids))
+
+    def add_modules_from_dict_list(self, modules_list, reinitialize_uuids=True):
+        """
+        Adds multiple modules to the project from a list of module descriptions.
+        When reinitializing UUIDs, a single mapping is used for all modules, so relationships
+        between them (hierarchy, drivers, mirror sources) are preserved.
+        Args:
+            modules_list (list): A list of module description dictionaries.
+            reinitialize_uuids (bool, optional): If True, module and proxy UUIDs are randomized before adding.
+        Returns:
+            list: A list of the added modules (ModuleGeneric as base), in the same order as the input.
+        """
+        if not modules_list or not isinstance(modules_list, list):
+            logger.debug(f"Unable to add modules from list. Input must be a non-empty list.")
+            return []
+        valid_modules_list = [mod for mod in modules_list if isinstance(mod, dict) and mod.get("module")]
+        if reinitialize_uuids:
+            uuid_mapping = self.get_uuid_mapping_for_modules_list(valid_modules_list)
+            valid_modules_list = tools_rig_utils.update_uuids_in_dict(valid_modules_list, uuid_mapping)
+
+        from gt.tools.auto_rigger.rig_modules import RigModules
+
+        available_modules = RigModules.get_modules_dict()
+        added_modules = []
+        for module_dict in valid_modules_list:
+            class_name = module_dict.get("module")
+            if class_name in available_modules:
+                _module = available_modules.get(class_name)()
+            else:
+                _module = ModuleGeneric()
+            _module.read_data_from_dict(module_dict=module_dict)
+            self.add_to_modules(_module)
+            added_modules.append(_module)
+        return added_modules
+
+    def import_modules_from_project_dict(self, project_dict, reinitialize_uuids=True):
+        """
+        Imports (appends) the modules of another project into this project.
+        Project level data (name, preferences, control rig pose) is not imported.
+        Args:
+            project_dict (dict): A dictionary describing a rig project. e.g. The content of a project file.
+            reinitialize_uuids (bool, optional): If True, module and proxy UUIDs are randomized to avoid conflicts.
+        Returns:
+            list: A list of the imported modules.
+        """
+        if not isinstance(project_dict, dict):
+            logger.warning(f"Unable to import project. Expected a dictionary but got {type(project_dict)}.")
+            return []
+        modules_list = project_dict.get("modules")
+        if not modules_list or not isinstance(modules_list, list):
+            logger.warning(f"Unable to import project. No modules were found in the provided project data.")
+            return []
+        if not reinitialize_uuids:
+            conflicts = self.get_uuid_conflicts(modules_list)
+            if conflicts:
+                logger.warning(
+                    f"Imported project shares {len(conflicts)} UUID(s) with the current project. "
+                    f"This may cause conflicts. Enable UUID randomization on import to avoid it."
+                )
+        return self.add_modules_from_dict_list(modules_list, reinitialize_uuids=reinitialize_uuids)
 
     def read_modules_from_dict(self, modules_list):
         """
@@ -3611,6 +3740,45 @@ class RigProject:
         for module in self.modules:
             if module.get_proxy_uuid_existence(uuid):
                 return module
+
+    def get_module_descendants(self, module):
+        """
+        Gets all modules parented (directly or indirectly) to one of the proxies of the provided module.
+        Args:
+            module (ModuleGeneric): The module used as the root of the search.
+        Returns:
+            list: A list of descendant modules, following the project modules order.
+        """
+        descendant_modules = []
+        parent_proxy_uuids = set(module.get_proxies_uuids())
+        found_new = True
+        while found_new:
+            found_new = False
+            for candidate in self.modules:
+                if candidate is module or candidate in descendant_modules:
+                    continue
+                if candidate.get_parent_uuid() in parent_proxy_uuids:
+                    descendant_modules.append(candidate)
+                    parent_proxy_uuids.update(candidate.get_proxies_uuids())
+                    found_new = True
+        return [mod for mod in self.modules if mod in descendant_modules]
+
+    def get_module_tree_as_dict(self, module):
+        """
+        Gets the description of a module and all its descendants as a single dictionary.
+        The descendants are stored as a list under the "MODULE_TREE_CHILDREN_KEY" key.
+        If the module has no descendants, the regular module dictionary is returned instead.
+        Args:
+            module (ModuleGeneric): The root module. e.g. A group module.
+        Returns:
+            dict: Dictionary describing the module and its descendants.
+        """
+        module_data = module.get_module_as_dict()
+        descendants = self.get_module_descendants(module)
+        if descendants:
+            children_key = tools_rig_const.RiggerConstants.MODULE_TREE_CHILDREN_KEY
+            module_data[children_key] = [child.get_module_as_dict() for child in descendants]
+        return module_data
 
     def get_preferences(self):
         """

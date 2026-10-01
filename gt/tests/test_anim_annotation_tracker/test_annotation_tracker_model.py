@@ -208,7 +208,12 @@ class TestAnnotationTrackerModel(unittest.TestCase):
             expected_directory,
             os.path.dirname(annotation_tracker_model.get_sample_schema_path()),
         )
-        self.assertEqual("high", schema["file_level"][0]["options"][2])
+        quality_field = schema["file_level"][0]
+        self.assertEqual("integer", quality_field["type"])
+        self.assertEqual(0, quality_field["minimum"])
+        self.assertEqual(100, quality_field["maximum"])
+        self.assertEqual(0, quality_field["default"])
+        self.assertTrue(quality_field["required"])
         self.assertTrue(schema["validation"]["full_coverage"])
 
     def test_copy_sample_schema_uses_packaged_schema_file(self):
@@ -483,6 +488,87 @@ class TestAnnotationTrackerModel(unittest.TestCase):
         )
         self.assertEqual({}, actual_file_data)
         self.assertEqual({}, actual_range_data)
+
+    def test_integer_schema_values_are_kept_only_inside_their_range(self):
+        """Checks integer fields protect out-of-range or non-numeric data."""
+        schema = {
+            "file_level": [
+                {
+                    "type": "integer",
+                    "name": "quality",
+                    "minimum": 0,
+                    "maximum": 100,
+                    "default": 0,
+                }
+            ],
+            "frame_range": [],
+        }
+
+        actual_kept = annotation_tracker_model.filter_schema_data(
+            schema,
+            {"quality": 85},
+            "file_data",
+        )
+        actual_string_kept = annotation_tracker_model.filter_schema_data(
+            schema,
+            {"quality": "42"},
+            "file_data",
+        )
+        actual_out_of_range = annotation_tracker_model.filter_schema_data(
+            schema,
+            {"quality": 140},
+            "file_data",
+        )
+        actual_legacy_enum = annotation_tracker_model.filter_schema_data(
+            schema,
+            {"quality": "high"},
+            "file_data",
+        )
+
+        self.assertEqual({"quality": 85}, actual_kept)
+        self.assertEqual({"quality": "42"}, actual_string_kept)
+        self.assertEqual({}, actual_out_of_range)
+        self.assertEqual({}, actual_legacy_enum)
+
+    def test_coerce_schema_integer_clamps_and_falls_back_to_default(self):
+        """Checks stored values become clamped integers for spin boxes."""
+        field_definition = {"minimum": 0, "maximum": 100, "default": 0}
+
+        self.assertEqual(
+            72,
+            annotation_tracker_model.coerce_schema_integer(
+                "72.4",
+                field_definition,
+            ),
+        )
+        self.assertEqual(
+            100,
+            annotation_tracker_model.coerce_schema_integer(
+                250,
+                field_definition,
+            ),
+        )
+        self.assertEqual(
+            0,
+            annotation_tracker_model.coerce_schema_integer(
+                "high",
+                field_definition,
+            ),
+        )
+        self.assertEqual(
+            0,
+            annotation_tracker_model.coerce_schema_integer(
+                None,
+                field_definition,
+            ),
+        )
+        self.assertEqual(
+            10,
+            annotation_tracker_model.coerce_schema_integer(
+                "",
+                {"minimum": 10, "maximum": 20, "default": 5},
+            ),
+        )
 
     def test_build_scene_payload_accepts_flattened_script_ranges(self):
         """Checks scripts can use public flattened range dictionaries."""

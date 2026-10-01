@@ -148,6 +148,13 @@ class TestDataIOCore(unittest.TestCase):
         expected = {}
         self.assertEqual(expected, result)
 
+    def test_read_json_unicode(self):
+        """Reads UTF-8 JSON independently of the Windows default code page."""
+        expected = {"prompt": "Dançar — 歩く"}
+        with open(self.file_path, "w", encoding="utf-8") as stream:
+            json.dump(expected, stream, ensure_ascii=False)
+        self.assertEqual(expected, core_io.read_json_dict(self.file_path))
+
     def test_set_file_permissions(self):
         test_file = self.create_temp_test_file()
         # test_permission_bits = 438

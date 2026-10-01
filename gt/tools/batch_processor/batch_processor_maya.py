@@ -137,6 +137,10 @@ def import_file(file_path, namespace=None, load_relevant_plugins=True):
     Returns:
         list: Nodes returned by Maya for the import command.
     """
+    from gt.tools.batch_processor.batch_processor_item_context import is_active_virtual_path
+
+    if is_active_virtual_path(file_path):
+        return []
     cmds = get_maya_cmds()
     if load_relevant_plugins:
         load_relevant_file_plugin(file_path)
@@ -186,6 +190,10 @@ def open_scene(file_path, load_relevant_plugins=True):
     Returns:
         str: Opened file path.
     """
+    from gt.tools.batch_processor.batch_processor_item_context import is_active_virtual_path
+
+    if is_active_virtual_path(file_path):
+        return ""
     if is_fbx_file(file_path):
         return open_fbx_scene(file_path, load_relevant_plugins=load_relevant_plugins)
     cmds = get_maya_cmds()
@@ -279,6 +287,10 @@ def save_scene(file_path, file_type=None):
     Returns:
         str: Saved file path.
     """
+    from gt.tools.batch_processor.batch_processor_item_context import is_active_virtual_path
+
+    if is_active_virtual_path(file_path):
+        raise ValueError("String inputs have no source file to modify. Choose a separate output path.")
     cmds = get_maya_cmds()
     output_dir = os.path.dirname(file_path)
     if output_dir and not os.path.isdir(output_dir):

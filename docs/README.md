@@ -58,6 +58,7 @@
 <h3><b>Animation:</b></h3>
 <ul>
   <li><a href="#retargeter">Retargeter</a></li>
+  <li><a href="#kimodo-generator">Kimodo Generator</a></li>
   <li><a href="#animation-clip-tracker">Animation Clip Tracker</a></li>
   <li><a href="#annotation-tracker">Annotation Tracker</a></li>
   <li><a href="#create-testing-keys">Create Testing Keys</a></li>
@@ -555,6 +556,140 @@ with the provided prefix "Left Side Tag".</p>
 
 <br>
 
+</div>
+
+<!-- Kimodo Generator -->
+<div>
+<h1>Kimodo Generator</h1>
+<img src="../gt/ui/resources/icons/tool_kimodo_generator.svg" height="72" align="right" alt="Kimodo Generator icon">
+
+<p>Generate animation in Maya from text, timed poses, and root paths using Kimodo in WSL, a native Windows Python
+environment, or an existing Kimodo bridge server. <b>WSL with Ubuntu is the recommended setup:</b> it keeps Kimodo's
+Linux/PyTorch environment separate from Maya's Python. Maya only needs GT Tools; native Windows and existing-server
+connections are also supported.</p>
+
+<p><b>Recommended setup: install Kimodo in WSL</b></p>
+<ol>
+  <li><b>Install WSL.</b> Follow Microsoft's
+  <a href="https://learn.microsoft.com/en-us/windows/wsl/install">official WSL installation guide</a>.
+  On a current Windows version, the quick-start command is <code>wsl --install</code> from an elevated PowerShell
+  window. Restart Windows if prompted.</li>
+  <li><b>Install a Linux distribution.</b> WSL runs a Linux distribution (often informally called an image) alongside
+  Windows. To choose one, run <code>wsl --list --online</code>, then install it with
+  <code>wsl --install -d Ubuntu</code> (or replace <code>Ubuntu</code> with the distribution name you chose).
+  Launch the distribution once from the Start menu and create its Linux username and password. See Microsoft's
+  <a href="https://learn.microsoft.com/en-us/windows/wsl/install">distribution installation instructions</a> and
+  Canonical's <a href="https://ubuntu.com/wsl/docs/latest">official Ubuntu on WSL guide</a>.</li>
+  <li><b>Install Kimodo inside that distribution.</b> Follow NVIDIA's
+  <a href="https://research.nvidia.com/labs/sil/projects/kimodo/docs/getting_started/installation.html">official
+  Kimodo installation guide</a>, including its environment and GPU prerequisites. Keep Kimodo and its dependencies
+  in the Linux environment; do not install them into Maya's Python.</li>
+</ol>
+
+<p>After setup, launch Maya and connect using the WSL mode described below. The tool can query available WSL
+distributions, launch the bridge with the selected Kimodo environment, and make requests from Maya. GT Tools does not
+install WSL, a Linux distribution, CUDA, or Kimodo itself.</p>
+
+<p><b>How to use it:</b></p>
+<ol>
+  <li>Open <b>GT Tools &gt; Animation &gt; Kimodo Generator</b>. In <b>Connection</b>, enter your bridge URL
+  (normally <code>http://127.0.0.1:7861</code>). To launch locally, choose WSL or Windows and enter the Kimodo
+  Python environment with <b>Browse Folder</b>; WSL distributions can be discovered with <b>Query WSL</b>.
+  You may enter either the environment folder (for example <code>/home/user/kimodo_env</code>) or its Python
+  executable; environment folders are resolved automatically. The last selected or entered WSL distribution is
+  saved immediately, even if startup later fails. Optional <b>Auto-connect on launch</b> runs the same action from
+  your saved connection settings when the tool opens. Click <b>Connect / Start</b> to connect manually.</li>
+  <li>The Connection tab's <b>Bridge control</b> explains and manages the separate server process.
+  <b>Test Bridge</b> reports its WSL/Windows location, PID, Python/code paths, job store, device, encoder URL,
+  and activity. <b>Test Text Encoder</b> checks port 9550 independently. <b>Stop Bridge</b> refuses active jobs;
+  <b>Restart Bridge</b> redeploys current GT Tools code for WSL/Windows modes and reconnects. Both preserve jobs,
+  model caches, downloads, and independently managed/detached encoders. A legacy child encoder may stop during its
+  one-time manual upgrade and should be tested afterward. <b>Open bridge console window</b> is enabled and saved by
+  default for local launches. Its banner identifies the Kimodo Bridge and shows its address, PID, job directory, and
+  server output; closing that console stops the bridge. Known Torch and Hugging Face progress noise is hidden. Direct,
+  flushed job lines always show the submission time and queue position, then only main stages, generation progress
+  in 10% increments, and an explicit final 100%, failure, or cancellation. Internal encoder/preparation/finalization
+  transitions are omitted. Disable the console to use
+  a hidden process and the startup log reported in Bridge status. The workspace launch batch starts only the encoder
+  and Demo UI.</li>
+  <li>The <b>Summary</b> tab reviews the current connection, generation request, constraints, output automation,
+  HumanIK configuration, and job counts. Its <b>Generate Motion</b> button submits the same validated request as the
+  Generate tab. Tabs are ordered Connection, Generate, Constraints, HumanIK, Summary, and Results.</li>
+  <li>In <b>Generate</b>, select a discovered model and enter one or more text segments with durations.
+  Choose the seed and sample count. Open <b>Advanced Settings</b> for foot cleanup, guidance, transition overlap,
+  and initial heading. <b>Download Model</b> queues an explicit model download
+  in the server environment; model access must already be authorized there.</li>
+  <li>For pose guidance, open <b>Constraints</b>, click <b>Create Pose Skeleton</b>, rotate its joints in Maya,
+  set a destination clip frame, and click <b>Capture Pose</b>. Repeat for multiple poses. Edit timing,
+  duplicate, enable/disable, or preview individual keys from the table's right-click menu. The same menu provides
+  <b>Load Constraints JSON</b> (which accepts demo exports) and <b>Save Constraints JSON</b>.</li>
+  <li>Use <b>Validate Request</b>, then <b>Generate Motion</b>. The interface stays available while the server
+  processes the job. In <b>Results</b>, choose the <b>Download folder</b>, download the artifacts, choose a sample,
+  and click <b>Import Sample</b>. Folder choices save immediately through Prefs; the default is
+  <code>PackageCache/kimodo/downloads</code>, restored with the <b>Reset to Package Cache</b> button.
+  <b>Auto-download finished results</b> is enabled by default and persistent. Status distinguishes ready-to-download,
+  downloaded and missing local files; Download Results repairs missing files without overwriting existing artifacts.</li>
+  <li><b>Auto-create Maya + HumanIK files</b> is also enabled by default and persistent. After download, a separate
+  local Maya process saves <code>motion.ma</code> (and one scene per additional sample) beside the motion JSON.
+  Scenes contain animation at its native FPS from frame 1 and a locked HumanIK definition, using HumanIK overrides
+  or built-in defaults. Your open scene stays untouched. <b>Create Maya Files</b> runs/retries manually; existing
+  verified exports are reused, edited files are never overwritten, and missing scenes are flagged. With
+  <b>Auto-import Maya file</b> enabled, <b>Import all samples into one scene</b> (checked by default) imports each
+  generated sample under its own namespace; <b>Force-clear scene before import</b> clears the scene once before that
+  batch. Auto-adjust frame rate and auto-match frame range update Maya's scene settings for the generated motion.
+  Automatic processing runs while the tool is open; disabling auto-download requires downloading manually first.</li>
+  <li><b>Print Server Location</b> prints the selected job's actual server directory in the Script Editor and status
+  field: a Linux path for WSL, or a Windows path for native Windows. Restart an older bridge with the updated code
+  to enable this field. Automatic Maya export uses local mayapy and needs no additional WSL dependencies.</li>
+  <li>The Results tab groups the normal flow into <b>Automatic Processing</b>, <b>Jobs</b>, and
+  <b>Selected result</b>. Less common retry, cleanup, and diagnostic actions live in collapsed sections.
+  The recovery area is titled <b>Recovery And Job Management</b>.
+  Open Results Folder and current-scene import remain fixed at the bottom while the categorized controls scroll.
+  Jobs include their bridge submission time in the local timezone. Status and stage text use title case; Stage / Model
+  also summarizes the immutable model, duration, segment count, and step count. Right-click any Generate, Constraints,
+  or Results table for actions suited to that table, including add/duplicate/copy/paste where the data is editable,
+  pose-type changes for captured pose constraints, and refresh/download/import/copy/cleanup for server jobs. The Jobs
+  menu also exposes Clear Finished and Clear All History. Status
+  and constraint Use cells are centered. User-adjusted widths for the Generate,
+  Constraints, and Results tables persist when the tool is reopened.
+  Generate defaults to one motion, so the
+  Sample chooser stays hidden; it appears only when a request explicitly asks for 2-8 alternatives.</li>
+  <li><b>Clear Finished</b> or <b>Clear All History</b> confirms cleanup of tracked server/WSL job files and optional
+  local artifacts. Active jobs are cancelled before deletion. Automatic Maya files and their verification receipts,
+  edited/extra local files, imported Maya animation and
+  model weights are preserved. Failed cleanup retains history for retry. An older Kimodo bridge must be restarted once
+  with the updated code to support deletion; no additional WSL dependencies are required.</li>
+  <li>The animation imports into a fresh namespace, preserving scene units and timing settings. Select its group
+  or a joint and click <b>Add HumanIK Definition</b> to characterize it using the built-in SOMA77 mapping and
+  rest T-pose, preserving existing animation. With nothing selected, the current pose source or latest import is used.</li>
+  <li>The <b>HumanIK</b> tab offers optional character name, definition XML, T-pose file or reference frame,
+  and definition locking. Leave overrides blank for automatic defaults. XML and .pose files use the same
+  formats as the batch processor; pose values use current Maya scene units. Blank fields automatically use the
+  default Kimodo definition and T-pose, with character name <b>kimodo</b> (numbered only if occupied).
+  Settings persist in preferences. The tab is source-only: <b>Export Pose</b>, <b>Export Source HIK</b>,
+  <b>Apply Pose To Source</b>, and <b>Import Source HIK</b>. Pose testing confirms current-frame key changes and supports Undo.
+  There are no target-rig settings or retargeting actions in this tool.
+  Kimodo Generator and GT Retargeter remain independent; neither opens or controls the other's window.</li>
+</ol>
+
+<p><b>Constraints and persistence:</b> UI clip frames start at 1; JSON frame indices start at 0. Full-body,
+hand, and foot keys use Kimodo skeleton pose data. Root paths can be captured from ordered locators or a curve
+with explicit destination frames. <b>Automatically add HumanIK to new pose skeletons</b> is checked by default;
+new authoring skeletons are grounded and unkeyed, ready for manual posing or driving through Maya HumanIK.
+The option persists with the generation definition and preferences. In Python, use
+<code>KimodoGenerationDefinition(..., auto_humanik=True).create_pose_skeleton(client.skeleton())</code>.
+HumanIK is a local authoring option, not a generation-server requirement. A placement group defines generation space.
+Save/load setups preserve prompts
+and named constraints; preferences retain connection settings and job history. Bearer tokens are not saved.</p>
+
+<p><b>Connection notes:</b> Port 7860 belongs to Kimodo's browser demo and is not the GT generation API.
+The bridge uses 7861 by default and can reuse/start the text encoder at 9550. Close the demo process if its
+resident models leave insufficient GPU memory. GT Tools does not install CUDA or Kimodo dependencies.
+The bridge runs inside the selected WSL distribution for WSL mode, or in native Windows Python for Windows mode.
+Closing Maya does not stop it. A legacy bridge requires one manual process stop before management buttons become
+available; after Connect / Start deploys the current code, future stop/restart operations are handled in Maya.
+The detailed workspace guide is in <code>assets/kimodo/kimodo.md</code>. Constraint authoring uses SOMA77;
+pose constraints must match the selected model's output skeleton.</p>
 </div>
 
 <!-- Mesh Morpher -->
