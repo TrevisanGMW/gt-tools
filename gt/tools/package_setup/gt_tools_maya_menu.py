@@ -299,6 +299,12 @@ def load_menu(*args):
         icon=ui_res_lib.Icon.tool_testing_keys,
     )
     menu.add_menu_item(
+        label="HumanIK Utilities",
+        command=IMPORT_TOOL + 'initialize_tool("anim_hik_utils")',
+        tooltip="Mirror poses, manage HumanIK definitions, transfer properties, and bake animation.",
+        icon=ui_res_lib.Icon.tool_anim_hik_utils,
+    )
+    menu.add_menu_item(
         label="Offset Keyframes",
         command=IMPORT_TOOL + 'initialize_tool("offset_keyframes")',
         tooltip="Offsets selected animation timing and provides selection-order staggering.",
