@@ -78,12 +78,12 @@ class TestKimodoGeneratorModel(unittest.TestCase):
         loaded = kimodo.KimodoGenerationDefinition.from_dict(data).as_dict()
         self.assertEqual([2.0, 2.0], loaded["parameters"]["guidance"])
 
-    def test_generation_sample_limit_matches_kimodo_demo(self):
-        """Accepts the demo's 10-sample maximum and rejects higher counts."""
-        definition = kimodo.KimodoGenerationDefinition("Walk", num_samples=10)
-        self.assertEqual(10, definition.as_dict()["parameters"]["num_samples"])
-        with self.assertRaisesRegex(ValueError, "1 through 10"):
-            kimodo.KimodoGenerationDefinition("Walk", num_samples=11)
+    def test_generation_sample_limit_is_eight(self):
+        """Accepts eight samples and rejects higher counts."""
+        definition = kimodo.KimodoGenerationDefinition("Walk", num_samples=8)
+        self.assertEqual(8, definition.as_dict()["parameters"]["num_samples"])
+        with self.assertRaisesRegex(ValueError, "1 through 8"):
+            kimodo.KimodoGenerationDefinition("Walk", num_samples=9)
 
     def test_history_keeps_origin_server(self):
         """Keeps old jobs associated with the URL that accepted them."""

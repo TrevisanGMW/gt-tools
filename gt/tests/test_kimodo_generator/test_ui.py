@@ -170,9 +170,9 @@ class TestKimodoGeneratorUI(unittest.TestCase):
         self.assertGreaterEqual(seed, 0)
         self.assertLess(seed, 2 ** 32)
 
-    def test_sample_spinbox_uses_kimodo_demo_maximum(self):
-        """Allows the 10 samples exposed by the installed Kimodo demo."""
-        self.assertEqual(10, self.view.samples.maximum())
+    def test_sample_spinbox_maximum_is_eight(self):
+        """Limits the Generate tab to eight samples."""
+        self.assertEqual(8, self.view.samples.maximum())
 
     def test_bridge_console_preference_saves_immediately(self):
         """Persists the local launch presentation without requiring a connection attempt."""
