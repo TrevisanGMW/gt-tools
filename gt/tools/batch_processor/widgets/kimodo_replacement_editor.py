@@ -26,8 +26,9 @@ class KimodoReplacementEditor(qt.QtWidgets.QWidget):
             "Applied to every prompt, after Prompt choices.\n"
             "Case-sensitive; longer matches win.\n"
             "Set Definitions per file to include each variation.")
-        hint.setToolTip("Example: variation 1: walk → run, walking → running; variation 2: walk → jog. "
-                        "Rules apply once; replacement text is not matched again. "
+        hint.setToolTip("Example: variation 1: walk → run, walking → running;\n"
+                        "variation 2: walk → jog.\n"
+                        "Rules apply once; replacement text is not matched again.\n"
                         "Variations with no rules keep their prompt text.")
         layout.addWidget(hint)
         self.table = qt.QtWidgets.QTableWidget(0, 3)
@@ -42,8 +43,10 @@ class KimodoReplacementEditor(qt.QtWidgets.QWidget):
         self.table.setColumnWidth(0, self.fontMetrics().horizontalAdvance("Variation") + 32)
         self.table.setMinimumHeight(145)
         self.table.setMaximumHeight(245)
-        self.table.setToolTip("Double-click to edit. Variation starts at 1. Search is literal text, "
-                              "not a regular expression. Leave Replace blank to remove matching text.")
+        self.table.setToolTip("Double-click to edit.\n"
+                              "Variation starts at 1.\n"
+                              "Search is literal text, not a regular expression.\n"
+                              "Leave Replace blank to remove matching text.")
         self.delegates = []
         for column, placeholder in ((1, "e.g. walking"), (2, "e.g. running (blank removes)")):
             delegate = TablePlaceholderDelegate(placeholder, [column], parent=self.table)

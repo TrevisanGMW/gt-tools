@@ -5,7 +5,11 @@ Maya imports are intentionally lazy so batch processor models and tests remain
 usable in a regular Python interpreter.
 """
 
+import io
+import importlib
+import json
 import os
+from contextlib import contextmanager, redirect_stderr
 
 
 _STANDALONE_INITIALIZED = False
@@ -18,6 +22,65 @@ RELEVANT_PLUGIN_BY_EXTENSION = {
     ".usda": "mayaUsdPlugin",
     ".usdc": "mayaUsdPlugin",
 }
+
+
+def evaluate_custom_environment_query(query, environment_variables, project=None, task=None, suppress_errors=False):
+    """Evaluates an authored query against the current scene without initializing Maya.
+
+    Args:
+        query (str): Python query expression from the custom variable editor.
+        environment_variables (dict): Built-in values and previously resolved variables.
+        project (BatchProcessorModel, optional): Project available to the expression.
+        task (BatchTask, optional): Task available to the expression.
+        suppress_errors (bool, optional): Whether to silence command error output.
+
+    Returns:
+        object: Query result, preserving its Python type.
+
+    Raises:
+        Exception: If Maya is unavailable or the query fails.
+    """
+    import maya.cmds as cmds
+
+    query_namespace = {
+        "cmds": cmds, "env": dict(environment_variables), "json": json,
+        "import_module": importlib.import_module, "project": project, "task": task,
+    }
+    with suppress_command_errors(cmds, enabled=suppress_errors):
+        return eval(query, query_namespace, query_namespace)
+
+
+@contextmanager
+def suppress_command_errors(cmds, enabled=True):
+    """Temporarily silences query errors while preserving Maya's editor settings.
+
+    Args:
+        cmds (module): Already imported Maya commands; never initializes Maya.
+        enabled (bool, optional): Whether to suppress errors in this scope.
+
+    Yields:
+        None: Query execution scope.
+    """
+    if not enabled:
+        yield
+        return
+    script_editor = getattr(cmds, "scriptEditorInfo", None)
+    previous_state = None
+    with redirect_stderr(io.StringIO()):
+        try:
+            if callable(script_editor):
+                previous_state = script_editor(query=True, suppressErrors=True)
+                script_editor(suppressErrors=True)
+        except Exception:
+            previous_state = None
+        try:
+            yield
+        finally:
+            if previous_state is not None:
+                try:
+                    script_editor(suppressErrors=previous_state)
+                except Exception:
+                    pass
 
 
 def is_maya_session_available():
@@ -126,13 +189,14 @@ def is_fbx_file(file_path):
     return os.path.splitext(str(file_path or ""))[1].lower() == ".fbx"
 
 
-def import_file(file_path, namespace=None, load_relevant_plugins=True):
+def import_file(file_path, namespace=None, load_relevant_plugins=True, execute_script_nodes=True):
     """Imports a file into the current Maya scene.
 
     Args:
         file_path (str): File to import.
         namespace (str, optional): Optional namespace.
         load_relevant_plugins (bool, optional): Whether to load known importer plugins.
+        execute_script_nodes (bool, optional): Whether imported script nodes may execute.
 
     Returns:
         list: Nodes returned by Maya for the import command.
@@ -151,6 +215,8 @@ def import_file(file_path, namespace=None, load_relevant_plugins=True):
     }
     if namespace:
         import_kwargs["namespace"] = namespace
+    if not execute_script_nodes:
+        import_kwargs["executeScriptNodes"] = False
     return cmds.file(file_path, **import_kwargs) or []
 
 

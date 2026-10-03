@@ -401,8 +401,8 @@ class BatchProcessorController:
             text="Suppress Custom Env-Var Errors",
             checked=self._suppress_custom_environment_query_errors,
             tooltip=(
-                "Print failed custom environment-variable queries without displaying their tracebacks. "
-                "Batch runs always keep full diagnostics."
+                "Silence failed custom environment-variable queries during editing and batch runs. "
+                "Failed queries resolve to empty values. Explicit Test Query actions still report failures."
             ),
             callback=self.toggle_suppress_custom_environment_query_errors,
         )
@@ -580,7 +580,7 @@ class BatchProcessorController:
         self.log_status("Task delete confirmation {0}.".format(state_name))
 
     def toggle_suppress_custom_environment_query_errors(self, checked):
-        """Stores whether custom query failures are suppressed while editing.
+        """Stores whether custom query failures are suppressed during editing and runs.
 
         Args:
             checked (bool): New preference state.
@@ -649,7 +649,7 @@ class BatchProcessorController:
         )
 
     def apply_custom_environment_query_error_suppression(self):
-        """Applies the editing-only query error preference to the active project model."""
+        """Applies the query error preference to the active project model."""
         self.model.set_suppress_custom_environment_query_errors(
             self._suppress_custom_environment_query_errors
         )
@@ -1531,7 +1531,7 @@ class BatchProcessorController:
             force_single_instance (bool, optional): Whether to bypass multi-instance execution for this run.
         """
         self._active_log_file_path = None
-        self.model.set_suppress_custom_environment_query_errors(False)
+        self.apply_custom_environment_query_error_suppression()
         try:
             creates_any_log = bool(
                 self.model.run_settings.get("create_log", True)

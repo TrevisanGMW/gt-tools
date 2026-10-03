@@ -143,6 +143,8 @@ class KimodoGeneratorModel:
         self.prompt_durations_in_frames = False
         self.constraints = []
         self.path_curve_samples = 4
+        self.path_heading_mode = "none"
+        self.path_heading_offset = 0.0
         self.jobs = []
         self.auto_download = True
         self.auto_maya_file = True
@@ -170,6 +172,8 @@ class KimodoGeneratorModel:
         return copy.deepcopy({"connection": self.connection, "definition": self.definition,
                               "constraints": self.constraints, "jobs": self.jobs,
                               "path_curve_samples": self.path_curve_samples,
+                              "path_heading_mode": self.path_heading_mode,
+                              "path_heading_offset": self.path_heading_offset,
                               "output_directory": self.output_directory, "namespace": self.namespace,
                               "start_frame": self.start_frame, "humanik": self.humanik,
                               "auto_download": self.auto_download, "auto_maya_file": self.auto_maya_file,
@@ -201,6 +205,11 @@ class KimodoGeneratorModel:
         except (TypeError, ValueError):
             path_curve_samples = 4
         self.path_curve_samples = min(max(path_curve_samples, 2), 7200)
+        try:
+            self.path_heading_mode, self.path_heading_offset = kimodo.validate_root_heading_mode(
+                data.get("path_heading_mode", "none"), data.get("path_heading_offset", 0.0))
+        except ValueError:
+            self.path_heading_mode, self.path_heading_offset = "none", 0.0
         self.connection.update(data.get("connection", {}))
         self.connection.pop("token", None)
         self.jobs = copy.deepcopy(data.get("jobs", []))

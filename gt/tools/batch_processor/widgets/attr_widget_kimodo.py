@@ -10,178 +10,263 @@ from gt.tools.batch_processor.tasks.task_kimodo_base import MOTION_TEXT_EXAMPLE
 
 
 FIELD_HELP = {
-    ("prompt_mode",): ("Choose the motion description source. Table is the default. Text replaces all prompt "
-                        "segments, including those from a setup, while retaining the table for later use.", ""),
-    ("prompt_text",): ("Enter one JSON list of [seconds, description] pairs. Use {input-string} for a complete "
-                        "sequence, or placeholders inside quoted descriptions. Supports project variables, "
-                        "OS environment variables, {input-file-name}, {input-file-stem}, and {input-file-path}. "
-                        "Each duration must be positive and at most 30 seconds; up to 16 segments / 120 seconds.",
+    ("prompt_mode",): ("Choose the motion description source.\n"
+                       "Table is the default.\n"
+                       "Text replaces all prompt segments, including those from a setup,\n"
+                       "while retaining the table for later use.", ""),
+    ("prompt_text",): ("Enter one JSON list of [seconds, description] pairs.\n"
+                       "Use {input-string} for a complete sequence,\n"
+                       "or placeholders inside quoted descriptions.\n"
+                       "Supports project variables, OS environment variables, {input-file},\n"
+                       "{input-file-name}, {input-file-stem}, and {input-file-path}.\n"
+                       "Custom query variables are resolved after the incoming scene opens.\n"
+                       "Each duration must be positive and at most 30 seconds;\n"
+                       "up to 16 segments / 120 seconds.",
                         MOTION_TEXT_EXAMPLE),
-    ("use_input_string",): ("Replace the first prompt with the current Input Strings row. String inputs "
-                            "use prompt durations and skip Maya pose/path capture.", ""),
-    ("pose_source",): ("Kimodo placement group or descendant to capture. Blank auto-detects one skeleton; if "
-                       "none is found, pose constraints are skipped with a warning. Multiple matches are an error.",
+    ("use_input_string",): ("Replace the first prompt with the current Input Strings or Input Pairs text.\n"
+                            "Inputs without scene files use prompt durations\n"
+                            "and skip Maya pose/path capture.", ""),
+    ("pose_source",): ("Kimodo placement group or descendant to capture.\n"
+                       "Blank auto-detects one skeleton;\n"
+                       "if none is found, pose constraints are skipped with a warning.\n"
+                       "Multiple matches are an error.",
                        "Auto-detect, or kimodo_pose:motion"),
-    ("range_mode",): ("Use the source's saved playback range, full animation range, or the custom start/end below. "
+    ("range_mode",): ("Use the source's saved playback range, full animation range,\n"
+                      "or the custom start/end below.\n"
                       "Source scene frames are converted to zero-based model indices.", "Playback range"),
-    ("start_frame",): ("Inclusive source start frame, used only with Custom range. Negative and fractional "
-                       "Maya frames are supported.", "296"),
-    ("end_frame",): ("Inclusive source end frame, used only with Custom range. Must be after Start.", "648"),
-    ("capture_first",): ("Add the selected range's first frame to the pose constraints, even without a marker.", ""),
-    ("capture_last",): ("Add the selected range's last frame to the pose constraints, even without a marker.", ""),
-    ("pose_frames",): ("Additional source scene frames. Accepts comma-separated values and inclusive start:end:step "
-                       "ranges. Combined with endpoints and markers; duplicates are removed.",
+    ("start_frame",): ("Inclusive source start frame, used only with Custom range.\n"
+                       "Negative and fractional Maya frames are supported.", "296"),
+    ("end_frame",): ("Inclusive source end frame, used only with Custom range.\n"
+                     "Must be after Start.", "648"),
+    ("capture_first",): ("Add the selected range's first frame to the pose constraints,\n"
+                         "even without a marker.", ""),
+    ("capture_last",): ("Add the selected range's last frame to the pose constraints,\n"
+                        "even without a marker.", ""),
+    ("pose_frames",): ("Additional source scene frames.\n"
+                       "Accepts comma-separated values and inclusive start:end:step ranges.\n"
+                       "Combined with endpoints and markers; duplicates are removed.",
                        "296, 423, 648 or 296:648:30"),
-    ("pose_type",): ("Capture the full body or only the selected hand/foot. Full-body constraints preserve "
-                      "root position and major joint rotations at each captured frame.", "Full body"),
-    ("use_marker",): ("Evaluate the specified attribute to select additional poses. Disable when source scenes "
-                       "do not contain this attribute; a missing requested attribute is an error.", ""),
-    ("marker_attribute",): ("Full Maya node.attribute path that marks poses. May be keyed, connected, "
-                             "or expression-driven "
-                             "when using an evaluated marker mode.", "kimodo_pose:motion.isConstraintPose"),
-    ("marker_value",): ("Capture when the scalar attribute equals this value within a small numeric tolerance. "
-                         "Use 1 for a boolean marker.", "1"),
-    ("marker_mode",): ("Every active sample captures held values at each sample; Active keyed frames reads keys "
-                        "directly on the attribute; Start of active interval captures only the first active sample.",
+    ("pose_type",): ("Capture the full body or only the selected hand/foot.\n"
+                     "Full-body constraints preserve root position and major joint rotations\n"
+                     "at each captured frame.", "Full body"),
+    ("use_marker",): ("Evaluate the specified attribute to select additional poses.\n"
+                      "Disable when source scenes do not contain this attribute;\n"
+                      "a missing requested attribute is an error.", ""),
+    ("marker_attribute",): ("Full Maya node.attribute path that marks poses.\n"
+                            "May be keyed, connected, or expression-driven\n"
+                            "when using an evaluated marker mode.", "kimodo_pose:motion.isConstraintPose"),
+    ("marker_value",): ("Capture when the scalar attribute equals this value\n"
+                        "within a small numeric tolerance.\n"
+                        "Use 1 for a boolean marker.", "1"),
+    ("marker_mode",): ("Every active sample captures held values at each sample;\n"
+                       "Active keyed frames reads keys directly on the attribute;\n"
+                       "Start of active interval captures only the first active sample.",
                         ""),
-    ("sample_step",): ("Source-frame spacing for evaluated marker scans. Use 1 to inspect every frame. "
-                        "Does not change explicitly entered pose frames or the model FPS.", "1"),
-    ("path_nodes",): ("One NURBS curve or a comma-separated list of ordered locators. With multiple locators, "
-                       "blank Path frames automatically spaces one point per locator. To choose among curves, "
-                       "enable Random curve per variation.", "curve_path or start, mid, end"),
-    ("path_frames",): ("Optional source frames for the root path. Blank automatically spaces points across the "
-                        "capture range: one per locator, or Path samples along a curve. Explicit locator paths "
-                        "need one frame per locator.", "296, 423, 648"),
-    ("path_samples",): ("Number of evenly spaced samples for a curve when Path frames is blank. Locator lists "
-                        "automatically use one sample per locator. Allowed range: 2–7200.", "8"),
-    ("randomize_root_path",): ("Use only a list of two or more NURBS curve transforms. One curve is selected "
-                                "per definition variation. The curve list is shuffled from the first resolved seed "
-                                "and cycles before repeating; saved definitions retain their selected paths.", ""),
-    ("template_path",): ("Optional Generator setup or portable definition JSON. Replaces the local model, prompts, "
-                          "and generation settings below. Project path variables are supported.",
+    ("sample_step",): ("Source-frame spacing for evaluated marker scans.\n"
+                       "Use 1 to inspect every frame.\n"
+                       "Does not change explicitly entered pose frames or the model FPS.", "1"),
+    ("path_nodes",): ("One NURBS curve, one animated transform,\n"
+                      "or a comma-separated list of ordered locators.\n"
+                      "An animated transform (for example a keyed or motion-path locator)\n"
+                      "is sampled over time, so held keys become stops and key spacing sets speed.\n"
+                      "With multiple locators, blank Path frames automatically spaces\n"
+                      "one point per locator.\n"
+                      "To choose among curves, enable Random curve per variation.",
+                      "curve_path, trajectory_driver, or start, mid, end"),
+    ("root_heading",): ("Facing direction sent with the root path.\n"
+                        "None leaves facing to the model.\n"
+                        "Direction of travel faces along the path (curve tangent or movement).\n"
+                        "Node +Z axis uses each path transform's world +Z axis, ideal for an animated\n"
+                        "driver whose rotation is keyed.\n"
+                        "Fixed uses only the offset as an absolute heading.", ""),
+    ("root_heading_offset",): ("Degrees added to the resolved heading;\n"
+                               "the absolute heading when Root heading is Fixed.\n"
+                               "0 faces +Z.\n"
+                               "Use 180 for backward travel, or 90 / -90 to strafe.", "0"),
+    ("path_frames",): ("Optional source frames for the root path.\n"
+                       "Blank automatically spaces points across the capture range: one per locator,\n"
+                       "or Path samples along a curve.\n"
+                       "Explicit locator paths need one frame per locator.", "296, 423, 648"),
+    ("path_samples",): ("Number of evenly spaced samples for a curve or animated transform\n"
+                        "when Path frames is blank.\n"
+                        "Locator lists automatically use one sample per locator.\n"
+                        "Allowed range: 2–7200.", "8"),
+    ("randomize_root_path",): ("Use only a list of two or more NURBS curve transforms.\n"
+                               "One curve is selected per definition variation.\n"
+                               "The curve list is shuffled from the first resolved seed\n"
+                               "and cycles before repeating;\n"
+                               "saved definitions retain their selected paths.", ""),
+    ("template_path",): ("Optional Generator setup or portable definition JSON.\n"
+                         "Replaces the local model, prompts, and generation settings below.\n"
+                         "Project path variables are supported.",
                           "Optional: {project-dir}/kimodo/setup.json"),
-    ("definition", "model"): ("Model ID reported by Bridge capabilities. The task validates model availability "
-                               "before submission.", "kimodo-soma-rp-v1.1"),
-    ("definition", "prompts"): ("Each table row is an ordered motion segment with a description and duration. "
-                                 "Use Add Segment, double-click cells to edit, "
-                                 "and move rows to set the action sequence.",
+    ("definition", "model"): ("Model ID reported by Bridge capabilities.\n"
+                              "The task validates model availability before submission.", "kimodo-soma-rp-v1.1"),
+    ("definition", "prompts"): ("Each table row is an ordered motion segment with a description and duration.\n"
+                                "Use Add Segment, double-click cells to edit,\n"
+                                "and move rows to set the action sequence.",
                                  "A person walks to a chair and sits down."),
-    ("definition", "parameters", "num_samples"): ("Independent animations generated per definition, from 1 to 8. "
-                                                     "Each receives its own output file.", "1"),
-    ("definition", "parameters", "diffusion_steps"): ("Denoising iterations, from 1 to 1000. The default is 100. "
-                                                         "Very low counts are useful for smoke tests "
-                                                         "but may reduce quality.", "100"),
-    ("definition", "parameters", "postprocess"): ("Apply Kimodo's foot-contact cleanup. This does not constrain "
-                                                     "the character to the source trajectory or scene furniture.", ""),
-    ("definition", "parameters", "heading"): ("Initial facing direction in radians. Zero uses the model's default "
-                                                 "heading; pose/path constraints may determine orientation.", "0"),
-    ("definition", "parameters", "transition_frames"): ("Blend length between multiple prompt segments. "
-                                                           "Each segment must be longer than this value.", "5"),
-    ("definition", "parameters", "guidance"): ("Text controls prompt guidance; Pose controls constraint guidance. "
-                                                  "Both default to 2. Higher values change adherence "
-                                                  "and motion quality.",
+    ("definition", "parameters", "num_samples"): ("Independent animations generated per definition, from 1 to 8.\n"
+                                                  "Each receives its own output file.", "1"),
+    ("definition", "parameters", "diffusion_steps"): ("Denoising iterations, from 1 to 1000.\n"
+                                                      "The default is 100.\n"
+                                                      "Very low counts are useful for smoke tests but may reduce "
+                                                      "quality.", "100"),
+    ("definition", "parameters", "postprocess"): ("Apply Kimodo's foot-contact cleanup.\n"
+                                                  "This does not constrain the character\n"
+                                                  "to the source trajectory or scene furniture.", ""),
+    ("definition", "parameters", "heading"): ("Initial facing direction in radians.\n"
+                                              "Zero uses the model's default heading;\n"
+                                              "pose/path constraints may determine orientation.", "0"),
+    ("definition", "parameters", "transition_frames"): ("Blend length between multiple prompt segments.\n"
+                                                        "Each segment must be longer than this value.", "5"),
+    ("definition", "parameters", "guidance"): ("Text controls prompt guidance; Pose controls constraint guidance.\n"
+                                               "Both default to 2.\n"
+                                               "Higher values change adherence and motion quality.",
                                                   "2"),
-    ("model_fps",): ("Sample rate used to map source times into definition indices. SOMA uses 30 fps. "
-                      "Generation checks the rate against model metadata and output.", "30"),
-    ("duration_mode",): ("Match source timing preserves elapsed time. Use prompt durations changes total length "
-                          "and requires Retime constraints when it differs from the source.", ""),
-    ("retime_constraints",): ("Scale constraint times to the requested duration. Required for duration variations "
-                               "or retained template constraints whose clip length changes.", ""),
-    ("constraint_mode",): ("Replace removes template constraints before capture. Keep and append retains them "
-                            "and validates the combined constraints.", ""),
-    ("variations",): ("Resolved definition files per source scene, from 1 to 1000. This differs from Samples, "
-                       "which generates multiple animations from a single definition.", "1"),
-    ("seed_policy",): ("Fixed reuses Base seed; Repeatable derives a stable seed from source identity and variation; "
-                        "Random chooses a new seed for each definition. Resolved seeds are saved in the JSON "
-                        "definition. Add _seed_{seed} to Filename suffix to show a seed in output names.", ""),
-    ("base_seed",): ("Unsigned integer from 0 to 4294967295 used for fixed or repeatable generation. "
-                      "Changing it also invalidates the definition capture cache.", "12345"),
-    ("prompt_choices",): ("Optional alternative texts for the first prompt, one per line. A choice is resolved "
-                           "per definition variation and saved for reproducibility.",
+    ("model_fps",): ("Sample rate used to map source times into definition indices.\n"
+                     "SOMA uses 30 fps.\n"
+                     "Generation checks the rate against model metadata and output.", "30"),
+    ("duration_mode",): ("Match source timing preserves elapsed time.\n"
+                         "Use prompt durations changes total length and requires Retime constraints\n"
+                         "when it differs from the source.", ""),
+    ("retime_constraints",): ("Scale constraint times to the requested duration.\n"
+                              "Required for duration variations or retained template constraints\n"
+                              "whose clip length changes.", ""),
+    ("constraint_mode",): ("Replace removes template constraints before capture.\n"
+                           "Keep and append retains them and validates the combined constraints.", ""),
+    ("variations",): ("Resolved definition files per source scene, from 1 to 1000.\n"
+                      "This differs from Samples,\n"
+                      "which generates multiple animations from a single definition.", "1"),
+    ("seed_policy",): ("Fixed reuses Base seed;\n"
+                       "Repeatable derives a stable seed from source identity and variation;\n"
+                       "Random chooses a new seed for each definition.\n"
+                       "Resolved seeds are saved in the JSON definition.\n"
+                       "Add _seed_{seed} to Filename suffix to show a seed in output names.", ""),
+    ("base_seed",): ("Unsigned integer from 0 to 4294967295\n"
+                     "used for fixed or repeatable generation.\n"
+                     "Changing it also invalidates the definition capture cache.", "12345"),
+    ("prompt_choices",): ("Optional alternative texts for the first prompt, one per line.\n"
+                          "A choice is resolved per definition variation and saved for reproducibility.",
                            "A person sits down slowly.\nA person sits down briskly."),
-    ("variation_ranges",): ("Check a parameter and set its minimum and maximum. A value is sampled once for each "
-                             "definition variation. Duration variation requires retiming.", ""),
-    ("sequential_evaluation",): ("Step through intervening source frames before pose capture to help evaluate "
-                                  "live HumanIK and other time-dependent animation.", ""),
-    ("bone_offset_tolerance",): ("Maximum accepted joint-translation drift in meters, up to 0.01. Default 0.001 "
-                                  "allows small HumanIK deviations; source joints are unchanged.", "0.001"),
-    ("name_pattern",): ("Output filename without extension. Tokens: {source}, {variation:03d}, {seed}, "
-                         "{sample:03d}, {model}, {steps}, {guidance_text}, {guidance_constraints}, "
-                         "{duration}, and {prompt}. Automatic variation suffixes can be turned off below; "
-                         "sample suffixes remain when needed.",
+    ("variation_ranges",): ("Check a parameter and set its minimum and maximum.\n"
+                            "A value is sampled once for each definition variation.\n"
+                            "Duration variation requires retiming.", ""),
+    ("sequential_evaluation",): ("Step through intervening source frames before pose capture to help evaluate\n"
+                                 "live HumanIK and other time-dependent animation.", ""),
+    ("bone_offset_tolerance",): ("Maximum accepted joint-translation drift in meters, up to 0.01.\n"
+                                 "Default 0.001 allows small HumanIK deviations; source joints are unchanged.",
+                                 "0.001"),
+    ("name_pattern",): ("Output filename without extension.\n"
+                        "Tokens: {source}, {variation:03d}, {seed}, {sample:03d}, {model}, {steps},\n"
+                        "{guidance_text}, {guidance_constraints}, {duration}, and {prompt}.\n"
+                        "Automatic variation suffixes can be turned off below;\n"
+                        "sample suffixes remain when needed.",
                          "{source}"),
-    ("filename_suffix",): ("Optional text appended to the output name. It supports the same tokens as Output name. "
-                            "For example, _seed_{seed}_steps_{steps} records the resolved seed and step count.",
+    ("filename_suffix",): ("Optional text appended to the output name.\n"
+                           "It supports the same tokens as Output name.\n"
+                           "For example, _seed_{seed}_steps_{steps}\n"
+                           "records the resolved seed and step count.",
                             "Optional: _seed_{seed}"),
-    ("include_version_suffix",): ("Keep version suffixes in output names. Definition adds _v001, _v002, etc. "
-                                   "for multiple variations; Generate keeps a trailing _v### from the input "
-                                   "definition filename. Turn this off when {seed} already identifies outputs. "
-                                   "Multiple samples still receive their own _s### suffix.", ""),
-    ("prompt_replacements",): ("Apply Search / Replace rules to every prompt segment in the numbered variation, "
-                                "after Prompt choices. Matching is case-sensitive and literal; longer matches "
-                                "win and replacement text is not processed again.", ""),
-    ("purge_cache_on_success",): ("Remove this input's .kimodo-cache recovery files after success, including "
-                                   "temporary downloads. Failed jobs keep their cache for retry. "
-                                   "Published scenes and requested artifacts are kept.", ""),
-    ("purge_coordination_on_finish",): ("Remove .kimodo-coordination locks and output reservations when the "
-                                        "batch finishes and no workers are using them. Enabled by default. "
+    ("include_version_suffix",): ("Keep version suffixes in output names.\n"
+                                  "Definition adds _v001, _v002, etc. for multiple variations;\n"
+                                  "Generate keeps a trailing _v### from the input definition filename.\n"
+                                  "Turn this off when {seed} already identifies outputs.\n"
+                                  "Multiple samples still receive their own _s### suffix.", ""),
+    ("prompt_replacements",): ("Apply Search / Replace rules to every prompt segment in the numbered\n"
+                               "variation, after Prompt choices.\n"
+                               "Matching is case-sensitive and literal;\n"
+                               "longer matches win and replacement text is not processed again.", ""),
+    ("purge_cache_on_success",): ("Remove this input's .kimodo-cache recovery files after success,\n"
+                                  "including temporary downloads.\n"
+                                  "Failed jobs keep their cache for retry.\n"
+                                  "Published scenes and requested artifacts are kept.", ""),
+    ("purge_coordination_on_finish",): ("Remove .kimodo-coordination locks and output reservations when the batch\n"
+                                        "finishes and no workers are using them.\n"
+                                        "Enabled by default.\n"
                                         "Disable to retain output ownership records across runs.", ""),
-    ("connection", "url"): ("HTTP address of the Kimodo Bridge, accessible from the Maya worker on Windows.",
+    ("connection", "url"): ("HTTP address of the Kimodo Bridge,\n"
+                            "accessible from the Maya worker on Windows.",
                               "http://127.0.0.1:7861"),
-    ("connection", "mode"): ("Use an existing Bridge or start/reuse one in WSL or a native Python environment. "
-                               "Concurrent workers coordinate local startup.", ""),
-    ("connection", "python_path"): ("Python executable with Kimodo installed, used only for local startup. "
-                                      "For WSL enter its Linux path; for native mode enter an absolute Windows path.",
+    ("connection", "mode"): ("Use an existing Bridge or start/reuse one\n"
+                             "in WSL or a native Python environment.\n"
+                             "Concurrent workers coordinate local startup.", ""),
+    ("connection", "python_path"): ("Python executable with Kimodo installed, used only for local startup.\n"
+                                    "For WSL enter its Linux path;\n"
+                                    "for native mode enter an absolute Windows path.",
                                       "/home/user/kimodo_env/bin/python"),
-    ("connection", "distribution"): ("WSL distribution used for local startup. Blank uses the default distribution. "
-                                       "Ignored when connecting to an existing Bridge.", "Default WSL distribution"),
-    ("connection", "device"): ("Compute device for a locally started Bridge. Automatic selects an available GPU "
-                                  "when supported. Does not reconfigure an existing Bridge.", ""),
-    ("connection", "text_encoder_url"): ("Text encoder service address used by a locally started Bridge. "
-                                            "This address is resolved inside its Python/WSL environment.",
+    ("connection", "distribution"): ("WSL distribution used for local startup.\n"
+                                     "Blank uses the default distribution.\n"
+                                     "Ignored when connecting to an existing Bridge.", "Default WSL distribution"),
+    ("connection", "device"): ("Compute device for a locally started Bridge.\n"
+                               "Automatic selects an available GPU when supported.\n"
+                               "Does not reconfigure an existing Bridge.", ""),
+    ("connection", "text_encoder_url"): ("Text encoder service address used by a locally started Bridge.\n"
+                                         "This address is resolved inside its Python/WSL environment.",
                                             "http://127.0.0.1:9550"),
-    ("connection", "start_encoder"): ("Start the text encoder with a local Bridge. Disable when the encoder "
-                                         "service is already managed separately.", ""),
-    ("token_environment",): ("Optional environment variable containing the Bridge access token. Enter its name, "
-                               "not the token itself. It must be available to the Maya worker.",
+    ("connection", "start_encoder"): ("Start the text encoder with a local Bridge.\n"
+                                      "Disable when the encoder service is already managed separately.", ""),
+    ("token_environment",): ("Optional environment variable containing the Bridge access token.\n"
+                             "Enter its name, not the token itself.\n"
+                             "It must be available to the Maya worker.",
                                "KIMODO_BRIDGE_TOKEN"),
-    ("result_mode",): ("Save one Maya scene per sample, optionally retain every generated artifact, or output "
-                        "only an artifact manifest. Recovery downloads are stored in .kimodo-cache while a job "
-                        "runs; Purge cache after success controls retention.", ""),
-    ("output_extension",): ("Maya ASCII (.ma) or Maya Binary (.mb) output. Ignored for artifacts-only output.", ""),
-    ("namespace",): ("Namespace for the generated skeleton in its new Maya scene. Use letters, digits, and "
-                      "underscores; begin with a letter or underscore.", "kimodo"),
-    ("import_start_frame",): ("Maya frame receiving the first generated sample. "
-                               "Does not affect generation timing.", "1"),
-    ("expected_model_fps",): ("Expected sample rate for external definitions without batch metadata. SOMA uses "
-                               "30 fps. A mismatch stops publication instead of silently retiming motion.", "30"),
-    ("add_humanik",): ("Characterize the imported Kimodo skeleton for later HumanIK retargeting. This alone "
-                        "does not transfer animation onto another character.", ""),
+    ("result_mode",): ("Save one Maya scene per sample, optionally retain every generated artifact,\n"
+                       "or output only an artifact manifest.\n"
+                       "Recovery downloads are stored in .kimodo-cache while a job runs;\n"
+                       "Purge cache after success controls retention.", ""),
+    ("output_extension",): ("Maya ASCII (.ma) or Maya Binary (.mb) output.\n"
+                            "Ignored for artifacts-only output.", ""),
+    ("import_incoming_scene",): ("Import the source Maya scene captured by Kimodo Definition into each\n"
+                                 "generated scene, including curves and other scene nodes.\n"
+                                 "String inputs have no scene to import.\n"
+                                 "Ignored for artifacts-only output.", ""),
+    ("include_definition_attribute",): ("Store the generation on the kimodo motion group as two string attributes:\n"
+                                        "kimodoDefinition is the fully resolved definition JSON, ready to load in\n"
+                                        "the Kimodo Generator; kimodoBatchDefinition keeps the unresolved Batch\n"
+                                        "Processor task parameters and input values for later reference.\n"
+                                        "Ignored for artifacts-only output.", ""),
+    ("namespace",): ("Namespace for the generated skeleton in its new Maya scene.\n"
+                     "Use letters, digits, and underscores; begin with a letter or underscore.", "kimodo"),
+    ("import_start_frame",): ("Maya frame receiving the first generated sample.\n"
+                              "Does not affect generation timing.", "1"),
+    ("expected_model_fps",): ("Expected sample rate for external definitions without batch metadata.\n"
+                              "SOMA uses 30 fps.\n"
+                              "A mismatch stops publication instead of silently retiming motion.", "30"),
+    ("add_humanik",): ("Characterize the imported Kimodo skeleton for later HumanIK retargeting.\n"
+                       "This alone does not transfer animation onto another character.", ""),
     ("humanik", "character_name"): ("Name of the HumanIK character created for the imported skeleton.",
                                       "KimodoCharacter"),
-    ("humanik", "definition_path"): ("Optional HumanIK definition XML. Blank uses the packaged Kimodo profile. "
-                                       "Supports project path variables.",
+    ("humanik", "definition_path"): ("Optional HumanIK definition XML.\n"
+                                     "Blank uses the packaged Kimodo profile.\n"
+                                     "Supports project path variables.",
                                        "Default Kimodo definition, or {project-dir}/hik.xml"),
-    ("humanik", "tpose_path"): ("Optional T-pose file. Blank uses the packaged Kimodo pose unless a reference "
-                                 "frame is provided. Choose a pose file or a reference frame, not both.",
+    ("humanik", "tpose_path"): ("Optional T-pose file.\n"
+                                "Blank uses the packaged Kimodo pose unless a reference frame is provided.\n"
+                                "Choose a pose file or a reference frame, not both.",
                                  "Default Kimodo T-pose, or {project-dir}/tpose.json"),
-    ("humanik", "reference_frame"): ("Optional frame in the imported animation to use as the characterization "
-                                       "pose. Blank uses the rest/T-pose. Frame zero is valid.",
+    ("humanik", "reference_frame"): ("Optional frame in the imported animation\n"
+                                     "to use as the characterization pose.\n"
+                                     "Blank uses the rest/T-pose.\n"
+                                     "Frame zero is valid.",
                                        "Optional frame; blank uses T-pose"),
     ("humanik", "lock_definition"): ("Lock the created HumanIK character definition after characterization.", ""),
     ("startup_timeout",): ("Seconds to wait for a locally started Bridge to become healthy.", "180"),
     ("queue_timeout",): ("Maximum seconds waiting for queue capacity and a queued job to start.", "7200"),
-    ("generation_timeout",): ("Maximum seconds waiting after the job starts. Separate from queue time. "
-                               "Cancel on timeout controls whether the remote job is also canceled.", "1200"),
-    ("poll_interval",): ("Seconds between job-status requests. Smaller values update the tracker more often.", "1"),
-    ("connection", "timeout"): ("Timeout in seconds for an individual Bridge HTTP request, including downloads. "
-                                   "Separate from the total generation timeout.", "10"),
-    ("network_retries",): ("Retry count for transient connection failures, from 0 to 100. Submission retries "
-                            "reuse the saved job ID to avoid duplicate generation.", "5"),
-    ("cancel_on_timeout",): ("Cancel the remote job when the task wait expires. When disabled, the job can "
-                               "continue on the Bridge and be recovered on a later run.", ""),
-    ("retry_failed",): ("Start a new job for a previously recorded failed or canceled job. Successful generation "
-                         "is reused for download/import retries.", ""),
+    ("generation_timeout",): ("Maximum seconds waiting after the job starts.\n"
+                              "Separate from queue time.\n"
+                              "Cancel on timeout controls whether the remote job is also canceled.", "1200"),
+    ("poll_interval",): ("Seconds between job-status requests.\n"
+                         "Smaller values update the tracker more often.", "1"),
+    ("connection", "timeout"): ("Timeout in seconds for an individual Bridge HTTP request,\n"
+                                "including downloads.\n"
+                                "Separate from the total generation timeout.", "10"),
+    ("network_retries",): ("Retry count for transient connection failures, from 0 to 100.\n"
+                           "Submission retries reuse the saved job ID to avoid duplicate generation.", "5"),
+    ("cancel_on_timeout",): ("Cancel the remote job when the task wait expires.\n"
+                             "When disabled, the job can continue on the Bridge\n"
+                             "and be recovered on a later run.", ""),
+    ("retry_failed",): ("Start a new job for a previously recorded failed or canceled job.\n"
+                        "Successful generation is reused for download/import retries.", ""),
 }
 
 
@@ -440,12 +525,23 @@ class AttrWidgetKimodo(AttrWidgetTask):
 
     def finish(self):
         """Adds naming, validation, and persistent status feedback."""
-        section = self.section("Output Naming")
+        section = self.section(self.task.output_section_name)
         self.field(section, "Output name", "name_pattern")
         self.field(section, "Filename suffix", "filename_suffix")
-        self.field(section, "Include version suffix", "include_version_suffix", "boolean")
+        options_row = qt.QtWidgets.QHBoxLayout()
+        options_row.setContentsMargins(0, 0, 0, 0)
+        section.addLayout(options_row)
+        self.field(section, "Include version suffix", "include_version_suffix", "boolean", inline_row=options_row)
+        if "import_incoming_scene" in self.task.settings:
+            self.field(section, "Import incoming scene", "import_incoming_scene", "boolean",
+                       inline_row=options_row)
+        if "include_definition_attribute" in self.task.settings:
+            self.field(section, "Include definition attribute", "include_definition_attribute", "boolean",
+                       inline_row=options_row)
+        options_row.addStretch(1)
         button = qt.QtWidgets.QPushButton("Validate Settings")
-        button.setToolTip("Check task settings and profile paths without opening scenes or submitting generation.")
+        button.setToolTip("Check task settings and profile paths without opening scenes or submitting\n"
+                          "generation.")
         button.clicked.connect(self.validate_settings)
         self.content_layout.addWidget(button)
         self.content_layout.addWidget(self.status)
@@ -479,7 +575,8 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
         super().__init__(*args, **kwargs)
         section = self.section("Pose Capture")
         self.field(section, "Skeleton", "pose_source",
-                   tooltip="Group or descendant. Blank requires one Kimodo skeleton.")
+                   tooltip="Group or descendant.\n"
+                           "Blank requires one Kimodo skeleton.")
         self.field(section, "Range", "range_mode", "choice", [
             ("playback", "Playback range"), ("animation", "Animation range"), ("custom", "Custom range")])
         row = self.add_labeled_layout("Custom range", parent_layout=section)
@@ -503,7 +600,8 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
         self.field(section, "Active value", "marker_value", "number", inline_row=row)
         self.field(section, "Step", "sample_step", "number", inline_row=row)
         button = qt.QtWidgets.QPushButton("Preview Frames in Current Scene")
-        button.setToolTip("Evaluate capture rules in the open scene and list source frames and model indices. "
+        button.setToolTip("Evaluate capture rules in the open scene and list source frames and model\n"
+                          "indices.\n"
                           "Restores the current time; does not save or generate animation.")
         button.clicked.connect(self.preview_frames)
         section.addWidget(button)
@@ -512,10 +610,16 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
         self.field(section, "Random curve per variation", "randomize_root_path", "boolean")
         self.field(section, "Path frames", "path_frames")
         self.field(section, "Path samples", "path_samples", "integer")
+        row = self.add_labeled_layout("Root heading", parent_layout=section)
+        self.field(section, "", "root_heading", "choice", [
+            ("none", "None"), ("path", "Direction of travel"), ("node", "Node +Z axis"), ("fixed", "Fixed")],
+            inline_row=row)
+        self.field(section, "Offset", "root_heading_offset", "number", inline_row=row)
         section = self.section("Generation")
         self.field(section, "Use input string as prompt", "use_input_string", "boolean",
-                   tooltip="Replace the first prompt with the current Input Strings row. String inputs use "
-                           "prompt durations and skip Maya pose/path capture.")
+                   tooltip="Replace the first prompt with the current Input Strings or Input Pairs text.\n"
+                           "Inputs without scene files use prompt durations\n"
+                           "and skip Maya pose/path capture.")
         self.field(section, "Setup / definition", "template_path", "path",
                    tooltip="Optional template replaces the local generation settings below.")
         self.field(section, "Model", ("definition", "model"))
@@ -526,7 +630,7 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
         section.addWidget(self.motion_source_status)
         self.motion_text_help = qt.QtWidgets.QLabel(
             f"Format: {MOTION_TEXT_EXAMPLE}\n"
-            "Use {input-string} for a complete sequence, or [[2, \"{input-file-stem}\"]] for a filename description.")
+            "Use {input-string} for a complete sequence, or [[2, \"{input-file}\"]] for an input name description.")
         self.motion_text_help.setWordWrap(True)
         section.addWidget(self.motion_text_help)
         from gt.tools.batch_processor.widgets.kimodo_prompt_editor import KimodoPromptEditor
@@ -548,7 +652,8 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
         self.field(section, "Postprocess", ("definition", "parameters", "postprocess"), "boolean", inline_row=row)
         self.field(section, "Transition frames", ("definition", "parameters", "transition_frames"), "integer")
         self.field(section, "Model FPS", "model_fps", "number",
-                   tooltip="SOMA uses 30 fps. Generation verifies this against bridge metadata/results.")
+                   tooltip="SOMA uses 30 fps.\n"
+                           "Generation verifies this against bridge metadata/results.")
         self.field(section, "Duration", "duration_mode", "choice", [
             ("source", "Match source timing"), ("definition", "Use prompt durations")])
         self.field(section, "Retime constraints", "retime_constraints", "boolean")
@@ -586,7 +691,8 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
         section = self.section("Evaluation")
         self.field(section, "Sequential stepping", "sequential_evaluation", "boolean")
         self.field(section, "Bone tolerance (m)", "bone_offset_tolerance", "number",
-                   tooltip="Allowed HumanIK translation drift. Default 0.001 m; offsets normalize to model bones.")
+                   tooltip="Allowed HumanIK translation drift.\n"
+                           "Default 0.001 m; offsets normalize to model bones.")
         section = self.section("Recovery")
         self.field(section, "Purge cache after success", "purge_cache_on_success", "boolean")
         self.field(section, "Purge coordination folders after run", "purge_coordination_on_finish", "boolean")
@@ -632,6 +738,8 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
         path_nodes = [value.strip() for value in settings["path_nodes"].split(",") if value.strip()]
         self.set_field_enabled("path_frames", path_enabled)
         self.set_field_enabled("randomize_root_path", path_enabled)
+        self.set_field_enabled("root_heading", path_enabled)
+        self.set_field_enabled("root_heading_offset", path_enabled and settings.get("root_heading", "none") != "none")
         curve_sampling = settings.get("randomize_root_path", False) or len(path_nodes) == 1
         self.set_field_enabled("path_samples", path_enabled and not settings["path_frames"].strip()
                                and curve_sampling)
@@ -701,9 +809,11 @@ class AttrWidgetKimodoGenerate(AttrWidgetKimodo):
         self.field(section, "Auto-start", ("connection", "start_encoder"), "boolean", inline_row=row)
         self.field(section, "URL", ("connection", "text_encoder_url"), inline_row=row)
         self.field(section, "Token environment", "token_environment",
-                   tooltip="Optional environment variable name. Token values are never stored in batch files.")
+                   tooltip="Optional environment variable name.\n"
+                           "Token values are never stored in batch files.")
         button = qt.QtWidgets.QPushButton("Test Connection")
-        button.setToolTip("Check the configured Bridge and list available models without starting a job.")
+        button.setToolTip("Check the configured Bridge and list available models without starting a\n"
+                          "job.")
         button.clicked.connect(self.test_connection)
         section.addWidget(button)
         section = self.section("Results")
@@ -725,7 +835,8 @@ class AttrWidgetKimodoGenerate(AttrWidgetKimodo):
         for label, key in (("Definition XML", "definition_path"), ("T-pose file", "tpose_path")):
             self.field(section, label, ("humanik", key), "path", tooltip="Blank uses the default Kimodo profile.")
         frame = self.field(section, "Reference frame", ("humanik", "reference_frame"),
-                           tooltip="Blank uses the rest pose. Choose either a frame or a T-pose file.")
+                           tooltip="Blank uses the rest pose.\n"
+                                   "Choose either a frame or a T-pose file.")
         frame.textChanged.disconnect()
         frame.textChanged.connect(self.set_reference_frame)
         section = self.section("Recovery and Timeouts")
@@ -754,7 +865,8 @@ class AttrWidgetKimodoGenerate(AttrWidgetKimodo):
         self.set_field_enabled(("connection", "distribution"), settings["connection"]["mode"] == "wsl")
         self.set_field_enabled("startup_timeout", local_bridge)
         maya_output = settings["result_mode"] != "artifacts"
-        for key in ("output_extension", "namespace", "import_start_frame", "add_humanik"):
+        for key in ("output_extension", "namespace", "import_start_frame", "add_humanik", "import_incoming_scene",
+                    "include_definition_attribute"):
             self.set_field_enabled(key, maya_output)
         hik_enabled = maya_output and settings["add_humanik"]
         for key in settings["humanik"]:

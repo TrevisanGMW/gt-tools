@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from unittest import mock
 from gt.ui import qt_import as qt
+from gt.ui import resource_library as resources
 from gt.tools.batch_processor import batch_processor_model as model
 from gt.tools.batch_processor import batch_processor_tasks as tasks
 from gt.tools.batch_processor.widgets import attr_widget_input_strings
@@ -84,6 +85,26 @@ class TestInputStringsUi(unittest.TestCase):
         self.assertEqual([True] * 4, task.settings["string_enabled"])
         widget.remove_blank_rows()
         self.assertEqual(["A", "B", "C"], task.settings["strings"])
+
+    def test_delete_button_fills_cell_and_centers_icon_with_inherited_padding(self):
+        """Keeps row trash buttons centered and fully clickable when table cells grow."""
+        task, widget = self.create_widget({"strings": ["Walk"]})
+        widget.setStyleSheet(resources.Stylesheet.btn_push_base)
+        widget.show()
+        header = widget.table.horizontalHeader()
+        column = attr_widget_input_strings.DELETE_COLUMN
+        header.setSectionResizeMode(column, qt.QtLib.QHeaderView.Interactive)
+        header.resizeSection(column, 80)
+        widget.table.setRowHeight(0, 60)
+        self.application.processEvents()
+        button = widget.table.cellWidget(0, column)
+        self.assertEqual(qt.QtCore.QSize(20, 20), button.iconSize())
+        cell = widget.table.visualRect(widget.table.model().index(0, column))
+        self.assertEqual(cell.size(), button.size())
+        option = qt.QtWidgets.QStyleOptionButton()
+        option.initFrom(button)
+        contents = button.style().subElementRect(qt.QtWidgets.QStyle.SE_PushButtonContents, option, button)
+        self.assertEqual(button.rect().center(), contents.center())
 
     def test_modes_switch_pages_and_status(self):
         """Shows only the active mode page and names the running mode in the status line."""

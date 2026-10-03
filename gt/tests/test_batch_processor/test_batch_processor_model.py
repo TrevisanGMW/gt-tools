@@ -534,7 +534,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertEqual(expected, result.get("{maya-selection}"))
         mock_log_error.assert_called_once()
 
-    def test_custom_environment_query_failure_suppresses_traceback_while_editing(self):
+    def test_custom_environment_query_failure_is_silent_when_suppressed(self):
         model = batch_processor_model.BatchProcessorModel()
         model.set_custom_environment_variables(
             {
@@ -560,7 +560,7 @@ class TestBatchProcessorModel(unittest.TestCase):
 
         self.assertEqual(expected, result.get("{maya-selection}"))
         mock_log_error.assert_not_called()
-        mock_print.assert_called_once()
+        mock_print.assert_not_called()
 
     def test_custom_environment_name_requires_braces_and_avoids_reserved_tokens(self):
         self.assertTrue(batch_processor_model.is_valid_custom_environment_name("{textures-dir}"))

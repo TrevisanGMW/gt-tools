@@ -8,7 +8,6 @@ tool remains usable without loading the UI.
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_tasks as tasks
 import datetime
-import importlib
 import json
 import logging
 import os
@@ -24,6 +23,7 @@ logger.setLevel(logging.INFO)
 _ENVIRONMENT_PATTERN = re.compile(r"\{([a-zA-Z0-9_-]+)\}")
 _CUSTOM_ENVIRONMENT_NAME_PATTERN = re.compile(r"^\{[a-zA-Z0-9_-]+\}$")
 _RESERVED_ENVIRONMENT_KEYS = {
+    "input-file",
     "input-string",
     "input-string-index",
     "project-name",
@@ -208,15 +208,13 @@ class BatchProcessorModel:
         )
 
     def set_suppress_custom_environment_query_errors(self, suppress_errors):
-        """Sets whether custom query failures use concise console output.
+        """Sets whether custom query failures are silent during editing and runs.
 
-        This runtime setting is intentionally excluded from project data. The
-        controller enables it only while the user edits a project; batch runs
-        always restore full error diagnostics.
+        This preference is excluded from saved project data, but carried in
+        temporary worker snapshots so standalone processes honor the UI setting.
 
         Args:
-            suppress_errors (bool): Whether query failures should omit their
-                traceback from the interactive output.
+            suppress_errors (bool): Whether query failures should omit console errors and tracebacks.
         """
         self._suppress_custom_environment_query_errors = bool(suppress_errors)
 
@@ -336,7 +334,7 @@ class BatchProcessorModel:
                     str: Replacement value.
                 """
                 key = normalize_environment_key(match.group(1))
-                if key == "input-string":
+                if key in ("input-file", "input-string"):
                     return match.group(0)
                 if key not in environment_variables:
                     return match.group(0)
@@ -346,8 +344,13 @@ class BatchProcessorModel:
             if new_resolved == resolved:
                 break
             resolved = new_resolved
-        value = getattr(self, "_input_string_environment", {}).get("input-string", "")
-        return re.sub(r"\{input[-_]string\}", lambda match: value, resolved, flags=re.IGNORECASE)
+        runtime_values = getattr(self, "_input_string_environment", {})
+        return re.sub(
+            r"\{input[-_](file|string)\}",
+            lambda match: str(runtime_values.get(f"input-{match.group(1).lower()}", "")),
+            resolved,
+            flags=re.IGNORECASE,
+        )
 
     def resolve_template_path(self, path, task=None, task_index=None, include_neighbor_paths=True):
         """Resolves a path after expanding batch environment variables.
@@ -889,6 +892,7 @@ class BatchProcessorModel:
                 "paths",
                 "environment_variables",
                 "custom_environment_variables",
+                "runtime_options",
                 "run_settings",
                 "tasks",
                 "modules",
@@ -900,6 +904,11 @@ class BatchProcessorModel:
                 self.extra_data[key] = value
         self.project_name = data.get("project_name") or constants.Project.DEFAULT_NAME
         self.notes = data.get("notes") or ""
+        runtime_options = data.get("runtime_options") or {}
+        if "suppress_custom_environment_query_errors" in runtime_options:
+            self.set_suppress_custom_environment_query_errors(
+                runtime_options["suppress_custom_environment_query_errors"]
+            )
         self.environment_variables = dict(constants.Project.DEFAULT_ENVIRONMENT_VARIABLES)
         self.environment_variables.update(self._environment_from_legacy_paths(data.get("paths") or {}))
         self.environment_variables.update(
@@ -925,7 +934,8 @@ class BatchProcessorModel:
         if not self.tasks:
             self.tasks = [tasks.TaskInput()]
 
-    def get_environment_variables(self, task=None, task_index=None, include_braces=True, include_neighbor_paths=True):
+    def get_environment_variables(self, task=None, task_index=None, include_braces=True,
+                                  include_neighbor_paths=True, evaluate_queries=True):
         """Gets project-level and optional task-level environment variables.
 
         Args:
@@ -933,6 +943,7 @@ class BatchProcessorModel:
             task_index (int, optional): One-based task index.
             include_braces (bool, optional): If True, keys are formatted as "{variable-name}".
             include_neighbor_paths (bool, optional): Whether previous/next task path values should resolve.
+            evaluate_queries (bool, optional): Whether to evaluate custom queries. False keeps their placeholders.
 
         Returns:
             dict: Environment variable names and resolved values.
@@ -943,6 +954,7 @@ class BatchProcessorModel:
         project_path = tasks.normalize_path(self.project_file_path) if self.project_file_path else ""
         project_parent_dir = os.path.dirname(project_dir) if project_dir else ""
         environment_variables = {
+            "input-file": "",
             "input-string": "",
             "input-string-index": "",
             "project-name": project_name,
@@ -1052,6 +1064,7 @@ class BatchProcessorModel:
             self._resolve_custom_environment_variables(
                 task=task,
                 environment_variables=environment_variables,
+                evaluate_queries=evaluate_queries,
             )
         )
         if include_braces:
@@ -1140,12 +1153,13 @@ class BatchProcessorModel:
                 legacy_variables[normalized_key] = {"value": value, "query": False}
         return legacy_variables
 
-    def _resolve_custom_environment_variables(self, task, environment_variables):
+    def _resolve_custom_environment_variables(self, task, environment_variables, evaluate_queries=True):
         """Resolves all custom environment variables for the current context.
 
         Args:
             task (BatchTask or None): Task currently requesting environment data.
             environment_variables (dict): Built-in and task environment data.
+            evaluate_queries (bool, optional): Whether queries run or remain as placeholders.
 
         Returns:
             dict: Custom environment values keyed by normalized name.
@@ -1153,6 +1167,9 @@ class BatchProcessorModel:
         resolved_variables = {}
         query_environment = dict(environment_variables)
         for name, definition in self.custom_environment_variables.items():
+            if definition.get("query") and not evaluate_queries:
+                resolved_variables[name] = format_environment_key(name)
+                continue
             value = self._resolve_custom_environment_variable(
                 name=name,
                 definition=definition,
@@ -1192,25 +1209,16 @@ class BatchProcessorModel:
         if not query:
             return ""
         try:
-            import maya.cmds as cmds
+            from gt.tools.batch_processor import batch_processor_maya
 
-            query_namespace = {
-                "cmds": cmds,
-                "env": dict(environment_variables),
-                "json": json,
-                "import_module": importlib.import_module,
-                "project": self,
-                "task": task,
-            }
-            return eval(query, query_namespace, query_namespace)
+            return batch_processor_maya.evaluate_custom_environment_query(
+                query, environment_variables, project=self, task=task,
+                suppress_errors=self._suppress_custom_environment_query_errors and not raise_errors,
+            )
         except Exception as exception:
             if raise_errors:
                 raise
             if self._suppress_custom_environment_query_errors:
-                print(
-                    f'Custom environment variable "{{{name}}}" query failed. '
-                    f'Resolved as an empty value: {exception}'
-                )
                 return ""
             logger.error(
                 f'Unable to evaluate custom environment variable "{{{name}}}": {exception}',

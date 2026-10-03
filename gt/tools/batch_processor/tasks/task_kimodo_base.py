@@ -21,6 +21,7 @@ read_json = partial(core_io.read_json_dict, raise_errors=True)
 
 MOTION_TEXT_EXAMPLE = '[[2, "A person starts to walk"], [1, "A person comes to a stop"]]'
 RUNTIME_KEYS = {
+    "input-file",
     "input-string", "input-string-index", "input-file-name", "input-file-stem", "input-file-path",
 }
 VARIABLE_PATTERN = re.compile(r"\{([\w-]+)\}")
@@ -33,6 +34,7 @@ class TaskKimodoBase(base.BatchTask):
     category = "Animation"
     category_icon = resources.Icon.root_animation
     extensions = ()
+    output_section_name = "Output Naming"
 
     def __init__(self, *args, **kwargs):
         """Migrates only the old default labels, preserving custom task names and IDs.
@@ -88,12 +90,13 @@ class TaskKimodoBase(base.BatchTask):
             self.add_area_error(result, "Task Setup", "Kimodo tasks require a separate target folder.")
         try:
             if not isinstance(self.settings.get("include_version_suffix", True), bool):
-                self.add_area_error(result, "Output Naming", "Include version suffix must be enabled or disabled.")
+                self.add_area_error(result, self.output_section_name,
+                                    "Include version suffix must be enabled or disabled.")
             output_name(self.settings["name_pattern"], "example",
                         suffix=self.settings.get("filename_suffix", ""),
                         append_variation_suffix=self.settings.get("include_version_suffix", True))
         except (ValueError, TypeError, KeyError) as error:
-            self.add_area_error(result, "Output Naming", error)
+            self.add_area_error(result, self.output_section_name, error)
         return result
 
     @staticmethod
@@ -153,12 +156,12 @@ class TaskKimodoBase(base.BatchTask):
             try:
                 path = self.output_path(item, step_output_dir, seed=seed, samples=samples, definition=definition)
             except (ValueError, OSError) as error:
-                self.add_area_error(result, "Output Naming", error)
+                self.add_area_error(result, self.output_section_name, error)
                 continue
             key = os.path.normcase(path)
             if key in seen:
                 self.add_area_error(
-                    result, "Output Naming",
+                    result, self.output_section_name,
                     f"Kimodo output collision: {seen[key]} and {item.current_path}: {path}")
             seen[key] = item.current_path
         return result
@@ -664,7 +667,7 @@ def resolve_path(value, project, task=None):
     return os.path.normpath(path)
 
 
-def resolve_motion_text(text, project=None, task=None, work_item=None):
+def resolve_motion_text(text, project=None, task=None, work_item=None, evaluate_queries=True):
     """Expands project variables before inserting literal per-input values.
 
     Args:
@@ -672,12 +675,14 @@ def resolve_motion_text(text, project=None, task=None, work_item=None):
         project (BatchProcessorModel, optional): Project variable provider.
         task (BatchTask, optional): Task supplying scoped project variables.
         work_item (WorkItem, optional): Current input; absent keeps runtime tokens unresolved.
+        evaluate_queries (bool, optional): Whether the current scene is ready for custom queries.
 
     Returns:
         str: Resolved text, preserving braces inside inserted input values.
     """
     variables = project.get_environment_variables(
-        task=task, include_braces=False, include_neighbor_paths=False) if project else {}
+        task=task, include_braces=False, include_neighbor_paths=False,
+        evaluate_queries=evaluate_queries) if project else {}
     resolved = os.path.expandvars(text)
 
     def replace_project_variable(match):
@@ -703,6 +708,8 @@ def resolve_motion_text(text, project=None, task=None, work_item=None):
         return resolved
     filename = os.path.basename(work_item.current_path)
     values = {
+        "input-file": work_item.metadata.get(
+            "input_file", os.path.splitext(os.path.basename(work_item.source_path))[0]),
         "input-string": work_item.metadata.get("input_string", ""),
         "input-string-index": work_item.metadata.get("input_string_index", ""),
         "input-file-name": filename,
@@ -725,16 +732,21 @@ def resolve_motion_text(text, project=None, task=None, work_item=None):
     return VARIABLE_PATTERN.sub(replace_runtime_variable, resolved)
 
 
-def uses_runtime_variables(text):
+def uses_runtime_variables(text, project=None):
     """Checks whether text needs a current input before it can be validated.
 
     Args:
         text (str): Expanded project text to inspect.
+        project (BatchProcessorModel, optional): Project supplying deferred custom queries.
 
     Returns:
         bool: Whether a per-input placeholder is present.
     """
-    return any(match.group(1).lower().replace("_", "-") in RUNTIME_KEYS
+    runtime_keys = set(RUNTIME_KEYS)
+    if project:
+        runtime_keys.update(name for name, definition in project.custom_environment_variables.items()
+                            if definition.get("query"))
+    return any(match.group(1).lower().replace("_", "-") in runtime_keys
                for match in VARIABLE_PATTERN.finditer(text))
 
 

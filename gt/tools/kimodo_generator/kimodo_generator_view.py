@@ -484,6 +484,33 @@ class KimodoGeneratorView(metaclass=qt_utils.MayaWindowMeta):
         samples_layout.addWidget(self.path_curve_samples_label)
         samples_layout.addWidget(self.path_curve_samples)
         samples_field.setSizePolicy(QtWidgets.QSizePolicy.Policy.Maximum, QtWidgets.QSizePolicy.Policy.Fixed)
+        self.path_heading = QtWidgets.QComboBox()
+        for label, key in (("None", "none"), ("Direction of travel", "path"), ("Node +Z axis", "node"),
+                           ("Fixed", "fixed")):
+            self.path_heading.addItem(label, key)
+        self.path_heading.setToolTip(
+            "Facing direction captured with the root path. None leaves facing to the model. Direction of travel "
+            "faces along the curve tangent or movement between samples, holding the last facing while stopped. "
+            "Node +Z axis uses each selected transform's world +Z axis, or an animated transform's keyed rotation. "
+            "Fixed uses only the offset as an absolute heading.")
+        self.path_heading_offset = QtWidgets.QDoubleSpinBox()
+        self.path_heading_offset.setRange(-360, 360)
+        self.path_heading_offset.setDecimals(1)
+        self.path_heading_offset.setSuffix(" deg")
+        self.path_heading_offset.setToolTip(
+            "Degrees added to the captured heading, or the absolute heading when Root heading is Fixed. 0 faces +Z. "
+            "Use 180 for backward travel, or 90 / -90 to strafe.")
+        heading_field = QtWidgets.QWidget()
+        heading_layout = QtWidgets.QHBoxLayout(heading_field)
+        heading_layout.setContentsMargins(0, 0, 0, 0)
+        heading_layout.setSpacing(4)
+        self.path_heading_label = QtWidgets.QLabel("Root heading")
+        heading_layout.addWidget(self.path_heading_label)
+        heading_layout.addWidget(self.path_heading, 1)
+        self.path_heading_offset_label = QtWidgets.QLabel("Offset")
+        heading_layout.addWidget(self.path_heading_offset_label)
+        heading_layout.addWidget(self.path_heading_offset)
+        layout.addWidget(heading_field)
         layout.addLayout(self.row(samples_field, self.button("capture_path", "Capture Path from Transforms")))
         note = QtWidgets.QLabel(
             "Full-body keys guide joint positions, not exact rotation locks. Pose capture uses the skeleton's "
@@ -725,6 +752,7 @@ class KimodoGeneratorView(metaclass=qt_utils.MayaWindowMeta):
                     label.widget().setToolTip("<br>".join(texts))
         caption_controls = {"Samples": "samples", "Steps": "steps", "Clip frame": "pose_frame",
                             "Root path frames": "path_frames", "Curve samples": "path_curve_samples",
+                            "Root heading": "path_heading", "Offset": "path_heading_offset",
                             "Import namespace": "namespace", "Start frame": "start_frame",
                             "Sample": "sample", "Model": "model"}
         for label in self.findChildren(QtWidgets.QLabel):

@@ -798,6 +798,9 @@ class MultiInstanceBatchRunner:
             str: Temporary project snapshot path.
         """
         data = project.to_dict()
+        data["runtime_options"] = {
+            "suppress_custom_environment_query_errors": project._suppress_custom_environment_query_errors,
+        }
         environment_variables = dict(data.get("environment_variables") or {})
         environment_variables["project-dir"] = project.get_project_dir()
         data["environment_variables"] = environment_variables
@@ -868,8 +871,16 @@ def create_initial_work_item(project, source_file, run_from_task_id=None):
     Returns:
         WorkItem: Work item with relative source metadata when possible.
     """
-    for input_task in project.get_input_tasks(enabled_only=True):
-        if input_task.task_type == constants.TaskType.INPUT_STRINGS:
+    input_tasks = project.get_input_tasks(enabled_only=True)
+    if run_from_task_id:
+        segment = project.get_segment_for_task(project.get_task(run_from_task_id))
+        if segment is not None:
+            input_tasks = [task for task in segment if task.is_input_task]
+    for input_task in input_tasks:
+        if input_task.task_type in (constants.TaskType.INPUT_STRINGS, constants.TaskType.INPUT_PAIRS):
+            root = input_task.get_input_dir(project)
+            if not root or not tasks.path_is_inside_directory(source_file, root):
+                continue
             for item in input_task.prepare(project):
                 if os.path.normcase(item.source_path) == os.path.normcase(tasks.normalize_path(source_file)):
                     return item

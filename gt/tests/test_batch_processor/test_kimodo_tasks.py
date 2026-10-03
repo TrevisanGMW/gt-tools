@@ -1,5 +1,6 @@
 """Focused pure-Python regression tests for Kimodo batch task behavior."""
 
+import json
 import os
 import tempfile
 import unittest
@@ -253,6 +254,52 @@ class TestKimodoGeneration(unittest.TestCase):
         """
         write_record(path, {"motion": motion})
 
+    def test_definition_attributes_carry_resolved_and_batch_definitions(self):
+        """Passes the resolved definition and unresolved batch settings to every published scene."""
+        captured = []
+
+        def capture_settings(motion, path, settings, cache):
+            """Records the publish settings before writing a stand-in scene.
+
+            Args:
+                motion (str): Mock source motion.
+                path (str): Output file.
+                settings (dict): Task settings.
+                cache (str): Recovery folder.
+            """
+            captured.append(settings.get("definition_attributes"))
+            self.save_scene(motion, path, settings, cache)
+
+        self.assertEqual(True, self.task.settings["include_definition_attribute"])
+        definition_task = TaskKimodoDefinition(settings={"prompt_text": "{input-string}"})
+        project = types.SimpleNamespace(tasks=[definition_task, self.task], project_name="Cards",
+                                        project_file_path="", get_custom_environment_variables=dict)
+        self.item.metadata.update(last_task_id=definition_task.id, input_string="[[2, \"Walk\"]]",
+                                  input_file="walk")
+        with mock.patch.object(generation, "connect", return_value=self.client), \
+                mock.patch.object(generation, "publish_scene", side_effect=capture_settings), \
+                mock.patch.object(self.task, "resolved_settings", return_value=dict(self.task.settings)):
+            self.task.execute(self.item, project, self.output)
+        self.assertEqual(2, len(captured))
+        resolved = json.loads(captured[0][generation.DEFINITION_ATTRIBUTE])
+        batch = json.loads(captured[0][generation.BATCH_DEFINITION_ATTRIBUTE])
+        self.assertEqual("Walk", resolved["prompts"][0]["text"])
+        self.assertIsInstance(resolved["parameters"]["seed"], int)
+        self.assertEqual("{input-string}", batch["definition_task"]["parameters"]["prompt_text"])
+        self.assertEqual("walk", batch["input"]["input_file"])
+        self.assertEqual(self.task.id, batch["generate_task"]["id"])
+
+    def test_definition_attributes_can_be_disabled(self):
+        """Publishes scenes without definition attributes when the option is off."""
+        captured = []
+        self.task.settings["include_definition_attribute"] = False
+        with mock.patch.object(generation, "connect", return_value=self.client), \
+                mock.patch.object(generation, "publish_scene",
+                                  side_effect=lambda motion, path, settings, cache: captured.append(
+                                      settings.get("definition_attributes"))):
+            self.task.execute(self.item, None, self.output)
+        self.assertEqual([None, None], captured)
+
     def test_multiple_samples_and_existing_outputs(self):
         """Publishes every sample and skips completed outputs before connecting."""
         with mock.patch.object(generation, "connect", return_value=self.client), \
@@ -265,6 +312,43 @@ class TestKimodoGeneration(unittest.TestCase):
         connect.assert_not_called()
         self.assertEqual(2, len(skipped.exception.work_item))
         self.assertEqual(["walk_s001.ma", "walk_s002.ma"], sorted(os.listdir(self.output)))
+
+    def test_import_incoming_scene_uses_captured_provenance_for_every_sample(self):
+        """Passes the captured scene into each output without mutating stored task settings."""
+        self.assertFalse(self.task.settings["import_incoming_scene"])
+        scene = os.path.join(self.root, "captured.ma")
+        write_record(scene, {"source": True})
+        original_scene = os.path.join(self.root, "original.ma")
+        self.item.source_path = original_scene
+        self.item.metadata["kimodo"] = {"source_scene": scene}
+        self.task.settings["import_incoming_scene"] = True
+        self.assertEqual([], self.task.validate_work_items([self.item], None, self.output).errors)
+        with mock.patch.object(generation, "connect", return_value=self.client), mock.patch.object(
+            generation, "publish_scene", side_effect=self.save_scene
+        ) as save:
+            self.task.execute(self.item, None, self.output)
+        self.assertEqual(2, save.call_count)
+        self.assertEqual([scene, scene], [call.args[2]["incoming_scene_path"] for call in save.call_args_list])
+        self.assertNotIn("incoming_scene_path", self.task.settings)
+
+    def test_import_incoming_scene_rejects_missing_source_before_contacting_bridge(self):
+        """Reports missing scene provenance before submitting a costly generation job."""
+        self.task.settings["import_incoming_scene"] = True
+        self.assertTrue(self.task.validate_work_items([self.item], None, self.output).errors)
+        with mock.patch.object(generation, "connect") as connect, self.assertRaisesRegex(
+            ValueError, "requires a Maya scene"
+        ):
+            self.task.execute(self.item, None, self.output)
+        connect.assert_not_called()
+        self.task.settings["result_mode"] = "artifacts"
+        self.assertEqual([], self.task.validate_work_items([self.item], None, self.output).errors)
+
+    def test_virtual_string_definitions_have_no_scene_to_import(self):
+        """Accepts Input Strings provenance without trying to import its nonexistent scene."""
+        self.item.source_path = os.path.join(self.root, "virtual.ma")
+        self.item.metadata["input_string_path"] = self.item.source_path
+        self.task.settings["import_incoming_scene"] = True
+        self.assertEqual("", generation.incoming_scene_path(self.item))
 
     def test_cleanup_options_are_independent(self):
         """Keeps requested diagnostics while purging the other kind of temporary data."""

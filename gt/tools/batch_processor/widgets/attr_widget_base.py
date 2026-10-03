@@ -271,6 +271,33 @@ class AttrWidgetBase(ui_qt.QtWidgets.QWidget):
         field.textChanged.connect(lambda value_text: setter(value_text))
         return field
 
+    def create_table_action_button(self, callback, tooltip, icon_path=None, text="", accessible_name=""):
+        """Creates a centered action button that fills its table cell at any display scale.
+
+        Args:
+            callback (callable): Function called when the button is clicked.
+            tooltip (str): Description of the row action.
+            icon_path (str, optional): Icon resource path.
+            text (str, optional): Button label.
+            accessible_name (str, optional): Name exposed to accessibility tools.
+
+        Returns:
+            QPushButton: Expanding table action button.
+        """
+        button = ui_qt.QtWidgets.QPushButton(text)
+        button.setAutoDefault(False)
+        button.setFlat(True)
+        button.setMinimumSize(24, 24)
+        button.setSizePolicy(ui_qt.QtLib.SizePolicy.Expanding, ui_qt.QtLib.SizePolicy.Expanding)
+        button.setStyleSheet("QPushButton { padding: 0px; margin: 0px; }")
+        if icon_path:
+            button.setIcon(ui_qt.QtGui.QIcon(icon_path))
+            button.setIconSize(ui_qt.QtCore.QSize(20, 20))
+        button.setToolTip(tooltip)
+        button.setAccessibleName(accessible_name or tooltip)
+        button.clicked.connect(callback)
+        return button
+
     def add_path_template_field(
         self,
         label_text,

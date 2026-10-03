@@ -145,6 +145,51 @@ class TestKimodoMaya(unittest.TestCase):
         cmds.setAttr(f"{second}.translate", 600, 0, 200)
         constraint = kimodo.capture_root_path([first, second], [0, 29], result["group"])
         self.assertEqual([[0, 0], [1, 2]], constraint["smooth_root_2d"])
+        self.assertNotIn("global_root_heading", constraint)
+
+    def test_root_path_node_heading_uses_transform_z_axis(self):
+        """Encodes each locator's world +Z axis, including the backward offset."""
+        import maya.cmds as cmds
+
+        first = cmds.spaceLocator()[0]
+        second = cmds.spaceLocator()[0]
+        cmds.setAttr(f"{second}.translateZ", 100)
+        cmds.setAttr(f"{second}.rotateY", 90)
+        constraint = kimodo.capture_root_path([first, second], [0, 29], heading_mode="node")
+        for expected, actual in zip([1, 0, 0, 1], sum(constraint["global_root_heading"], [])):
+            self.assertAlmostEqual(expected, actual, places=6)
+        constraint = kimodo.capture_root_path([first, second], [0, 29], heading_mode="node", heading_offset=180)
+        self.assertAlmostEqual(-1, constraint["global_root_heading"][0][0], places=6)
+
+    def test_root_path_curve_heading_follows_tangent(self):
+        """Faces along a straight curve drawn toward +X."""
+        import maya.cmds as cmds
+
+        curve = cmds.curve(point=[(0, 0, 0), (100, 0, 0), (200, 0, 0)], degree=1)
+        constraint = kimodo.capture_root_path([curve], [0, 10, 20], heading_mode="path")
+        for cosine, sine in constraint["global_root_heading"]:
+            self.assertAlmostEqual(0, cosine, places=6)
+            self.assertAlmostEqual(1, sine, places=6)
+
+    def test_root_path_samples_animated_transform_over_time(self):
+        """Samples keyed travel and rotation without changing the current time."""
+        import maya.cmds as cmds
+
+        driver = cmds.spaceLocator(name="trajectory_driver")[0]
+        cmds.setKeyframe(driver, attribute="translateZ", time=1, value=0)
+        cmds.setKeyframe(driver, attribute="translateZ", time=11, value=100)
+        cmds.setKeyframe(driver, attribute="rotateY", time=1, value=0)
+        cmds.setKeyframe(driver, attribute="rotateY", time=11, value=90)
+        cmds.currentTime(5)
+        constraint = kimodo.capture_root_path([driver], [0, 1, 2], heading_mode="node", sample_times=[1, 6, 11])
+        self.assertEqual(5, cmds.currentTime(query=True))
+        self.assertAlmostEqual(0, constraint["smooth_root_2d"][0][1], places=6)
+        self.assertAlmostEqual(1, constraint["smooth_root_2d"][2][1], places=6)
+        self.assertAlmostEqual(1, constraint["global_root_heading"][2][1], places=6)
+        travel = kimodo.capture_root_path([driver], [0, 1, 2], heading_mode="path", sample_times=[1, 6, 11])
+        self.assertAlmostEqual(1, travel["global_root_heading"][0][0], places=6)
+        with self.assertRaises(ValueError):
+            kimodo.capture_root_path([driver], [0, 1], sample_times=[1])
 
     @unittest.skipUnless(os.environ.get("GT_KIMODO_TEST_MOTION"), "No generated sample supplied.")
     def test_real_generation_matches_native_npz(self):

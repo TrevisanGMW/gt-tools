@@ -125,7 +125,7 @@ def main():
             batch_processor_worker.create_initial_work_item(
                 project=project,
                 source_file=args.source_file,
-                run_from_task_id=args.run_from_task_id or None,
+                run_from_task_id=args.run_from_task_id or (executable_tasks[0].id if executable_tasks else None),
             )
         ]
         tracker_file_name = os.path.basename(args.source_file)

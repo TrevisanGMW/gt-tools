@@ -45,7 +45,10 @@ DEFAULT_URL = "http://127.0.0.1:7861"
 DEFAULT_MODEL = "kimodo-soma-rp-v1.1"
 TERMINAL_STATUSES = ("succeeded", "failed", "cancelled")
 ARTIFACT_NAMES = ("motion.json", "motion.npz", "definition.json")
-BRIDGE_FEATURES = ("delete_jobs", "shutdown", "runtime_status")
+BRIDGE_FEATURES = ("delete_jobs", "shutdown", "runtime_status", "root_heading_vectors")
+# none = position only, path = direction of travel, node = transform +Z axis, fixed = offset only.
+ROOT_HEADING_MODES = ("none", "path", "node", "fixed")
+STATIONARY_PATH_METERS = 0.0005
 
 
 def _write_json(path, data):
@@ -717,6 +720,10 @@ class KimodoClient:
         _validate_job_id(job_id)
         payload = definition.as_dict()
         payload.pop("maya", None)  # Authoring options must not change the bridge protocol.
+        uses_heading = any("global_root_heading" in constraint for constraint in payload.get("constraints", []))
+        if uses_heading and "root_heading_vectors" not in self.health().get("features", []):
+            raise ValueError("The running Kimodo bridge predates root path headings. Restart the bridge with the "
+                             "updated gt-tools code (Stop, then Connect / Start), then retry.")
         return self._request("/v1/jobs", {"job_id": job_id, "definition": payload})
 
     def status(self, job_id):
@@ -933,7 +940,7 @@ def validate_constraints(constraints, frame_count=None):
         if kind == "root2d":
             _finite_array(constraint.get("smooth_root_2d"), (count, 2), "smooth_root_2d")
             if "global_root_heading" in constraint:
-                _finite_array(constraint["global_root_heading"], (count,), "global_root_heading")
+                _finite_array(constraint["global_root_heading"], (count, 2), "global_root_heading")
         else:
             rotations = constraint.get("local_joints_rot")
             if not isinstance(rotations, list) or not rotations or not isinstance(rotations[0], list):
@@ -1025,45 +1032,190 @@ def capture_pose(group=None, frame_index=0, constraint_type="fullbody", bone_off
     return constraint
 
 
-def capture_root_path(nodes, frame_indices, group=None):
-    """Captures timed locator positions or evenly spaced points on a NURBS curve.
+def validate_root_heading_mode(heading_mode, heading_offset=0.0):
+    """Validates root path heading options before any scene query.
 
     Args:
-        nodes (list): Ordered transforms, or one curve transform.
-        frame_indices (list): Zero-based destination frames.
-        group (str, optional): Placement group defining generation space.
+        heading_mode (str): One of ROOT_HEADING_MODES.
+        heading_offset (float): Degrees added to the resolved heading, or the absolute heading for fixed.
 
     Returns:
-        dict: Root2D constraint.
+        tuple: Validated (heading_mode, heading_offset) with the offset as a float.
+    """
+    if heading_mode not in ROOT_HEADING_MODES:
+        raise ValueError(f"Root heading must be one of: {', '.join(ROOT_HEADING_MODES)}.")
+    if isinstance(heading_offset, bool) or not isinstance(heading_offset, (int, float)) \
+            or not math.isfinite(heading_offset):
+        raise ValueError("Root heading offset must be a finite number of degrees.")
+    return heading_mode, float(heading_offset)
+
+
+def heading_from_direction(direction_x, direction_z):
+    """Converts a generation-space ground direction into Kimodo's heading angle.
+
+    Kimodo measures heading around +Y with 0 facing +Z and positive values turning toward +X,
+    which matches a Maya Y-up rotateY applied to a character facing +Z.
+
+    Args:
+        direction_x (float): Generation-space X component.
+        direction_z (float): Generation-space Z component.
+
+    Returns:
+        float: Heading in radians.
+    """
+    return math.atan2(direction_x, direction_z)
+
+
+def travel_headings(coordinates, tangents=None, stationary_tolerance=STATIONARY_PATH_METERS):
+    """Resolves direction-of-travel headings, holding the last heading while the root is stationary.
+
+    Args:
+        coordinates (list): Ordered [x, z] samples in meters.
+        tangents (list, optional): Exact [x, z] tangents per sample, such as curve derivatives.
+        stationary_tolerance (float): Minimum movement in meters that defines a direction.
+
+    Returns:
+        list: One heading in radians per sample.
+    """
+    count = len(coordinates)
+    directions = []
+    for index in range(count):
+        if tangents:
+            direction = tangents[index]
+        else:
+            # Central differences keep turns centered on the sample instead of lagging behind it.
+            previous_point = coordinates[max(0, index - 1)]
+            next_point = coordinates[min(count - 1, index + 1)]
+            direction = [next_point[0] - previous_point[0], next_point[1] - previous_point[1]]
+        moving = math.hypot(direction[0], direction[1]) > stationary_tolerance
+        directions.append(heading_from_direction(*direction) if moving else None)
+    known = [heading for heading in directions if heading is not None]
+    if not known:
+        return [0.0] * count
+    held = known[0]
+    headings = []
+    for heading in directions:
+        held = held if heading is None else heading
+        headings.append(held)
+    return headings
+
+
+def heading_vectors(headings, heading_offset=0.0):
+    """Encodes headings as Kimodo's global_root_heading [cos, sin] pairs.
+
+    Args:
+        headings (list): Headings in radians.
+        heading_offset (float): Degrees added to every heading.
+
+    Returns:
+        list: [cos, sin] pairs rounded to remove floating-point noise.
+    """
+    offset = math.radians(heading_offset)
+    return [[round(math.cos(heading + offset), 9), round(math.sin(heading + offset), 9)]
+            for heading in headings]
+
+
+def _generation_ground(vector, z_up):
+    """Projects a placement-space vector onto Kimodo's Y-up ground plane.
+
+    Args:
+        vector (MPoint or MVector): Value already in placement space.
+        z_up (bool): Whether the source is a Z-up scene without a placement group.
+
+    Returns:
+        list: Generation-space [x, z] in source units.
+    """
+    return [vector.x, -vector.y] if z_up else [vector.x, vector.z]
+
+
+def _sample_transforms(node, sample_times):
+    """Reads world matrices of one animated transform at Maya times without changing the current time.
+
+    Args:
+        node (str): Transform to sample.
+        sample_times (list): Maya times in the current UI time unit.
+
+    Returns:
+        list: MMatrix world matrices, one per sample time.
     """
     import maya.cmds as cmds
     import maya.api.OpenMaya as om
 
+    return [om.MMatrix(cmds.getAttr(f"{node}.worldMatrix[0]", time=sample_time)) for sample_time in sample_times]
+
+
+def capture_root_path(nodes, frame_indices, group=None, heading_mode="none", heading_offset=0.0,
+                      sample_times=None):
+    """Captures a root path with optional facing direction from locators, a curve, or an animated transform.
+
+    Sources:
+        One NURBS curve: evenly spaced points by length; path heading uses the curve tangent.
+        Ordered transforms: one point per transform; node heading uses each transform's +Z axis.
+        One animated transform with sample_times: its world position and +Z axis at each time.
+
+    Args:
+        nodes (list): Ordered transforms, or one curve transform, or one animated transform.
+        frame_indices (list): Zero-based destination frames.
+        group (str, optional): Placement group defining generation space.
+        heading_mode (str, optional): none, path (direction of travel), node (+Z axis), or fixed.
+        heading_offset (float, optional): Degrees added to path/node headings; the absolute heading for fixed.
+            Use 180 for backward travel, or 90/-90 to strafe.
+        sample_times (list, optional): Maya times used to sample one animated transform.
+
+    Returns:
+        dict: Root2D constraint, including global_root_heading unless heading_mode is none.
+    """
+    import maya.cmds as cmds
+    import maya.api.OpenMaya as om
+
+    heading_mode, heading_offset = validate_root_heading_mode(heading_mode, heading_offset)
     if not nodes or not frame_indices:
         raise ValueError("Select ordered locators or one curve, and provide destination frames.")
     scale = om.MDistance(1, om.MDistance.uiUnit()).asMeters()
     inverse = om.MMatrix(cmds.getAttr(f"{group}.worldInverseMatrix[0]")) if group else om.MMatrix()
+    z_up = not group and cmds.upAxis(query=True, axis=True) != "y"
     positions = []
+    forward_axes = []
+    tangents = None
     shapes = cmds.listRelatives(nodes[0], shapes=True, fullPath=True) or []
     curve = next((shape for shape in shapes if cmds.nodeType(shape) == "nurbsCurve"), None)
     if len(nodes) == 1 and curve:
         selection = om.MSelectionList()
         selection.add(curve)
         function = om.MFnNurbsCurve(selection.getDagPath(0))
+        tangents = []
         for index in range(len(frame_indices)):
             distance = function.length() * index / max(1, len(frame_indices) - 1)
-            positions.append(function.getPointAtParam(function.findParamFromLength(distance), om.MSpace.kWorld))
+            parameter = function.findParamFromLength(distance)
+            positions.append(function.getPointAtParam(parameter, om.MSpace.kWorld))
+            tangents.append(function.tangent(parameter, om.MSpace.kWorld))
+        transform_matrix = om.MMatrix(cmds.getAttr(f"{nodes[0]}.worldMatrix[0]"))
+        forward_axes = [om.MVector(0, 0, 1) * transform_matrix] * len(positions)
+    elif len(nodes) == 1 and sample_times is not None:
+        if len(sample_times) != len(frame_indices):
+            raise ValueError("Animated root paths need one sample time per destination frame.")
+        matrices = _sample_transforms(nodes[0], sample_times)
+        positions = [om.MPoint(matrix[12], matrix[13], matrix[14]) for matrix in matrices]
+        forward_axes = [om.MVector(0, 0, 1) * matrix for matrix in matrices]
     elif len(nodes) == len(frame_indices):
         positions = [om.MPoint(cmds.xform(node, query=True, worldSpace=True, translation=True)) for node in nodes]
+        forward_axes = [om.MVector(0, 0, 1) * om.MMatrix(cmds.getAttr(f"{node}.worldMatrix[0]")) for node in nodes]
     else:
         raise ValueError("Ordered locator paths need one locator per destination frame; a single NURBS curve "
-                         "can use any number of samples.")
+                         "can use any number of samples, and a single animated transform needs sample times.")
     points = [point * inverse for point in positions]
-    if group or cmds.upAxis(query=True, axis=True) == "y":
-        coordinates = [[point.x * scale, point.z * scale] for point in points]
-    else:
-        coordinates = [[point.x * scale, -point.y * scale] for point in points]
+    coordinates = [[value * scale for value in _generation_ground(point, z_up)] for point in points]
     result = {"type": "root2d", "frame_indices": frame_indices, "smooth_root_2d": coordinates}
+    if heading_mode != "none":
+        if heading_mode == "fixed":
+            headings = [0.0] * len(coordinates)
+        elif heading_mode == "node":
+            headings = [heading_from_direction(*_generation_ground(axis * inverse, z_up)) for axis in forward_axes]
+        else:
+            ground_tangents = [_generation_ground(tangent * inverse, z_up) for tangent in tangents] \
+                if tangents else None
+            headings = travel_headings(coordinates, ground_tangents)
+        result["global_root_heading"] = heading_vectors(headings, heading_offset)
     validate_constraints([result])
     return result
 

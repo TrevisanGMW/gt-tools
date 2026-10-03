@@ -224,16 +224,9 @@ class AttrWidgetInputStringsTask(AttrWidgetTask):
         Returns:
             QPushButton: Row delete button.
         """
-        button = qt.QtWidgets.QPushButton()
-        button.setAutoDefault(False)
-        button.setFlat(True)
-        button.setIcon(qt.QtGui.QIcon(ui_res_lib.Icon.ui_trash))
-        button.setIconSize(qt.QtCore.QSize(16, 16))
-        button.setFixedWidth(28)
-        button.setAccessibleName("Delete String")
-        button.setToolTip("Remove this string.")
-        button.clicked.connect(self.remove_button_row)
-        return button
+        return self.create_table_action_button(
+            self.remove_button_row, "Remove this string.",
+            icon_path=ui_res_lib.Icon.ui_trash, accessible_name="Delete String")
 
     def create_active_checkbox(self, enabled):
         """Creates a checkbox centered in its cell that marks a row for use.

@@ -1,14 +1,17 @@
 """Regression tests for custom-variable file and clipboard serialization."""
 
 import json
+import io
 import os
 import sys
 import tempfile
 import types
 import unittest
 from unittest import mock
+from contextlib import redirect_stderr, redirect_stdout
 
 from gt.tools.batch_processor import batch_processor_environment_variables as variables_io
+from gt.tools.batch_processor import batch_processor_worker
 
 
 class TestBatchProcessorEnvironmentVariables(unittest.TestCase):
@@ -145,6 +148,62 @@ class TestEnvironmentVariableQueryPreview(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Unknown custom environment variable"):
             variables_io.evaluate_variable("missing", variables, project=self.project)
         self.cmds.ls.assert_not_called()
+
+    def test_deferred_queries_keep_tokens_without_executing_commands(self):
+        """Preserves scene-query placeholders while exposing literal aliases to preflight."""
+        self.project.set_custom_environment_variables({
+            "selected": {"value": "cmds.ls(selection=True)", "query": True},
+            "alias": {"value": "{selected}", "query": False},
+        })
+        environment = self.project.get_environment_variables(
+            include_braces=False, include_neighbor_paths=False, evaluate_queries=False
+        )
+        self.assertEqual("{selected}", environment["selected"])
+        self.assertEqual("{selected}", environment["alias"])
+        self.cmds.ls.assert_not_called()
+
+    def test_suppressed_query_is_silent_and_restores_maya_editor(self):
+        """Drops command error output and restores the script editor after a query fails."""
+        self.project.set_suppress_custom_environment_query_errors(True)
+        self.project.set_custom_environment_variables({
+            "selected": {"value": "cmds.ls()", "query": True},
+        })
+        self.cmds.scriptEditorInfo = mock.Mock(return_value=False)
+
+        def fail_query():
+            """Emits command error text before raising a scene-query failure.
+
+            Raises:
+                RuntimeError: Simulated missing attribute.
+            """
+            print("Maya attribute query failed", file=sys.stderr)
+            raise RuntimeError("Missing prompt attribute")
+
+        self.cmds.ls.side_effect = fail_query
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        with redirect_stdout(stdout), redirect_stderr(stderr), mock.patch.object(
+            variables_io.batch_processor_model.logger, "error"
+        ) as log_error:
+            environment = self.project.get_environment_variables(include_neighbor_paths=False)
+        self.assertEqual("", environment["{selected}"])
+        self.assertEqual("", stdout.getvalue())
+        self.assertEqual("", stderr.getvalue())
+        log_error.assert_not_called()
+        self.assertEqual([
+            mock.call(query=True, suppressErrors=True), mock.call(suppressErrors=True),
+            mock.call(suppressErrors=False),
+        ], self.cmds.scriptEditorInfo.call_args_list)
+
+    def test_worker_snapshot_preserves_suppression_without_saving_the_preference(self):
+        """Carries the UI preference through a worker snapshot but not normal project files."""
+        self.project.set_suppress_custom_environment_query_errors(True)
+        snapshot_path = batch_processor_worker.MultiInstanceBatchRunner._write_project_snapshot(self.project)
+        self.addCleanup(os.remove, snapshot_path)
+        restored = variables_io.batch_processor_model.BatchProcessorModel.from_file(snapshot_path)
+        self.assertTrue(restored._suppress_custom_environment_query_errors)
+        self.assertNotIn("runtime_options", self.project.to_dict())
+        self.assertNotIn("runtime_options", restored.to_dict())
 
 
 if __name__ == "__main__":

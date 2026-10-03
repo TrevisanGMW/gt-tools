@@ -50,6 +50,49 @@ class TestInputStrings(unittest.TestCase):
                 self.assertEqual([], task.discover_files(self.project))
         self.assertEqual([], self.input_task.validate(self.project).errors)
 
+    def test_names_use_at_least_two_digits_and_expand_with_input_count(self):
+        """Uses consistent padding across each input list, including repeated string values."""
+        cases = (
+            (1, "string_01.ma", "string_01.ma"),
+            (9, "string_01.ma", "string_09.ma"),
+            (10, "string_01.ma", "string_10.ma"),
+            (99, "string_01.ma", "string_99.ma"),
+            (100, "string_001.ma", "string_100.ma"),
+            (110, "string_001.ma", "string_110.ma"),
+            (1000, "string_0001.ma", "string_1000.ma"),
+        )
+        for count, first_name, last_name in cases:
+            with self.subTest(count=count):
+                self.input_task.settings["strings"] = ["Walk"] * count
+                items = self.input_task.prepare(self.project)
+                names = [os.path.basename(item.source_path) for item in items]
+                self.assertEqual(first_name, names[0])
+                self.assertEqual(last_name, names[-1])
+                self.assertEqual(count, len(set(names)))
+                self.assertEqual(sorted(names), names)
+
+    def test_padding_counts_only_active_nonblank_inputs(self):
+        """Keeps two digits when inactive and blank rows make the stored table longer."""
+        self.input_task.settings.update(
+            strings=["Walk"] * 110 + ["", "  "],
+            string_enabled=[True, True] + [False] * 108 + [True, True],
+        )
+        items = self.input_task.prepare(self.project)
+        self.assertEqual(["string_01.ma", "string_02.ma"],
+                         [os.path.basename(item.source_path) for item in items])
+
+    def test_separate_input_tasks_keep_distinct_virtual_paths(self):
+        """Reconstructs matching row names independently using each task's virtual root."""
+        other_task = tasks.TaskInputStrings(settings={"strings": [self.values[0]]})
+        self.project.add_task(other_task)
+        first_item = self.input_task.prepare(self.project)[0]
+        other_item = other_task.prepare(self.project)[0]
+        self.assertEqual("string_01.ma", os.path.basename(first_item.source_path))
+        self.assertEqual("string_01.ma", os.path.basename(other_item.source_path))
+        self.assertNotEqual(first_item.source_path, other_item.source_path)
+        for item in (first_item, other_item):
+            self.assertEqual(item.to_dict(), worker.create_initial_work_item(self.project, item.source_path).to_dict())
+
     def test_inactive_rows_are_skipped_and_not_counted(self):
         """Skips unchecked rows and assigns consecutive indexes to the remaining rows."""
         task = tasks.TaskInputStrings(settings={"strings": ["A", "B", "", "C"],
@@ -70,6 +113,8 @@ class TestInputStrings(unittest.TestCase):
         items = task.prepare(self.project)
         self.assertEqual(["3", "4", "5"], [item.metadata["input_string"] for item in items])
         self.assertEqual([1, 2, 3], [item.metadata["input_string_index"] for item in items])
+        self.assertEqual(["string_01.ma", "string_02.ma", "string_03.ma"],
+                         [os.path.basename(item.source_path) for item in items])
         task.settings.update(number_start=2, number_end=0)
         self.assertEqual(["2", "1", "0"], [item.metadata["input_string"] for item in task.prepare(self.project)])
         task.settings.update(number_start=0, number_end=10 ** 6)
@@ -107,6 +152,8 @@ class TestInputStrings(unittest.TestCase):
         items = task.prepare(self.project)
         self.assertEqual(["  café  ", "Walk", "Walk"], [item.metadata["input_string"] for item in items])
         self.assertEqual([1, 2, 3], [item.metadata["input_string_index"] for item in items])
+        self.assertEqual(["string_01.ma", "string_02.ma", "string_03.ma"],
+                         [os.path.basename(item.source_path) for item in items])
         restored = model.BatchProcessorModel()
         restored.read_data_from_dict(json.loads(json.dumps(self.project.to_dict())))
         restored.tasks = [tasks.TaskInputStrings.from_dict(task.to_dict())]
@@ -187,6 +234,8 @@ class TestInputStrings(unittest.TestCase):
             outputs = task.execute(item, self.project, output_dir)
         commands.assert_not_called()
         self.assertEqual(2, len(outputs))
+        self.assertEqual(["string_01_v001.json", "string_01_v002.json"],
+                         [os.path.basename(output.current_path) for output in outputs])
         for output in outputs:
             with open(output.current_path, encoding="utf-8") as definition_file:
                 definition = json.load(definition_file)
@@ -199,6 +248,25 @@ class TestInputStrings(unittest.TestCase):
         with self.assertRaises(tasks.TaskSkip):
             task.execute(item, self.project, output_dir)
         self.assertFalse(os.path.exists(item.source_path))
+
+    def test_kimodo_definition_names_follow_padded_string_names(self):
+        """Writes definition filenames and names using the input list's digit width."""
+        task = tasks.TaskKimodoDefinition(settings={"use_input_string": True})
+        self.project.add_task(task)
+        cases = ((3, "string_01.json", "string_03.json"),
+                 (110, "string_001.json", "string_110.json"))
+        for count, first_name, last_name in cases:
+            with self.subTest(count=count):
+                self.input_task.settings["strings"] = ["Walk"] * count
+                items = self.input_task.prepare(self.project)
+                output_dir = os.path.join(self.directory.name, f"definitions_{count}")
+                for item, expected_name in ((items[0], first_name), (items[-1], last_name)):
+                    with mock.patch.object(maya_runtime, "get_maya_cmds") as commands:
+                        outputs = task.execute(item, self.project, output_dir)
+                    commands.assert_not_called()
+                    self.assertEqual([expected_name], [os.path.basename(output.current_path) for output in outputs])
+                    with open(outputs[0].current_path, encoding="utf-8") as definition_file:
+                        self.assertEqual(os.path.splitext(expected_name)[0], json.load(definition_file)["name"])
 
     def test_output_directory_uses_current_row(self):
         """Resolves row tokens at execution time and rejects modifying nonexistent source files."""

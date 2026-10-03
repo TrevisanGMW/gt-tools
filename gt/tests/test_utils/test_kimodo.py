@@ -301,6 +301,53 @@ class TestKimodoDefinition(unittest.TestCase):
         self.assertNotIn("creationflags", launch.call_args.kwargs)
 
 
+class TestKimodoRootHeading(unittest.TestCase):
+    """Verifies Maya-free root heading math and the native [cos, sin] constraint shape."""
+
+    def test_heading_from_direction_matches_kimodo_convention(self):
+        """Uses 0 for +Z and positive quarter turns toward +X."""
+        self.assertAlmostEqual(0.0, kimodo.heading_from_direction(0, 1))
+        self.assertAlmostEqual(kimodo.math.pi / 2, kimodo.heading_from_direction(1, 0))
+        self.assertAlmostEqual(-kimodo.math.pi / 2, kimodo.heading_from_direction(-1, 0))
+
+    def test_travel_headings_hold_through_stops(self):
+        """Keeps the last travel direction while the root is stationary, and backfills a still start."""
+        coordinates = [[0, 0], [0, 0], [0, 1], [0, 2], [0, 2], [0, 2], [1, 2], [2, 2]]
+        headings = kimodo.travel_headings(coordinates)
+        self.assertEqual(len(coordinates), len(headings))
+        self.assertAlmostEqual(0.0, headings[0])
+        self.assertAlmostEqual(0.0, headings[4])
+        self.assertAlmostEqual(kimodo.math.pi / 2, headings[-1])
+        self.assertEqual([0.0, 0.0], kimodo.travel_headings([[1, 1], [1, 1]]))
+
+    def test_travel_headings_prefer_explicit_tangents(self):
+        """Uses supplied tangents instead of finite differences."""
+        headings = kimodo.travel_headings([[0, 0], [0, 1]], tangents=[[1, 0], [1, 0]])
+        self.assertAlmostEqual(kimodo.math.pi / 2, headings[0])
+
+    def test_heading_vectors_apply_offset(self):
+        """Encodes cos/sin pairs and adds offsets in degrees."""
+        self.assertEqual([[1.0, 0.0]], kimodo.heading_vectors([0.0]))
+        self.assertEqual([[-1.0, 0.0]], kimodo.heading_vectors([0.0], 180))
+        self.assertEqual([[0.0, 1.0]], kimodo.heading_vectors([0.0], 90))
+
+    def test_validate_root_heading_mode(self):
+        """Accepts known modes and rejects unknown modes or invalid offsets."""
+        self.assertEqual(("path", 180.0), kimodo.validate_root_heading_mode("path", 180))
+        for mode, offset in (("tangent", 0), ("node", "90"), ("node", float("nan")), ("node", True)):
+            with self.assertRaises(ValueError):
+                kimodo.validate_root_heading_mode(mode, offset)
+
+    def test_root2d_heading_uses_cos_sin_pairs(self):
+        """Matches Kimodo's (frames, 2) global_root_heading layout."""
+        constraint = {"type": "root2d", "frame_indices": [0, 1], "smooth_root_2d": [[0, 0], [0, 1]],
+                      "global_root_heading": [[1, 0], [1, 0]]}
+        self.assertEqual([constraint], kimodo.validate_constraints([constraint]))
+        constraint["global_root_heading"] = [0.0, 0.0]
+        with self.assertRaises(ValueError):
+            kimodo.validate_constraints([constraint])
+
+
 class TestKimodoHttp(unittest.TestCase):
     """Exercises real HTTP with a deterministic backend and isolated job storage."""
 
@@ -364,7 +411,7 @@ class TestKimodoHttp(unittest.TestCase):
     def test_health_reports_runtime_and_shutdown_refuses_busy_work(self):
         """Makes process ownership visible and stops only when no generation can be interrupted."""
         health = self.client.health()
-        self.assertEqual(["delete_jobs", "shutdown", "runtime_status"], health["features"])
+        self.assertEqual(["delete_jobs", "shutdown", "runtime_status", "root_heading_vectors"], health["features"])
         self.assertEqual(os.getpid(), health["runtime"]["pid"])
         self.assertEqual(self.state.directory, health["runtime"]["job_directory"])
         self.assertIsNone(health["runtime"]["active_job_id"])
@@ -382,6 +429,18 @@ class TestKimodoHttp(unittest.TestCase):
         self.assertEqual("unchanged", result["encoder_action"])
         self.thread.join(timeout=5)
         self.assertFalse(self.thread.is_alive())
+
+    def test_heading_submission_requires_current_bridge(self):
+        """Explains a bridge restart instead of letting an old validator reject heading pairs."""
+        constraint = {"type": "root2d", "frame_indices": [0, 1], "smooth_root_2d": [[0, 0], [0, 1]],
+                      "global_root_heading": [[1, 0], [1, 0]]}
+        definition = kimodo.KimodoGenerationDefinition("Walk", constraints=[constraint])
+        old_health = dict(self.client.health(), features=["delete_jobs", "shutdown", "runtime_status"])
+        with patch.object(self.client, "health", return_value=old_health):
+            with self.assertRaisesRegex(ValueError, "Restart the bridge"):
+                self.client.submit(definition)
+        job = self.client.submit(definition)
+        self.client.wait(job["job_id"], timeout=5, poll_interval=0.01)
 
     def test_duplicate_submission_is_idempotent(self):
         """A retry never generates twice, and a conflicting payload is rejected."""

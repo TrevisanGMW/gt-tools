@@ -265,8 +265,8 @@ class TestBatchProcessorUi(unittest.TestCase):
         )
         controller._prefs.save.assert_called_once()
 
-    def test_controller_run_keeps_full_custom_query_error_diagnostics(self):
-        """Ensures execution temporarily disables the editing-only suppression preference."""
+    def test_controller_run_honors_custom_query_error_suppression(self):
+        """Ensures execution retains the user's suppression preference."""
         self.model.set_custom_environment_variables(
             {
                 "maya-selection": {
@@ -324,9 +324,9 @@ class TestBatchProcessorUi(unittest.TestCase):
         ) as mock_print:
             controller._run_project()
 
-        self.assertEqual([False], observed_suppression)
+        self.assertEqual([True], observed_suppression)
         self.assertTrue(self.model._suppress_custom_environment_query_errors)
-        mock_log_error.assert_called_once()
+        mock_log_error.assert_not_called()
         mock_print.assert_not_called()
 
     def test_clean_project_does_not_open_unsaved_changes_dialog(self):

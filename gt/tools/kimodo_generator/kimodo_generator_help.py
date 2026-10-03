@@ -330,7 +330,14 @@ CONTROL_TOOLTIPS = {
                    "Entering frames disables that control and samples one point per frame. Frames must fit the prompt "
                    "duration; Generate checks this before submitting. Frame spacing controls path timing; root paths "
                    "constrain the ground plane, not height.",
-    "path_curve_samples": "Number of equally spaced points to capture from a selected NURBS curve when Root path "
+    "path_heading": "Facing direction captured with the root path: None, Direction of travel (curve tangent or "
+                    "movement, held while stopped), Node +Z axis (each transform's world +Z, or an animated "
+                    "transform's keyed rotation), or Fixed (offset only). Without a heading Kimodo chooses the "
+                    "facing itself, which often produces strafing on long paths.",
+    "path_heading_offset": "Degrees added to the captured heading, or the absolute heading when Root heading is "
+                           "Fixed. 0 faces +Z; 180 travels backward; 90 or -90 strafes.",
+    "path_curve_samples": "Number of equally spaced points to capture from a selected NURBS curve, or samples of "
+                          "one selected animated transform from the playback start, when Root path "
                           "frames is blank. These samples are spread across the generated clip. Two or more selected "
                           "transforms ignore this value. Enter explicit Root path frames to determine the count from "
                           "that list; this control will disable. The default is four samples and the setting is saved "

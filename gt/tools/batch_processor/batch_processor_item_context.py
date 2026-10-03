@@ -50,6 +50,8 @@ def work_item_context(project, work_item):
     try:
         value = metadata.get("input_string", "")
         project._input_string_environment = {
+            "input-file": metadata.get("input_file", os.path.splitext(os.path.basename(work_item.source_path))[0]
+                                       if work_item else ""),
             "input-string": value, "input-string-index": metadata.get("input_string_index", ""),
         }
         if virtual_scene:

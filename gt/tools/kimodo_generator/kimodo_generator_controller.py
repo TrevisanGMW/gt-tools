@@ -157,6 +157,8 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
         view.pose_frame.customContextMenuRequested.connect(self.show_pose_frame_context_menu)
         view.path_frames.textChanged.connect(self.update_path_sample_controls)
         view.path_curve_samples.valueChanged.connect(self._action_callback("save_path_curve_samples"))
+        view.path_heading.currentIndexChanged.connect(self._action_callback("save_path_heading"))
+        view.path_heading_offset.valueChanged.connect(self._action_callback("save_path_heading"))
         view.prompt_frames.toggled.connect(self._action_callback("set_prompt_duration_mode"))
         view.model.currentIndexChanged.connect(self._action_callback("generation_model_changed"))
         view.auto_download.toggled.connect(self._action_callback("save_auto_download"))
@@ -691,6 +693,8 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
         view.namespace.setText(self.model.namespace)
         view.start_frame.setValue(self.model.start_frame)
         view.path_curve_samples.setValue(self.model.path_curve_samples)
+        view.path_heading.setCurrentIndex(max(0, view.path_heading.findData(self.model.path_heading_mode)))
+        view.path_heading_offset.setValue(self.model.path_heading_offset)
         self.update_path_sample_controls()
         hik = self.model.humanik
         view.hik_name.setText(hik["character_name"])
@@ -736,6 +740,8 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
         self.model.namespace = view.namespace.text().strip()
         self.model.start_frame = view.start_frame.value()
         self.model.path_curve_samples = view.path_curve_samples.value()
+        self.model.path_heading_mode = view.path_heading.currentData()
+        self.model.path_heading_offset = view.path_heading_offset.value()
         self.gather_humanik()
 
     def gather_prompts(self):
@@ -1648,6 +1654,15 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
     def update_path_sample_controls(self, *unused):
         """Enables automatic curve sampling only when explicit root-path frames are blank."""
         self.view.path_curve_samples.setEnabled(not self.view.path_frames.text().strip())
+        self.view.path_heading_offset.setEnabled(self.view.path_heading.currentData() != "none")
+
+    def save_path_heading(self, *unused):
+        """Persists the root path heading mode and offset."""
+        self.update_path_sample_controls()
+        if not self.loading:
+            self.model.path_heading_mode = self.view.path_heading.currentData()
+            self.model.path_heading_offset = self.view.path_heading_offset.value()
+            self.model.save_preferences()
 
     def save_path_curve_samples(self, *unused):
         """Persists the requested automatic NURBS curve sample count."""
@@ -1689,30 +1704,36 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
         self.gather_prompts()
         frame_count = self._generation_frame_count(self.model.definition)
         automatic_curve = False
+        curve_shapes = []
+        if len(path_nodes) == 1:
+            curve_shapes = [shape for shape in cmds.listRelatives(
+                path_nodes[0], shapes=True, fullPath=True) or [] if cmds.nodeType(shape) == "nurbsCurve"]
+        # One non-curve transform is an animated trajectory driver sampled over the scene's playback.
+        animated_node = len(path_nodes) == 1 and not curve_shapes
         if frame_text:
             frames = self.parse_frames(frame_text)
         else:
-            curve_shapes = []
-            if len(path_nodes) == 1:
-                curve_shapes = [shape for shape in cmds.listRelatives(
-                    path_nodes[0], shapes=True, fullPath=True) or [] if cmds.nodeType(shape) == "nurbsCurve"]
             if len(path_nodes) >= 2:
                 key_count = len(path_nodes)
-            elif curve_shapes:
+            elif path_nodes:
                 key_count = min(self.view.path_curve_samples.value(), frame_count)
                 automatic_curve = True
             else:
                 raise ValueError("Leave Root path frames blank to evenly spread two or more selected transforms, "
-                                 "or to sample one selected NURBS curve across the generated clip.")
+                                 "or to sample one selected NURBS curve or animated transform across the clip.")
             frames = kimodo.distribute_constraint_frames(key_count, frame_count)
-        constraint = kimodo.capture_root_path(path_nodes, frames, self.model.pose_group or None)
+        sample_times = self._path_sample_times(frames) if animated_node and len(frames) > 1 else None
+        constraint = kimodo.capture_root_path(path_nodes, frames, self.model.pose_group or None,
+                                              heading_mode=self.view.path_heading.currentData(),
+                                              heading_offset=self.view.path_heading_offset.value(),
+                                              sample_times=sample_times)
         kimodo.validate_constraints([constraint], frame_count)
         self.model.add_constraint(constraint, "Root path")
         self.populate_constraints()
         self.model.save_preferences()
         if automatic_curve:
             requested_samples = self.view.path_curve_samples.value()
-            timing = f"with {len(frames)} curve samples"
+            timing = f"with {len(frames)} {'animation' if animated_node else 'curve'} samples"
             if len(frames) < requested_samples:
                 timing += f" (requested {requested_samples}; limited by clip length)"
             timing += " evenly spread across the generated clip"
@@ -1721,6 +1742,23 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
         else:
             timing = "evenly across the generated clip"
         self.message(f"Root path captured {timing} in the pose skeleton's placement space.")
+
+    def _path_sample_times(self, frames):
+        """Maps zero-based clip frames to scene times from the playback start for animated root paths.
+
+        Args:
+            frames (list): Zero-based generated clip frames.
+
+        Returns:
+            list: Maya times in the current UI time unit.
+        """
+        import maya.cmds as cmds
+        import maya.api.OpenMaya as om
+
+        scene_fps = om.MTime(1, om.MTime.kSeconds).asUnits(om.MTime.uiUnit())
+        start = cmds.playbackOptions(query=True, minTime=True)
+        ratio = scene_fps / self._model_fps(model_id=self.model.definition.get("model"))
+        return [start + frame * ratio for frame in frames]
 
     def preview_pose(self):
         """Creates a separate pose preview without changing the authoring skeleton."""
@@ -2125,6 +2163,8 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
         self.model.constraints = copy.deepcopy(defaults.constraints)
         self.model.prompt_durations_in_frames = defaults.prompt_durations_in_frames
         self.model.path_curve_samples = defaults.path_curve_samples
+        self.model.path_heading_mode = defaults.path_heading_mode
+        self.model.path_heading_offset = defaults.path_heading_offset
         self.model.pose_previews_template = defaults.pose_previews_template
         self.model.output_directory = defaults.output_directory
         self.model.namespace = defaults.namespace
