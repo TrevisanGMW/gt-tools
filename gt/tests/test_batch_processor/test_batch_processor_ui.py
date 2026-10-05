@@ -1,6 +1,7 @@
 """Qt regression tests for the Batch Processor user interface."""
 
 import builtins
+import copy
 import json
 import os
 import shutil
@@ -688,6 +689,161 @@ class TestBatchProcessorUi(unittest.TestCase):
         task_item = self.view.project_item.child(1)
         expected = self.task.id
         self.assertEqual(expected, task_item.data(0, self.view.DATA_ROLE))
+
+    def _build_separator_controller(self):
+        """Creates a connected controller with two visible task groups.
+
+        Returns:
+            BatchProcessorController: Controller with status logging mocked.
+        """
+        self.task.settings["force_segment_separator"] = True
+        self.task.settings["segment_name"] = "Shared Name"
+        process_task = self.model.add_task_by_type(batch_processor_constants.TaskType.RENAME)
+        process_task.enabled = False
+        next_marker = self.model.add_task_by_type(batch_processor_constants.TaskType.RENAME)
+        next_marker.settings["force_segment_separator"] = True
+        next_marker.settings["segment_name"] = "Shared Name"
+        controller = batch_processor_controller.BatchProcessorController.__new__(
+            batch_processor_controller.BatchProcessorController
+        )
+        controller.model = self.model
+        controller.view = self.view
+        controller.log_status = mock.MagicMock()
+        controller._auto_segment_imported_projects = True
+        controller.apply_task_index_automation = mock.MagicMock()
+        self.view.controller = controller
+        controller.connect_view()
+        controller.refresh_widgets()
+        self.view.task_tree.setCurrentItem(self.view.project_item.child(0))
+        controller.mark_project_clean()
+        return controller
+
+    def test_segment_toggle_updates_in_place_and_keeps_selection(self):
+        """Disables mixed groups and reenables them without deleting the active widget."""
+        controller = self._build_separator_controller()
+        widget = self.view.get_task_widget()
+        selected_item = self.view.task_tree.currentItem()
+        initial_icon_image = widget.toggle_tasks_button.icon().pixmap(20, 20).toImage()
+        self.assertFalse(widget.toggle_tasks_button.icon().isNull())
+
+        widget.toggle_tasks_button.click()
+
+        self.assertEqual([False, False, True], [task.enabled for task in self.model.tasks])
+        self.assertEqual("Enable Tasks", widget.toggle_tasks_button.text())
+        self.assertNotEqual(initial_icon_image, widget.toggle_tasks_button.icon().pixmap(20, 20).toImage())
+        self.assertIs(widget, self.view.get_task_widget())
+        self.assertIs(selected_item, self.view.task_tree.currentItem())
+        self.assertTrue(controller.has_unsaved_changes())
+        self.assertEqual("Task is disabled.", self.view.project_item.child(1).toolTip(0))
+
+        widget.toggle_tasks_button.click()
+
+        self.assertEqual([True, True, True], [task.enabled for task in self.model.tasks])
+        self.assertEqual("Disable Tasks", widget.toggle_tasks_button.text())
+        self.assertEqual(initial_icon_image, widget.toggle_tasks_button.icon().pixmap(20, 20).toImage())
+        self.assertIs(widget, self.view.get_task_widget())
+        self.assertEqual("", self.view.project_item.child(1).toolTip(0))
+
+    def test_segment_buttons_have_equal_sizes_and_are_centered(self):
+        """Checks button symmetry after Qt lays out the details panel."""
+        self._build_separator_controller()
+        self.view.show()
+        self.application.processEvents()
+        widget = self.view.get_task_widget()
+        toggle_button = widget.toggle_tasks_button
+        export_button = widget.export_segment_button
+
+        self.assertFalse(export_button.icon().isNull())
+        self.assertEqual(toggle_button.iconSize(), export_button.iconSize())
+        self.assertEqual(toggle_button.size(), export_button.size())
+        self.assertEqual(toggle_button.y(), export_button.y())
+        button_row = toggle_button.parentWidget()
+        self.assertLessEqual(abs(button_row.geometry().center().x() - widget.rect().center().x()), 1)
+        self.assertLessEqual(
+            abs((toggle_button.geometry().left() + export_button.geometry().right()) / 2
+                - button_row.rect().center().x()),
+            1,
+        )
+
+    def test_segment_export_button_uses_existing_project_import(self):
+        """Round trips the group through Export Segment and Import Project."""
+        controller = self._build_separator_controller()
+        source_data = copy.deepcopy(self.model.to_dict())
+        source_ids = [task.id for task in self.model.tasks]
+        with tempfile.TemporaryDirectory() as directory:
+            export_path = os.path.join(directory, "segment")
+            with mock.patch.object(batch_processor_controller.ui_file_dialog, "file_dialog", return_value=export_path):
+                self.view.get_task_widget().export_segment_button.click()
+            exported_path = f"{export_path}.batch"
+            self.assertTrue(os.path.isfile(exported_path))
+            self.assertEqual(source_data, self.model.to_dict())
+            self.assertIsNone(self.model.project_file_path)
+            self.assertFalse(controller.has_unsaved_changes())
+
+            self.assertTrue(controller.import_tasks_from_path(exported_path))
+
+        self.assertEqual(5, len(self.model.tasks))
+        self.assertEqual([True, False], [task.enabled for task in self.model.tasks[-2:]])
+        self.assertTrue(self.model.tasks[-2].shows_segment_separator())
+        self.assertEqual("Shared Name", self.model.tasks[-2].get_segment_display_name())
+        self.assertTrue(all(task.id not in source_ids for task in self.model.tasks[-2:]))
+
+    def test_segment_export_preserves_current_project_file(self):
+        """Refuses to replace the active project with a segment export."""
+        controller = self._build_separator_controller()
+        with tempfile.TemporaryDirectory() as directory:
+            project_path = self.model.save_to_file(os.path.join(directory, "project.batch"))
+            with open(project_path, "rb") as project_file:
+                original_contents = project_file.read()
+            with mock.patch.object(
+                batch_processor_controller.ui_file_dialog, "file_dialog", return_value=project_path
+            ):
+                self.assertFalse(controller.export_segment(self.task.id))
+            with open(project_path, "rb") as project_file:
+                self.assertEqual(original_contents, project_file.read())
+            self.assertEqual(project_path, self.model.project_file_path)
+
+    def test_segment_export_handles_cancel_and_write_errors(self):
+        """Leaves the source untouched when export is canceled or fails."""
+        controller = self._build_separator_controller()
+        original_data = self.model.to_dict()
+        with mock.patch.object(batch_processor_controller.ui_file_dialog, "file_dialog", return_value=""):
+            self.assertFalse(controller.export_segment(self.task.id))
+        with tempfile.TemporaryDirectory() as directory:
+            export_path = os.path.join(directory, "segment.batch")
+            with mock.patch.object(batch_processor_controller.ui_file_dialog, "file_dialog", return_value=export_path):
+                with mock.patch.object(
+                    batch_processor_model.BatchProcessorModel, "save_to_file", side_effect=OSError("Write failed")
+                ):
+                    with self.assertLogs(batch_processor_controller.logger, level="ERROR"):
+                        self.assertFalse(controller.export_segment(self.task.id))
+            self.assertFalse(os.path.exists(export_path))
+        self.assertEqual(original_data, self.model.to_dict())
+
+    def test_segment_export_confirms_existing_file_after_adding_extension(self):
+        """Checks the actual .batch destination before replacing an existing file."""
+        controller = self._build_separator_controller()
+        with tempfile.TemporaryDirectory() as directory:
+            entered_path = os.path.join(directory, "segment")
+            target_path = f"{entered_path}.batch"
+            with open(target_path, "w", encoding="utf-8") as target_file:
+                target_file.write("existing data")
+            with mock.patch.object(
+                batch_processor_controller.ui_file_dialog, "file_dialog", return_value=entered_path
+            ):
+                with mock.patch.object(
+                    ui_qt.QtWidgets.QMessageBox, "question", return_value=ui_qt.QtLib.StandardButton.No
+                ) as question:
+                    self.assertFalse(controller.export_segment(self.task.id))
+                    question.assert_called_once()
+                with open(target_path, "r", encoding="utf-8") as target_file:
+                    self.assertEqual("existing data", target_file.read())
+                with mock.patch.object(
+                    ui_qt.QtWidgets.QMessageBox, "question", return_value=ui_qt.QtLib.StandardButton.Yes
+                ):
+                    self.assertTrue(controller.export_segment(self.task.id))
+            loaded_model = batch_processor_model.BatchProcessorModel.from_file(target_path)
+            self.assertEqual(2, len(loaded_model.tasks))
 
     def test_parent_refresh_is_deferred_until_next_event_loop_cycle(self):
         """Ensures full parent rebuilds do not run inside an emitting callback."""

@@ -8,6 +8,7 @@ flag. They avoid Maya imports so they run outside a Maya environment.
 import logging
 import os
 import sys
+import tempfile
 import unittest
 
 # Logging Setup
@@ -28,6 +29,75 @@ from gt.tools.batch_processor import batch_processor_tasks as tasks
 
 
 class TestBatchProcessorSegments(unittest.TestCase):
+    def test_separator_group_includes_disabled_tasks_and_stops_at_next_marker(self):
+        """Keeps visible groups independent of enabled states and runtime boundaries."""
+        model = batch_processor_model.BatchProcessorModel()
+        leading_task = self._build_process_task()
+        marker = self._build_input_task(enabled=False)
+        marker.settings["force_segment_separator"] = True
+        process_task = self._build_process_task()
+        hidden_boundary = self._build_input_task(start_new_input_list=True)
+        next_marker = self._build_process_task(enabled=False)
+        next_marker.settings["force_segment_separator"] = True
+        model.tasks = [leading_task, marker, process_task, hidden_boundary, next_marker]
+
+        expected = [marker, process_task, hidden_boundary]
+        self.assertEqual(expected, model.get_separator_tasks(marker.id))
+        self.assertEqual([next_marker], model.get_separator_tasks(next_marker.id))
+
+    def test_separator_group_rejects_missing_or_unmarked_tasks(self):
+        """Ignores stale marker IDs without selecting an unrelated group."""
+        model = batch_processor_model.BatchProcessorModel()
+
+        self.assertEqual([], model.get_separator_tasks("missing"))
+        self.assertEqual([], model.get_separator_tasks(model.tasks[0].id))
+        self.assertEqual([], model.set_separator_tasks_enabled("missing", False))
+        self.assertIsNone(model.create_separator_project("missing"))
+
+    def test_toggle_separator_group_preserves_neighboring_states(self):
+        """Changes the entire group without changing adjacent tasks or settings."""
+        model = batch_processor_model.BatchProcessorModel()
+        marker = self._build_input_task()
+        marker.settings["force_segment_separator"] = True
+        process_task = self._build_process_task(enabled=False)
+        next_marker = self._build_process_task()
+        next_marker.settings["force_segment_separator"] = True
+        model.tasks = [marker, process_task, next_marker]
+        original_settings = dict(process_task.settings)
+
+        expected = [marker, process_task]
+        self.assertEqual(expected, model.set_separator_tasks_enabled(marker.id, False))
+        self.assertEqual([False, False, True], [task.enabled for task in model.tasks])
+        model.set_separator_tasks_enabled(marker.id, True)
+        self.assertEqual([True, True, True], [task.enabled for task in model.tasks])
+        self.assertEqual(original_settings, process_task.settings)
+
+    def test_segment_export_round_trip_preserves_tasks_and_source(self):
+        """Exports a final segment with independent settings and preserved task order."""
+        model = batch_processor_model.BatchProcessorModel()
+        marker = self._build_process_task(enabled=False)
+        marker.settings["force_segment_separator"] = True
+        marker.settings["segment_name"] = "Final Processing"
+        marker.settings["nested_export_test"] = {"values": ["original"]}
+        process_task = self._build_process_task()
+        model.tasks.extend([marker, process_task])
+        original_data = model.to_dict()
+
+        segment_project = model.create_separator_project(marker.id)
+        self.assertEqual("Final Processing", segment_project.project_name)
+        expected = [marker.to_dict(), process_task.to_dict()]
+        self.assertEqual(expected, [task.to_dict() for task in segment_project.tasks])
+        segment_project.tasks[0].settings["nested_export_test"]["values"].append("copy")
+        self.assertEqual(["original"], marker.settings["nested_export_test"]["values"])
+
+        with tempfile.TemporaryDirectory() as directory:
+            segment_project = model.create_separator_project(marker.id)
+            saved_path = segment_project.save_to_file(os.path.join(directory, "segment.batch"))
+            loaded_project = batch_processor_model.BatchProcessorModel.from_file(saved_path)
+            self.assertEqual(expected, [task.to_dict() for task in loaded_project.tasks])
+        self.assertEqual(original_data, model.to_dict())
+        self.assertIsNone(model.project_file_path)
+
     def _build_input_task(self, start_new_input_list=False, enabled=True):
         """Builds an input task with the segment flag set as requested.
 

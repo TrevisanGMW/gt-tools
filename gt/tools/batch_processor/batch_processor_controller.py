@@ -109,6 +109,8 @@ class BatchProcessorController:
         self.view.run_btn.clicked.connect(self.run_project)
         self.view.run_selected_btn.clicked.connect(self.run_selected_task)
         self.view.validate_btn.clicked.connect(self.validate_project)
+        self.view.segment_toggle_requested.connect(self.toggle_segment_tasks)
+        self.view.segment_export_requested.connect(self.export_segment)
 
     def add_menu_file(self):
         """Adds the File menu to the view."""
@@ -1273,7 +1275,7 @@ class BatchProcessorController:
         self.view.set_task_widget(widget_object)
 
     def build_separator_details_widget(self, segment_name):
-        """Builds a centered, greyed-out details panel for a segment separator row.
+        """Builds details and actions for the selected segment separator.
 
         Args:
             segment_name (str): Name of the segment the separator labels.
@@ -1281,26 +1283,88 @@ class BatchProcessorController:
         Returns:
             QWidget: Details widget.
         """
-        container = ui_qt.QtWidgets.QWidget()
-        layout = ui_qt.QtWidgets.QVBoxLayout(container)
-        layout.setContentsMargins(12, 12, 12, 12)
-        layout.setSpacing(4)
-        grey_color = ui_res_lib.Color.Hex.gray_dim
-        title_label = ui_qt.QtWidgets.QLabel("Segment Separator")
-        title_label.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignCenter)
-        title_label.setStyleSheet("color: {0}; font-size: 15pt;".format(grey_color))
-        title_label.setWordWrap(True)
-        name_label = ui_qt.QtWidgets.QLabel(segment_name or "New Segment")
-        name_label.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignCenter)
-        name_label.setStyleSheet(
-            "color: {0}; font-size: 18pt; font-weight: bold;".format(ui_res_lib.Color.Hex.white)
+        start_task_id = self.view.get_selected_segment_task_id()
+        segment_tasks = self.model.get_separator_tasks(start_task_id)
+        return self.view.build_separator_details_widget(
+            segment_name,
+            start_task_id=start_task_id if segment_tasks else None,
+            tasks_enabled=any(task.enabled for task in segment_tasks),
         )
-        name_label.setWordWrap(True)
-        layout.addStretch()
-        layout.addWidget(title_label)
-        layout.addWidget(name_label)
-        layout.addStretch()
-        return container
+
+    def toggle_segment_tasks(self, start_task_id):
+        """Enables or disables every task belonging to a separator.
+
+        A mixed group is disabled first; a fully disabled group is enabled.
+
+        Args:
+            start_task_id (str): Identifier of the task carrying the separator.
+        """
+        segment_tasks = self.model.get_separator_tasks(start_task_id)
+        if not segment_tasks:
+            self.log_status("The segment is no longer available.", status="warning")
+            return
+        enabled = not any(task.enabled for task in segment_tasks)
+        self.model.set_separator_tasks_enabled(start_task_id, enabled)
+        for task in segment_tasks:
+            self.view.update_task_tree_item(task)
+        self.view.update_separator_details_state(start_task_id, enabled)
+        state_name = "Enabled" if enabled else "Disabled"
+        segment_name = segment_tasks[0].get_segment_display_name()
+        self.log_status(f'{state_name} {len(segment_tasks)} task(s) in segment "{segment_name}".')
+
+    def export_segment(self, start_task_id):
+        """Exports a separator group as an importable .batch project.
+
+        Args:
+            start_task_id (str): Identifier of the task carrying the separator.
+
+        Returns:
+            bool: True when the segment was exported.
+        """
+        segment_project = self.model.create_separator_project(start_task_id)
+        if not segment_project:
+            self.log_status("The segment is no longer available.", status="warning")
+            return False
+        default_name = tasks.sanitize_filename(segment_project.project_name.lower().replace(" ", "_"))
+        file_path = ui_file_dialog.file_dialog(
+            parent=self.view,
+            caption="Export Batch Segment",
+            write_mode=True,
+            starting_directory=f"{default_name}{constants.Project.EXTENSION}",
+            file_filter="Batch Projects (*.batch);;All Files (*);;",
+            ok_caption="Export Segment",
+            cancel_caption="Cancel",
+        )
+        if not file_path:
+            return False
+        extension_added = not file_path.lower().endswith(constants.Project.EXTENSION)
+        if extension_added:
+            file_path += constants.Project.EXTENSION
+        source_path = self.model.project_file_path
+        if source_path and os.path.normcase(os.path.realpath(file_path)) == os.path.normcase(
+            os.path.realpath(source_path)
+        ):
+            self.log_status("Choose a different file to preserve the current project.", status="warning")
+            return False
+        if extension_added and os.path.exists(file_path):
+            # The save dialog confirmed the entered path, before adding .batch.
+            result = ui_qt.QtWidgets.QMessageBox.question(
+                self.view,
+                "Replace Existing Segment",
+                f"A file already exists at:\n\n{file_path}\n\nReplace it with this segment?",
+                ui_qt.QtLib.StandardButton.Yes | ui_qt.QtLib.StandardButton.No,
+                ui_qt.QtLib.StandardButton.No,
+            )
+            if result != ui_qt.QtLib.StandardButton.Yes:
+                return False
+        try:
+            saved_path = segment_project.save_to_file(file_path)
+        except Exception as exception:
+            logger.exception('Unable to export batch segment: "%s"', file_path)
+            self.log_status(f"Unable to export segment: {exception}", status="warning")
+            return False
+        self.log_status(f'Exported segment "{segment_project.project_name}" to: {saved_path}')
+        return True
 
     def sync_task_order_from_tree(self):
         """Synchronizes model task order after a tree drag/drop operation."""

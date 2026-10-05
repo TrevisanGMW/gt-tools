@@ -7,6 +7,7 @@ tool remains usable without loading the UI.
 
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_tasks as tasks
+import copy
 import datetime
 import json
 import logging
@@ -552,6 +553,65 @@ class BatchProcessorModel:
         if current_segment:
             segments.append(current_segment)
         return segments
+
+    def get_separator_tasks(self, start_task_id):
+        """Gets all tasks from a visible separator up to the next separator.
+
+        Disabled tasks remain part of the group. These visual boundaries are
+        independent of the input boundaries used during execution.
+
+        Args:
+            start_task_id (str): Identifier of the task carrying the separator.
+
+        Returns:
+            list: Ordered tasks in the group, or an empty list for a stale marker.
+        """
+        start_task = self.get_task(start_task_id)
+        if not start_task or not start_task.shows_segment_separator():
+            return []
+        segment_tasks = []
+        for task in self.tasks[self.tasks.index(start_task):]:
+            if segment_tasks and task.shows_segment_separator():
+                break
+            segment_tasks.append(task)
+        return segment_tasks
+
+    def set_separator_tasks_enabled(self, start_task_id, enabled):
+        """Sets the enabled state of every task in a separator group.
+
+        Args:
+            start_task_id (str): Identifier of the task carrying the separator.
+            enabled (bool): Enabled state to apply to all tasks in the group.
+
+        Returns:
+            list: Tasks whose enabled state was set.
+        """
+        segment_tasks = self.get_separator_tasks(start_task_id)
+        for task in segment_tasks:
+            task.enabled = bool(enabled)
+        return segment_tasks
+
+    def create_separator_project(self, start_task_id):
+        """Copies a separator group into an independent, importable project.
+
+        The copy keeps task settings and enabled states. Importing it through
+        Import Project uses the destination project's settings and fresh IDs.
+
+        Args:
+            start_task_id (str): Identifier of the task carrying the separator.
+
+        Returns:
+            BatchProcessorModel or None: Segment project, or None for a stale marker.
+        """
+        segment_tasks = self.get_separator_tasks(start_task_id)
+        if not segment_tasks:
+            return None
+        segment_project = type(self)()
+        segment_project.read_data_from_dict({
+            "project_name": segment_tasks[0].get_segment_display_name(),
+            "tasks": copy.deepcopy([task.to_dict() for task in segment_tasks]),
+        })
+        return segment_project
 
     def has_input_segments(self, task_list=None):
         """Checks whether tasks split into more than one input segment.

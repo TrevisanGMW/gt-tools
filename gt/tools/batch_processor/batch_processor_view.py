@@ -19,6 +19,8 @@ class BatchProcessorView(metaclass=MayaWindowMeta):
 
     TOOL_NAME = "Batch Processor"
     DATA_ROLE = ui_qt.QtLib.ItemDataRole.UserRole
+    segment_toggle_requested = ui_qt.QtCore.Signal(str)
+    segment_export_requested = ui_qt.QtCore.Signal(str)
 
     def __init__(self, parent=None, controller=None, version=None):
         """Initializes the batch processor view.
@@ -354,7 +356,7 @@ class BatchProcessorView(metaclass=MayaWindowMeta):
         """
         self.task_tree.addTopLevelItem(item)
 
-    def add_segment_separator_item(self, segment_name="New Input Segment", color_hex=None):
+    def add_segment_separator_item(self, segment_name="New Input Segment", color_hex=None, start_task_id=None):
         """Adds a non-interactive divider marking the start of a new input segment.
 
         The separator is purely presentational. It is rebuilt on every tree
@@ -364,6 +366,7 @@ class BatchProcessorView(metaclass=MayaWindowMeta):
         Args:
             segment_name (str, optional): Segment label shown in the divider.
             color_hex (str, optional): Divider text color. Defaults to a soft blue.
+            start_task_id (str, optional): Identifier of the task carrying the divider.
         """
         segment_name = str(segment_name or "New Input Segment").strip() or "New Input Segment"
         color_hex = color_hex or ui_res_lib.Color.Hex.blue_light_sky
@@ -373,6 +376,7 @@ class BatchProcessorView(metaclass=MayaWindowMeta):
         separator_item = ui_tree_enhanced.QTreeItemEnhanced([""])
         separator_item.setData(0, self.DATA_ROLE, "segment_separator")
         separator_item.segment_name = segment_name
+        separator_item.segment_task_id = start_task_id
         separator_item.set_allow_parenting(False)
         separator_item.setFlags(ui_qt.QtLib.ItemFlag.ItemIsEnabled | ui_qt.QtLib.ItemFlag.ItemIsSelectable)
         separator_item.setToolTip(0, tooltip)
@@ -474,7 +478,7 @@ class BatchProcessorView(metaclass=MayaWindowMeta):
                     color_hex = getattr(
                         ui_res_lib.Color.Hex, color_name, ui_res_lib.Color.Hex.blue_light_sky
                     )
-                    self.add_segment_separator_item(segment_name, color_hex)
+                    self.add_segment_separator_item(segment_name, color_hex, start_task_id=task.id)
                 label = task.display_name
                 tree_item = ui_tree_enhanced.QTreeItemEnhanced([label])
                 tree_item.setIcon(0, ui_qt.QtGui.QIcon(task.icon))
@@ -560,6 +564,99 @@ class BatchProcessorView(metaclass=MayaWindowMeta):
         if not item or item.data(0, self.DATA_ROLE) != "segment_separator":
             return ""
         return str(getattr(item, "segment_name", "") or "")
+
+    def get_selected_segment_task_id(self):
+        """Gets the task identifier attached to the selected separator.
+
+        Returns:
+            str or None: Separator task identifier, if available.
+        """
+        if not self.is_segment_separator_selected():
+            return None
+        return getattr(self.task_tree.currentItem(), "segment_task_id", None)
+
+    def build_separator_details_widget(self, segment_name, start_task_id=None, tasks_enabled=True):
+        """Builds centered segment labels and an equally sized pair of actions.
+
+        Args:
+            segment_name (str): Display name of the selected segment.
+            start_task_id (str, optional): Identifier of the task carrying the separator.
+            tasks_enabled (bool, optional): Whether any task in the segment is enabled.
+
+        Returns:
+            QWidget: Segment details with toggle and export buttons.
+        """
+        container = ui_qt.QtWidgets.QWidget()
+        container.segment_task_id = start_task_id
+        layout = ui_qt.QtWidgets.QVBoxLayout(container)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(4)
+        title_label = ui_qt.QtWidgets.QLabel("Segment Separator")
+        title_label.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignCenter)
+        title_label.setStyleSheet(f"color: {ui_res_lib.Color.Hex.gray_dim}; font-size: 15pt;")
+        title_label.setWordWrap(True)
+        name_label = ui_qt.QtWidgets.QLabel(segment_name or "New Segment")
+        name_label.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignCenter)
+        name_label.setStyleSheet(
+            f"color: {ui_res_lib.Color.Hex.white}; font-size: 18pt; font-weight: bold;"
+        )
+        name_label.setWordWrap(True)
+
+        actions_widget = ui_qt.QtWidgets.QWidget()
+        actions_layout = ui_qt.QtWidgets.QHBoxLayout(actions_widget)
+        actions_layout.setContentsMargins(0, 18, 0, 0)
+        actions_layout.setSpacing(12)
+        container.toggle_tasks_button = ui_qt.QtWidgets.QPushButton("Disable Tasks")
+        container.toggle_tasks_button.setToolTip(
+            "Enable or disable every task from this separator up to the next separator."
+        )
+        toggle_icon = (
+            ui_res_lib.Icon.ui_checkbox_unchecked if tasks_enabled else ui_res_lib.Icon.ui_checkbox_checked
+        )
+        container.toggle_tasks_button.setIcon(ui_qt.QtGui.QIcon(toggle_icon))
+        container.export_segment_button = ui_qt.QtWidgets.QPushButton("Export Segment")
+        container.export_segment_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.rigger_action_export_grayscale))
+        container.export_segment_button.setToolTip(
+            "Export these tasks as a .batch file. Reuse them with File > Import Project. "
+            "Imported tasks use the destination project's settings."
+        )
+        buttons = [container.toggle_tasks_button, container.export_segment_button]
+        for button in buttons:
+            button.setIconSize(ui_qt.QtCore.QSize(20, 20))
+        button_width = max(button.sizeHint().width() for button in buttons) + 16
+        button_height = max(button.sizeHint().height() for button in buttons) + 8
+        for button in buttons:
+            button.setFixedSize(button_width, button_height)
+            button.setEnabled(bool(start_task_id))
+            actions_layout.addWidget(button)
+        container.toggle_tasks_button.setText("Disable Tasks" if tasks_enabled else "Enable Tasks")
+        container.toggle_tasks_button.clicked.connect(
+            lambda: self.segment_toggle_requested.emit(start_task_id)
+        )
+        container.export_segment_button.clicked.connect(
+            lambda: self.segment_export_requested.emit(start_task_id)
+        )
+        layout.addStretch()
+        layout.addWidget(title_label)
+        layout.addWidget(name_label)
+        layout.addWidget(actions_widget, 0, ui_qt.QtLib.AlignmentFlag.AlignHCenter)
+        layout.addStretch()
+        return container
+
+    def update_separator_details_state(self, start_task_id, tasks_enabled):
+        """Updates the active segment toggle without replacing its widget.
+
+        Args:
+            start_task_id (str): Identifier of the task carrying the separator.
+            tasks_enabled (bool): Whether any task in the segment is enabled.
+        """
+        widget = self.get_task_widget()
+        if widget and getattr(widget, "segment_task_id", None) == start_task_id:
+            widget.toggle_tasks_button.setText("Disable Tasks" if tasks_enabled else "Enable Tasks")
+            toggle_icon = (
+                ui_res_lib.Icon.ui_checkbox_unchecked if tasks_enabled else ui_res_lib.Icon.ui_checkbox_checked
+            )
+            widget.toggle_tasks_button.setIcon(ui_qt.QtGui.QIcon(toggle_icon))
 
     def select_task_by_id(self, task_id):
         """Selects a task tree item by task id.
