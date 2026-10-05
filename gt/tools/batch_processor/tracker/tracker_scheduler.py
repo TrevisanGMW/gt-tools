@@ -11,6 +11,7 @@ from gt.tools.batch_processor.tracker import tracker_constants
 from gt.tools.batch_processor.tracker import tracker_events
 from gt.tools.batch_processor.tracker import tracker_model
 from gt.tools.batch_processor.tracker import tracker_process_utils
+from gt.tools.batch_processor import batch_processor_run_state as run_state
 
 
 class TrackerScheduler:
@@ -35,6 +36,7 @@ class TrackerScheduler:
         self.update_callback = update_callback
         self.finish_callback = finish_callback
         self.project = project
+        self.run_seed = run_state.decode_state(os.environ.get(run_state.WORKER_STATE_VARIABLE, ""))
         self.segments = list(segments or [])
         self.segmented = len(self.segments) > 1
         self.current_segment_index = 0
@@ -559,6 +561,51 @@ class TrackerScheduler:
             return True
         return not self._segment_complete(self.current_segment_index)
 
+    def _build_worker_run_state(self, job, final_task=None):
+        """Transfers cumulative results through the process environment.
+
+        Args:
+            job (TrackerJob): Worker being launched or retried.
+            final_task (TrackerTask, optional): Current project finalization task.
+
+        Returns:
+            dict: Worker seed. Project scope requires verified results from every
+                regular job; missing events, skips, failures and retries block
+                a successful project result even if later work completed successfully.
+        """
+        successful = {tracker_constants.Status.COMPLETED, tracker_constants.Status.COMPLETED_WARNINGS}
+        states = [self.run_seed] if self.run_seed is not None else []
+        considered_jobs = list(self.session.regular_jobs) if final_task else [job]
+        if final_task:
+            states.extend(getattr(candidate, "runtime_state", None) for candidate in considered_jobs)
+        elif getattr(job, "runtime_state", None) is not None:
+            states.append(job.runtime_state)
+        if final_task and getattr(job, "runtime_state", None) is not None:
+            states.append(job.runtime_state)
+        state = run_state.merge_states(states, self.session.session_dir, "project" if final_task else "worker")
+        if final_task and not considered_jobs:
+            state["known"] = False
+        for candidate in considered_jobs:
+            if candidate.status in (tracker_constants.Status.FAILED, tracker_constants.Status.TIMED_OUT,
+                                    tracker_constants.Status.CANCELED) or self.job_retry_counts.get(candidate.id, 0):
+                state["tasks_failed"] = True
+                state["tasks_incomplete"] = True
+            if final_task and (candidate.status not in successful or any(
+                    task.status not in successful or task.skipped_items for task in candidate.tasks)):
+                state["tasks_incomplete"] = True
+        if final_task:
+            for task in job.tasks:
+                if task is final_task:
+                    break
+                if task.status in successful and not task.skipped_items:
+                    if task.id not in state["completed_task_ids"]:
+                        state["completed_task_ids"].append(task.id)
+                else:
+                    state["tasks_incomplete"] = True
+                    if task.status == tracker_constants.Status.FAILED:
+                        state["tasks_failed"] = True
+        return state
+
     def _launch_job(self, job, final_task=None):
         """Launches one job worker.
 
@@ -615,6 +662,7 @@ class TrackerScheduler:
             command.extend(["--task-time-log-file", timing_path])
         environment = dict(os.environ)
         environment["PYTHONIOENCODING"] = "utf-8"
+        environment[run_state.WORKER_STATE_VARIABLE] = json.dumps(self._build_worker_run_state(job, final_task))
         creation_flags = 0
         popen_kwargs = {}
         if sys.platform == "win32":

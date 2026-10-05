@@ -7,6 +7,7 @@ Runner and launcher services used by the batch processor.
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_tasks as tasks
 from gt.tools.batch_processor import batch_processor_tracker
+from gt.tools.batch_processor import batch_processor_run_state as run_state
 from gt.tools.batch_processor.batch_processor_item_context import execute_work_item
 import json
 import logging
@@ -52,9 +53,12 @@ class SingleInstanceBatchRunner:
         """
         if run_from_task_id is None:
             run_from_task_id = run_from_module_id
+        self.run_id = tasks.build_run_id()
+        run_state.initialize(project, self.run_id)
         process_tasks = self._trim_tasks(project.get_enabled_tasks(), run_from_task_id, run_to_task_id)
         validation = project.validate_project(task_list=process_tasks)
         if validation.errors:
+            run_state.record_task(project, None, "failed")
             raise RuntimeError("Project validation failed: {0}".format("; ".join(validation.errors)))
 
         discovered_files = self._get_initial_source_files(project, process_tasks)
@@ -97,6 +101,7 @@ class SingleInstanceBatchRunner:
                         self.tracker.record_message(
                             'Input task "{0}" discovered {1} file(s).'.format(task.display_name, len(new_items))
                         )
+                    run_state.record_task(project, task, "succeeded")
                     self._record_task_timing(
                         task=task,
                         task_index=step_index,
@@ -134,6 +139,7 @@ class SingleInstanceBatchRunner:
                     task_status = constants.RunStatus.FAILED
                 elif self.tracker.skipped > skipped_before:
                     task_status = constants.RunStatus.SKIPPED
+                run_state.record_task(project, task, task_status)
                 self._record_task_timing(
                     task=task,
                     task_index=step_index,
@@ -145,6 +151,7 @@ class SingleInstanceBatchRunner:
             self.tracker.finish(failed=self.tracker.failed > 0)
             return self.tracker
         except Exception:
+            run_state.record_task(project, active_task, "failed")
             if active_task and active_task_started is not None and not task_timing_recorded:
                 self._record_task_timing(
                     task=active_task,
@@ -248,6 +255,8 @@ class SingleInstanceBatchRunner:
         Returns:
             list: Work items to feed into this task.
         """
+        if task.task_type == constants.TaskType.PYTHON_SCRIPT and getattr(task, "is_aggregate_task", False):
+            return list(current_items)
         if task.uses_incoming_files() and current_items:
             return current_items
         if task.uses_incoming_files():
@@ -472,10 +481,12 @@ class MultiInstanceBatchRunner:
         """
         if run_from_task_id is None:
             run_from_task_id = run_from_module_id
+        run_state.initialize(project, tasks.build_run_id())
         task_trimmer = SingleInstanceBatchRunner()
         process_tasks = task_trimmer._trim_tasks(project.get_enabled_tasks(), run_from_task_id, run_to_task_id)
         validation = project.validate_project(task_list=process_tasks)
         if validation.errors:
+            run_state.record_task(project, None, "failed")
             raise RuntimeError("Project validation failed: {0}".format("; ".join(validation.errors)))
         final_tasks = self._get_final_multi_instance_tasks(process_tasks)
         if final_tasks:
@@ -578,6 +589,7 @@ class MultiInstanceBatchRunner:
             popen_kwargs["start_new_session"] = True
         env = dict(os.environ)
         env["PYTHONIOENCODING"] = "utf-8"
+        env[run_state.WORKER_STATE_VARIABLE] = json.dumps(project._batch_run_state)
         subprocess.Popen(
             command,
             stdin=subprocess.DEVNULL,
@@ -698,6 +710,7 @@ class MultiInstanceBatchRunner:
             list: Readable completion messages for the tracker log.
         """
         messages = []
+        accumulated_state = getattr(project, "_batch_run_state", None)
         for task in preflight_tasks:
             preflight_runner = SingleInstanceBatchRunner()
             tracker = preflight_runner.run(
@@ -705,6 +718,10 @@ class MultiInstanceBatchRunner:
                 run_from_task_id=task.id,
                 run_to_task_id=task.id,
             )
+            accumulated_state = run_state.merge_states(
+                [accumulated_state, project._batch_run_state], preflight_runner.run_id, "project"
+            )
+            project._batch_run_state = accumulated_state
             if task.settings.get("dry_run", False):
                 messages.append(
                     f'[INFO] - (multi-instance) - Preflight task "{task.display_name}" '

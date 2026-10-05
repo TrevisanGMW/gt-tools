@@ -34,6 +34,24 @@ class TaskPythonScript(task_base.BatchTask):
     category = "Utilities"
     category_icon = ui_res_lib.Icon.root_utilities
     sample_scripts_directory = SAMPLE_SCRIPTS_DIRECTORY
+    supports_run_once_after_jobs = True
+
+    @property
+    def is_aggregate_task(self):
+        """Gets whether this task runs once without loading or saving Maya scenes.
+
+        Returns:
+            bool: Whether Run Once After All Jobs is enabled.
+        """
+        return bool(self.settings.get("run_once_after_multi_instance", False))
+
+    def writes_to_target_path(self):
+        """Checks whether execution produces Maya scene files.
+
+        Returns:
+            bool: False for a project script; otherwise the inherited behavior.
+        """
+        return False if self.is_aggregate_task else super().writes_to_target_path()
 
     def __init__(self, *args, **kwargs):
         """Initializes the Python task and normalizes legacy settings."""
@@ -63,6 +81,7 @@ class TaskPythonScript(task_base.BatchTask):
             "load_relevant_plugins": True,
             "output_extension": ".ma",
             "overwrite": False,
+            "run_once_after_multi_instance": False,
         }
 
     def _normalize_python_settings(self):
@@ -426,6 +445,8 @@ class TaskPythonScript(task_base.BatchTask):
         """
         result = task_base.ValidationResult()
         output_paths = {}
+        if self.is_aggregate_task:
+            return result
         for work_item in work_items:
             output_path = self.build_output_path(work_item, step_output_dir)
             key = os.path.normcase(output_path)
@@ -462,8 +483,11 @@ class TaskPythonScript(task_base.BatchTask):
             context (dict, optional): Runtime context.
 
         Returns:
-            WorkItem: Updated work item pointing to the cooked Maya scene.
+            WorkItem or list: Cooked Maya scene item, or unchanged incoming items
+                when Run Once After All Jobs is enabled.
         """
+        if self.is_aggregate_task:
+            return self.execute_project_script(project, step_output_dir, context)
         output_path = self.build_output_path(work_item, step_output_dir)
         if (
             os.path.exists(output_path)
@@ -502,6 +526,40 @@ class TaskPythonScript(task_base.BatchTask):
         metadata["last_task_type"] = self.task_type
         metadata["settings_hash"] = task_base.hash_settings(self.settings)
         return task_base.WorkItem(source_path=work_item.source_path, current_path=output_path, metadata=metadata)
+
+    def execute_project_script(self, project, step_output_dir, context=None):
+        """Runs project scripts once while preserving incoming files and scenes.
+
+        Args:
+            project (BatchProcessorModel): Active project.
+            step_output_dir (str): Configured path exposed to scripts.
+            context (dict, optional): Runner results and incoming work items.
+
+        Returns:
+            list: Unmodified incoming work items.
+
+        Raises:
+            TaskSkip: A script explicitly returns a skipped result.
+        """
+        script_paths = self.get_script_paths(project)
+        runtime_context = task_utils.build_python_script_runtime_context(
+            project, self, None, step_output_dir, context=context,
+            extra_values={"project": project, "task": self, "script_paths": script_paths},
+            pass_standard_arguments=self.settings.get("pass_standard_arguments", True),
+            pass_environment_arguments=self.settings.get("pass_environment_arguments", True),
+        )
+        if self.is_inline_mode():
+            results = [self.run_inline_python_script(self.get_inline_script_text(project), runtime_context)]
+        else:
+            results = []
+            for script_path in script_paths:
+                result = self.run_python_script(script_path, runtime_context)
+                if isinstance(result, dict) and result.get("status") == "skipped":
+                    raise task_base.TaskSkip(result.get("reason") or "Project script skipped.")
+                results.append(result)
+        if any(isinstance(result, dict) and result.get("status") == "skipped" for result in results):
+            raise task_base.TaskSkip("Project script skipped.")
+        return list((context or {}).get("work_items") or [])
 
     def get_script_paths(self, project):
         """Gets script paths to run.
@@ -874,6 +932,9 @@ class TaskPythonScript(task_base.BatchTask):
         Args:
             script_text (str): Python code to execute.
             context (dict): Runtime context.
+
+        Returns:
+            object: Optional result returned by run(context), otherwise None.
         """
         if context is None:
             context = {}
@@ -883,7 +944,7 @@ class TaskPythonScript(task_base.BatchTask):
         exec(compile(script_text, "<gt_batch_python_script>", "exec"), exec_globals)
         run_function = exec_globals.get("run")
         if callable(run_function):
-            run_function(context)
+            return run_function(context)
 
     @staticmethod
     def run_python_script(script_path, context):
@@ -892,6 +953,9 @@ class TaskPythonScript(task_base.BatchTask):
         Args:
             script_path (str): Python script path.
             context (dict): Context passed to `run(context)` when present.
+
+        Returns:
+            object: Optional result returned by run(context), otherwise None.
         """
         if context is None:
             context = {}
@@ -906,7 +970,7 @@ class TaskPythonScript(task_base.BatchTask):
         module.__dict__.update(script_globals)
         spec.loader.exec_module(module)
         if hasattr(module, "run"):
-            module.run(context)
+            return module.run(context)
 
 
 class TaskPythonScriptsFolder(TaskPythonScript):

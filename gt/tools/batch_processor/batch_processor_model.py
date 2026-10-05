@@ -7,6 +7,7 @@ tool remains usable without loading the UI.
 
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_tasks as tasks
+from gt.tools.batch_processor import batch_processor_run_state as run_state
 import copy
 import datetime
 import json
@@ -23,7 +24,7 @@ logger.setLevel(logging.INFO)
 
 _ENVIRONMENT_PATTERN = re.compile(r"\{([a-zA-Z0-9_-]+)\}")
 _CUSTOM_ENVIRONMENT_NAME_PATTERN = re.compile(r"^\{[a-zA-Z0-9_-]+\}$")
-_RESERVED_ENVIRONMENT_KEYS = {
+_RESERVED_ENVIRONMENT_KEYS = set(run_state.ENVIRONMENT_KEYS) | {
     "input-file",
     "input-string",
     "input-string-index",
@@ -1120,6 +1121,7 @@ class BatchProcessorModel:
                 }
             )
         environment_variables.update(getattr(self, "_input_string_environment", {}))
+        environment_variables.update(run_state.get_environment_variables(self, task))
         environment_variables.update(
             self._resolve_custom_environment_variables(
                 task=task,

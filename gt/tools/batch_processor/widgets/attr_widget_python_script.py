@@ -82,6 +82,16 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
         self.add_external_file_controls()
         self.add_batch_script_controls()
         self.refresh_mode_visibility()
+        self.add_segmentation_section(
+            main_label="Run Once After All Jobs",
+            main_key="run_once_after_multi_instance",
+            main_tooltip=(
+                "Run this Python task once for the entire project.\n"
+                "In multi-instance mode, wait for all worker jobs to finish.\n"
+                "Place run-once tasks last in the enabled task list.\n"
+                "Scripts receive project results and do not load or save Maya scenes."
+            ),
+        )
         self.content_layout.addStretch()
 
     def add_python_mode_controls(self):
