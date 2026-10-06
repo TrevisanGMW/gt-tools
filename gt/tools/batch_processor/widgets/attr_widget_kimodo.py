@@ -46,9 +46,12 @@ FIELD_HELP = {
                        "Accepts comma-separated values and inclusive start:end:step ranges.\n"
                        "Combined with endpoints and markers; duplicates are removed.",
                        "296, 423, 648 or 296:648:30"),
-    ("pose_type",): ("Capture the full body or only the selected hand/foot.\n"
+    ("pose_type",): ("Capture the full body, only the hips, or only the selected hand/foot.\n"
                      "Full-body constraints preserve root position and major joint rotations\n"
-                     "at each captured frame.", "Full body"),
+                     "at each captured frame; post-processing snaps the whole body to them.\n"
+                     "Hips constrain only the pelvis position (including height), rotation and\n"
+                     "facing, leaving the rest of the body free, so the pose is not snapped.",
+                     "Full body"),
     ("use_marker",): ("Evaluate the specified attribute to select additional poses.\n"
                       "Disable when source scenes do not contain this attribute;\n"
                       "a missing requested attribute is an error.", ""),
@@ -588,7 +591,7 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
         row.addStretch(1)
         self.field(section, "Pose frames", "pose_frames", tooltip="Scene frames: 296, 423, 648 or 296:648:30.")
         self.field(section, "Pose type", "pose_type", "choice", [
-            ("fullbody", "Full body"), ("left-hand", "Left hand"), ("right-hand", "Right hand"),
+            ("fullbody", "Full body"), ("hips", "Hips"), ("left-hand", "Left hand"), ("right-hand", "Right hand"),
             ("left-foot", "Left foot"), ("right-foot", "Right foot")])
         row = self.add_labeled_layout("Marker attribute", parent_layout=section)
         self.field(section, "Use", "use_marker", "boolean", inline_row=row)

@@ -134,6 +134,169 @@ class TestBatchProcessorUi(unittest.TestCase):
         self.assertIn("Run Once Before All Jobs:", checkbox_labels)
         task_widget.deleteLater()
 
+    def test_python_widget_enables_run_once_before_jobs(self):
+        """Ensures the Python preflight checkbox persists the selected run mode."""
+        python_task = self.model.add_task(batch_processor_tasks.TaskPythonScript())
+        task_widget = attr_widget_python_script.AttrWidgetPythonScriptTask(
+            task=python_task,
+            project=self.model,
+        )
+        checkbox_labels = [
+            label.text() for label in task_widget.findChildren(ui_qt.QtWidgets.QLabel)
+        ]
+        self.assertIn("Run Once Before All Jobs:", checkbox_labels)
+        self.assertIn("Run Once After All Jobs:", checkbox_labels)
+        before_checkbox = next(
+            checkbox for checkbox in task_widget.findChildren(ui_qt.QtWidgets.QCheckBox)
+            if "before worker jobs start" in checkbox.toolTip()
+        )
+
+        self.assertFalse(before_checkbox.isChecked())
+        before_checkbox.setChecked(True)
+
+        self.assertTrue(python_task.settings["run_once_before_multi_instance"])
+        self.assertFalse(python_task.settings["run_once_after_multi_instance"])
+        self.assertTrue(python_task.is_aggregate_task)
+        task_widget.deleteLater()
+
+    def test_segment_random_color_button_updates_settings_and_defers_refresh(self):
+        """Ensures random colors persist and refresh safely after the button callback."""
+        for separator_enabled in [False, True]:
+            with self.subTest(separator_enabled=separator_enabled):
+                self.task.settings["force_segment_separator"] = separator_enabled
+                refresh_parent = mock.MagicMock()
+                task_widget = attr_widget_task.AttrWidgetTask(
+                    task=self.task,
+                    project=self.model,
+                    refresh_parent_func=refresh_parent,
+                )
+                task_widget.add_segmentation_section(
+                    main_label="Start New Input List",
+                    main_key="start_new_input_list",
+                    main_tooltip="Start a new input segment.",
+                )
+                color_combo = task_widget.findChild(ui_qt.QtWidgets.QComboBox)
+                randomize_button = next(
+                    button for button in task_widget.findChildren(ui_qt.QtWidgets.QPushButton)
+                    if button.text() == "Randomize"
+                )
+                color_layout = next(
+                    layout for layout in task_widget.findChildren(ui_qt.QtWidgets.QHBoxLayout)
+                    if layout.indexOf(randomize_button) >= 0
+                )
+                self.assertEqual(separator_enabled, randomize_button.isEnabled())
+                self.assertEqual(color_layout.indexOf(color_combo) + 1, color_layout.indexOf(randomize_button))
+                random_index = color_combo.findText("orange")
+                self.assertGreaterEqual(random_index, 0)
+
+                with mock.patch.object(
+                    attr_widget_task.random, "randrange", return_value=random_index
+                ) as choose_color:
+                    randomize_button.click()
+
+                refresh_parent.assert_not_called()
+                if separator_enabled:
+                    choose_color.assert_called_once()
+                    self.assertEqual("orange", color_combo.currentText())
+                    self.assertEqual("orange", self.task.settings["segment_color"])
+                    self.assertTrue(ui_qt_utils.is_qt_object_valid(task_widget))
+                    self.application.processEvents()
+                    refresh_parent.assert_called_once_with()
+                else:
+                    choose_color.assert_not_called()
+                    self.assertEqual("blue_light_sky", self.task.get_segment_color_name())
+                task_widget.deleteLater()
+
+    def test_randomize_segment_color_preserves_details_scroll_position(self):
+        """Keeps a compressed details panel in place after the color button rebuilds it."""
+        self.task.settings["force_segment_separator"] = True
+        self.task.settings["segmentation_collapsed"] = False
+        controller = batch_processor_controller.BatchProcessorController.__new__(
+            batch_processor_controller.BatchProcessorController
+        )
+        controller.model = self.model
+        controller.view = self.view
+        controller.log_status = mock.MagicMock()
+        self.view.controller = controller
+        controller.connect_view()
+        controller.refresh_widgets()
+        self.view.resize(850, 330)
+        self.view.show()
+        self.application.processEvents()
+        task_widget = self.view.get_task_widget()
+        randomize_button = next(
+            button for button in task_widget.findChildren(ui_qt.QtWidgets.QPushButton)
+            if button.text() == "Randomize"
+        )
+        scroll_bar = self.view.task_attr_area.verticalScrollBar()
+        scroll_bar.setValue(scroll_bar.maximum())
+        expected_position = scroll_bar.value()
+        self.assertGreater(expected_position, 0)
+
+        randomize_button.click()
+        self.application.processEvents()
+        self.application.processEvents()
+
+        self.assertIsNot(task_widget, self.view.get_task_widget())
+        self.assertEqual(expected_position, scroll_bar.value())
+
+    def test_details_scroll_restore_preserves_both_axes_and_clamps_to_content(self):
+        """Restores scrolling after layout and keeps smaller replacement content reachable."""
+        self.view.resize(850, 330)
+        self.view.show()
+        initial_widget = ui_qt.QtWidgets.QWidget()
+        initial_widget.setMinimumSize(1400, 1200)
+        self.view.set_task_widget(initial_widget)
+        self.application.processEvents()
+        horizontal_bar = self.view.task_attr_area.horizontalScrollBar()
+        vertical_bar = self.view.task_attr_area.verticalScrollBar()
+        horizontal_position = horizontal_bar.maximum() // 2
+        vertical_position = vertical_bar.maximum() // 2
+        self.assertGreater(horizontal_position, 0)
+        self.assertGreater(vertical_position, 0)
+        horizontal_bar.setValue(horizontal_position)
+        vertical_bar.setValue(vertical_position)
+        replacement_widget = ui_qt.QtWidgets.QWidget()
+        replacement_widget.setMinimumSize(1400, 1200)
+
+        self.view.set_task_widget(replacement_widget, preserve_scroll=True)
+        self.application.processEvents()
+        self.application.processEvents()
+
+        self.assertEqual(horizontal_position, horizontal_bar.value())
+        self.assertEqual(vertical_position, vertical_bar.value())
+        smaller_widget = ui_qt.QtWidgets.QWidget()
+        smaller_widget.setMinimumSize(700, 500)
+        self.view.set_task_widget(smaller_widget, preserve_scroll=True)
+        self.application.processEvents()
+        self.application.processEvents()
+        self.assertEqual(min(horizontal_position, horizontal_bar.maximum()), horizontal_bar.value())
+        self.assertEqual(min(vertical_position, vertical_bar.maximum()), vertical_bar.value())
+
+    def test_details_scroll_restore_ignores_a_new_selection(self):
+        """Prevents a queued restoration from scrolling another details widget."""
+        self.view.resize(850, 330)
+        self.view.show()
+        initial_widget = ui_qt.QtWidgets.QWidget()
+        initial_widget.setMinimumSize(1400, 1200)
+        self.view.set_task_widget(initial_widget)
+        self.application.processEvents()
+        scroll_bar = self.view.task_attr_area.verticalScrollBar()
+        scroll_bar.setValue(scroll_bar.maximum())
+        self.assertGreater(scroll_bar.value(), 0)
+        replacement_widget = ui_qt.QtWidgets.QWidget()
+        replacement_widget.setMinimumSize(1400, 1200)
+        self.view.set_task_widget(replacement_widget, preserve_scroll=True)
+        new_selection_widget = ui_qt.QtWidgets.QWidget()
+        new_selection_widget.setMinimumSize(1400, 1200)
+
+        self.view.set_task_widget(new_selection_widget)
+        self.application.processEvents()
+        self.application.processEvents()
+
+        self.assertIs(new_selection_widget, self.view.get_task_widget())
+        self.assertEqual(0, scroll_bar.value())
+
     def test_project_notes_expand_with_the_details_panel(self):
         """Ensures Notes receives the available vertical space in the project panel."""
         project_widget = attr_widget_project.AttrWidgetProject(project=self.model)

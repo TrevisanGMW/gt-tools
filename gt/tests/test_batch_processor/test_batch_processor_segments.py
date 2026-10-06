@@ -287,6 +287,7 @@ class TestBatchProcessorSegments(unittest.TestCase):
 
     def test_segmented_tasks_support_run_once_before_jobs(self):
         task_types = [
+            constants.TaskType.PYTHON_SCRIPT,
             constants.TaskType.ZIP_COMPRESS,
             constants.TaskType.MAP_HIERARCHY,
             constants.TaskType.SCENE_REPORT,

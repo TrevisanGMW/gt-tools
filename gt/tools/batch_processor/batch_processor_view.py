@@ -328,17 +328,34 @@ class BatchProcessorView(metaclass=MayaWindowMeta):
         """Clears the task attribute area."""
         self.task_attr_area.setWidget(ui_qt.QtWidgets.QWidget())
 
-    def set_task_widget(self, widget):
+    def set_task_widget(self, widget, preserve_scroll=False):
         """Sets the given widget into the task attribute area.
 
         Args:
             widget (QWidget): Widget to display.
+            preserve_scroll (bool, optional): Restore the previous scroll position.
         """
+        horizontal_position = self.task_attr_area.horizontalScrollBar().value()
+        vertical_position = self.task_attr_area.verticalScrollBar().value()
         try:
             widget.controller = self.controller
         except Exception:
             pass
         self.task_attr_area.setWidget(widget)
+        if preserve_scroll:
+            def restore_scroll_position():
+                """Restores the panel position while the replacement widget is still active."""
+                if (
+                    not qt_utils.is_qt_object_valid(self.task_attr_area)
+                    or not qt_utils.is_qt_object_valid(widget)
+                    or self.task_attr_area.widget() is not widget
+                ):
+                    return
+                self.task_attr_area.horizontalScrollBar().setValue(horizontal_position)
+                self.task_attr_area.verticalScrollBar().setValue(vertical_position)
+
+            restore_scroll_position()
+            ui_qt.QtCore.QTimer.singleShot(0, restore_scroll_position)
 
     def get_task_widget(self):
         """Gets the current task attribute widget.

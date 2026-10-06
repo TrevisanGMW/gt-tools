@@ -1227,9 +1227,14 @@ class BatchProcessorController:
         )
 
     def refresh_widgets(self):
-        """Refreshes tree and details widgets."""
+        """Refreshes tree and details widgets while preserving the current panel position."""
+        selected_task_id = self.view.get_selected_task_id()
+        previous_widget = self.view.get_task_widget()
+        same_project = getattr(previous_widget, "project", None) is self.model
         self.view.refresh_tree(self.model)
-        self.update_details()
+        self.update_details(
+            preserve_scroll=same_project and selected_task_id == self.view.get_selected_task_id()
+        )
 
     def refresh_task_tree_item(self, task_id):
         """Refreshes one existing task tree item without rebuilding its details widget.
@@ -1245,11 +1250,17 @@ class BatchProcessorController:
             return False
         return self.view.update_task_tree_item(task)
 
-    def update_details(self):
-        """Updates the details panel for the current selection."""
+    def update_details(self, preserve_scroll=False):
+        """Updates the details panel for the current selection.
+
+        Args:
+            preserve_scroll (bool, optional): Restore the panel position after rebuilding it.
+        """
         if self.view.is_segment_separator_selected():
             segment_name = self.view.get_selected_segment_name()
-            self.view.set_task_widget(self.build_separator_details_widget(segment_name))
+            self.view.set_task_widget(
+                self.build_separator_details_widget(segment_name), preserve_scroll=preserve_scroll
+            )
             return
         task_id = self.view.get_selected_task_id()
         if not task_id:
@@ -1258,7 +1269,7 @@ class BatchProcessorController:
                 refresh_parent_func=self.refresh_widgets,
                 controller=self,
             )
-            self.view.set_task_widget(widget_object)
+            self.view.set_task_widget(widget_object, preserve_scroll=preserve_scroll)
             return
 
         task = self.model.get_task(task_id)
@@ -1272,7 +1283,7 @@ class BatchProcessorController:
             refresh_parent_func=self.refresh_widgets,
             controller=self,
         )
-        self.view.set_task_widget(widget_object)
+        self.view.set_task_widget(widget_object, preserve_scroll=preserve_scroll)
 
     def build_separator_details_widget(self, segment_name):
         """Builds details and actions for the selected segment separator.

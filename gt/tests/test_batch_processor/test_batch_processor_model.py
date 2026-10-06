@@ -4469,6 +4469,58 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertTrue(os.path.isfile(deleted_file))
         self.assertTrue(any("dry run" in message for message in result.messages))
 
+    def test_multi_instance_runner_runs_python_once_before_workers(self):
+        """Runs a Python preflight once and excludes it from worker scene processing."""
+        input_dir = os.path.join(self.temp_dir, "01_input")
+        os.makedirs(input_dir)
+        self._write_file(os.path.join(input_dir, "first.ma"), "first scene")
+        self._write_file(os.path.join(input_dir, "second.ma"), "second scene")
+        model = batch_processor_model.BatchProcessorModel()
+        model.project_file_path = os.path.join(self.temp_dir, "project.batch")
+        python_task = model.add_task(
+            modules.TaskPythonScript(
+                settings={
+                    "run_once_before_multi_instance": True,
+                    "script_text": (
+                        "context['task'].settings['preflight_runs'] = "
+                        "context['task'].settings.get('preflight_runs', 0) + 1"
+                    ),
+                }
+            )
+        )
+        model.add_task(modules.TaskRename(settings={"pattern": "processed_{index}"}))
+
+        def launch_tracker(command, **kwargs):
+            """Checks that the preflight finished before launching the tracker.
+
+            Args:
+                command (list): Tracker launch arguments.
+                **kwargs: Process launch options.
+
+            Returns:
+                object: Dummy tracker process.
+            """
+            self.assertEqual(1, python_task.settings.get("preflight_runs"))
+            skipped_ids = [
+                command[index + 1] for index, argument in enumerate(command)
+                if argument == "--skip-task-id"
+            ]
+            self.assertIn(python_task.id, skipped_ids)
+            return object()
+
+        with mock.patch.object(batch_processor_worker, "find_mayapy_executable", return_value=sys.executable), \
+                mock.patch.object(
+                    batch_processor_worker.subprocess, "Popen", side_effect=launch_tracker
+                ) as popen_mock, \
+                mock.patch.object(batch_processor_maya, "open_scene") as open_scene_mock, \
+                mock.patch.object(batch_processor_maya, "save_scene") as save_scene_mock:
+            batch_processor_worker.MultiInstanceBatchRunner().run(model)
+
+        popen_mock.assert_called_once()
+        open_scene_mock.assert_not_called()
+        save_scene_mock.assert_not_called()
+        self.assertEqual(1, python_task.settings.get("preflight_runs"))
+
     def test_multi_instance_runner_runs_leading_delete_task_before_workers(self):
         input_dir = os.path.join(self.temp_dir, "01_input")
         delete_dir = os.path.join(self.temp_dir, "02_tasks")

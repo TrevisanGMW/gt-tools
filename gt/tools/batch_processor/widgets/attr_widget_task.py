@@ -10,8 +10,9 @@ import gt.ui.resource_library as ui_res_lib
 import gt.ui.qt_utils as ui_qt_utils
 import gt.ui.qt_import as ui_qt
 from functools import partial
-import ast
+import random
 import json
+import ast
 
 
 class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
@@ -814,6 +815,26 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
             lambda index, combo=color_combo: self.set_segment_color(combo.itemText(index))
         )
         color_layout.addWidget(color_combo)
+
+        randomize_color_button = ui_qt.QtWidgets.QPushButton("Randomize")
+        randomize_color_button.setMinimumHeight(35)
+        randomize_color_button.setToolTip("Pick a random color from the Segment Color dropdown.")
+        randomize_color_button.setEnabled(separator_enabled)
+        randomize_color_button.clicked.connect(
+            lambda checked=False, combo=color_combo: self.randomize_segment_color(combo)
+        )
+        color_layout.addWidget(randomize_color_button)
+
+    def randomize_segment_color(self, color_combo):
+        """Selects and stores a random color from the segment color dropdown.
+
+        Args:
+            color_combo (QComboBox): Dropdown containing the available segment colors.
+        """
+        if not color_combo.count():
+            return
+        color_combo.setCurrentIndex(random.randrange(color_combo.count()))
+        self.set_segment_color(color_combo.currentText())
 
     def set_force_segment_separator(self, value):
         """Sets the divider flag and refreshes the task tree separator.

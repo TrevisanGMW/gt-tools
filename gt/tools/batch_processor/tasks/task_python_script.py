@@ -35,15 +35,19 @@ class TaskPythonScript(task_base.BatchTask):
     category_icon = ui_res_lib.Icon.root_utilities
     sample_scripts_directory = SAMPLE_SCRIPTS_DIRECTORY
     supports_run_once_after_jobs = True
+    supports_run_once_before_jobs = True
 
     @property
     def is_aggregate_task(self):
         """Gets whether this task runs once without loading or saving Maya scenes.
 
         Returns:
-            bool: Whether Run Once After All Jobs is enabled.
+            bool: Whether either project-wide run-once option is enabled.
         """
-        return bool(self.settings.get("run_once_after_multi_instance", False))
+        return bool(
+            self.settings.get("run_once_before_multi_instance", False)
+            or self.settings.get("run_once_after_multi_instance", False)
+        )
 
     def writes_to_target_path(self):
         """Checks whether execution produces Maya scene files.
@@ -81,6 +85,7 @@ class TaskPythonScript(task_base.BatchTask):
             "load_relevant_plugins": True,
             "output_extension": ".ma",
             "overwrite": False,
+            "run_once_before_multi_instance": False,
             "run_once_after_multi_instance": False,
         }
 
@@ -484,7 +489,7 @@ class TaskPythonScript(task_base.BatchTask):
 
         Returns:
             WorkItem or list: Cooked Maya scene item, or unchanged incoming items
-                when Run Once After All Jobs is enabled.
+                when either project-wide run-once option is enabled.
         """
         if self.is_aggregate_task:
             return self.execute_project_script(project, step_output_dir, context)
