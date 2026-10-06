@@ -657,5 +657,57 @@ class TestKimodoHttp(unittest.TestCase):
         self.assertEqual(1, len(self.backend.calls))
 
 
+class TestEndEffectorDevicePatch(unittest.TestCase):
+    """Keeps end-effector joint indices on their frame-index device, as cropped GPU constraints need."""
+
+    def test_indices_follow_frame_device_and_patch_is_idempotent(self):
+        """Moves rebuilt joint indices next to the frame indices and wraps the constructor once."""
+        class FakeTensor:
+            """Minimal tensor exposing a device and to()."""
+
+            def __init__(self, device):
+                """Stores the device.
+
+                Args:
+                    device (str): Device name.
+                """
+                self.device = device
+
+            def to(self, device):
+                """Returns a copy on another device.
+
+                Args:
+                    device (str): Target device.
+
+                Returns:
+                    FakeTensor: Moved tensor.
+                """
+                return FakeTensor(device)
+
+        class EndEffectorConstraintSet:
+            """Stand-in for Kimodo's class, which builds joint indices on the CPU."""
+
+            def __init__(self, frame_indices):
+                """Mirrors Kimodo's CPU-only index construction.
+
+                Args:
+                    frame_indices (FakeTensor): Constraint frames.
+                """
+                self.frame_indices = frame_indices
+                self.pos_indices = FakeTensor("cpu")
+                self.rot_indices = FakeTensor("cpu")
+
+        constraints = type(sys)("kimodo.constraints")
+        constraints.EndEffectorConstraintSet = EndEffectorConstraintSet
+        with patch.dict(sys.modules, {"kimodo": type(sys)("kimodo"), "kimodo.constraints": constraints}):
+            kimodo._patch_end_effector_device()
+            patched = EndEffectorConstraintSet.__init__
+            kimodo._patch_end_effector_device()
+            self.assertIs(patched, EndEffectorConstraintSet.__init__)
+            constraint = EndEffectorConstraintSet(FakeTensor("cuda:0"))
+        self.assertEqual("cuda:0", constraint.pos_indices.device)
+        self.assertEqual("cuda:0", constraint.rot_indices.device)
+
+
 if __name__ == "__main__":
     unittest.main()

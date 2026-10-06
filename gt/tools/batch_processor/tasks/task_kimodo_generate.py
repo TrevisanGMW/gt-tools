@@ -111,6 +111,23 @@ class TaskKimodoGenerate(TaskKimodoBase):
             self.add_area_error(result, area, error)
         return result
 
+    def owned_path_lengths(self, item, directory, path):
+        """Adds the artifact bundle ("<output>_artifacts/<job 32>/definition.json") to the estimate.
+
+        Args:
+            item (WorkItem): Incoming definition.
+            directory (str): Target root.
+            path (str): Planned output path.
+
+        Returns:
+            list: Path lengths in characters.
+        """
+        lengths = super().owned_path_lengths(item, directory, path)
+        if self.settings.get("result_mode") != "maya":
+            bundle = f"{os.path.splitext(os.path.abspath(path))[0]}_artifacts"
+            lengths.append(len(bundle) + len("/") + 32 + len("/definition.json"))
+        return lengths
+
     def validate_work_items(self, work_items, project, step_output_dir, context=None):
         """Checks source scenes before generation when importing incoming contents.
 
@@ -495,13 +512,28 @@ def download_results(client, record, record_path, cache):
     Returns:
         dict: Artifact names mapped to verified files.
     """
-    directory = record.get("downloads") or os.path.join(cache, f"download_{uuid.uuid4().hex}")
+    directory = record.get("downloads") or new_download_directory(cache)
     job_directory = os.path.join(directory, record["job_id"])
     if os.path.isdir(job_directory) and any(name.endswith(".part") for name in os.listdir(job_directory)):
-        directory = os.path.join(cache, f"download_{uuid.uuid4().hex}")
+        directory = new_download_directory(cache)
     record["downloads"] = directory
     write_record(record_path, record)
     return client.download(record["job_id"], directory, reuse_existing=True)
+
+
+def new_download_directory(cache):
+    """Picks an unused download folder with a short name, keeping artifact paths within MAX_PATH.
+
+    Args:
+        cache (str): Owned cache root.
+
+    Returns:
+        str: Absolute folder path that does not exist yet.
+    """
+    while True:
+        directory = os.path.join(cache, f"dl_{uuid.uuid4().hex[:8]}")
+        if not os.path.lexists(directory):
+            return directory
 
 
 def publish_scene(motion_path, path, settings, cache):

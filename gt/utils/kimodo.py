@@ -49,6 +49,9 @@ BRIDGE_FEATURES = ("delete_jobs", "shutdown", "runtime_status", "root_heading_ve
 # none = position only, path = direction of travel, node = transform +Z axis, fixed = offset only.
 ROOT_HEADING_MODES = ("none", "path", "node", "fixed")
 STATIONARY_PATH_METERS = 0.0005
+# Capture types stored as native end-effector constraints. Kimodo's post-processing only snaps
+# full-body and hand/foot constraints, so these guide the model without forcing the whole pose.
+POSE_END_EFFECTOR_TYPES = {"hips": ("Hips",)}
 
 
 def _write_json(path, data):
@@ -58,7 +61,8 @@ def _write_json(path, data):
         path (str): Destination inside an owned job directory.
         data (object): JSON-compatible data.
     """
-    temporary = f"{path}.{uuid.uuid4().hex}.tmp"
+    # A short random suffix keeps deep cache files within the Windows path limit.
+    temporary = f"{path}.{uuid.uuid4().hex[:8]}.tmp"
     try:
         json.dumps(data, allow_nan=False)  # Reject NaN before the permissive shared writer.
         if write_json(temporary, data) is None:
@@ -984,7 +988,8 @@ def capture_pose(group=None, frame_index=0, constraint_type="fullbody", bone_off
     Args:
         group (str, optional): Kimodo group or selected descendant.
         frame_index (int): Zero-based destination frame in the generated clip.
-        constraint_type (str): Full-body or hand/foot constraint type.
+        constraint_type (str): Full-body or hand/foot constraint type, or "hips" for a pelvis-only
+            end-effector constraint (position, rotation and facing; the rest of the body stays free).
         bone_offset_tolerance (float): Maximum non-root translation deviation in meters.
             HumanIK evaluation may introduce small deviations; accepted offsets are
             normalized to the model skeleton, without editing the Maya joints.
@@ -1028,6 +1033,8 @@ def capture_pose(group=None, frame_index=0, constraint_type="fullbody", bone_off
                     f"delta: [{delta_text}]. Pose joints by rotating them; only the root may be translated.")
     constraint = {"type": constraint_type, "frame_indices": [frame_index],
                   "root_positions": [root], "local_joints_rot": [rotations]}
+    if constraint_type in POSE_END_EFFECTOR_TYPES:
+        constraint.update(type="end-effector", joint_names=list(POSE_END_EFFECTOR_TYPES[constraint_type]))
     validate_constraints([constraint])
     return constraint
 
@@ -1787,6 +1794,8 @@ class _KimodoBackend:
         validate_constraints(definition["constraints"], frame_count)
         from kimodo.constraints import load_constraints_lst
 
+        _patch_end_effector_device()
+
         for constraint in definition["constraints"]:
             if "local_joints_rot" in constraint and len(constraint["local_joints_rot"][0]) != len(
                     self.model.output_skeleton.bone_order_names):
@@ -2303,6 +2312,38 @@ def _bridge_banner(host, port, directory):
         border,
         "",
     ))
+
+
+def _patch_end_effector_device():
+    """Keeps Kimodo end-effector joint indices on the device of their frame indices.
+
+    Kimodo's EndEffectorConstraintSet builds its joint index tensors on the CPU. Multi-prompt
+    generation re-creates every constraint per segment (crop_move) after it was moved to the GPU,
+    so hand, foot and hips constraints fail on CUDA with "Expected all tensors to be on the same
+    device". Wrapping the constructor once per process fixes every subclass without editing the
+    installed package; it is a no-op when the indices already share a device.
+    """
+    from kimodo.constraints import EndEffectorConstraintSet
+
+    original = EndEffectorConstraintSet.__init__
+    if getattr(original, "_gt_device_patch", False):
+        return
+
+    def __init__(self, *args, **kwargs):
+        """Runs Kimodo's constructor, then moves joint indices next to the frame indices.
+
+        Args:
+            *args: Kimodo constructor arguments.
+            **kwargs: Kimodo constructor keyword arguments.
+        """
+        original(self, *args, **kwargs)
+        device = getattr(self.frame_indices, "device", None)
+        if device is not None:
+            self.pos_indices = self.pos_indices.to(device)
+            self.rot_indices = self.rot_indices.to(device)
+
+    __init__._gt_device_patch = True
+    EndEffectorConstraintSet.__init__ = __init__
 
 
 def _suppress_known_runtime_warnings():

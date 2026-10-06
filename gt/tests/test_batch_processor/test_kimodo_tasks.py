@@ -170,6 +170,15 @@ class TestKimodoData(unittest.TestCase):
         self.assertEqual(353, int(definitions[0]["prompts"][0]["duration_seconds"] * 30))
         self.assertNotEqual(definitions[0]["parameters"]["seed"], definitions[1]["parameters"]["seed"])
 
+    def test_path_mask_keeps_active_frames(self):
+        """Drops root path frames where the mask is zero and rejects masks that leave too few."""
+        expected = [1, 5, 9]
+        self.assertEqual(expected, definition_task.mask_path_frames([1, 3, 5, 7, 9], [1, 0, 1.0, 0.0, 1]))
+        with self.assertRaises(ValueError):
+            definition_task.mask_path_frames([1, 3, 5], [1, 0, 0])
+        with self.assertRaises(ValueError):
+            definition_task.mask_path_frames([1, 3], [1])
+
     def test_dense_capture_packs_pose_samples(self):
         """Keeps dense marker runs within the bridge's constraint-object limit."""
         task = TaskKimodoDefinition()
@@ -180,6 +189,18 @@ class TestKimodoData(unittest.TestCase):
         definitions = task.build_definitions(captured, task.base_definition(None), "dense.ma")
         self.assertEqual(1, len(definitions[0]["constraints"]))
         self.assertEqual(list(range(300)), definitions[0]["constraints"][0]["frame_indices"])
+
+    def test_dense_hips_capture_keeps_end_effector_joint_names(self):
+        """Packs hips-only poses as one end-effector constraint with a single joint list."""
+        task = TaskKimodoDefinition(settings={"pose_type": "hips"})
+        pose = {"type": "end-effector", "joint_names": ["Hips"], "frame_indices": [0],
+                "root_positions": [[0, 0.55, 0]], "local_joints_rot": [[[0, 0, 0] for unused_joint in range(22)]]}
+        captured = {"frames": list(range(300)), "start": 0, "end": 299, "source_fps": 30,
+                    "poses": [pose for unused_frame in range(300)], "path": None, "path_frames": []}
+        constraint = task.build_definitions(captured, task.base_definition(None), "dense.ma")[0]["constraints"][0]
+        self.assertEqual("end-effector", constraint["type"])
+        self.assertEqual(["Hips"], constraint["joint_names"])
+        self.assertEqual(300, len(constraint["root_positions"]))
 
     def test_packaged_presets_load(self):
         """Loads Kimodo presets through the real project serializer and template loader."""
@@ -477,6 +498,72 @@ class TestKimodoGeneration(unittest.TestCase):
         with mock.patch.object(generation.time, "monotonic", side_effect=[0, 2]), self.assertRaises(TimeoutError):
             generation.wait_for_job(self.client, self.definition, record, path, settings, {})
         self.client.cancel.assert_called_once_with("a" * 32)
+
+
+class TestKimodoPathLengths(unittest.TestCase):
+    """Keeps owned cache and claim paths short, compatible with older layouts, and checked early."""
+
+    def setUp(self):
+        """Creates an isolated definition input and output folder."""
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = temporary.name
+        self.source = os.path.join(self.root, "input", "walk.json")
+        write_record(self.source, kimodo.KimodoGenerationDefinition("Walk").as_dict())
+        self.item = tasks.WorkItem(self.source)
+        self.output = os.path.join(self.root, "output")
+        self.task = TaskKimodoGenerate(settings={"target_path": self.output})
+
+    def test_recovery_folder_is_short_and_reuses_legacy_folder(self):
+        """Uses a 12-character identity, but resumes from an existing 24-character folder."""
+        cache = self.task.recovery_directory(self.item, self.output)
+        identity = os.path.basename(cache)
+        self.assertEqual(data.RECOVERY_IDENTITY_LENGTH, len(identity))
+        legacy_identity = data.fingerprint([self.task.id, os.path.normcase(os.path.abspath(self.source))])[:24]
+        legacy = os.path.join(os.path.dirname(cache), legacy_identity)
+        os.makedirs(legacy)
+        self.assertEqual(legacy, self.task.recovery_directory(self.item, self.output))
+        os.makedirs(cache)
+        self.assertEqual(cache, self.task.recovery_directory(self.item, self.output))
+
+    def test_download_folders_are_short_and_unused(self):
+        """Names download folders dl_<8 hex> and never returns an existing folder."""
+        directory = generation.new_download_directory(self.root)
+        self.assertRegex(os.path.basename(directory), r"^dl_[0-9a-f]{8}$")
+        self.assertFalse(os.path.exists(directory))
+
+    def test_claims_are_short_and_respect_legacy_claims(self):
+        """Writes 32-character claim keys and still honors full-digest claims from older versions."""
+        path = os.path.join(self.output, "walk.ma")
+        outputs = os.path.join(self.output, ".kimodo-coordination", "outputs")
+        self.task.reserve_outputs(self.item, [path], self.output)
+        self.assertEqual([32], [len(os.path.splitext(name)[0]) for name in os.listdir(outputs)
+                                if name.endswith(".json")])
+        other = os.path.join(self.output, "other.ma")
+        key = data.fingerprint(os.path.normcase(os.path.abspath(other)))
+        write_record(os.path.join(outputs, f"{key}.json"), {"source": "someone_else", "output": other})
+        with self.assertRaises(ValueError):
+            self.task.reserve_outputs(self.item, [other], self.output)
+        self.assertTrue(data.purge_coordination(self.output))
+
+    def test_deep_targets_fail_validation_without_long_path_support(self):
+        """Reports the needed path length before any generation when the limit would be exceeded."""
+        deep = os.path.join(self.root, *["deep_folder_name_for_testing"] * 8)
+        with mock.patch.object(data, "long_paths_supported", return_value=False):
+            result = self.task.validate_work_items([self.item], None, self.output)
+            self.assertEqual([], [error for error in result.errors if "Windows limit" in error])
+            result = self.task.validate_work_items([self.item], None, deep)
+            self.assertEqual(1, len([error for error in result.errors if "Windows limit" in error]))
+        with mock.patch.object(data, "long_paths_supported", return_value=True):
+            result = self.task.validate_work_items([self.item], None, deep)
+            self.assertEqual([], [error for error in result.errors if "Windows limit" in error])
+
+    def test_path_estimate_covers_cache_files(self):
+        """Includes the deepest download file below the recovery folder."""
+        path = self.task.output_path(self.item, self.output)
+        cache = self.task.recovery_directory(self.item, self.output)
+        deepest = os.path.join(cache, "dl_00000000", "0" * 32, "result.json.00000000.tmp")
+        self.assertGreaterEqual(max(self.task.owned_path_lengths(self.item, self.output, path)), len(deepest))
 
 
 if __name__ == "__main__":

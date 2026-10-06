@@ -133,6 +133,19 @@ class TestKimodoMaya(unittest.TestCase):
         preview = kimodo.preview_pose(constraint, sample_motion(), namespace="preview")
         self.assertEqual(77, len(preview["joints"]))
 
+    def test_hips_capture_is_a_pelvis_end_effector(self):
+        """Stores hips-only captures as native end-effector constraints with the full pose data."""
+        import maya.cmds as cmds
+
+        result = kimodo.import_motion(self.path)
+        cmds.currentTime(1.8)
+        full_body = kimodo.capture_pose(result["group"], frame_index=29)
+        hips = kimodo.capture_pose(result["group"], frame_index=29, constraint_type="hips")
+        self.assertEqual("end-effector", hips["type"])
+        self.assertEqual(["Hips"], hips["joint_names"])
+        self.assertEqual(full_body["root_positions"], hips["root_positions"])
+        self.assertEqual(full_body["local_joints_rot"], hips["local_joints_rot"])
+
     def test_root_path_capture_transforms_world_to_generation_space(self):
         """Captures explicit locator timing in the selected skeleton's local space."""
         import maya.cmds as cmds

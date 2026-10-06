@@ -43,7 +43,7 @@ class TaskKimodoDefinition(TaskKimodoBase):
             capture_first=True, capture_last=True, pose_frames="", use_marker=False,
             marker_attribute="kimodo_pose:motion.isConstraintPose", marker_value=1, marker_mode="evaluated",
             sample_step=1, pose_type="fullbody", sequential_evaluation=True, bone_offset_tolerance=0.001,
-            path_nodes="", path_frames="", path_samples=8, randomize_root_path=False,
+            path_nodes="", path_frames="", path_samples=8, path_mask_attribute="", randomize_root_path=False,
             root_heading="none", root_heading_offset=0.0,
             model_fps=30, duration_mode="source",
             retime_constraints=False, constraint_mode="replace", variations=1, seed_policy="per_file",
@@ -160,6 +160,9 @@ class TaskKimodoDefinition(TaskKimodoBase):
                     raise ValueError("Curve path samples must be from 2 through 7200.")
             elif len(path_nodes) > 1 and path_frames and len(path_frames) != len(path_nodes):
                 raise ValueError("Enter one Path frame per locator, or leave Path frames blank to space them evenly.")
+            path_mask = str(self.settings.get("path_mask_attribute") or "").strip()
+            if path_mask and "." not in path_mask:
+                raise ValueError("Path mask attribute must be written as node.attribute.")
 
             area = "Pose Capture"
             kimodo._positive_number(float(self.settings["sample_step"]), "sample_step")
@@ -237,9 +240,12 @@ class TaskKimodoDefinition(TaskKimodoBase):
                     constraint["frame_indices"], unused_count = kimodo.map_constraint_frames(
                         constraint["frame_indices"], 0, original_count - 1, fps, fps, count)
             if len(captured["poses"]) + len(constraints) + bool(path) > 256:
-                packed = {"type": self.settings["pose_type"], "frame_indices": indices}
-                for key in captured["poses"][0]:
-                    if key not in ("type", "frame_indices"):
+                first_pose = captured["poses"][0]
+                packed = {"type": first_pose["type"], "frame_indices": indices}
+                if "joint_names" in first_pose:
+                    packed["joint_names"] = list(first_pose["joint_names"])
+                for key in first_pose:
+                    if key not in ("type", "frame_indices", "joint_names"):
                         packed[key] = [value for pose in captured["poses"] for value in pose[key]]
                 constraints.append(packed)
             else:
@@ -391,6 +397,24 @@ def select_frames(start, end, explicit=None, first=True, last=True, markers=None
                 frames.add(frame)
             previous = bool(active)
     return sorted(frames)
+
+
+def mask_path_frames(frames, values):
+    """Keeps the root path frames where a mask attribute is active.
+
+    Args:
+        frames (list): Candidate source frames.
+        values (list): Mask value evaluated at each frame; nonzero keeps the frame.
+
+    Returns:
+        list: Frames whose mask value is nonzero, in their original order.
+    """
+    if len(frames) != len(values):
+        raise ValueError("Path mask needs one value per path frame.")
+    kept = [frame for frame, value in zip(frames, values) if abs(float(value)) > 0.000001]
+    if len(kept) < 2:
+        raise ValueError("Path mask leaves fewer than two root path frames.")
+    return kept
 
 
 def vary_definition(definition, settings, identity, variation):
@@ -663,6 +687,16 @@ def capture_scene(settings, report):
                 raise ValueError("Root path frames must be inside the capture range.")
             if len(path_frames) < 2:
                 raise ValueError("A root path needs at least two destination frames.")
+            path_mask = str(settings.get("path_mask_attribute") or "").strip()
+            if path_mask:
+                if not animated_node:
+                    raise ValueError("Path mask attribute only applies to one animated (non-curve) path node.")
+                if not cmds.objExists(path_mask):
+                    raise ValueError(f"Path mask attribute is missing: {path_mask}")
+                count = len(path_frames)
+                path_frames = mask_path_frames(path_frames, [cmds.getAttr(path_mask, time=frame)
+                                                             for frame in path_frames])
+                report(f"Path mask {path_mask} kept {len(path_frames)} of {count} root path frames.")
             cmds.currentTime(resolved["start"], edit=True, update=True)
             capture_path = partial(kimodo.capture_root_path, frame_indices=list(range(len(path_frames))),
                                    group=resolved["group"], heading_mode=settings.get("root_heading", "none"),
