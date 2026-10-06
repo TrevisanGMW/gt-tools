@@ -96,7 +96,7 @@ class AttrWidgetInputTask(AttrWidgetTask):
 
     def build_segmentation_section(self):
         """Builds the collapsible segmentation controls shown at the bottom of the widget."""
-        self.add_segmentation_section(
+        self.segmentation_section = self.add_segmentation_section(
             main_label="Start New Segment",
             main_key="start_new_input_list",
             main_tooltip=(
@@ -106,6 +106,7 @@ class AttrWidgetInputTask(AttrWidgetTask):
                 "sets in sequence (for example FBX retargeting, then MA-to-FBX export, then "
                 "USD processing). Leave this off to merge these files with earlier input tasks."
             ),
+            include_input_directory_validation=True,
         )
 
     def show_resolved_input_files(self):

@@ -50,9 +50,10 @@ class AttrWidgetInputPairsTask(AttrWidgetTask):
         self.build_folder_settings()
         self.build_pair_table()
         self.build_input_feedback()
-        self.add_segmentation_section(
+        self.segmentation_section = self.add_segmentation_section(
             main_label="Start New Segment", main_key="start_new_input_list",
-            main_tooltip="Replace earlier inputs with these pairs for the following tasks.")
+            main_tooltip="Replace earlier inputs with these pairs for the following tasks.",
+            include_input_directory_validation=True)
         self.content_layout.addStretch()
         self.show_mode()
 
@@ -300,6 +301,7 @@ class AttrWidgetInputPairsTask(AttrWidgetTask):
         manual = mode == pairs.INPUT_MODE_MANUAL
         self.mode_buttons[mode].setChecked(True)
         self.folder_page.setVisible(not manual)
+        self.input_directory_validation_widget.setVisible(not manual)
         self.buttons["add"].setVisible(manual)
         self.buttons["show_hidden"].setVisible(not manual)
         self.table.horizontalHeaderItem(DELETE_COLUMN).setToolTip("Delete a manual pair." if manual

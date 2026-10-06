@@ -830,7 +830,7 @@ class BatchTask:
             source_path = self.resolve_source_path(project)
             if not source_path:
                 result.add_error('Task "{0}" source path is empty.'.format(self.display_name))
-            elif not os.path.exists(source_path):
+            elif not os.path.exists(source_path) and not self.settings.get("allow_missing_input_directory", False):
                 result.add_warning('Task "{0}" source path does not exist: {1}'.format(self.display_name, source_path))
         if self.writes_to_target_path():
             target_path = self.resolve_task_path(project)

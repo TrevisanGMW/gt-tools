@@ -61,6 +61,64 @@ class TestInputPairsUi(unittest.TestCase):
             input_file.write("// test input\n")
         return path
 
+    def test_missing_input_directory_checkbox_persists_and_updates_validation(self):
+        """Binds each folder input checkbox to its task and restores the serialized choice."""
+        for task_class, widget_class in (
+                (tasks.TaskInput, AttrWidgetInputTask), (tasks.TaskInputPairs, editor.AttrWidgetInputPairsTask)):
+            with self.subTest(task_type=task_class.task_type):
+                source_path = os.path.join(self.directory.name, "generated")
+                task = task_class(settings={"source_path": source_path})
+                widget = widget_class(task=task, project=self.project)
+                self.addCleanup(widget.deleteLater)
+                self.addCleanup(widget.close)
+                checkbox = widget.allow_missing_input_directory_checkbox
+                section = widget.segmentation_section
+                checkbox_row = section["checkbox_layout"]
+                separator_checkbox = next(
+                    candidate for candidate in widget.findChildren(qt.QtWidgets.QCheckBox)
+                    if "Show a labeled divider above this task" in candidate.toolTip()
+                )
+                self.assertGreaterEqual(checkbox_row.indexOf(widget.input_directory_validation_widget), 0)
+                self.assertGreaterEqual(checkbox_row.indexOf(separator_checkbox), 0)
+                self.assertTrue(section["container"].isAncestorOf(checkbox))
+                self.assertTrue(section["container"].isHidden())
+                self.assertFalse(checkbox.isVisibleTo(widget))
+                section["button"].click()
+                self.assertTrue(checkbox.isVisibleTo(widget))
+                section["button"].click()
+                self.assertFalse(checkbox.isVisibleTo(widget))
+                self.assertFalse(checkbox.isChecked())
+                self.assertTrue(task.validate(self.project).errors)
+                with mock.patch.object(widget, "emit_status_message") as status_message:
+                    checkbox.setChecked(True)
+                    status_message.assert_called_once()
+                    self.assertIn("allows missing input folders", status_message.call_args.args[0])
+                self.assertEqual(True, task.settings["allow_missing_input_directory"])
+                self.assertEqual([], task.validate(self.project).errors)
+                restored_task = tasks.create_task_from_dict(task.to_dict())
+                restored_widget = widget_class(task=restored_task, project=self.project)
+                self.addCleanup(restored_widget.deleteLater)
+                self.addCleanup(restored_widget.close)
+                self.assertTrue(restored_widget.allow_missing_input_directory_checkbox.isChecked())
+                checkbox.setChecked(False)
+                self.assertTrue(task.validate(self.project).errors)
+                self.assertFalse(os.path.exists(source_path))
+
+    def test_missing_input_directory_option_stays_in_folder_pair_mode(self):
+        """Keeps folder validation controls hidden while editing manual pairs."""
+        task, widget = self.create_widget()
+        self.assertFalse(widget.folder_page.isHidden())
+        self.assertFalse(widget.input_directory_validation_widget.isHidden())
+        widget.allow_missing_input_directory_checkbox.setChecked(True)
+        widget.set_input_mode(mode=pairs.INPUT_MODE_MANUAL)
+        self.assertTrue(widget.folder_page.isHidden())
+        self.assertTrue(widget.input_directory_validation_widget.isHidden())
+        widget.set_input_mode(mode=pairs.INPUT_MODE_FOLDER)
+        self.assertFalse(widget.folder_page.isHidden())
+        self.assertFalse(widget.input_directory_validation_widget.isHidden())
+        self.assertTrue(widget.allow_missing_input_directory_checkbox.isChecked())
+        self.assertEqual(True, task.settings["allow_missing_input_directory"])
+
     def test_missing_rows_colors_and_recovery(self):
         """Colors missing assignments red, discards empty missing rows, and restores descriptions."""
         assigned_path = self.create_file("assigned.ma")

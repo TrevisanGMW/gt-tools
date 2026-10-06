@@ -37,6 +37,7 @@ from gt.tools.batch_processor.widgets import attr_widget_batch_render
 from gt.tools.batch_processor.widgets import attr_widget_clip
 from gt.tools.batch_processor.widgets import attr_widget_delete_path
 from gt.tools.batch_processor.widgets import attr_widget_export_fbx
+from gt.tools.batch_processor.widgets import attr_widget_maya_import
 from gt.tools.batch_processor.widgets import attr_widget_project
 from gt.tools.batch_processor.widgets import attr_widget_python_script
 from gt.tools.batch_processor.widgets import attr_widget_task
@@ -158,6 +159,52 @@ class TestBatchProcessorUi(unittest.TestCase):
         self.assertFalse(python_task.settings["run_once_after_multi_instance"])
         self.assertTrue(python_task.is_aggregate_task)
         task_widget.deleteLater()
+
+    def test_maya_import_segmentation_options_are_collapsed_and_persisted(self):
+        """Keeps import timing and missing-folder controls inside the optional segmentation section."""
+        import_task = self.model.add_task(batch_processor_tasks.TaskMayaImport())
+        task_widget = attr_widget_maya_import.AttrWidgetMayaImportTask(task=import_task, project=self.model)
+        self.addCleanup(task_widget.deleteLater)
+        self.addCleanup(task_widget.close)
+        section = task_widget.segmentation_section
+        missing_checkbox = task_widget.allow_missing_input_directory_checkbox
+        checkbox_row = section["checkbox_layout"]
+        separator_checkbox = next(
+            checkbox for checkbox in task_widget.findChildren(ui_qt.QtWidgets.QCheckBox)
+            if "Show a labeled divider above this task" in checkbox.toolTip()
+        )
+        self.assertGreaterEqual(checkbox_row.indexOf(task_widget.input_directory_validation_widget), 0)
+        self.assertGreaterEqual(checkbox_row.indexOf(separator_checkbox), 0)
+        before_checkbox = next(
+            checkbox for checkbox in task_widget.findChildren(ui_qt.QtWidgets.QCheckBox)
+            if "before worker jobs start" in checkbox.toolTip()
+        )
+        after_checkbox = next(
+            checkbox for checkbox in task_widget.findChildren(ui_qt.QtWidgets.QCheckBox)
+            if "after all worker jobs finish" in checkbox.toolTip()
+        )
+        self.assertTrue(section["container"].isHidden())
+        for checkbox in (missing_checkbox, before_checkbox, after_checkbox):
+            self.assertTrue(section["container"].isAncestorOf(checkbox))
+            self.assertFalse(checkbox.isChecked())
+            self.assertFalse(checkbox.isVisibleTo(task_widget))
+        section["button"].click()
+        for checkbox in (missing_checkbox, before_checkbox, after_checkbox):
+            self.assertTrue(checkbox.isVisibleTo(task_widget))
+        before_checkbox.setChecked(True)
+        self.assertEqual(True, import_task.settings["run_once_before_multi_instance"])
+        self.assertEqual(False, import_task.settings["run_once_after_multi_instance"])
+        before_checkbox.setChecked(False)
+        after_checkbox.setChecked(True)
+        missing_checkbox.setChecked(True)
+        restored_task = batch_processor_tasks.create_task_from_dict(import_task.to_dict())
+        restored_widget = attr_widget_maya_import.AttrWidgetMayaImportTask(task=restored_task, project=self.model)
+        self.addCleanup(restored_widget.deleteLater)
+        self.addCleanup(restored_widget.close)
+        self.assertEqual(False, restored_task.settings["run_once_before_multi_instance"])
+        self.assertEqual(True, restored_task.settings["run_once_after_multi_instance"])
+        self.assertTrue(restored_widget.allow_missing_input_directory_checkbox.isChecked())
+        self.assertFalse(restored_widget.segmentation_section["container"].isHidden())
 
     def test_segment_random_color_button_updates_settings_and_defers_refresh(self):
         """Ensures random colors persist and refresh safely after the button callback."""

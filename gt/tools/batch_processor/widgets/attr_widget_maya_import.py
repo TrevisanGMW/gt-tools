@@ -53,6 +53,16 @@ class AttrWidgetMayaImportTask(AttrWidgetTask):
         )
         self.add_scene_option_controls()
         self.add_post_script_section()
+        self.segmentation_section = self.add_segmentation_section(
+            main_label="Run Once After All Jobs",
+            main_key="run_once_after_multi_instance",
+            main_tooltip=(
+                "In multi-instance mode, process this task's source files once after all worker jobs finish. "
+                "Place this task last in the enabled processing task list. Set Source Path to the folder "
+                "containing the files to import or open."
+            ),
+            include_input_directory_validation=True,
+        )
         self.content_layout.addStretch()
 
     def add_scene_option_controls(self):

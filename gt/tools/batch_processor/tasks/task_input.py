@@ -39,6 +39,7 @@ class TaskInput(task_base.BatchTask):
         return {
             "include_in_task_index": False,
             "source_path": "{project-dir}/{input-dir}",
+            "allow_missing_input_directory": False,
             "include_subdirectories": True,
             "extensions": [".ma", ".mb", ".fbx"],
             "exclude_patterns": [],
@@ -94,11 +95,32 @@ class TaskInput(task_base.BatchTask):
         explicit_files = self.settings.get("explicit_files") or []
         input_dir = self.get_input_dir(project)
         if not explicit_files and not os.path.isdir(input_dir):
-            result.add_error("Input directory does not exist: {0}".format(input_dir))
+            if self.can_skip_missing_directory_validation(project):
+                result.add_warning(f"Input directory does not exist yet; allowed by this task: {input_dir}")
+            else:
+                result.add_error(f"Input directory does not exist: {input_dir}")
         unresolved_files = self.get_unresolved_explicit_file_entries(project)
         if unresolved_files:
             result.add_warning("Explicit input file entries did not resolve: {0}".format(len(unresolved_files)))
         return result
+
+    def can_skip_missing_directory_validation(self, project):
+        """Checks whether this task explicitly allows its input directory to be missing.
+
+        Empty paths and existing files cannot bypass directory validation.
+
+        Args:
+            project (BatchProcessorModel): Project containing this task.
+
+        Returns:
+            bool: True when a missing input directory is allowed by this task.
+        """
+        input_dir = self.get_input_dir(project)
+        return bool(
+            self.settings.get("allow_missing_input_directory", False)
+            and input_dir
+            and not os.path.exists(input_dir)
+        )
 
     def discover_files(self, project):
         """Discovers input files using this task's settings.

@@ -342,6 +342,7 @@ class TaskInputPairs(TaskInput):
             ValidationResult: Input errors and retained-row diagnostics.
         """
         result = base.ValidationResult()
+        allow_missing_directory = False
         try:
             rows = self.get_pair_rows(project)
         except (ValueError, TypeError, OSError) as exception:
@@ -349,6 +350,7 @@ class TaskInputPairs(TaskInput):
             return result
         if self.get_input_mode() == INPUT_MODE_FOLDER:
             result.extend(super().validate(project))
+            allow_missing_directory = self.can_skip_missing_directory_validation(project)
             files = self.get_folder_file_map(project)
             missing = sum(get_pair_key(row["input_file"]) not in files for row in rows)
             if missing:
@@ -363,7 +365,7 @@ class TaskInputPairs(TaskInput):
                 if error:
                     result.add_error(error)
                 active = active or bool(row["input_file"].strip())
-        if not active:
+        if not active and not allow_missing_directory:
             result.add_error("Add at least one active, available input pair with a file name.")
         return result
 

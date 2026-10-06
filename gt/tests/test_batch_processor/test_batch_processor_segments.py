@@ -267,6 +267,7 @@ class TestBatchProcessorSegments(unittest.TestCase):
 
     def test_optional_run_once_tasks_default_to_unchecked(self):
         for task_type in [
+            constants.TaskType.MAYA_IMPORT,
             constants.TaskType.FOLDER_COMPARE_VALIDATE,
             constants.TaskType.FILE_INTEGRITY_VALIDATE,
             constants.TaskType.MAYA_SCENE_VALIDATE,
@@ -287,6 +288,7 @@ class TestBatchProcessorSegments(unittest.TestCase):
 
     def test_segmented_tasks_support_run_once_before_jobs(self):
         task_types = [
+            constants.TaskType.MAYA_IMPORT,
             constants.TaskType.PYTHON_SCRIPT,
             constants.TaskType.ZIP_COMPRESS,
             constants.TaskType.MAP_HIERARCHY,

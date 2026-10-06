@@ -23,6 +23,8 @@ class TaskMayaImport(task_base.BatchTask):
     category = "Inputs"
     category_icon = ui_res_lib.Icon.batch_category_inputs
     post_script_samples_directory = POST_SCRIPT_SAMPLES_DIRECTORY
+    supports_run_once_after_jobs = True
+    supports_run_once_before_jobs = True
 
     def get_default_settings(self):
         """Gets default Maya import settings.
@@ -32,6 +34,7 @@ class TaskMayaImport(task_base.BatchTask):
         """
         return {
             "source_path": "{previous-task-path}",
+            "allow_missing_input_directory": False,
             "target_path": self.default_target_path_template,
             "scene_load_mode": "Import",
             "output_extension": ".ma",
@@ -51,6 +54,12 @@ class TaskMayaImport(task_base.BatchTask):
             "post_script_pass_standard_arguments": True,
             "post_script_pass_environment_arguments": True,
             "overwrite": False,
+            "run_once_after_multi_instance": False,
+            "run_once_before_multi_instance": False,
+            "force_segment_separator": False,
+            "segmentation_collapsed": True,
+            "segment_name": self.default_segment_name,
+            "segment_color": "blue_light_sky",
         }
 
     def validate(self, project):

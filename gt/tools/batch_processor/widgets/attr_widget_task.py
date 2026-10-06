@@ -625,6 +625,34 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         """
         self.set_task_setting(bool(value), key="include_in_task_index")
 
+    def add_input_directory_validation_checkbox(self, parent_layout=None):
+        """Adds an opt-in control for input folders created by earlier segments.
+
+        Args:
+            parent_layout (QLayout, optional): Layout that receives the checkbox group.
+
+        Returns:
+            QCheckBox: Created missing input folder checkbox.
+        """
+        self.input_directory_validation_widget = ui_qt.QtWidgets.QWidget()
+        validation_layout = ui_qt.QtWidgets.QHBoxLayout(self.input_directory_validation_widget)
+        validation_layout.setContentsMargins(0, 0, 0, 0)
+        validation_layout.setSpacing(6)
+        target_layout = parent_layout or self.content_layout
+        target_layout.addWidget(self.input_directory_validation_widget)
+        checkbox = self.add_checkbox(
+            "Allow Missing Input Folder",
+            self.task.settings.get("allow_missing_input_directory", False),
+            lambda value: self.set_task_setting(value, key="allow_missing_input_directory"),
+            layout=validation_layout,
+            tooltip=(
+                "Skip the missing input folder check during project validation for this task. "
+                "Enable when an earlier segment will create the folder. Files are still discovered "
+                "when the task runs; other validation remains active."
+            ),
+        )
+        return checkbox
+
     def refresh_source_path_enabled_state(self):
         """Refreshes source path widgets based on source mode."""
         if not self.source_path_widgets:
@@ -698,6 +726,7 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         secondary_label=None,
         secondary_key=None,
         secondary_tooltip=None,
+        include_input_directory_validation=False,
     ):
         """Adds a collapsible Segmentation section with run-once and divider controls.
 
@@ -713,6 +742,10 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
             secondary_label (str, optional): Label for an additional checkbox.
             secondary_key (str, optional): Task setting key for the additional checkbox.
             secondary_tooltip (str, optional): Tooltip for the additional checkbox.
+            include_input_directory_validation (bool, optional): Adds the missing input folder checkbox to the row.
+
+        Returns:
+            dict: Segmentation section widgets, checkbox row, and content layout.
         """
         self.task.settings.setdefault("segmentation_collapsed", True)
         section = self.add_collapsible_section(
@@ -726,6 +759,7 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         checkbox_row = ui_qt.QtWidgets.QHBoxLayout()
         checkbox_row.setSpacing(6)
         section_layout.addLayout(checkbox_row)
+        section["checkbox_layout"] = checkbox_row
         checkbox_row.addStretch()
         if getattr(self.task, "supports_run_once_before_jobs", False):
             self.add_checkbox(
@@ -764,6 +798,9 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
                 "segment name and color below."
             ),
         )
+        if include_input_directory_validation:
+            self.allow_missing_input_directory_checkbox = self.add_input_directory_validation_checkbox(
+                parent_layout=checkbox_row)
         checkbox_row.addStretch()
 
         separator_enabled = bool(self.task.settings.get("force_segment_separator"))
@@ -824,6 +861,7 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
             lambda checked=False, combo=color_combo: self.randomize_segment_color(combo)
         )
         color_layout.addWidget(randomize_color_button)
+        return section
 
     def randomize_segment_color(self, color_combo):
         """Selects and stores a random color from the segment color dropdown.
@@ -981,7 +1019,13 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
             key (str): Setting key that changed.
             value (object): New setting value.
         """
-        if key == "overwrite":
+        if key == "allow_missing_input_directory":
+            if value:
+                message = f'Task "{self.task.display_name}" allows missing input folders during project validation.'
+            else:
+                message = f'Task "{self.task.display_name}" checks missing input folders during project validation.'
+            self.emit_status_message(message)
+        elif key == "overwrite":
             if value:
                 self.emit_status_message(
                     'Task "{0}" overwrite enabled. Existing target files may be replaced.'.format(

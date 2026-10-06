@@ -94,6 +94,13 @@ FIELD_HELP = {
                         "when Path frames is blank.\n"
                         "Locator lists automatically use one sample per locator.\n"
                         "Allowed range: 2–7200.", "8"),
+    ("path_mask_attribute",): ("Optional node.attribute on the animated path node's scene.
+"
+                               "Root path samples are kept only where it evaluates nonzero,
+"
+                               "so the model moves freely where it is 0 (for example sit-down
+"
+                               "and stand-up windows). Blank keeps every sample.", "kimodo_trajectory.pathWeight"),
     ("randomize_root_path",): ("Use only a list of two or more NURBS curve transforms.\n"
                                "One curve is selected per definition variation.\n"
                                "The curve list is shuffled from the first resolved seed\n"
@@ -613,6 +620,7 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
         self.field(section, "Random curve per variation", "randomize_root_path", "boolean")
         self.field(section, "Path frames", "path_frames")
         self.field(section, "Path samples", "path_samples", "integer")
+        self.field(section, "Path mask attribute", "path_mask_attribute")
         row = self.add_labeled_layout("Root heading", parent_layout=section)
         self.field(section, "", "root_heading", "choice", [
             ("none", "None"), ("path", "Direction of travel"), ("node", "Node +Z axis"), ("fixed", "Fixed")],
@@ -740,6 +748,8 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
         path_enabled = bool(settings["path_nodes"].strip())
         path_nodes = [value.strip() for value in settings["path_nodes"].split(",") if value.strip()]
         self.set_field_enabled("path_frames", path_enabled)
+        self.set_field_enabled("path_mask_attribute", path_enabled and len(path_nodes) == 1
+                               and not settings.get("randomize_root_path", False))
         self.set_field_enabled("randomize_root_path", path_enabled)
         self.set_field_enabled("root_heading", path_enabled)
         self.set_field_enabled("root_heading_offset", path_enabled and settings.get("root_heading", "none") != "none")
