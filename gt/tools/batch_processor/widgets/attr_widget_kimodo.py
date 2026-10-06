@@ -94,12 +94,9 @@ FIELD_HELP = {
                         "when Path frames is blank.\n"
                         "Locator lists automatically use one sample per locator.\n"
                         "Allowed range: 2–7200.", "8"),
-    ("path_mask_attribute",): ("Optional node.attribute on the animated path node's scene.
-"
-                               "Root path samples are kept only where it evaluates nonzero,
-"
-                               "so the model moves freely where it is 0 (for example sit-down
-"
+    ("path_mask_attribute",): ("Optional node.attribute on the animated path node's scene.\n"
+                               "Root path samples are kept only where it evaluates nonzero,\n"
+                               "so the model moves freely where it is 0 (for example sit-down\n"
                                "and stand-up windows). Blank keeps every sample.", "kimodo_trajectory.pathWeight"),
     ("randomize_root_path",): ("Use only a list of two or more NURBS curve transforms.\n"
                                "One curve is selected per definition variation.\n"
