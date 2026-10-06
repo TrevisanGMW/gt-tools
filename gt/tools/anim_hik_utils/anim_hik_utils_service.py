@@ -6,6 +6,7 @@ remain inside the existing gt.utils.hik Python wrappers; pose work uses Python.
 
 from contextlib import contextmanager
 import json
+import math
 import os
 import re
 import tempfile
@@ -376,6 +377,96 @@ class AnimHikUtilsService:
             raise ValueError("No writable HumanIK properties were found for this character.")
         return result
 
+    def export_tpose(self, character, file_path):
+        """Exports the selected HumanIK skeleton's current joint pose.
+
+        The file uses the namespace-free JSON format used by the batch
+        HumanIK retarget task.
+
+        Args:
+            character (str): HumanIK character node.
+            file_path (str): Destination pose file.
+
+        Returns:
+            int: Number of joints written.
+        """
+        self.require_character(character)
+        cmds, unused_hik = self.runtime()
+        mapped_joints = cmds.listConnections(
+            character, source=True, destination=False, type="joint"
+        ) or []
+        if not mapped_joints:
+            raise ValueError(f'HumanIK character "{character}" has no mapped skeleton joints.')
+
+        roots = set()
+        for joint in mapped_joints:
+            current_joint = joint
+            while True:
+                parents = cmds.listRelatives(
+                    current_joint, parent=True, type="joint", fullPath=True
+                ) or []
+                if not parents:
+                    roots.add(current_joint)
+                    break
+                current_joint = parents[0]
+
+        joints = set(roots)
+        for root in roots:
+            joints.update(cmds.listRelatives(
+                root, allDescendents=True, type="joint", fullPath=True
+            ) or [])
+        joints = sorted(joints)
+        if not joints:
+            raise ValueError(f'No skeleton joints found for HumanIK character "{character}".')
+
+        from gt.core import pose as core_pose
+
+        pose_data = core_pose.get_pose_as_dict(joints)
+        if not pose_data:
+            raise ValueError("No joint pose data could be captured.")
+        with open(file_path, "w", encoding="utf-8") as stream:
+            json.dump(pose_data, stream, indent=4, sort_keys=True, allow_nan=False)
+            stream.write("\n")
+        return len(pose_data)
+
+    def import_tpose(self, character, file_path):
+        """Applies a batch-compatible T-pose file to the selected skeleton.
+
+        Args:
+            character (str): HumanIK character node.
+            file_path (str): Existing JSON T-pose file.
+
+        Returns:
+            int: Number of joints changed.
+        """
+        self.require_character(character)
+        if not os.path.isfile(file_path):
+            raise ValueError(f"T-pose file does not exist: {file_path}")
+        with open(file_path, "r", encoding="utf-8") as stream:
+            pose_data = json.load(stream)
+        if not isinstance(pose_data, dict) or not pose_data:
+            raise ValueError("Choose a non-empty T-pose JSON dictionary.")
+        for joint_name, transforms in pose_data.items():
+            if not isinstance(joint_name, str) or not joint_name or not isinstance(transforms, dict):
+                raise ValueError("T-pose data must map joint names to transform dictionaries.")
+            for attribute, value in transforms.items():
+                if attribute not in ("tx", "ty", "tz", "rx", "ry", "rz", "sx", "sy", "sz"):
+                    raise ValueError(f"Unsupported T-pose transform: {joint_name}.{attribute}")
+                if type(value) not in (int, float) or not math.isfinite(value):
+                    raise ValueError(f"Invalid T-pose value for {joint_name}.{attribute}.")
+
+        cmds, hik = self.runtime()
+        namespace = hik.get_character_namespace(character)
+        from gt.core import pose as core_pose
+
+        with self.scene_edit("Import HumanIK Skeleton T-Pose"):
+            applied = core_pose.set_pose_from_dict(pose_data, namespace=namespace)
+        if not applied:
+            raise ValueError(
+                f"The T-pose did not match any joints in namespace '{namespace or '<root>'}'."
+            )
+        return len(applied)
+
     def export_file(self, character, kind, file_path, settings):
         """Stages an export before replacing the user-confirmed destination.
 
@@ -387,6 +478,11 @@ class AnimHikUtilsService:
         """
         self.require_character(character)
         unused_cmds, hik = self.runtime()
+        if kind == "pose" and not hik.get_hik_control_rig_controls(character):
+            raise ValueError(
+                f'HumanIK character "{character}" has no generated control-rig controls. '
+                "Create or activate its HumanIK Control Rig, then export the pose again."
+            )
         temporary_path = ""
         try:
             with tempfile.NamedTemporaryFile(

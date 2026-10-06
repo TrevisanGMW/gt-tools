@@ -293,6 +293,21 @@ class AnimHikUtilsView(metaclass=qt_utils.MayaWindowMeta):
             "import_definition", "Import XML...", "Review and confirm replacing mapped slots."
         ))
         layout.addLayout(files)
+        self.note(
+            layout,
+            "Skeleton T-pose files use the same JSON format as the HumanIK batch retarget task. "
+            "Export the mapped skeleton's current pose, or apply a saved T-pose before reviewing and locking the definition."
+        )
+        tpose_files = ui_qt.QtWidgets.QHBoxLayout()
+        tpose_files.addWidget(self.button(
+            "export_tpose", "Export Skeleton T-Pose...",
+            "Save local joint transforms from the skeleton mapped to this definition."
+        ))
+        tpose_files.addWidget(self.button(
+            "import_tpose", "Import Skeleton T-Pose...",
+            "Apply a batch-compatible T-pose to the mapped skeleton. This changes writable joint channels."
+        ))
+        layout.addLayout(tpose_files)
         layout.addStretch()
 
     def build_retarget_tab(self):
