@@ -291,14 +291,14 @@ class AttrWidgetFileIntegrityValidationTask(AttrWidgetTask):
             "Min Size (Bytes)",
             self.task.settings.get("minimum_file_size_bytes"),
             partial(self.set_task_setting, key="minimum_file_size_bytes"),
-            tooltip="Minimum valid file size in bytes. 1024 bytes = 1 KB. 1048576 bytes = 1 MB.",
+            tooltip="Minimum valid file size in bytes.\n1024 bytes = 1 KB.\n1048576 bytes = 1 MB.",
         )
         self.add_text_field(
             "Max Size (Bytes)",
             self.task.settings.get("maximum_file_size_bytes"),
             partial(self.set_task_setting, key="maximum_file_size_bytes"),
             placeholder="Optional",
-            tooltip="Optional maximum valid file size in bytes. Leave empty when there is no upper limit.",
+            tooltip="Optional maximum valid file size in bytes.\nLeave empty when there is no upper limit.",
         )
         self.add_combo_box(
             "Checksum",
@@ -439,5 +439,4 @@ class AttrWidgetFolderCompareValidationTask(AttrWidgetTask):
             ),
         )
         self.content_layout.addStretch()
-
 

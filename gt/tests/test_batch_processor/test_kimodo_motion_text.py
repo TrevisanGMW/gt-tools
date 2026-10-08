@@ -5,6 +5,8 @@ import json
 import os
 import tempfile
 import unittest
+import sys
+import types
 from unittest import mock
 
 from gt.tools.batch_processor import batch_processor_model
@@ -12,6 +14,7 @@ from gt.tools.batch_processor import batch_processor_task_base as base
 from gt.tools.batch_processor import batch_processor_maya
 from gt.tools.batch_processor.tasks import task_kimodo_base as kimodo_base
 from gt.tools.batch_processor.tasks.task_kimodo_definition import TaskKimodoDefinition
+from gt.tools.batch_processor.tasks import task_kimodo_definition as definition_task
 
 
 class TestKimodoMotionText(unittest.TestCase):
@@ -84,6 +87,75 @@ class TestKimodoMotionText(unittest.TestCase):
         with mock.patch.dict(os.environ, {"GT_KIMODO_TEST_SEQUENCE": '[[2, "Walk"]]'}):
             task.settings["prompt_text"] = "%GT_KIMODO_TEST_SEQUENCE%"
             self.assertEqual("Walk", task.base_definition(project, item)["prompts"][0]["text"])
+
+    def test_scene_queries_wait_for_each_source_scene(self):
+        """Defers direct and aliased queries and resolves them after opening each input."""
+        project = batch_processor_model.BatchProcessorModel()
+        project.set_custom_environment_variables({
+            "kimodo-prompt": {"value": 'cmds.getAttr("kimodo_trajectory.prompt")', "query": True},
+            "motion": {"value": "{kimodo-prompt}", "query": False},
+        })
+        task = TaskKimodoDefinition(settings={"prompt_mode": "text", "prompt_text": "{motion}"})
+        commands = types.ModuleType("maya.cmds")
+        commands.file = mock.Mock()
+        commands.getAttr = mock.Mock()
+        maya_module = types.ModuleType("maya")
+        maya_module.cmds = commands
+        captured = {"frames": [], "poses": [], "path": None, "path_frames": [],
+                    "start": 0, "end": 59, "source_fps": 30}
+        with tempfile.TemporaryDirectory() as directory, mock.patch.dict(
+            sys.modules, {"maya": maya_module, "maya.cmds": commands}
+        ), mock.patch.object(batch_processor_maya, "get_maya_cmds", return_value=commands), mock.patch.object(
+            definition_task, "capture_scene", return_value=captured
+        ):
+            project.environment_variables["project-dir"] = directory
+            items = []
+            for name in ("Walk", "Run"):
+                path = os.path.join(directory, f"{name}.ma")
+                with open(path, "w", encoding="utf-8") as scene_file:
+                    scene_file.write("// Source scene stand-in")
+                items.append(base.WorkItem(path))
+            output_dir = os.path.join(directory, "output")
+            for token in ("{kimodo-prompt}", "{motion}"):
+                task.settings["prompt_text"] = token
+                self.assertEqual([], task.validate(project).errors)
+                self.assertTrue(task.validate(project).warnings)
+                self.assertEqual([], task.validate_work_items(items, project, output_dir).errors)
+            commands.file.assert_not_called()
+            commands.getAttr.assert_not_called()
+            for item in items:
+                description = os.path.splitext(os.path.basename(item.current_path))[0]
+                commands.getAttr.return_value = json.dumps([[2, description]])
+                commands.file.reset_mock()
+                outputs = task.execute(item, project, output_dir)
+                commands.file.assert_called_once_with(
+                    item.current_path, open=True, force=True, executeScriptNodes=False, prompt=False
+                )
+                self.assertEqual(item.current_path, outputs[0].metadata["kimodo"]["source_scene"])
+                with open(outputs[0].current_path, encoding="utf-8") as definition_file:
+                    self.assertEqual(description, json.load(definition_file)["prompts"][0]["text"])
+
+    def test_invalid_scene_prompt_fails_after_scene_is_opened(self):
+        """Keeps runtime validation strict when a query returns malformed motion text."""
+        project = batch_processor_model.BatchProcessorModel()
+        project.set_custom_environment_variables({
+            "motion": {"value": "'not JSON'", "query": True},
+        })
+        task = TaskKimodoDefinition(settings={"prompt_mode": "text", "prompt_text": "{motion}"})
+        maya_module = types.ModuleType("maya")
+        commands = types.ModuleType("maya.cmds")
+        maya_module.cmds = commands
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, "input.ma")
+            with open(path, "w", encoding="utf-8") as scene_file:
+                scene_file.write("// Source scene stand-in")
+            with mock.patch.dict(sys.modules, {"maya": maya_module, "maya.cmds": commands}), mock.patch.object(
+                batch_processor_maya, "get_maya_cmds"
+            ) as get_commands:
+                self.assertEqual([], task.validate(project).errors)
+                with self.assertRaisesRegex(ValueError, "Motion text must be JSON pairs"):
+                    task.execute(base.WorkItem(path), project, os.path.join(directory, "output"))
+                get_commands.return_value.file.assert_called_once()
 
     def test_inactive_rows_and_template_prompts(self):
         """Validates active text even when retained local or template prompts are invalid."""

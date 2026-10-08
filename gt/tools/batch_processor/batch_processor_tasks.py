@@ -30,6 +30,7 @@ from gt.tools.batch_processor.batch_processor_task_base import path_is_inside_di
 from gt.tools.batch_processor.batch_processor_task_base import sanitize_filename
 from gt.tools.batch_processor.tasks.task_input import TaskInput
 from gt.tools.batch_processor.tasks.task_input_strings import TaskInputStrings
+from gt.tools.batch_processor.tasks.task_input_pairs import TaskInputPairs
 from gt.tools.batch_processor.tasks.task_annotation import TaskAnnotationSnapshot
 from gt.tools.batch_processor.tasks.task_archive import TaskArchive
 from gt.tools.batch_processor.tasks.task_auto_rig_build import TaskAutoRigBuild
@@ -71,6 +72,7 @@ from gt.tools.batch_processor.tasks.task_validation import TaskValidationMayaSce
 TASK_TYPES = {
     constants.TaskType.INPUT: TaskInput,
     constants.TaskType.INPUT_STRINGS: TaskInputStrings,
+    constants.TaskType.INPUT_PAIRS: TaskInputPairs,
     constants.TaskType.MAYA_IMPORT: TaskMayaImport,
     constants.TaskType.PYTHON_SCRIPT: TaskPythonScript,
     constants.TaskType.RENAME: TaskRename,

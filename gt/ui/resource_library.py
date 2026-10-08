@@ -497,6 +497,7 @@ class Icon:
     batch_tracker = get_icon_path(r"batch_tracker.svg")
     batch_task_import_file = get_icon_path(r"batch_task_import_file.svg")
     batch_task_input_strings = get_icon_path(r"batch_task_input_strings.svg")
+    batch_task_input_pairs = get_icon_path(r"batch_task_input_pairs.svg")
     batch_task_maya_import = get_icon_path(r"batch_task_maya_import.svg")
     batch_task_python = get_icon_path(r"batch_task_python.svg")
     batch_task_rename = get_icon_path(r"batch_task_rename.svg")

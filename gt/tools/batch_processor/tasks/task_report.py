@@ -71,7 +71,7 @@ REPORT_METRICS = [
     {
         "key": "frame_rate",
         "label": "Frame Rates",
-        "tooltip": "Frame rates found in the processed scenes. Matching scenes only report one value.",
+        "tooltip": "Frame rates found in the processed scenes.\nMatching scenes only report one value.",
         "requires_scene": True,
         "fields": [
             {
@@ -164,7 +164,7 @@ REPORT_METRICS = [
     {
         "key": "scene_units",
         "label": "Scene Units",
-        "tooltip": "Linear and angular units found in the processed scenes. Matching scenes only report one value.",
+        "tooltip": "Linear and angular units found in the processed scenes.\nMatching scenes only report one value.",
         "requires_scene": True,
         "fields": [
             {

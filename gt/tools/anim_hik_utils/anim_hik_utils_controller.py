@@ -49,6 +49,8 @@ class AnimHikUtilsController:
             "import_properties": self.import_properties,
             "bake_skeleton": partial(self.bake, "skeleton"),
             "bake_controls": partial(self.bake, "controls"),
+            "export_tpose": partial(self.tpose_file, "export"),
+            "import_tpose": partial(self.tpose_file, "import"),
         }
         for operation in ("create", "rename", "lock", "unlock", "source", "stance"):
             self.actions[operation] = partial(self.definition_action, operation)
@@ -166,7 +168,7 @@ class AnimHikUtilsController:
         Returns:
             str: Selected path, or an empty string on cancellation.
         """
-        extension = "xml" if kind == "definition" else "json"
+        extension = "xml" if kind == "definition" else "pose" if kind == "tpose" else "json"
         dialog = ui_qt.QtWidgets.QFileDialog
         chooser = dialog.getSaveFileName if save else dialog.getOpenFileName
         path, unused_filter = chooser(
@@ -316,6 +318,29 @@ class AnimHikUtilsController:
         if path:
             self.service.export_file(self.model.character, kind, path, self.model.settings)
             self.view.set_status(f"Exported {kind}: {path}")
+
+    def tpose_file(self, operation):
+        """Imports or exports a skeleton T-pose using the batch task format.
+
+        Args:
+            operation (str): import or export.
+        """
+        save = operation == "export"
+        path = self.file_dialog("tpose", save=save)
+        if not path:
+            return
+        if save:
+            joint_count = self.service.export_tpose(self.model.character, path)
+            self.view.set_status(f"Exported T-pose for {joint_count} skeleton joints: {path}")
+            return
+        if not self.confirm(
+            "Import Skeleton T-Pose",
+            f"Apply the T-pose to the skeleton mapped to {self.model.character}?\n"
+            "Writable translate and rotate channels will change. Undo restores the previous pose.",
+        ):
+            return
+        joint_count = self.service.import_tpose(self.model.character, path)
+        self.view.set_status(f"Applied T-pose to {joint_count} skeleton joints. Undo restores the previous pose.")
 
     def copy_properties(self):
         """Copies character properties into the model's session clipboard."""

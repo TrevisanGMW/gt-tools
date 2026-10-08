@@ -23,14 +23,14 @@ TABLE_TOOLTIP = (
     "One string per row; each active row starts in a new empty Maya scene.\n"
     f"{TOKEN_HELP}\n"
     "Unchecked and blank rows are skipped and excluded from the index; duplicates are kept.\n"
-    "Double-click to edit. Right-click for more actions. Delete removes selected rows."
+    "Double-click to edit.\nRight-click for more actions.\nDelete removes selected rows."
 )
 MODE_TOOLTIPS = {
     task_input_strings.INPUT_MODE_TABLE: "Run one job per active, nonblank row of the table below.",
-    task_input_strings.INPUT_MODE_NUMBERS: ("Run one job per whole number from Start to End (inclusive). "
+    task_input_strings.INPUT_MODE_NUMBERS: ("Run one job per whole number from Start to End (inclusive).\n"
                                             "Counts down when End is lower than Start."),
     task_input_strings.INPUT_MODE_FILE: ("Run one job per nonblank line of a UTF-8 text file, read when the "
-                                         "batch runs. The table is not used or modified."),
+                                         "batch runs.\nThe table is not used or modified."),
 }
 
 
@@ -92,6 +92,7 @@ class AttrWidgetInputStringsTask(AttrWidgetTask):
             self.mode_button_group.addButton(button)
             layout.addWidget(button)
             self.mode_buttons[mode] = button
+        self.add_task_index_checkbox(layout)
         self.status_label = qt.QtWidgets.QLabel()
         self.status_label.setWordWrap(True)
         self.status_label.setToolTip(TOKEN_HELP)
@@ -156,7 +157,7 @@ class AttrWidgetInputStringsTask(AttrWidgetTask):
         for key, label, minimum, field_tooltip in (
                 ("number_start", "Start", -NUMBER_LIMIT, tooltip),
                 ("number_end", "End", -NUMBER_LIMIT, tooltip),
-                ("number_step", "Step", 1, "Use every Nth number, counted from Start. 1 uses every number.")):
+                ("number_step", "Step", 1, "Use every Nth number, counted from Start.\n1 uses every number.")):
             label_widget = qt.QtWidgets.QLabel(f"{label}:")
             label_widget.setToolTip(field_tooltip)
             spin_box = qt.QtWidgets.QSpinBox()
@@ -181,7 +182,7 @@ class AttrWidgetInputStringsTask(AttrWidgetTask):
         self.number_filter_combo.currentIndexChanged.connect(self.set_number_filter)
         filter_row.addWidget(self.number_filter_combo)
         filter_row.addStretch()
-        skip_tooltip = ("Numbers to leave out, separated by commas or spaces. Use 10-12 for an inclusive range. "
+        skip_tooltip = ("Numbers to leave out, separated by commas or spaces.\nUse 10-12 for an inclusive range.\n"
                         "Skipped numbers are not counted in {input-string-index}.")
         skip_row = self.add_labeled_layout("Skip", tooltip=skip_tooltip, parent_layout=page_layout)
         self.number_skip_field = self.create_text_field(text=self.task.settings.get("number_skip") or "",
@@ -199,7 +200,7 @@ class AttrWidgetInputStringsTask(AttrWidgetTask):
         Args:
             page_layout (QVBoxLayout): Input File page layout.
         """
-        tooltip = (f"{MODE_TOOLTIPS[task_input_strings.INPUT_MODE_FILE]} Blank lines are skipped. "
+        tooltip = (f"{MODE_TOOLTIPS[task_input_strings.INPUT_MODE_FILE]} Blank lines are skipped.\n"
                    "Paths inside the project are stored relative to {project-dir}.")
         file_widgets = self.add_path_template_field(
             "Input File", self.task.settings.get("input_file_path") or "",
@@ -224,16 +225,9 @@ class AttrWidgetInputStringsTask(AttrWidgetTask):
         Returns:
             QPushButton: Row delete button.
         """
-        button = qt.QtWidgets.QPushButton()
-        button.setAutoDefault(False)
-        button.setFlat(True)
-        button.setIcon(qt.QtGui.QIcon(ui_res_lib.Icon.ui_trash))
-        button.setIconSize(qt.QtCore.QSize(16, 16))
-        button.setFixedWidth(28)
-        button.setAccessibleName("Delete String")
-        button.setToolTip("Remove this string.")
-        button.clicked.connect(self.remove_button_row)
-        return button
+        return self.create_table_action_button(
+            self.remove_button_row, "Remove this string.",
+            icon_path=ui_res_lib.Icon.ui_trash, accessible_name="Delete String")
 
     def create_active_checkbox(self, enabled):
         """Creates a checkbox centered in its cell that marks a row for use.

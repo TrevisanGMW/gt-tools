@@ -5,6 +5,7 @@ Batch Processor Validation Tasks
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_maya
 from gt.tools.batch_processor import batch_processor_task_base as task_base
+from gt.tools.batch_processor import batch_processor_run_state as run_state
 import gt.ui.resource_library as ui_res_lib
 from gt.tools.batch_processor.tasks import task_utils
 import hashlib
@@ -166,6 +167,7 @@ class TaskValidationMayaScene(task_base.BatchTask):
         )
         results = self.run_validators()
         has_issues = any(result_data.get("status_value", 0) > 1 for result_data in results)
+        run_state.record_validation(project, bool(results) and not has_issues)
         self.write_validation_log_if_needed(
             work_item=work_item,
             step_output_dir=step_output_dir,
@@ -373,6 +375,7 @@ class TaskValidationFileIntegrity(task_base.BatchTask):
         context = context or {}
         issues = self.collect_file_issues(work_item, context.get("work_items") or [])
         has_issues = bool(issues)
+        run_state.record_validation(project, not has_issues)
         self.write_validation_log_if_needed(work_item, step_output_dir, issues, has_issues, context=context)
         if has_issues and self.settings.get("fail_on_issues"):
             raise RuntimeError("File integrity validation found issues in: {0}".format(work_item.current_path))
@@ -587,6 +590,7 @@ class TaskValidationFolderCompare(task_base.BatchTask):
             include_subdirectories=bool(self.settings.get("include_subdirectories", True)),
         )
         has_issues = bool(report.get("only_in_a") or report.get("only_in_b") or report.get("changed"))
+        run_state.record_validation(project, not has_issues)
         log_path = self.write_comparison_log_if_needed(step_output_dir, folder_a, folder_b, report, has_issues)
         task_utils.report_log_artifact(context, log_path)
         if has_issues and self.settings.get("fail_on_differences"):

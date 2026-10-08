@@ -78,6 +78,7 @@ def main():
     from gt.tools.batch_processor import batch_processor_model
     from gt.tools.batch_processor import batch_processor_tasks as tasks
     from gt.tools.batch_processor import batch_processor_worker
+    from gt.tools.batch_processor import batch_processor_run_state as run_state
     from gt.tools.batch_processor.tracker import tracker_events
 
     event_writer = tracker_events.EventWriter(file_path=args.event_file, job_id=args.job_id)
@@ -111,7 +112,9 @@ def main():
         process_tasks = [task for task in process_tasks if task.id not in skipped_task_ids]
     executable_tasks = [task for task in process_tasks if not task.is_input_task]
     total_task_count = len(executable_tasks)
-    if args.final_task_id:
+    final_project_script = bool(args.final_task_id and executable_tasks[0].task_type == "python_script"
+                                and getattr(executable_tasks[0], "is_aggregate_task", False))
+    if args.final_task_id and not final_project_script:
         current_items = discover_final_task_work_items(
             project=project,
             task=executable_tasks[0],
@@ -120,12 +123,15 @@ def main():
         )
         tracker_file_name = executable_tasks[0].display_name
         print(f"[INFO] - (worker) - Final task discovered {len(current_items)} source item(s).")
+    elif args.final_task_id:
+        current_items = []
+        tracker_file_name = executable_tasks[0].display_name
     else:
         current_items = [
             batch_processor_worker.create_initial_work_item(
                 project=project,
                 source_file=args.source_file,
-                run_from_task_id=args.run_from_task_id or None,
+                run_from_task_id=args.run_from_task_id or (executable_tasks[0].id if executable_tasks else None),
             )
         ]
         tracker_file_name = os.path.basename(args.source_file)
@@ -134,6 +140,11 @@ def main():
     succeeded = 0
     global_item_index = get_global_item_index(args.worker_id)
     run_id = tasks.build_run_id(os.path.dirname(args.event_file))
+    seed = run_state.decode_state(os.environ.get(run_state.WORKER_STATE_VARIABLE, ""))
+    state = run_state.initialize(project, run_id, "project" if args.final_task_id else "worker", seed)
+    if args.final_task_id and (not seed or seed.get("scope") != "project"):
+        state["known"] = False
+    event_writer.emit("run_state", state=state)
     active_task = None
     active_task_index = 0
     active_task_started = None
@@ -328,6 +339,8 @@ def main():
                 task_status = "warning"
             elif task_skipped:
                 task_status = "skipped"
+            run_state.record_task(project, task, "skipped" if task_skipped else "succeeded")
+            event_writer.emit("run_state", state=state)
             event_writer.emit(
                 "task_finished",
                 task_id=task.id,
@@ -349,10 +362,13 @@ def main():
             task_timing_recorded = True
             current_items = output_items
             if not current_items:
-                print("[SKIPPED] - ({0}) - No output items remained after this task.".format(task.task_type))
+                if task_index < total_task_count:
+                    run_state.record_task(project, None, "incomplete")
+                    print(f"[SKIPPED] - ({task.task_type}) - No output items remained for subsequent tasks.")
                 break
     except Exception as exception:
         failed = True
+        run_state.record_task(project, active_task, "failed")
         if active_task:
             event_writer.emit("error", task_id=active_task.id, message=str(exception))
             event_writer.emit(
@@ -389,6 +405,7 @@ def main():
         )
     )
     hold_worker_window(args.hold_open_seconds)
+    event_writer.emit("run_state", state=state)
     event_writer.emit("job_finished", status="failed" if failed else "completed")
     event_writer.close()
     close_tee_log(tee_context)

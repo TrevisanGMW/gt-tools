@@ -534,7 +534,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertEqual(expected, result.get("{maya-selection}"))
         mock_log_error.assert_called_once()
 
-    def test_custom_environment_query_failure_suppresses_traceback_while_editing(self):
+    def test_custom_environment_query_failure_is_silent_when_suppressed(self):
         model = batch_processor_model.BatchProcessorModel()
         model.set_custom_environment_variables(
             {
@@ -560,7 +560,7 @@ class TestBatchProcessorModel(unittest.TestCase):
 
         self.assertEqual(expected, result.get("{maya-selection}"))
         mock_log_error.assert_not_called()
-        mock_print.assert_called_once()
+        mock_print.assert_not_called()
 
     def test_custom_environment_name_requires_braces_and_avoids_reserved_tokens(self):
         self.assertTrue(batch_processor_model.is_valid_custom_environment_name("{textures-dir}"))
@@ -719,7 +719,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         expected = "02"
         self.assertEqual(
             expected,
-            model.get_environment_variables(task=hik_task, include_braces=False).get("task-idx"),
+            model.get_environment_variables(task=hik_task, include_braces=False).get("task-idx-padded"),
         )
 
         model.run_settings["ignore_disabled_tasks_for_task_index"] = True
@@ -730,7 +730,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         expected = "01"
         self.assertEqual(
             expected,
-            model.get_environment_variables(task=hik_task, include_braces=False).get("task-idx"),
+            model.get_environment_variables(task=hik_task, include_braces=False).get("task-idx-padded"),
         )
 
     def test_task_environment_index_automation_is_saved_with_project(self):
@@ -2565,7 +2565,7 @@ class TestBatchProcessorModel(unittest.TestCase):
     def test_clip_split_default_target_path_uses_clips_task_folder(self):
         clip_split_task = modules.create_task(constants.TaskType.CLIP_SPLIT)
 
-        expected = "{project-dir}/{task-dir}/{task-idx}_clips"
+        expected = "{project-dir}/{task-dir}/{task-idx-padded}_clips"
         self.assertEqual(expected, clip_split_task.settings.get("target_path"))
 
     def test_clip_snapshot_is_excluded_from_task_index_by_default(self):
@@ -4468,6 +4468,58 @@ class TestBatchProcessorModel(unittest.TestCase):
         self.assertEqual("succeeded", result.status)
         self.assertTrue(os.path.isfile(deleted_file))
         self.assertTrue(any("dry run" in message for message in result.messages))
+
+    def test_multi_instance_runner_runs_python_once_before_workers(self):
+        """Runs a Python preflight once and excludes it from worker scene processing."""
+        input_dir = os.path.join(self.temp_dir, "01_input")
+        os.makedirs(input_dir)
+        self._write_file(os.path.join(input_dir, "first.ma"), "first scene")
+        self._write_file(os.path.join(input_dir, "second.ma"), "second scene")
+        model = batch_processor_model.BatchProcessorModel()
+        model.project_file_path = os.path.join(self.temp_dir, "project.batch")
+        python_task = model.add_task(
+            modules.TaskPythonScript(
+                settings={
+                    "run_once_before_multi_instance": True,
+                    "script_text": (
+                        "context['task'].settings['preflight_runs'] = "
+                        "context['task'].settings.get('preflight_runs', 0) + 1"
+                    ),
+                }
+            )
+        )
+        model.add_task(modules.TaskRename(settings={"pattern": "processed_{index}"}))
+
+        def launch_tracker(command, **kwargs):
+            """Checks that the preflight finished before launching the tracker.
+
+            Args:
+                command (list): Tracker launch arguments.
+                **kwargs: Process launch options.
+
+            Returns:
+                object: Dummy tracker process.
+            """
+            self.assertEqual(1, python_task.settings.get("preflight_runs"))
+            skipped_ids = [
+                command[index + 1] for index, argument in enumerate(command)
+                if argument == "--skip-task-id"
+            ]
+            self.assertIn(python_task.id, skipped_ids)
+            return object()
+
+        with mock.patch.object(batch_processor_worker, "find_mayapy_executable", return_value=sys.executable), \
+                mock.patch.object(
+                    batch_processor_worker.subprocess, "Popen", side_effect=launch_tracker
+                ) as popen_mock, \
+                mock.patch.object(batch_processor_maya, "open_scene") as open_scene_mock, \
+                mock.patch.object(batch_processor_maya, "save_scene") as save_scene_mock:
+            batch_processor_worker.MultiInstanceBatchRunner().run(model)
+
+        popen_mock.assert_called_once()
+        open_scene_mock.assert_not_called()
+        save_scene_mock.assert_not_called()
+        self.assertEqual(1, python_task.settings.get("preflight_runs"))
 
     def test_multi_instance_runner_runs_leading_delete_task_before_workers(self):
         input_dir = os.path.join(self.temp_dir, "01_input")

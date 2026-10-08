@@ -17,7 +17,7 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-DEFAULT_FILE_FORMATS = ".ma, .mb, or .fbx"
+DEFAULT_FILE_FORMATS = ".ma, .mb, .fbx"
 
 
 def open_reload_file_options():

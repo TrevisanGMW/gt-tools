@@ -109,6 +109,8 @@ class BatchProcessorController:
         self.view.run_btn.clicked.connect(self.run_project)
         self.view.run_selected_btn.clicked.connect(self.run_selected_task)
         self.view.validate_btn.clicked.connect(self.validate_project)
+        self.view.segment_toggle_requested.connect(self.toggle_segment_tasks)
+        self.view.segment_export_requested.connect(self.export_segment)
 
     def add_menu_file(self):
         """Adds the File menu to the view."""
@@ -151,7 +153,7 @@ class BatchProcessorController:
 
         action_import_project = self.create_action("Import Project", icon_path=ui_res_lib.Icon.ui_open)
         action_import_project.setToolTip(
-            "Import all tasks from an existing .batch project and append them to the current project. "
+            "Import all tasks from an existing .batch project and append them to the current project.\n"
             "Only the tasks and their settings are imported; project settings are discarded."
         )
         action_import_project.triggered.connect(self.import_project)
@@ -401,8 +403,8 @@ class BatchProcessorController:
             text="Suppress Custom Env-Var Errors",
             checked=self._suppress_custom_environment_query_errors,
             tooltip=(
-                "Print failed custom environment-variable queries without displaying their tracebacks. "
-                "Batch runs always keep full diagnostics."
+                "Silence failed custom environment-variable queries during editing and batch runs.\n"
+                "Failed queries resolve to empty values.\nExplicit Test Query actions still report failures."
             ),
             callback=self.toggle_suppress_custom_environment_query_errors,
         )
@@ -420,8 +422,9 @@ class BatchProcessorController:
             text="Ignore Disabled Tasks for Index",
             checked=self._ignore_disabled_tasks_for_task_index,
             tooltip=(
-                "Exclude disabled tasks when resolving index variables such as {task-idx}. "
-                "When unchecked, disabled tasks keep their place in the task index."
+                "Exclude disabled tasks from global and segment task index counts, such as "
+                "{task-idx-padded} and {seg-task-idx-padded}.\nSegment boundaries still restart the count.\n"
+                "When unchecked, disabled tasks keep their place in both task indexes."
             ),
             callback=self.toggle_ignore_disabled_tasks_for_task_index,
         )
@@ -580,7 +583,7 @@ class BatchProcessorController:
         self.log_status("Task delete confirmation {0}.".format(state_name))
 
     def toggle_suppress_custom_environment_query_errors(self, checked):
-        """Stores whether custom query failures are suppressed while editing.
+        """Stores whether custom query failures are suppressed during editing and runs.
 
         Args:
             checked (bool): New preference state.
@@ -649,7 +652,7 @@ class BatchProcessorController:
         )
 
     def apply_custom_environment_query_error_suppression(self):
-        """Applies the editing-only query error preference to the active project model."""
+        """Applies the query error preference to the active project model."""
         self.model.set_suppress_custom_environment_query_errors(
             self._suppress_custom_environment_query_errors
         )
@@ -1026,12 +1029,11 @@ class BatchProcessorController:
             return
         project_index = self.model.tasks.index(task) + 1
         task_index = self.model.get_task_environment_index(task)
+        segment_task_index = self.model.get_segment_task_environment_index(task)
         index_state = "Included" if task.includes_task_index() else "Excluded"
-        message = "{0} Task: Project Index: {1}, Task Index: {2}, Index Count: {3}".format(
-            task.display_name,
-            project_index,
-            task_index,
-            index_state,
+        message = (
+            f"{task.display_name} Task: Project Index: {project_index}, Task Index: {task_index}, "
+            f"Index Count: {index_state}, Segment Task Index: {segment_task_index}"
         )
         self.log_status(message)
 
@@ -1225,9 +1227,14 @@ class BatchProcessorController:
         )
 
     def refresh_widgets(self):
-        """Refreshes tree and details widgets."""
+        """Refreshes tree and details widgets while preserving the current panel position."""
+        selected_task_id = self.view.get_selected_task_id()
+        previous_widget = self.view.get_task_widget()
+        same_project = getattr(previous_widget, "project", None) is self.model
         self.view.refresh_tree(self.model)
-        self.update_details()
+        self.update_details(
+            preserve_scroll=same_project and selected_task_id == self.view.get_selected_task_id()
+        )
 
     def refresh_task_tree_item(self, task_id):
         """Refreshes one existing task tree item without rebuilding its details widget.
@@ -1243,11 +1250,17 @@ class BatchProcessorController:
             return False
         return self.view.update_task_tree_item(task)
 
-    def update_details(self):
-        """Updates the details panel for the current selection."""
+    def update_details(self, preserve_scroll=False):
+        """Updates the details panel for the current selection.
+
+        Args:
+            preserve_scroll (bool, optional): Restore the panel position after rebuilding it.
+        """
         if self.view.is_segment_separator_selected():
             segment_name = self.view.get_selected_segment_name()
-            self.view.set_task_widget(self.build_separator_details_widget(segment_name))
+            self.view.set_task_widget(
+                self.build_separator_details_widget(segment_name), preserve_scroll=preserve_scroll
+            )
             return
         task_id = self.view.get_selected_task_id()
         if not task_id:
@@ -1256,7 +1269,7 @@ class BatchProcessorController:
                 refresh_parent_func=self.refresh_widgets,
                 controller=self,
             )
-            self.view.set_task_widget(widget_object)
+            self.view.set_task_widget(widget_object, preserve_scroll=preserve_scroll)
             return
 
         task = self.model.get_task(task_id)
@@ -1270,10 +1283,10 @@ class BatchProcessorController:
             refresh_parent_func=self.refresh_widgets,
             controller=self,
         )
-        self.view.set_task_widget(widget_object)
+        self.view.set_task_widget(widget_object, preserve_scroll=preserve_scroll)
 
     def build_separator_details_widget(self, segment_name):
-        """Builds a centered, greyed-out details panel for a segment separator row.
+        """Builds details and actions for the selected segment separator.
 
         Args:
             segment_name (str): Name of the segment the separator labels.
@@ -1281,26 +1294,88 @@ class BatchProcessorController:
         Returns:
             QWidget: Details widget.
         """
-        container = ui_qt.QtWidgets.QWidget()
-        layout = ui_qt.QtWidgets.QVBoxLayout(container)
-        layout.setContentsMargins(12, 12, 12, 12)
-        layout.setSpacing(4)
-        grey_color = ui_res_lib.Color.Hex.gray_dim
-        title_label = ui_qt.QtWidgets.QLabel("Segment Separator")
-        title_label.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignCenter)
-        title_label.setStyleSheet("color: {0}; font-size: 15pt;".format(grey_color))
-        title_label.setWordWrap(True)
-        name_label = ui_qt.QtWidgets.QLabel(segment_name or "New Segment")
-        name_label.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignCenter)
-        name_label.setStyleSheet(
-            "color: {0}; font-size: 18pt; font-weight: bold;".format(ui_res_lib.Color.Hex.white)
+        start_task_id = self.view.get_selected_segment_task_id()
+        segment_tasks = self.model.get_separator_tasks(start_task_id)
+        return self.view.build_separator_details_widget(
+            segment_name,
+            start_task_id=start_task_id if segment_tasks else None,
+            tasks_enabled=any(task.enabled for task in segment_tasks),
         )
-        name_label.setWordWrap(True)
-        layout.addStretch()
-        layout.addWidget(title_label)
-        layout.addWidget(name_label)
-        layout.addStretch()
-        return container
+
+    def toggle_segment_tasks(self, start_task_id):
+        """Enables or disables every task belonging to a separator.
+
+        A mixed group is disabled first; a fully disabled group is enabled.
+
+        Args:
+            start_task_id (str): Identifier of the task carrying the separator.
+        """
+        segment_tasks = self.model.get_separator_tasks(start_task_id)
+        if not segment_tasks:
+            self.log_status("The segment is no longer available.", status="warning")
+            return
+        enabled = not any(task.enabled for task in segment_tasks)
+        self.model.set_separator_tasks_enabled(start_task_id, enabled)
+        for task in segment_tasks:
+            self.view.update_task_tree_item(task)
+        self.view.update_separator_details_state(start_task_id, enabled)
+        state_name = "Enabled" if enabled else "Disabled"
+        segment_name = segment_tasks[0].get_segment_display_name()
+        self.log_status(f'{state_name} {len(segment_tasks)} task(s) in segment "{segment_name}".')
+
+    def export_segment(self, start_task_id):
+        """Exports a separator group as an importable .batch project.
+
+        Args:
+            start_task_id (str): Identifier of the task carrying the separator.
+
+        Returns:
+            bool: True when the segment was exported.
+        """
+        segment_project = self.model.create_separator_project(start_task_id)
+        if not segment_project:
+            self.log_status("The segment is no longer available.", status="warning")
+            return False
+        default_name = tasks.sanitize_filename(segment_project.project_name.lower().replace(" ", "_"))
+        file_path = ui_file_dialog.file_dialog(
+            parent=self.view,
+            caption="Export Batch Segment",
+            write_mode=True,
+            starting_directory=f"{default_name}{constants.Project.EXTENSION}",
+            file_filter="Batch Projects (*.batch);;All Files (*);;",
+            ok_caption="Export Segment",
+            cancel_caption="Cancel",
+        )
+        if not file_path:
+            return False
+        extension_added = not file_path.lower().endswith(constants.Project.EXTENSION)
+        if extension_added:
+            file_path += constants.Project.EXTENSION
+        source_path = self.model.project_file_path
+        if source_path and os.path.normcase(os.path.realpath(file_path)) == os.path.normcase(
+            os.path.realpath(source_path)
+        ):
+            self.log_status("Choose a different file to preserve the current project.", status="warning")
+            return False
+        if extension_added and os.path.exists(file_path):
+            # The save dialog confirmed the entered path, before adding .batch.
+            result = ui_qt.QtWidgets.QMessageBox.question(
+                self.view,
+                "Replace Existing Segment",
+                f"A file already exists at:\n\n{file_path}\n\nReplace it with this segment?",
+                ui_qt.QtLib.StandardButton.Yes | ui_qt.QtLib.StandardButton.No,
+                ui_qt.QtLib.StandardButton.No,
+            )
+            if result != ui_qt.QtLib.StandardButton.Yes:
+                return False
+        try:
+            saved_path = segment_project.save_to_file(file_path)
+        except Exception as exception:
+            logger.exception('Unable to export batch segment: "%s"', file_path)
+            self.log_status(f"Unable to export segment: {exception}", status="warning")
+            return False
+        self.log_status(f'Exported segment "{segment_project.project_name}" to: {saved_path}')
+        return True
 
     def sync_task_order_from_tree(self):
         """Synchronizes model task order after a tree drag/drop operation."""
@@ -1531,7 +1606,7 @@ class BatchProcessorController:
             force_single_instance (bool, optional): Whether to bypass multi-instance execution for this run.
         """
         self._active_log_file_path = None
-        self.model.set_suppress_custom_environment_query_errors(False)
+        self.apply_custom_environment_query_error_suppression()
         try:
             creates_any_log = bool(
                 self.model.run_settings.get("create_log", True)

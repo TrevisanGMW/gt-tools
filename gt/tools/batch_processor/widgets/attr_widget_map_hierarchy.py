@@ -47,13 +47,13 @@ class AttrWidgetMapHierarchyTask(AttrWidgetTask):
             task_map_hierarchy.MODE_VALUES,
             self.set_mode,
             tooltip=(
-                "Record Source/Target scan directories into a snapshot and compute the mapping. "
-                "Apply Mapping (Forward) transforms the source state into the target state. "
-                "Revert Mapping (Backward) transforms the target state back into the source state. "
+                "Record Source/Target scan directories into a snapshot and compute the mapping.\n"
+                "Apply Mapping (Forward) transforms the source state into the target state.\n"
+                "Revert Mapping (Backward) transforms the target state back into the source state.\n"
                 "Copy Source & Apply (Forward) copies the source into the apply directory first, then "
-                "applies the mapping, leaving the source untouched. "
+                "applies the mapping, leaving the source untouched.\n"
                 "Apply/Revert Parallel run the mapping on the apply directory using base-name matches, "
-                "ignoring extensions. Bypass Task forwards incoming files unchanged."
+                "ignoring extensions.\nBypass Task forwards incoming files unchanged."
             ),
         )
         self.add_path_template_field(
@@ -69,7 +69,7 @@ class AttrWidgetMapHierarchyTask(AttrWidgetTask):
             self.task.settings.get("source_dir"),
             partial(self.set_task_setting, key="source_dir"),
             placeholder="Directory scanned for the original file/folder state (read-only).",
-            tooltip="Directory scanned when recording the source snapshot state. It is never modified.",
+            tooltip="Directory scanned when recording the source snapshot state.\nIt is never modified.",
             dir_only=True,
         )
         self.add_path_template_field(
@@ -115,7 +115,7 @@ class AttrWidgetMapHierarchyTask(AttrWidgetTask):
             tooltip=(
                 "Hash algorithm used to match files by content when recording a snapshot, so renamed or "
                 "moved files are detected while computing the mapping.\n"
-                "It is only used during Record Source/Target. Apply, Revert, Copy, and Parallel modes act "
+                "It is only used during Record Source/Target.\nApply, Revert, Copy, and Parallel modes act "
                 "purely on the stored relative paths, so this setting has no effect once the mapping exists.\n"
                 "sha1: Fast and reliable for change detection (default).\n"
                 "sha256: Strongest matching, slightly slower on large files.\n"
@@ -131,8 +131,8 @@ class AttrWidgetMapHierarchyTask(AttrWidgetTask):
             main_key="run_once_after_multi_instance",
             main_tooltip=(
                 "In multi-instance mode, wait for every regular job to succeed,\n"
-                "then run this Map Hierarchy task once. This task must be the last\n"
-                'enabled processing task. Enable "Add Separator" to mark this\n'
+                "then run this Map Hierarchy task once.\nThis task must be the last\n"
+                'enabled processing task.\nEnable "Add Separator" to mark this\n'
                 "run-once step in the task list."
             ),
         )
@@ -189,7 +189,7 @@ class AttrWidgetMapHierarchyTask(AttrWidgetTask):
             partial(self.set_task_setting, key="collision_resolution"),
             tooltip=(
                 "When a destination already exists and the source also still exists, append a numeric "
-                "suffix or flag it as an error. Files are never overwritten destructively."
+                "suffix or flag it as an error.\nFiles are never overwritten destructively."
             ),
             parent_layout=section_layout,
         )

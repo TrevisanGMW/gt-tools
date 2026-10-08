@@ -70,8 +70,8 @@ class AttrWidgetArchiveTask(AttrWidgetTask):
             main_key="run_once_after_multi_instance",
             main_tooltip=(
                 "In multi-instance mode, wait for every regular job to succeed, then create this archive "
-                "once from the resolved Source Path. This Zip Compress task must be the last enabled "
-                "processing task. Enable \"Add Separator\" to mark this run-once step in the task list."
+                "once from the resolved Source Path.\nThis Zip Compress task must be the last enabled "
+                "processing task.\nEnable \"Add Separator\" to mark this run-once step in the task list."
             ),
         )
         self.content_layout.addStretch()
@@ -82,7 +82,7 @@ class AttrWidgetArchiveTask(AttrWidgetTask):
         Returns:
             QLineEdit: Archive name field.
         """
-        tooltip = "Name of the zip file to create. Supports the zip-only {version} variable."
+        tooltip = "Name of the zip file to create.\nSupports the zip-only {version} variable."
         layout = self.add_labeled_layout("Archive Name", tooltip=tooltip)
         field = self.create_text_field(
             text=self.task.settings.get("archive_name"),
@@ -266,5 +266,4 @@ class AttrWidgetArchiveTask(AttrWidgetTask):
         if hasattr(self.project, "get_task_environment_index"):
             task_index = self.project.get_task_environment_index(self.task)
         return self.task.resolve_task_path(project=self.project, task_index=task_index)
-
 

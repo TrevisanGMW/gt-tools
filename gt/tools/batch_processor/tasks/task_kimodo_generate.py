@@ -1,6 +1,7 @@
 """Generates characterized Maya animations from portable Kimodo definitions."""
 
 import copy
+import json
 import os
 import re
 import uuid
@@ -16,6 +17,10 @@ from gt.tools.batch_processor.tasks.task_kimodo_base import (
 )
 from gt.tools.kimodo_generator import kimodo_generator_hik as humanik
 
+DEFINITION_ATTRIBUTE = "kimodoDefinition"
+BATCH_DEFINITION_ATTRIBUTE = "kimodoBatchDefinition"
+BATCH_DEFINITION_VERSION = 1
+
 
 class TaskKimodoGenerate(TaskKimodoBase):
     """Runs resumable bridge jobs and emits one Maya work item per generated sample."""
@@ -23,8 +28,9 @@ class TaskKimodoGenerate(TaskKimodoBase):
     task_type = constants.TaskType.KIMODO_GENERATE
     default_display_name = "Kimodo Generate"
     icon = resources.Icon.batch_task_kimodo_generate
-    default_target_path_template = "{project-dir}/{task-dir}/{task-idx}_kimodo_animations"
+    default_target_path_template = "{project-dir}/{task-dir}/{task-idx-padded}_kimodo_animations"
     extensions = (".json",)
+    output_section_name = "Output"
 
     def get_default_settings(self):
         """Returns connection, output, and characterization defaults.
@@ -41,6 +47,7 @@ class TaskKimodoGenerate(TaskKimodoBase):
             poll_interval=1, network_retries=5, cancel_on_timeout=False, retry_failed=False,
             result_mode="maya", output_extension=".ma", namespace="kimodo", import_start_frame=1,
             add_humanik=True, humanik=humanik.default_settings(), expected_model_fps=30,
+            import_incoming_scene=False, include_definition_attribute=True,
         )
         return settings
 
@@ -80,6 +87,10 @@ class TaskKimodoGenerate(TaskKimodoBase):
                 raise ValueError("Unknown result mode.")
             if settings["output_extension"] not in (".ma", ".mb"):
                 raise ValueError("Maya output extension must be .ma or .mb.")
+            if not isinstance(settings.get("import_incoming_scene", False), bool):
+                self.add_area_error(result, "Output", "Import incoming scene contents must be enabled or disabled.")
+            if not isinstance(settings.get("include_definition_attribute", True), bool):
+                self.add_area_error(result, "Output", "Include definition attribute must be enabled or disabled.")
             kimodo._positive_number(float(settings["expected_model_fps"]), "expected_model_fps")
             if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", settings["namespace"]):
                 raise ValueError("Use a simple Maya namespace containing letters, numbers, and underscores.")
@@ -100,6 +111,44 @@ class TaskKimodoGenerate(TaskKimodoBase):
             self.add_area_error(result, area, error)
         return result
 
+    def owned_path_lengths(self, item, directory, path):
+        """Adds the artifact bundle ("<output>_artifacts/<job 32>/definition.json") to the estimate.
+
+        Args:
+            item (WorkItem): Incoming definition.
+            directory (str): Target root.
+            path (str): Planned output path.
+
+        Returns:
+            list: Path lengths in characters.
+        """
+        lengths = super().owned_path_lengths(item, directory, path)
+        if self.settings.get("result_mode") != "maya":
+            bundle = f"{os.path.splitext(os.path.abspath(path))[0]}_artifacts"
+            lengths.append(len(bundle) + len("/") + 32 + len("/definition.json"))
+        return lengths
+
+    def validate_work_items(self, work_items, project, step_output_dir, context=None):
+        """Checks source scenes before generation when importing incoming contents.
+
+        Args:
+            work_items (list): Incoming Kimodo definitions and their source provenance.
+            project (BatchProcessorModel): Owning project.
+            step_output_dir (str): Target output directory.
+            context (dict, optional): Tracker context.
+
+        Returns:
+            ValidationResult: Definition, output, and incoming scene diagnostics.
+        """
+        result = super().validate_work_items(work_items, project, step_output_dir, context)
+        if self.settings.get("import_incoming_scene") and self.settings["result_mode"] != "artifacts":
+            for item in work_items:
+                try:
+                    incoming_scene_path(item)
+                except (ValueError, OSError) as error:
+                    self.add_area_error(result, "Output", error)
+        return result
+
     def execute(self, work_item, project, step_output_dir, context=None):
         """Generates or resumes an item, retaining successful files after partial failures.
 
@@ -117,7 +166,11 @@ class TaskKimodoGenerate(TaskKimodoBase):
         if errors:
             raise ValueError("; ".join(errors))
         settings = self.resolved_settings(project)
+        if settings.get("import_incoming_scene") and settings["result_mode"] != "artifacts":
+            settings["incoming_scene_path"] = incoming_scene_path(work_item)
         definition = kimodo.normalize_definition(read_json(work_item.current_path))
+        if settings.get("include_definition_attribute", True) and settings["result_mode"] != "artifacts":
+            settings["batch_definition"] = build_batch_definition(work_item, project, self)
         cache = self.recovery_directory(work_item, step_output_dir)
         record_path = os.path.join(cache, "generation.json")
         with self.recovery_lock(work_item, step_output_dir, timeout_seconds=86400, context=context):
@@ -162,6 +215,10 @@ class TaskKimodoGenerate(TaskKimodoBase):
                  for index in range(1, count + 1)]
         bundle = os.path.splitext(self.output_path(
             item, directory, seed=definition["parameters"]["seed"], definition=definition))[0]
+        source_scene = settings.get("incoming_scene_path")
+        if source_scene and any(os.path.normcase(os.path.abspath(path)) == os.path.normcase(source_scene)
+                                for path in paths):
+            raise ValueError("Generated output cannot overwrite the incoming source scene.")
         planned = paths if settings["result_mode"] != "artifacts" else []
         if settings["result_mode"] != "maya":
             planned = planned + [f"{bundle}_artifacts"]
@@ -210,6 +267,11 @@ class TaskKimodoGenerate(TaskKimodoBase):
             raise ValueError("Bridge returned an unexpected sample list.")
         metadata["job_id"] = record["job_id"]
         items = []
+        if "batch_definition" in settings:
+            settings["definition_attributes"] = {
+                DEFINITION_ATTRIBUTE: json.dumps(definition, indent=2),
+                BATCH_DEFINITION_ATTRIBUTE: json.dumps(settings["batch_definition"], indent=2),
+            }
         if settings["result_mode"] != "artifacts":
             for index, (sample_name, path) in enumerate(zip(samples, paths), 1):
                 check_cancel(client, record["job_id"], context)
@@ -234,6 +296,88 @@ class TaskKimodoGenerate(TaskKimodoBase):
         record["status"] = "published"
         write_record(record_path, record)
         return items
+
+
+def build_batch_definition(item, project, task):
+    """Captures the unresolved Batch Processor settings that produced a definition.
+
+    Args:
+        item (WorkItem): Definition input, carrying upstream input and task provenance.
+        project (BatchProcessorModel, optional): Owning project used to find the definition task.
+        task (TaskKimodoGenerate): Generating task.
+
+    Returns:
+        dict: JSON-compatible record with raw task parameters, the literal input values, and project variables.
+    """
+    def describe_task(source_task):
+        """Serializes one task's identity and raw parameters.
+
+        Args:
+            source_task (BatchTask): Task to describe.
+
+        Returns:
+            dict: Task type, name, ID, and unresolved parameters.
+        """
+        return {"id": source_task.id, "task_type": source_task.task_type,
+                "display_name": source_task.display_name, "parameters": copy.deepcopy(source_task.settings)}
+
+    metadata = item.metadata or {}
+    definition_task = None
+    if project is not None:
+        definition_task = next((candidate for candidate in project.tasks
+                                if candidate.id == metadata.get("last_task_id")), None)
+    input_values = {key: metadata[key] for key in ("input_string", "input_string_index", "input_file")
+                    if key in metadata}
+    custom_variables = project.get_custom_environment_variables() if project is not None else {}
+    return {
+        "version": BATCH_DEFINITION_VERSION,
+        "project_name": getattr(project, "project_name", ""),
+        "project_path": getattr(project, "project_file_path", "") or "",
+        "source_path": item.source_path,
+        "definition_path": item.current_path,
+        "input": input_values,
+        "custom_environment_variables": custom_variables,
+        "definition_task": describe_task(definition_task) if definition_task else None,
+        "generate_task": describe_task(task),
+    }
+
+
+def add_definition_attributes(node, attributes):
+    """Stores JSON strings on the imported motion group, replacing earlier values.
+
+    Args:
+        node (str): Kimodo motion group.
+        attributes (dict): Attribute names mapped to JSON text.
+    """
+    import maya.cmds as cmds
+
+    for name, value in attributes.items():
+        if not cmds.attributeQuery(name, node=node, exists=True):
+            cmds.addAttr(node, longName=name, dataType="string")
+        cmds.setAttr(f"{node}.{name}", value, type="string")
+
+
+def incoming_scene_path(item):
+    """Finds the captured scene retained by a definition's upstream work item.
+
+    Args:
+        item (WorkItem): Definition item with optional Kimodo source provenance.
+
+    Returns:
+        str: Absolute existing scene path, or empty for virtual string inputs.
+
+    Raises:
+        ValueError: If no supported, existing source scene accompanies the definition.
+    """
+    source = item.metadata.get("kimodo", {}).get("source_scene") or item.source_path
+    if source == item.metadata.get("input_string_path"):
+        return ""
+    if (not source or not os.path.isabs(source)
+            or os.path.splitext(source)[1].lower() not in (".ma", ".mb")):
+        raise ValueError("Import incoming scene contents requires a Maya scene from an upstream Kimodo Definition.")
+    if not os.path.isfile(source):
+        raise ValueError(f"Incoming source scene does not exist: {source}")
+    return os.path.normpath(source)
 
 
 def connect(settings, context=None):
@@ -368,13 +512,28 @@ def download_results(client, record, record_path, cache):
     Returns:
         dict: Artifact names mapped to verified files.
     """
-    directory = record.get("downloads") or os.path.join(cache, f"download_{uuid.uuid4().hex}")
+    directory = record.get("downloads") or new_download_directory(cache)
     job_directory = os.path.join(directory, record["job_id"])
     if os.path.isdir(job_directory) and any(name.endswith(".part") for name in os.listdir(job_directory)):
-        directory = os.path.join(cache, f"download_{uuid.uuid4().hex}")
+        directory = new_download_directory(cache)
     record["downloads"] = directory
     write_record(record_path, record)
     return client.download(record["job_id"], directory, reuse_existing=True)
+
+
+def new_download_directory(cache):
+    """Picks an unused download folder with a short name, keeping artifact paths within MAX_PATH.
+
+    Args:
+        cache (str): Owned cache root.
+
+    Returns:
+        str: Absolute folder path that does not exist yet.
+    """
+    while True:
+        directory = os.path.join(cache, f"dl_{uuid.uuid4().hex[:8]}")
+        if not os.path.lexists(directory):
+            return directory
 
 
 def publish_scene(motion_path, path, settings, cache):
@@ -496,10 +655,21 @@ def save_motion_scene(motion_path, output_path, settings):
     maya.new_scene()
     motion = kimodo.validate_motion(read_json(motion_path))
     cmds.currentUnit(time=f"{motion['fps']:g}fps")
-    result = kimodo.import_motion(motion_path, namespace=settings["namespace"],
+    source_scene = settings.get("incoming_scene_path")
+    if settings.get("import_incoming_scene") and source_scene:
+        maya.import_file(source_scene, execute_script_nodes=False)
+    namespace = settings["namespace"]
+    if settings.get("import_incoming_scene") and source_scene:
+        suffix = 1
+        while cmds.namespace(exists=f":{namespace}"):
+            namespace = f"{settings['namespace']}{suffix}"
+            suffix += 1
+    result = kimodo.import_motion(motion_path, namespace=namespace,
                                   start_frame=float(settings["import_start_frame"]))
     if settings["add_humanik"]:
         kimodo.create_humanik_definition(result["group"], settings=settings["humanik"])
+    if settings.get("definition_attributes"):
+        add_definition_attributes(result["group"], settings["definition_attributes"])
     cmds.playbackOptions(minTime=result["start_frame"], maxTime=result["end_frame"],
                          animationStartTime=result["start_frame"], animationEndTime=result["end_frame"])
     maya.save_scene(output_path, file_type=maya.get_maya_file_type(output_path))

@@ -8,7 +8,7 @@ import json
 import math
 import shutil
 import tempfile
-from functools import partial
+from functools import lru_cache, partial
 from contextlib import ExitStack, contextmanager
 from gt.core import io as core_io
 from gt.tools.batch_processor import batch_processor_task_base as base
@@ -21,9 +21,24 @@ read_json = partial(core_io.read_json_dict, raise_errors=True)
 
 MOTION_TEXT_EXAMPLE = '[[2, "A person starts to walk"], [1, "A person comes to a stop"]]'
 RUNTIME_KEYS = {
+    "input-file",
     "input-string", "input-string-index", "input-file-name", "input-file-stem", "input-file-path",
 }
 VARIABLE_PATTERN = re.compile(r"\{([\w-]+)\}")
+# Owned cache and claim names are kept short because Maya and mayapy are not long-path aware on
+# Windows: every file must stay within MAX_PATH even when projects live in deep folders.
+RECOVERY_IDENTITY_LENGTH = 12
+LEGACY_RECOVERY_IDENTITY_LENGTH = 24
+CLAIM_KEY_LENGTH = 32
+LEGACY_CLAIM_KEY_LENGTH = 64
+WINDOWS_MAX_PATH = 259
+# Longest owned file below a recovery folder: "/dl_<8>/<job 32>/result.json.<8>.tmp".
+RECOVERY_PATH_ALLOWANCE = len("/dl_00000000/") + 32 + len("/result.json.00000000.tmp")
+# Longest claim file below an output root: "/.kimodo-coordination/outputs/<32>.json.<8>.tmp".
+CLAIM_PATH_ALLOWANCE = len("/.kimodo-coordination/outputs/") + CLAIM_KEY_LENGTH + len(".json.00000000.tmp")
+# Temporary suffix added by atomic JSON writes, and the Maya scene staging folder ("/scene_<8>/").
+ATOMIC_WRITE_SUFFIX_LENGTH = len(".00000000.tmp")
+SCENE_STAGING_LENGTH = len("/scene_00000000/")
 
 
 class TaskKimodoBase(base.BatchTask):
@@ -33,6 +48,7 @@ class TaskKimodoBase(base.BatchTask):
     category = "Animation"
     category_icon = resources.Icon.root_animation
     extensions = ()
+    output_section_name = "Output Naming"
 
     def __init__(self, *args, **kwargs):
         """Migrates only the old default labels, preserving custom task names and IDs.
@@ -88,12 +104,13 @@ class TaskKimodoBase(base.BatchTask):
             self.add_area_error(result, "Task Setup", "Kimodo tasks require a separate target folder.")
         try:
             if not isinstance(self.settings.get("include_version_suffix", True), bool):
-                self.add_area_error(result, "Output Naming", "Include version suffix must be enabled or disabled.")
+                self.add_area_error(result, self.output_section_name,
+                                    "Include version suffix must be enabled or disabled.")
             output_name(self.settings["name_pattern"], "example",
                         suffix=self.settings.get("filename_suffix", ""),
                         append_variation_suffix=self.settings.get("include_version_suffix", True))
         except (ValueError, TypeError, KeyError) as error:
-            self.add_area_error(result, "Output Naming", error)
+            self.add_area_error(result, self.output_section_name, error)
         return result
 
     @staticmethod
@@ -153,15 +170,39 @@ class TaskKimodoBase(base.BatchTask):
             try:
                 path = self.output_path(item, step_output_dir, seed=seed, samples=samples, definition=definition)
             except (ValueError, OSError) as error:
-                self.add_area_error(result, "Output Naming", error)
+                self.add_area_error(result, self.output_section_name, error)
                 continue
             key = os.path.normcase(path)
             if key in seen:
                 self.add_area_error(
-                    result, "Output Naming",
+                    result, self.output_section_name,
                     f"Kimodo output collision: {seen[key]} and {item.current_path}: {path}")
             seen[key] = item.current_path
+            longest = max(self.owned_path_lengths(item, step_output_dir, path))
+            if longest > WINDOWS_MAX_PATH and not long_paths_supported():
+                self.add_area_error(
+                    result, self.output_section_name,
+                    f"Kimodo files under {os.path.abspath(step_output_dir)} would need paths of {longest} "
+                    f"characters, over the Windows limit of {WINDOWS_MAX_PATH}. Use a shorter target folder, "
+                    f"output name or project location.")
         return result
+
+    def owned_path_lengths(self, item, directory, path):
+        """Estimates the longest paths this task writes for one input, including cache and claim files.
+
+        Args:
+            item (WorkItem): Incoming item.
+            directory (str): Target root.
+            path (str): Planned output path.
+
+        Returns:
+            list: Path lengths in characters.
+        """
+        cache = self.recovery_directory(item, directory)
+        return [len(os.path.abspath(path)) + ATOMIC_WRITE_SUFFIX_LENGTH,
+                len(cache) + RECOVERY_PATH_ALLOWANCE,
+                len(cache) + SCENE_STAGING_LENGTH + len(os.path.basename(path)),
+                len(os.path.abspath(directory)) + CLAIM_PATH_ALLOWANCE]
 
     def check_source(self, item):
         """Checks input type and existence before any output work.
@@ -213,10 +254,16 @@ class TaskKimodoBase(base.BatchTask):
             directory (str): Output root.
 
         Returns:
-            str: Absolute cache folder.
+            str: Absolute cache folder. An existing folder from the longer legacy naming is
+                reused, so interrupted generations still resume after an update.
         """
-        identity = fingerprint([self.id, os.path.normcase(os.path.abspath(item.current_path))])[:24]
-        return os.path.join(os.path.abspath(directory), ".kimodo-cache", identity)
+        identity = fingerprint([self.id, os.path.normcase(os.path.abspath(item.current_path))])
+        cache_root = os.path.join(os.path.abspath(directory), ".kimodo-cache")
+        cache = os.path.join(cache_root, identity[:RECOVERY_IDENTITY_LENGTH])
+        legacy = os.path.join(cache_root, identity[:LEGACY_RECOVERY_IDENTITY_LENGTH])
+        if not os.path.isdir(cache) and os.path.isdir(legacy):
+            return legacy
+        return cache
 
     @contextmanager
     def recovery_lock(self, item, directory, timeout_seconds=3600, context=None):
@@ -385,7 +432,14 @@ class TaskKimodoBase(base.BatchTask):
         owner = os.path.normcase(os.path.abspath(item.current_path))
         for path in paths:
             key = fingerprint(os.path.normcase(os.path.abspath(path)))
-            claim_path = os.path.join(directory, ".kimodo-coordination", "outputs", f"{key}.json")
+            outputs = os.path.join(directory, ".kimodo-coordination", "outputs")
+            claim_path = os.path.join(outputs, f"{key[:CLAIM_KEY_LENGTH]}.json")
+            # Claims kept from older versions (purging disabled) use the full digest.
+            legacy_path = os.path.join(outputs, f"{key[:LEGACY_CLAIM_KEY_LENGTH]}.json")
+            if os.path.isfile(legacy_path):
+                legacy_owner = read_json(legacy_path)["source"]
+                if legacy_owner != owner:
+                    raise ValueError(f"Output collision: {path} is reserved for {legacy_owner}.")
             with ClipSnapshotFileLock(claim_path):
                 if os.path.isfile(claim_path):
                     claim = read_json(claim_path)
@@ -465,7 +519,7 @@ def purge_coordination(directory):
         if not os.path.exists(root):
             return True
         patterns = {"locks": r"[0-9a-f]{24}\.lock",
-                    "outputs": r"[0-9a-f]{64}\.json(?:\.lock)?",
+                    "outputs": r"[0-9a-f]{32}(?:[0-9a-f]{32})?\.json(?:\.lock)?",
                     "maintenance": r"legacy-cache\.lock"}
         paths = []
         folders = []
@@ -533,6 +587,34 @@ def cleanup_project_coordination(project, task_list=None, report=None):
         except (OSError, RuntimeError, ValueError) as error:
             if report:
                 report(f"[Kimodo] Could not purge coordination folder: {error}")
+
+
+@lru_cache(maxsize=1)
+def long_paths_supported():
+    """Checks once per process whether this interpreter can write paths beyond MAX_PATH.
+
+    Windows needs both the LongPathsEnabled policy and a long-path-aware executable; mayapy and
+    Maya are not, even when the policy is on, so the check writes a real file instead of
+    reading the registry.
+
+    Returns:
+        bool: True outside Windows or when a file deeper than MAX_PATH can be written.
+    """
+    if os.name != "nt":
+        return True
+    root = tempfile.mkdtemp(prefix="gt_kimodo_paths_")
+    try:
+        directory = root
+        while len(directory) <= WINDOWS_MAX_PATH:
+            directory = os.path.join(directory, "d" * 40)
+        os.makedirs(directory)
+        with open(os.path.join(directory, "probe.txt"), "w", encoding="utf-8") as handle:
+            handle.write("ok")
+        return True
+    except OSError:
+        return False
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
 
 
 def report_message(context, message):
@@ -664,7 +746,7 @@ def resolve_path(value, project, task=None):
     return os.path.normpath(path)
 
 
-def resolve_motion_text(text, project=None, task=None, work_item=None):
+def resolve_motion_text(text, project=None, task=None, work_item=None, evaluate_queries=True):
     """Expands project variables before inserting literal per-input values.
 
     Args:
@@ -672,12 +754,14 @@ def resolve_motion_text(text, project=None, task=None, work_item=None):
         project (BatchProcessorModel, optional): Project variable provider.
         task (BatchTask, optional): Task supplying scoped project variables.
         work_item (WorkItem, optional): Current input; absent keeps runtime tokens unresolved.
+        evaluate_queries (bool, optional): Whether the current scene is ready for custom queries.
 
     Returns:
         str: Resolved text, preserving braces inside inserted input values.
     """
     variables = project.get_environment_variables(
-        task=task, include_braces=False, include_neighbor_paths=False) if project else {}
+        task=task, include_braces=False, include_neighbor_paths=False,
+        evaluate_queries=evaluate_queries) if project else {}
     resolved = os.path.expandvars(text)
 
     def replace_project_variable(match):
@@ -703,6 +787,8 @@ def resolve_motion_text(text, project=None, task=None, work_item=None):
         return resolved
     filename = os.path.basename(work_item.current_path)
     values = {
+        "input-file": work_item.metadata.get(
+            "input_file", os.path.splitext(os.path.basename(work_item.source_path))[0]),
         "input-string": work_item.metadata.get("input_string", ""),
         "input-string-index": work_item.metadata.get("input_string_index", ""),
         "input-file-name": filename,
@@ -725,16 +811,21 @@ def resolve_motion_text(text, project=None, task=None, work_item=None):
     return VARIABLE_PATTERN.sub(replace_runtime_variable, resolved)
 
 
-def uses_runtime_variables(text):
+def uses_runtime_variables(text, project=None):
     """Checks whether text needs a current input before it can be validated.
 
     Args:
         text (str): Expanded project text to inspect.
+        project (BatchProcessorModel, optional): Project supplying deferred custom queries.
 
     Returns:
         bool: Whether a per-input placeholder is present.
     """
-    return any(match.group(1).lower().replace("_", "-") in RUNTIME_KEYS
+    runtime_keys = set(RUNTIME_KEYS)
+    if project:
+        runtime_keys.update(name for name, definition in project.custom_environment_variables.items()
+                            if definition.get("query"))
+    return any(match.group(1).lower().replace("_", "-") in runtime_keys
                for match in VARIABLE_PATTERN.finditer(text))
 
 

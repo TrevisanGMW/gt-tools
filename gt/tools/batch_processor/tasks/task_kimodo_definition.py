@@ -27,7 +27,7 @@ class TaskKimodoDefinition(TaskKimodoBase):
     task_type = constants.TaskType.KIMODO_DEFINITION
     default_display_name = "Kimodo Definition"
     icon = resources.Icon.batch_task_kimodo_definition
-    default_target_path_template = "{project-dir}/{task-dir}/{task-idx}_kimodo_definitions"
+    default_target_path_template = "{project-dir}/{task-dir}/{task-idx-padded}_kimodo_definitions"
     extensions = (".ma", ".mb")
 
     def get_default_settings(self):
@@ -43,7 +43,8 @@ class TaskKimodoDefinition(TaskKimodoBase):
             capture_first=True, capture_last=True, pose_frames="", use_marker=False,
             marker_attribute="kimodo_pose:motion.isConstraintPose", marker_value=1, marker_mode="evaluated",
             sample_step=1, pose_type="fullbody", sequential_evaluation=True, bone_offset_tolerance=0.001,
-            path_nodes="", path_frames="", path_samples=8, randomize_root_path=False,
+            path_nodes="", path_frames="", path_samples=8, path_mask_attribute="", randomize_root_path=False,
+            root_heading="none", root_heading_offset=0.0,
             model_fps=30, duration_mode="source",
             retime_constraints=False, constraint_mode="replace", variations=1, seed_policy="per_file",
             base_seed=12345, variation_ranges="{}", prompt_choices="", prompt_replacements=[],
@@ -51,12 +52,13 @@ class TaskKimodoDefinition(TaskKimodoBase):
         )
         return settings
 
-    def base_definition(self, project, work_item=None):
+    def base_definition(self, project, work_item=None, evaluate_queries=True):
         """Loads the selected template or task-local generation settings.
 
         Args:
             project (BatchProcessorModel): Owning project.
             work_item (WorkItem, optional): Current input used to resolve motion text.
+            evaluate_queries (bool, optional): Whether scene queries can run in the current context.
 
         Returns:
             dict: Validated portable definition.
@@ -71,10 +73,12 @@ class TaskKimodoDefinition(TaskKimodoBase):
             if not isinstance(text, str):
                 raise ValueError("Motion text must be a string of JSON pairs.")
             resolver = partial(resolve_motion_text, project=project,
-                               task=self, work_item=work_item)
+                               task=self, work_item=work_item,
+                               evaluate_queries=evaluate_queries and work_item is not None)
             expanded = resolver(text)
             definition = data.get("definition", data)
-            if work_item is None and uses_runtime_variables(expanded):
+            if ((work_item is None or not evaluate_queries)
+                    and uses_runtime_variables(expanded, project)):
                 definition["prompts"] = [{"text": "Motion text is resolved per input.", "duration_seconds": 4}]
             else:
                 definition["prompts"] = parse_motion_text(text, resolver)
@@ -96,7 +100,7 @@ class TaskKimodoDefinition(TaskKimodoBase):
         if self.settings.get("prompt_mode", "table") == "text":
             for item in work_items:
                 try:
-                    definition = self.base_definition(project, item)
+                    definition = self.base_definition(project, item, evaluate_queries=False)
                     vary_definition(definition, self.settings, item.current_path, 1)
                 except (ValueError, TypeError, KeyError, OSError) as error:
                     self.add_area_error(result, "Generation", f"{item.current_path}: {error}")
@@ -116,9 +120,9 @@ class TaskKimodoDefinition(TaskKimodoBase):
         try:
             definition = self.base_definition(project)
             if self.settings.get("prompt_mode", "table") == "text":
-                expanded = resolve_motion_text(self.settings["prompt_text"], project, self)
-                if uses_runtime_variables(expanded):
-                    result.add_warning("[Generation] Motion text variables are resolved and checked for each input.")
+                expanded = resolve_motion_text(self.settings["prompt_text"], project, self, evaluate_queries=False)
+                if uses_runtime_variables(expanded, project):
+                    result.add_warning("[Generation] Motion text variables are checked after each input is prepared.")
 
             if float(self.settings["model_fps"]) <= 0:
                 raise ValueError("Model FPS must be positive.")
@@ -148,12 +152,17 @@ class TaskKimodoDefinition(TaskKimodoBase):
                 raise ValueError("Random curve selection must be enabled or disabled.")
             if self.settings["randomize_root_path"] and len(path_nodes) < 2:
                 raise ValueError("Random curve selection requires at least two curve transforms.")
+            kimodo.validate_root_heading_mode(self.settings.get("root_heading", "none"),
+                                              self.settings.get("root_heading_offset", 0.0))
             if path_nodes and (self.settings["randomize_root_path"] or len(path_nodes) == 1):
                 path_samples = int(self.settings["path_samples"])
                 if not 2 <= path_samples <= 7200:
                     raise ValueError("Curve path samples must be from 2 through 7200.")
             elif len(path_nodes) > 1 and path_frames and len(path_frames) != len(path_nodes):
                 raise ValueError("Enter one Path frame per locator, or leave Path frames blank to space them evenly.")
+            path_mask = str(self.settings.get("path_mask_attribute") or "").strip()
+            if path_mask and "." not in path_mask:
+                raise ValueError("Path mask attribute must be written as node.attribute.")
 
             area = "Pose Capture"
             kimodo._positive_number(float(self.settings["sample_step"]), "sample_step")
@@ -231,9 +240,12 @@ class TaskKimodoDefinition(TaskKimodoBase):
                     constraint["frame_indices"], unused_count = kimodo.map_constraint_frames(
                         constraint["frame_indices"], 0, original_count - 1, fps, fps, count)
             if len(captured["poses"]) + len(constraints) + bool(path) > 256:
-                packed = {"type": self.settings["pose_type"], "frame_indices": indices}
-                for key in captured["poses"][0]:
-                    if key not in ("type", "frame_indices"):
+                first_pose = captured["poses"][0]
+                packed = {"type": first_pose["type"], "frame_indices": indices}
+                if "joint_names" in first_pose:
+                    packed["joint_names"] = list(first_pose["joint_names"])
+                for key in first_pose:
+                    if key not in ("type", "frame_indices", "joint_names"):
                         packed[key] = [value for pose in captured["poses"] for value in pose[key]]
                 constraints.append(packed)
             else:
@@ -268,13 +280,17 @@ class TaskKimodoDefinition(TaskKimodoBase):
         report = partial(report_message, context)
         cache = self.recovery_directory(work_item, step_output_dir)
         record_path = os.path.join(cache, "capture.json")
+        string_scene = is_string_scene(work_item)
+        if not string_scene:
+            cmds = batch_processor_maya.get_maya_cmds()
+            cmds.file(work_item.current_path, open=True, force=True,
+                      executeScriptNodes=False, prompt=False)
         definition = self.base_definition(project, work_item)
         if self.settings.get("use_input_string") and self.settings.get("prompt_mode", "table") == "table":
             value = work_item.metadata.get("input_string")
             if not isinstance(value, str) or not value.strip():
-                raise ValueError("Use input string as prompt requires an Input Strings work item.")
+                raise ValueError("Use input string as prompt requires nonblank text from Input Strings or Input Pairs.")
             definition["prompts"][0]["text"] = value
-        string_scene = is_string_scene(work_item)
         if string_scene:
             signature = fingerprint([self.settings, definition, work_item.metadata["input_string"]])
         else:
@@ -294,9 +310,6 @@ class TaskKimodoDefinition(TaskKimodoBase):
                             captured = {"frames": [], "start": 0, "end": count - 1, "source_fps": fps}
                             report("Building definitions from input text using prompt durations; no scene capture.")
                         else:
-                            cmds = batch_processor_maya.get_maya_cmds()
-                            cmds.file(work_item.current_path, open=True, force=True,
-                                      executeScriptNodes=False, prompt=False)
                             captured = capture_scene(self.settings, report)
                             definitions = self.build_definitions(captured, definition, identity, report=report)
                         record = {"signature": signature, "source": work_item.current_path, "definitions": definitions,
@@ -325,6 +338,8 @@ class TaskKimodoDefinition(TaskKimodoBase):
                             write_record(path, resolved)
                             report(f"Saved definition: {path}")
                         metadata = {"model_fps": record["model_fps"], "source_frames": record["source_frames"]}
+                        if not string_scene:
+                            metadata["source_scene"] = work_item.current_path
                         if not self.settings.get("purge_cache_on_success", True):
                             metadata["manifest"] = record_path
                         items.append(self.output_item(work_item, path, metadata))
@@ -382,6 +397,24 @@ def select_frames(start, end, explicit=None, first=True, last=True, markers=None
                 frames.add(frame)
             previous = bool(active)
     return sorted(frames)
+
+
+def mask_path_frames(frames, values):
+    """Keeps the root path frames where a mask attribute is active.
+
+    Args:
+        frames (list): Candidate source frames.
+        values (list): Mask value evaluated at each frame; nonzero keeps the frame.
+
+    Returns:
+        list: Frames whose mask value is nonzero, in their original order.
+    """
+    if len(frames) != len(values):
+        raise ValueError("Path mask needs one value per path frame.")
+    kept = [frame for frame, value in zip(frames, values) if abs(float(value)) > 0.000001]
+    if len(kept) < 2:
+        raise ValueError("Path mask leaves fewer than two root path frames.")
+    return kept
 
 
 def vary_definition(definition, settings, identity, variation):
@@ -589,7 +622,7 @@ def resolve_frames(settings):
 
 
 def capture_scene(settings, report):
-    """Samples live evaluated poses and a static curve/locator root trajectory.
+    """Samples live evaluated poses and a curve, locator, or animated transform root trajectory.
 
     Args:
         settings (dict): Capture task settings.
@@ -638,10 +671,9 @@ def capture_scene(settings, report):
                 raise ValueError("Random curve selection requires two or more NURBS curve transforms only.")
             if not randomize_path and len(resolved_nodes) > 1 and any(curve_flags):
                 raise ValueError("Use one curve, or enable Random curve per variation for a curve list.")
-            if not randomize_path and len(resolved_nodes) == 1 and not curve_flags[0]:
-                raise ValueError("A locator path needs at least two locators; one path node must be a NURBS curve.")
-
-            sample_curves = randomize_path or (len(resolved_nodes) == 1 and curve_flags[0])
+            # One non-curve transform is an animated trajectory driver sampled over time.
+            animated_node = not randomize_path and len(resolved_nodes) == 1 and not curve_flags[0]
+            sample_curves = randomize_path or len(resolved_nodes) == 1
             path_frames = kimodo.parse_scene_frames(settings["path_frames"])
             if not path_frames:
                 count = int(settings["path_samples"]) if sample_curves else len(resolved_nodes)
@@ -655,15 +687,28 @@ def capture_scene(settings, report):
                 raise ValueError("Root path frames must be inside the capture range.")
             if len(path_frames) < 2:
                 raise ValueError("A root path needs at least two destination frames.")
+            path_mask = str(settings.get("path_mask_attribute") or "").strip()
+            if path_mask:
+                if not animated_node:
+                    raise ValueError("Path mask attribute only applies to one animated (non-curve) path node.")
+                if not cmds.objExists(path_mask):
+                    raise ValueError(f"Path mask attribute is missing: {path_mask}")
+                count = len(path_frames)
+                path_frames = mask_path_frames(path_frames, [cmds.getAttr(path_mask, time=frame)
+                                                             for frame in path_frames])
+                report(f"Path mask {path_mask} kept {len(path_frames)} of {count} root path frames.")
             cmds.currentTime(resolved["start"], edit=True, update=True)
+            capture_path = partial(kimodo.capture_root_path, frame_indices=list(range(len(path_frames))),
+                                   group=resolved["group"], heading_mode=settings.get("root_heading", "none"),
+                                   heading_offset=float(settings.get("root_heading_offset", 0.0)))
             if randomize_path:
                 for node in resolved_nodes:
-                    constraint = kimodo.capture_root_path([node], list(range(len(path_frames))), resolved["group"])
-                    path_options.append({"name": node, "constraint": constraint})
-            elif sample_curves:
-                path = kimodo.capture_root_path(resolved_nodes, list(range(len(path_frames))), resolved["group"])
+                    path_options.append({"name": node, "constraint": capture_path([node])})
+            elif animated_node:
+                path = capture_path(resolved_nodes, sample_times=path_frames)
+                report(f"Sampled animated root path from {resolved_nodes[0]} at {len(path_frames)} times.")
             else:
-                path = kimodo.capture_root_path(resolved_nodes, list(range(len(path_frames))), resolved["group"])
+                path = capture_path(resolved_nodes)
         resolved.update(poses=poses, path=path, path_options=path_options, path_frames=path_frames)
         return resolved
     finally:

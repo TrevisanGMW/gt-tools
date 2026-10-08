@@ -19,7 +19,7 @@ class AttrWidgetBlenderScriptTask(AttrWidgetMotionBuilderScriptTask):
             label_text="Blender",
             tooltip="Blender executable used to run this task outside Maya.",
         )
-        tooltip = "Path to blender.exe. Example: C:/Program Files/Blender Foundation/Blender 4.1/blender.exe"
+        tooltip = "Path to blender.exe.\nExample: C:/Program Files/Blender Foundation/Blender 4.1/blender.exe"
         layout = self.add_labeled_layout("Executable", label_width=100, tooltip=tooltip)
         field = self.create_text_field(
             text=self.task.settings.get("blender_executable"),
@@ -76,7 +76,7 @@ class AttrWidgetBlenderScriptTask(AttrWidgetMotionBuilderScriptTask):
             self.task.settings.get("blender_arguments"),
             partial(self.set_task_setting, key="blender_arguments"),
             placeholder=task_external_blender.DEFAULT_BLENDER_ARGUMENTS,
-            tooltip="Blender process arguments. One argument per line, or quoted shell-style text.",
+            tooltip="Blender process arguments.\nOne argument per line, or quoted shell-style text.",
         )
         self.add_text_field(
             "Script Flag",
@@ -104,7 +104,7 @@ class AttrWidgetBlenderScriptTask(AttrWidgetMotionBuilderScriptTask):
             partial(self.set_task_setting, key="require_output_file"),
             layout=options_layout,
             tooltip=(
-                "Fail when Blender exits without creating a file with the expected name in the output folder. "
+                "Fail when Blender exits without creating a file with the expected name in the output folder.\n"
                 "The file extension is ignored."
             ),
         )
@@ -138,13 +138,13 @@ class AttrWidgetBlenderScriptTask(AttrWidgetMotionBuilderScriptTask):
         )
         timeout_label = ui_qt.QtWidgets.QLabel("Timeout:")
         attr_widget_base.configure_label_for_scaled_displays(timeout_label)
-        timeout_label.setToolTip("Maximum seconds to wait. Zero means no timeout.")
+        timeout_label.setToolTip("Maximum seconds to wait.\nZero means no timeout.")
         fallback_layout.addWidget(timeout_label)
         timeout_spinbox = ui_qt.QtWidgets.QSpinBox()
         timeout_spinbox.setRange(0, 999999)
         timeout_spinbox.setValue(int(self.task.settings.get("timeout_seconds") or 0))
         timeout_spinbox.setMinimumHeight(35)
-        timeout_spinbox.setToolTip("Maximum seconds to wait. Zero means no timeout.")
+        timeout_spinbox.setToolTip("Maximum seconds to wait.\nZero means no timeout.")
         timeout_spinbox.valueChanged.connect(partial(self.set_task_setting, key="timeout_seconds"))
         fallback_layout.addWidget(timeout_spinbox)
         fallback_layout.addStretch()

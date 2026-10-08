@@ -30,7 +30,7 @@ class TaskMotionBuilderScript(TaskExternalScript):
     task_type = constants.TaskType.MOTIONBUILDER_SCRIPT
     default_display_name = "MotionBuilder"
     application_name = "MotionBuilder"
-    default_target_path_template = "{project-dir}/{task-dir}/{task-idx}_motionbuilder"
+    default_target_path_template = "{project-dir}/{task-dir}/{task-idx-padded}_motionbuilder"
     icon = ui_res_lib.Icon.app_mobu
     category = "External"
     category_icon = ui_res_lib.Icon.batch_category_external

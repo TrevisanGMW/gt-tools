@@ -117,7 +117,7 @@ class AttrWidgetUsdExportTask(AttrWidgetTask):
             self.task.settings.get("target_node"),
             partial(self.set_task_setting, key="target_node"),
             placeholder="Optional preferred export root node. Leave empty to skip.",
-            tooltip="Optional preferred root node added when found. Leave empty to skip this lookup.",
+            tooltip="Optional preferred root node added when found.\nLeave empty to skip this lookup.",
         )
         self.add_text_area(
             "Target Roots",
@@ -203,7 +203,7 @@ class AttrWidgetUsdExportTask(AttrWidgetTask):
             placeholder="One Maya attribute per line, e.g. contact_heel_end_l.contactWeight.\n"
             "These are tagged for native MayaUSD attribute export.",
             tooltip=(
-                "Attributes tagged through MayaUSD's USD_UserExportedAttributesJson mechanism. "
+                "Attributes tagged through MayaUSD's USD_UserExportedAttributesJson mechanism.\n"
                 "Batch environment variables are resolved before export."
             ),
         )
@@ -214,7 +214,7 @@ class AttrWidgetUsdExportTask(AttrWidgetTask):
             placeholder="One Maya attribute per line, e.g. SK_Universal_Simplified.collections.\n"
             "Values are injected into matching USD prim custom data after export.",
             tooltip=(
-                "Attributes injected as USD prim custom data after export. "
+                "Attributes injected as USD prim custom data after export.\n"
                 "Batch environment variables are resolved before export."
             ),
         )

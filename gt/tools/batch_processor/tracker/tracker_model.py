@@ -1,9 +1,11 @@
 """Pure state model for the standalone Batch Processor tracker."""
 
+import json
 import os
 
 from gt.tools.batch_processor.tracker import tracker_constants
 from gt.tools.batch_processor.tracker import tracker_events
+from gt.tools.batch_processor import batch_processor_run_state as run_state
 
 
 class TrackerTask:
@@ -218,6 +220,7 @@ class TrackerJob:
         self.completion_result = ""
         self.flag_skips_as_warnings = True
         self._source_size = None
+        self.runtime_state = None
         self.tasks = []
         for definition in task_definitions:
             task = TrackerTask(
@@ -290,6 +293,16 @@ class TrackerJob:
             flag_skips_as_warnings (bool, optional): Whether skipped work produces warnings.
         """
         event_name = event.get("event")
+        if event_name == "run_state":
+            incoming = run_state.decode_state(json.dumps(event.get("state")))
+            if self.runtime_state is None:
+                self.runtime_state = incoming
+            else:
+                self.runtime_state = run_state.merge_states([self.runtime_state, incoming])
+        elif event_name == "error" or (event_name == "task_finished" and event.get("status") == "failed"):
+            if self.runtime_state is not None:
+                self.runtime_state["tasks_failed"] = True
+                self.runtime_state["tasks_incomplete"] = True
         if event_name == "worker_started":
             self.status = tracker_constants.Status.WAITING
             self.started_at = event.get("timestamp") or self.started_at
@@ -374,6 +387,13 @@ class TrackerJob:
 
     def reset_for_restart(self):
         """Resets runtime state so the regular job can be executed again."""
+        if self.status in (tracker_constants.Status.FAILED, tracker_constants.Status.TIMED_OUT,
+                           tracker_constants.Status.CANCELED):
+            if self.runtime_state is None:
+                self.runtime_state = run_state.new_state()
+                self.runtime_state["known"] = False
+            self.runtime_state["tasks_failed"] = True
+            self.runtime_state["tasks_incomplete"] = True
         self.status = tracker_constants.Status.QUEUED
         self.started_at = ""
         self.completed_at = ""

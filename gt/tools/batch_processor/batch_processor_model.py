@@ -7,8 +7,9 @@ tool remains usable without loading the UI.
 
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_tasks as tasks
+from gt.tools.batch_processor import batch_processor_run_state as run_state
+import copy
 import datetime
-import importlib
 import json
 import logging
 import os
@@ -23,7 +24,14 @@ logger.setLevel(logging.INFO)
 
 _ENVIRONMENT_PATTERN = re.compile(r"\{([a-zA-Z0-9_-]+)\}")
 _CUSTOM_ENVIRONMENT_NAME_PATTERN = re.compile(r"^\{[a-zA-Z0-9_-]+\}$")
-_RESERVED_ENVIRONMENT_KEYS = {
+_LEGACY_INDEX_ENVIRONMENT_ALIASES = {
+    "previous-task-idx": "previous-task-idx-padded",
+    "previous-previous-task-idx": "previous-previous-task-idx-padded",
+    "pre-previous-task-idx": "pre-previous-task-idx-padded",
+    "next-task-idx": "next-task-idx-padded",
+}
+_RESERVED_ENVIRONMENT_KEYS = set(run_state.ENVIRONMENT_KEYS) | {
+    "input-file",
     "input-string",
     "input-string-index",
     "project-name",
@@ -52,8 +60,10 @@ _RESERVED_ENVIRONMENT_KEYS = {
     "task-sanitized-name",
     "task-type",
     "task-id",
-    "task-idx",
+    "task-idx-padded",
     "task-index",
+    "seg-task-idx-padded",
+    "seg-task-index",
     "previous-task-name",
     "previous-task-sanitized-name",
     "previous-task-path",
@@ -76,6 +86,32 @@ _RESERVED_ENVIRONMENT_KEYS = {
     "next-task-idx",
     "next-task-index",
 }
+_RESERVED_ENVIRONMENT_KEYS.update(
+    f"{segment_prefix}{task_prefix}-{index_suffix}"
+    for segment_prefix in ("", "seg-")
+    for task_prefix in ("task", "previous-task", "previous-previous-task", "pre-previous-task", "next-task")
+    for index_suffix in ("idx-padded", "index")
+)
+
+
+def _build_task_index_environment_variables(task_indices):
+    """Builds consistently named project and segment index values.
+
+    Args:
+        task_indices (dict): Task variable prefixes mapped to project and
+            segment index pairs. Missing or excluded tasks use zero.
+
+    Returns:
+        dict: Padded and unpadded index values for both scopes.
+    """
+    environment_variables = {}
+    for task_prefix, index_pair in task_indices.items():
+        project_index, segment_index = index_pair
+        for segment_prefix, task_index in (("", project_index), ("seg-", segment_index)):
+            task_index = int(task_index)
+            environment_variables[f"{segment_prefix}{task_prefix}-idx-padded"] = f"{task_index:02d}"
+            environment_variables[f"{segment_prefix}{task_prefix}-index"] = str(task_index)
+    return environment_variables
 
 
 def normalize_environment_key(key):
@@ -208,15 +244,13 @@ class BatchProcessorModel:
         )
 
     def set_suppress_custom_environment_query_errors(self, suppress_errors):
-        """Sets whether custom query failures use concise console output.
+        """Sets whether custom query failures are silent during editing and runs.
 
-        This runtime setting is intentionally excluded from project data. The
-        controller enables it only while the user edits a project; batch runs
-        always restore full error diagnostics.
+        This preference is excluded from saved project data, but carried in
+        temporary worker snapshots so standalone processes honor the UI setting.
 
         Args:
-            suppress_errors (bool): Whether query failures should omit their
-                traceback from the interactive output.
+            suppress_errors (bool): Whether query failures should omit console errors and tracebacks.
         """
         self._suppress_custom_environment_query_errors = bool(suppress_errors)
 
@@ -336,7 +370,8 @@ class BatchProcessorModel:
                     str: Replacement value.
                 """
                 key = normalize_environment_key(match.group(1))
-                if key == "input-string":
+                key = _LEGACY_INDEX_ENVIRONMENT_ALIASES.get(key, key)
+                if key in ("input-file", "input-string"):
                     return match.group(0)
                 if key not in environment_variables:
                     return match.group(0)
@@ -346,8 +381,13 @@ class BatchProcessorModel:
             if new_resolved == resolved:
                 break
             resolved = new_resolved
-        value = getattr(self, "_input_string_environment", {}).get("input-string", "")
-        return re.sub(r"\{input[-_]string\}", lambda match: value, resolved, flags=re.IGNORECASE)
+        runtime_values = getattr(self, "_input_string_environment", {})
+        return re.sub(
+            r"\{input[-_](file|string)\}",
+            lambda match: str(runtime_values.get(f"input-{match.group(1).lower()}", "")),
+            resolved,
+            flags=re.IGNORECASE,
+        )
 
     def resolve_template_path(self, path, task=None, task_index=None, include_neighbor_paths=True):
         """Resolves a path after expanding batch environment variables.
@@ -550,6 +590,65 @@ class BatchProcessorModel:
             segments.append(current_segment)
         return segments
 
+    def get_separator_tasks(self, start_task_id):
+        """Gets all tasks from a visible separator up to the next separator.
+
+        Disabled tasks remain part of the group. These visual boundaries are
+        independent of the input boundaries used during execution.
+
+        Args:
+            start_task_id (str): Identifier of the task carrying the separator.
+
+        Returns:
+            list: Ordered tasks in the group, or an empty list for a stale marker.
+        """
+        start_task = self.get_task(start_task_id)
+        if not start_task or not start_task.shows_segment_separator():
+            return []
+        segment_tasks = []
+        for task in self.tasks[self.tasks.index(start_task):]:
+            if segment_tasks and task.shows_segment_separator():
+                break
+            segment_tasks.append(task)
+        return segment_tasks
+
+    def set_separator_tasks_enabled(self, start_task_id, enabled):
+        """Sets the enabled state of every task in a separator group.
+
+        Args:
+            start_task_id (str): Identifier of the task carrying the separator.
+            enabled (bool): Enabled state to apply to all tasks in the group.
+
+        Returns:
+            list: Tasks whose enabled state was set.
+        """
+        segment_tasks = self.get_separator_tasks(start_task_id)
+        for task in segment_tasks:
+            task.enabled = bool(enabled)
+        return segment_tasks
+
+    def create_separator_project(self, start_task_id):
+        """Copies a separator group into an independent, importable project.
+
+        The copy keeps task settings and enabled states. Importing it through
+        Import Project uses the destination project's settings and fresh IDs.
+
+        Args:
+            start_task_id (str): Identifier of the task carrying the separator.
+
+        Returns:
+            BatchProcessorModel or None: Segment project, or None for a stale marker.
+        """
+        segment_tasks = self.get_separator_tasks(start_task_id)
+        if not segment_tasks:
+            return None
+        segment_project = type(self)()
+        segment_project.read_data_from_dict({
+            "project_name": segment_tasks[0].get_segment_display_name(),
+            "tasks": copy.deepcopy([task.to_dict() for task in segment_tasks]),
+        })
+        return segment_project
+
     def has_input_segments(self, task_list=None):
         """Checks whether tasks split into more than one input segment.
 
@@ -644,6 +743,38 @@ class BatchProcessorModel:
             task_index += 1
             if current_task.id == task.id:
                 return task_index
+        return 0
+
+    def get_segment_task_environment_index(self, task, enabled_only=None):
+        """Gets the one-based task index within the task's segment.
+
+        Visible separators and new input lists reset the counter before their
+        task is counted. Boundaries remain in project order even when disabled
+        tasks are ignored, keeping segment numbering stable for partial runs.
+
+        Args:
+            task (BatchTask): Task to index.
+            enabled_only (bool, optional): Whether to ignore disabled tasks in
+                the count. Defaults to the project's index automation setting.
+
+        Returns:
+            int: Segment task index, or 0 for excluded, ignored, or missing tasks.
+        """
+        if not task:
+            return 0
+        if enabled_only is None:
+            enabled_only = bool(self.run_settings.get("ignore_disabled_tasks_for_task_index", False))
+        segment_task_index = 0
+        for current_task in self.tasks:
+            if current_task.starts_new_input_list() or current_task.shows_segment_separator():
+                segment_task_index = 0
+            if not current_task.includes_task_index() or (enabled_only and not current_task.enabled):
+                if current_task.id == task.id:
+                    return 0
+                continue
+            segment_task_index += 1
+            if current_task.id == task.id:
+                return segment_task_index
         return 0
 
     def get_previous_task(self, task, enabled_only=True):
@@ -889,6 +1020,7 @@ class BatchProcessorModel:
                 "paths",
                 "environment_variables",
                 "custom_environment_variables",
+                "runtime_options",
                 "run_settings",
                 "tasks",
                 "modules",
@@ -900,6 +1032,11 @@ class BatchProcessorModel:
                 self.extra_data[key] = value
         self.project_name = data.get("project_name") or constants.Project.DEFAULT_NAME
         self.notes = data.get("notes") or ""
+        runtime_options = data.get("runtime_options") or {}
+        if "suppress_custom_environment_query_errors" in runtime_options:
+            self.set_suppress_custom_environment_query_errors(
+                runtime_options["suppress_custom_environment_query_errors"]
+            )
         self.environment_variables = dict(constants.Project.DEFAULT_ENVIRONMENT_VARIABLES)
         self.environment_variables.update(self._environment_from_legacy_paths(data.get("paths") or {}))
         self.environment_variables.update(
@@ -925,7 +1062,8 @@ class BatchProcessorModel:
         if not self.tasks:
             self.tasks = [tasks.TaskInput()]
 
-    def get_environment_variables(self, task=None, task_index=None, include_braces=True, include_neighbor_paths=True):
+    def get_environment_variables(self, task=None, task_index=None, include_braces=True,
+                                  include_neighbor_paths=True, evaluate_queries=True, include_legacy_aliases=False):
         """Gets project-level and optional task-level environment variables.
 
         Args:
@@ -933,6 +1071,9 @@ class BatchProcessorModel:
             task_index (int, optional): One-based task index.
             include_braces (bool, optional): If True, keys are formatted as "{variable-name}".
             include_neighbor_paths (bool, optional): Whether previous/next task path values should resolve.
+            evaluate_queries (bool, optional): Whether to evaluate custom queries. False keeps their placeholders.
+            include_legacy_aliases (bool, optional): Whether to include older padded
+                neighbor index names for Python script runtime dictionaries.
 
         Returns:
             dict: Environment variable names and resolved values.
@@ -943,6 +1084,7 @@ class BatchProcessorModel:
         project_path = tasks.normalize_path(self.project_file_path) if self.project_file_path else ""
         project_parent_dir = os.path.dirname(project_dir) if project_dir else ""
         environment_variables = {
+            "input-file": "",
             "input-string": "",
             "input-string-index": "",
             "project-name": project_name,
@@ -977,21 +1119,26 @@ class BatchProcessorModel:
             if task_index is None:
                 task_index = self.get_task_environment_index(task)
             task_index = task_index or 0
+            segment_task_index = self.get_segment_task_environment_index(task)
             previous_task = self.get_previous_task(task=task, enabled_only=True)
             previous_task_name = ""
             previous_task_path = ""
             previous_task_index = 0
+            previous_segment_task_index = 0
             previous_previous_task = None
             previous_previous_task_name = ""
             previous_previous_task_path = ""
             previous_previous_task_index = 0
+            previous_previous_segment_task_index = 0
             next_task = self.get_next_task(task=task, enabled_only=True)
             next_task_name = ""
             next_task_path = ""
             next_task_index = 0
+            next_segment_task_index = 0
             if previous_task:
                 previous_task_name = previous_task.display_name or previous_task.default_display_name
                 previous_task_index = self.get_task_environment_index(previous_task)
+                previous_segment_task_index = self.get_segment_task_environment_index(previous_task)
                 previous_previous_task = self.get_previous_task(task=previous_task, enabled_only=True)
                 if include_neighbor_paths:
                     previous_task_path = self.get_previous_task_path(task=task, enabled_only=True)
@@ -1001,9 +1148,13 @@ class BatchProcessorModel:
                     previous_previous_task.display_name or previous_previous_task.default_display_name
                 )
                 previous_previous_task_index = self.get_task_environment_index(previous_previous_task)
+                previous_previous_segment_task_index = self.get_segment_task_environment_index(
+                    previous_previous_task
+                )
             if next_task:
                 next_task_name = next_task.display_name or next_task.default_display_name
                 next_task_index = self.get_task_environment_index(next_task)
+                next_segment_task_index = self.get_segment_task_environment_index(next_task)
                 if include_neighbor_paths:
                     next_task_path = self.get_next_task_path(task=task, enabled_only=True)
             environment_variables.update(
@@ -1012,8 +1163,6 @@ class BatchProcessorModel:
                     "task-sanitized-name": tasks.sanitize_filename(task_name.lower().replace(" ", "_")),
                     "task-type": task.task_type,
                     "task-id": task.id,
-                    "task-idx": "{0:02d}".format(int(task_index)),
-                    "task-index": str(int(task_index)),
                     "previous-task-name": previous_task_name,
                     "previous-task-sanitized-name": tasks.sanitize_filename(
                         previous_task_name.lower().replace(" ", "_"), fallback=""
@@ -1026,34 +1175,51 @@ class BatchProcessorModel:
                         previous_previous_task_name.lower().replace(" ", "_"),
                         fallback="",
                     ),
-                    "previous-previous-task-idx": "{0:02d}".format(int(previous_previous_task_index)),
-                    "previous-previous-task-index": str(int(previous_previous_task_index)),
                     "pre-previous-task-name": previous_previous_task_name,
                     "pre-previous-task-sanitized-name": tasks.sanitize_filename(
                         previous_previous_task_name.lower().replace(" ", "_"),
                         fallback="",
                     ),
-                    "pre-previous-task-idx": "{0:02d}".format(int(previous_previous_task_index)),
-                    "pre-previous-task-index": str(int(previous_previous_task_index)),
-                    "previous-task-idx": "{0:02d}".format(int(previous_task_index)),
-                    "previous-task-index": str(int(previous_task_index)),
                     "next-task-name": next_task_name,
                     "next-task-sanitized-name": tasks.sanitize_filename(
                         next_task_name.lower().replace(" ", "_"), fallback=""
                     ),
                     "next-task-path": next_task_path,
                     "future-task-path": next_task_path,
-                    "next-task-idx": "{0:02d}".format(int(next_task_index)),
-                    "next-task-index": str(int(next_task_index)),
                 }
             )
+            environment_variables.update(
+                _build_task_index_environment_variables(
+                    {
+                        "task": (task_index, segment_task_index),
+                        "previous-task": (previous_task_index, previous_segment_task_index),
+                        "previous-previous-task": (
+                            previous_previous_task_index, previous_previous_segment_task_index
+                        ),
+                        "pre-previous-task": (
+                            previous_previous_task_index, previous_previous_segment_task_index
+                        ),
+                        "next-task": (next_task_index, next_segment_task_index),
+                    }
+                )
+            )
         environment_variables.update(getattr(self, "_input_string_environment", {}))
+        environment_variables.update(run_state.get_environment_variables(self, task))
         environment_variables.update(
             self._resolve_custom_environment_variables(
                 task=task,
                 environment_variables=environment_variables,
+                evaluate_queries=evaluate_queries,
             )
         )
+        if include_legacy_aliases:
+            environment_variables.update(
+                {
+                    legacy_key: environment_variables[current_key]
+                    for legacy_key, current_key in _LEGACY_INDEX_ENVIRONMENT_ALIASES.items()
+                    if current_key in environment_variables
+                }
+            )
         if include_braces:
             return {format_environment_key(key): value for key, value in environment_variables.items()}
         return environment_variables
@@ -1140,12 +1306,13 @@ class BatchProcessorModel:
                 legacy_variables[normalized_key] = {"value": value, "query": False}
         return legacy_variables
 
-    def _resolve_custom_environment_variables(self, task, environment_variables):
+    def _resolve_custom_environment_variables(self, task, environment_variables, evaluate_queries=True):
         """Resolves all custom environment variables for the current context.
 
         Args:
             task (BatchTask or None): Task currently requesting environment data.
             environment_variables (dict): Built-in and task environment data.
+            evaluate_queries (bool, optional): Whether queries run or remain as placeholders.
 
         Returns:
             dict: Custom environment values keyed by normalized name.
@@ -1153,6 +1320,9 @@ class BatchProcessorModel:
         resolved_variables = {}
         query_environment = dict(environment_variables)
         for name, definition in self.custom_environment_variables.items():
+            if definition.get("query") and not evaluate_queries:
+                resolved_variables[name] = format_environment_key(name)
+                continue
             value = self._resolve_custom_environment_variable(
                 name=name,
                 definition=definition,
@@ -1192,25 +1362,20 @@ class BatchProcessorModel:
         if not query:
             return ""
         try:
-            import maya.cmds as cmds
+            from gt.tools.batch_processor import batch_processor_maya
 
-            query_namespace = {
-                "cmds": cmds,
-                "env": dict(environment_variables),
-                "json": json,
-                "import_module": importlib.import_module,
-                "project": self,
-                "task": task,
-            }
-            return eval(query, query_namespace, query_namespace)
+            query_environment = dict(environment_variables)
+            for legacy_key, current_key in _LEGACY_INDEX_ENVIRONMENT_ALIASES.items():
+                if current_key in query_environment:
+                    query_environment[legacy_key] = query_environment[current_key]
+            return batch_processor_maya.evaluate_custom_environment_query(
+                query, query_environment, project=self, task=task,
+                suppress_errors=self._suppress_custom_environment_query_errors and not raise_errors,
+            )
         except Exception as exception:
             if raise_errors:
                 raise
             if self._suppress_custom_environment_query_errors:
-                print(
-                    f'Custom environment variable "{{{name}}}" query failed. '
-                    f'Resolved as an empty value: {exception}'
-                )
                 return ""
             logger.error(
                 f'Unable to evaluate custom environment variable "{{{name}}}": {exception}',

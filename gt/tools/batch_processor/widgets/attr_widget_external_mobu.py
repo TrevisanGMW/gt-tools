@@ -72,7 +72,10 @@ class AttrWidgetMotionBuilderScriptTask(AttrWidgetPythonScriptTask):
             label_text="MotionBuilder",
             tooltip="MotionBuilder executable used to run this task outside Maya.",
         )
-        tooltip = "Path to motionbuilder.exe. Example: C:/Program Files/Autodesk/MotionBuilder 2025/bin/x64/motionbuilder.exe"
+        tooltip = (
+            "Path to motionbuilder.exe.\n"
+            "Example: C:/Program Files/Autodesk/MotionBuilder 2025/bin/x64/motionbuilder.exe"
+        )
         layout = self.add_labeled_layout("Executable", label_width=100, tooltip=tooltip)
         field = self.create_text_field(
             text=self.task.settings.get("motionbuilder_executable"),
@@ -129,7 +132,7 @@ class AttrWidgetMotionBuilderScriptTask(AttrWidgetPythonScriptTask):
             self.task.settings.get("motionbuilder_arguments"),
             partial(self.set_task_setting, key="motionbuilder_arguments"),
             placeholder=task_external_mobu.DEFAULT_MOBU_ARGUMENTS,
-            tooltip="MotionBuilder process arguments. One argument per line, or quoted shell-style text.",
+            tooltip="MotionBuilder process arguments.\nOne argument per line, or quoted shell-style text.",
         )
         self.add_text_field(
             "Script Flag",
@@ -137,7 +140,7 @@ class AttrWidgetMotionBuilderScriptTask(AttrWidgetPythonScriptTask):
             partial(self.set_task_setting, key="script_flag"),
             placeholder="Optional. Usually empty for MotionBuilder.",
             tooltip=(
-                "Optional command-line flag used before the script path. "
+                "Optional command-line flag used before the script path.\n"
                 "Leave empty for the standard MotionBuilder batch command."
             ),
             label_width=100,
@@ -194,13 +197,13 @@ class AttrWidgetMotionBuilderScriptTask(AttrWidgetPythonScriptTask):
         )
         timeout_label = ui_qt.QtWidgets.QLabel("Timeout:")
         attr_widget_base.configure_label_for_scaled_displays(timeout_label)
-        timeout_label.setToolTip("Maximum seconds to wait. Zero means no timeout.")
+        timeout_label.setToolTip("Maximum seconds to wait.\nZero means no timeout.")
         fallback_layout.addWidget(timeout_label)
         timeout_spinbox = ui_qt.QtWidgets.QSpinBox()
         timeout_spinbox.setRange(0, 999999)
         timeout_spinbox.setValue(int(self.task.settings.get("timeout_seconds") or 0))
         timeout_spinbox.setMinimumHeight(35)
-        timeout_spinbox.setToolTip("Maximum seconds to wait. Zero means no timeout.")
+        timeout_spinbox.setToolTip("Maximum seconds to wait.\nZero means no timeout.")
         timeout_spinbox.valueChanged.connect(partial(self.set_task_setting, key="timeout_seconds"))
         fallback_layout.addWidget(timeout_spinbox)
         fallback_layout.addStretch()

@@ -12,7 +12,7 @@ def evaluate_variable(name, variables, project=None):
 
     Earlier rows are resolved in runtime order so their results are available
     through ``env``. Later queries are not run. Maya is imported only by the
-    model's query evaluator when a query actually runs.
+    runtime query evaluator when a query actually runs.
 
     Args:
         name (str): Name of the variable to evaluate.

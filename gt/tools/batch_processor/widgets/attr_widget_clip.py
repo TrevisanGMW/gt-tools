@@ -100,8 +100,8 @@ class AttrWidgetClipSnapshotTask(AttrWidgetTask):
             task_clip.CLIP_SNAPSHOT_MODE_VALUES,
             self.set_mode,
             tooltip=(
-                "Save Snapshot writes clip data from incoming Maya scenes to the snapshot JSON. "
-                "Load Snapshot reads the JSON and restores matching clip data into incoming Maya scenes. "
+                "Save Snapshot writes clip data from incoming Maya scenes to the snapshot JSON.\n"
+                "Load Snapshot reads the JSON and restores matching clip data into incoming Maya scenes.\n"
                 "Bypass Task skips this task and sends incoming files to the next task unchanged."
             ),
         )

@@ -160,14 +160,14 @@ class AttrWidgetUnrealScriptTask(AttrWidgetMotionBuilderScriptTask):
 
         timeout_label = ui_qt.QtWidgets.QLabel("Timeout:")
         attr_widget_base.configure_label_for_scaled_displays(timeout_label)
-        timeout_label.setToolTip("Maximum seconds to wait. Zero means no timeout.")
+        timeout_label.setToolTip("Maximum seconds to wait.\nZero means no timeout.")
         fallback_layout.addWidget(timeout_label)
 
         timeout_spinbox = ui_qt.QtWidgets.QSpinBox()
         timeout_spinbox.setRange(0, 999999)
         timeout_spinbox.setValue(int(self.task.settings.get("timeout_seconds") or 0))
         timeout_spinbox.setMinimumHeight(35)
-        timeout_spinbox.setToolTip("Maximum seconds to wait. Zero means no timeout.")
+        timeout_spinbox.setToolTip("Maximum seconds to wait.\nZero means no timeout.")
         timeout_spinbox.valueChanged.connect(
             partial(self.set_task_setting, key="timeout_seconds")
         )

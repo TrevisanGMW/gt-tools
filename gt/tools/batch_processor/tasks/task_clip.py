@@ -155,7 +155,7 @@ class TaskClipSplit(task_base.BatchTask):
 
     task_type = constants.TaskType.CLIP_SPLIT
     default_display_name = "Clip Split"
-    default_target_path_template = "{project-dir}/{task-dir}/{task-idx}_clips"
+    default_target_path_template = "{project-dir}/{task-dir}/{task-idx-padded}_clips"
     icon = ui_res_lib.Icon.batch_task_clip_split
     category = "Animation"
     category_icon = ui_res_lib.Icon.root_animation

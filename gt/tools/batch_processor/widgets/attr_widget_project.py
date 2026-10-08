@@ -44,7 +44,7 @@ class AttrWidgetProject(attr_widget_base.AttrWidgetBase):
         self.add_environment_variable_field(
             "project-dir",
             "Project Dir",
-            "Root directory for this batch project. Defaults to {project-file-dir}; set a fixed path to override it.",
+            "Root directory for this batch project.\nDefaults to {project-file-dir}; set a fixed path to override it.",
             browse=True,
             placeholder="{project-file-dir}",
         )
@@ -94,8 +94,8 @@ class AttrWidgetProject(attr_widget_base.AttrWidgetBase):
         # so the retries group is not flush against the worker count spin box.
         worker_layout.addSpacing(8)
         retry_tooltip = (
-            "Number of times a failed job is retried at the end of the run. "
-            "0 disables retries. Each still-failing job is re-run up to this many times, "
+            "Number of times a failed job is retried at the end of the run.\n"
+            "0 disables retries.\nEach still-failing job is re-run up to this many times, "
             "and jobs that keep failing after all retries remain failed."
         )
         retry_label = ui_qt.QtWidgets.QLabel("Retries:")
@@ -112,8 +112,8 @@ class AttrWidgetProject(attr_widget_base.AttrWidgetBase):
         worker_layout.addWidget(retry_spin_box)
         worker_layout.addSpacing(8)
         timeout_tooltip = (
-            "Maximum minutes a single job may run before it is automatically canceled. "
-            "0 disables the timeout, so stuck jobs can run indefinitely. When a job times out "
+            "Maximum minutes a single job may run before it is automatically canceled.\n"
+            "0 disables the timeout, so stuck jobs can run indefinitely.\nWhen a job times out "
             "it is retried if retry attempts remain; otherwise it is marked as timed out."
         )
         timeout_label = ui_qt.QtWidgets.QLabel("Timeout (min):")
@@ -136,7 +136,7 @@ class AttrWidgetProject(attr_widget_base.AttrWidgetBase):
             partial(self.set_run_setting, key="preferred_maya_version"),
             placeholder="Optional version, e.g. 2025",
             tooltip=(
-                "Preferred Maya version used for multi-instance jobs. "
+                "Preferred Maya version used for multi-instance jobs.\n"
                 "If not found in default Autodesk install locations, the launcher falls back to the current mayapy."
             ),
             label_width=90,

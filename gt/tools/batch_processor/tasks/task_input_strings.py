@@ -359,7 +359,7 @@ class TaskInputStrings(TaskInput):
         return result
 
     def prepare(self, project, context=None):
-        """Builds ordered items, retaining duplicate values and literal text.
+        """Builds ordered items with names padded to at least two digits for the input count.
 
         Args:
             project (BatchProcessorModel): Owning project.
@@ -372,10 +372,11 @@ class TaskInputStrings(TaskInput):
         if errors:
             raise ValueError("; ".join(errors))
         root = self.get_input_dir(project)
+        values = self.get_input_values(project)
+        index_width = max(2, len(str(len(values))))
         items = []
-        for index, value in enumerate(self.get_input_values(project), 1):
-            digest = hashlib.sha256(value.encode("utf-8")).hexdigest()[:10]
-            name = f"string_{index:06d}_{os.path.basename(root)}_{digest}.ma"
+        for index, value in enumerate(values, 1):
+            name = f"string_{index:0{index_width}d}.ma"
             path = os.path.join(root, name)
             items.append(base.WorkItem(source_path=path, source_root=root, metadata={
                 "input_string": value, "input_string_index": index,

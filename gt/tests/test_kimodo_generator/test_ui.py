@@ -978,7 +978,8 @@ class TestKimodoGeneratorUI(unittest.TestCase):
                 patch("maya.cmds.nodeType", return_value="transform"), \
                 patch.object(kimodo, "capture_root_path", return_value=captured) as capture:
             self.controller.capture_path()
-        capture.assert_called_once_with(selected, [0, 24, 47], None)
+        capture.assert_called_once_with(selected, [0, 24, 47], None,
+                                        heading_mode="none", heading_offset=0.0, sample_times=None)
         self.assertIn("evenly across the generated clip", self.view.status.text())
 
     def test_empty_path_frames_sample_curve_across_generated_clip(self):
@@ -996,7 +997,8 @@ class TestKimodoGeneratorUI(unittest.TestCase):
                 patch("maya.cmds.listRelatives", return_value=["|path_curve|path_curveShape"]), \
                 patch.object(kimodo, "capture_root_path", return_value=captured) as capture:
             self.controller.capture_path()
-        capture.assert_called_once_with(selected, [0, 16, 31, 47], None)
+        capture.assert_called_once_with(selected, [0, 16, 31, 47], None,
+                                        heading_mode="none", heading_offset=0.0, sample_times=None)
         self.assertIn("4 curve samples", self.view.status.text())
 
     def test_curve_sample_count_is_user_configurable_and_disabled_for_explicit_frames(self):
@@ -1017,7 +1019,8 @@ class TestKimodoGeneratorUI(unittest.TestCase):
                 patch("maya.cmds.listRelatives", return_value=["|path_curve|path_curveShape"]), \
                 patch.object(kimodo, "capture_root_path", return_value=captured) as capture:
             self.controller.capture_path()
-        capture.assert_called_once_with(["|path_curve"], [0, 9, 19, 28, 38, 47], None)
+        capture.assert_called_once_with(["|path_curve"], [0, 9, 19, 28, 38, 47], None,
+                                        heading_mode="none", heading_offset=0.0, sample_times=None)
         self.assertIn("6 curve samples", self.view.status.text())
 
     def test_generation_rejects_constraint_frames_outside_clip_before_submission(self):

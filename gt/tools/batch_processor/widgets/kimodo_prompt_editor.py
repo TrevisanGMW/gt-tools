@@ -31,7 +31,8 @@ class KimodoPromptEditor(qt.QtWidgets.QWidget):
         self.table.setColumnWidth(0, self.fontMetrics().horizontalAdvance("Seconds") + 40)
         self.table.setMinimumHeight(140)
         self.table.setMaximumHeight(240)
-        self.table.setToolTip("Double-click a cell to edit. Each row is one ordered motion segment. "
+        self.table.setToolTip("Double-click a cell to edit.\n"
+                              "Each row is one ordered motion segment.\n"
                               "Describe actions in plain language and set a positive duration in seconds.")
         self.placeholder_delegate = TablePlaceholderDelegate(
             "Describe the motion, e.g. A person walks to a chair and sits down.", [1], parent=self.table)

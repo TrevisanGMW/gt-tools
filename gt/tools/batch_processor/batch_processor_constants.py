@@ -47,6 +47,7 @@ class TaskType:
 
     INPUT = "input"
     INPUT_STRINGS = "input_strings"
+    INPUT_PAIRS = "input_pairs"
     MAYA_IMPORT = "import_maya"
     RENAME = "rename"
     PYTHON_SCRIPT = "python_script"

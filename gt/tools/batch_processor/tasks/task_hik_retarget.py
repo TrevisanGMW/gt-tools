@@ -30,7 +30,7 @@ class TaskRetargetHumanIK(task_base.BatchTask):
 
     task_type = constants.TaskType.HIK_RETARGET
     default_display_name = "HumanIK"
-    default_target_path_template = "{project-dir}/{task-dir}/{task-idx}_hik_retarget"
+    default_target_path_template = "{project-dir}/{task-dir}/{task-idx-padded}_hik_retarget"
     icon = ui_res_lib.Icon.batch_task_humanik
     category = "Animation"
     category_icon = ui_res_lib.Icon.root_animation

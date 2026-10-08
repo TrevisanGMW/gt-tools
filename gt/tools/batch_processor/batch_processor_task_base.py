@@ -495,7 +495,7 @@ class BatchTask:
     task_type = "base"
     default_display_name = "Task"
     default_source_path_template = "{previous-task-path}"
-    default_target_path_template = "{project-dir}/{task-dir}/{task-idx}_{task-name}"
+    default_target_path_template = "{project-dir}/{task-dir}/{task-idx-padded}_{task-name}"
     default_task_path_template = default_target_path_template
     icon = ui_res_lib.Icon.batch_task_generic
     category = "General"
@@ -580,6 +580,7 @@ class BatchTask:
         """
         incoming_settings = incoming_settings or {}
         self.settings.setdefault("include_in_task_index", self.get_default_include_in_task_index())
+        self.settings.pop("include_in_segment_task_index", None)
         if self.is_input_task:
             return
         if "use_incoming_files" in self.settings and "source_mode" not in self.settings:
@@ -614,12 +615,20 @@ class BatchTask:
         return True
 
     def includes_task_index(self):
-        """Checks whether this task contributes to task index variables.
+        """Checks whether this task contributes to project and segment task indexes.
 
         Returns:
-            bool: True when this task should count toward task index values.
+            bool: True when this task should count toward both task index counters.
         """
         return bool(self.settings.get("include_in_task_index", self.get_default_include_in_task_index()))
+
+    def includes_segment_task_index(self):
+        """Gets segment index participation through the shared Index setting.
+
+        Returns:
+            bool: True when this task should count toward project and segment indexes.
+        """
+        return self.includes_task_index()
 
     def uses_incoming_files(self):
         """Checks whether this task should use incoming work items.
@@ -646,7 +655,8 @@ class BatchTask:
 
         The divider is controlled solely by the "Add Separator" option, so it can
         appear on any task that exposes it and is independent of starting a new
-        input list. It is purely presentational.
+        input list. It also restarts segment task numbering when path variables
+        are resolved. Incoming files are reset by the input-list option.
 
         Returns:
             bool: True when a segment divider should be drawn above this task.
@@ -830,7 +840,7 @@ class BatchTask:
             source_path = self.resolve_source_path(project)
             if not source_path:
                 result.add_error('Task "{0}" source path is empty.'.format(self.display_name))
-            elif not os.path.exists(source_path):
+            elif not os.path.exists(source_path) and not self.settings.get("allow_missing_input_directory", False):
                 result.add_warning('Task "{0}" source path does not exist: {1}'.format(self.display_name, source_path))
         if self.writes_to_target_path():
             target_path = self.resolve_task_path(project)
@@ -873,13 +883,15 @@ class BatchTask:
             dict: Serializable task data.
         """
         data = dict(self.extra_data)
+        parameters = dict(self.settings)
+        parameters.pop("include_in_segment_task_index", None)
         data.update(
             {
                 "id": self.id,
                 "task_type": self.task_type,
                 "display_name": self.display_name,
                 "enabled": self.enabled,
-                "parameters": dict(self.settings),
+                "parameters": parameters,
             }
         )
         return data

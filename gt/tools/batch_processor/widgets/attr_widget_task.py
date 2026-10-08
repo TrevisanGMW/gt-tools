@@ -10,8 +10,9 @@ import gt.ui.resource_library as ui_res_lib
 import gt.ui.qt_utils as ui_qt_utils
 import gt.ui.qt_import as ui_qt
 from functools import partial
-import ast
+import random
 import json
+import ast
 
 
 class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
@@ -42,6 +43,11 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         self.output_extension_combo = None
         self._updating_output_mode = False
         self.task_io_section = None
+        self.segmentation_section = None
+        self.segmentation_layout = ui_qt.QtWidgets.QVBoxLayout()
+        self.segmentation_layout.setContentsMargins(0, 0, 0, 0)
+        self.segmentation_layout.setSpacing(self.content_layout.spacing())
+        self.scroll_content_layout.addLayout(self.segmentation_layout)
         self.add_widget_task_header()
 
     def add_widget_task_header(self):
@@ -226,7 +232,7 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         Args:
             tooltip (str, optional): Tooltip for the path field.
         """
-        tooltip = tooltip or "Source path used by this task. Defaults to the previous task path."
+        tooltip = tooltip or "Source path used by this task.\nDefaults to the previous task path."
         self.add_path_template_field(
             "Source Path",
             self.task.settings.get("source_path") or self.task.default_source_path_template,
@@ -292,7 +298,7 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         Args:
             tooltip (str, optional): Tooltip for the path field.
         """
-        tooltip = tooltip or "Target path used by this task. Supports variables such as {project-dir}."
+        tooltip = tooltip or "Target path used by this task.\nSupports variables such as {project-dir}."
         self.add_path_template_field(
             "Target Path",
             self.task.get_target_path_template(),
@@ -600,7 +606,7 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         self.set_task_setting(checkbox.isChecked(), key="overwrite")
 
     def add_task_index_checkbox(self, layout):
-        """Adds the task-index participation checkbox to a row.
+        """Adds the shared project and segment index participation checkbox to a row.
 
         Args:
             layout (QLayout): Layout that receives the checkbox group.
@@ -611,18 +617,52 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         index_checkbox = ui_qt.QtWidgets.QCheckBox("Index")
         index_checkbox.setMinimumHeight(index_checkbox.sizeHint().height() + 2)
         index_checkbox.setChecked(bool(self.task.includes_task_index()))
-        index_checkbox.setToolTip("Include this task when resolving task index variables such as {task-idx}.")
+        index_checkbox.setToolTip(
+            "Count this task in project and segment task index variables.\n"
+            "{task-idx-padded} and {seg-task-idx-padded} use padding (01);\n"
+            "{task-index} and {seg-task-index} use unpadded values (1).\n"
+            "Segment task indexes restart at each divider or new input list.\n"
+            "Unchecked tasks return 0 and do not advance either counter."
+        )
         index_checkbox.stateChanged.connect(lambda *args: self.set_task_include_in_index(index_checkbox.isChecked()))
         self.add_option_group(layout, index_checkbox)
         return index_checkbox
 
     def set_task_include_in_index(self, value):
-        """Sets whether this task contributes to task index variables.
+        """Sets whether this task contributes to project and segment task indexes.
 
         Args:
             value (bool): Whether the task should be counted.
         """
         self.set_task_setting(bool(value), key="include_in_task_index")
+
+    def add_input_directory_validation_checkbox(self, parent_layout=None):
+        """Adds an opt-in control for input folders created by earlier segments.
+
+        Args:
+            parent_layout (QLayout, optional): Layout that receives the checkbox group.
+
+        Returns:
+            QCheckBox: Created missing input folder checkbox.
+        """
+        self.input_directory_validation_widget = ui_qt.QtWidgets.QWidget()
+        validation_layout = ui_qt.QtWidgets.QHBoxLayout(self.input_directory_validation_widget)
+        validation_layout.setContentsMargins(0, 0, 0, 0)
+        validation_layout.setSpacing(6)
+        target_layout = parent_layout or self.content_layout
+        target_layout.addWidget(self.input_directory_validation_widget)
+        checkbox = self.add_checkbox(
+            "Allow Missing Input Folder",
+            self.task.settings.get("allow_missing_input_directory", False),
+            lambda value: self.set_task_setting(value, key="allow_missing_input_directory"),
+            layout=validation_layout,
+            tooltip=(
+                "Skip the missing input folder check during project validation for this task.\n"
+                "Enable when an earlier segment will create the folder.\nFiles are still discovered "
+                "when the task runs; other validation remains active."
+            ),
+        )
+        return checkbox
 
     def refresh_source_path_enabled_state(self):
         """Refreshes source path widgets based on source mode."""
@@ -697,11 +737,11 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         secondary_label=None,
         secondary_key=None,
         secondary_tooltip=None,
+        include_input_directory_validation=False,
     ):
-        """Adds a collapsible Segmentation section with run-once and divider controls.
+        """Adds a Segmentation section with task-specific run and divider controls.
 
-        The section is shared by tasks that participate in segmentation. It always
-        provides an "Add Separator" toggle plus segment name and color controls. Tasks
+        Provides an "Add Separator" toggle plus segment name and color controls. Tasks
         supporting the preflight run-once phase automatically receive a "Run Once Before
         All Jobs" checkbox before the task-specific controls.
 
@@ -712,19 +752,26 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
             secondary_label (str, optional): Label for an additional checkbox.
             secondary_key (str, optional): Task setting key for the additional checkbox.
             secondary_tooltip (str, optional): Tooltip for the additional checkbox.
+            include_input_directory_validation (bool, optional): Adds the missing input folder checkbox to the row.
+
+        Returns:
+            dict: Segmentation section widgets, checkbox row, and content layout.
         """
         self.task.settings.setdefault("segmentation_collapsed", True)
         section = self.add_collapsible_section(
             "Segmentation",
             collapsed=self.task.settings.get("segmentation_collapsed", True),
             state_setter=partial(self.set_task_setting, key="segmentation_collapsed"),
-            tooltip="Optional segmentation and task-list divider settings.",
+            tooltip="Input segment, run-once, and divider settings.",
+            parent_layout=self.segmentation_layout,
         )
+        self.segmentation_section = section
         section_layout = section.get("content_layout")
 
         checkbox_row = ui_qt.QtWidgets.QHBoxLayout()
         checkbox_row.setSpacing(6)
         section_layout.addLayout(checkbox_row)
+        section["checkbox_layout"] = checkbox_row
         checkbox_row.addStretch()
         if getattr(self.task, "supports_run_once_before_jobs", False):
             self.add_checkbox(
@@ -733,7 +780,7 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
                 partial(self.set_task_setting, key="run_once_before_multi_instance"),
                 layout=checkbox_row,
                 tooltip=(
-                    "In multi-instance mode, run this task once before worker jobs start. "
+                    "In multi-instance mode, run this task once before worker jobs start.\n"
                     "The task must be one of the first enabled processing tasks."
                 ),
             )
@@ -758,17 +805,20 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
             self.set_force_segment_separator,
             layout=checkbox_row,
             tooltip=(
-                "Show a labeled divider above this task in the task list. This is purely visual "
-                "and works with or without the option on the left. Enabling it activates the "
-                "segment name and color below."
+                "Show a labeled divider above this task in the task list and restart "
+                "the segment task index.\nFile processing uses the option on the left.\n"
+                "Enabling this activates the segment name and color below."
             ),
         )
+        if include_input_directory_validation:
+            self.allow_missing_input_directory_checkbox = self.add_input_directory_validation_checkbox(
+                parent_layout=checkbox_row)
         checkbox_row.addStretch()
 
         separator_enabled = bool(self.task.settings.get("force_segment_separator"))
         segment_name_tooltip = (
-            "Optional name for this segment divider shown in the task list. Only applies when "
-            '"Add Separator" is enabled. Leave empty to use the default name.'
+            "Optional name for this segment divider shown in the task list.\nOnly applies when "
+            '"Add Separator" is enabled.\nLeave empty to use the default name.'
         )
         segment_name_layout = self.add_labeled_layout(
             "Segment Name",
@@ -787,8 +837,8 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         segment_name_layout.addWidget(segment_name_field)
 
         color_tooltip = (
-            "Color used for this segment's divider in the task list. Pick any color from the "
-            'toolkit UI colors. Only applies when "Add Separator" is enabled.'
+            "Color used for this segment's divider in the task list.\nPick any color from the "
+            'toolkit UI colors.\nOnly applies when "Add Separator" is enabled.'
         )
         color_layout = self.add_labeled_layout(
             "Segment Color",
@@ -814,6 +864,27 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
             lambda index, combo=color_combo: self.set_segment_color(combo.itemText(index))
         )
         color_layout.addWidget(color_combo)
+
+        randomize_color_button = ui_qt.QtWidgets.QPushButton("Randomize")
+        randomize_color_button.setMinimumHeight(35)
+        randomize_color_button.setToolTip("Pick a random color from the Segment Color dropdown.")
+        randomize_color_button.setEnabled(separator_enabled)
+        randomize_color_button.clicked.connect(
+            lambda checked=False, combo=color_combo: self.randomize_segment_color(combo)
+        )
+        color_layout.addWidget(randomize_color_button)
+        return section
+
+    def randomize_segment_color(self, color_combo):
+        """Selects and stores a random color from the segment color dropdown.
+
+        Args:
+            color_combo (QComboBox): Dropdown containing the available segment colors.
+        """
+        if not color_combo.count():
+            return
+        color_combo.setCurrentIndex(random.randrange(color_combo.count()))
+        self.set_segment_color(color_combo.currentText())
 
     def set_force_segment_separator(self, value):
         """Sets the divider flag and refreshes the task tree separator.
@@ -960,7 +1031,13 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
             key (str): Setting key that changed.
             value (object): New setting value.
         """
-        if key == "overwrite":
+        if key == "allow_missing_input_directory":
+            if value:
+                message = f'Task "{self.task.display_name}" allows missing input folders during project validation.'
+            else:
+                message = f'Task "{self.task.display_name}" checks missing input folders during project validation.'
+            self.emit_status_message(message)
+        elif key == "overwrite":
             if value:
                 self.emit_status_message(
                     'Task "{0}" overwrite enabled. Existing target files may be replaced.'.format(
@@ -977,11 +1054,11 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         elif key == "include_in_task_index":
             if value:
                 self.emit_status_message(
-                    'Task "{0}" will be included in task index variables.'.format(self.task.display_name)
+                    f'Task "{self.task.display_name}" will be included in project and segment task index variables.'
                 )
             else:
                 self.emit_status_message(
-                    'Task "{0}" will be excluded from task index variables.'.format(self.task.display_name),
+                    f'Task "{self.task.display_name}" will be excluded from project and segment task index variables.',
                     status="warning",
                 )
         elif key in ["source_load_mode", "output_extension", "usd_format", "load_relevant_plugins"]:
@@ -1077,6 +1154,10 @@ def get_task_widget_class(task):
     Returns:
         type: Widget class used to edit the task.
     """
+    if task.task_type == constants.TaskType.INPUT_PAIRS:
+        from gt.tools.batch_processor.widgets.attr_widget_input_pairs import AttrWidgetInputPairsTask
+
+        return AttrWidgetInputPairsTask
     if task.task_type == constants.TaskType.INPUT_STRINGS:
         from gt.tools.batch_processor.widgets.attr_widget_input_strings import AttrWidgetInputStringsTask
 

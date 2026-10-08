@@ -155,11 +155,13 @@ class KimodoVariationRangeEditor(qt.QtWidgets.QWidget):
             str: Control help text.
         """
         descriptions = {
-            "diffusion_steps": "Whole-number denoising iterations. Both endpoints are included.",
+            "diffusion_steps": "Whole-number denoising iterations.\n"
+                               "Both endpoints are included.",
             "heading": "Initial facing direction in radians.",
             "guidance_text": "Text prompt guidance strength.",
             "guidance_constraints": "Pose constraint guidance strength.",
-            "duration_seconds": "Total generated clip duration. Requires Retime Constraints.",
+            "duration_seconds": "Total generated clip duration.\n"
+                                "Requires Retime Constraints.",
         }
         return descriptions[key]
 

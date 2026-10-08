@@ -59,7 +59,7 @@ class AttrWidgetDeleteProjectFilesTask(AttrWidgetTask):
             "Report Path",
             self.task.settings.get("report_path"),
             partial(self.set_task_setting, key="report_path"),
-            placeholder="{project-dir}/logs/delete_path_{task-idx}.json",
+            placeholder="{project-dir}/logs/delete_path_{task-idx-padded}.json",
             tooltip="Optional JSON report path for matched and deleted files.",
             file_filter="JSON Files (*.json);;All Files (*);;",
         )
@@ -75,7 +75,7 @@ class AttrWidgetDeleteProjectFilesTask(AttrWidgetTask):
             (
                 "Allow Out-of-Project Deletion",
                 "allow_out_of_project_deletion",
-                "Dangerous: allow deletion outside the active project directory. Avoid unless absolutely necessary.",
+                "Dangerous: allow deletion outside the active project directory.\nAvoid unless absolutely necessary.",
             ),
         ]:
             if key == "allow_out_of_project_deletion":

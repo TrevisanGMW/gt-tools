@@ -58,6 +58,20 @@ class TestKimodoWidgets(unittest.TestCase):
             widget.controls[("connection", "url")].setText("http://localhost:7861")
             self.assertEqual("http://localhost:7861", task.settings["connection"]["url"])
             self.assertNotIn("token", task.settings["connection"])
+            self.assertIn("Output", widget.sections)
+            self.assertNotIn("Output Naming", widget.sections)
+            import_scene = widget.controls[("import_incoming_scene",)]
+            self.assertFalse(import_scene.isChecked())
+            import_scene.setChecked(True)
+            self.assertTrue(task.settings["import_incoming_scene"])
+            mode = widget.controls[("result_mode",)]
+            mode.setCurrentIndex(mode.findData("artifacts"))
+            self.assertFalse(import_scene.isEnabled())
+            self.assertTrue(task.settings["import_incoming_scene"])
+            mode.setCurrentIndex(mode.findData("maya"))
+            self.assertTrue(import_scene.isEnabled())
+            restored = TaskKimodoGenerate.from_dict(task.to_dict())
+            self.assertTrue(restored.settings["import_incoming_scene"])
         finally:
             widget.close()
             widget.deleteLater()

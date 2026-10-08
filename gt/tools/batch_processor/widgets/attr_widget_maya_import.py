@@ -53,6 +53,16 @@ class AttrWidgetMayaImportTask(AttrWidgetTask):
         )
         self.add_scene_option_controls()
         self.add_post_script_section()
+        self.segmentation_section = self.add_segmentation_section(
+            main_label="Run Once After All Jobs",
+            main_key="run_once_after_multi_instance",
+            main_tooltip=(
+                "In multi-instance mode, process this task's source files once after all worker jobs finish.\n"
+                "Place this task last in the enabled processing task list.\nSet Source Path to the folder "
+                "containing the files to import or open."
+            ),
+            include_input_directory_validation=True,
+        )
         self.content_layout.addStretch()
 
     def add_scene_option_controls(self):
@@ -217,7 +227,7 @@ class AttrWidgetMayaImportTask(AttrWidgetTask):
             placeholder="Write an optional post-import Python script here, or choose an example.",
             tooltip=(
                 "Inline Python cleanup pass executed after Import/Open Maya loads the file and before output is "
-                "written. Use context, arguments/args, environment_variables/env, project, task, work_item, "
+                "written.\nUse context, arguments/args, environment_variables/env, project, task, work_item, "
                 "output_path, and imported_nodes."
             ),
             text_changed_callback=partial(self.set_task_setting, key="post_script_text"),

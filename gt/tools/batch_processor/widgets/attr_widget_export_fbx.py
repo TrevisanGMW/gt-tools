@@ -162,7 +162,7 @@ class AttrWidgetFbxExportTask(AttrWidgetTask):
             text=self.task.settings.get("pre_export_script_text") or "",
             placeholder="Write an optional pre-export Python script here, or choose an example.",
             tooltip=(
-                "Inline Python pass executed in the loaded scene before FBX export. "
+                "Inline Python pass executed in the loaded scene before FBX export.\n"
                 "Use it to prepare the scene or build the selection used by Export Selection.\n"
                 "Use context, arguments/args, environment_variables/env, project, task, work_item, "
                 "output_path, and export_mode."

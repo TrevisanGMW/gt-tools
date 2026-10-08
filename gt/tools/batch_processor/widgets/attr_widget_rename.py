@@ -38,7 +38,7 @@ class AttrWidgetRenameTask(AttrWidgetTask):
             self.task.settings.get("name_template") or self.task.settings.get("pattern"),
             partial(self.set_task_setting, key="name_template"),
             placeholder="{name}",
-            tooltip="Base filename template. Supports rename tokens and batch environment variables.",
+            tooltip="Base filename template.\nSupports rename tokens and batch environment variables.",
         )
         prefix_layout = ui_qt.QtWidgets.QHBoxLayout()
         prefix_layout.setContentsMargins(0, 0, 0, 5)

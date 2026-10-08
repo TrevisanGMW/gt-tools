@@ -81,7 +81,7 @@ class CustomEnvironmentVariablesDialog(ui_qt.QtWidgets.QDialog):
             ["Variable", "Value / Python Expression", "Query", "Run", ""]
         )
         self.variable_table.setToolTip(
-            "Query expressions run when a task asks for environment values. "
+            "Query expressions run when a task asks for environment values.\n"
             "Failures are logged and resolve as an empty value."
         )
         self.variable_table.setAlternatingRowColors(True)
@@ -116,7 +116,7 @@ class CustomEnvironmentVariablesDialog(ui_qt.QtWidgets.QDialog):
         self.import_variables_button = ui_qt.QtWidgets.QPushButton("Import Variables")
         self.export_variables_button = ui_qt.QtWidgets.QPushButton("Export Variables")
         self.import_variables_button.setToolTip(
-            "Import variables from JSON. Existing variable names are skipped."
+            "Import variables from JSON.\nExisting variable names are skipped."
         )
         self.export_variables_button.setToolTip(
             "Export all current rows, including Query flags, to a JSON file."
@@ -222,7 +222,7 @@ class CustomEnvironmentVariablesDialog(ui_qt.QtWidgets.QDialog):
         self.variable_table.setItem(row, 0, name_item)
         value_item = ui_qt.QtWidgets.QTableWidgetItem(str(value or ""))
         value_item.setToolTip(
-            "Literal text when Query is disabled. A Python expression when Query is enabled. "
+            "Literal text when Query is disabled.\nA Python expression when Query is enabled.\n"
             "Use json.loads(cmds.getAttr('node.attribute')) to read JSON text attributes."
         )
         self.variable_table.setItem(row, 1, value_item)
@@ -235,8 +235,8 @@ class CustomEnvironmentVariablesDialog(ui_qt.QtWidgets.QDialog):
         query_checkbox.setSizePolicy(ui_qt.QtLib.SizePolicy.Fixed, ui_qt.QtLib.SizePolicy.Fixed)
         query_checkbox.setChecked(bool(is_query))
         query_checkbox.setToolTip(
-            "Evaluate the value as a Python expression. Available values include cmds, json, "
-            "env, project, and task. Use import_module('module_name') to load a module "
+            "Evaluate the value as a Python expression.\nAvailable values include cmds, json, "
+            "env, project, and task.\nUse import_module('module_name') to load a module "
             "inside the expression."
         )
         query_container = ui_qt.QtWidgets.QWidget()
@@ -255,7 +255,7 @@ class CustomEnvironmentVariablesDialog(ui_qt.QtWidgets.QDialog):
         run_button.setAccessibleName("Run Query")
         run_button.setEnabled(bool(is_query))
         run_button.setToolTip(
-            "Run this query in the current Maya scene and print its result. "
+            "Run this query in the current Maya scene and print its result.\n"
             "Uses current editor values and preceding rows; task is None at project level."
         )
         run_button.clicked.connect(partial(self.test_variable_query, name_item=name_item))

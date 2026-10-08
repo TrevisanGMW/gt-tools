@@ -77,7 +77,7 @@ class AttrWidgetBatchRenderTask(AttrWidgetTask):
             ),
         )
         tooltip = (
-            "File name prefix used during the render. Leave empty to keep the prefix already "
+            "File name prefix used during the render.\nLeave empty to keep the prefix already "
             "stored in each incoming scene."
         )
         layout = self.add_labeled_layout("File Name Prefix", tooltip=tooltip)
@@ -105,7 +105,7 @@ class AttrWidgetBatchRenderTask(AttrWidgetTask):
             self.task.settings.get("set_project", True),
             self.set_project_enabled,
             tooltip=(
-                "Pass a Maya project to the renderer. Keeping the project consistent lets scenes "
+                "Pass a Maya project to the renderer.\nKeeping the project consistent lets scenes "
                 "resolve relative textures, references, and caches during batch renders."
             ),
         )
@@ -115,7 +115,7 @@ class AttrWidgetBatchRenderTask(AttrWidgetTask):
             task_batch_render.PROJECT_MODES,
             self.set_project_mode,
             tooltip=(
-                "Auto searches upward from each incoming scene for a workspace.mel file. "
+                "Auto searches upward from each incoming scene for a workspace.mel file.\n"
                 "Custom Path always uses the project folder set below."
             ),
         )
@@ -135,7 +135,7 @@ class AttrWidgetBatchRenderTask(AttrWidgetTask):
         self.add_widget_separator_line(
             label_text="Render Setting Overrides",
             tooltip=(
-                "Incoming scenes are expected to be pre-configured. Enable an override to replace "
+                "Incoming scenes are expected to be pre-configured.\nEnable an override to replace "
                 "one of these renderer-agnostic settings at render time."
             ),
         )
@@ -148,7 +148,7 @@ class AttrWidgetBatchRenderTask(AttrWidgetTask):
             "Skip Existing Frames",
             self.task.settings.get("skip_existing_frames", False),
             partial(self.set_task_setting, key="skip_existing_frames"),
-            tooltip="Ask the renderer to skip frames that already exist on disk. Useful for resuming a run.",
+            tooltip="Ask the renderer to skip frames that already exist on disk.\nUseful for resuming a run.",
         )
 
     def add_resolution_override(self):
@@ -250,7 +250,7 @@ class AttrWidgetBatchRenderTask(AttrWidgetTask):
     def add_version_label_override(self):
         """Adds the version label override row."""
         tooltip = (
-            "Override the render version label. The label is applied to the scene render globals "
+            "Override the render version label.\nThe label is applied to the scene render globals "
             "before rendering and is used by the <Version> token."
         )
         layout = self.add_labeled_layout("Version Label", tooltip=tooltip)
@@ -279,7 +279,7 @@ class AttrWidgetBatchRenderTask(AttrWidgetTask):
             partial(self.set_task_setting, key="render_executable"),
             placeholder=self.get_detected_renderer_path() or "Auto-detected Maya renderer",
             tooltip=(
-                "Optional path to Maya's command-line renderer. Leave empty to detect it from the "
+                "Optional path to Maya's command-line renderer.\nLeave empty to detect it from the "
                 "worker Maya installation."
             ),
             parent_layout=section_layout,
@@ -298,7 +298,7 @@ class AttrWidgetBatchRenderTask(AttrWidgetTask):
             partial(self.set_task_setting, key="extra_arguments"),
             placeholder="-rl all",
             tooltip=(
-                "Extra command-line arguments appended to the renderer call. Use this for render "
+                "Extra command-line arguments appended to the renderer call.\nUse this for render "
                 "layers or renderer-specific flags."
             ),
             parent_layout=section_layout,
@@ -309,7 +309,7 @@ class AttrWidgetBatchRenderTask(AttrWidgetTask):
             partial(self.set_task_setting, key="timeout_minutes"),
             minimum=0,
             maximum=10080,
-            tooltip="Maximum render duration per scene. Use 0 to wait indefinitely.",
+            tooltip="Maximum render duration per scene.\nUse 0 to wait indefinitely.",
             parent_layout=section_layout,
         )
         options_layout = self.add_labeled_layout(
@@ -323,7 +323,7 @@ class AttrWidgetBatchRenderTask(AttrWidgetTask):
             partial(self.set_task_setting, key="report_frame_progress"),
             layout=options_layout,
             tooltip=(
-                "Report each rendered frame to the tracker progress bar and job log. "
+                "Report each rendered frame to the tracker progress bar and job log.\n"
                 "Disable for very long frame ranges to keep logs short."
             ),
         )
