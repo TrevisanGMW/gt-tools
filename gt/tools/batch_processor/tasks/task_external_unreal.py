@@ -28,7 +28,7 @@ class TaskUnrealScript(TaskExternalScript):
     task_type = constants.TaskType.UNREAL_SCRIPT
     default_display_name = "Unreal Engine"
     application_name = "Unreal Engine"
-    default_target_path_template = "{project-dir}/{task-dir}/{task-idx}_unreal"
+    default_target_path_template = "{project-dir}/{task-dir}/{task-idx-padded}_unreal"
     icon = ui_res_lib.Icon.app_unreal
     category = "External"
     category_icon = ui_res_lib.Icon.batch_category_external

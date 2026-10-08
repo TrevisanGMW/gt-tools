@@ -29,7 +29,7 @@ class TaskBlenderScript(TaskExternalScript):
     task_type = constants.TaskType.BLENDER_SCRIPT
     default_display_name = "Blender"
     application_name = "Blender"
-    default_target_path_template = "{project-dir}/{task-dir}/{task-idx}_blender"
+    default_target_path_template = "{project-dir}/{task-dir}/{task-idx-padded}_blender"
     icon = ui_res_lib.Icon.app_blender
     category = "External"
     category_icon = ui_res_lib.Icon.batch_category_external

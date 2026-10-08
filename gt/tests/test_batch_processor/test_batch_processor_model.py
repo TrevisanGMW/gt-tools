@@ -719,7 +719,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         expected = "02"
         self.assertEqual(
             expected,
-            model.get_environment_variables(task=hik_task, include_braces=False).get("task-idx"),
+            model.get_environment_variables(task=hik_task, include_braces=False).get("task-idx-padded"),
         )
 
         model.run_settings["ignore_disabled_tasks_for_task_index"] = True
@@ -730,7 +730,7 @@ class TestBatchProcessorModel(unittest.TestCase):
         expected = "01"
         self.assertEqual(
             expected,
-            model.get_environment_variables(task=hik_task, include_braces=False).get("task-idx"),
+            model.get_environment_variables(task=hik_task, include_braces=False).get("task-idx-padded"),
         )
 
     def test_task_environment_index_automation_is_saved_with_project(self):
@@ -2565,7 +2565,7 @@ class TestBatchProcessorModel(unittest.TestCase):
     def test_clip_split_default_target_path_uses_clips_task_folder(self):
         clip_split_task = modules.create_task(constants.TaskType.CLIP_SPLIT)
 
-        expected = "{project-dir}/{task-dir}/{task-idx}_clips"
+        expected = "{project-dir}/{task-dir}/{task-idx-padded}_clips"
         self.assertEqual(expected, clip_split_task.settings.get("target_path"))
 
     def test_clip_snapshot_is_excluded_from_task_index_by_default(self):

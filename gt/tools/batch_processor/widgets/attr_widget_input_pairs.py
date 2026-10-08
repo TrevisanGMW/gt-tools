@@ -18,8 +18,8 @@ STRING_COLUMN = 2
 DELETE_COLUMN = 3
 JSON_FILTER = "JSON Files (*.json);;All Files (*);;"
 TOKEN_HELP = (
-    "Use {input-file} for the original filename without its extension, or the manual name. "
-    "Use {input-string} for the associated text and {input-string-index} for the running index. "
+    "Use {input-file} for the original filename without its extension, or the manual name.\n"
+    "Use {input-string} for the associated text and {input-string-index} for the running index.\n"
     "Python tasks with Pass Env enabled can read env['input-file'] and env['input-string']."
 )
 
@@ -77,6 +77,7 @@ class AttrWidgetInputPairsTask(AttrWidgetTask):
             self.mode_group.addButton(button)
             layout.addWidget(button)
             self.mode_buttons[mode] = button
+        self.add_task_index_checkbox(layout)
         self.status_label = qt.QtWidgets.QLabel()
         self.status_label.setWordWrap(True)
         self.status_label.setToolTip(TOKEN_HELP)
@@ -95,7 +96,7 @@ class AttrWidgetInputPairsTask(AttrWidgetTask):
             "Source Path", self.task.settings.get("source_path", ""),
             partial(self.set_folder_setting, key="source_path"),
             placeholder="{project-dir}/{input-dir}", dir_only=True, parent_layout=layout, return_widgets=True,
-            tooltip="Folder containing the files to pair with descriptions. Refresh after changing its contents.")
+            tooltip="Folder containing the files to pair with descriptions.\nRefresh after changing its contents.")
         self.source_path_field = self.folder_path_widgets["field"]
         self.source_path_field.editingFinished.connect(self.refresh_source_path)
         self.folder_path_widgets["browse_button"].clicked.connect(lambda *args: self.refresh_source_path())
@@ -110,7 +111,6 @@ class AttrWidgetInputPairsTask(AttrWidgetTask):
         self.extensions_field.textChanged.connect(partial(self.set_folder_list, key="extensions"))
         self.extensions_field.editingFinished.connect(self.refresh_files)
         options.addWidget(self.extensions_field)
-        self.add_task_index_checkbox(options)
         self.exclude_field = self.add_text_field(
             "Exclude Patterns", ", ".join(self.task.settings.get("exclude_patterns") or []),
             partial(self.set_folder_list, key="exclude_patterns"), parent_layout=layout,
@@ -134,7 +134,7 @@ class AttrWidgetInputPairsTask(AttrWidgetTask):
         self.table.setSelectionBehavior(qt.QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(qt.QtWidgets.QAbstractItemView.SelectionMode.ExtendedSelection)
         self.table.setMinimumHeight(180)
-        self.table.setToolTip("Double-click to edit. Right-click for row actions. Missing files appear red.")
+        self.table.setToolTip("Double-click to edit.\nRight-click for row actions.\nMissing files appear red.")
         self.file_delegate = TablePlaceholderDelegate("Custom file name (without extension)",
                                                      [FILE_COLUMN], parent=self.table)
         self.string_delegate = TablePlaceholderDelegate("Enter a string or motion description",
@@ -377,7 +377,7 @@ class AttrWidgetInputPairsTask(AttrWidgetTask):
             manual = self.task.get_input_mode() == pairs.INPUT_MODE_MANUAL
             button = self.create_table_action_button(
                 self.remove_button_row,
-                "Delete this manual pair." if manual else "Hide this pair. Use Show Hidden to recover it.",
+                "Delete this manual pair." if manual else "Hide this pair.\nUse Show Hidden to recover it.",
                 icon_path=resources.Icon.ui_trash if manual else None,
                 text="" if manual else "Hide", accessible_name="Delete Pair" if manual else "Hide Pair")
             self.table.setCellWidget(row, DELETE_COLUMN, button)

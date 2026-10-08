@@ -276,6 +276,7 @@ def build_python_script_runtime_context(
             task=task,
             task_index=task_index,
             include_braces=False,
+            include_legacy_aliases=True,
         )
     runtime_context.update(
         {

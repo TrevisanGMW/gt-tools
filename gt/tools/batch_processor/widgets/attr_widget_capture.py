@@ -59,7 +59,10 @@ class AttrWidgetThumbnailCaptureTask(AttrWidgetTask):
 
     def add_camera_controls(self):
         """Adds camera selection controls for viewport capture."""
-        tooltip = "Optional camera transform or shape used for capture. Leave empty to use the active viewport camera."
+        tooltip = (
+            "Optional camera transform or shape used for capture.\n"
+            "Leave empty to use the active viewport camera."
+        )
         layout = self.add_labeled_layout("Camera", tooltip=tooltip)
         self.camera_field = self.create_text_field(
             text=self.task.settings.get("camera_name"),

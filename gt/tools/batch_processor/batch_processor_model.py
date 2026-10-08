@@ -24,6 +24,12 @@ logger.setLevel(logging.INFO)
 
 _ENVIRONMENT_PATTERN = re.compile(r"\{([a-zA-Z0-9_-]+)\}")
 _CUSTOM_ENVIRONMENT_NAME_PATTERN = re.compile(r"^\{[a-zA-Z0-9_-]+\}$")
+_LEGACY_INDEX_ENVIRONMENT_ALIASES = {
+    "previous-task-idx": "previous-task-idx-padded",
+    "previous-previous-task-idx": "previous-previous-task-idx-padded",
+    "pre-previous-task-idx": "pre-previous-task-idx-padded",
+    "next-task-idx": "next-task-idx-padded",
+}
 _RESERVED_ENVIRONMENT_KEYS = set(run_state.ENVIRONMENT_KEYS) | {
     "input-file",
     "input-string",
@@ -54,8 +60,10 @@ _RESERVED_ENVIRONMENT_KEYS = set(run_state.ENVIRONMENT_KEYS) | {
     "task-sanitized-name",
     "task-type",
     "task-id",
-    "task-idx",
+    "task-idx-padded",
     "task-index",
+    "seg-task-idx-padded",
+    "seg-task-index",
     "previous-task-name",
     "previous-task-sanitized-name",
     "previous-task-path",
@@ -78,6 +86,32 @@ _RESERVED_ENVIRONMENT_KEYS = set(run_state.ENVIRONMENT_KEYS) | {
     "next-task-idx",
     "next-task-index",
 }
+_RESERVED_ENVIRONMENT_KEYS.update(
+    f"{segment_prefix}{task_prefix}-{index_suffix}"
+    for segment_prefix in ("", "seg-")
+    for task_prefix in ("task", "previous-task", "previous-previous-task", "pre-previous-task", "next-task")
+    for index_suffix in ("idx-padded", "index")
+)
+
+
+def _build_task_index_environment_variables(task_indices):
+    """Builds consistently named project and segment index values.
+
+    Args:
+        task_indices (dict): Task variable prefixes mapped to project and
+            segment index pairs. Missing or excluded tasks use zero.
+
+    Returns:
+        dict: Padded and unpadded index values for both scopes.
+    """
+    environment_variables = {}
+    for task_prefix, index_pair in task_indices.items():
+        project_index, segment_index = index_pair
+        for segment_prefix, task_index in (("", project_index), ("seg-", segment_index)):
+            task_index = int(task_index)
+            environment_variables[f"{segment_prefix}{task_prefix}-idx-padded"] = f"{task_index:02d}"
+            environment_variables[f"{segment_prefix}{task_prefix}-index"] = str(task_index)
+    return environment_variables
 
 
 def normalize_environment_key(key):
@@ -336,6 +370,7 @@ class BatchProcessorModel:
                     str: Replacement value.
                 """
                 key = normalize_environment_key(match.group(1))
+                key = _LEGACY_INDEX_ENVIRONMENT_ALIASES.get(key, key)
                 if key in ("input-file", "input-string"):
                     return match.group(0)
                 if key not in environment_variables:
@@ -710,6 +745,38 @@ class BatchProcessorModel:
                 return task_index
         return 0
 
+    def get_segment_task_environment_index(self, task, enabled_only=None):
+        """Gets the one-based task index within the task's segment.
+
+        Visible separators and new input lists reset the counter before their
+        task is counted. Boundaries remain in project order even when disabled
+        tasks are ignored, keeping segment numbering stable for partial runs.
+
+        Args:
+            task (BatchTask): Task to index.
+            enabled_only (bool, optional): Whether to ignore disabled tasks in
+                the count. Defaults to the project's index automation setting.
+
+        Returns:
+            int: Segment task index, or 0 for excluded, ignored, or missing tasks.
+        """
+        if not task:
+            return 0
+        if enabled_only is None:
+            enabled_only = bool(self.run_settings.get("ignore_disabled_tasks_for_task_index", False))
+        segment_task_index = 0
+        for current_task in self.tasks:
+            if current_task.starts_new_input_list() or current_task.shows_segment_separator():
+                segment_task_index = 0
+            if not current_task.includes_task_index() or (enabled_only and not current_task.enabled):
+                if current_task.id == task.id:
+                    return 0
+                continue
+            segment_task_index += 1
+            if current_task.id == task.id:
+                return segment_task_index
+        return 0
+
     def get_previous_task(self, task, enabled_only=True):
         """Gets the previous task in project order.
 
@@ -996,7 +1063,7 @@ class BatchProcessorModel:
             self.tasks = [tasks.TaskInput()]
 
     def get_environment_variables(self, task=None, task_index=None, include_braces=True,
-                                  include_neighbor_paths=True, evaluate_queries=True):
+                                  include_neighbor_paths=True, evaluate_queries=True, include_legacy_aliases=False):
         """Gets project-level and optional task-level environment variables.
 
         Args:
@@ -1005,6 +1072,8 @@ class BatchProcessorModel:
             include_braces (bool, optional): If True, keys are formatted as "{variable-name}".
             include_neighbor_paths (bool, optional): Whether previous/next task path values should resolve.
             evaluate_queries (bool, optional): Whether to evaluate custom queries. False keeps their placeholders.
+            include_legacy_aliases (bool, optional): Whether to include older padded
+                neighbor index names for Python script runtime dictionaries.
 
         Returns:
             dict: Environment variable names and resolved values.
@@ -1050,21 +1119,26 @@ class BatchProcessorModel:
             if task_index is None:
                 task_index = self.get_task_environment_index(task)
             task_index = task_index or 0
+            segment_task_index = self.get_segment_task_environment_index(task)
             previous_task = self.get_previous_task(task=task, enabled_only=True)
             previous_task_name = ""
             previous_task_path = ""
             previous_task_index = 0
+            previous_segment_task_index = 0
             previous_previous_task = None
             previous_previous_task_name = ""
             previous_previous_task_path = ""
             previous_previous_task_index = 0
+            previous_previous_segment_task_index = 0
             next_task = self.get_next_task(task=task, enabled_only=True)
             next_task_name = ""
             next_task_path = ""
             next_task_index = 0
+            next_segment_task_index = 0
             if previous_task:
                 previous_task_name = previous_task.display_name or previous_task.default_display_name
                 previous_task_index = self.get_task_environment_index(previous_task)
+                previous_segment_task_index = self.get_segment_task_environment_index(previous_task)
                 previous_previous_task = self.get_previous_task(task=previous_task, enabled_only=True)
                 if include_neighbor_paths:
                     previous_task_path = self.get_previous_task_path(task=task, enabled_only=True)
@@ -1074,9 +1148,13 @@ class BatchProcessorModel:
                     previous_previous_task.display_name or previous_previous_task.default_display_name
                 )
                 previous_previous_task_index = self.get_task_environment_index(previous_previous_task)
+                previous_previous_segment_task_index = self.get_segment_task_environment_index(
+                    previous_previous_task
+                )
             if next_task:
                 next_task_name = next_task.display_name or next_task.default_display_name
                 next_task_index = self.get_task_environment_index(next_task)
+                next_segment_task_index = self.get_segment_task_environment_index(next_task)
                 if include_neighbor_paths:
                     next_task_path = self.get_next_task_path(task=task, enabled_only=True)
             environment_variables.update(
@@ -1085,8 +1163,6 @@ class BatchProcessorModel:
                     "task-sanitized-name": tasks.sanitize_filename(task_name.lower().replace(" ", "_")),
                     "task-type": task.task_type,
                     "task-id": task.id,
-                    "task-idx": "{0:02d}".format(int(task_index)),
-                    "task-index": str(int(task_index)),
                     "previous-task-name": previous_task_name,
                     "previous-task-sanitized-name": tasks.sanitize_filename(
                         previous_task_name.lower().replace(" ", "_"), fallback=""
@@ -1099,26 +1175,33 @@ class BatchProcessorModel:
                         previous_previous_task_name.lower().replace(" ", "_"),
                         fallback="",
                     ),
-                    "previous-previous-task-idx": "{0:02d}".format(int(previous_previous_task_index)),
-                    "previous-previous-task-index": str(int(previous_previous_task_index)),
                     "pre-previous-task-name": previous_previous_task_name,
                     "pre-previous-task-sanitized-name": tasks.sanitize_filename(
                         previous_previous_task_name.lower().replace(" ", "_"),
                         fallback="",
                     ),
-                    "pre-previous-task-idx": "{0:02d}".format(int(previous_previous_task_index)),
-                    "pre-previous-task-index": str(int(previous_previous_task_index)),
-                    "previous-task-idx": "{0:02d}".format(int(previous_task_index)),
-                    "previous-task-index": str(int(previous_task_index)),
                     "next-task-name": next_task_name,
                     "next-task-sanitized-name": tasks.sanitize_filename(
                         next_task_name.lower().replace(" ", "_"), fallback=""
                     ),
                     "next-task-path": next_task_path,
                     "future-task-path": next_task_path,
-                    "next-task-idx": "{0:02d}".format(int(next_task_index)),
-                    "next-task-index": str(int(next_task_index)),
                 }
+            )
+            environment_variables.update(
+                _build_task_index_environment_variables(
+                    {
+                        "task": (task_index, segment_task_index),
+                        "previous-task": (previous_task_index, previous_segment_task_index),
+                        "previous-previous-task": (
+                            previous_previous_task_index, previous_previous_segment_task_index
+                        ),
+                        "pre-previous-task": (
+                            previous_previous_task_index, previous_previous_segment_task_index
+                        ),
+                        "next-task": (next_task_index, next_segment_task_index),
+                    }
+                )
             )
         environment_variables.update(getattr(self, "_input_string_environment", {}))
         environment_variables.update(run_state.get_environment_variables(self, task))
@@ -1129,6 +1212,14 @@ class BatchProcessorModel:
                 evaluate_queries=evaluate_queries,
             )
         )
+        if include_legacy_aliases:
+            environment_variables.update(
+                {
+                    legacy_key: environment_variables[current_key]
+                    for legacy_key, current_key in _LEGACY_INDEX_ENVIRONMENT_ALIASES.items()
+                    if current_key in environment_variables
+                }
+            )
         if include_braces:
             return {format_environment_key(key): value for key, value in environment_variables.items()}
         return environment_variables
@@ -1273,8 +1364,12 @@ class BatchProcessorModel:
         try:
             from gt.tools.batch_processor import batch_processor_maya
 
+            query_environment = dict(environment_variables)
+            for legacy_key, current_key in _LEGACY_INDEX_ENVIRONMENT_ALIASES.items():
+                if current_key in query_environment:
+                    query_environment[legacy_key] = query_environment[current_key]
             return batch_processor_maya.evaluate_custom_environment_query(
-                query, environment_variables, project=self, task=task,
+                query, query_environment, project=self, task=task,
                 suppress_errors=self._suppress_custom_environment_query_errors and not raise_errors,
             )
         except Exception as exception:

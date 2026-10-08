@@ -27,7 +27,7 @@ class TaskKimodoDefinition(TaskKimodoBase):
     task_type = constants.TaskType.KIMODO_DEFINITION
     default_display_name = "Kimodo Definition"
     icon = resources.Icon.batch_task_kimodo_definition
-    default_target_path_template = "{project-dir}/{task-dir}/{task-idx}_kimodo_definitions"
+    default_target_path_template = "{project-dir}/{task-dir}/{task-idx-padded}_kimodo_definitions"
     extensions = (".ma", ".mb")
 
     def get_default_settings(self):

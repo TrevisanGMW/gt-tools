@@ -154,7 +154,7 @@ class TaskMapHierarchy(task_base.BatchTask):
             "collision_resolution": COLLISION_SUFFIX,
             "dry_run": False,
             "write_report": True,
-            "report_path": "{project-dir}/logs/map_hierarchy_{task-idx}.json",
+            "report_path": "{project-dir}/logs/map_hierarchy_{task-idx-padded}.json",
             "overwrite": True,
             "run_once_before_multi_instance": False,
             "run_once_after_multi_instance": True,

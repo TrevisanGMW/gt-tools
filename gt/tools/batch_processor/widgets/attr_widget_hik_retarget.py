@@ -91,8 +91,9 @@ class AttrWidgetRetargetHumanIK(AttrWidgetTask):
             partial(self.set_task_setting, key="target_rig_path"),
             placeholder="Optional target rig file.",
             tooltip=(
-                "Optional target rig file imported before retargeting. The target rig is expected to already contain "
-                "a valid HumanIK character definition and setup. Leave empty when the target already exists in the scene."
+                "Optional target rig file imported before retargeting.\nThe target rig is expected to already contain "
+                "a valid HumanIK character definition and setup.\n"
+                "Leave empty when the target already exists in the scene."
             ),
             file_filter="Maya/FBX Files (*.ma *.mb *.fbx);;All Files (*);;",
         )
@@ -102,8 +103,8 @@ class AttrWidgetRetargetHumanIK(AttrWidgetTask):
             partial(self.set_task_setting, key="target_character_name"),
             placeholder="Leave empty to auto-detect the target HIK character.",
             tooltip=(
-                "HumanIK target character expected in the target rig. The target rig should already have this "
-                "HumanIK character configured. When empty, the first target namespace HIK character is used."
+                "HumanIK target character expected in the target rig.\nThe target rig should already have this "
+                "HumanIK character configured.\nWhen empty, the first target namespace HIK character is used."
             ),
         )
         self.add_text_field(
@@ -119,7 +120,10 @@ class AttrWidgetRetargetHumanIK(AttrWidgetTask):
             self.task.settings.get("bake_target"),
             task_hik_retarget.HIK_BAKE_TARGETS,
             partial(self.set_task_setting, key="bake_target"),
-            tooltip='Bake destination after assigning the HumanIK source. Choose "None" to connect the source without baking.',
+            tooltip=(
+                "Bake destination after assigning the HumanIK source.\n"
+                'Choose "None" to connect the source without baking.'
+            ),
         )
 
         self.add_widget_separator_line(label_text="Bake Preferences")
@@ -134,7 +138,7 @@ class AttrWidgetRetargetHumanIK(AttrWidgetTask):
     def add_target_properties_controls(self):
         """Adds the optional target HumanIK properties file controls."""
         tooltip = (
-            "Load HumanIK retarget properties onto the target character before assigning the source and baking. "
+            "Load HumanIK retarget properties onto the target character before assigning the source and baking.\n"
             "The JSON file can be created with Export Target Properties below."
         )
         self.target_properties_widgets = self.add_path_template_field(
@@ -175,7 +179,7 @@ class AttrWidgetRetargetHumanIK(AttrWidgetTask):
     def add_source_character_controls(self):
         """Adds source character name and pre-existing HIK controls."""
         tooltip = (
-            "HumanIK source character name. It is created when Pre-existing HIK is off, "
+            "HumanIK source character name.\nIt is created when Pre-existing HIK is off, "
             "or resolved from the source scene when Pre-existing HIK is on."
         )
         layout = self.add_labeled_layout("Source Character", tooltip=tooltip)
@@ -200,7 +204,7 @@ class AttrWidgetRetargetHumanIK(AttrWidgetTask):
         )
         self.source_character_pre_existing_checkbox.setToolTip(
             (
-                "Use an existing source HumanIK character from the source scene. "
+                "Use an existing source HumanIK character from the source scene.\n"
                 "Source HIK XML and Source T-Pose are ignored when enabled."
             )
         )
@@ -223,9 +227,9 @@ class AttrWidgetRetargetHumanIK(AttrWidgetTask):
         )
         self.source_character_auto_detect_checkbox.setToolTip(
             (
-                "Automatically detect the source HumanIK character from the scene. When enabled, the first "
+                "Automatically detect the source HumanIK character from the scene.\nWhen enabled, the first "
                 "HumanIK character found in the scene that is not the Target Character is used as the source, "
-                "and the Source Character name field is ignored. Only available while Pre-existing HIK is enabled."
+                "and the Source Character name field is ignored.\nOnly available while Pre-existing HIK is enabled."
             )
         )
         self.source_character_auto_detect_checkbox.stateChanged.connect(
@@ -350,7 +354,7 @@ class AttrWidgetRetargetHumanIK(AttrWidgetTask):
         export_pose_button.setMinimumHeight(35)
         export_pose_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.rigger_action_export))
         export_pose_button.setToolTip(
-            "Writes a pose file from the configured Source Root. Use it as Source T-Pose for characterization."
+            "Writes a pose file from the configured Source Root.\nUse it as Source T-Pose for characterization."
         )
         export_pose_button.clicked.connect(self.export_pose_from_current_scene)
         layout.addWidget(export_pose_button)
@@ -543,7 +547,7 @@ class AttrWidgetRetargetHumanIK(AttrWidgetTask):
             text=self.task.settings.get("post_script_text") or "",
             placeholder="Write an optional post-retarget Python script here, or choose an example.",
             tooltip=(
-                "Inline Python cleanup pass executed after HumanIK retargeting and before output is written. "
+                "Inline Python cleanup pass executed after HumanIK retargeting and before output is written.\n"
                 "Use context, arguments/args, environment_variables/env, project, task, work_item, output_path, "
                 "source_character, and target_character."
             ),
@@ -602,7 +606,7 @@ class AttrWidgetRetargetHumanIK(AttrWidgetTask):
             text=self.task.settings.get("pre_bake_script_text") or "",
             placeholder="Write an optional pre-bake Python script here, or choose an example.",
             tooltip=(
-                "Inline Python pass executed after HumanIK source assignment and immediately before baking. "
+                "Inline Python pass executed after HumanIK source assignment and immediately before baking.\n"
                 "Use context, arguments/args, environment_variables/env, project, task, work_item, output_path, "
                 "source_character, and target_character."
             ),

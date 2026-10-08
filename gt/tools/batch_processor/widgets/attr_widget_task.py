@@ -43,6 +43,11 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         self.output_extension_combo = None
         self._updating_output_mode = False
         self.task_io_section = None
+        self.segmentation_section = None
+        self.segmentation_layout = ui_qt.QtWidgets.QVBoxLayout()
+        self.segmentation_layout.setContentsMargins(0, 0, 0, 0)
+        self.segmentation_layout.setSpacing(self.content_layout.spacing())
+        self.scroll_content_layout.addLayout(self.segmentation_layout)
         self.add_widget_task_header()
 
     def add_widget_task_header(self):
@@ -227,7 +232,7 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         Args:
             tooltip (str, optional): Tooltip for the path field.
         """
-        tooltip = tooltip or "Source path used by this task. Defaults to the previous task path."
+        tooltip = tooltip or "Source path used by this task.\nDefaults to the previous task path."
         self.add_path_template_field(
             "Source Path",
             self.task.settings.get("source_path") or self.task.default_source_path_template,
@@ -293,7 +298,7 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         Args:
             tooltip (str, optional): Tooltip for the path field.
         """
-        tooltip = tooltip or "Target path used by this task. Supports variables such as {project-dir}."
+        tooltip = tooltip or "Target path used by this task.\nSupports variables such as {project-dir}."
         self.add_path_template_field(
             "Target Path",
             self.task.get_target_path_template(),
@@ -601,7 +606,7 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         self.set_task_setting(checkbox.isChecked(), key="overwrite")
 
     def add_task_index_checkbox(self, layout):
-        """Adds the task-index participation checkbox to a row.
+        """Adds the shared project and segment index participation checkbox to a row.
 
         Args:
             layout (QLayout): Layout that receives the checkbox group.
@@ -612,13 +617,19 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         index_checkbox = ui_qt.QtWidgets.QCheckBox("Index")
         index_checkbox.setMinimumHeight(index_checkbox.sizeHint().height() + 2)
         index_checkbox.setChecked(bool(self.task.includes_task_index()))
-        index_checkbox.setToolTip("Include this task when resolving task index variables such as {task-idx}.")
+        index_checkbox.setToolTip(
+            "Count this task in project and segment task index variables.\n"
+            "{task-idx-padded} and {seg-task-idx-padded} use padding (01);\n"
+            "{task-index} and {seg-task-index} use unpadded values (1).\n"
+            "Segment task indexes restart at each divider or new input list.\n"
+            "Unchecked tasks return 0 and do not advance either counter."
+        )
         index_checkbox.stateChanged.connect(lambda *args: self.set_task_include_in_index(index_checkbox.isChecked()))
         self.add_option_group(layout, index_checkbox)
         return index_checkbox
 
     def set_task_include_in_index(self, value):
-        """Sets whether this task contributes to task index variables.
+        """Sets whether this task contributes to project and segment task indexes.
 
         Args:
             value (bool): Whether the task should be counted.
@@ -646,8 +657,8 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
             lambda value: self.set_task_setting(value, key="allow_missing_input_directory"),
             layout=validation_layout,
             tooltip=(
-                "Skip the missing input folder check during project validation for this task. "
-                "Enable when an earlier segment will create the folder. Files are still discovered "
+                "Skip the missing input folder check during project validation for this task.\n"
+                "Enable when an earlier segment will create the folder.\nFiles are still discovered "
                 "when the task runs; other validation remains active."
             ),
         )
@@ -728,10 +739,9 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         secondary_tooltip=None,
         include_input_directory_validation=False,
     ):
-        """Adds a collapsible Segmentation section with run-once and divider controls.
+        """Adds a Segmentation section with task-specific run and divider controls.
 
-        The section is shared by tasks that participate in segmentation. It always
-        provides an "Add Separator" toggle plus segment name and color controls. Tasks
+        Provides an "Add Separator" toggle plus segment name and color controls. Tasks
         supporting the preflight run-once phase automatically receive a "Run Once Before
         All Jobs" checkbox before the task-specific controls.
 
@@ -752,8 +762,10 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
             "Segmentation",
             collapsed=self.task.settings.get("segmentation_collapsed", True),
             state_setter=partial(self.set_task_setting, key="segmentation_collapsed"),
-            tooltip="Optional segmentation and task-list divider settings.",
+            tooltip="Input segment, run-once, and divider settings.",
+            parent_layout=self.segmentation_layout,
         )
+        self.segmentation_section = section
         section_layout = section.get("content_layout")
 
         checkbox_row = ui_qt.QtWidgets.QHBoxLayout()
@@ -768,7 +780,7 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
                 partial(self.set_task_setting, key="run_once_before_multi_instance"),
                 layout=checkbox_row,
                 tooltip=(
-                    "In multi-instance mode, run this task once before worker jobs start. "
+                    "In multi-instance mode, run this task once before worker jobs start.\n"
                     "The task must be one of the first enabled processing tasks."
                 ),
             )
@@ -793,9 +805,9 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
             self.set_force_segment_separator,
             layout=checkbox_row,
             tooltip=(
-                "Show a labeled divider above this task in the task list. This is purely visual "
-                "and works with or without the option on the left. Enabling it activates the "
-                "segment name and color below."
+                "Show a labeled divider above this task in the task list and restart "
+                "the segment task index.\nFile processing uses the option on the left.\n"
+                "Enabling this activates the segment name and color below."
             ),
         )
         if include_input_directory_validation:
@@ -805,8 +817,8 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
 
         separator_enabled = bool(self.task.settings.get("force_segment_separator"))
         segment_name_tooltip = (
-            "Optional name for this segment divider shown in the task list. Only applies when "
-            '"Add Separator" is enabled. Leave empty to use the default name.'
+            "Optional name for this segment divider shown in the task list.\nOnly applies when "
+            '"Add Separator" is enabled.\nLeave empty to use the default name.'
         )
         segment_name_layout = self.add_labeled_layout(
             "Segment Name",
@@ -825,8 +837,8 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         segment_name_layout.addWidget(segment_name_field)
 
         color_tooltip = (
-            "Color used for this segment's divider in the task list. Pick any color from the "
-            'toolkit UI colors. Only applies when "Add Separator" is enabled.'
+            "Color used for this segment's divider in the task list.\nPick any color from the "
+            'toolkit UI colors.\nOnly applies when "Add Separator" is enabled.'
         )
         color_layout = self.add_labeled_layout(
             "Segment Color",
@@ -1042,11 +1054,11 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         elif key == "include_in_task_index":
             if value:
                 self.emit_status_message(
-                    'Task "{0}" will be included in task index variables.'.format(self.task.display_name)
+                    f'Task "{self.task.display_name}" will be included in project and segment task index variables.'
                 )
             else:
                 self.emit_status_message(
-                    'Task "{0}" will be excluded from task index variables.'.format(self.task.display_name),
+                    f'Task "{self.task.display_name}" will be excluded from project and segment task index variables.',
                     status="warning",
                 )
         elif key in ["source_load_mode", "output_extension", "usd_format", "load_relevant_plugins"]:

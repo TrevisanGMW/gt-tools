@@ -14,7 +14,7 @@ class TaskRename(task_base.BatchTask):
 
     task_type = constants.TaskType.RENAME
     default_display_name = "Rename"
-    default_target_path_template = "{project-dir}/{task-dir}/{task-idx}_rename"
+    default_target_path_template = "{project-dir}/{task-dir}/{task-idx-padded}_rename"
     icon = ui_res_lib.Icon.batch_task_rename
     category = "Utilities"
     category_icon = ui_res_lib.Icon.root_utilities

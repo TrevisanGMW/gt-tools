@@ -53,7 +53,7 @@ class AttrWidgetSceneReportTask(AttrWidgetTask):
             partial(self.set_task_setting, key="report_file_name"),
             placeholder=task_report.DEFAULT_REPORT_FILE_NAME,
             tooltip=(
-                "Report file name. Project tokens such as {project-name} are resolved when the report is written.\n"
+                "Report file name.\nProject tokens such as {project-name} are resolved when the report is written.\n"
                 'Defaults to "'
                 + task_report.DEFAULT_REPORT_FILE_NAME
                 + '" when this field is empty.'
@@ -80,7 +80,7 @@ class AttrWidgetSceneReportTask(AttrWidgetTask):
                 "In multi-instance mode, wait for every regular job to succeed,\n"
                 "then build this report once over the files found at its Source Path.\n"
                 "This task must be the last enabled processing task while this option is on.\n"
-                "Turn it off to report on each file as its job runs. Parallel workers merge\n"
+                "Turn it off to report on each file as its job runs.\nParallel workers merge\n"
                 "their results into the same report either way.\n"
                 'Enable "Add Separator" to mark this run-once step in the task list.'
             ),
@@ -91,7 +91,7 @@ class AttrWidgetSceneReportTask(AttrWidgetTask):
         """Adds the optional, collapsible notes section above segmentation settings."""
         self.task.settings.setdefault("report_notes_collapsed", True)
         notes_tooltip = (
-            "Optional notes appended to the report. By default, {project-notes} resolves to the "
+            "Optional notes appended to the report.\nBy default, {project-notes} resolves to the "
             "project notes saved in the .batch file."
         )
         section = self.add_collapsible_section(

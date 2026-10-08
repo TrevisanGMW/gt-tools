@@ -153,7 +153,7 @@ class BatchProcessorController:
 
         action_import_project = self.create_action("Import Project", icon_path=ui_res_lib.Icon.ui_open)
         action_import_project.setToolTip(
-            "Import all tasks from an existing .batch project and append them to the current project. "
+            "Import all tasks from an existing .batch project and append them to the current project.\n"
             "Only the tasks and their settings are imported; project settings are discarded."
         )
         action_import_project.triggered.connect(self.import_project)
@@ -403,8 +403,8 @@ class BatchProcessorController:
             text="Suppress Custom Env-Var Errors",
             checked=self._suppress_custom_environment_query_errors,
             tooltip=(
-                "Silence failed custom environment-variable queries during editing and batch runs. "
-                "Failed queries resolve to empty values. Explicit Test Query actions still report failures."
+                "Silence failed custom environment-variable queries during editing and batch runs.\n"
+                "Failed queries resolve to empty values.\nExplicit Test Query actions still report failures."
             ),
             callback=self.toggle_suppress_custom_environment_query_errors,
         )
@@ -422,8 +422,9 @@ class BatchProcessorController:
             text="Ignore Disabled Tasks for Index",
             checked=self._ignore_disabled_tasks_for_task_index,
             tooltip=(
-                "Exclude disabled tasks when resolving index variables such as {task-idx}. "
-                "When unchecked, disabled tasks keep their place in the task index."
+                "Exclude disabled tasks from global and segment task index counts, such as "
+                "{task-idx-padded} and {seg-task-idx-padded}.\nSegment boundaries still restart the count.\n"
+                "When unchecked, disabled tasks keep their place in both task indexes."
             ),
             callback=self.toggle_ignore_disabled_tasks_for_task_index,
         )
@@ -1028,12 +1029,11 @@ class BatchProcessorController:
             return
         project_index = self.model.tasks.index(task) + 1
         task_index = self.model.get_task_environment_index(task)
+        segment_task_index = self.model.get_segment_task_environment_index(task)
         index_state = "Included" if task.includes_task_index() else "Excluded"
-        message = "{0} Task: Project Index: {1}, Task Index: {2}, Index Count: {3}".format(
-            task.display_name,
-            project_index,
-            task_index,
-            index_state,
+        message = (
+            f"{task.display_name} Task: Project Index: {project_index}, Task Index: {task_index}, "
+            f"Index Count: {index_state}, Segment Task Index: {segment_task_index}"
         )
         self.log_status(message)
 

@@ -248,7 +248,7 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
         self.python_edit_font = ui_qt_utils.get_font(ui_res_lib.Font.roboto)
         self.python_edit.setFont(self.python_edit_font)
         self.python_edit.setFontPointSize(initial_font_size)
-        self.python_edit.setToolTip("Python code executed for every incoming file. Use context for batch data.")
+        self.python_edit.setToolTip("Python code executed for every incoming file.\nUse context for batch data.")
         single_layout.addWidget(self.python_editor_widget)
 
         try:
@@ -610,7 +610,7 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
         Returns:
             dict: Created row widgets.
         """
-        tooltip = "Folder containing Python scripts. Its scripts run before later directories."
+        tooltip = "Folder containing Python scripts.\nIts scripts run before later directories."
         entry_count = entry_count if entry_count is not None else len(self.task.get_batch_directory_entries())
         container = ui_qt.QtWidgets.QWidget()
         container_layout = ui_qt.QtWidgets.QVBoxLayout(container)

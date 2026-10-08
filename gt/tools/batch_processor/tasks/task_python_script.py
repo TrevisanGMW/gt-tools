@@ -29,7 +29,7 @@ class TaskPythonScript(task_base.BatchTask):
 
     task_type = constants.TaskType.PYTHON_SCRIPT
     default_display_name = "Python"
-    default_target_path_template = "{project-dir}/{task-dir}/{task-idx}_python"
+    default_target_path_template = "{project-dir}/{task-dir}/{task-idx-padded}_python"
     icon = ui_res_lib.Icon.batch_task_python
     category = "Utilities"
     category_icon = ui_res_lib.Icon.root_utilities
@@ -846,6 +846,7 @@ class TaskPythonScript(task_base.BatchTask):
                 task=self,
                 task_index=task_index,
                 include_braces=False,
+                include_legacy_aliases=True,
             )
         arguments = {}
         if self.settings.get("pass_standard_arguments", True):
@@ -983,7 +984,7 @@ class TaskPythonScriptsFolder(TaskPythonScript):
 
     task_type = constants.TaskType.PYTHON_SCRIPT
     default_display_name = "Python"
-    default_target_path_template = "{project-dir}/{task-dir}/{task-idx}_python"
+    default_target_path_template = "{project-dir}/{task-dir}/{task-idx-padded}_python"
 
     def get_default_settings(self):
         """Gets default Python scripts folder task settings.

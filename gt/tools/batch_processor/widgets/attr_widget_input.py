@@ -81,7 +81,7 @@ class AttrWidgetInputTask(AttrWidgetTask):
             partial(self.set_task_setting_list_from_text, key="explicit_files"),
             placeholder="One file, name, or pattern per line. Examples: hero.fbx, *.ma, rigs/*_anim.fbx",
             tooltip=(
-                "Optional explicit files, names, or wildcard patterns. Entries are resolved against "
+                "Optional explicit files, names, or wildcard patterns.\nEntries are resolved against "
                 "templates, the project, and the input folder."
             ),
         )
@@ -100,11 +100,11 @@ class AttrWidgetInputTask(AttrWidgetTask):
             main_label="Start New Segment",
             main_key="start_new_input_list",
             main_tooltip=(
-                "Start a new input segment at this task. Files discovered here replace the "
+                "Start a new input segment at this task.\nFiles discovered here replace the "
                 "accumulated incoming files instead of merging with them, so the tasks that "
-                "follow process a fresh list. This lets one project handle different file "
+                "follow process a fresh list.\nThis lets one project handle different file "
                 "sets in sequence (for example FBX retargeting, then MA-to-FBX export, then "
-                "USD processing). Leave this off to merge these files with earlier input tasks."
+                "USD processing).\nLeave this off to merge these files with earlier input tasks."
             ),
             include_input_directory_validation=True,
         )

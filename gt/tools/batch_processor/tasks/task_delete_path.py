@@ -63,7 +63,7 @@ class TaskDeleteProjectFiles(task_base.BatchTask):
             "exclude_patterns": [],
             "dry_run": True,
             "write_report": True,
-            "report_path": "{project-dir}/logs/delete_path_{task-idx}.json",
+            "report_path": "{project-dir}/logs/delete_path_{task-idx-padded}.json",
             "run_once_before_multi_instance": False,
             "run_once_after_multi_instance": False,
             "force_segment_separator": False,

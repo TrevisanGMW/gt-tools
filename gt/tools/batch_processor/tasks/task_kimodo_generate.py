@@ -28,7 +28,7 @@ class TaskKimodoGenerate(TaskKimodoBase):
     task_type = constants.TaskType.KIMODO_GENERATE
     default_display_name = "Kimodo Generate"
     icon = resources.Icon.batch_task_kimodo_generate
-    default_target_path_template = "{project-dir}/{task-dir}/{task-idx}_kimodo_animations"
+    default_target_path_template = "{project-dir}/{task-dir}/{task-idx-padded}_kimodo_animations"
     extensions = (".json",)
     output_section_name = "Output"
 

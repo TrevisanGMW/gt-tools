@@ -15,7 +15,7 @@ class TaskRetarget(task_base.BatchTask):
 
     task_type = constants.TaskType.RETARGET
     default_display_name = "Retarget"
-    default_target_path_template = "{project-dir}/{task-dir}/{task-idx}_retarget"
+    default_target_path_template = "{project-dir}/{task-dir}/{task-idx-padded}_retarget"
     icon = ui_res_lib.Icon.tool_retargeter
     category = "Animation"
     category_icon = ui_res_lib.Icon.root_animation

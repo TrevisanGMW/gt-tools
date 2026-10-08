@@ -388,7 +388,7 @@ class BatchProcessorView(metaclass=MayaWindowMeta):
         segment_name = str(segment_name or "New Input Segment").strip() or "New Input Segment"
         color_hex = color_hex or ui_res_lib.Color.Hex.blue_light_sky
         tooltip = (
-            "Segment divider (task-list marker only). Select it to see which segment it labels."
+            "Segment divider (task-list marker only).\nSelect it to see which segment it labels."
         )
         separator_item = ui_tree_enhanced.QTreeItemEnhanced([""])
         separator_item.setData(0, self.DATA_ROLE, "segment_separator")
@@ -634,7 +634,7 @@ class BatchProcessorView(metaclass=MayaWindowMeta):
         container.export_segment_button = ui_qt.QtWidgets.QPushButton("Export Segment")
         container.export_segment_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.rigger_action_export_grayscale))
         container.export_segment_button.setToolTip(
-            "Export these tasks as a .batch file. Reuse them with File > Import Project. "
+            "Export these tasks as a .batch file.\nReuse them with File > Import Project.\n"
             "Imported tasks use the destination project's settings."
         )
         buttons = [container.toggle_tasks_button, container.export_segment_button]

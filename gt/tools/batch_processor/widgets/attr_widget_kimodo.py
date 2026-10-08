@@ -97,7 +97,7 @@ FIELD_HELP = {
     ("path_mask_attribute",): ("Optional node.attribute on the animated path node's scene.\n"
                                "Root path samples are kept only where it evaluates nonzero,\n"
                                "so the model moves freely where it is 0 (for example sit-down\n"
-                               "and stand-up windows). Blank keeps every sample.", "kimodo_trajectory.pathWeight"),
+                               "and stand-up windows).\nBlank keeps every sample.", "kimodo_trajectory.pathWeight"),
     ("randomize_root_path",): ("Use only a list of two or more NURBS curve transforms.\n"
                                "One curve is selected per definition variation.\n"
                                "The curve list is shuffled from the first resolved seed\n"
@@ -804,7 +804,7 @@ class AttrWidgetKimodoGenerate(AttrWidgetKimodo):
             **kwargs: Standard task-widget keyword arguments.
         """
         super().__init__(*args, **kwargs)
-        section = self.section("Connection", False)
+        section = self.section("Connection")
         self.field(section, "Bridge URL", ("connection", "url"))
         row = self.add_labeled_layout("Connection", parent_layout=section)
         self.field(section, "Mode", ("connection", "mode"), "choice", [

@@ -228,6 +228,30 @@ After installing, you can delete the downloaded/extracted files (as they have al
   <li>Review the tracker and logs for succeeded, skipped, or failed work items before using the generated files.</li>
 </ol>
 
+<p><b>Project task numbering:</b> Use <code>{task-idx-padded}</code> for a padded task number
+(<code>01</code>, <code>02</code>) or <code>{task-index}</code> for an unpadded number
+(<code>1</code>, <code>2</code>). The task's regular <b>I/O Index</b> checkbox controls participation.</p>
+
+<p><b>Task numbering within segments:</b> Use <code>{seg-task-idx-padded}</code> for a padded task number
+(<code>01</code>, <code>02</code>) or <code>{seg-task-index}</code> for an unpadded number
+(<code>1</code>, <code>2</code>). These counters restart at each <b>Start New Segment</b> input boundary
+or <b>Add Separator</b> divider. For example, <code>{project-dir}/{task-dir}/{seg-task-idx-padded}_export</code>
+lets corresponding tasks in separate segments use the same output folder. The regular <b>I/O Index</b>
+checkbox controls participation in both project and segment numbering. An unchecked task resolves
+to <code>00</code>/<code>0</code> and does not advance either counter.
+<b>Ignore Disabled Tasks for Index</b> applies to both counters; disabled boundaries still
+restart the segment counter.</p>
+
+<p><b>Neighbor task numbering:</b> Use <code>{previous-task-idx-padded}</code>,
+<code>{previous-previous-task-idx-padded}</code> (also <code>{pre-previous-task-idx-padded}</code>),
+or <code>{next-task-idx-padded}</code> for padded project numbers. For each neighbor's number within
+its own segment, use <code>{seg-previous-task-idx-padded}</code>,
+<code>{seg-previous-previous-task-idx-padded}</code> (also <code>{seg-pre-previous-task-idx-padded}</code>),
+or <code>{seg-next-task-idx-padded}</code>. Replace <code>-idx-padded</code> with <code>-index</code>
+for unpadded values. Neighbor lookup skips disabled tasks; missing or excluded neighbors resolve to
+<code>00</code>/<code>0</code>. Older neighbor <code>-idx</code> names remain available in Python script
+environments and custom queries for compatibility.</p>
+
 <p><b>Available tasks:</b> Tasks are grouped by purpose in the task menu.</p>
 <ul>
   <li><b>Input Files:</b> Finds source files or folders and starts an input segment.</li>

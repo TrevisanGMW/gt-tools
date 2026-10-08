@@ -11,6 +11,7 @@ from unittest import mock
 from contextlib import redirect_stderr, redirect_stdout
 
 from gt.tools.batch_processor import batch_processor_environment_variables as variables_io
+from gt.tools.batch_processor import batch_processor_maya
 from gt.tools.batch_processor import batch_processor_worker
 
 
@@ -141,6 +142,45 @@ class TestEnvironmentVariableQueryPreview(unittest.TestCase):
             with self.subTest(expression=expression):
                 result = variables_io.evaluate_variable("result", {"result": {"value": expression, "query": True}})
                 self.assertEqual(expected, result)
+
+    def test_legacy_index_aliases_are_query_only_and_preserve_source_environment(self):
+        """Adds compatibility keys to an evaluator copy without changing listed values."""
+        environment = {"previous-task-idx-padded": "02", "next-task-idx-padded": "04"}
+        with mock.patch.object(batch_processor_maya, "evaluate_custom_environment_query", return_value="02") as query:
+            result = self.project._resolve_custom_environment_variable(
+                name="previous-index",
+                definition={"value": "env.get('previous-task-idx')", "query": True},
+                task=None,
+                environment_variables=environment,
+            )
+        self.assertEqual("02", result)
+        self.assertEqual({"previous-task-idx-padded": "02", "next-task-idx-padded": "04"}, environment)
+        query_environment = query.call_args[0][1]
+        self.assertIsNot(environment, query_environment)
+        self.assertEqual("02", query_environment["previous-task-idx"])
+        self.assertEqual("04", query_environment["next-task-idx"])
+
+    def test_preview_resolves_legacy_relative_index_queries(self):
+        """Keeps existing neighbor index expressions working in an isolated preview."""
+        prefixes = ("previous", "previous-previous", "pre-previous", "next")
+        query_keys = [f"{prefix}-task-idx" for prefix in prefixes]
+        variables = {"result": {"value": f"[env.get(key) for key in {query_keys!r}]", "query": True}}
+        saved_data = self.project.to_dict()
+        expected_values = ["02", "01", "01", "04"]
+        environment = {f"{prefix}-task-idx-padded": value for prefix, value in zip(prefixes, expected_values)}
+
+        with mock.patch.object(
+            variables_io.batch_processor_model.BatchProcessorModel,
+            "get_environment_variables",
+            return_value=environment,
+        ):
+            result = variables_io.evaluate_variable("result", variables, project=self.project)
+
+        self.assertEqual(expected_values, result)
+        self.assertEqual(saved_data, self.project.to_dict())
+        for query_key in query_keys:
+            with self.subTest(query_key=query_key):
+                self.assertNotIn(query_key, environment)
 
     def test_missing_preview_name_does_not_execute_any_queries(self):
         """Rejects missing rows before querying the scene."""
