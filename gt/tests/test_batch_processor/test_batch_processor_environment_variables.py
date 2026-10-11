@@ -119,21 +119,81 @@ class TestEnvironmentVariableQueryPreview(unittest.TestCase):
         self.assertEqual(saved_data, self.project.to_dict())
         self.cmds.ls.assert_called_once_with(selection=True)
 
-    def test_preview_propagates_query_failures_even_when_suppressed(self):
-        """Distinguishes a failed expression from a successful empty result."""
+    def test_preview_propagates_selected_query_failures_even_when_suppressed(self):
+        """Reports the selected expression's failure while ignoring earlier failures."""
         self.project.set_suppress_custom_environment_query_errors(True)
-        for failing_name in ("earlier", "result"):
+        for earlier_definition in (
+            {"value": "literal", "query": False},
+            {"value": "1 / 0", "query": True},
+        ):
             variables = {
-                "earlier": {"value": "literal", "query": False},
-                "result": {"value": "env['earlier']", "query": True},
+                "earlier": earlier_definition,
+                "result": {"value": "1 / 0", "query": True},
             }
-            variables[failing_name] = {"value": "1 / 0", "query": True}
-            with self.subTest(failing_name=failing_name), self.assertRaisesRegex(
-                ValueError, f"Query {{{failing_name}}} failed: division by zero"
+            with self.subTest(earlier=earlier_definition), self.assertRaisesRegex(
+                ValueError, "Query {result} failed: division by zero"
             ):
                 variables_io.evaluate_variable("result", variables, project=self.project)
         self.assertEqual({"saved": {"value": "original", "query": False}},
                          self.project.custom_environment_variables)
+
+    def test_preview_skips_failed_queries_and_keeps_successful_dependencies(self):
+        """Omits failed rows without replacing successful dependencies or running later rows."""
+        variables = {
+            "failed": {"value": "1 / 0", "query": True},
+            "prefix": {"value": "edited", "query": False},
+            "resolved": {"value": "env['prefix'].upper()", "query": True},
+            "result": {
+                "value": "[env['resolved'], env.get('failed', 'missing'), env['project-name']]",
+                "query": True,
+            },
+            "later": {"value": "cmds.ls()", "query": True},
+        }
+        saved_data = self.project.to_dict()
+        result = variables_io.evaluate_variable("result", variables, project=self.project)
+        self.assertEqual(["EDITED", "missing", "Preview Project"], result)
+        self.assertEqual(saved_data, self.project.to_dict())
+        self.cmds.ls.assert_not_called()
+
+    def test_preview_reports_selected_query_missing_failed_dependency(self):
+        """Reports an unavailable dependency as a failure of the selected expression."""
+        variables = {
+            "earlier": {"value": "1 / 0", "query": True},
+            "result": {"value": "env['earlier']", "query": True},
+        }
+        with self.assertRaisesRegex(ValueError, "Query {result} failed: 'earlier'"):
+            variables_io.evaluate_variable("result", variables, project=self.project)
+
+    def test_preview_silences_unrelated_maya_errors_and_restores_editor(self):
+        """Ignores failed dependencies without printing command errors or changing Maya state."""
+        self.cmds.scriptEditorInfo = mock.Mock(return_value=False)
+
+        def fail_query():
+            """Prints an error before raising a simulated Maya query failure.
+
+            Raises:
+                RuntimeError: Simulated missing attribute.
+            """
+            print("Maya attribute query failed", file=sys.stderr)
+            raise RuntimeError("Missing prompt attribute")
+
+        self.cmds.ls.side_effect = fail_query
+        variables = {
+            "unrelated": {"value": "cmds.ls()", "query": True},
+            "result": {"value": "'1.0.0'", "query": True},
+        }
+        stderr = io.StringIO()
+        with redirect_stderr(stderr), mock.patch.object(
+            variables_io.batch_processor_model.logger, "error"
+        ) as log_error:
+            result = variables_io.evaluate_variable("result", variables, project=self.project)
+        self.assertEqual("1.0.0", result)
+        self.assertEqual("", stderr.getvalue())
+        log_error.assert_not_called()
+        self.assertEqual([
+            mock.call(query=True, suppressErrors=True), mock.call(suppressErrors=True),
+            mock.call(suppressErrors=False),
+        ], self.cmds.scriptEditorInfo.call_args_list)
 
     def test_preview_without_project_preserves_result_types_and_namespace(self):
         """Supports literal query results, JSON, and import_module in a standalone editor."""

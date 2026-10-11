@@ -8,6 +8,7 @@ from unittest import mock
 
 import gt.ui.qt_import as ui_qt
 from gt.tools.batch_processor import batch_processor_environment_variables as variables_io
+from gt.tools.batch_processor import batch_processor_maya
 from gt.tools.batch_processor.widgets import custom_environment_variables_dialog as variables_ui
 
 
@@ -150,6 +151,38 @@ class TestCustomEnvironmentVariablesDialog(unittest.TestCase):
         self.assertIn("Unable to run {result}: division by zero", self.source.status_label.text())
         output.assert_called_once_with("[Batch Processor] Unable to run {result}: division by zero")
         self.assertEqual("1 / 0", self.source.variable_table.item(0, 1).text())
+
+    def test_query_button_ignores_unrelated_failures_and_preserves_dependencies(self):
+        """Tests the clicked query after an earlier failure without saving or running later rows."""
+        self.source.project = variables_io.batch_processor_model.BatchProcessorModel()
+        self.source.add_variable_row(name="{failed}", value="1 / 0", is_query=True)
+        self.source.add_variable_row(name="{prefix}", value="'schema'", is_query=True)
+        self.source.add_variable_row(name="{result}", value="env['prefix'] + '-1.0.0'", is_query=True)
+        self.source.add_variable_row(name="{later}", value="1 / 0", is_query=True)
+
+        def evaluate_query(query, environment_variables, **kwargs):
+            """Evaluates test expressions without importing Maya.
+
+            Args:
+                query (str): Python test expression.
+                environment_variables (dict): Values available to the expression.
+                **kwargs: Additional runtime arguments.
+
+            Returns:
+                object: Expression result.
+            """
+            return eval(query, {"env": environment_variables})
+
+        with mock.patch.object(
+            batch_processor_maya, "evaluate_custom_environment_query", side_effect=evaluate_query
+        ) as evaluate, mock.patch("builtins.print") as output:
+            self.source.variable_table.cellWidget(2, 3).click()
+
+        self.assertEqual("{result} = 'schema-1.0.0'", self.source.status_label.text())
+        output.assert_called_once_with("[Batch Processor] {result} = 'schema-1.0.0'")
+        self.assertEqual(3, evaluate.call_count)
+        self.assertEqual([True, True, False], [call.kwargs["suppress_errors"] for call in evaluate.call_args_list])
+        self.assertEqual({}, self.source.project.custom_environment_variables)
 
     def test_query_indicator_is_centered_in_cell_with_inherited_styles(self):
         """Checks indicator geometry with both native and toolkit checkbox styling."""

@@ -10,9 +10,10 @@ from gt.tools.batch_processor import batch_processor_model
 def evaluate_variable(name, variables, project=None):
     """Tests a variable with edited definitions and the current project context.
 
-    Earlier rows are resolved in runtime order so their results are available
-    through ``env``. Later queries are not run. Maya is imported only by the
-    runtime query evaluator when a query actually runs.
+    Earlier rows are resolved in runtime order so successful results are
+    available through ``env``. Failed earlier queries are omitted, and later
+    queries are not run. Maya is imported only by the runtime query evaluator
+    when a query actually runs.
 
     Args:
         name (str): Name of the variable to evaluate.
@@ -23,7 +24,7 @@ def evaluate_variable(name, variables, project=None):
         object: Resolved value from the selected row.
 
     Raises:
-        ValueError: If definitions are invalid, the name is missing, or a query fails.
+        ValueError: If definitions are invalid, the name is missing, or the selected query fails.
     """
     variables = validate_variables(variables)
     name = batch_processor_model.normalize_environment_key(name)
@@ -41,9 +42,13 @@ def evaluate_variable(name, variables, project=None):
                 task=None,
                 environment_variables=environment,
                 raise_errors=True,
+                suppress_errors=variable_name != name,
             )
         except Exception as exception:
-            raise ValueError(f"Query {{{variable_name}}} failed: {exception}") from exception
+            if variable_name == name:
+                raise ValueError(f"Query {{{variable_name}}} failed: {exception}") from exception
+            environment.pop(variable_name, None)
+            continue
         if variable_name == name:
             return value
         environment[variable_name] = value

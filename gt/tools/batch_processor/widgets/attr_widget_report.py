@@ -47,6 +47,26 @@ class AttrWidgetSceneReportTask(AttrWidgetTask):
                 "List + Total: write the totals and a list with the values found in every file."
             ),
         )
+        self.add_combo_box(
+            "Timestamp Format",
+            self.task.get_timestamp_format(),
+            task_report.REPORT_TIMESTAMP_FORMATS,
+            partial(self.set_task_setting, key="report_timestamp_format"),
+            tooltip=(
+                "Choose how the report creation time is displayed.\n"
+                "Readable uses a date such as August 26, 2026 at 8:42 PM."
+            ),
+        )
+        self.add_combo_box(
+            "Skip Condition",
+            self.task.get_skip_condition(),
+            task_report.REPORT_SKIP_CONDITIONS,
+            partial(self.set_task_setting, key="report_skip_condition"),
+            tooltip=(
+                "Skip this report when the previous enabled task skipped one or more items.\n"
+                "The same state is available to scripts as {batch-previous-task-skipped}."
+            ),
+        )
         self.add_text_field(
             "Report Name",
             self.task.settings.get("report_file_name"),

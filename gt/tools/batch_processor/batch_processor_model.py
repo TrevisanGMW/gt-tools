@@ -1333,7 +1333,9 @@ class BatchProcessorModel:
             query_environment[name] = value
         return resolved_variables
 
-    def _resolve_custom_environment_variable(self, name, definition, task, environment_variables, raise_errors=False):
+    def _resolve_custom_environment_variable(
+        self, name, definition, task, environment_variables, raise_errors=False, suppress_errors=None
+    ):
         """Resolves one custom environment-variable definition.
 
         Query definitions are intentionally evaluated at request time so scene
@@ -1346,6 +1348,8 @@ class BatchProcessorModel:
             task (BatchTask or None): Task requesting environment data.
             environment_variables (dict): Values available to the query.
             raise_errors (bool, optional): Whether to propagate failures for explicit query tests.
+            suppress_errors (bool or None, optional): Whether to silence query error output.
+                None uses the project preference outside explicit query tests.
 
         Returns:
             object: Literal value or a query result. Failed queries return an
@@ -1361,6 +1365,8 @@ class BatchProcessorModel:
         query = str(value or "").strip()
         if not query:
             return ""
+        if suppress_errors is None:
+            suppress_errors = self._suppress_custom_environment_query_errors and not raise_errors
         try:
             from gt.tools.batch_processor import batch_processor_maya
 
@@ -1370,12 +1376,12 @@ class BatchProcessorModel:
                     query_environment[legacy_key] = query_environment[current_key]
             return batch_processor_maya.evaluate_custom_environment_query(
                 query, query_environment, project=self, task=task,
-                suppress_errors=self._suppress_custom_environment_query_errors and not raise_errors,
+                suppress_errors=suppress_errors,
             )
         except Exception as exception:
             if raise_errors:
                 raise
-            if self._suppress_custom_environment_query_errors:
+            if suppress_errors:
                 return ""
             logger.error(
                 f'Unable to evaluate custom environment variable "{{{name}}}": {exception}',

@@ -8,10 +8,12 @@ metric definition and a matching collector function.
 
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_maya
+from gt.tools.batch_processor import batch_processor_run_state as run_state
 from gt.tools.batch_processor import batch_processor_task_base as task_base
 import gt.ui.resource_library as ui_res_lib
 from gt.tools.batch_processor.tasks import task_utils
 import contextlib
+import datetime
 import hashlib
 import json
 import os
@@ -34,6 +36,18 @@ FALLBACK_RUN_ID = uuid.uuid4().hex[:16]
 REPORT_DETAIL_TOTAL_ONLY = "Total Only"
 REPORT_DETAIL_LIST_AND_TOTAL = "List + Total"
 REPORT_DETAIL_MODES = [REPORT_DETAIL_TOTAL_ONLY, REPORT_DETAIL_LIST_AND_TOTAL]
+
+REPORT_TIMESTAMP_FORMAT_READABLE = "Readable"
+REPORT_TIMESTAMP_FORMAT_ISO_8601 = "ISO 8601"
+REPORT_TIMESTAMP_FORMATS = [REPORT_TIMESTAMP_FORMAT_READABLE, REPORT_TIMESTAMP_FORMAT_ISO_8601]
+DEFAULT_REPORT_TIMESTAMP_FORMAT = REPORT_TIMESTAMP_FORMAT_READABLE
+
+REPORT_SKIP_CONDITION_NONE = "None"
+REPORT_SKIP_CONDITION_PREVIOUS_TASK_SKIPPED = "Previous task was skipped"
+REPORT_SKIP_CONDITIONS = [
+    REPORT_SKIP_CONDITION_NONE,
+    REPORT_SKIP_CONDITION_PREVIOUS_TASK_SKIPPED,
+]
 
 AGGREGATION_SUM = "sum"
 AGGREGATION_SET = "set"
@@ -185,7 +199,7 @@ REPORT_METRICS = [
     },
 ]
 
-DEFAULT_REPORT_METRICS = ["frame_count", "frame_rate", "file_size", "time"]
+DEFAULT_REPORT_METRICS = ["frame_count", "file_size", "time"]
 
 LEGACY_METRIC_KEYS = {"node_counts": ["mesh_count", "joint_count", "transform_count"]}
 
@@ -217,6 +231,8 @@ class TaskSceneReport(task_base.BatchTask):
             "load_relevant_plugins": True,
             "report_metrics": list(DEFAULT_REPORT_METRICS),
             "report_detail_mode": REPORT_DETAIL_TOTAL_ONLY,
+            "report_timestamp_format": DEFAULT_REPORT_TIMESTAMP_FORMAT,
+            "report_skip_condition": REPORT_SKIP_CONDITION_NONE,
             "report_file_name": DEFAULT_REPORT_FILE_NAME,
             "report_notes": DEFAULT_REPORT_NOTES,
             "report_notes_collapsed": True,
@@ -247,6 +263,12 @@ class TaskSceneReport(task_base.BatchTask):
                 result.add_error("Unknown report item: {0}".format(metric_key))
         if self.settings.get("report_detail_mode") not in REPORT_DETAIL_MODES:
             result.add_error("Unknown report detail mode: {0}".format(self.settings.get("report_detail_mode")))
+        skip_condition = self.settings.get("report_skip_condition") or REPORT_SKIP_CONDITION_NONE
+        if skip_condition not in REPORT_SKIP_CONDITIONS:
+            result.add_error(f"Unknown report skip condition: {skip_condition}")
+        timestamp_format = self.settings.get("report_timestamp_format", DEFAULT_REPORT_TIMESTAMP_FORMAT)
+        if timestamp_format not in REPORT_TIMESTAMP_FORMATS:
+            result.add_error(f"Unknown report timestamp format: {timestamp_format}")
         return result
 
     def get_metric_keys(self):
@@ -265,6 +287,42 @@ class TaskSceneReport(task_base.BatchTask):
         """
         detail_mode = str(self.settings.get("report_detail_mode") or "").strip()
         return detail_mode if detail_mode in REPORT_DETAIL_MODES else REPORT_DETAIL_TOTAL_ONLY
+
+    def get_timestamp_format(self):
+        """Gets the configured report timestamp format.
+
+        Returns:
+            str: Timestamp format name.
+        """
+        timestamp_format = str(
+            self.settings.get("report_timestamp_format") or DEFAULT_REPORT_TIMESTAMP_FORMAT
+        ).strip()
+        return timestamp_format if timestamp_format in REPORT_TIMESTAMP_FORMATS else DEFAULT_REPORT_TIMESTAMP_FORMAT
+
+    def get_skip_condition(self):
+        """Gets the configured report skip condition.
+
+        Returns:
+            str: Skip condition name.
+        """
+        skip_condition = str(
+            self.settings.get("report_skip_condition") or REPORT_SKIP_CONDITION_NONE
+        ).strip()
+        return skip_condition if skip_condition in REPORT_SKIP_CONDITIONS else REPORT_SKIP_CONDITION_NONE
+
+    def should_skip(self, project):
+        """Checks whether the report skip condition is met.
+
+        Args:
+            project (BatchProcessorModel): Project being processed.
+
+        Returns:
+            bool: True when the report should be skipped.
+        """
+        if self.get_skip_condition() != REPORT_SKIP_CONDITION_PREVIOUS_TASK_SKIPPED or not project:
+            return False
+        environment_variables = run_state.get_environment_variables(project, self)
+        return environment_variables.get("batch-previous-task-skipped") == "1"
 
     def requires_scene_load(self):
         """Checks whether the selected report items need a loaded Maya scene.
@@ -303,9 +361,17 @@ class TaskSceneReport(task_base.BatchTask):
         Returns:
             WorkItem: Unchanged work item.
         """
+        context = context or {}
+        if self.should_skip(project):
+            skipped_work_item = work_item
+            if skipped_work_item is None:
+                skipped_work_item = context.get("work_items")
+            raise task_base.TaskSkip(
+                "Report skipped because the previous task was skipped.",
+                work_item=skipped_work_item,
+            )
         if not work_item:
             raise RuntimeError("Report could not be generated because no source work item was provided.")
-        context = context or {}
         run_id = get_run_id(context)
         entry = self.collect_entry(work_item.current_path)
         base_report_path = build_report_path(self, step_output_dir, project=project)
@@ -416,6 +482,7 @@ class TaskSceneReport(task_base.BatchTask):
             "task": self.display_name,
             "task_type": self.task_type,
             "created_at": task_utils.get_timestamp(),
+            "timestamp_format": self.get_timestamp_format(),
             "detail_mode": self.get_detail_mode(),
             "metrics": metric_keys,
             "file_count": len(entries),
@@ -659,13 +726,57 @@ def format_duration(value):
         value (int or float): Duration in seconds.
 
     Returns:
-        str: Formatted duration, for example "00:01:23.500 (83.5s)".
+        str: Formatted duration, for example "1m 23s 500ms".
     """
-    total_seconds = float(value or 0)
-    hours = int(total_seconds // 3600)
-    minutes = int((total_seconds % 3600) // 60)
-    seconds = total_seconds % 60
-    return "{0:02d}:{1:02d}:{2:06.3f} ({3:,.3f}s)".format(hours, minutes, seconds, total_seconds)
+    total_milliseconds = int(round(float(value or 0) * 1000))
+    sign = "-" if total_milliseconds < 0 else ""
+    remaining_milliseconds = abs(total_milliseconds)
+    hours, remaining_milliseconds = divmod(remaining_milliseconds, 3600000)
+    minutes, remaining_milliseconds = divmod(remaining_milliseconds, 60000)
+    seconds, milliseconds = divmod(remaining_milliseconds, 1000)
+
+    parts = []
+    if hours:
+        parts.append(f"{hours}h")
+    if minutes:
+        parts.append(f"{minutes}m")
+    if seconds:
+        parts.append(f"{seconds}s")
+    if milliseconds:
+        parts.append(f"{milliseconds}ms")
+    if not parts:
+        parts.append("0ms")
+    return f"{sign}{' '.join(parts)}"
+
+
+def format_timestamp(value, timestamp_format=DEFAULT_REPORT_TIMESTAMP_FORMAT):
+    """Formats a report timestamp for display.
+
+    Args:
+        value (str): ISO timestamp string.
+        timestamp_format (str): Timestamp format name.
+
+    Returns:
+        str: Formatted timestamp, or the original value when it cannot be parsed.
+    """
+    if value is None:
+        return ""
+    timestamp = str(value)
+    if timestamp_format == REPORT_TIMESTAMP_FORMAT_ISO_8601:
+        return timestamp
+    try:
+        iso_timestamp = timestamp[:-1] + "+00:00" if timestamp.endswith("Z") else timestamp
+        parsed_timestamp = datetime.datetime.fromisoformat(iso_timestamp)
+    except (TypeError, ValueError):
+        return timestamp
+
+    hour = parsed_timestamp.hour % 12 or 12
+    month = parsed_timestamp.strftime("%B")
+    period = parsed_timestamp.strftime("%p")
+    return (
+        f"{month} {parsed_timestamp.day}, {parsed_timestamp.year} at "
+        f"{hour}:{parsed_timestamp.minute:02d} {period}"
+    )
 
 
 def build_report_lines(report_data):
@@ -678,11 +789,15 @@ def build_report_lines(report_data):
         list: Report text lines.
     """
     report_data = report_data or {}
+    created_at = format_timestamp(
+        report_data.get("created_at"),
+        report_data.get("timestamp_format", DEFAULT_REPORT_TIMESTAMP_FORMAT),
+    )
     lines = [
         "Batch Processor Report",
         "=" * 60,
         "Task: {0}".format(report_data.get("task") or ""),
-        "Created: {0}".format(report_data.get("created_at") or ""),
+        f"Created: {created_at}",
         "Files: {0}".format(report_data.get("file_count") or 0),
         "Report Items: {0}".format(", ".join(report_data.get("metrics") or []) or "None"),
         "",
