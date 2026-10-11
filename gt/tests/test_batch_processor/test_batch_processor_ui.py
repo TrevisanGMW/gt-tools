@@ -31,6 +31,7 @@ from gt.tools.batch_processor import batch_processor_view
 from gt.tools.batch_processor.tasks import task_annotation
 from gt.tools.batch_processor.tasks import task_batch_render
 from gt.tools.batch_processor.tasks import task_clip
+from gt.tools.batch_processor.tasks import task_report
 from gt.tools.batch_processor.tasks import task_utils
 from gt.tools.batch_processor.widgets import attr_widget_annotation
 from gt.tools.batch_processor.widgets import attr_widget_batch_render
@@ -40,6 +41,7 @@ from gt.tools.batch_processor.widgets import attr_widget_export_fbx
 from gt.tools.batch_processor.widgets import attr_widget_maya_import
 from gt.tools.batch_processor.widgets import attr_widget_project
 from gt.tools.batch_processor.widgets import attr_widget_python_script
+from gt.tools.batch_processor.widgets import attr_widget_report
 from gt.tools.batch_processor.widgets import attr_widget_task
 from gt.tools.batch_processor.widgets.custom_environment_variables_dialog import (
     CustomEnvironmentVariablesDialog,
@@ -71,6 +73,61 @@ class TestBatchProcessorUi(unittest.TestCase):
         """Closes test widgets and flushes deferred Qt events."""
         self.view.close()
         self.application.processEvents()
+
+    def test_report_items_are_addable_rows_with_item_preferences(self):
+        """Keeps each report value and its controls together in the item list."""
+        report_task = task_report.TaskSceneReport()
+        report_widget = attr_widget_report.AttrWidgetSceneReportTask(task=report_task, project=self.model)
+        self.addCleanup(report_widget.deleteLater)
+        self.addCleanup(report_widget.close)
+
+        self.assertEqual(["frame_count", "file_size", "time"], list(report_widget.report_item_rows))
+        self.assertNotIn("frame_rate", report_widget.report_item_rows)
+        self.assertNotIn("frame_rate", report_task.get_metric_keys())
+        self.assertEqual("", report_widget.add_report_item_button.text())
+        self.assertFalse(report_widget.add_report_item_button.icon().isNull())
+        self.assertEqual("Add Report Item", report_widget.add_report_item_button.accessibleName())
+        self.assertFalse(report_widget.report_item_rows["time"]["remove_button"].icon().isNull())
+        self.assertIn(task_report.REPORT_TIMESTAMP_FORMAT_LONG, task_report.REPORT_TIMESTAMP_FORMATS)
+
+        report_widget.show_add_report_item_menu()
+        available_labels = [action.text() for action in report_widget.add_report_item_menu.actions()]
+        self.assertIn("Frame Rates", available_labels)
+        self.assertNotIn("Time", available_labels)
+        report_widget.add_report_item_menu.hide()
+
+        report_widget.add_report_item(metric_key="frame_rate")
+        self.assertIn("frame_rate", report_widget.report_item_rows)
+        self.assertIn("frame_rate", report_task.get_metric_keys())
+
+        report_widget.metric_checkboxes["time"].click()
+        self.assertIn("time", report_task.get_report_item_keys())
+        self.assertNotIn("time", report_task.get_metric_keys())
+
+        report_widget.report_item_rows["time"]["duration_combo"].setCurrentText(
+            task_report.REPORT_DURATION_FORMAT_CLOCK
+        )
+        self.assertEqual(
+            task_report.REPORT_DURATION_FORMAT_CLOCK,
+            report_task.get_duration_format(),
+        )
+
+        report_widget.remove_report_item(metric_key="frame_rate")
+        self.assertNotIn("frame_rate", report_widget.report_item_rows)
+        self.assertNotIn("frame_rate", report_task.get_report_item_keys())
+
+        report_widget.resize(900, 1100)
+        report_widget.show()
+        self.application.processEvents()
+        detail_position = report_widget.detail_combo_box.mapTo(report_widget, ui_qt.QtCore.QPoint(0, 0))
+        timestamp_position = report_widget.timestamp_combo_box.mapTo(report_widget, ui_qt.QtCore.QPoint(0, 0))
+        load_mode_position = report_widget.load_mode_combo_box.mapTo(report_widget, ui_qt.QtCore.QPoint(0, 0))
+        skip_position = report_widget.skip_condition_combo_box.mapTo(report_widget, ui_qt.QtCore.QPoint(0, 0))
+        report_name_position = report_widget.report_name_field.mapTo(report_widget, ui_qt.QtCore.QPoint(0, 0))
+
+        self.assertEqual(detail_position.y(), timestamp_position.y())
+        self.assertEqual(load_mode_position.y(), skip_position.y())
+        self.assertEqual(detail_position.x(), report_name_position.x())
 
     @unittest.skipIf(ui_qt.QtTest is None, "PySide QtTest module is unavailable.")
     def test_task_rename_does_not_replace_widget_during_focus_change(self):

@@ -132,6 +132,28 @@ class TestBatchProcessorReport(unittest.TestCase):
 
         self.assertIn("Created: 2026-08-26T20:42:49.242589", report_lines)
 
+    def test_timestamp_format_options_show_lettered_examples(self):
+        timestamp = "2026-08-26T20:42:49.242589"
+        expected = [
+            "August 26, 2026 at 8:42 PM",
+            "Aug 26, 2026 at 8:42 PM",
+            "26 Aug 2026, 20:42",
+            "2026-08-26 20:42",
+            "2026-08-26T20:42:49.242589",
+        ]
+
+        result = [task_report.format_timestamp(timestamp, value) for value in task_report.REPORT_TIMESTAMP_FORMATS]
+
+        self.assertEqual(expected, result)
+        self.assertTrue(all(value[:1].isalpha() and " - " in value for value in task_report.REPORT_TIMESTAMP_FORMATS))
+
+    def test_timestamp_format_reads_legacy_setting_names(self):
+        self.task.settings["report_timestamp_format"] = "Readable"
+
+        result = self.task.get_timestamp_format()
+
+        self.assertEqual(task_report.REPORT_TIMESTAMP_FORMAT_LONG, result)
+
     def test_report_task_skips_when_previous_task_was_skipped(self):
         project = batch_processor_model.BatchProcessorModel()
         previous_task = task_report.TaskSceneReport()
@@ -174,6 +196,35 @@ class TestBatchProcessorReport(unittest.TestCase):
         result = task_report.format_duration(59.9998)
 
         self.assertEqual(expected, result)
+
+    def test_format_duration_supports_clock_and_seconds_formats(self):
+        expected = ["00:55:31.433", "3,331.433s"]
+        result = [
+            task_report.format_duration(3331.433, task_report.REPORT_DURATION_FORMAT_CLOCK),
+            task_report.format_duration(3331.433, task_report.REPORT_DURATION_FORMAT_SECONDS),
+        ]
+
+        self.assertEqual(expected, result)
+
+    def test_time_duration_format_applies_to_totals_and_file_details(self):
+        self.task.settings["report_metrics"] = ["time"]
+        self.task.settings["report_detail_mode"] = task_report.REPORT_DETAIL_LIST_AND_TOTAL
+        self.task.settings["report_item_settings"] = {
+            "time": {"duration_format": task_report.REPORT_DURATION_FORMAT_CLOCK}
+        }
+        entries = [{"path": "a.ma", "values": {"duration_seconds": 3331.433}, "errors": []}]
+
+        report_lines = task_report.build_report_lines(self.task.build_report_data(entries))
+
+        self.assertIn("Total Duration: 00:55:31.433", report_lines)
+        self.assertIn("    Duration: 00:55:31.433", report_lines)
+
+    def test_report_item_list_defaults_to_selected_metrics_for_legacy_tasks(self):
+        self.task.settings["report_metrics"] = ["file_size", "time"]
+
+        result = self.task.get_report_item_keys()
+
+        self.assertEqual(["file_size", "time"], result)
 
     def test_build_report_lines_list_and_total_includes_file_list(self):
         self.task.settings["report_metrics"] = ["frame_count"]

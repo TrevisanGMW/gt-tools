@@ -37,10 +37,34 @@ REPORT_DETAIL_TOTAL_ONLY = "Total Only"
 REPORT_DETAIL_LIST_AND_TOTAL = "List + Total"
 REPORT_DETAIL_MODES = [REPORT_DETAIL_TOTAL_ONLY, REPORT_DETAIL_LIST_AND_TOTAL]
 
-REPORT_TIMESTAMP_FORMAT_READABLE = "Readable"
-REPORT_TIMESTAMP_FORMAT_ISO_8601 = "ISO 8601"
-REPORT_TIMESTAMP_FORMATS = [REPORT_TIMESTAMP_FORMAT_READABLE, REPORT_TIMESTAMP_FORMAT_ISO_8601]
-DEFAULT_REPORT_TIMESTAMP_FORMAT = REPORT_TIMESTAMP_FORMAT_READABLE
+REPORT_TIMESTAMP_FORMAT_LONG = "A - August 26, 2026 at 8:42 PM"
+REPORT_TIMESTAMP_FORMAT_SHORT = "B - Aug 26, 2026 at 8:42 PM"
+REPORT_TIMESTAMP_FORMAT_DAY_FIRST = "C - 26 Aug 2026, 20:42"
+REPORT_TIMESTAMP_FORMAT_NUMERIC = "D - 2026-08-26 20:42"
+REPORT_TIMESTAMP_FORMAT_ISO_8601 = "E - 2026-08-26T20:42:49.242589"
+REPORT_TIMESTAMP_FORMAT_READABLE = REPORT_TIMESTAMP_FORMAT_LONG
+REPORT_TIMESTAMP_FORMATS = [
+    REPORT_TIMESTAMP_FORMAT_LONG,
+    REPORT_TIMESTAMP_FORMAT_SHORT,
+    REPORT_TIMESTAMP_FORMAT_DAY_FIRST,
+    REPORT_TIMESTAMP_FORMAT_NUMERIC,
+    REPORT_TIMESTAMP_FORMAT_ISO_8601,
+]
+LEGACY_REPORT_TIMESTAMP_FORMATS = {
+    "Readable": REPORT_TIMESTAMP_FORMAT_LONG,
+    "ISO 8601": REPORT_TIMESTAMP_FORMAT_ISO_8601,
+}
+DEFAULT_REPORT_TIMESTAMP_FORMAT = REPORT_TIMESTAMP_FORMAT_LONG
+
+REPORT_DURATION_FORMAT_COMPACT = "A - 55m 31s 433ms"
+REPORT_DURATION_FORMAT_CLOCK = "B - 00:55:31.433"
+REPORT_DURATION_FORMAT_SECONDS = "C - 3,331.433s"
+REPORT_DURATION_FORMATS = [
+    REPORT_DURATION_FORMAT_COMPACT,
+    REPORT_DURATION_FORMAT_CLOCK,
+    REPORT_DURATION_FORMAT_SECONDS,
+]
+DEFAULT_REPORT_DURATION_FORMAT = REPORT_DURATION_FORMAT_COMPACT
 
 REPORT_SKIP_CONDITION_NONE = "None"
 REPORT_SKIP_CONDITION_PREVIOUS_TASK_SKIPPED = "Previous task was skipped"
@@ -266,7 +290,9 @@ class TaskSceneReport(task_base.BatchTask):
         skip_condition = self.settings.get("report_skip_condition") or REPORT_SKIP_CONDITION_NONE
         if skip_condition not in REPORT_SKIP_CONDITIONS:
             result.add_error(f"Unknown report skip condition: {skip_condition}")
-        timestamp_format = self.settings.get("report_timestamp_format", DEFAULT_REPORT_TIMESTAMP_FORMAT)
+        timestamp_format = normalize_timestamp_format(
+            self.settings.get("report_timestamp_format", DEFAULT_REPORT_TIMESTAMP_FORMAT)
+        )
         if timestamp_format not in REPORT_TIMESTAMP_FORMATS:
             result.add_error(f"Unknown report timestamp format: {timestamp_format}")
         return result
@@ -278,6 +304,27 @@ class TaskSceneReport(task_base.BatchTask):
             list: Selected metric keys.
         """
         return normalize_metric_keys(self.settings.get("report_metrics"))
+
+    def get_report_item_keys(self):
+        """Gets report items present in the UI list, including inactive items.
+
+        Returns:
+            list: Added report item keys in registry order.
+        """
+        if "report_items" not in self.settings:
+            return self.get_metric_keys()
+        return normalize_metric_keys(self.settings.get("report_items"))
+
+    def get_duration_format(self):
+        """Gets the configured time metric duration format.
+
+        Returns:
+            str: Duration format name.
+        """
+        item_settings = self.settings.get("report_item_settings") or {}
+        time_settings = item_settings.get("time") or {}
+        duration_format = time_settings.get("duration_format") or DEFAULT_REPORT_DURATION_FORMAT
+        return duration_format if duration_format in REPORT_DURATION_FORMATS else DEFAULT_REPORT_DURATION_FORMAT
 
     def get_detail_mode(self):
         """Gets the configured report detail mode.
@@ -294,9 +341,8 @@ class TaskSceneReport(task_base.BatchTask):
         Returns:
             str: Timestamp format name.
         """
-        timestamp_format = str(
-            self.settings.get("report_timestamp_format") or DEFAULT_REPORT_TIMESTAMP_FORMAT
-        ).strip()
+        timestamp_format = self.settings.get("report_timestamp_format") or DEFAULT_REPORT_TIMESTAMP_FORMAT
+        timestamp_format = normalize_timestamp_format(timestamp_format)
         return timestamp_format if timestamp_format in REPORT_TIMESTAMP_FORMATS else DEFAULT_REPORT_TIMESTAMP_FORMAT
 
     def get_skip_condition(self):
@@ -483,10 +529,11 @@ class TaskSceneReport(task_base.BatchTask):
             "task_type": self.task_type,
             "created_at": task_utils.get_timestamp(),
             "timestamp_format": self.get_timestamp_format(),
+            "duration_format": self.get_duration_format(),
             "detail_mode": self.get_detail_mode(),
             "metrics": metric_keys,
             "file_count": len(entries),
-            "totals": aggregate_entries(entries, metric_keys),
+            "totals": aggregate_entries(entries, metric_keys, duration_format=self.get_duration_format()),
             "entries": list(entries),
             "notes": self.get_report_notes(project=project),
         }
@@ -586,12 +633,13 @@ def collect_report_entry(file_path, metric_keys, cmds=None):
     return entry
 
 
-def aggregate_entries(entries, metric_keys):
+def aggregate_entries(entries, metric_keys, duration_format=DEFAULT_REPORT_DURATION_FORMAT):
     """Aggregates collected entries into report totals.
 
     Args:
         entries (list): Collected report entries.
         metric_keys (list): Metric keys to aggregate.
+        duration_format (str, optional): Format used for duration values.
 
     Returns:
         list: Total rows with a label, a raw value, and a formatted value.
@@ -604,18 +652,19 @@ def aggregate_entries(entries, metric_keys):
         for field in metric.get("fields") or []:
             aggregation = field.get("aggregation")
             if aggregation == AGGREGATION_SUM:
-                totals.append(build_sum_total(entries, field))
+                totals.append(build_sum_total(entries, field, duration_format=duration_format))
             elif aggregation == AGGREGATION_SET:
                 totals.append(build_set_total(entries, field))
     return totals
 
 
-def build_sum_total(entries, field):
+def build_sum_total(entries, field, duration_format=DEFAULT_REPORT_DURATION_FORMAT):
     """Builds a summed total row for one field.
 
     Args:
         entries (list): Collected report entries.
         field (dict): Field definition.
+        duration_format (str, optional): Format used for duration values.
 
     Returns:
         dict: Total row.
@@ -630,7 +679,7 @@ def build_sum_total(entries, field):
         "name": field.get("name"),
         "label": "Total {0}".format(field.get("label")),
         "value": total_value,
-        "text": format_value(total_value, field.get("format")),
+        "text": format_value(total_value, field.get("format"), duration_format=duration_format),
     }
 
 
@@ -661,12 +710,13 @@ def build_set_total(entries, field):
     }
 
 
-def format_value(value, value_format):
+def format_value(value, value_format, duration_format=DEFAULT_REPORT_DURATION_FORMAT):
     """Formats a report value for the text report.
 
     Args:
         value (object): Value to format.
         value_format (str): Format name from the metric registry.
+        duration_format (str, optional): Format used for duration values.
 
     Returns:
         str: Formatted value.
@@ -676,7 +726,7 @@ def format_value(value, value_format):
     if value_format == FORMAT_BYTES:
         return format_bytes(value)
     if value_format == FORMAT_DURATION:
-        return format_duration(value)
+        return format_duration(value, duration_format=duration_format)
     if value_format == FORMAT_INTEGER:
         return "{0:,}".format(int(value))
     if value_format == FORMAT_NUMBER:
@@ -719,16 +769,25 @@ def format_bytes(value):
     return "{0:,.2f} TB".format(size)
 
 
-def format_duration(value):
+def format_duration(value, duration_format=DEFAULT_REPORT_DURATION_FORMAT):
     """Formats a duration in seconds as a readable time value.
 
     Args:
         value (int or float): Duration in seconds.
+        duration_format (str, optional): Display format for the duration.
 
     Returns:
         str: Formatted duration, for example "1m 23s 500ms".
     """
     total_milliseconds = int(round(float(value or 0) * 1000))
+    if duration_format == REPORT_DURATION_FORMAT_CLOCK:
+        sign = "-" if total_milliseconds < 0 else ""
+        hours, remaining_milliseconds = divmod(abs(total_milliseconds), 3600000)
+        minutes, remaining_milliseconds = divmod(remaining_milliseconds, 60000)
+        seconds, milliseconds = divmod(remaining_milliseconds, 1000)
+        return f"{sign}{hours:02d}:{minutes:02d}:{seconds:02d}.{milliseconds:03d}"
+    if duration_format == REPORT_DURATION_FORMAT_SECONDS:
+        return f"{format_number(total_milliseconds / 1000.0)}s"
     sign = "-" if total_milliseconds < 0 else ""
     remaining_milliseconds = abs(total_milliseconds)
     hours, remaining_milliseconds = divmod(remaining_milliseconds, 3600000)
@@ -749,6 +808,19 @@ def format_duration(value):
     return f"{sign}{' '.join(parts)}"
 
 
+def normalize_timestamp_format(timestamp_format):
+    """Maps stored timestamp format names to supported display formats.
+
+    Args:
+        timestamp_format (str): Stored format name or legacy alias.
+
+    Returns:
+        str: Canonical display format name.
+    """
+    timestamp_format = str(timestamp_format or DEFAULT_REPORT_TIMESTAMP_FORMAT).strip()
+    return LEGACY_REPORT_TIMESTAMP_FORMATS.get(timestamp_format, timestamp_format)
+
+
 def format_timestamp(value, timestamp_format=DEFAULT_REPORT_TIMESTAMP_FORMAT):
     """Formats a report timestamp for display.
 
@@ -762,6 +834,7 @@ def format_timestamp(value, timestamp_format=DEFAULT_REPORT_TIMESTAMP_FORMAT):
     if value is None:
         return ""
     timestamp = str(value)
+    timestamp_format = normalize_timestamp_format(timestamp_format)
     if timestamp_format == REPORT_TIMESTAMP_FORMAT_ISO_8601:
         return timestamp
     try:
@@ -770,12 +843,23 @@ def format_timestamp(value, timestamp_format=DEFAULT_REPORT_TIMESTAMP_FORMAT):
     except (TypeError, ValueError):
         return timestamp
 
+    if timestamp_format == REPORT_TIMESTAMP_FORMAT_SHORT:
+        hour = parsed_timestamp.hour % 12 or 12
+        return (
+            f"{parsed_timestamp.strftime('%b')} {parsed_timestamp.day}, {parsed_timestamp.year} at "
+            f"{hour}:{parsed_timestamp.minute:02d} {parsed_timestamp.strftime('%p')}"
+        )
+    if timestamp_format == REPORT_TIMESTAMP_FORMAT_DAY_FIRST:
+        return (
+            f"{parsed_timestamp.day} {parsed_timestamp.strftime('%b')} {parsed_timestamp.year}, "
+            f"{parsed_timestamp.hour:02d}:{parsed_timestamp.minute:02d}"
+        )
+    if timestamp_format == REPORT_TIMESTAMP_FORMAT_NUMERIC:
+        return parsed_timestamp.strftime("%Y-%m-%d %H:%M")
     hour = parsed_timestamp.hour % 12 or 12
-    month = parsed_timestamp.strftime("%B")
-    period = parsed_timestamp.strftime("%p")
     return (
-        f"{month} {parsed_timestamp.day}, {parsed_timestamp.year} at "
-        f"{hour}:{parsed_timestamp.minute:02d} {period}"
+        f"{parsed_timestamp.strftime('%B')} {parsed_timestamp.day}, {parsed_timestamp.year} at "
+        f"{hour}:{parsed_timestamp.minute:02d} {parsed_timestamp.strftime('%p')}"
     )
 
 
@@ -842,7 +926,11 @@ def build_entry_lines(report_data):
         for field in fields:
             if field.get("name") not in values:
                 continue
-            value_text = format_value(values.get(field.get("name")), field.get("format"))
+            value_text = format_value(
+                values.get(field.get("name")),
+                field.get("format"),
+                duration_format=(report_data or {}).get("duration_format", DEFAULT_REPORT_DURATION_FORMAT),
+            )
             lines.append("    {0}: {1}".format(field.get("label"), value_text))
         for error in entry.get("errors") or []:
             lines.append("    Error: {0}".format(error))
