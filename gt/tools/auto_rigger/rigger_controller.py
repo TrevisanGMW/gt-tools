@@ -11,6 +11,9 @@ import gt.tools.auto_rigger.rig_constants as tools_rig_const
 import gt.tools.auto_rigger.rig_modules as tools_rig_modules
 import gt.tools.auto_rigger.rig_framework as tools_rig_frm
 import gt.tools.auto_rigger.rig_utils as tools_rig_utils
+from gt.tools.auto_rigger.environment_variables_dialog import (
+    AutoRiggerEnvironmentVariablesDialog,
+)
 import gt.ui.tree_widget_enhanced as ui_tree_enhanced
 import gt.ui.resource_library as ui_res_lib
 import gt.ui.file_dialog as ui_file_dialog
@@ -169,6 +172,7 @@ class RiggerController:
         self._opened_project_initial_state = {}  # Used for comparison to find changes
         self._has_high_level_changes = False
         self.control_pose_data_window = None
+        self.environment_variables_window = None
 
         # Preferences
         self._prefs = core_prefs.Prefs(tools_rig_const.RiggerConstants.PREFS_FILENAME)
@@ -490,7 +494,8 @@ class RiggerController:
 
         # Get Env Vars -------------------------------------------------------------------------------
         action_get_environment_vars = ui_qt.QtLib.QtGui.QAction(
-            "Get Environment Variables", icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.root_dev)
+            "Get Environment Variables",
+            icon=ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_env_var),
         )
         action_get_environment_vars.triggered.connect(self.get_environment_variables)
         self.view.add_menu_action(parent_menu=menu_utils, action=action_get_environment_vars)
@@ -1540,42 +1545,37 @@ class RiggerController:
 
     def get_environment_variables(self):
         """
-        Shows a window with the current environment variables and a refresh button.
+        Shows a filterable table of the current environment variables.
         """
+        if self.environment_variables_window is None:
+            self.environment_variables_window = AutoRiggerEnvironmentVariablesDialog(
+                refresh_callback=self.get_current_environment_variables,
+                parent=self.view,
+            )
+        self.environment_variables_window.refresh()
+        self.environment_variables_window.show()
+        self.environment_variables_window.raise_()
+        self.environment_variables_window.activateWindow()
 
-        def fetch_and_format_env_vars():
-            """
-            Gets the latest environment variables and formats them as a pretty JSON string.
+    def get_current_environment_variables(self):
+        """Gets project or selected-module environment variables.
 
-            This nested function is passed to the UI to be called by the refresh button.
-
-            Returns:
-                str: A formatted string representation of the environment variables dictionary.
-            """
-            _project = self.model.get_project()
-            _env_var_dict = tools_rig_frm.get_environment_variables(rig_project=_project)
-
-            # Attempt to Get Module Data
-            try:
-                attr_widgets = self.view.get_module_widget()
-                _env_var_dict = attr_widgets.module.get_module_environment_variables()
-            except Exception as e:
-                logger.debug(f"Unable to get environment variables from module. Module data was skipped. Issue: {e}")
-            return json.dumps(_env_var_dict, indent=4, sort_keys=True)
-
-        import gt.ui.python_output_view as ui_py_output
-
-        py_output_win = ui_py_output.PythonOutputView(
-            parent=self.view, button_label="Refresh", button_function=fetch_and_format_env_vars
+        Returns:
+            dict: Current token and value pairs.
+        """
+        project = self.model.get_project()
+        environment_variables = tools_rig_frm.get_environment_variables(
+            rig_project=project
         )
-
-        # Set a more descriptive title for the window
-        py_output_win.setWindowTitle("Environment Variables")
-
-        # Set the initial text by calling the function once
-        py_output_win.set_python_output_text(text=fetch_and_format_env_vars())
-
-        py_output_win.show()
+        try:
+            attr_widgets = self.view.get_module_widget()
+            environment_variables = attr_widgets.module.get_module_environment_variables()
+        except Exception as error:
+            logger.debug(
+                "Unable to get environment variables from module. "
+                f"Module data was skipped. Issue: {error}"
+            )
+        return environment_variables
 
     def open_geometry_preprocessor(self):
         """
