@@ -1050,43 +1050,273 @@ def reset_transforms():
         cmds.warning("Some objects couldn't be reset. Open the script editor for a list of errors.")
 
 
-def convert_transforms_to_locators():
-    """
-    Converts transforms to locators without deleting them.
-    Places a locator where every transform is.
+def _normalize_locator_axes(axis_values, channel_name):
+    """Validates a channel selection for the X, Y, and Z axes.
+
+    Args:
+        axis_values (tuple): Three values for X, Y, and Z.
+        channel_name (str): Channel family used in an error message.
+
     Returns:
-        list: A list of generated locators.
+        tuple: Three boolean values.
     """
+    if not isinstance(axis_values, (list, tuple)) or len(axis_values) != 3:
+        raise ValueError(f"{channel_name} axes must contain three values for X, Y, and Z.")
+    return tuple(bool(value) for value in axis_values)
+
+
+def _get_locator_bake_attributes(translate_axes, rotate_axes, scale_axes):
+    """Builds the long transform attribute names selected for baking.
+
+    Args:
+        translate_axes (tuple): Translate channel selection for X, Y, and Z.
+        rotate_axes (tuple): Rotate channel selection for X, Y, and Z.
+        scale_axes (tuple): Scale channel selection for X, Y, and Z.
+
+    Returns:
+        list: Selected long transform attribute names.
+    """
+    bake_attributes = []
+    for axis_index, axis_name in enumerate("XYZ"):
+        if translate_axes[axis_index]:
+            bake_attributes.append(f"translate{axis_name}")
+        if rotate_axes[axis_index]:
+            bake_attributes.append(f"rotate{axis_name}")
+        if scale_axes[axis_index]:
+            bake_attributes.append(f"scale{axis_name}")
+    return bake_attributes
+
+
+def _create_locator_with_constraints(
+    source_object,
+    locator_group,
+    translate_axes,
+    rotate_axes,
+    scale_axes,
+    locator_scale,
+):
+    """Creates one locator and constraints for the selected transform channels.
+
+    Args:
+        source_object (str): Source transform name.
+        locator_group (str): Parent group for generated locators.
+        translate_axes (tuple): Translate channel selection for X, Y, and Z.
+        rotate_axes (tuple): Rotate channel selection for X, Y, and Z.
+        scale_axes (tuple): Scale channel selection for X, Y, and Z.
+        locator_scale (float): Scale applied to the locator shape.
+
+    Returns:
+        tuple: Locator transform name and constraints created for it.
+    """
+    locator = None
+    source_constraints = []
+    try:
+        source_name = source_object.rsplit("|", 1)[-1]
+        locator = cmds.spaceLocator(name=f"{source_name}_loc")[0]
+        cmds.parent(locator, locator_group)
+        locator_shapes = cmds.listRelatives(locator, shapes=True, type="locator", fullPath=True) or []
+        for locator_shape in locator_shapes:
+            for axis_name in "XYZ":
+                cmds.setAttr(f"{locator_shape}.localScale{axis_name}", locator_scale)
+
+        skipped_translate = [axis.lower() for axis, enabled in zip("XYZ", translate_axes) if not enabled]
+        skipped_rotate = [axis.lower() for axis, enabled in zip("XYZ", rotate_axes) if not enabled]
+        skipped_scale = [axis.lower() for axis, enabled in zip("XYZ", scale_axes) if not enabled]
+
+        if any(translate_axes) or any(rotate_axes):
+            constraint = cmds.parentConstraint(
+                source_object,
+                locator,
+                skipTranslate=skipped_translate,
+                skipRotate=skipped_rotate,
+            )
+            source_constraints.extend(constraint or [])
+        if any(scale_axes):
+            constraint = cmds.scaleConstraint(source_object, locator, skip=skipped_scale)
+            source_constraints.extend(constraint or [])
+        return locator, source_constraints
+    except Exception:
+        if source_constraints:
+            try:
+                cmds.delete(source_constraints)
+            except Exception:
+                pass
+        if locator and cmds.objExists(locator):
+            try:
+                cmds.delete(locator)
+            except Exception:
+                pass
+        raise
+
+
+def _delete_existing_constraints(constraint_nodes):
+    """Deletes the listed constraint nodes that still exist.
+
+    Args:
+        constraint_nodes (list): Constraint node names.
+    """
+    existing_constraints = [node for node in constraint_nodes if cmds.objExists(node)]
+    if existing_constraints:
+        cmds.delete(existing_constraints)
+
+
+def _apply_locator_color(locator, auto_side_color, locator_color):
+    """Applies either auto side color or a fixed viewport override.
+
+    Args:
+        locator (str): Locator transform name.
+        auto_side_color (bool): Whether to use the shared automatic side setup.
+        locator_color (tuple): Optional RGB value for a fixed viewport color.
+    """
+    if not auto_side_color and locator_color is None:
+        return
+    from gt.core import color as core_color
+
+    if auto_side_color:
+        core_color.add_side_color_setup(locator)
+    elif isinstance(locator_color, (list, tuple)) and len(locator_color) >= 3:
+        core_color.set_color_viewport(locator, rgb_color=locator_color[:3])
+
+
+def convert_transforms_to_locators(
+    translate_axes=(True, True, True),
+    rotate_axes=(True, True, True),
+    scale_axes=(True, True, True),
+    bake_range=None,
+    constraint_transforms=False,
+    locator_scale=1.0,
+    auto_side_color=False,
+    locator_color=None,
+):
+    """Creates locators matching selected transform channels without deleting sources.
+
+    Locators are grouped under ``transforms_as_locators_grp``. A bake range creates
+    keys at one-frame intervals across the inclusive range. The locator shape size
+    is controlled independently from the locator transform scale.
+
+    Args:
+        translate_axes (tuple, optional): Whether to copy Translate X, Y, and Z.
+        rotate_axes (tuple, optional): Whether to copy Rotate X, Y, and Z.
+        scale_axes (tuple, optional): Whether to copy Scale X, Y, and Z.
+        bake_range (tuple, optional): Start and end frames to bake. Defaults to None,
+            which creates locators at the current frame without keys.
+        constraint_transforms (bool, optional): Keeps the transform constraints
+            connected after locator creation. Defaults to False.
+        locator_scale (float, optional): Scale applied to each locator shape's local
+            scale. Defaults to 1.0.
+        auto_side_color (bool, optional): Adds the shared automatic left/right color
+            network to each locator. Defaults to False.
+        locator_color (tuple, optional): RGB color applied to each locator when
+            automatic side color is off. Defaults to None.
+
+    Returns:
+        list: Generated locator transform names, or None when nothing is selected.
+    """
+
+    translate_axes = _normalize_locator_axes(translate_axes, "Translate")
+    rotate_axes = _normalize_locator_axes(rotate_axes, "Rotate")
+    scale_axes = _normalize_locator_axes(scale_axes, "Scale")
+    locator_scale = float(locator_scale)
+    if locator_scale <= 0:
+        raise ValueError("Locator shape scale must be greater than zero.")
+
+    if bake_range is not None and constraint_transforms:
+        raise ValueError("Baking and keeping transform constraints are separate modes.")
+
+    if bake_range is not None:
+        if not isinstance(bake_range, (list, tuple)) or len(bake_range) != 2:
+            raise ValueError("Bake range must contain a start and end frame.")
+        bake_start = float(bake_range[0])
+        bake_end = float(bake_range[1])
+        if bake_start > bake_end:
+            cmds.warning("Bake start frame must be less than or equal to the end frame.")
+            return []
+    else:
+        bake_start = None
+        bake_end = None
+
     selection = cmds.ls(selection=True, long=True)
     selection_short = cmds.ls(selection=True)
-    errors = ""
-    locators = []
     if not selection:
         cmds.warning("Nothing selected. Please select at least one object and try again.")
         return
 
-    locators_grp = "transforms_as_locators_grp"
-    if not cmds.objExists(locators_grp):
-        locators_grp = cmds.group(name=locators_grp, world=True, empty=True)
+    locators = []
+    constraint_nodes = []
+    errors = []
+    locator_group = "transforms_as_locators_grp"
+    original_time = None
+    bake_attributes = _get_locator_bake_attributes(translate_axes, rotate_axes, scale_axes)
 
-    for obj in selection:
+    cmds.undoInfo(openChunk=True, chunkName="Convert Transforms to Locators")
+    try:
+        if not cmds.objExists(locator_group):
+            locator_group = cmds.group(name=locator_group, world=True, empty=True)
+        if bake_range is not None:
+            original_time = cmds.currentTime(query=True)
+
+        for source_object in selection:
+            try:
+                locator, source_constraints = _create_locator_with_constraints(
+                    source_object=source_object,
+                    locator_group=locator_group,
+                    translate_axes=translate_axes,
+                    rotate_axes=rotate_axes,
+                    scale_axes=scale_axes,
+                    locator_scale=locator_scale,
+                )
+                locators.append(locator)
+                constraint_nodes.extend(source_constraints)
+                if bake_range is None and not constraint_transforms and source_constraints:
+                    _delete_existing_constraints(source_constraints)
+                    for constraint_node in source_constraints:
+                        if constraint_node in constraint_nodes:
+                            constraint_nodes.remove(constraint_node)
+            except Exception as exception:
+                errors.append(f'{source_object}: {exception}')
+
+        if bake_range is not None and locators and bake_attributes:
+            try:
+                cmds.bakeResults(
+                    locators,
+                    time=(bake_start, bake_end),
+                    sampleBy=1.0,
+                    simulation=True,
+                    attribute=bake_attributes,
+                )
+            except Exception as exception:
+                errors.append(f"Unable to bake locators: {exception}")
+
+        if constraint_nodes and not constraint_transforms:
+            _delete_existing_constraints(constraint_nodes)
+            constraint_nodes = []
+
+        for locator in locators:
+            try:
+                _apply_locator_color(locator, auto_side_color, locator_color)
+            except Exception as exception:
+                errors.append(f'Unable to color "{locator}": {exception}')
+    finally:
         try:
-            loc = cmds.spaceLocator(name=obj + "_loc")[0]
-            cmds.parent(loc, locators_grp)
-            cmds.delete(cmds.parentConstraint(obj, loc))
-            cmds.delete(cmds.scaleConstraint(obj, loc))
-            locators.append(loc)
-        except Exception as exception:
-            errors += str(exception) + "\n"
+            if constraint_nodes and not constraint_transforms:
+                _delete_existing_constraints(constraint_nodes)
+        finally:
+            try:
+                if original_time is not None:
+                    cmds.currentTime(original_time, edit=True)
+            finally:
+                try:
+                    cmds.select(selection, replace=True)
+                finally:
+                    cmds.undoInfo(closeChunk=True, chunkName="Convert Transforms to Locators")
 
     if errors:
         print(("#" * 50) + "\n")
-        print(errors)
+        print("\n".join(errors))
         print("#" * 50)
 
     counter = len(locators)
     if counter > 0:
-        cmds.select(selection)
         feedback = core_fback.FeedbackMessage(
             quantity=counter, singular="locator was", plural="locators were", conclusion="created."
         )
@@ -1097,7 +1327,7 @@ def convert_transforms_to_locators():
                 conclusion="locator was created.",
             )
         feedback.print_inview_message(system_write=False)
-        feedback.conclusion = f'created. Find generated elements in the group "{str(locators_grp)}".'
+        feedback.conclusion = f'created. Find generated elements in the group "{str(locator_group)}".'
         sys.stdout.write(f"\n{feedback.get_string_message()}\n")
     return locators
 
