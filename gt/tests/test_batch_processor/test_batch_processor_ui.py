@@ -1356,6 +1356,104 @@ class TestBatchProcessorUi(unittest.TestCase):
         self.assertEqual("publish_*.py", batch_entry["include_field"].text())
         self.assertEqual("wip_*.py", batch_entry["exclude_field"].text())
 
+    def test_python_script_run_buttons_follow_edit_and_directory_controls(self):
+        """Places run actions beside their related path and ordering controls."""
+        external_task = batch_processor_tasks.TaskPythonScript(
+            settings={
+                "script_mode": "External File",
+                "external_scripts": [{"path": "first.py"}, {"path": "second.py"}],
+            }
+        )
+        external_widget = attr_widget_python_script.AttrWidgetPythonScriptTask(
+            task=external_task,
+            project=self.model,
+        )
+        external_row = external_widget.external_script_widgets[0]
+        external_layout = external_row["row"].layout()
+        self.assertLess(
+            external_layout.indexOf(external_row["edit_button"]),
+            external_layout.indexOf(external_row["run_button"]),
+        )
+        self.assertLess(
+            external_layout.indexOf(external_row["run_button"]),
+            external_layout.indexOf(external_row["move_up_button"]),
+        )
+        self.assertIn("Run this Python script", external_row["run_button"].toolTip())
+
+        batch_task = batch_processor_tasks.TaskPythonScript(
+            settings={
+                "script_mode": "Batch Directory",
+                "batch_directories": [{"path": "first"}, {"path": "second"}],
+            }
+        )
+        batch_widget = attr_widget_python_script.AttrWidgetPythonScriptTask(
+            task=batch_task,
+            project=self.model,
+        )
+        batch_row = batch_widget.batch_directory_widgets[0]
+        path_layout = batch_row["container"].layout().itemAt(0).layout()
+        self.assertLess(
+            path_layout.indexOf(batch_row["open_button"]),
+            path_layout.indexOf(batch_row["run_button"]),
+        )
+        self.assertLess(
+            path_layout.indexOf(batch_row["run_button"]),
+            path_layout.indexOf(batch_row["move_down_button"]),
+        )
+        self.assertIn("configured filters", batch_row["run_button"].toolTip())
+        self.assertFalse(external_row["run_button"].icon().isNull())
+        self.assertFalse(batch_row["run_button"].icon().isNull())
+        external_widget.close()
+        batch_widget.close()
+
+    def test_external_python_script_run_button_runs_its_script_with_context(self):
+        """Runs the selected external file with the script task preview context."""
+        with tempfile.TemporaryDirectory() as directory:
+            script_path = os.path.join(directory, "external.py")
+            with open(script_path, "w", encoding="utf-8") as script_file:
+                script_file.write("def run(context):\n    return context\n")
+            task = batch_processor_tasks.TaskPythonScript(settings={"script_mode": "External File"})
+            widget = attr_widget_python_script.AttrWidgetPythonScriptTask(task=task, project=self.model)
+            widget.external_script_widgets[0]["field"].setText(script_path)
+            with mock.patch.object(task, "run_python_script") as run_python_script:
+                widget.external_script_widgets[0]["run_button"].click()
+
+            run_python_script.assert_called_once()
+            call_kwargs = run_python_script.call_args.kwargs
+            self.assertEqual(script_path, call_kwargs["script_path"])
+            self.assertEqual([script_path], call_kwargs["context"]["script_paths"])
+            self.assertTrue(call_kwargs["context"]["preview"])
+            self.assertTrue(call_kwargs["context"]["run_script_now"])
+            widget.close()
+
+    def test_batch_directory_run_button_uses_configured_filters_and_order(self):
+        """Runs only filtered directory scripts, in the displayed sorted order."""
+        with tempfile.TemporaryDirectory() as directory:
+            for file_name in ["z_publish.py", "a_publish.py", "skip.py"]:
+                with open(os.path.join(directory, file_name), "w", encoding="utf-8") as script_file:
+                    script_file.write("def run(context):\n    return context\n")
+            task = batch_processor_tasks.TaskPythonScript(settings={"script_mode": "Batch Directory"})
+            widget = attr_widget_python_script.AttrWidgetPythonScriptTask(task=task, project=self.model)
+            batch_row = widget.batch_directory_widgets[0]
+            batch_row["field"].setText(directory)
+            batch_row["include_field"].setText("*_publish.py")
+            batch_row["exclude_field"].setText("skip*")
+            self.application.processEvents()
+            expected_paths = [
+                os.path.join(directory, "a_publish.py"),
+                os.path.join(directory, "z_publish.py"),
+            ]
+
+            with mock.patch.object(task, "run_python_script") as run_python_script:
+                batch_row["run_button"].click()
+
+            result = [call.kwargs["script_path"] for call in run_python_script.call_args_list]
+            self.assertEqual(expected_paths, result)
+            for call in run_python_script.call_args_list:
+                self.assertEqual(expected_paths, call.kwargs["context"]["script_paths"])
+                self.assertTrue(call.kwargs["context"]["run_script_now"])
+            widget.close()
+
     def test_inline_python_editor_loads_example_script_when_empty(self):
         """Ensures selecting an example fills an empty inline editor."""
         sample = task_utils.get_script_samples("python_script")[0]

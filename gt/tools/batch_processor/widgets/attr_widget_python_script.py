@@ -450,6 +450,9 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
         edit_button = ui_qt.QtWidgets.QPushButton()
         edit_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_templates_python))
         edit_button.setToolTip("Open this Python script for editing.")
+        run_button = ui_qt.QtWidgets.QPushButton()
+        run_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_play))
+        run_button.setToolTip("Run this Python script now in the current Maya session.")
         delete_button = ui_qt.QtWidgets.QPushButton()
         delete_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_delete))
         delete_button.setToolTip("Remove this external script.")
@@ -458,6 +461,7 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
         layout.addWidget(open_button)
         layout.addWidget(browse_button)
         layout.addWidget(edit_button)
+        layout.addWidget(run_button)
         move_up_button = None
         move_down_button = None
         if entry_count > 1:
@@ -496,6 +500,9 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
                 self.get_resolved_field_path(path_field)
             )
         )
+        run_button.clicked.connect(
+            lambda checked=False, index=script_index: self.run_external_script_now(index)
+        )
         if move_up_button:
             move_up_button.clicked.connect(
                 lambda checked=False, index=script_index: self.move_external_script(index, -1)
@@ -514,6 +521,7 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
             "open_button": open_button,
             "browse_button": browse_button,
             "edit_button": edit_button,
+            "run_button": run_button,
             "move_up_button": move_up_button,
             "move_down_button": move_down_button,
             "delete_button": delete_button,
@@ -635,6 +643,11 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
         open_button = ui_qt.QtWidgets.QPushButton()
         open_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_open_external))
         open_button.setToolTip("Open this directory.")
+        run_button = ui_qt.QtWidgets.QPushButton()
+        run_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_play))
+        run_button.setToolTip(
+            "Run every Python script in this directory now, in sorted order and using its configured filters."
+        )
         browse_button = ui_qt.QtWidgets.QPushButton()
         browse_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_open))
         browse_button.setToolTip("Browse for a directory.")
@@ -645,6 +658,7 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
         path_row.addWidget(field)
         path_row.addWidget(info_button)
         path_row.addWidget(open_button)
+        path_row.addWidget(run_button)
         path_row.addWidget(browse_button)
         move_up_button = None
         move_down_button = None
@@ -709,6 +723,9 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
         )
         info_button.clicked.connect(partial(self.open_env_var_feedback_dialog, field=field))
         open_button.clicked.connect(partial(self.open_resolved_path_directory, field=field))
+        run_button.clicked.connect(
+            lambda checked=False, index=directory_index: self.run_batch_directory_now(index)
+        )
         browse_button.clicked.connect(partial(self.open_path_dialog, field=field, dir_only=True))
         expand_button.toggled.connect(
             lambda is_checked, button=expand_button, widget=filters_row: self.toggle_batch_directory(
@@ -732,6 +749,7 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
             "field": field,
             "info_button": info_button,
             "open_button": open_button,
+            "run_button": run_button,
             "browse_button": browse_button,
             "move_up_button": move_up_button,
             "move_down_button": move_down_button,
@@ -886,8 +904,88 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
         self.emit_status_message("Executed Python editor code.")
         sys.stdout.write("Executed Python editor code.\n")
 
-    def build_editor_preview_context(self):
-        """Builds the context used when running inline code from the editor.
+    def run_external_script_now(self, script_index):
+        """Runs one configured external Python script in the current Maya session.
+
+        Args:
+            script_index (int): Zero-based external script entry index.
+        """
+        entries = self.task.get_external_script_entries()
+        if script_index < 0 or script_index >= len(entries):
+            return
+        script_path = self.task.resolve_external_script_path(entries[script_index].get("path"), self.project)
+        if not script_path or not os.path.isfile(script_path):
+            message = f"External Python script does not exist: {script_path or '<empty path>'}"
+            self.emit_status_message(message, status="warning")
+            sys.stderr.write(f"{message}\n")
+            return
+        self.run_python_scripts_now([script_path], action_name="external Python script")
+
+    def run_batch_directory_now(self, directory_index):
+        """Runs the filtered scripts from one configured batch directory.
+
+        Args:
+            directory_index (int): Zero-based batch directory entry index.
+        """
+        entries = self.task.get_batch_directory_entries()
+        if directory_index < 0 or directory_index >= len(entries):
+            return
+        directory_entry = entries[directory_index]
+        script_paths = self.task.get_batch_script_paths(self.project, directory_entry)
+        if not script_paths:
+            directory_path = self.task.resolve_batch_directory_path(directory_entry.get("path"), self.project)
+            message = f"No Python scripts matched the filters in: {directory_path or '<empty directory>'}"
+            self.emit_status_message(message, status="warning")
+            sys.stderr.write(f"{message}\n")
+            return
+        self.run_python_scripts_now(script_paths, action_name="batch directory")
+
+    def run_python_scripts_now(self, script_paths, action_name):
+        """Runs resolved Python scripts in order with a preview batch context.
+
+        Args:
+            script_paths (list): Python script paths to run in order.
+            action_name (str): Short action description used in status messages.
+
+        Returns:
+            bool: True when all scripts ran successfully.
+        """
+        script_paths = list(script_paths or [])
+        if not script_paths:
+            message = f"No Python scripts were provided for the {action_name}."
+            self.emit_status_message(message, status="warning")
+            sys.stderr.write(f"{message}\n")
+            return False
+        for script_path in script_paths:
+            if not os.path.isfile(script_path):
+                message = f"Python script does not exist: {script_path}"
+                self.emit_status_message(message, status="warning")
+                sys.stderr.write(f"{message}\n")
+                return False
+        try:
+            runtime_context = self.build_editor_preview_context(script_paths=script_paths)
+            for script_path in script_paths:
+                sys.stdout.write(f"Running Python script: {script_path}\n")
+                self.task.run_python_script(script_path=script_path, context=runtime_context)
+        except Exception as exception:
+            traceback.print_exc()
+            message = f"Running the {action_name} failed: {exception}"
+            self.emit_status_message(message, status="warning")
+            sys.stderr.write(f"{message}\n")
+            return False
+        if len(script_paths) == 1:
+            message = f"Ran Python script: {os.path.basename(script_paths[0])}"
+        else:
+            message = f"Ran {len(script_paths)} Python scripts from the {action_name}."
+        self.emit_status_message(message)
+        sys.stdout.write(f"{message}\n")
+        return True
+
+    def build_editor_preview_context(self, script_paths=None):
+        """Builds the preview context used by manual Python execution actions.
+
+        Args:
+            script_paths (list, optional): Ordered script paths exposed in the context.
 
         Returns:
             dict: Runtime context matching the task execution context.
@@ -906,12 +1004,15 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
             output_path = self.task.build_output_path(work_item=work_item, step_output_dir=step_output_dir)
         except Exception:
             output_path = os.path.join(step_output_dir, "python_preview{0}".format(self.task.get_output_extension()))
+        script_paths = list(script_paths or [])
+        context = {"preview": True}
+        context["run_code" if not script_paths else "run_script_now"] = True
         return self.task.build_script_context(
             work_item=work_item,
             output_path=output_path,
             project=self.project,
-            script_paths=[],
-            context={"preview": True, "run_code": True},
+            script_paths=script_paths,
+            context=context,
         )
 
     def build_editor_preview_work_item(self):
