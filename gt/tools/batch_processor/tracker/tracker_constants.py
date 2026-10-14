@@ -3,6 +3,7 @@
 
 PREFS_FILENAME = "batch_processor_tracker"
 PREFS_KEY_FLAG_SKIPS_AS_WARNINGS = "flag_skips_as_warnings"
+PREFS_KEY_HIDE_COMPLETED_BY_DEFAULT = "hide_completed_by_default"
 
 
 class HealthState:

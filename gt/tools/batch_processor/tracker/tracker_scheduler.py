@@ -200,8 +200,13 @@ class TrackerScheduler:
         """
         if not job or job.is_finalization:
             return False
-        if self.segmented and getattr(job, "segment_index", 0) != self.current_segment_index:
-            return False
+        if self.segmented:
+            job_segment_index = getattr(job, "segment_index", 0)
+            if job_segment_index > self.current_segment_index:
+                return False
+            if job_segment_index < self.current_segment_index:
+                if not self.session.finished or self.running or self.regular_queue:
+                    return False
         if job.status not in tracker_constants.TERMINAL_STATUSES:
             return False
         if job.id in self.running or job in self.regular_queue:
@@ -284,27 +289,51 @@ class TrackerScheduler:
         Returns:
             bool: True when the job was queued.
         """
-        if not self.can_restart_job(job):
-            return False
-        self.timed_out_jobs.discard(job.id)
-        job.reset_for_restart()
-        self.regular_queue.append(job)
+        return bool(self.restart_jobs([job]))
+
+    def restart_jobs(self, jobs):
+        """Resets and queues multiple terminal regular jobs as one operation.
+
+        Validates every job before changing scheduler state. This allows bulk
+        restarts to include terminal jobs from completed earlier segments,
+        while keeping older segment jobs unavailable during active processing.
+
+        Args:
+            jobs (list): Terminal regular jobs to execute again.
+
+        Returns:
+            list: Jobs that were queued for another execution.
+        """
+        unique_jobs = []
+        seen_job_ids = set()
+        for job in jobs or []:
+            if not job or job.id in seen_job_ids:
+                continue
+            unique_jobs.append(job)
+            seen_job_ids.add(job.id)
+        if not unique_jobs or any(not self.can_restart_job(job) for job in unique_jobs):
+            return []
+
+        self._preserve_terminal_finalization = bool(
+            self.finalization_job
+            and self.finalization_job.status in tracker_constants.TERMINAL_STATUSES
+        )
+        for job in unique_jobs:
+            self.timed_out_jobs.discard(job.id)
+            job.reset_for_restart()
+            self.regular_queue.append(job)
+            self._append_project_log(
+                f"[OPERATION] - (Multi-instance) - Restart queued for '{job.name}'.\n"
+            )
         self.session.finished = False
         self.session.completed_at = ""
         self.session.aborting = False
         self.abort_requested_at = None
         self._finish_notified = False
-        self._preserve_terminal_finalization = bool(
-            self.finalization_job
-            and self.finalization_job.status in tracker_constants.TERMINAL_STATUSES
-        )
-        self._append_project_log(
-            f"[OPERATION] - (Multi-instance) - Restart queued for '{job.name}'.\n"
-        )
         self.write_state()
         if callable(self.update_callback):
             self.update_callback()
-        return True
+        return unique_jobs
 
     def _advance_retries(self):
         """Re-queues failed regular jobs that still have retry attempts left.

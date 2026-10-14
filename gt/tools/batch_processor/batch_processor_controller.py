@@ -7,11 +7,13 @@ from gt.tools.batch_processor import batch_processor_tasks as tasks
 from gt.tools.batch_processor.widgets.attr_widget_base import get_icon_path
 from gt.tools.batch_processor.widgets.attr_widget_project import AttrWidgetProject
 from gt.tools.batch_processor.widgets.attr_widget_task import get_task_widget_class
+from gt.tools.batch_processor.widgets.environment_variables_dialog import (
+    EnvironmentVariablesDialog,
+)
 from gt.tools.batch_processor import batch_processor_templates
 from gt.tools.batch_processor import batch_processor_log_view
 from gt.tools.batch_processor import batch_processor_tracker
 from gt.tools.batch_processor import batch_processor_worker
-import gt.ui.python_output_view as ui_python_output_view
 import gt.ui.resource_library as ui_res_lib
 import gt.ui.file_dialog as ui_file_dialog
 import gt.ui.qt_utils as ui_qt_utils
@@ -48,6 +50,7 @@ class BatchProcessorController:
         self.model = model
         self.view = view
         self.view.controller = self
+        self.environment_variables_window = None
         self.log_view = batch_processor_log_view.BatchProcessorLoggingView(parent=self.view)
         self._active_log_file_path = None
         self._saved_project_state = None
@@ -988,20 +991,33 @@ class BatchProcessorController:
         self.log_status('Added task: "{0}".'.format(new_task.display_name))
 
     def show_environment_variables(self):
-        """Shows resolved project environment variables."""
+        """Shows resolved project environment variables in a filterable table."""
+        if self.environment_variables_window is None:
+            self.environment_variables_window = EnvironmentVariablesDialog(
+                refresh_callback=self.get_current_environment_variables,
+                parent=self.view,
+            )
+
+        self.environment_variables_window.refresh()
+        self.environment_variables_window.show()
+        self.environment_variables_window.raise_()
+        self.environment_variables_window.activateWindow()
+        self.log_status("Opened environment variables window.")
+
+    def get_current_environment_variables(self):
+        """Gets resolved environment variables for the currently selected task.
+
+        Returns:
+            dict: Resolved environment-variable tokens and values.
+        """
         task_id = self.view.get_selected_task_id()
         task = self.model.get_task(task_id) if task_id else None
         task_index = self.model.get_task_environment_index(task) if task else None
-        environment_variables = self.model.get_environment_variables(
+        return self.model.get_environment_variables(
             task=task,
             task_index=task_index,
             include_braces=True,
         )
-        output_window = ui_python_output_view.PythonOutputView(parent=self.view, editable=False)
-        output_window.setWindowTitle("Batch Project Environment Variables")
-        output_window.set_python_output_text(json.dumps(environment_variables, indent=4, sort_keys=True))
-        output_window.show()
-        self.log_status("Opened environment variables window.")
 
     def validate_project(self):
         """Validates the current project and updates the view."""
@@ -1410,29 +1426,31 @@ class BatchProcessorController:
 
         menu = ui_qt.QtWidgets.QMenu()
 
-        action_duplicate = self.create_action("Duplicate", icon_path=ui_res_lib.Icon.rigger_action_duplicate)
+        action_duplicate = self.create_action(
+            "Duplicate", icon_path=ui_res_lib.Icon.rigger_action_duplicate_grayscale
+        )
         action_duplicate.triggered.connect(partial(self.context_menu_duplicate_task, source_task))
         self.view.add_menu_action(parent_menu=menu, action=action_duplicate)
 
-        action_copy = self.create_action("Copy", icon_path=ui_res_lib.Icon.rigger_action_copy)
+        action_copy = self.create_action("Copy", icon_path=ui_res_lib.Icon.rigger_action_copy_grayscale)
         action_copy.triggered.connect(partial(self.context_menu_copy_task, source_task))
         self.view.add_menu_action(parent_menu=menu, action=action_copy)
 
-        action_paste = self.create_action("Paste", icon_path=ui_res_lib.Icon.rigger_action_paste)
+        action_paste = self.create_action("Paste", icon_path=ui_res_lib.Icon.rigger_action_paste_grayscale)
         action_paste.triggered.connect(self.context_menu_paste_task)
         self.view.add_menu_action(parent_menu=menu, action=action_paste)
 
-        action_export = self.create_action("Export", icon_path=ui_res_lib.Icon.rigger_action_export)
+        action_export = self.create_action("Export", icon_path=ui_res_lib.Icon.rigger_action_export_grayscale)
         action_export.triggered.connect(partial(self.context_menu_export_task, source_task))
         self.view.add_menu_action(parent_menu=menu, action=action_export)
 
-        action_import = self.create_action("Import", icon_path=ui_res_lib.Icon.rigger_action_import)
+        action_import = self.create_action("Import", icon_path=ui_res_lib.Icon.rigger_action_import_grayscale)
         action_import.triggered.connect(self.context_menu_import_task)
         self.view.add_menu_action(parent_menu=menu, action=action_import)
 
         menu.addSeparator()
 
-        action_delete = self.create_action("Delete", icon_path=ui_res_lib.Icon.ui_delete)
+        action_delete = self.create_action("Delete", icon_path=ui_res_lib.Icon.rigger_action_delete_grayscale)
         action_delete.triggered.connect(partial(self.context_menu_delete_task, source_task))
         self.view.add_menu_action(parent_menu=menu, action=action_delete)
 
