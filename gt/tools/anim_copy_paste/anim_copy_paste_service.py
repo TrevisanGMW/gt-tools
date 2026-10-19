@@ -135,6 +135,7 @@ class AnimCopyPasteService:
         source_namespace="",
         target_namespace="",
         apply_euler_filter=False,
+        reverse_animation=False,
     ):
         """Pastes an animation clip onto target objects.
 
@@ -151,12 +152,18 @@ class AnimCopyPasteService:
             target_namespace (str, optional): Destination namespace for the
                 namespace-swap mapping mode.
             apply_euler_filter (bool, optional): Whether to Euler filter pasted curves.
+            reverse_animation (bool, optional): Whether to paste the clip in reverse.
 
         Returns:
             dict: Core paste operation result.
         """
+        paste_clip_data = (
+            copy_model.AnimCopyPasteModel.reverse_animation_clip(clip_data)
+            if reverse_animation
+            else clip_data
+        )
         result = core_anim.paste_animation_clip(
-            clip_data=clip_data,
+            clip_data=paste_clip_data,
             targets=targets or None,
             paste_time=paste_time,
             mode=mode,

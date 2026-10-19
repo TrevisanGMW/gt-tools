@@ -24,6 +24,7 @@ logger.setLevel(logging.INFO)
 
 KEY_TYPE_TIME = ["animCurveTA", "animCurveTL", "animCurveTT", "animCurveTU"]
 KEY_TYPE_DOUBLE = ["animCurveUL", "animCurveUA", "animCurveUT", "animCurveUU"]
+ANIMATION_BLEND_NODE_TYPES = ("blendWeighted", "pairBlend", "mute")
 
 
 def get_frame_sample_times(start_frame, end_frame, sample_by=1.0):
@@ -153,10 +154,55 @@ def get_time_keyframes(obj_list=None):
         for obj in obj_list:
             key_nodes = cmds.keyframe(obj, query=True, name=True) or []
             keyframe_nodes.update(key_nodes)
+            keyframe_nodes.update(_get_upstream_time_keyframes(obj))
         return sorted(list(keyframe_nodes))
 
     # If no object list is given, return all animation curve nodes in the scene
     return cmds.ls(type=KEY_TYPE_TIME) or []
+
+
+def _get_upstream_time_keyframes(obj):
+    """Finds time curves upstream of an object through Maya animation blend nodes.
+
+    Args:
+        obj (str): Maya object whose incoming animation is inspected.
+
+    Returns:
+        set: Time animation curve nodes connected directly or through blend nodes.
+    """
+    incoming_plugs = cmds.listConnections(
+        obj,
+        source=True,
+        destination=False,
+        plugs=True,
+        skipConversionNodes=True,
+    ) or []
+    pending_plugs = list(incoming_plugs)
+    visited_nodes = set()
+    keyframe_nodes = set()
+    while pending_plugs:
+        incoming_plug = pending_plugs.pop()
+        incoming_node = incoming_plug.split(".", 1)[0]
+        if incoming_node in visited_nodes:
+            continue
+        visited_nodes.add(incoming_node)
+        try:
+            incoming_type = cmds.nodeType(incoming_node)
+        except RuntimeError:
+            continue
+        if incoming_type in KEY_TYPE_TIME:
+            keyframe_nodes.add(incoming_node)
+        elif incoming_type in ANIMATION_BLEND_NODE_TYPES or incoming_type.startswith("animBlendNode"):
+            pending_plugs.extend(
+                cmds.listConnections(
+                    incoming_node,
+                    source=True,
+                    destination=False,
+                    plugs=True,
+                    skipConversionNodes=True,
+                ) or []
+            )
+    return keyframe_nodes
 
 
 def get_double_keyframes(obj_list=None):
@@ -216,6 +262,145 @@ def get_double_keyframes(obj_list=None):
 
     # If no object list is given, return all driven keyframe nodes in the scene
     return sorted(cmds.ls(type=KEY_TYPE_DOUBLE)) or []
+
+
+def _get_keyframe_destination_plugs(keyframe_node, obj_list=None):
+    """Gets the connected destination plugs for an animation curve.
+
+    Args:
+        keyframe_node (str): Animation curve node.
+        obj_list (list, optional): Restricts results to plugs owned by these objects.
+
+    Returns:
+        list: Destination attribute plugs connected to the curve and within scope.
+    """
+    connected_plugs = cmds.listConnections(
+        keyframe_node,
+        source=False,
+        destination=True,
+        plugs=True,
+        skipConversionNodes=True,
+    ) or []
+    destination_plugs = []
+    pending_plugs = list(connected_plugs)
+    visited_plugs = set()
+    while pending_plugs:
+        destination_plug = pending_plugs.pop()
+        if destination_plug in visited_plugs:
+            continue
+        visited_plugs.add(destination_plug)
+        destination_node = destination_plug.split(".", 1)[0]
+        try:
+            destination_type = cmds.nodeType(destination_node)
+        except RuntimeError:
+            destination_type = ""
+        if destination_type in ANIMATION_BLEND_NODE_TYPES or destination_type.startswith("animBlendNode"):
+            pending_plugs.extend(
+                cmds.listConnections(
+                    destination_node,
+                    source=False,
+                    destination=True,
+                    plugs=True,
+                    skipConversionNodes=True,
+                ) or []
+            )
+        else:
+            destination_plugs.append(destination_plug)
+    if obj_list is None:
+        return destination_plugs
+
+    if isinstance(obj_list, str):
+        obj_list = [obj_list]
+    scoped_nodes = set()
+    for obj in obj_list:
+        scoped_nodes.update(cmds.ls(obj, long=True) or [obj])
+
+    scoped_destination_plugs = []
+    for destination_plug in destination_plugs:
+        destination_node = destination_plug.split(".", 1)[0]
+        destination_nodes = set(cmds.ls(destination_node, long=True) or [destination_node])
+        if scoped_nodes.intersection(destination_nodes):
+            scoped_destination_plugs.append(destination_plug)
+    return scoped_destination_plugs
+
+
+def _is_keyframe_node_within_scope(keyframe_node, obj_list):
+    """Checks that every destination for a keyframe node is in the object scope.
+
+    Args:
+        keyframe_node (str): Animation curve node.
+        obj_list (list): Explicit object scope.
+
+    Returns:
+        bool: True when the curve has destinations and all are scoped.
+    """
+    destination_plugs = _get_keyframe_destination_plugs(keyframe_node)
+    if not destination_plugs:
+        return False
+    scoped_destination_plugs = _get_keyframe_destination_plugs(keyframe_node, obj_list=obj_list)
+    return set(destination_plugs) == set(scoped_destination_plugs)
+
+
+def _get_keyframe_cut_plugs(keyframe_node, obj_list=None):
+    """Finds the plugs Maya can use to cut keys from an animation curve.
+
+    Args:
+        keyframe_node (str): Animation curve node.
+        obj_list (list, optional): Explicit object scope.
+
+    Returns:
+        list: Direct animation blend inputs or scoped destination plugs.
+    """
+    destination_plugs = cmds.listConnections(
+        keyframe_node,
+        source=False,
+        destination=True,
+        plugs=True,
+        skipConversionNodes=True,
+    ) or []
+    blend_input_plugs = []
+    for destination_plug in destination_plugs:
+        destination_node = destination_plug.split(".", 1)[0]
+        try:
+            destination_type = cmds.nodeType(destination_node)
+        except RuntimeError:
+            continue
+        if destination_type in ANIMATION_BLEND_NODE_TYPES or destination_type.startswith("animBlendNode"):
+            blend_input_plugs.append(destination_plug)
+    if blend_input_plugs:
+        return blend_input_plugs
+    return _get_keyframe_destination_plugs(keyframe_node, obj_list=obj_list)
+
+
+def _cut_time_keys(keyframe_node, key_times, obj_list=None):
+    """Removes specific time keys from an animation curve's targets.
+
+    Args:
+        keyframe_node (str): Animation curve node whose keys are being removed.
+        key_times (list): Time values to remove from the curve.
+        obj_list (list, optional): Explicit object scope. Keys are removed through
+            connected destination plugs owned by these objects. If None, all connected
+            destination plugs are used.
+
+    Returns:
+        int: Number of curve key times removed.
+    """
+    unique_key_times = sorted(set(key_times))
+    if not unique_key_times:
+        return 0
+
+    if obj_list is not None and not _is_keyframe_node_within_scope(keyframe_node, obj_list):
+        return 0
+    destination_plugs = _get_keyframe_cut_plugs(keyframe_node, obj_list=obj_list)
+    for destination_plug in destination_plugs:
+        for key_time in unique_key_times:
+            cmds.cutKey(
+                destination_plug,
+                time=(key_time, key_time),
+                clear=True,
+                animation="objects",
+            )
+    return len(unique_key_times) if destination_plugs else 0
 
 
 def get_keyframes(obj_list=None, key_scope=KeyframeScope.TIME):
@@ -340,7 +525,14 @@ def delete_keyframes(obj_list=None, key_scope=KeyframeScope.TIME):
     cmds.undoInfo(openChunk=True, chunkName=function_name)
     deleted_counter = 0
     try:
-        for keyframe_node in get_keyframes(obj_list=obj_list, key_scope=key_scope):
+        keyframe_nodes = get_keyframes(obj_list=obj_list, key_scope=key_scope)
+        if obj_list is not None:
+            keyframe_nodes = [
+                keyframe_node
+                for keyframe_node in keyframe_nodes
+                if _is_keyframe_node_within_scope(keyframe_node, obj_list)
+            ]
+        for keyframe_node in keyframe_nodes:
             try:
                 cmds.delete(keyframe_node)
                 deleted_counter += 1
@@ -377,7 +569,8 @@ def delete_keyframes_in_range(obj_list=None, start=None, end=None, key_scope=Key
         end (float, optional): End of the range (inclusive). If None, an open upper bound
             is used (removes everything from "start" onward).
         key_scope (str, optional): Which keyframes to affect. A "KeyframeScope" value:
-            TIME, DOUBLE or BOTH. Defaults to KeyframeScope.TIME.
+            TIME, DOUBLE or BOTH. DOUBLE curves are excluded because this is a time
+            range operation. Defaults to KeyframeScope.TIME.
 
     Returns:
         int: number of keyframe (animation curve) nodes that had keys removed.
@@ -389,7 +582,11 @@ def delete_keyframes_in_range(obj_list=None, start=None, end=None, key_scope=Key
         cmds.warning("Invalid range: start frame is greater than end frame.")
         return 0
 
-    keyframe_nodes = get_keyframes(obj_list=obj_list, key_scope=key_scope)
+    keyframe_nodes = [
+        keyframe_node
+        for keyframe_node in get_keyframes(obj_list=obj_list, key_scope=key_scope)
+        if cmds.nodeType(keyframe_node) in KEY_TYPE_TIME
+    ]
     if not keyframe_nodes:
         cmds.warning("No matching keyframes found for the provided scope.")
         return 0
@@ -400,12 +597,11 @@ def delete_keyframes_in_range(obj_list=None, start=None, end=None, key_scope=Key
     try:
         for keyframe_node in keyframe_nodes:
             try:
-                # cutKey(clear=True) does not report how many keys it removed, so query first.
-                keys_in_range = cmds.keyframe(
-                    keyframe_node, query=True, time=(range_start, range_end), keyframeCount=True
-                )
-                if keys_in_range:
-                    cmds.cutKey(keyframe_node, time=(range_start, range_end), clear=True)
+                keyframe_times = cmds.keyframe(keyframe_node, query=True, timeChange=True) or []
+                times_in_range = [
+                    key_time for key_time in keyframe_times if range_start <= key_time <= range_end
+                ]
+                if _cut_time_keys(keyframe_node, times_in_range, obj_list=obj_list):
                     affected_counter += 1
             except Exception as e:
                 logger.debug(str(e))
@@ -445,6 +641,69 @@ def delete_keyframes_before_current_frame(obj_list=None, include_current=False, 
     epsilon = 0.0001
     end = current_frame if include_current else current_frame - epsilon
     return delete_keyframes_in_range(obj_list=obj_list, start=None, end=end, key_scope=key_scope)
+
+
+def delete_keyframes_at_current_frame(obj_list=None, key_scope=KeyframeScope.TIME):
+    """Removes keyframes on the current frame, leaving the animation curves intact.
+
+    Args:
+        obj_list (list, optional): Objects whose keyframes are affected. If None, the
+            whole scene is considered.
+        key_scope (str, optional): Which keyframes to affect. A "KeyframeScope" value:
+            TIME, DOUBLE or BOTH. DOUBLE curves are excluded because they are driven
+            by values rather than scene time. Defaults to KeyframeScope.TIME.
+
+    Returns:
+        int: Number of time keys deleted.
+    """
+    current_frame = cmds.currentTime(query=True)
+    normalized_scope = str(key_scope).lower()
+    if normalized_scope not in KeyframeScope.get_available_scopes():
+        cmds.warning(
+            f'Unknown key_scope "{key_scope}". Expected one of: '
+            f"{KeyframeScope.get_available_scopes()}."
+        )
+        return 0
+
+    keyframe_nodes = []
+    if normalized_scope != KeyframeScope.DOUBLE:
+        keyframe_nodes = get_time_keyframes(obj_list=obj_list)
+
+    function_name = "Delete Keyframes At Current Frame"
+    cmds.undoInfo(openChunk=True, chunkName=function_name)
+    deleted_counter = 0
+    try:
+        key_time_tolerance = 0.0001
+        for keyframe_node in keyframe_nodes:
+            try:
+                keyframe_times = cmds.keyframe(keyframe_node, query=True, timeChange=True) or []
+                matching_times = [
+                    key_time
+                    for key_time in keyframe_times
+                    if abs(key_time - current_frame) <= key_time_tolerance
+                ]
+                deleted_counter += _cut_time_keys(
+                    keyframe_node,
+                    matching_times,
+                    obj_list=obj_list,
+                )
+            except Exception as exception:
+                logger.debug(str(exception))
+
+        feedback = core_fback.FeedbackMessage(
+            quantity=deleted_counter,
+            singular="time key was",
+            plural="time keys were",
+            conclusion="deleted.",
+            zero_overwrite_message="No time keyframes found on the current frame.",
+        )
+        feedback.print_inview_message()
+        return deleted_counter
+    except Exception as exception:
+        cmds.warning(str(exception))
+        return deleted_counter
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
 
 def delete_keyframes_after_current_frame(obj_list=None, include_current=False, key_scope=KeyframeScope.TIME):
@@ -511,12 +770,11 @@ def delete_time_keyframes_outside_range(start, end, obj_list=None, range_name="r
             if not out_of_range_times:
                 continue
             try:
-                cmds.cutKey(
+                deleted_counter += _cut_time_keys(
                     keyframe_node,
-                    time=(min(out_of_range_times), max(out_of_range_times)),
-                    clear=True,
+                    out_of_range_times,
+                    obj_list=obj_list,
                 )
-                deleted_counter += len(out_of_range_times)
             except Exception as e:
                 logger.debug(str(e))
 
