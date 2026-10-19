@@ -533,6 +533,8 @@ class Icon:
     ui_checkbox_invert = get_icon_path(r"ui_checkbox_invert.svg")
     ui_rows_selected_checked = get_icon_path(r"ui_rows_selected_checked.svg")
     ui_rows_selected_unchecked = get_icon_path(r"ui_rows_selected_unchecked.svg")
+    ui_solo_row = get_icon_path(r"ui_solo_row.svg")
+    ui_hide_selected = get_icon_path(r"ui_hide_selected.svg")
     ui_remove_blank_lines = get_icon_path(r"ui_remove_blank_lines.svg")
     ui_toggle_enabled = get_icon_path(r"ui_toggle_enabled.svg")
     ui_toggle_disabled = get_icon_path(r"ui_toggle_disabled.svg")

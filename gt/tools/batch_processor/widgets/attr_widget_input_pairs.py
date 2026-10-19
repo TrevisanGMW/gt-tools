@@ -556,6 +556,27 @@ class AttrWidgetInputPairsTask(AttrWidgetTask):
             checkbox.blockSignals(blocked)
         self.commit()
 
+    def solo_row(self, checked=False, row=None):
+        """Activates one row and deactivates every other row.
+
+        Args:
+            checked (bool, optional): Ignored action state.
+            row (int, optional): Row to leave active. Uses the first selected row by default.
+        """
+        if row is None:
+            selected_rows = self.get_selected_rows()
+            if not selected_rows:
+                return
+            row = selected_rows[0]
+        if row < 0 or row >= self.table.rowCount():
+            return
+        for current_row in range(self.table.rowCount()):
+            checkbox = self.table.cellWidget(current_row, ACTIVE_COLUMN).checkbox
+            blocked = checkbox.blockSignals(True)
+            checkbox.setChecked(current_row == row)
+            checkbox.blockSignals(blocked)
+        self.commit()
+
     def remove_empty_rows(self, checked=False):
         """Removes empty manual rows or hides folder rows with no descriptions.
 
@@ -739,10 +760,12 @@ class AttrWidgetInputPairsTask(AttrWidgetTask):
              partial(self.set_rows_active, selected=True)),
             ("Deactivate Selected", resources.Icon.ui_rows_selected_unchecked, selected,
              partial(self.set_rows_active, selected=True, active=False)),
+            ("Solo Current Row", resources.Icon.ui_solo_row, row >= 0, partial(self.solo_row, row=row)),
             (None, None, None, None),
             ("Remove Empty Pairs" if manual else "Hide Unassigned Pairs", resources.Icon.ui_remove_blank_lines,
              has_rows, self.remove_empty_rows),
-            ("Delete Selected" if manual else "Hide Selected", resources.Icon.ui_trash if manual else None,
+            ("Delete Selected" if manual else "Hide Selected",
+             resources.Icon.ui_trash if manual else resources.Icon.ui_hide_selected,
              selected, self.remove_rows)])
         for label, icon, enabled, callback in actions:
             if label is None:
