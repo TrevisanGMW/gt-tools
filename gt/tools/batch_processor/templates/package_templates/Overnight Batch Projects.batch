@@ -1,0 +1,44 @@
+{
+    "project_name": "Overnight Batch Projects",
+    "notes": "Save this project, then set Input Batch Projects to a folder containing saved .batch projects. Parent workers limit simultaneous projects; child worker settings remain independent. Run Batch Project must be first after its input segment. Use Ordered Chain with Success to stop a dependent chain on failure, or Independent to continue unrelated projects. Groups uses separate input segments. Scheduled timestamps require a timezone offset. Child logs and source projects are preserved.",
+    "environment_variables": {
+        "project-dir": "{project-file-dir}",
+        "input-dir": "projects",
+        "task-dir": "02_tasks",
+        "output-dir": "03_output"
+    },
+    "run_settings": {
+        "multi_instance": true,
+        "worker_count": 2,
+        "max_retries": 0,
+        "timeout_minutes": 0,
+        "purge_logs_on_run": false
+    },
+    "tasks": [
+        {
+            "id": "7d21649d-d8f0-4242-9833-7052d5d040af",
+            "task_type": "input",
+            "display_name": "Input Batch Projects",
+            "enabled": true,
+            "parameters": {
+                "source_path": "{project-dir}/{input-dir}",
+                "extensions": [".batch"],
+                "include_subdirectories": false
+            }
+        },
+        {
+            "id": "ce042a17-0d12-4796-b3c8-656c9027de47",
+            "task_type": "run_batch_project",
+            "display_name": "Run Batch Project",
+            "enabled": true,
+            "parameters": {
+                "queue_mode": "Independent",
+                "dependency_outcome": "Success",
+                "show_tracker": true,
+                "window_policy": "Close On Success",
+                "logs_path": "{project-dir}/logs/child_projects",
+                "ignore_self": true
+            }
+        }
+    ]
+}
