@@ -34,7 +34,6 @@ class TrackerController:
         self.scheduler = scheduler
         self.view = view
         self.source_model = tracker_tree_model.TrackerTreeModel(session=session, parent=view.tree)
-        self._displayed_job_count = len(session.jobs)
         self.proxy_model = tracker_tree_model.TrackerFilterProxyModel(view.tree)
         self.proxy_model.setSourceModel(self.source_model)
         self.proxy_model.setSortRole(tracker_tree_model.SORT_ROLE)
@@ -158,9 +157,7 @@ class TrackerController:
 
     def refresh(self):
         """Refreshes tracker rows and aggregate summary text."""
-        if len(self.session.jobs) != self._displayed_job_count:
-            self.source_model.reset_rows()
-            self._displayed_job_count = len(self.session.jobs)
+        self.source_model.sync_rows(self.scheduler.pending_segments)
         self.source_model.notify_all_changed()
         self._update_copy_actions()
         self._update_summary()
@@ -229,7 +226,8 @@ class TrackerController:
         """Updates project, progress, worker, issue, and timing summaries."""
         regular_jobs = self.session.regular_jobs
         completed = len([job for job in regular_jobs if job.status in tracker_constants.TERMINAL_STATUSES])
-        failed = len([job for job in regular_jobs if job.status == tracker_constants.Status.FAILED])
+        failed = len([job for job in regular_jobs if job.status in (
+            tracker_constants.Status.FAILED, tracker_constants.Status.TIMED_OUT, tracker_constants.Status.BLOCKED)])
         warning_jobs = len(
             [job for job in regular_jobs if job.status == tracker_constants.Status.COMPLETED_WARNINGS]
         )
@@ -247,6 +245,9 @@ class TrackerController:
             ("Errors", errors, "error" if errors else "value"),
             ("Warnings", warnings, "warning" if warnings else "value"),
         ]
+        if self.scheduler.segmented:
+            segment_progress = f"{self.scheduler.current_segment_index + 1}/{len(self.scheduler.segments)}"
+            primary_values.insert(2, ("Segments", segment_progress, "value"))
         secondary_values = [
             ("Started", tracker_tree_model.format_timestamp(self.session.started_at, include_year=False), "value"),
             ("Elapsed", elapsed, "value"),
@@ -523,16 +524,11 @@ class TrackerController:
         )
 
     def toggle_hide_completed(self, checked):
-        """Persists the startup state of the Hide Completed filter.
+        """Applies the completed-row filter to the current tracker window.
 
         Args:
-            checked (bool): Whether completed rows should be hidden by default.
+            checked (bool): Whether completed rows should be hidden.
         """
-        self.prefs.set_bool(
-            tracker_constants.PREFS_KEY_HIDE_COMPLETED_BY_DEFAULT,
-            bool(checked),
-        )
-        self.prefs.save()
         self.apply_filters()
 
     def toggle_failed_filter(self, checked):
@@ -575,8 +571,6 @@ class TrackerController:
         self.view.warnings_only_action.setChecked(False)
         for widget in widgets:
             widget.blockSignals(False)
-        self.prefs.set_bool(tracker_constants.PREFS_KEY_HIDE_COMPLETED_BY_DEFAULT, False)
-        self.prefs.save()
         self.apply_filters()
 
     def toggle_skip_warnings(self, enabled):
@@ -586,6 +580,7 @@ class TrackerController:
             enabled (bool): Whether skips should be represented as warnings.
         """
         self.session.set_flag_skips_as_warnings(enabled)
+        self.prefs.load()
         self.prefs.set_bool(
             tracker_constants.PREFS_KEY_FLAG_SKIPS_AS_WARNINGS,
             bool(enabled),
@@ -605,7 +600,11 @@ class TrackerController:
         source_index = self.proxy_model.mapToSource(proxy_index)
         item = source_index.data(tracker_tree_model.OBJECT_ROLE)
         job = item.parent_job if isinstance(item, tracker_model.TrackerTask) else item
-        if not isinstance(job, tracker_model.TrackerJob) or job.is_finalization:
+        if (
+            not isinstance(job, tracker_model.TrackerJob)
+            or job.is_finalization
+            or getattr(job, "is_segment_preview", False)
+        ):
             return
         menu = ui_qt.QtWidgets.QMenu(self.view.tree)
         copy_name_action = menu.addAction(
@@ -887,6 +886,14 @@ class TrackerController:
         self.log_timer.stop()
         if self.close_after_abort:
             self.view.close()
+        elif getattr(self.scheduler.options, "result_file", ""):
+            from gt.tools.batch_processor import batch_processor_projects as projects
+
+            result = projects.read_json(self.scheduler.options.result_file)
+            policy = getattr(self.scheduler.options, "window_policy", "Keep Open")
+            if policy == "Close When Finished" or (
+                    policy == "Close On Success" and result.get("outcome") in projects.SUCCESS_OUTCOMES):
+                self.view.close()
 
     @staticmethod
     def _create_log_widget():

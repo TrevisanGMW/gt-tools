@@ -183,18 +183,21 @@ class QtLib:
         ArrowCursor = None
         CrossCursor = None
         SizeHorCursor = None
+        SizeVerCursor = None
         SplitHCursor = None
         PointingHandCursor = None
         if IS_PYSIDE6:  # PySide6
             ArrowCursor = QtCore.Qt.CursorShape.ArrowCursor
             CrossCursor = QtCore.Qt.CursorShape.CrossCursor
             SizeHorCursor = QtCore.Qt.CursorShape.SizeHorCursor
+            SizeVerCursor = QtCore.Qt.CursorShape.SizeVerCursor
             SplitHCursor = QtCore.Qt.CursorShape.SplitHCursor
             PointingHandCursor = QtCore.Qt.CursorShape.PointingHandCursor
         else:  # PySide2
             ArrowCursor = QtCore.Qt.ArrowCursor
             CrossCursor = QtCore.Qt.CrossCursor
             SizeHorCursor = QtCore.Qt.SizeHorCursor
+            SizeVerCursor = QtCore.Qt.SizeVerCursor
             SplitHCursor = QtCore.Qt.SplitHCursor
             PointingHandCursor = QtCore.Qt.PointingHandCursor
 

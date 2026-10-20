@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>Run Batch Project</title>
+  <desc>A parent project launches two connected child projects.</desc>
+  <path d="M32 25v9H14v8m18-8h18v8" fill="none" stroke="#1d1d1d"
+        stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M32 25v9H14v8m18-8h18v8" fill="none" stroke="#64b7a5"
+        stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <g stroke="#1d1d1d" stroke-width="2.5" stroke-linejoin="round">
+    <rect x="18" y="3" width="28" height="23" rx="2" fill="#bdbdbd"/>
+    <path d="M20 4.25h24v5.5H20z" fill="#64b7a5" stroke="none"/>
+    <path d="M19 10h26" fill="none"/>
+    <path d="m28 14 9 4.5-9 4.5z" fill="#64b7a5" stroke-width="1.5"/>
+    <rect x="2" y="41" width="24" height="20" rx="2" fill="#bdbdbd"/>
+    <path d="M4 42.25h20v4.5H4z" fill="#64b7a5" stroke="none"/>
+    <path d="M3 47h22" fill="none"/>
+    <path d="m11 50 7 4-7 4z" fill="#64b7a5" stroke-width="1.5"/>
+    <rect x="38" y="41" width="24" height="20" rx="2" fill="#bdbdbd"/>
+    <path d="M40 42.25h20v4.5H40z" fill="#64b7a5" stroke="none"/>
+    <path d="M39 47h22" fill="none"/>
+    <path d="m47 50 7 4-7 4z" fill="#64b7a5" stroke-width="1.5"/>
+  </g>
+</svg>

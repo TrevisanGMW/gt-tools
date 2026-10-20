@@ -14,6 +14,7 @@ from gt.tools.batch_processor import batch_processor_templates
 from gt.tools.batch_processor import batch_processor_log_view
 from gt.tools.batch_processor import batch_processor_tracker
 from gt.tools.batch_processor import batch_processor_worker
+from gt.tools.batch_processor.tracker import tracker_constants
 import gt.ui.resource_library as ui_res_lib
 import gt.ui.file_dialog as ui_file_dialog
 import gt.ui.qt_utils as ui_qt_utils
@@ -55,6 +56,7 @@ class BatchProcessorController:
         self._active_log_file_path = None
         self._saved_project_state = None
         self._prefs = core_prefs.Prefs(constants.Project.PREFS_FILENAME)
+        self._tracker_prefs = core_prefs.Prefs(tracker_constants.PREFS_FILENAME)
         self._recent_projects = core_prefs.RecentProjects(
             prefs=self._prefs,
             key=constants.Project.PREFS_KEY_RECENT_PROJECTS,
@@ -392,6 +394,35 @@ class BatchProcessorController:
 
         self.create_menu_checkbox_action(
             parent_menu=menu_preferences,
+            text="Auto Hide Completed Filter",
+            checked=self._tracker_prefs.get_bool(
+                tracker_constants.PREFS_KEY_HIDE_COMPLETED_BY_DEFAULT, default=False
+            ),
+            tooltip="Start new tracker windows with Filters > Hide Completed enabled.",
+            callback=self.toggle_tracker_hide_completed_by_default,
+        )
+
+        self.create_menu_checkbox_action(
+            parent_menu=menu_preferences,
+            text="Auto-Segment Imported Projects",
+            checked=self._auto_segment_imported_projects,
+            tooltip=(
+                "When importing a project whose first task is an Input Files task, automatically start a "
+                "new segment on it and name the segment after the imported project."
+            ),
+            callback=self.toggle_auto_segment_imported_projects,
+        )
+
+        self.create_menu_checkbox_action(
+            parent_menu=menu_preferences,
+            text="Confirm Task Delete",
+            checked=self._confirm_delete_task,
+            tooltip="Ask for confirmation before deleting a task from the right-click menu or task panel.",
+            callback=self.toggle_confirm_delete_task,
+        )
+
+        self.create_menu_checkbox_action(
+            parent_menu=menu_preferences,
             text="Convert Absolute Paths to Relative",
             checked=self._convert_abs_paths_to_relative,
             tooltip=(
@@ -399,17 +430,6 @@ class BatchProcessorController:
                 "{project-dir}."
             ),
             callback=self.toggle_convert_abs_paths_to_relative,
-        )
-
-        self.create_menu_checkbox_action(
-            parent_menu=menu_preferences,
-            text="Suppress Custom Env-Var Errors",
-            checked=self._suppress_custom_environment_query_errors,
-            tooltip=(
-                "Silence failed custom environment-variable queries during editing and batch runs.\n"
-                "Failed queries resolve to empty values.\nExplicit Test Query actions still report failures."
-            ),
-            callback=self.toggle_suppress_custom_environment_query_errors,
         )
 
         self.create_menu_checkbox_action(
@@ -434,22 +454,28 @@ class BatchProcessorController:
 
         self.create_menu_checkbox_action(
             parent_menu=menu_preferences,
-            text="Confirm Task Delete",
-            checked=self._confirm_delete_task,
-            tooltip="Ask for confirmation before deleting a task from the right-click menu or task panel.",
-            callback=self.toggle_confirm_delete_task,
+            text="Suppress Custom Env-Var Errors",
+            checked=self._suppress_custom_environment_query_errors,
+            tooltip=(
+                "Silence failed custom environment-variable queries during editing and batch runs.\n"
+                "Failed queries resolve to empty values.\nExplicit Test Query actions still report failures."
+            ),
+            callback=self.toggle_suppress_custom_environment_query_errors,
         )
 
-        self.create_menu_checkbox_action(
-            parent_menu=menu_preferences,
-            text="Auto-Segment Imported Projects",
-            checked=self._auto_segment_imported_projects,
-            tooltip=(
-                "When importing a project whose first task is an Input Files task, automatically start a "
-                "new segment on it and name the segment after the imported project."
-            ),
-            callback=self.toggle_auto_segment_imported_projects,
+    def toggle_tracker_hide_completed_by_default(self, checked):
+        """Stores the completed-row filter used when launching a tracker.
+
+        Args:
+            checked (bool): Whether new trackers should hide completed rows.
+        """
+        self._tracker_prefs.load()
+        self._tracker_prefs.set_bool(
+            tracker_constants.PREFS_KEY_HIDE_COMPLETED_BY_DEFAULT, bool(checked)
         )
+        self._tracker_prefs.save()
+        state_name = "enabled" if checked else "disabled"
+        self.log_status(f"Hide Completed in new tracker windows {state_name}.")
 
     def open_project_directory(self, *args):
         """Opens the resolved project directory in the system file browser.
@@ -1759,6 +1785,9 @@ class BatchProcessorController:
 
     def purge_logs_for_run(self):
         """Deletes existing files from the configured log folder before a run."""
+        if any(task.task_type == constants.TaskType.RUN_BATCH_PROJECT for task in self.model.get_enabled_tasks()):
+            self.append_log("[INFO] - (logs) - Retaining previous logs for nested project runs.")
+            return
         logs_dir = self.model.get_logs_dir()
         if not logs_dir or not os.path.isdir(logs_dir):
             return

@@ -76,6 +76,7 @@ class TaskType:
     THUMBNAIL_CAPTURE = "thumbnail_capture"
     PLAYBLAST_CAPTURE = "playblast_capture"
     BATCH_RENDER = "output_batch_render"
+    RUN_BATCH_PROJECT = "run_batch_project"
 
 
 class ModuleType(TaskType):

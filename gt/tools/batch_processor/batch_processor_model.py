@@ -1461,7 +1461,7 @@ class BatchProcessorModel:
         with open(file_path, "r", encoding="utf-8") as project_file:
             data = json.load(project_file)
         self.read_data_from_dict(data)
-        self.project_file_path = file_path
+        self.project_file_path = (data.get("runtime_options") or {}).get("source_project_file") or file_path
         logger.info('Loaded batch project: "%s"', file_path)
         return self
 

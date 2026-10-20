@@ -215,6 +215,11 @@ def main():
                         "log_artifact", task_id=task_id, path=path, kind="task_log"
                     ),
                     "report_message": lambda message: print(message, flush=True),
+                    "report_warning": lambda message, task_id=task.id: event_writer.emit(
+                        "warning", task_id=task_id, message=message),
+                    "register_child_project": lambda run_id, control_file, result_file: event_writer.emit(
+                        "child_project", run_id=run_id, control_file=control_file, result_file=result_file),
+                    "unregister_child_project": lambda run_id: event_writer.emit("child_project_done", run_id=run_id),
                     "report_progress": lambda completed_units, total_units, unit_label="", task_id=task.id: (
                         event_writer.emit(
                             "task_unit_progress",
@@ -271,6 +276,12 @@ def main():
                             "log_artifact", task_id=task_id, path=path, kind="task_log"
                         ),
                         "report_message": lambda message: print(message, flush=True),
+                        "report_warning": lambda message, task_id=task.id: event_writer.emit(
+                            "warning", task_id=task_id, message=message),
+                        "register_child_project": lambda run_id, control_file, result_file: event_writer.emit(
+                            "child_project", run_id=run_id, control_file=control_file, result_file=result_file),
+                        "unregister_child_project": lambda run_id: event_writer.emit(
+                            "child_project_done", run_id=run_id),
                         "register_remote_job": lambda url, remote_id, token_environment: event_writer.emit(
                             "kimodo_job", url=url, remote_id=remote_id, token_environment=token_environment
                         ),
@@ -668,4 +679,9 @@ def get_global_item_index(worker_id):
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    finally:
+        from gt.tools.batch_processor import batch_processor_maya
+
+        batch_processor_maya.shutdown_standalone()

@@ -10,6 +10,7 @@ from gt.ui.qt_utils import TablePlaceholderDelegate
 from gt.tools.batch_processor.tasks import task_input_pairs as pairs
 from gt.tools.batch_processor.widgets.attr_widget_task import AttrWidgetTask
 from gt.tools.batch_processor.widgets.input_source_feedback import InputSourceFeedbackWidget
+from gt.tools.batch_processor.widgets.table_height_handle import TableHeightHandle
 
 
 ACTIVE_COLUMN = 0
@@ -44,7 +45,7 @@ class AttrWidgetInputPairsTask(AttrWidgetTask):
         self._confirmed_source_root = ""
         self._column_widths_initialized = False
         self._resizing_pair_columns = False
-        self._file_column_ratio = 0.5
+        self._file_column_width = 0
         self.add_widget_separator_line(label_text="Input Pairs")
         self.build_mode_selector()
         self.build_folder_settings()
@@ -141,7 +142,7 @@ class AttrWidgetInputPairsTask(AttrWidgetTask):
                                                        [STRING_COLUMN], parent=self.table)
         self.table.setItemDelegateForColumn(FILE_COLUMN, self.file_delegate)
         self.table.setItemDelegateForColumn(STRING_COLUMN, self.string_delegate)
-        self.table.itemChanged.connect(self.commit)
+        self.table.itemChanged.connect(self.on_pair_item_changed)
         self.table.setContextMenuPolicy(qt.QtCore.Qt.CustomContextMenu)
         self.table.customContextMenuRequested.connect(self.show_context_menu)
         self.context_menu = qt.QtWidgets.QMenu(self)
@@ -150,6 +151,9 @@ class AttrWidgetInputPairsTask(AttrWidgetTask):
         self.delete_shortcut.setContext(qt.QtCore.Qt.WidgetShortcut)
         self.delete_shortcut.activated.connect(self.remove_rows)
         self.content_layout.addWidget(self.table)
+        self.table_height_handle = TableHeightHandle(
+            table=self.table, task=self.task, state_key="input_pairs_table_height", parent=self)
+        self.content_layout.addWidget(self.table_height_handle)
         actions = qt.QtWidgets.QHBoxLayout()
         self.buttons = {}
         for key, label, icon, callback in (
@@ -172,14 +176,14 @@ class AttrWidgetInputPairsTask(AttrWidgetTask):
         self.content_layout.addLayout(actions)
 
     def showEvent(self, event):
-        """Fills the table width with the text columns using their current proportions.
+        """Fits the file column to its contents and gives the remaining width to input strings.
 
         Args:
             event (QShowEvent): Widget show event.
         """
         super().showEvent(event)
         self._column_widths_initialized = True
-        self.resize_pair_columns()
+        self.fit_file_column_to_contents()
 
     def eventFilter(self, watched, event):
         """Fits the text columns when the table viewport changes size.
@@ -196,7 +200,7 @@ class AttrWidgetInputPairsTask(AttrWidgetTask):
         return super().eventFilter(watched, event)
 
     def on_pair_column_resized(self, column, old_size, new_size):
-        """Stores manually adjusted proportions and keeps the action column at the right edge.
+        """Keeps the string column fitted after a user resizes either text column.
 
         Args:
             column (int): Resized column index.
@@ -207,8 +211,7 @@ class AttrWidgetInputPairsTask(AttrWidgetTask):
             return
         if column in (FILE_COLUMN, STRING_COLUMN):
             available_width = self.get_pair_text_columns_width()
-            file_width = new_size if column == FILE_COLUMN else available_width - new_size
-            self._file_column_ratio = max(0.0, min(1.0, file_width / available_width))
+            self._file_column_width = new_size if column == FILE_COLUMN else available_width - new_size
         self.resize_pair_columns()
 
     def get_pair_text_columns_width(self):
@@ -223,20 +226,29 @@ class AttrWidgetInputPairsTask(AttrWidgetTask):
         return max(2 * header.minimumSectionSize(), available_width)
 
     def resize_pair_columns(self):
-        """Expands or contracts the text columns while retaining the user's width proportions."""
+        """Keeps the file width fixed and fills the remaining table width with input strings."""
         if not self._column_widths_initialized or self._resizing_pair_columns:
             return
         header = self.table.horizontalHeader()
         available_width = self.get_pair_text_columns_width()
         minimum_width = header.minimumSectionSize()
-        file_width = max(minimum_width, min(available_width - minimum_width,
-                                            round(available_width * self._file_column_ratio)))
+        file_width = max(minimum_width, min(available_width - minimum_width, self._file_column_width))
         self._resizing_pair_columns = True
         try:
             header.resizeSection(FILE_COLUMN, file_width)
             header.resizeSection(STRING_COLUMN, available_width - file_width)
         finally:
             self._resizing_pair_columns = False
+
+    def fit_file_column_to_contents(self):
+        """Fits the widest file name plus a small gap, leaving the rest for input strings."""
+        if not self._column_widths_initialized or self._resizing_pair_columns:
+            return
+        header = self.table.horizontalHeader()
+        content_width = self.table.sizeHintForColumn(FILE_COLUMN)
+        header_width = header.sectionSizeHint(FILE_COLUMN)
+        self._file_column_width = max(content_width, header_width) + 8
+        self.resize_pair_columns()
 
     def build_input_feedback(self):
         """Adds shared file statistics and refresh/preview controls for both pair modes."""
@@ -340,6 +352,7 @@ class AttrWidgetInputPairsTask(AttrWidgetTask):
         self._confirmed_source_root = (os.path.normcase(self.task.get_input_dir(self.project))
                                        if self.task.get_input_mode() == pairs.INPUT_MODE_FOLDER else "")
         self.update_status()
+        self.fit_file_column_to_contents()
         if report:
             self.emit_status_message(f"Refreshed {len(rows)} input pair(s).")
 
@@ -418,6 +431,16 @@ class AttrWidgetInputPairsTask(AttrWidgetTask):
             return
         self.task.set_pair_rows(self.get_row_pairs())
         self.update_status()
+
+    def on_pair_item_changed(self, item):
+        """Saves a table edit and refits the file column when a filename changes.
+
+        Args:
+            item (QTableWidgetItem): Edited table item.
+        """
+        self.commit(item)
+        if item.column() == FILE_COLUMN:
+            self.fit_file_column_to_contents()
 
     def update_status(self):
         """Updates run indexes and missing-file colors using the latest folder snapshot."""
@@ -510,6 +533,7 @@ class AttrWidgetInputPairsTask(AttrWidgetTask):
         finally:
             self.table.blockSignals(blocked)
         self.commit()
+        self.fit_file_column_to_contents()
         action = "Deleted" if manual else "Hidden"
         self.emit_status_message(f"{action} {len(rows)} input pair(s).")
 
@@ -538,6 +562,7 @@ class AttrWidgetInputPairsTask(AttrWidgetTask):
             self.insert_pair(pairs.create_pair(pair["input_file"], pair["input_string"], pair["enabled"]),
                              row=rows[-1] + offset + 1)
         self.commit()
+        self.fit_file_column_to_contents()
 
     def set_rows_active(self, checked=False, active=True, selected=False, invert=False):
         """Changes multiple active states with one final commit.
@@ -556,24 +581,19 @@ class AttrWidgetInputPairsTask(AttrWidgetTask):
             checkbox.blockSignals(blocked)
         self.commit()
 
-    def solo_row(self, checked=False, row=None):
-        """Activates one row and deactivates every other row.
+    def solo_selected_rows(self, checked=False):
+        """Activates selected rows and deactivates every other row.
 
         Args:
             checked (bool, optional): Ignored action state.
-            row (int, optional): Row to leave active. Uses the first selected row by default.
         """
-        if row is None:
-            selected_rows = self.get_selected_rows()
-            if not selected_rows:
-                return
-            row = selected_rows[0]
-        if row < 0 or row >= self.table.rowCount():
+        selected_rows = set(self.get_selected_rows())
+        if not selected_rows:
             return
         for current_row in range(self.table.rowCount()):
             checkbox = self.table.cellWidget(current_row, ACTIVE_COLUMN).checkbox
             blocked = checkbox.blockSignals(True)
-            checkbox.setChecked(current_row == row)
+            checkbox.setChecked(current_row in selected_rows)
             checkbox.blockSignals(blocked)
         self.commit()
 
@@ -760,7 +780,7 @@ class AttrWidgetInputPairsTask(AttrWidgetTask):
              partial(self.set_rows_active, selected=True)),
             ("Deactivate Selected", resources.Icon.ui_rows_selected_unchecked, selected,
              partial(self.set_rows_active, selected=True, active=False)),
-            ("Solo Current Row", resources.Icon.ui_solo_row, row >= 0, partial(self.solo_row, row=row)),
+            ("Solo Selected", resources.Icon.ui_solo_row, selected, self.solo_selected_rows),
             (None, None, None, None),
             ("Remove Empty Pairs" if manual else "Hide Unassigned Pairs", resources.Icon.ui_remove_blank_lines,
              has_rows, self.remove_empty_rows),

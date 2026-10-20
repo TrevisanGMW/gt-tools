@@ -8,6 +8,7 @@ from gt.ui import file_dialog as ui_file_dialog
 from gt.ui.qt_utils import TablePlaceholderDelegate
 from gt.tools.batch_processor.tasks import task_input_strings
 from gt.tools.batch_processor.widgets.attr_widget_task import AttrWidgetTask
+from gt.tools.batch_processor.widgets.table_height_handle import TableHeightHandle
 
 ACTIVE_COLUMN = 0
 VALUE_COLUMN = 1
@@ -126,6 +127,9 @@ class AttrWidgetInputStringsTask(AttrWidgetTask):
         self.delete_shortcut.setContext(qt.QtCore.Qt.WidgetShortcut)
         self.delete_shortcut.activated.connect(self.remove_rows)
         page_layout.addWidget(self.table)
+        self.table_height_handle = TableHeightHandle(
+            table=self.table, task=self.task, state_key="input_strings_table_height")
+        page_layout.addWidget(self.table_height_handle)
         actions = qt.QtWidgets.QHBoxLayout()
         self.buttons = {}
         for key, label, icon, tooltip, callback in (
@@ -445,6 +449,17 @@ class AttrWidgetInputStringsTask(AttrWidgetTask):
         """
         self.set_rows_active(active=active, rows=self.get_selected_rows())
 
+    def solo_selected_rows(self, checked=False):
+        """Activates selected rows and deactivates every other row.
+
+        Args:
+            checked (bool, optional): Ignored action state.
+        """
+        selected_rows = set(self.get_selected_rows())
+        if not selected_rows:
+            return
+        self.set_active_states({row: row in selected_rows for row in range(self.table.rowCount())})
+
     def invert_active_rows(self, checked=False):
         """Toggles the active state of every row with a single commit.
 
@@ -495,6 +510,7 @@ class AttrWidgetInputStringsTask(AttrWidgetTask):
                  partial(self.set_selected_rows_active, active=True)),
                 ("Deactivate Selected", ui_res_lib.Icon.ui_rows_selected_unchecked, has_selection,
                  partial(self.set_selected_rows_active, active=False)),
+                ("Solo Selected", ui_res_lib.Icon.ui_solo_row, has_selection, self.solo_selected_rows),
                 (None, None, None, None),
                 ("Remove Blank Lines", ui_res_lib.Icon.ui_remove_blank_lines, has_rows, self.remove_blank_rows),
                 ("Delete Selected", ui_res_lib.Icon.ui_trash, has_selection, self.remove_rows)):

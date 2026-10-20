@@ -134,6 +134,16 @@ def get_maya_cmds(initialize_standalone=True):
     return cmds
 
 
+def shutdown_standalone():
+    """Uninitializes only the standalone session owned by this helper module."""
+    global _STANDALONE_INITIALIZED
+    if _STANDALONE_INITIALIZED:
+        import maya.standalone
+
+        maya.standalone.uninitialize()
+        _STANDALONE_INITIALIZED = False
+
+
 def new_scene():
     """Creates a new empty Maya scene.
 

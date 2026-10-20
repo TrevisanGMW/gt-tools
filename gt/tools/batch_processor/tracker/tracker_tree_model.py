@@ -69,7 +69,8 @@ class TrackerFilterProxyModel(ui_qt.QtCore.QSortFilterProxyModel):
         if self.search_text and self.search_text not in job.name.lower():
             return False
         if self.failed_only:
-            return item.status == tracker_constants.Status.FAILED or bool(item.errors)
+            return item.status in (tracker_constants.Status.FAILED, tracker_constants.Status.TIMED_OUT,
+                                   tracker_constants.Status.BLOCKED) or bool(item.errors)
         if self.warnings_only:
             return item.status == tracker_constants.Status.COMPLETED_WARNINGS or bool(item.warnings)
         if self.hide_completed and item.status == tracker_constants.Status.COMPLETED:
@@ -102,6 +103,45 @@ class TrackerTreeModel(ui_qt.QtCore.QAbstractItemModel):
         """
         super().__init__(parent)
         self.session = session
+        self.jobs = list(session.jobs)
+        self._segment_previews = {}
+
+    def sync_rows(self, pending_segments=None):
+        """Shows upcoming segment tasks without adding work to the scheduler.
+
+        Args:
+            pending_segments (list, optional): Undiscovered segment descriptors.
+        """
+        previews = []
+        regular_job_count = len(self.session.regular_jobs)
+        for segment in pending_segments or []:
+            segment_index = segment["index"]
+            if segment_index not in self._segment_previews:
+                preview = tracker_model.TrackerJob(
+                    job_id=f"segment-preview-{segment_index}",
+                    number=0,
+                    source_file="",
+                    task_definitions=segment.get("definitions") or [],
+                    segment_index=segment_index,
+                )
+                preview.is_segment_preview = True
+                preview.name = f"[Seg {segment_index + 1}] Inputs discovered when segment starts"
+                self._segment_previews[segment_index] = preview
+            preview = self._segment_previews[segment_index]
+            preview.number = regular_job_count + len(previews) + 1
+            preview.status = (
+                tracker_constants.Status.CANCELED if self.session.aborting else tracker_constants.Status.WAITING
+            )
+            for task in preview.tasks:
+                task.status = preview.status
+            previews.append(preview)
+        jobs = [job for job in self.session.jobs if not job.is_finalization or job.is_preflight]
+        jobs.extend(previews)
+        jobs.extend(job for job in self.session.jobs if job.is_finalization and not job.is_preflight)
+        if jobs != self.jobs:
+            self.beginResetModel()
+            self.jobs = jobs
+            self.endResetModel()
 
     def index(self, row, column, parent_index=ui_qt.QtCore.QModelIndex()):
         """Creates an index for a job or task row.
@@ -117,8 +157,8 @@ class TrackerTreeModel(ui_qt.QtCore.QAbstractItemModel):
         if row < 0 or column < 0:
             return ui_qt.QtCore.QModelIndex()
         if not parent_index.isValid():
-            if row < len(self.session.jobs):
-                return self.createIndex(row, column, self.session.jobs[row])
+            if row < len(self.jobs):
+                return self.createIndex(row, column, self.jobs[row])
             return ui_qt.QtCore.QModelIndex()
         parent_object = parent_index.internalPointer()
         if isinstance(parent_object, tracker_model.TrackerJob) and row < len(parent_object.tasks):
@@ -139,7 +179,7 @@ class TrackerTreeModel(ui_qt.QtCore.QAbstractItemModel):
         item = child_index.internalPointer()
         if isinstance(item, tracker_model.TrackerTask) and item.parent_job:
             try:
-                row = self.session.jobs.index(item.parent_job)
+                row = self.jobs.index(item.parent_job)
             except ValueError:
                 return ui_qt.QtCore.QModelIndex()
             return self.createIndex(row, 0, item.parent_job)
@@ -155,7 +195,7 @@ class TrackerTreeModel(ui_qt.QtCore.QAbstractItemModel):
             int: Child count.
         """
         if not parent_index.isValid():
-            return len(self.session.jobs)
+            return len(self.jobs)
         if parent_index.column() > 0:
             return 0
         item = parent_index.internalPointer()
@@ -239,16 +279,17 @@ class TrackerTreeModel(ui_qt.QtCore.QAbstractItemModel):
         jobs while running, so newly added rows appear in the view.
         """
         self.beginResetModel()
+        self.jobs = list(self.session.jobs)
         self.endResetModel()
 
     def notify_all_changed(self):
         """Notifies views that all fixed-structure tracker values changed."""
-        if not self.session.jobs:
+        if not self.jobs:
             return
         top_left = self.index(0, 0)
-        bottom_right = self.index(len(self.session.jobs) - 1, self.columnCount() - 1)
+        bottom_right = self.index(len(self.jobs) - 1, self.columnCount() - 1)
         self.dataChanged.emit(top_left, bottom_right)
-        for job_row, job in enumerate(self.session.jobs):
+        for job_row, job in enumerate(self.jobs):
             if not job.tasks:
                 continue
             parent_index = self.index(job_row, 0)
