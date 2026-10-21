@@ -23,9 +23,6 @@ FIELD_HELP = {
                        "Each duration must be positive and at most 30 seconds;\n"
                        "up to 16 segments / 120 seconds.",
                         MOTION_TEXT_EXAMPLE),
-    ("use_input_string",): ("Replace the first prompt with the current Input Strings or Input Pairs text.\n"
-                            "Inputs without scene files use prompt durations\n"
-                            "and skip Maya pose/path capture.", ""),
     ("pose_source",): ("Kimodo placement group or descendant to capture.\n"
                        "Blank auto-detects one skeleton;\n"
                        "if none is found, pose constraints are skipped with a warning.\n"
@@ -624,10 +621,6 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
             inline_row=row)
         self.field(section, "Offset", "root_heading_offset", "number", inline_row=row)
         section = self.section("Generation")
-        self.field(section, "Use input string as prompt", "use_input_string", "boolean",
-                   tooltip="Replace the first prompt with the current Input Strings or Input Pairs text.\n"
-                           "Inputs without scene files use prompt durations\n"
-                           "and skip Maya pose/path capture.")
         self.field(section, "Setup / definition", "template_path", "path",
                    tooltip="Optional template replaces the local generation settings below.")
         self.field(section, "Model", ("definition", "model"))
@@ -702,8 +695,16 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
                    tooltip="Allowed HumanIK translation drift.\n"
                            "Default 0.001 m; offsets normalize to model bones.")
         section = self.section("Recovery")
-        self.field(section, "Purge cache after success", "purge_cache_on_success", "boolean")
-        self.field(section, "Purge coordination folders after run", "purge_coordination_on_finish", "boolean")
+        recovery_row = qt.QtWidgets.QHBoxLayout()
+        recovery_row.setContentsMargins(0, 0, 0, 0)
+        section.addLayout(recovery_row)
+        for label, key in (("Purge cache after success", "purge_cache_on_success"),
+                           ("Purge coordination folders after run", "purge_coordination_on_finish")):
+            option_row = qt.QtWidgets.QHBoxLayout()
+            recovery_row.addLayout(option_row, 1)
+            option_row.addStretch(1)
+            self.field(section, label, key, "boolean", inline_row=option_row)
+            option_row.addStretch(1)
         self.finish()
 
     def get_variation_range_defaults(self):
@@ -761,7 +762,6 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
         self.set_field_enabled("prompt_text", text_mode)
         self.motion_text_help.setVisible(text_mode)
         self.set_field_enabled(("definition", "prompts"), local_definition and not text_mode)
-        self.set_field_enabled("use_input_string", not text_mode)
         if text_mode:
             source_status = "Motion descriptions come from Text. The table is inactive; its rows are retained."
         elif not local_definition:

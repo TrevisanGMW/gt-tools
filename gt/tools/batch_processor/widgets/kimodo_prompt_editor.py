@@ -21,6 +21,9 @@ class KimodoPromptEditor(qt.QtWidgets.QWidget):
         layout = qt.QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         self.table = qt.QtWidgets.QTableWidget(0, 2)
+        self.table_opacity = qt.QtWidgets.QGraphicsOpacityEffect(self.table)
+        self.table_opacity.setOpacity(1.0)
+        self.table.setGraphicsEffect(self.table_opacity)
         self.table.setHorizontalHeaderLabels(["Seconds", "Motion description"])
         self.table.verticalHeader().setVisible(False)
         self.table.setSelectionBehavior(qt.QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
@@ -70,6 +73,16 @@ class KimodoPromptEditor(qt.QtWidgets.QWidget):
         self.table.itemSelectionChanged.connect(self.update_actions)
         self.table.setCurrentCell(0, 1)
         self.update_actions()
+
+    def changeEvent(self, event):
+        """Dims the entire inactive table, including headers and selected cells.
+
+        Args:
+            event (QEvent): Widget state change event.
+        """
+        super().changeEvent(event)
+        if event.type() == qt.QtCore.QEvent.Type.EnabledChange:
+            self.table_opacity.setOpacity(1.0 if self.isEnabled() else 0.4)
 
     def commit(self, unused_item=None):
         """Stores edited cells, preserving invalid values for task validation.
