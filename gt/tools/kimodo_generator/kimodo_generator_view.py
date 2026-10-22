@@ -41,26 +41,24 @@ class KimodoGeneratorView(metaclass=qt_utils.MayaWindowMeta):
         self.setMinimumSize(460, 380)
         self.setStyleSheet(resources.Stylesheet.maya_dialog_base + """
             QGroupBox { margin-top: 12px; padding-top: 8px; }
-            QGroupBox::title { subcontrol-origin: margin; left: 8px; }
+            QGroupBox::title { subcontrol-origin: margin; left: 8px; color: #dedede; }
             QPushButton { padding: 5px 10px; }
             QTableWidget { gridline-color: #454545; color: #e0e0e0; selection-color: white; }
             QTableWidget::item { padding: 2px 6px; }
             QHeaderView::section { background-color: #383b3e; color: #dedede; padding: 4px; }
             QCheckBox { color: #dedede; }
+            QLineEdit:disabled, QComboBox:disabled, QAbstractSpinBox:disabled,
+            QTextEdit:disabled, QPlainTextEdit:disabled {
+                background-color: #414141; color: #858585;
+            }
+            QPushButton:disabled, QToolButton:disabled {
+                background-color: #414141; color: #858585;
+            }
+            QCheckBox:disabled, QRadioButton:disabled { color: #858585; }
+            QComboBox::drop-down:disabled { background-color: #414141; }
         """)
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(12, 12, 12, 12)
-        heading = QtWidgets.QLabel("Kimodo Generator")
-        self.heading_label = heading
-        heading_font = ui_qt.QtGui.QFont(self.font())
-        heading_font.setPointSizeF(max(9, heading_font.pointSizeF()) * 1.3)
-        heading_font.setBold(True)
-        heading.setFont(heading_font)
-        title = self.row(heading, self.button("load_setup", "Load Setup"),
-                         self.button("save_setup", "Save Setup"),
-                         self.button("load_default_setup", "Reset to Default Setup"))
-        title.setStretch(0, 1)
-        layout.addLayout(title)
         self.tabs = QtWidgets.QTabWidget()
         self.tabs.currentChanged.connect(self.schedule_metrics_refresh)
         layout.addWidget(self.tabs)
@@ -72,10 +70,55 @@ class KimodoGeneratorView(metaclass=qt_utils.MayaWindowMeta):
         self.build_results()
         self.status = QtWidgets.QLabel("Connect to a Kimodo bridge to begin.")
         self.status.setWordWrap(True)
-        layout.addWidget(self.status)
+        self.connection_indicator = QtWidgets.QFrame()
+        indicator_layout = QtWidgets.QHBoxLayout(self.connection_indicator)
+        indicator_layout.setContentsMargins(7, 4, 7, 2)
+        self.connection_icon = QtWidgets.QLabel()
+        self.connection_icon.setFixedSize(16, 16)
+        self.connection_label = QtWidgets.QLabel("Disconnected")
+        indicator_layout.addWidget(self.connection_icon)
+        indicator_layout.addWidget(self.connection_label)
+        footer = QtWidgets.QHBoxLayout()
+        footer.addWidget(self.status, 1)
+        footer.addWidget(self.connection_indicator, 0, QtCore.Qt.AlignmentFlag.AlignBottom)
+        layout.addLayout(footer)
+        self.set_connection_status("disconnected")
         self.apply_tooltips()
         self.refresh_layout_metrics()
         qt_utils.center_window(self)
+
+    def set_connection_status(self, state, text=None):
+        """Shows persistent connection feedback using the Batch Processor's status icons.
+
+        Args:
+            state (str): disconnected, connecting, loading, connected, or failed.
+            text (str, optional): Short state description.
+        """
+        colors = {"disconnected": "#999999", "connecting": "#e2bf64",
+                  "loading": "#e2bf64", "connected": "#80c98c", "failed": "#e28686"}
+        icons = {"disconnected": resources.Icon.ui_grey_circle, "connecting": resources.Icon.ui_yellow_circle,
+                 "loading": resources.Icon.ui_yellow_circle, "connected": resources.Icon.ui_green_circle,
+                 "failed": resources.Icon.ui_red_circle}
+        color = colors[state]
+        self.connection_indicator.setProperty("connection_state", state)
+        self.connection_indicator.setStyleSheet(f"QFrame {{ border-top: 2px solid {color}; }}")
+        self.connection_label.setText((text or state).replace("_", " ").title())
+        self.connection_label.setStyleSheet(f"color: {color}; font-weight: bold; border: none;")
+        self.connection_icon.setStyleSheet("border: none;")
+        self.connection_icon.setPixmap(ui_qt.QtGui.QIcon(icons[state]).pixmap(16, 16))
+        self.connection_indicator.setAccessibleName(f"Bridge connection: {state}")
+        self.connection_indicator.setToolTip(
+            "Yellow: connecting or encoder loading. Green: connected and encoder ready.")
+        if state in ("connected", "loading"):
+            self.docker_setup_note.setText(
+                "Connected: setup is locked. Stop Bridge before rebuilding or removing an image. "
+                "Disconnect to edit settings while leaving services running. Open and Docker Logs remain available.")
+        elif state == "connecting":
+            self.docker_setup_note.setText(
+                "Connecting: setup is locked while the bridge starts or responds. "
+                "The text encoder may continue downloading/loading after the bridge connects.")
+        else:
+            self.docker_setup_note.setText(self.docker_setup_note.property("setup_hint"))
 
     def button(self, key, text, tooltip=None):
         """Creates and registers an action button.
@@ -294,7 +337,7 @@ class KimodoGeneratorView(metaclass=qt_utils.MayaWindowMeta):
         form = self.form()
         self.mode = QtWidgets.QComboBox()
         for label, key in (("Connect to existing bridge", "existing"), ("Start in WSL", "wsl"),
-                           ("Start on Windows", "native")):
+                           ("Start on Windows", "native"), ("Start in Docker", "docker")):
             self.mode.addItem(label, key)
         self.url = QtWidgets.QLineEdit()
         self.url.setPlaceholderText("http://127.0.0.1:7861")
@@ -314,42 +357,127 @@ class KimodoGeneratorView(metaclass=qt_utils.MayaWindowMeta):
         self.start_encoder = QtWidgets.QCheckBox("Auto-start text encoder")
         self.show_console = QtWidgets.QCheckBox("Open bridge console")
         self.auto_connect = QtWidgets.QCheckBox("Auto-connect on launch")
-        for label, widget in (("Connection", self.mode), ("Bridge URL", self.url),
-                              ("Kimodo Python", self.row(self.python_path,
-                                                         self.button("browse_python", "Browse Folder"))),
-                              ("WSL distribution", self.row(self.distribution, self.button("query_wsl", "Query WSL"))),
-                              ("Text encoder URL", self.encoder_url), ("Inference device", self.device),
-                              ("Access token", self.token)):
-            form.addRow(label, widget)
-        self.launch_options = self.row(self.start_encoder, self.show_console, self.auto_connect)
-        self.launch_options.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        form.addRow(self.launch_options)
-        self.auto_connect_options = self.launch_options
+        connection_row = self.row(self.mode, self.auto_connect)
+        connection_row.setStretch(0, 1)
+        connection_row.setStretch(1, 0)
+        self.auto_connect.setSizePolicy(QtWidgets.QSizePolicy.Policy.Maximum, QtWidgets.QSizePolicy.Policy.Fixed)
+        form.addRow("Connection", connection_row)
+        form.addRow("Bridge URL", self.url)
+        self.token_label = QtWidgets.QLabel("Access token")
+        form.addRow(self.token_label, self.token)
         layout.addLayout(form)
+        self.python_group, python_layout, self.python_content = self.collapsible_group(
+            "WSL Launch Settings", checked=True,
+            tooltip="Expand to configure this launch environment. "
+                    "The WSL and Windows expanded states are saved separately.")
+        python_form = self.form()
+        python_layout.addLayout(python_form)
+        python_form.addRow("Kimodo Python", self.row(self.python_path,
+                                                    self.button("browse_python", "Browse Folder")))
+        self.distribution_row = QtWidgets.QWidget()
+        self.distribution_row.setLayout(self.row(self.distribution, self.button("query_wsl", "Query WSL")))
+        self.distribution_row.layout().setContentsMargins(0, 0, 0, 0)
+        self.distribution_label = QtWidgets.QLabel("WSL distribution")
+        python_form.addRow(self.distribution_label, self.distribution_row)
+        python_form.addRow("Text encoder URL", self.encoder_url)
+        python_form.addRow("Inference device", self.device)
+        self.launch_options = self.row(self.start_encoder, self.show_console)
+        self.launch_options.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        python_form.addRow(self.launch_options)
+        self.auto_connect_options = self.launch_options
+        layout.addWidget(self.python_group)
+        self.existing_group = QtWidgets.QGroupBox("Existing bridge")
+        existing_layout = QtWidgets.QVBoxLayout(self.existing_group)
+        existing_note = QtWidgets.QLabel(
+            "Enter the bridge URL and access token above. The server manages its own Python environment, "
+            "device and text encoder. This can be a container on another network machine.")
+        existing_note.setWordWrap(True)
+        existing_layout.addWidget(existing_note)
+        layout.addWidget(self.existing_group)
+        self.docker_group, docker_layout, self.docker_content = self.collapsible_group(
+            "Local Docker Deployment", checked=True,
+            tooltip="Expand to configure or rebuild this deployment. Collapsing keeps your settings; "
+                    "Connect / Start remains available below. The expanded state is saved.")
+        docker_form = self.form()
+        self.docker_directory = QtWidgets.QLineEdit()
+        self.docker_directory.setPlaceholderText("Choose a dedicated folder for this Kimodo deployment")
+        self.docker_executable = QtWidgets.QLineEdit()
+        self.docker_executable.setPlaceholderText("Leave empty to find the Docker executable automatically")
+        self.docker_stable_revisions = QtWidgets.QCheckBox("Force stable revisions")
+        docker_form.addRow("Deployment folder", self.row(self.docker_directory,
+                                                         self.button("open_docker", "Open"),
+                                                         self.button("browse_docker", "Browse"),
+                                                         self.docker_stable_revisions))
+        self.docker_image_name = QtWidgets.QLineEdit("kimodo-bridge")
+        self.docker_image_name.setPlaceholderText("kimodo-bridge")
+        docker_form.addRow("Image name", self.docker_image_name)
+        docker_form.addRow("Docker executable", self.row(self.docker_executable,
+                                                         self.button("find_docker", "Find Docker")))
+        docker_layout.addLayout(docker_form)
+        docker_note = QtWidgets.QLabel(
+            "Choose a folder, then Prepare Deployment > Build Image > Connect / Start. "
+            "The folder stores build sources, configuration, models, jobs, and logs; Docker stores the image. "
+            "Latest source revisions are tried by default, with stable fallback. "
+            "Your choices are saved. Device and port settings are in configuration/.env.")
+        docker_note.setWordWrap(True)
+        self.docker_setup_note = docker_note
+        docker_note.setProperty("setup_hint", docker_note.text())
+        docker_layout.addWidget(docker_note)
+        docker_layout.addLayout(self.row(self.button("prepare_docker", "Prepare Deployment"),
+                                         self.button("build_docker", "Build Image"),
+                                         self.button("remove_docker_image", "Remove Image...")))
+        self.docker_log_service = QtWidgets.QComboBox()
+        self.docker_log_service.addItem("Text encoder", "text-encoder")
+        self.docker_log_service.addItem("Bridge", "bridge")
+        docker_layout.addLayout(self.row(self.docker_log_service, self.button("docker_logs", "View Docker Logs")))
+        self.docker_build_group = QtWidgets.QWidget()
+        build_layout = QtWidgets.QVBoxLayout(self.docker_build_group)
+        build_layout.setContentsMargins(0, 0, 0, 0)
+        self.docker_build_label = QtWidgets.QLabel("Building image...")
+        self.docker_build_label.setWordWrap(True)
+        self.docker_build_progress = QtWidgets.QProgressBar()
+        self.docker_build_progress.setRange(0, 0)
+        build_layout.addWidget(self.docker_build_label)
+        build_layout.addWidget(self.docker_build_progress)
+        docker_layout.addWidget(self.docker_build_group)
+        self.docker_build_group.hide()
+        self.docker_encoder_group = QtWidgets.QWidget()
+        encoder_layout = QtWidgets.QVBoxLayout(self.docker_encoder_group)
+        encoder_layout.setContentsMargins(0, 0, 0, 0)
+        self.docker_encoder_label = QtWidgets.QLabel()
+        self.docker_encoder_label.setWordWrap(True)
+        self.docker_encoder_progress = QtWidgets.QProgressBar()
+        encoder_layout.addWidget(self.docker_encoder_label)
+        encoder_layout.addWidget(self.docker_encoder_progress)
+        layout.addWidget(self.docker_encoder_group)
+        self.docker_encoder_group.hide()
+        layout.addWidget(self.docker_group)
 
         self.bridge_control = QtWidgets.QGroupBox("Bridge control")
         self.bridge_control.setToolTip(
             "The bridge is a separate Python server. Local modes run it inside the selected WSL distribution or "
-            "Windows environment; Existing mode connects to a server managed elsewhere.")
+            "Windows environment. Docker mode manages one local Compose project; Existing mode connects to a "
+            "server managed elsewhere, including a container on another machine.")
         control_layout = QtWidgets.QVBoxLayout(self.bridge_control)
         control_note = QtWidgets.QLabel(
             "Connect / Start launches a missing local bridge. Tests do not start services. Restart redeploys the "
-            "current GT Tools bridge code and preserves the separate text encoder.")
+            "current GT Tools bridge code for Python launches. Docker uses its built image; Build Image before "
+            "Restart to update it. Docker Stop also stops its encoder and preserves all data.")
         control_note.setWordWrap(True)
         control_layout.addWidget(control_note)
         control_layout.addLayout(self.row(self.button("connect", "Connect / Start"),
+                                          self.button("disconnect_bridge", "Disconnect"),
                                           self.button("test_bridge", "Test Bridge"),
                                           self.button("test_encoder", "Test Text Encoder")))
         control_layout.addLayout(self.row(self.button("restart_bridge", "Restart Bridge"),
                                           self.button("stop_bridge", "Stop Bridge"),
                                           self.button("refresh_models", "Refresh Models")))
         self.connection_info = QtWidgets.QLabel(
-            "Bridge status: not tested. Local startup uses your existing Kimodo environment; nothing is installed.")
+            "Bridge status: not tested. Select an existing server, installed Python environment, or Docker deployment.")
         self.connection_info.setWordWrap(True)
         self.connection_info.setTextInteractionFlags(QtCore.Qt.TextInteractionFlag.TextSelectableByMouse)
         control_layout.addWidget(self.connection_info)
         layout.addWidget(self.bridge_control)
-        layout.addLayout(self.row(self.button("reset", "Reset Settings")))
         layout.addStretch()
 
     def build_generation(self):
@@ -658,6 +786,13 @@ class KimodoGeneratorView(metaclass=qt_utils.MayaWindowMeta):
     def build_summary(self):
         """Builds a read-only project overview with a primary generation action."""
         layout, footer_layout = self.page_with_footer("Summary")
+        self.summary_setup_group = QtWidgets.QGroupBox("Setup and Settings")
+        setup_layout = QtWidgets.QVBoxLayout(self.summary_setup_group)
+        setup_layout.addLayout(self.row(self.button("load_setup", "Load Setup"),
+                                       self.button("save_setup", "Save Setup"),
+                                       self.button("reset_connection_settings", "Reset Connection Settings"),
+                                       self.button("load_default_setup", "Reset Kimodo Options")))
+        layout.addWidget(self.summary_setup_group)
         introduction = QtWidgets.QLabel(
             "Review the active connection, generation request, constraints, output automation, HumanIK settings, "
             "and job history before submitting.")
@@ -787,10 +922,6 @@ class KimodoGeneratorView(metaclass=qt_utils.MayaWindowMeta):
                     widget.setSizeAdjustPolicy(
                         QtWidgets.QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
                     widget.setMinimumContentsLength(12)
-            title_font = ui_qt.QtGui.QFont(self.font())
-            title_font.setPointSizeF(max(9, title_font.pointSizeF()) * 1.3)
-            title_font.setBold(True)
-            self.heading_label.setFont(title_font)
             for spin in self.findChildren(QtWidgets.QAbstractSpinBox):
                 spin.setMinimumWidth(metrics.horizontalAdvance("0000") + padding * 3)
             for table in self.tables:

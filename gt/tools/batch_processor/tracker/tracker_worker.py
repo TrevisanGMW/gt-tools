@@ -282,8 +282,10 @@ def main():
                             "child_project", run_id=run_id, control_file=control_file, result_file=result_file),
                         "unregister_child_project": lambda run_id: event_writer.emit(
                             "child_project_done", run_id=run_id),
-                        "register_remote_job": lambda url, remote_id, token_environment: event_writer.emit(
-                            "kimodo_job", url=url, remote_id=remote_id, token_environment=token_environment
+                        "register_remote_job": lambda url, remote_id, token_environment, docker_directory="": (
+                            event_writer.emit(
+                                "kimodo_job", url=url, remote_id=remote_id, token_environment=token_environment,
+                                docker_directory=docker_directory)
                         ),
                         "unregister_remote_job": lambda remote_id: event_writer.emit(
                             "kimodo_job_done", remote_id=remote_id

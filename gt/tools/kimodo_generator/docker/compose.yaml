@@ -1,0 +1,65 @@
+name: ${COMPOSE_PROJECT_NAME}
+
+x-runtime: &runtime
+  image: ${KIMODO_IMAGE:-gt-kimodo:1.12.0}
+  init: true
+  restart: "on-failure:3"
+  stop_grace_period: 30s
+  gpus: all
+  shm_size: "2gb"
+  volumes:
+    - ../models:/data/models
+    - ../jobs:/data/jobs
+    - ../logs:/data/logs
+  secrets:
+    - hf_token
+    - bridge_token
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  text-encoder:
+    <<: *runtime
+    command: ["encoder"]
+    environment:
+      ENCODER_DEVICE: ${ENCODER_DEVICE:-cuda}
+      GRADIO_SERVER_NAME: "0.0.0.0"
+      GRADIO_SERVER_PORT: "9550"
+      TEXT_ENCODER_TMP_FOLDER: /tmp/text_encoder
+    healthcheck:
+      test: ["CMD", "python", "/opt/container_runtime.py", "encoder-health"]
+      interval: 15s
+      timeout: 5s
+      retries: 80
+      start_period: 120s
+
+  bridge:
+    <<: *runtime
+    build:
+      context: ../source
+      dockerfile: Dockerfile
+      args:
+        BASE_IMAGE: ${BASE_IMAGE:-pytorch/pytorch:2.7.1-cuda12.8-cudnn9-runtime}
+    command: ["bridge"]
+    ports:
+      - "${BRIDGE_BIND_ADDRESS:-127.0.0.1}:${BRIDGE_PORT:-7861}:7861"
+    environment:
+      BRIDGE_DEVICE: ${BRIDGE_DEVICE:-cuda}
+      TEXT_ENCODER_URL: http://text-encoder:9550
+      GT_KIMODO_DEPLOYMENT_ID: ${COMPOSE_PROJECT_NAME}
+      ALLOW_REMOTE_SHUTDOWN: ${ALLOW_REMOTE_SHUTDOWN:-true}
+    healthcheck:
+      test: ["CMD", "python", "/opt/container_runtime.py", "bridge-health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+secrets:
+  hf_token:
+    file: ../secrets/hf_token
+  bridge_token:
+    file: ../secrets/bridge_token

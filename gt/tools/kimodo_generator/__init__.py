@@ -1,6 +1,6 @@
 """Kimodo Generator: text and pose guided animation for Maya."""
 
-__version_tuple__ = (1, 11, 2)
+__version_tuple__ = (1, 12, 0)
 __version__ = ".".join(str(number) for number in __version_tuple__)
 _controller = None
 

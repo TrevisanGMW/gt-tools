@@ -64,7 +64,8 @@ class TrackerTask:
         elif event_name == "task_unit_progress":
             self.unit_completed = max(0, int(event.get("completed_units") or 0))
             self.unit_total = max(0, int(event.get("total_units") or 0))
-            self.unit_label = str(event.get("unit_label") or self.unit_label)
+            if "unit_label" in event:
+                self.unit_label = str(event.get("unit_label") or "")
             self._refresh_progress()
         elif event_name == "warning":
             self.reported_warnings += 1
@@ -144,8 +145,8 @@ class TrackerTask:
             return "-"
         count_text = f"{self.completed_items}/{self.total_items}"
         if self.unit_total:
-            unit_label = self.unit_label or "units"
-            count_text = f"{count_text} ({self.unit_completed}/{self.unit_total} {unit_label})"
+            unit_suffix = f" {self.unit_label}" if self.unit_label else ""
+            count_text = f"{count_text} ({self.unit_completed}/{self.unit_total}{unit_suffix})"
         return count_text
 
     def reset_for_restart(self):

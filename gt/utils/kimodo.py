@@ -8,6 +8,7 @@ or the Kimodo Generator section of the repository's ``docs/README.md``.
 """
 
 import argparse
+import contextlib
 import copy
 import hashlib
 import json
@@ -18,6 +19,7 @@ import platform
 import queue
 import re
 import secrets
+import signal
 import shutil
 import stat
 import subprocess
@@ -45,13 +47,17 @@ DEFAULT_URL = "http://127.0.0.1:7861"
 DEFAULT_MODEL = "kimodo-soma-rp-v1.1"
 TERMINAL_STATUSES = ("succeeded", "failed", "cancelled")
 ARTIFACT_NAMES = ("motion.json", "motion.npz", "definition.json")
-BRIDGE_FEATURES = ("delete_jobs", "shutdown", "runtime_status", "root_heading_vectors")
+BRIDGE_FEATURES = ("delete_jobs", "shutdown", "runtime_status", "root_heading_vectors", "encoder_diagnostics")
 # none = position only, path = direction of travel, node = transform +Z axis, fixed = offset only.
 ROOT_HEADING_MODES = ("none", "path", "node", "fixed")
 STATIONARY_PATH_METERS = 0.0005
 # Capture types stored as native end-effector constraints. Kimodo's post-processing only snaps
 # full-body and hand/foot constraints, so these guide the model without forcing the whole pose.
 POSE_END_EFFECTOR_TYPES = {"hips": ("Hips",)}
+
+
+class KimodoEncoderUnavailable(RuntimeError):
+    """Reports an unavailable encoder separately from transport or authentication failures."""
 
 
 def _write_json(path, data):
@@ -566,7 +572,7 @@ class KimodoConnection:
             bootstrap = (
                 "import hashlib,pathlib,sys,json; source=sys.stdin.buffer.read(); "
                 "digest=hashlib.sha256(source).hexdigest(); "
-                "folder=pathlib.Path.home()/'.cache'/'gt-tools'/'kimodo'/digest; "
+                "folder=pathlib.Path.home()/'.cache'/'kimodo-bridge'/digest; "
                 "files=json.loads(source); "
                 "[(folder/path).parent.mkdir(parents=True,exist_ok=True) for path in files]; "
                 "[(folder/path).write_text(content,encoding='utf-8') for path,content in files.items()]; "
@@ -654,6 +660,8 @@ class KimodoClient:
         except urllib.error.HTTPError as error:
             with error:
                 detail = error.read().decode("utf-8", errors="replace")[:2000]
+            if error.code == 503 and path == "/v1/diagnostics/text-encoder":
+                raise KimodoEncoderUnavailable(f"Kimodo HTTP 503: {detail}") from error
             raise RuntimeError(f"Kimodo HTTP {error.code}: {detail}") from error
         except (urllib.error.URLError, OSError) as error:
             raise ConnectionError(f"Cannot reach Kimodo bridge at {self.connection.url}: {error}") from error
@@ -678,6 +686,8 @@ class KimodoClient:
             dict: Shutdown acknowledgement and the stopped bridge runtime details.
         """
         health = self.health()
+        if health.get("allow_shutdown") is False:
+            raise ValueError("Administrative shutdown is disabled on this bridge. Manage it on the server.")
         if "shutdown" not in health.get("features", []):
             raise ValueError("This older bridge cannot be stopped from Maya. Stop it once manually, then use "
                              "Connect / Start to deploy the current bridge; future restarts can use this button.")
@@ -690,6 +700,19 @@ class KimodoClient:
             dict: Backend capability description.
         """
         return self._request("/v1/capabilities")
+
+    def test_text_encoder(self):
+        """Probes the configured text encoder from the bridge's own network.
+
+        Returns:
+            dict: Encoder URL and advertised embedding API.
+
+        Raises:
+            KimodoEncoderUnavailable: Encoder is still starting or is unavailable.
+        """
+        if "encoder_diagnostics" not in self.health().get("features", []):
+            raise ValueError("Restart the bridge with current GT Tools to test its private text encoder.")
+        return self._request("/v1/diagnostics/text-encoder")
 
     def skeleton(self):
         """Gets a SOMA rest-pose motion for authoring constraints.
@@ -1795,6 +1818,7 @@ class _KimodoBackend:
         from kimodo.constraints import load_constraints_lst
 
         _patch_end_effector_device()
+        _patch_empty_constraint_conditions()
 
         for constraint in definition["constraints"]:
             if "local_joints_rot" in constraint and len(constraint["local_joints_rot"][0]) != len(
@@ -1804,20 +1828,8 @@ class _KimodoBackend:
                                            device=self.model.device)
         update(stage="generating", seed=seed, fps=float(self.model.fps), frame_count=frame_count)
 
-        def progress(iterable):
-            """Reports actual diffusion steps and permits cooperative cancellation.
-
-            Args:
-                iterable (iterable): Kimodo denoising indices.
-
-            Yields:
-                int: Next diffusion step.
-            """
-            for index, step in enumerate(iterable):
-                update(stage="generating", progress=(index + 1) / parameters["diffusion_steps"])
-                yield step
-
-        with torch.inference_mode():
+        total_steps = parameters["diffusion_steps"] * len(segments)
+        with torch.inference_mode(), _generation_progress(self.model, update, total_steps) as progress:
             text_input = [segment["text"] for segment in segments] if len(segments) > 1 else segments[0]["text"]
             output = self.model(text_input,
                                 frame_counts if len(segments) > 1 else frame_count,
@@ -1931,6 +1943,7 @@ class _BridgeState:
         self.console_job_updates = {}
         self.started_at = time.time()
         self.closed = False
+        self.accepting_jobs = True
         for name in os.listdir(self.directory):
             if re.fullmatch(r"[0-9a-f]{32}", name):
                 path = os.path.join(self.directory, name, "result.json")
@@ -1965,6 +1978,9 @@ class _BridgeState:
             "active_job_id": active_job_id,
             "queued_jobs": self.pending.qsize(),
             "unfinished_jobs": unfinished_jobs,
+            "deployment_id": os.environ.get("GT_KIMODO_DEPLOYMENT_ID"),
+            "model_loaded": getattr(self.backend, "model", None) is not None,
+            "loaded_model": getattr(self.backend, "model_name", None),
         }
 
     def close(self):
@@ -1973,7 +1989,11 @@ class _BridgeState:
             if self.closed:
                 return
             self.closed = True
-        self.pending.put(None)
+            self.accepting_jobs = False
+        try:
+            self.pending.put_nowait(None)
+        except queue.Full:
+            pass  # Do not block container shutdown behind a full inference queue.
         self.worker.join(timeout=10)
 
     def get(self, job_id):
@@ -2011,6 +2031,8 @@ class _BridgeState:
             raise ValueError("Unsupported model; choose an explicit SOMA model ID from capabilities.")
         directory = os.path.join(self.directory, job_id)
         with self.lock:
+            if not self.accepting_jobs:
+                raise ValueError("The bridge is stopping and no longer accepts new jobs.")
             if os.path.isdir(directory):
                 if _read_json(os.path.join(directory, "definition.json")) != definition:
                     raise ValueError("job_id already belongs to a different definition.")
@@ -2107,7 +2129,7 @@ class _BridgeState:
         """Processes queued jobs sequentially, recording failures and artifacts."""
         while True:
             job_id = self.pending.get()
-            if job_id is None:
+            if job_id is None or self.closed:
                 self.pending.task_done()
                 return
             with self.lock:
@@ -2203,9 +2225,20 @@ class _BridgeHandler(BaseHTTPRequestHandler):
         state = self.server.state
         try:
             if self.path == "/v1/health":
+                features = list(BRIDGE_FEATURES)
+                if not getattr(self.server, "allow_shutdown", True):
+                    features.remove("shutdown")
                 self._json(200, {"service": "gt-kimodo", "protocol_version": PROTOCOL_VERSION,
                                  "status": "ready", "queue_size": state.pending.qsize(),
-                                 "features": list(BRIDGE_FEATURES), "runtime": state.runtime()})
+                                 "features": features, "runtime": state.runtime(),
+                                 "allow_shutdown": getattr(self.server, "allow_shutdown", True)})
+            elif self.path == "/v1/diagnostics/text-encoder":
+                try:
+                    result = probe_text_encoder(state.backend.text_encoder_url, timeout=3)
+                except (ConnectionError, RuntimeError, ValueError, AttributeError) as error:
+                    self._json(503, {"error": f"Text encoder is not ready from the bridge: {error}"})
+                else:
+                    self._json(200, result)
             elif self.path == "/v1/capabilities":
                 self._json(200, state.capabilities)
             elif self.path == "/v1/skeleton":
@@ -2254,11 +2287,16 @@ class _BridgeHandler(BaseHTTPRequestHandler):
             self.connection.settimeout(10)
             data = json.loads(self.rfile.read(length))
             if shutdown_request:
+                if not getattr(self.server, "allow_shutdown", True):
+                    self._json(403, {"error": "Administrative shutdown is disabled on this bridge."})
+                    return
                 if data != {"confirm": "shutdown"}:
                     raise ValueError("Bridge shutdown requires explicit confirmation.")
-                runtime = self.server.state.runtime()
-                if runtime["active_job_id"] or runtime["unfinished_jobs"]:
-                    raise ValueError("The bridge is busy. Cancel or finish all jobs before stopping it.")
+                with self.server.state.lock:
+                    runtime = self.server.state.runtime()
+                    if runtime["active_job_id"] or runtime["unfinished_jobs"]:
+                        raise ValueError("The bridge is busy. Cancel or finish all jobs before stopping it.")
+                    self.server.state.accepting_jobs = False
                 self._json(200, {"stopping": True, "runtime": runtime,
                                  "encoder_action": "unchanged"})
                 threading.Thread(target=self.server.shutdown, name="KimodoShutdown", daemon=True).start()
@@ -2346,6 +2384,107 @@ def _patch_end_effector_device():
     EndEffectorConstraintSet.__init__ = __init__
 
 
+@contextlib.contextmanager
+def _generation_progress(model, update, total_steps):
+    """Reports completed denoising steps across prompts without changing upstream code.
+
+    Some Kimodo versions drop the callback in their multi-prompt call to
+    ``_generate``. Temporarily setting it on that model instance covers both
+    paths. The original method is restored even if generation is canceled.
+
+    Args:
+        model (object): Loaded Kimodo model; used by the serialized GPU worker.
+        update (callable): Bridge progress/cancellation callback.
+        total_steps (int): Denoising steps across every prompt segment.
+
+    Yields:
+        callable: Iterable wrapper for the public model API.
+    """
+    completed = 0
+    last_percent = -1
+
+    def progress(iterable):
+        """Counts steps after execution and publishes at most once per percentage.
+
+        Args:
+            iterable (iterable): Native denoising iteration.
+
+        Yields:
+            object: Next native step.
+        """
+        nonlocal completed, last_percent
+        for step in iterable:
+            yield step
+            completed += 1
+            percent = min(99, int(completed * 99 / max(1, total_steps)))
+            if percent != last_percent:
+                update(stage="generating", progress=percent / 100)
+                last_percent = percent
+
+    original = getattr(model, "_generate", None)
+    if not callable(original):
+        yield progress
+        return
+    had_override = "_generate" in model.__dict__
+    previous_override = model.__dict__.get("_generate")
+
+    def generate(*args, **kwargs):
+        """Forwards the bridge callback into each actual denoising call.
+
+        Args:
+            *args: Native generation arguments.
+            **kwargs: Native generation options.
+
+        Returns:
+            object: Original generation result.
+        """
+        kwargs["progress_bar"] = progress
+        return original(*args, **kwargs)
+
+    model._generate = generate
+    try:
+        yield progress
+    finally:
+        if had_override:
+            model._generate = previous_override
+        else:
+            del model._generate
+
+
+def _patch_empty_constraint_conditions():
+    """Treats constraints cropped outside a prompt segment as absent conditioning.
+
+    Kimodo's multi-prompt path keeps empty cropped constraints. Its shared writer
+    cannot reshape zero frame values to ``[0, -1]``. Returning no feature for an
+    empty gather avoids that reshape while preserving every populated feature.
+    Older Kimodo versions without the shared writer need no patch.
+    """
+    try:
+        from kimodo.motion_rep.conditioning import ConditionWriters
+    except ImportError:
+        return
+    original = ConditionWriters.gather
+    if getattr(original, "_gt_empty_condition_patch", False):
+        return
+
+    def gather(self, feature_name):
+        """Skips an empty feature after normal constraint gathering.
+
+        Args:
+            feature_name (str): Native conditioning feature.
+
+        Returns:
+            tuple or None: Original nonempty indices/values, or no conditioning.
+        """
+        gathered = original(self, feature_name)
+        if gathered is not None and len(gathered[0]) == 0:
+            return None
+        return gathered
+
+    gather._gt_empty_condition_patch = True
+    ConditionWriters.gather = gather
+
+
 def _suppress_known_runtime_warnings():
     """Hides known third-party warning and progress noise from the bridge console."""
     warnings.filterwarnings(
@@ -2355,31 +2494,48 @@ def _suppress_known_runtime_warnings():
 
 
 def serve(host="127.0.0.1", port=7861, directory=None, token=None,
-          device="auto", text_encoder_url="http://127.0.0.1:9550", start_encoder=True):
+          device="auto", text_encoder_url="http://127.0.0.1:9550", start_encoder=True, allow_shutdown=True):
     """Runs the bridge inside a Kimodo Python environment until interrupted.
 
     Args:
         host (str): Listen address; non-loopback binding requires a token.
         port (int): HTTP listen port, separate from demo and encoder ports.
-        directory (str, optional): Persistent server-owned job cache.
+        directory (str, optional): Persistent job cache; defaults to ~/.cache/kimodo-bridge/jobs.
         token (str, optional): Bearer token, required for network exposure.
         device (str): Inference device: auto/cpu/cuda.
         text_encoder_url (str): Gradio text encoder origin.
         start_encoder (bool): Whether to launch a missing local encoder.
+        allow_shutdown (bool): Allow authenticated API shutdown; disable on shared servers.
     """
     if host not in ("127.0.0.1", "localhost") and not token:
         raise ValueError("A bearer token is required when binding beyond localhost.")
     _suppress_known_runtime_warnings()
-    directory = directory or os.path.join(os.path.expanduser("~"), ".cache", "gt-tools", "kimodo", "jobs")
+    directory = directory or os.path.join(os.path.expanduser("~"), ".cache", "kimodo-bridge", "jobs")
     # Bind before touching the job store, preventing duplicate launch on this port.
     server = ThreadingHTTPServer((host, port), _BridgeHandler)
     store_lock = None
     state = None
+    previous_sigterm = None
     try:
         store_lock = _lock_job_store(directory)
         server.token = token
+        server.allow_shutdown = bool(allow_shutdown)
         state = _BridgeState(directory, _KimodoBackend(device, text_encoder_url, start_encoder))
         server.state = state
+        if threading.current_thread() is threading.main_thread():
+            def stop_on_signal(signum, frame):
+                """Requests server shutdown without blocking the signal handler.
+
+                Args:
+                    signum (int): Received termination signal.
+                    frame (object): Interrupted Python frame.
+                """
+                logger.info("Received signal %s; stopping bridge.", signum)
+                with state.lock:
+                    state.accepting_jobs = False
+                threading.Thread(target=server.shutdown, name="KimodoSignalShutdown", daemon=True).start()
+
+            previous_sigterm = signal.signal(signal.SIGTERM, stop_on_signal)
         print(_bridge_banner(host, port, directory), flush=True)
         logger.info("Kimodo bridge ready at http://%s:%s; jobs: %s", host, port, directory)
         server.serve_forever()
@@ -2391,6 +2547,8 @@ def serve(host="127.0.0.1", port=7861, directory=None, token=None,
             state.close()
         if store_lock:
             store_lock.close()
+        if previous_sigterm is not None:
+            signal.signal(signal.SIGTERM, previous_sigterm)
 
 
 def _lock_job_store(directory):
@@ -2438,14 +2596,24 @@ def _main():
     parser.add_argument("--port", type=int, default=7861)
     parser.add_argument("--directory")
     parser.add_argument("--token")
+    parser.add_argument("--token-file", help="UTF-8 bearer token file; avoids command-line secrets.")
+    parser.add_argument("--disable-shutdown", action="store_true")
     parser.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
     parser.add_argument("--text-encoder-url", default="http://127.0.0.1:9550")
     parser.add_argument("--no-start-encoder", action="store_true")
     arguments = parser.parse_args()
+    if arguments.token and arguments.token_file:
+        parser.error("Use --token or --token-file, not both.")
+    token = arguments.token or os.environ.get("GT_KIMODO_TOKEN")
+    if arguments.token_file:
+        with open(arguments.token_file, encoding="utf-8") as stream:
+            token = stream.read().strip()
+        if not token:
+            parser.error("The bearer token file is empty.")
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     serve(host=arguments.host, port=arguments.port, directory=arguments.directory,
-          token=arguments.token, device=arguments.device, text_encoder_url=arguments.text_encoder_url,
-          start_encoder=not arguments.no_start_encoder)
+          token=token, device=arguments.device, text_encoder_url=arguments.text_encoder_url,
+          start_encoder=not arguments.no_start_encoder, allow_shutdown=not arguments.disable_shutdown)
 
 
 if __name__ == "__main__":

@@ -19,6 +19,9 @@ from gt.utils import kimodo
 from gt.tools.kimodo_generator import kimodo_generator_hik as humanik
 from gt.tools.kimodo_generator import kimodo_generator_hik_tools as hik_tools
 from gt.tools.kimodo_generator import kimodo_generator_results as job_results
+from gt.tools.kimodo_generator import kimodo_generator_docker as docker_runtime
+from gt.tools.kimodo_generator.kimodo_generator_docker_actions import KimodoDockerActions
+from gt.tools.kimodo_generator.kimodo_generator_connection_actions import KimodoConnectionActions
 from gt.tools.kimodo_generator.kimodo_generator_job_actions import KimodoJobActions
 from gt.tools.kimodo_generator.kimodo_generator_help import ACTION_TOOLTIPS, TABLE_ACTION_TOOLTIPS
 from gt.tools.kimodo_generator.kimodo_generator_model import (
@@ -105,7 +108,7 @@ class _CenteredIconTextDelegate(QtWidgets.QStyledItemDelegate):
         painter.restore()
 
 
-class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
+class KimodoGeneratorController(QtCore.QObject, KimodoJobActions, KimodoDockerActions, KimodoConnectionActions):
     """Keeps network waits off the UI thread and all Maya operations on it."""
 
     completed = QtCore.Signal(str, object, object)
@@ -129,6 +132,7 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
         self.submitting_job = None
         self.imported_group = None
         self.prompt_display_fps = 30.0
+        self.initialize_connection_state()
         self.completed.connect(self._finished)
         # Maya can delete a retained workspace-control child without delivering
         # the view's closeEvent. Keep the controller from outliving its widgets.
@@ -145,9 +149,14 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
         view.jobs.itemSelectionChanged.connect(self.refresh_job_details)
         view.tabs.currentChanged.connect(self.update_project_summary)
         view.mode.currentIndexChanged.connect(self.update_launch_fields)
+        view.docker_group.toggle_button.toggled.connect(self.save_docker_expanded)
+        view.python_group.toggle_button.toggled.connect(self.save_python_expanded)
         view.distribution.currentIndexChanged.connect(self.save_wsl_distribution)
         view.distribution.lineEdit().editingFinished.connect(self.save_wsl_distribution)
         view.output.editingFinished.connect(self._action_callback("save_output_folder"))
+        for field in (view.docker_directory, view.docker_executable, view.docker_image_name):
+            field.editingFinished.connect(self._action_callback("save_docker_settings"))
+        view.docker_stable_revisions.toggled.connect(self._action_callback("save_docker_settings"))
         for field in (view.hik_name, view.hik_xml, view.hik_pose, view.hik_frame):
             field.editingFinished.connect(self._action_callback("save_humanik_settings"))
         view.hik_lock.toggled.connect(self._action_callback("save_humanik_settings"))
@@ -200,9 +209,10 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
 
     def _stop_polling(self):
         """Stops the polling timer when its Qt owner has not already deleted it."""
-        timer = getattr(self, "timer", None)
-        if qt_utils.is_qt_object_valid(timer):
-            timer.stop()
+        for name in ("timer", "connection_timer"):
+            timer = getattr(self, name, None)
+            if qt_utils.is_qt_object_valid(timer):
+                timer.stop()
 
     def _view_destroyed(self, *unused):
         """Invalidates asynchronous UI work when Maya destroys the window directly.
@@ -235,9 +245,13 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
             except (ValueError, FileNotFoundError) as warning:
                 logger.warning("%s", warning)
                 self.message(str(warning), warning=True)
+                if key in ("connect", "test_bridge", "restart_bridge"):
+                    self.set_connection_state("failed")
             except Exception as error:
                 logger.exception("Kimodo action %s failed", key)
                 self.message(str(error), error=True)
+                if key in ("connect", "test_bridge", "restart_bridge"):
+                    self.set_connection_state("failed")
         return invoke
 
     def message(self, text, error=False, warning=False):
@@ -268,6 +282,13 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
         self.pending[key] = callback
         if key in self.view.buttons:
             self.view.buttons[key].setEnabled(False)
+        if key in ("connect", "test_bridge", "restart_bridge"):
+            self.set_connection_state("connecting")
+        else:
+            self.update_launch_fields()
+        if key == "build_docker":
+            self.view.docker_build_group.show()
+            self.view.docker_build_progress.setRange(0, 0)
 
         def run():
             """Computes a result without touching Qt widgets or the Maya scene."""
@@ -275,6 +296,9 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
                 result, error = function(), None
             except (ValueError, FileNotFoundError) as exception:
                 logger.warning("%s", exception)
+                result, error = None, exception
+            except ConnectionError as exception:
+                logger.warning("Bridge connection unavailable: %s", exception)
                 result, error = None, exception
             except Exception as exception:
                 logger.exception("Kimodo background operation %s failed", key)
@@ -298,7 +322,15 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
             return
         if key in self.view.buttons:
             self.view.buttons[key].setEnabled(True)
+        if key == "build_docker":
+            self.view.docker_build_group.hide()
+        if key == "connection_health" and (self.connection_state != "connected"
+                or any(name in self.pending for name in ("stop_bridge", "restart_bridge"))):
+            self.update_launch_fields()
+            return
         if error:
+            if key in ("connect", "test_bridge", "restart_bridge", "connection_health"):
+                self.set_connection_state("failed")
             if key == "generate" and self.submitting_job:
                 self.submitting_job.update(
                     status="submission_unknown", stage="Refresh to check acceptance", error=str(error))
@@ -307,6 +339,7 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
                 self.populate_jobs()
             expected = isinstance(error, (ValueError, FileNotFoundError))
             self.message(str(error), error=not expected, warning=expected)
+            self.update_launch_fields()
             return
         try:
             if callback:
@@ -314,20 +347,54 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
         except (ValueError, FileNotFoundError) as warning:
             logger.warning("%s", warning)
             self.message(str(warning), warning=True)
+            if key in ("connect", "test_bridge", "restart_bridge"):
+                self.set_connection_state("failed")
         except Exception as exception:
             logger.exception("Kimodo result action failed")
             self.message(str(exception), error=True)
+            if key in ("connect", "test_bridge", "restart_bridge"):
+                self.set_connection_state("failed")
+        finally:
+            self.update_launch_fields()
 
     def update_launch_fields(self):
         """Enables settings that apply to the selected connection mode."""
         mode = self.view.mode.currentData()
-        self.view.python_path.setEnabled(mode != "existing")
-        self.view.distribution.setEnabled(mode == "wsl")
-        self.view.buttons["browse_python"].setEnabled(mode != "existing")
-        self.view.buttons["query_wsl"].setEnabled(mode == "wsl")
+        self.update_mode_settings(mode)
+        locked = self.connection_state in ("connected", "connecting") or any(
+            key in self.pending for key in ("connect", "build_docker", "prepare_docker", "remove_docker_image"))
+        python_mode = mode in ("wsl", "native") and not locked
+        self.view.python_path.setEnabled(python_mode)
+        self.view.distribution.setEnabled(mode == "wsl" and not locked)
+        self.view.buttons["browse_python"].setEnabled(python_mode)
+        self.view.buttons["query_wsl"].setEnabled(mode == "wsl" and not locked)
         self.view.buttons["restart_bridge"].setEnabled(mode != "existing")
         for widget in (self.view.encoder_url, self.view.device, self.view.start_encoder, self.view.show_console):
-            widget.setEnabled(mode != "existing")
+            widget.setEnabled(python_mode)
+        self.view.docker_group.setVisible(mode == "docker")
+        self.view.token.setEnabled(mode != "docker" and not locked)
+        self.update_connection_controls()
+
+    def save_python_expanded(self, expanded):
+        """Stores disclosure for the active Python environment.
+
+        Args:
+            expanded (bool): Whether launch settings are visible.
+        """
+        mode = self.view.mode.currentData()
+        if not self.loading and mode in self.model.launch_expanded:
+            self.model.launch_expanded[mode] = expanded
+            self.model.save_preferences()
+
+    def save_docker_expanded(self, expanded):
+        """Persists the Docker section disclosure state.
+
+        Args:
+            expanded (bool): Whether deployment settings are visible.
+        """
+        if not self.loading:
+            self.model.docker["expanded"] = expanded
+            self.model.save_preferences()
 
     def save_show_console(self):
         """Persists the bridge console preference without validating other fields."""
@@ -676,6 +743,11 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
         view.show_console.setChecked(settings.get("show_console", True))
         view.auto_connect.setChecked(settings.get("auto_connect", False))
         view.token.setText(self.model.token)
+        view.docker_directory.setText(self.model.docker["directory"])
+        view.docker_executable.setText(self.model.docker["executable"])
+        view.docker_image_name.setText(self.model.docker["image_name"])
+        view.docker_stable_revisions.setChecked(self.model.docker["use_stable_revisions"])
+        view.docker_group.toggle_button.setChecked(self.model.docker["expanded"])
         view.prompt_frames.setChecked(self.model.prompt_durations_in_frames)
         self.populate_models()
         self.prompt_display_fps = self._model_fps(model_id=self.model.definition.get("model"))
@@ -831,7 +903,20 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
                                      show_console=view.show_console.isChecked(),
                                      auto_connect=view.auto_connect.isChecked())
         self.model.token = view.token.text()
-        self.tokens_by_url[view.url.text().strip().rstrip("/")] = self.model.token
+        self.model.docker.update(directory=view.docker_directory.text().strip(),
+                                 executable=view.docker_executable.text().strip(),
+                                 image_name=view.docker_image_name.text().strip(),
+                                 use_stable_revisions=view.docker_stable_revisions.isChecked())
+        token = self.model.token
+        if (self.model.connection["mode"] == "docker"
+                and os.path.isfile(os.path.join(self.model.docker["directory"], "deployment.json"))):
+            try:
+                docker_runtime.validate_local_url(self.model.connection["url"])
+            except ValueError:
+                token = None
+            else:
+                token = docker_runtime.bridge_token(self.model.docker["directory"])
+        self.tokens_by_url[view.url.text().strip().rstrip("/")] = token
         self.model.save_preferences()
 
     def gather_constraints(self):
@@ -1185,9 +1270,16 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
 
     def connect_bridge(self):
         """Starts or connects to a bridge using a background worker."""
+        if self.connection_state in ("connected", "connecting"):
+            self.message("The bridge is already connected or connecting.")
+            return
+        if self.view.mode.currentData() == "docker":
+            self._docker_settings()
         self.gather_connection()
         connection = self.model.make_connection()
+        docker_settings = dict(self.model.docker) if self.model.connection["mode"] == "docker" else None
         self.last_connection = connection
+        self.tokens_by_url[connection.url] = connection.token
         self.message("Connecting to Kimodo…")
 
         def operation():
@@ -1196,8 +1288,16 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
             Returns:
                 tuple: Health, capabilities and rest motion.
             """
-            health = connection.start_local()
+            if docker_settings:
+                health = docker_runtime.start(docker_settings["directory"], connection, docker_settings["executable"])
+            else:
+                health = connection.start_local()
             client = kimodo.KimodoClient(connection)
+            if health.get("runtime", {}).get("deployment_id"):
+                try:
+                    health["encoder"] = client.test_text_encoder()
+                except (ConnectionError, RuntimeError, ValueError) as error:
+                    health["encoder"] = {"status": "unavailable", "error": str(error)}
             return health, client.capabilities(), client.skeleton()
 
         def ready(result):
@@ -1211,7 +1311,13 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
             self.populate_models()
             self.model.save_preferences()
             self.view.connection_info.setText(self._bridge_status_text(health, connection))
-            self.message("Connected. Choose a model, add prompts or poses, and generate.")
+            self.encoder_ready = health.get("encoder", {}).get("status") == "ready"
+            self.set_connection_state("connected")
+            if health.get("encoder", {}).get("status") == "unavailable":
+                self.message(
+                    "Bridge connected. Encoder is loading or unavailable; use Test Text Encoder or Docker Logs.")
+            else:
+                self.message("Connected. Choose a model, add prompts or poses, and generate.")
 
         self.run_network("connect", operation, ready)
 
@@ -1233,6 +1339,8 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
             location = "native Windows"
         else:
             location = runtime.get("platform", "externally managed server")
+        if runtime.get("deployment_id"):
+            location = f"Docker deployment {runtime['deployment_id']} ({location})"
         lines = [f"Bridge: READY at {connection.url}", f"Runs in: {location}"]
         if runtime:
             lines.extend((f"PID: {runtime.get('pid', 'unknown')} | Device: {runtime.get('device', 'unknown')}",
@@ -1243,6 +1351,9 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
                           f"active {runtime.get('active_job_id') or 'none'}; "
                           f"{runtime.get('unfinished_jobs', 0)} unfinished",
                           f"Text encoder: {runtime.get('text_encoder_url') or 'not configured'}"))
+            lines.append(f"Motion model: {runtime.get('loaded_model') or 'not loaded (loads on generation)'}")
+            encoder = health.get("encoder", {})
+            lines.append(f"Encoder API: {encoder.get('status', 'not tested; use Test Text Encoder')}")
         else:
             lines.append("Legacy bridge: restart once to enable process details, cleanup, and Maya management.")
         if connection.log_path:
@@ -1263,39 +1374,89 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
         self.view.python_path.setText(connection.python_path)
 
     def test_bridge(self):
-        """Tests only the configured bridge and displays where its process runs."""
+        """Connects to an already running bridge without starting services."""
         self.gather_connection()
         connection = self.model.make_connection()
         client = kimodo.KimodoClient(connection)
 
-        def ready(health):
+        def operation():
+            """Obtains the discovery data needed by an active UI connection.
+
+            Returns:
+                tuple: Health, capabilities, and rest skeleton.
+            """
+            return client.health(), client.capabilities(), client.skeleton()
+
+        def ready(payload):
             """Displays bridge runtime information after a successful probe.
 
             Args:
-                health (dict): Validated health payload.
+                payload (tuple): Health, capabilities and rest skeleton.
             """
+            health, self.model.capabilities, self.model.rest_motion = payload
+            self.populate_models()
             self.view.connection_info.setText(self._bridge_status_text(health, connection))
+            self.last_connection = connection
+            self.set_connection_state("connected")
             self.message("Bridge connection succeeded.")
-        self.run_network("test_bridge", client.health, ready)
+        self.run_network("test_bridge", operation, ready)
 
     def test_encoder(self):
-        """Tests the configured Gradio text encoder independently of the bridge."""
+        """Tests private/container encoder addresses from the bridge's own network."""
         self.gather_connection()
         url = self.model.connection["text_encoder_url"]
+        connection = self.model.make_connection()
+        python_mode = self.model.connection["mode"] in ("native", "wsl")
+        docker_settings = dict(self.model.docker) if self.model.connection["mode"] == "docker" else None
+
+        def operation():
+            """Uses server diagnostics, retaining direct local probes for older bridges.
+
+            Returns:
+                dict: Encoder readiness or an actionable unavailable status.
+            """
+            try:
+                return kimodo.KimodoClient(connection).test_text_encoder()
+            except kimodo.KimodoEncoderUnavailable:
+                result = {"status": "unavailable", "detail": "Text encoder is not accepting requests yet. "
+                          "It may be downloading or loading model weights. Check the server logs, then test again."}
+                if docker_settings:
+                    try:
+                        result.update(docker_runtime.encoder_status(
+                            docker_settings["directory"], docker_settings["executable"]))
+                    except (OSError, RuntimeError, ValueError) as error:
+                        logger.debug("Could not inspect encoder container status: %s", error)
+                return result
+            except (ValueError, ConnectionError):
+                if python_mode:
+                    return kimodo.probe_text_encoder(url)
+                raise
 
         def ready(result):
-            """Reports a successful encoder probe without changing bridge state.
+            """Reports encoder readiness without treating initialization as a crash.
 
             Args:
                 result (dict): Encoder readiness payload.
             """
+            text = self.view.connection_info.text().split("\nEncoder diagnostic:", 1)[0]
+            if result.get("status", "ready") != "ready":
+                self.encoder_ready = False
+                self.message(result["detail"], warning=True)
+                state = result["status"].upper()
+                self.view.connection_info.setText(f"{text}\nEncoder diagnostic: {state}. {result['detail']}")
+                return
             self.message(f"Text encoder is ready at {result['url']} (API: {result['api_name']}).")
-        self.run_network("test_encoder", lambda: kimodo.probe_text_encoder(url), ready)
+            self.encoder_ready = True
+            self.view.connection_info.setText(f"{text}\nEncoder diagnostic: READY at {result['url']}")
+        self.run_network("test_encoder", operation, ready)
 
     def stop_bridge(self):
         """Requests graceful idle bridge shutdown, preserving encoder and persistent data."""
         self.gather_connection()
         connection = self.model.make_connection()
+        if self.model.connection["mode"] == "docker":
+            self.stop_docker_bridge(connection)
+            return
         answer = QtWidgets.QMessageBox.question(
             self.view, "Stop Kimodo Bridge",
             f"Stop the bridge at {connection.url}?\n\n"
@@ -1317,12 +1478,17 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
                 f"Bridge: STOPPED at {connection.url}\nPrevious PID: {runtime.get('pid', 'unknown')}\n"
                 "Text encoder: not changed by the endpoint; test it separately")
             self.message("Bridge stopped. Persistent job/model files were preserved; test the encoder separately.")
+            self.encoder_ready = False
+            self.set_connection_state("disconnected")
         self.run_network("stop_bridge", kimodo.KimodoClient(connection).shutdown, stopped)
 
     def restart_bridge(self):
         """Gracefully stops, redeploys, starts, and reconnects a configured local bridge."""
         self.gather_connection()
         connection = self.model.make_connection()
+        if self.model.connection["mode"] == "docker":
+            self.restart_docker_bridge(connection)
+            return
         if connection.mode == "existing":
             raise ValueError("Choose Start in WSL or Start on Windows and provide its Kimodo Python before restart. "
                              "An existing-server URL does not tell Maya how to launch that server.")
@@ -1370,6 +1536,7 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
             self.model.save_preferences()
             self.view.connection_info.setText(self._bridge_status_text(health, connection))
             self.message("Bridge restarted with the current GT Tools code and reconnected.")
+            self.set_connection_state("connected")
         self.run_network("restart_bridge", operation, restarted)
 
     def refresh_models(self):
@@ -1469,6 +1636,11 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
         """
         url = job["url"].rstrip("/")
         token = self.tokens_by_url.get(url)
+        if (not token and self.model.connection["mode"] == "docker"
+                and url == self.model.connection["url"].rstrip("/")
+                and os.path.isfile(os.path.join(self.model.docker["directory"], "deployment.json"))):
+            docker_runtime.validate_local_url(url)
+            token = docker_runtime.bridge_token(self.model.docker["directory"])
         return kimodo.KimodoClient(kimodo.KimodoConnection(url=url, token=token or None))
 
 
@@ -2142,14 +2314,19 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
         """Loads a portable authoring setup."""
         path, unused = QtWidgets.QFileDialog.getOpenFileName(self.view, "Load Kimodo Setup", "", "JSON (*.json)")
         if path:
+            connection = copy.deepcopy(self.model.connection)
+            docker_settings = copy.deepcopy(self.model.docker)
             self.model.load_setup(path)
+            if self.connection_state in ("connected", "connecting"):
+                self.model.connection = connection
+                self.model.docker = docker_settings
             self.load_widgets()
             self.message("Setup loaded.")
 
     def load_default_setup(self):
         """Resets generation and project settings while preserving connection and history."""
         answer = QtWidgets.QMessageBox.question(
-            self.view, "Reset to Default Setup",
+            self.view, "Reset Kimodo Options",
             "Reset prompts, constraints, HumanIK overrides, and generation/import settings to their defaults?\n\n"
             "The current bridge connection, WSL/Python settings, token, job history, and Maya scene are preserved.",
             QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No,
@@ -2157,6 +2334,7 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
         if answer != QtWidgets.QMessageBox.StandardButton.Yes:
             return
 
+        self.gather_connection()
         defaults = KimodoGeneratorModel(preferences=False)
         preserved_widths = copy.deepcopy(self.model.table_widths)
         self.model.definition = copy.deepcopy(defaults.definition)
@@ -2434,14 +2612,24 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions):
         self.create_humanik()
 
 
-    def reset(self):
-        """Resets editable preferences while preserving job history."""
-        jobs = self.model.jobs
-        self.model.reset()
-        self.model.jobs = jobs
+    def reset_connection_settings(self):
+        """Resets connection preferences while preserving generation options and running services."""
+        if self.connection_state in ("connected", "connecting") or self.pending:
+            raise ValueError("Disconnect before resetting connection settings.")
+        self.gather()
+        defaults = KimodoGeneratorModel(preferences=False)
+        for name in ("connection", "docker", "launch_settings", "launch_expanded", "token"):
+            setattr(self.model, name, copy.deepcopy(getattr(defaults, name)))
+        self.last_connection = None
+        self.tokens_by_url.clear()
+        self.set_connection_state("disconnected")
         self.load_widgets()
         self.model.save_preferences()
-        self.message("Settings reset. Generated files and job history were retained.")
+        self.message("Connection settings reset. Kimodo options and deployment files were retained.")
+
+    def reset(self):
+        """Retains the legacy reset action as a connection-only reset."""
+        self.reset_connection_settings()
 
     def help(self):
         """Opens the local detailed guide or packaged documentation fallback."""

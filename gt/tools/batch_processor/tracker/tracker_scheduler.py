@@ -821,8 +821,13 @@ class TrackerScheduler:
         for event in process_data.get("remote_jobs", []):
             try:
                 token_name = event.get("token_environment")
-                connection = kimodo.KimodoConnection(
-                    url=event["url"], timeout=2, token=os.environ.get(token_name) if token_name else None)
+                token = os.environ.get(token_name) if token_name else None
+                if event.get("docker_directory"):
+                    from gt.tools.kimodo_generator import kimodo_generator_docker as docker
+
+                    docker.validate_local_url(event["url"])
+                    token = docker.bridge_token(event["docker_directory"])
+                connection = kimodo.KimodoConnection(url=event["url"], timeout=2, token=token)
                 kimodo.KimodoClient(connection).cancel(event["remote_id"])
             except Exception as error:
                 self._append_project_log(f"[WARNING] - Remote Kimodo cancellation failed: {error}\n")
