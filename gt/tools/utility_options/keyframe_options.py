@@ -124,41 +124,65 @@ def open_delete_keyframes_options():
         action(obj_list)
 
     def _delete_all(obj_list):
-        """Deletes all keyframe curves matching the selected options."""
+        """Deletes all keyframe curves matching the selected options.
+
+        Args:
+            obj_list (list or None): Object names to affect, or None for the entire scene.
+        """
         core_anim.delete_keyframes(
             key_scope=_resolve_key_scope(key_type_combo),
             obj_list=obj_list,
         )
 
     def _delete_before(obj_list):
-        """Deletes keyframes located before the current frame."""
+        """Deletes keyframes located before the current frame.
+
+        Args:
+            obj_list (list or None): Object names to affect, or None for the entire scene.
+        """
         core_anim.delete_keyframes_before_current_frame(
             obj_list=obj_list,
             key_scope=_resolve_key_scope(key_type_combo),
         )
 
     def _delete_current(obj_list):
-        """Deletes keyframes located on the current frame."""
+        """Deletes keyframes located on the current frame.
+
+        Args:
+            obj_list (list or None): Object names to affect, or None for the entire scene.
+        """
         core_anim.delete_keyframes_at_current_frame(
             obj_list=obj_list,
             key_scope=_resolve_key_scope(key_type_combo),
         )
 
     def _delete_after(obj_list):
-        """Deletes keyframes located after the current frame."""
+        """Deletes keyframes located after the current frame.
+
+        Args:
+            obj_list (list or None): Object names to affect, or None for the entire scene.
+        """
         core_anim.delete_keyframes_after_current_frame(
             obj_list=obj_list,
             key_scope=_resolve_key_scope(key_type_combo),
         )
 
     def _delete_outside_timeline(obj_list):
-        """Deletes time keyframes located outside the animation timeline."""
+        """Deletes time keyframes located outside the animation timeline.
+
+        Args:
+            obj_list (list or None): Object names to affect, or None for the entire scene.
+        """
         core_anim.delete_time_keyframes_outside_animation_range(
             obj_list=obj_list,
         )
 
     def _delete_outside_playback_range(obj_list):
-        """Deletes time keyframes located outside the playback range."""
+        """Deletes time keyframes located outside the playback range.
+
+        Args:
+            obj_list (list or None): Object names to affect, or None for the entire scene.
+        """
         core_anim.delete_time_keyframes_outside_playback_range(
             obj_list=obj_list,
         )

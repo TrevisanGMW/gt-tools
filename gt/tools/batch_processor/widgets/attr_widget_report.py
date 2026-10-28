@@ -236,7 +236,11 @@ class AttrWidgetSceneReportTask(AttrWidgetTask):
         self.metric_checkboxes[metric_key] = checkbox
 
     def show_add_report_item_menu(self, checked=False):
-        """Shows metrics that have not been added to the report list."""
+        """Shows metrics that have not been added to the report list.
+
+        Args:
+            checked (bool, optional): Qt button state, unused.
+        """
         self.add_report_item_menu.clear()
         added_keys = set(self.task.get_report_item_keys())
         available_metrics = [metric for metric in task_report.REPORT_METRICS if metric.get("key") not in added_keys]
