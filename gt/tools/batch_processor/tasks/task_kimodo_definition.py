@@ -1,9 +1,10 @@
 """Captures portable Kimodo definitions from evaluated Maya animation."""
 
 import copy
+import hashlib
 import json
-import os
 import math
+import os
 import re
 import random
 import secrets
@@ -19,6 +20,7 @@ from gt.tools.batch_processor.tasks.task_kimodo_base import (
     TaskKimodoBase, ClipSnapshotFileLock, report_message, write_record, read_json, fingerprint, resolve_path,
     resolve_motion_text, uses_runtime_variables, parse_motion_text,
 )
+from gt.tools.batch_processor.tasks import task_utils
 
 
 class TaskKimodoDefinition(TaskKimodoBase):
@@ -39,11 +41,18 @@ class TaskKimodoDefinition(TaskKimodoBase):
         settings = super().get_default_settings()
         settings.update(
             definition=kimodo.KimodoGenerationDefinition("A person moves naturally between the poses.").as_dict(),
+            run_pre_generation_script=False, pre_generation_script_text="",
+            pre_generation_dependency_path="",
+            use_pre_generation_scene_for_generation=False,
+            pre_generation_script_font_size=14,
+            pre_generation_script_pass_standard_arguments=True,
+            pre_generation_script_pass_environment_arguments=True,
             template_path="", pose_source="", range_mode="playback", start_frame=1, end_frame=120,
             capture_first=True, capture_last=True, pose_frames="", use_marker=False,
             marker_attribute="kimodo_pose:motion.isConstraintPose", marker_value=1, marker_mode="evaluated",
             sample_step=1, pose_type="fullbody", sequential_evaluation=True, bone_offset_tolerance=0.001,
             path_nodes="", path_frames="", path_samples=8, path_mask_attribute="", randomize_root_path=False,
+            capture_in_world_space=False,
             root_heading="none", root_heading_offset=0.0,
             model_fps=30, duration_mode="source",
             retime_constraints=False, constraint_mode="replace", variations=1, seed_policy="per_file",
@@ -131,6 +140,20 @@ class TaskKimodoDefinition(TaskKimodoBase):
                                  ("constraint_mode", ("replace", "append"))):
                 if self.settings[key] not in allowed:
                     raise ValueError(f"Invalid {key}.")
+
+            area = "Pre-Generation Script"
+            if self.settings.get("run_pre_generation_script"):
+                if not str(self.settings.get("pre_generation_script_text") or "").strip():
+                    raise ValueError("The pre-generation script is enabled but no inline script is set.")
+                dependency_path = resolve_path(
+                    self.settings.get("pre_generation_dependency_path", ""), project, self)
+                if not dependency_path:
+                    raise ValueError("Choose an animation source file for the pre-generation script.")
+                if not os.path.isfile(dependency_path):
+                    raise ValueError(f"Pre-generation dependency does not exist: {dependency_path}")
+            if (self.settings.get("use_pre_generation_scene_for_generation")
+                    and not self.settings.get("run_pre_generation_script")):
+                raise ValueError("Importing a prepared scene requires the pre-generation script.")
 
             area = "Pose Capture"
             kimodo.parse_scene_frames(self.settings["pose_frames"])
@@ -281,10 +304,24 @@ class TaskKimodoDefinition(TaskKimodoBase):
         cache = self.recovery_directory(work_item, step_output_dir)
         record_path = os.path.join(cache, "capture.json")
         string_scene = is_string_scene(work_item)
+        prepared_scene_path = ""
         if not string_scene:
             cmds = batch_processor_maya.get_maya_cmds()
             cmds.file(work_item.current_path, open=True, force=True,
                       executeScriptNodes=False, prompt=False)
+            self.run_pre_generation_script_if_needed(
+                project=project,
+                work_item=work_item,
+                output_path=step_output_dir,
+                context=context,
+            )
+            if self.settings.get("use_pre_generation_scene_for_generation"):
+                prepared_scene_path = self.save_pre_generation_scene(
+                    work_item=work_item, step_output_dir=step_output_dir, cmds=cmds)
+        elif self.settings.get("run_pre_generation_script"):
+            raise ValueError("The pre-generation script requires a Maya scene input.")
+        elif self.settings.get("use_pre_generation_scene_for_generation"):
+            raise ValueError("Importing a prepared scene requires a Maya scene input.")
         definition = self.base_definition(project, work_item)
         if self.settings.get("use_input_string") and self.settings.get("prompt_mode", "table") == "table":
             value = work_item.metadata.get("input_string")
@@ -295,7 +332,12 @@ class TaskKimodoDefinition(TaskKimodoBase):
             signature = fingerprint([self.settings, definition, work_item.metadata["input_string"]])
         else:
             stat = os.stat(work_item.current_path)
-            signature = fingerprint([self.settings, definition, stat.st_size, stat.st_mtime_ns])
+            dependency_path = resolve_path(
+                self.settings.get("pre_generation_dependency_path", ""), project, self)
+            dependency_hash = self.hash_file(dependency_path) if (
+                self.settings.get("run_pre_generation_script") and dependency_path) else ""
+            signature = fingerprint([
+                self.settings, definition, stat.st_size, stat.st_mtime_ns, dependency_hash])
         with self.recovery_lock(work_item, step_output_dir, timeout_seconds=3600, context=context):
             try:
                 with ClipSnapshotFileLock(record_path, timeout_seconds=3600):
@@ -316,6 +358,7 @@ class TaskKimodoDefinition(TaskKimodoBase):
                                   "source_frames": captured["frames"], "source_start": captured["start"],
                                   "source_end": captured["end"], "source_fps": captured["source_fps"],
                                   "model_fps": float(self.settings["model_fps"]),
+                                  "source_scene": prepared_scene_path or work_item.current_path,
                                   "group_warning": captured.get("group_warning")}
                         write_record(record_path, record)
                     if record.get("group_warning"):
@@ -339,7 +382,7 @@ class TaskKimodoDefinition(TaskKimodoBase):
                             report(f"Saved definition: {path}")
                         metadata = {"model_fps": record["model_fps"], "source_frames": record["source_frames"]}
                         if not string_scene:
-                            metadata["source_scene"] = work_item.current_path
+                            metadata["source_scene"] = record.get("source_scene") or work_item.current_path
                         if not self.settings.get("purge_cache_on_success", True):
                             metadata["manifest"] = record_path
                         items.append(self.output_item(work_item, path, metadata))
@@ -350,6 +393,91 @@ class TaskKimodoDefinition(TaskKimodoBase):
                 raise
             self.cleanup_recovery_cache(work_item, step_output_dir, cache, context)
             return items
+
+    @staticmethod
+    def save_pre_generation_scene(work_item, step_output_dir, cmds=None):
+        """Saves the prepared Maya scene beside the task outputs for later generation import.
+
+        Args:
+            work_item (WorkItem): Source Maya scene.
+            step_output_dir (str): Kimodo Definition task output directory.
+            cmds (module, optional): Maya commands module.
+
+        Returns:
+            str: Absolute path to the saved prepared scene.
+        """
+        if cmds is None:
+            cmds = batch_processor_maya.get_maya_cmds()
+        source_path = os.path.abspath(work_item.current_path)
+        source_key = hashlib.sha256(os.path.normcase(source_path).encode("utf-8")).hexdigest()[:12]
+        source_stem = os.path.splitext(os.path.basename(source_path))[0]
+        prepared_directory = os.path.join(step_output_dir, "_prepared_scenes")
+        os.makedirs(prepared_directory, exist_ok=True)
+        prepared_path = os.path.join(prepared_directory, f"{source_stem}_{source_key}.ma")
+        cmds.file(rename=prepared_path)
+        cmds.file(save=True, type="mayaAscii", force=True)
+        if not os.path.isfile(prepared_path) or os.path.getsize(prepared_path) <= 0:
+            raise IOError(f"Prepared Maya scene was not saved: {prepared_path}")
+        return os.path.normpath(prepared_path)
+
+    def run_pre_generation_script_if_needed(self, project, work_item, output_path, context=None):
+        """Runs the optional inline script after opening an input and before pose capture.
+
+        Args:
+            project (BatchProcessorModel): Owning project.
+            work_item (WorkItem): Current input scene.
+            output_path (str): Task output directory.
+            context (dict, optional): Tracker context.
+        """
+        if not self.settings.get("run_pre_generation_script"):
+            return
+        script_text = str(self.settings.get("pre_generation_script_text") or "")
+        if not script_text.strip():
+            raise ValueError("The pre-generation script is enabled but no inline script is set.")
+        dependency_path = resolve_path(
+            self.settings.get("pre_generation_dependency_path", ""), project, self)
+        if not dependency_path or not os.path.isfile(dependency_path):
+            raise ValueError(f"Pre-generation dependency is missing: {dependency_path or '(blank)'}")
+        runtime_context = task_utils.build_python_script_runtime_context(
+            project=project,
+            task=self,
+            work_item=work_item,
+            output_path=output_path,
+            context=context,
+            extra_values={
+                "work_item": work_item,
+                "task": self,
+                "animation_source_path": dependency_path,
+                "pre_generation_dependency_path": dependency_path,
+            },
+            pass_standard_arguments=self.settings.get(
+                "pre_generation_script_pass_standard_arguments", True),
+            pass_environment_arguments=self.settings.get(
+                "pre_generation_script_pass_environment_arguments", True),
+        )
+        task_utils.run_inline_python_script(
+            script_text=script_text,
+            context=runtime_context,
+            script_name="<kimodo_pre_generation_script>",
+        )
+
+    @staticmethod
+    def hash_file(path):
+        """Hashes a dependency file so source edits invalidate captured definitions.
+
+        Args:
+            path (str): File to hash.
+
+        Returns:
+            str: SHA-256 digest, or an empty string for an empty path.
+        """
+        if not path:
+            return ""
+        digest = hashlib.sha256()
+        with open(path, "rb") as source_file:
+            for chunk in iter(lambda: source_file.read(1024 * 1024), b""):
+                digest.update(chunk)
+        return digest.hexdigest()
 
     def check_source(self, item):
         """Accepts virtual scenes while preserving file checks for ordinary inputs.
@@ -648,8 +776,11 @@ def capture_scene(settings, report):
                     cmds.currentTime(previous, edit=True, update=True)
                     previous += 1
             cmds.currentTime(frame, edit=True, update=True)
-            poses.append(kimodo.capture_pose(resolved["group"], index, settings["pose_type"],
-                                              float(settings["bone_offset_tolerance"])))
+            pose = kimodo.capture_pose(resolved["group"], index, settings["pose_type"],
+                                       float(settings["bone_offset_tolerance"]))
+            if settings.get("capture_in_world_space"):
+                pose = transform_pose_to_world_space(pose, resolved["group"])
+            poses.append(pose)
             previous = frame
         path = None
         path_options = []
@@ -698,8 +829,9 @@ def capture_scene(settings, report):
                                                              for frame in path_frames])
                 report(f"Path mask {path_mask} kept {len(path_frames)} of {count} root path frames.")
             cmds.currentTime(resolved["start"], edit=True, update=True)
+            path_group = None if settings.get("capture_in_world_space") else resolved["group"]
             capture_path = partial(kimodo.capture_root_path, frame_indices=list(range(len(path_frames))),
-                                   group=resolved["group"], heading_mode=settings.get("root_heading", "none"),
+                                   group=path_group, heading_mode=settings.get("root_heading", "none"),
                                    heading_offset=float(settings.get("root_heading_offset", 0.0)))
             if randomize_path:
                 for node in resolved_nodes:
@@ -714,3 +846,42 @@ def capture_scene(settings, report):
     finally:
         cmds.currentTime(current_time, edit=True, update=True)
         cmds.select(selection, replace=True) if selection else cmds.select(clear=True)
+
+
+def transform_pose_to_world_space(pose, group):
+    """Transforms a captured root position and facing into scene world space.
+
+    Joint rotations below the root remain local, while the root channels absorb the
+    placement group's translation and rotation. This keeps pose constraints aligned
+    with a world-space path when a pre-generation script moves the pose group.
+
+    Args:
+        pose (dict): Kimodo pose constraint returned by ``kimodo.capture_pose``.
+        group (str): Placement group containing the captured skeleton.
+
+    Returns:
+        dict: The input pose with its root transform expressed in world space.
+    """
+    import maya.cmds as cmds
+    import maya.api.OpenMaya as om
+
+    skeleton = json.loads(cmds.getAttr(f"{group}.kimodoSkeleton"))
+    root_name = skeleton["joint_names"][0]
+    joints = cmds.listRelatives(group, allDescendents=True, type="joint", fullPath=True) or []
+    matches = [joint for joint in joints if joint.rsplit("|", 1)[-1].rsplit(":", 1)[-1] == root_name]
+    if len(matches) != 1:
+        raise ValueError(f"Expected one root joint named {root_name}; found {len(matches)}.")
+    root_joint = matches[0]
+    group_matrix = om.MMatrix(cmds.getAttr(f"{group}.worldMatrix[0]"))
+    local_translation = cmds.getAttr(f"{root_joint}.translate")[0]
+    world_position = om.MPoint(*local_translation) * group_matrix
+    scale = om.MDistance(1, om.MDistance.uiUnit()).asMeters()
+    pose["root_positions"][0] = [world_position.x * scale, world_position.y * scale,
+                                  world_position.z * scale]
+
+    local_matrix = om.MMatrix(cmds.getAttr(f"{root_joint}.matrix"))
+    world_matrix = local_matrix * group_matrix
+    world_rotation = om.MTransformationMatrix(world_matrix).rotation(asQuaternion=True)
+    axis, angle = world_rotation.asAxisAngle()
+    pose["local_joints_rot"][0][0] = [axis.x * angle, axis.y * angle, axis.z * angle]
+    return pose

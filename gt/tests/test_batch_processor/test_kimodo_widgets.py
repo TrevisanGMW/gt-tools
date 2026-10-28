@@ -43,6 +43,8 @@ class TestKimodoWidgets(unittest.TestCase):
             widget.controls[("definition", "parameters", "num_samples")].setValue(3)
             self.assertEqual("kimodo_pose:motion", task.settings["pose_source"])
             self.assertEqual(3, task.settings["definition"]["parameters"]["num_samples"])
+            self.assertIn(("use_pre_generation_scene_for_generation",), widget.controls)
+            self.assertIn(("capture_in_world_space",), widget.controls)
             enabled, minimum, maximum, unused_integer = widget.variation_editor.inputs["guidance_text"]
             enabled.setChecked(True)
             minimum.setValue(3)

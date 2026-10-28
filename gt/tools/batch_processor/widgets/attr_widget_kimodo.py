@@ -8,6 +8,7 @@ from gt.ui import qt_import as qt
 from gt.tools.batch_processor.widgets.attr_widget_task import AttrWidgetTask
 from gt.tools.batch_processor.tasks.task_kimodo_base import MOTION_TEXT_EXAMPLE
 from gt.tools.batch_processor.widgets.kimodo_connection_controls import KimodoConnectionControls
+from gt.tools.batch_processor.widgets.inline_python_editor import InlinePythonEditorWidget
 
 
 FIELD_HELP = {
@@ -29,6 +30,20 @@ FIELD_HELP = {
                        "if none is found, pose constraints are skipped with a warning.\n"
                        "Multiple matches are an error.",
                        "Auto-detect, or kimodo_pose:motion"),
+    ("pre_generation_dependency_path",): (
+        "Optional source file used by the pre-generation script.\n"
+        "The resolved file content is included in the definition cache signature.",
+        "{project-dir}/data/pose_animation.ma"),
+    ("run_pre_generation_script",): (
+        "Run this script after opening each input scene and before Kimodo captures constraints.\n"
+        "Use it to inject or prepare shared animation data.", ""),
+    ("use_pre_generation_scene_for_generation",): (
+        "Save the prepared scene beside the definitions and import it into generated Maya files.\n"
+        "This keeps injected animation hierarchies available for reference until a later task removes them.", ""),
+    ("pre_generation_script_pass_standard_arguments",): (
+        "Expose input, output, project, task, and related values as script arguments and args.", ""),
+    ("pre_generation_script_pass_environment_arguments",): (
+        "Expose project environment variables as environment_variables and env.", ""),
     ("range_mode",): ("Use the source's saved playback range, full animation range,\n"
                       "or the custom start/end below.\n"
                       "Source scene frames are converted to zero-based model indices.", "Playback range"),
@@ -74,6 +89,10 @@ FIELD_HELP = {
                       "one point per locator.\n"
                       "To choose among curves, enable Random curve per variation.",
                       "curve_path, trajectory_driver, or start, mid, end"),
+    ("capture_in_world_space",): (
+        "Capture both pose root transforms and the route in scene world coordinates.\n"
+        "Enable this when a pre-generation script moves or rotates the pose skeleton,\n"
+        "so the pose constraints and generated route stay in the same space.", ""),
     ("root_heading",): ("Facing direction sent with the root path.\n"
                         "None leaves facing to the model.\n"
                         "Direction of travel faces along the path (curve tangent or movement).\n"
@@ -431,7 +450,10 @@ class AttrWidgetKimodo(KimodoConnectionControls, AttrWidgetTask):
             QWidget: Created control.
         """
         path = key if isinstance(key, tuple) else (key,)
-        help_text, placeholder = FIELD_HELP[path[:-1] if isinstance(path[-1], int) else path]
+        help_text, placeholder = FIELD_HELP.get(
+            path[:-1] if isinstance(path[-1], int) else path,
+            (tooltip, ""),
+        )
         tooltip = help_text
         value = self.value(path)
         setter = partial(self.store, path)
@@ -618,6 +640,8 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
         self.field(section, "Pose type", "pose_type", "choice", [
             ("fullbody", "Full body"), ("hips", "Hips"), ("left-hand", "Left hand"), ("right-hand", "Right hand"),
             ("left-foot", "Left foot"), ("right-foot", "Right foot")])
+        self.field(section, "Capture pose and path in world space", "capture_in_world_space", "boolean",
+                   tooltip=FIELD_HELP[("capture_in_world_space",)][0])
         row = self.add_labeled_layout("Marker attribute", parent_layout=section)
         self.field(section, "Use", "use_marker", "boolean", inline_row=row)
         self.field(section, "Attribute", "marker_attribute", inline_row=row)
@@ -633,6 +657,36 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
                           "Restores the current time; does not save or generate animation.")
         button.clicked.connect(self.preview_frames)
         section.addWidget(button)
+        section = self.section("Pre-Generation Script")
+        self.field(section, "Animation source", "pre_generation_dependency_path", "path")
+        options_row = qt.QtWidgets.QHBoxLayout()
+        options_row.setContentsMargins(0, 0, 0, 0)
+        section.addLayout(options_row)
+        self.field(section, "Run", "run_pre_generation_script", "boolean", inline_row=options_row)
+        self.field(section, "Pass Task Args", "pre_generation_script_pass_standard_arguments", "boolean",
+                   inline_row=options_row,
+                   tooltip="Expose input, output, project, task, and related values as arguments and args.")
+        self.field(section, "Pass Env", "pre_generation_script_pass_environment_arguments", "boolean",
+                   inline_row=options_row,
+                   tooltip="Expose project environment variables as environment_variables and env.")
+        self.field(section, "Import prepared scene into generated files", "use_pre_generation_scene_for_generation",
+                   "boolean",
+                   tooltip=FIELD_HELP[("use_pre_generation_scene_for_generation",)][0])
+        self.pre_generation_editor = InlinePythonEditorWidget(
+            parent=self,
+            owner=self,
+            text=self.task.settings.get("pre_generation_script_text") or "",
+            placeholder="Write an optional Python script to prepare the scene before pose capture.",
+            tooltip=(
+                "Runs after the input scene opens and before Kimodo captures constraints.\n"
+                "Use animation_source_path for the configured source file and context, arguments/args, "
+                "environment_variables/env, project, task, work_item, and output_path."
+            ),
+            text_changed_callback=partial(self.store, ("pre_generation_script_text",)),
+            font_size=self.task.settings.get("pre_generation_script_font_size") or 14,
+            font_size_changed_callback=partial(self.store, ("pre_generation_script_font_size",)),
+        )
+        section.addWidget(self.pre_generation_editor)
         section = self.section("Root Path")
         self.field(section, "Curve / locator list", "path_nodes")
         self.field(section, "Random curve per variation", "randomize_root_path", "boolean")
@@ -778,6 +832,7 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
         path_enabled = bool(settings["path_nodes"].strip())
         path_nodes = [value.strip() for value in settings["path_nodes"].split(",") if value.strip()]
         self.set_field_enabled("path_frames", path_enabled)
+        self.set_field_enabled("capture_in_world_space", path_enabled or bool(settings.get("pose_source")))
         self.set_field_enabled("path_mask_attribute", path_enabled and len(path_nodes) == 1
                                and not settings.get("randomize_root_path", False))
         self.set_field_enabled("randomize_root_path", path_enabled)
@@ -795,6 +850,11 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
         self.set_field_enabled("prompt_text", text_mode)
         self.motion_text_help.setVisible(text_mode)
         self.set_field_enabled(("definition", "prompts"), local_definition and not text_mode)
+        pre_generation_enabled = bool(settings.get("run_pre_generation_script"))
+        for key in ("pre_generation_dependency_path", "pre_generation_script_pass_standard_arguments",
+                    "pre_generation_script_pass_environment_arguments", "use_pre_generation_scene_for_generation"):
+            self.set_field_enabled(key, pre_generation_enabled)
+        self.pre_generation_editor.setEnabled(pre_generation_enabled)
         if text_mode:
             source_status = "Motion descriptions come from Text. The table is inactive; its rows are retained."
         elif not local_definition:

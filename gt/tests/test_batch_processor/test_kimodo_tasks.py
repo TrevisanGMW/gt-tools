@@ -226,6 +226,30 @@ class TestKimodoData(unittest.TestCase):
         self.assertEqual(353, int(definitions[0]["prompts"][0]["duration_seconds"] * 30))
         self.assertNotEqual(definitions[0]["parameters"]["seed"], definitions[1]["parameters"]["seed"])
 
+    def test_prepared_scene_path_is_project_scoped_and_saved(self):
+        """Persists the prepared source beside definitions for downstream scene import."""
+        with tempfile.TemporaryDirectory() as directory:
+            source_path = os.path.join(directory, "input.ma")
+            with open(source_path, "w", encoding="utf-8") as source_file:
+                source_file.write("scene")
+
+            class FakeMayaCommands:
+                """Writes a small stand-in scene when the save operation is requested."""
+
+                def file(self, *args, **kwargs):
+                    if kwargs.get("rename"):
+                        self.path = kwargs["rename"]
+                    elif kwargs.get("save"):
+                        with open(self.path, "w", encoding="utf-8") as scene_file:
+                            scene_file.write("prepared scene")
+
+            work_item = types.SimpleNamespace(current_path=source_path)
+            prepared_path = TaskKimodoDefinition.save_pre_generation_scene(
+                work_item, os.path.join(directory, "definitions"), FakeMayaCommands())
+            self.assertTrue(os.path.isfile(prepared_path))
+            self.assertEqual("_prepared_scenes", os.path.basename(os.path.dirname(prepared_path)))
+            self.assertTrue(os.path.basename(prepared_path).startswith("input_"))
+
     def test_path_mask_keeps_active_frames(self):
         """Drops root path frames where the mask is zero and rejects masks that leave too few."""
         expected = [1, 5, 9]

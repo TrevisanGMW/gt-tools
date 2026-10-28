@@ -108,6 +108,31 @@ class TestKimodoAnimatedRootPath(unittest.TestCase):
         self.assertAlmostEqual(-1.0, captured["path"]["global_root_heading"][0][0], places=6)
         self.assertAlmostEqual(-1.0, captured["path"]["global_root_heading"][-1][1], places=6)
 
+    def test_world_space_path_ignores_pose_group_placement(self):
+        """Keeps the route fixed when a pre-generation script offsets the pose group."""
+        import maya.cmds as cmds
+        from gt.tools.batch_processor.tasks.task_kimodo_definition import TaskKimodoDefinition, capture_scene
+
+        cmds.file(new=True, force=True)
+        cmds.currentUnit(linear="cm", time="ntsc", angle="deg")
+        pose_group = cmds.group(empty=True, name="pose_group")
+        cmds.addAttr(pose_group, longName="kimodoSkeleton", dataType="string")
+        cmds.setAttr(f"{pose_group}.translate", 250, 0, -175, type="double3")
+        cmds.setAttr(f"{pose_group}.rotateY", 90)
+        driver = cmds.spaceLocator(name="kimodo_trajectory")[0]
+        cmds.setKeyframe(driver, attribute="translateZ", time=1, value=0)
+        cmds.setKeyframe(driver, attribute="translateZ", time=31, value=100)
+        cmds.playbackOptions(minTime=1, maxTime=31)
+        settings = TaskKimodoDefinition().get_default_settings()
+        settings.update(
+            pose_source="pose_group", range_mode="custom", start_frame=1, end_frame=31,
+            path_nodes="kimodo_trajectory", path_samples=2, capture_in_world_space=True,
+            capture_first=False, capture_last=False,
+        )
+        captured = capture_scene(settings, lambda message: None)
+        self.assertEqual([0.0, 0.0], captured["path"]["smooth_root_2d"][0])
+        self.assertAlmostEqual(1.0, captured["path"]["smooth_root_2d"][-1][1], places=6)
+
 
 if __name__ == "__main__":
     unittest.main()
