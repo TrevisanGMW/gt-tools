@@ -40,50 +40,34 @@ def _import_optional_qt_module(pyside_package, module_name):
 
 
 try:
-    import PySide2 as PySide
-    from PySide2 import (
-        QtCore,
-        QtGui,
-        QtWidgets,
-        QtSvg,
-        QtNetwork,
-        QtPrintSupport,
-        QtMultimedia,
-        QtQml,
-        QtQuick,
-        QtQuickWidgets,
-        QtOpenGL,
-        QtWebEngineWidgets,
-        QtWebSockets,
-        Qt3DCore,
-        Qt3DInput,
-    )
-    import shiboken2 as shiboken
-
+    PySide = importlib.import_module("PySide2")
 except ImportError:
-    logging.debug("Pyside2 not found, attempting to import PySide6")
-    import PySide6 as PySide
-    from PySide6 import (
-        QtCore,
-        QtGui,
-        QtWidgets,
-        QtSvg,
-        QtNetwork,
-        QtPrintSupport,
-        QtMultimedia,
-        QtQml,
-        QtQuick,
-        QtQuickWidgets,
-        QtOpenGL,
-        QtWebEngineWidgets,
-        QtWebSockets,
-        Qt3DCore,
-        Qt3DInput,
-    )
-    import shiboken6 as shiboken
-
+    logging.debug("PySide2 not found, attempting import PySide6")
+    PySide = importlib.import_module("PySide6")
     IS_PYSIDE6 = True
 
+shiboken_module = "shiboken6" if IS_PYSIDE6 else "shiboken2"
+shiboken = importlib.import_module(shiboken_module)
+
+# These modules are required by the UI abstraction. Import optional Qt
+# components independently so an unavailable component does not switch Maya
+# to a different Qt binding.
+QtCore = importlib.import_module(f"{PySide.__name__}.QtCore")
+QtGui = importlib.import_module(f"{PySide.__name__}.QtGui")
+QtWidgets = importlib.import_module(f"{PySide.__name__}.QtWidgets")
+
+QtSvg = _import_optional_qt_module(PySide, "QtSvg")
+QtNetwork = _import_optional_qt_module(PySide, "QtNetwork")
+QtPrintSupport = _import_optional_qt_module(PySide, "QtPrintSupport")
+QtMultimedia = _import_optional_qt_module(PySide, "QtMultimedia")
+QtQml = _import_optional_qt_module(PySide, "QtQml")
+QtQuick = _import_optional_qt_module(PySide, "QtQuick")
+QtQuickWidgets = _import_optional_qt_module(PySide, "QtQuickWidgets")
+QtOpenGL = _import_optional_qt_module(PySide, "QtOpenGL")
+QtWebEngineWidgets = _import_optional_qt_module(PySide, "QtWebEngineWidgets")
+QtWebSockets = _import_optional_qt_module(PySide, "QtWebSockets")
+Qt3DCore = _import_optional_qt_module(PySide, "Qt3DCore")
+Qt3DInput = _import_optional_qt_module(PySide, "Qt3DInput")
 QtTest = _import_optional_qt_module(PySide, "QtTest")
 
 

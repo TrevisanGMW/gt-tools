@@ -110,7 +110,7 @@ if not exist "%path_mayapy%" (
 	set "installation_status=Unable to detect Maya installation"
 	GOTO TIMED_EXIT
     ) else (
-	"%path_mayapy%" %path_package_init% %launch_args%
+	"%path_mayapy%" "%path_package_init%" %launch_args%
     )
 endlocal
 GOTO TIMED_EXIT
