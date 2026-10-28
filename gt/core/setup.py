@@ -43,7 +43,7 @@ def get_maya_preferences_dir():
         return os.path.dirname(cmds.about(preferences=True))
     except Exception as e:
         logger.debug(f'Unable to retrieve preferences directory using "cmds". Using system tools instead. Issue: {e}')
-        import gt.utils.system_utils as system_utils
+        import gt.utils.system as system_utils
 
         return system_utils.get_maya_preferences_dir(system_utils.get_system())
 
