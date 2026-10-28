@@ -7,6 +7,8 @@ from functools import partial
 from gt.ui import qt_import as qt
 from gt.tools.batch_processor.widgets.attr_widget_task import AttrWidgetTask
 from gt.tools.batch_processor.tasks.task_kimodo_base import MOTION_TEXT_EXAMPLE
+from gt.tools.batch_processor.widgets.kimodo_connection_controls import KimodoConnectionControls
+from gt.tools.batch_processor.widgets.inline_python_editor import InlinePythonEditorWidget
 
 
 FIELD_HELP = {
@@ -23,14 +25,25 @@ FIELD_HELP = {
                        "Each duration must be positive and at most 30 seconds;\n"
                        "up to 16 segments / 120 seconds.",
                         MOTION_TEXT_EXAMPLE),
-    ("use_input_string",): ("Replace the first prompt with the current Input Strings or Input Pairs text.\n"
-                            "Inputs without scene files use prompt durations\n"
-                            "and skip Maya pose/path capture.", ""),
     ("pose_source",): ("Kimodo placement group or descendant to capture.\n"
                        "Blank auto-detects one skeleton;\n"
                        "if none is found, pose constraints are skipped with a warning.\n"
                        "Multiple matches are an error.",
                        "Auto-detect, or kimodo_pose:motion"),
+    ("pre_generation_dependency_path",): (
+        "Optional source file used by the pre-generation script.\n"
+        "The resolved file content is included in the definition cache signature.",
+        "{project-dir}/data/pose_animation.ma"),
+    ("run_pre_generation_script",): (
+        "Run this script after opening each input scene and before Kimodo captures constraints.\n"
+        "Use it to inject or prepare shared animation data.", ""),
+    ("use_pre_generation_scene_for_generation",): (
+        "Save the prepared scene beside the definitions and import it into generated Maya files.\n"
+        "This keeps injected animation hierarchies available for reference until a later task removes them.", ""),
+    ("pre_generation_script_pass_standard_arguments",): (
+        "Expose input, output, project, task, and related values as script arguments and args.", ""),
+    ("pre_generation_script_pass_environment_arguments",): (
+        "Expose project environment variables as environment_variables and env.", ""),
     ("range_mode",): ("Use the source's saved playback range, full animation range,\n"
                       "or the custom start/end below.\n"
                       "Source scene frames are converted to zero-based model indices.", "Playback range"),
@@ -76,6 +89,10 @@ FIELD_HELP = {
                       "one point per locator.\n"
                       "To choose among curves, enable Random curve per variation.",
                       "curve_path, trajectory_driver, or start, mid, end"),
+    ("capture_in_world_space",): (
+        "Capture both pose root transforms and the route in scene world coordinates.\n"
+        "Enable this when a pre-generation script moves or rotates the pose skeleton,\n"
+        "so the pose constraints and generated route stay in the same space.", ""),
     ("root_heading",): ("Facing direction sent with the root path.\n"
                         "None leaves facing to the model.\n"
                         "Direction of travel faces along the path (curve tangent or movement).\n"
@@ -195,7 +212,8 @@ FIELD_HELP = {
     ("connection", "url"): ("HTTP address of the Kimodo Bridge,\n"
                             "accessible from the Maya worker on Windows.",
                               "http://127.0.0.1:7861"),
-    ("connection", "mode"): ("Use an existing Bridge or start/reuse one\n"
+    ("connection", "mode"): ("Use an existing Bridge (including remote Docker), a prepared local Docker deployment,\n"
+                                   "or start/reuse a Python bridge\n"
                              "in WSL or a native Python environment.\n"
                              "Concurrent workers coordinate local startup.", ""),
     ("connection", "python_path"): ("Python executable with Kimodo installed, used only for local startup.\n"
@@ -217,7 +235,8 @@ FIELD_HELP = {
                              "Enter its name, not the token itself.\n"
                              "It must be available to the Maya worker.",
                                "KIMODO_BRIDGE_TOKEN"),
-    ("result_mode",): ("Save one Maya scene per sample, optionally retain every generated artifact,\n"
+    ("result_mode",): ("NumPy-only publishes renamed .npz arrays directly in the target folder, without Maya scenes.\n"
+                         "Save one Maya scene per sample, optionally retain every generated artifact,\n"
                        "or output only an artifact manifest.\n"
                        "Recovery downloads are stored in .kimodo-cache while a job runs;\n"
                        "Purge cache after success controls retention.", ""),
@@ -277,6 +296,20 @@ FIELD_HELP = {
 }
 
 
+FIELD_HELP.update({
+    ("authentication",): (
+        "Automatic reads the local deployment token, including for an already running bridge. "
+        "Environment variable is for explicit credentials, usually remote servers. "
+        "No authentication supports older token-free WSL bridges; it does not change server security.", ""),
+    ("docker", "directory"): (
+        "Existing deployment prepared and built in Kimodo Generator. The worker starts or reuses its containers; "
+        "it never builds or changes images. Supports project path variables.", "Select the prepared Docker deployment"),
+    ("docker", "executable"): (
+        "Docker CLI executable. Leave empty to locate it automatically, including Docker Desktop installations.",
+        "Automatic Docker executable detection"),
+})
+
+
 class KimodoComboBox(qt.QtWidgets.QComboBox):
     """Prevents wheel scrolling from changing an option while scrolling the panel."""
 
@@ -311,7 +344,7 @@ def _get_numeric_range_default(value, fallback, integer=False):
         return fallback
 
 
-class AttrWidgetKimodo(AttrWidgetTask):
+class AttrWidgetKimodo(KimodoConnectionControls, AttrWidgetTask):
     """Shared form binding for nested Kimodo task settings."""
 
     def __init__(self, *args, **kwargs):
@@ -322,6 +355,13 @@ class AttrWidgetKimodo(AttrWidgetTask):
             **kwargs: Standard task-widget keyword arguments.
         """
         super().__init__(*args, **kwargs)
+        self.setStyleSheet(self.styleSheet() + """
+            QLineEdit:disabled, QComboBox:disabled, QAbstractSpinBox:disabled, QTextEdit:disabled {
+                background-color: #414141; color: #858585;
+            }
+            QPushButton:disabled { background-color: #414141; color: #858585; }
+            QCheckBox:disabled, QLabel:disabled { color: #858585; }
+        """)
         self.invalid_fields = set()
         self.sections = {}
         self.add_common_task_settings(collapsible=False)
@@ -410,7 +450,10 @@ class AttrWidgetKimodo(AttrWidgetTask):
             QWidget: Created control.
         """
         path = key if isinstance(key, tuple) else (key,)
-        help_text, placeholder = FIELD_HELP[path[:-1] if isinstance(path[-1], int) else path]
+        help_text, placeholder = FIELD_HELP.get(
+            path[:-1] if isinstance(path[-1], int) else path,
+            (tooltip, ""),
+        )
         tooltip = help_text
         value = self.value(path)
         setter = partial(self.store, path)
@@ -597,6 +640,8 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
         self.field(section, "Pose type", "pose_type", "choice", [
             ("fullbody", "Full body"), ("hips", "Hips"), ("left-hand", "Left hand"), ("right-hand", "Right hand"),
             ("left-foot", "Left foot"), ("right-foot", "Right foot")])
+        self.field(section, "Capture pose and path in world space", "capture_in_world_space", "boolean",
+                   tooltip=FIELD_HELP[("capture_in_world_space",)][0])
         row = self.add_labeled_layout("Marker attribute", parent_layout=section)
         self.field(section, "Use", "use_marker", "boolean", inline_row=row)
         self.field(section, "Attribute", "marker_attribute", inline_row=row)
@@ -612,6 +657,36 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
                           "Restores the current time; does not save or generate animation.")
         button.clicked.connect(self.preview_frames)
         section.addWidget(button)
+        section = self.section("Pre-Generation Script")
+        self.field(section, "Animation source", "pre_generation_dependency_path", "path")
+        options_row = qt.QtWidgets.QHBoxLayout()
+        options_row.setContentsMargins(0, 0, 0, 0)
+        section.addLayout(options_row)
+        self.field(section, "Run", "run_pre_generation_script", "boolean", inline_row=options_row)
+        self.field(section, "Pass Task Args", "pre_generation_script_pass_standard_arguments", "boolean",
+                   inline_row=options_row,
+                   tooltip="Expose input, output, project, task, and related values as arguments and args.")
+        self.field(section, "Pass Env", "pre_generation_script_pass_environment_arguments", "boolean",
+                   inline_row=options_row,
+                   tooltip="Expose project environment variables as environment_variables and env.")
+        self.field(section, "Import prepared scene into generated files", "use_pre_generation_scene_for_generation",
+                   "boolean",
+                   tooltip=FIELD_HELP[("use_pre_generation_scene_for_generation",)][0])
+        self.pre_generation_editor = InlinePythonEditorWidget(
+            parent=self,
+            owner=self,
+            text=self.task.settings.get("pre_generation_script_text") or "",
+            placeholder="Write an optional Python script to prepare the scene before pose capture.",
+            tooltip=(
+                "Runs after the input scene opens and before Kimodo captures constraints.\n"
+                "Use animation_source_path for the configured source file and context, arguments/args, "
+                "environment_variables/env, project, task, work_item, and output_path."
+            ),
+            text_changed_callback=partial(self.store, ("pre_generation_script_text",)),
+            font_size=self.task.settings.get("pre_generation_script_font_size") or 14,
+            font_size_changed_callback=partial(self.store, ("pre_generation_script_font_size",)),
+        )
+        section.addWidget(self.pre_generation_editor)
         section = self.section("Root Path")
         self.field(section, "Curve / locator list", "path_nodes")
         self.field(section, "Random curve per variation", "randomize_root_path", "boolean")
@@ -624,13 +699,17 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
             inline_row=row)
         self.field(section, "Offset", "root_heading_offset", "number", inline_row=row)
         section = self.section("Generation")
-        self.field(section, "Use input string as prompt", "use_input_string", "boolean",
-                   tooltip="Replace the first prompt with the current Input Strings or Input Pairs text.\n"
-                           "Inputs without scene files use prompt durations\n"
-                           "and skip Maya pose/path capture.")
         self.field(section, "Setup / definition", "template_path", "path",
                    tooltip="Optional template replaces the local generation settings below.")
-        self.field(section, "Model", ("definition", "model"))
+        model_row = self.add_labeled_layout("Model", parent_layout=section)
+        self.field(section, "", ("definition", "model"), inline_row=model_row)
+        self.get_models_button = qt.QtWidgets.QPushButton("Get")
+        self.get_models_button.setToolTip(
+            "Query the first enabled Kimodo Generate task after this definition. If none exists, use "
+            "the saved Kimodo Generator connection. Connect / Start that bridge first. "
+            "Select a model to update its ID and model FPS; no generation is started.")
+        self.get_models_button.clicked.connect(self.get_models)
+        model_row.addWidget(self.get_models_button)
         self.field(section, "Motion source", "prompt_mode", "choice", [("table", "Table"), ("text", "Text")])
         self.field(section, "Motion text", "prompt_text")
         self.motion_source_status = qt.QtWidgets.QLabel()
@@ -702,8 +781,16 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
                    tooltip="Allowed HumanIK translation drift.\n"
                            "Default 0.001 m; offsets normalize to model bones.")
         section = self.section("Recovery")
-        self.field(section, "Purge cache after success", "purge_cache_on_success", "boolean")
-        self.field(section, "Purge coordination folders after run", "purge_coordination_on_finish", "boolean")
+        recovery_row = qt.QtWidgets.QHBoxLayout()
+        recovery_row.setContentsMargins(0, 0, 0, 0)
+        section.addLayout(recovery_row)
+        for label, key in (("Purge cache after success", "purge_cache_on_success"),
+                           ("Purge coordination folders after run", "purge_coordination_on_finish")):
+            option_row = qt.QtWidgets.QHBoxLayout()
+            recovery_row.addLayout(option_row, 1)
+            option_row.addStretch(1)
+            self.field(section, label, key, "boolean", inline_row=option_row)
+            option_row.addStretch(1)
         self.finish()
 
     def get_variation_range_defaults(self):
@@ -745,6 +832,7 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
         path_enabled = bool(settings["path_nodes"].strip())
         path_nodes = [value.strip() for value in settings["path_nodes"].split(",") if value.strip()]
         self.set_field_enabled("path_frames", path_enabled)
+        self.set_field_enabled("capture_in_world_space", path_enabled or bool(settings.get("pose_source")))
         self.set_field_enabled("path_mask_attribute", path_enabled and len(path_nodes) == 1
                                and not settings.get("randomize_root_path", False))
         self.set_field_enabled("randomize_root_path", path_enabled)
@@ -757,11 +845,16 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
         for path in self.controls:
             if path[0] == "definition":
                 self.set_field_enabled(path, local_definition)
+        self.get_models_button.setEnabled(local_definition and not getattr(self, "_query_pending", False))
         text_mode = settings.get("prompt_mode", "table") == "text"
         self.set_field_enabled("prompt_text", text_mode)
         self.motion_text_help.setVisible(text_mode)
         self.set_field_enabled(("definition", "prompts"), local_definition and not text_mode)
-        self.set_field_enabled("use_input_string", not text_mode)
+        pre_generation_enabled = bool(settings.get("run_pre_generation_script"))
+        for key in ("pre_generation_dependency_path", "pre_generation_script_pass_standard_arguments",
+                    "pre_generation_script_pass_environment_arguments", "use_pre_generation_scene_for_generation"):
+            self.set_field_enabled(key, pre_generation_enabled)
+        self.pre_generation_editor.setEnabled(pre_generation_enabled)
         if text_mode:
             source_status = "Motion descriptions come from Text. The table is inactive; its rows are retained."
         elif not local_definition:
@@ -808,28 +901,44 @@ class AttrWidgetKimodoGenerate(AttrWidgetKimodo):
         self.field(section, "Bridge URL", ("connection", "url"))
         row = self.add_labeled_layout("Connection", parent_layout=section)
         self.field(section, "Mode", ("connection", "mode"), "choice", [
-            ("existing", "Existing bridge"), ("wsl", "Start / reuse WSL bridge"),
+            ("existing", "Existing bridge / remote Docker"), ("docker", "Start / reuse local Docker"),
+            ("wsl", "Start / reuse WSL bridge"),
             ("native", "Start / reuse native bridge")], inline_row=row)
         self.field(section, "Device", ("connection", "device"), "choice", [
             ("auto", "Automatic"), ("cuda", "CUDA"), ("cpu", "CPU")], inline_row=row)
+        self.field(section, "Credentials", "authentication", "choice", [
+            ("auto", "Automatic (local deployment)"), ("environment", "Environment variable (remote / advanced)"),
+            ("none", "No authentication (legacy bridge)")])
+        self.authentication_note = qt.QtWidgets.QLabel()
+        self.authentication_note.setWordWrap(True)
+        section.addWidget(self.authentication_note)
+        self.field(section, "Local deployment", ("docker", "directory"), "path")
+        self.field(section, "Docker executable", ("docker", "executable"))
+        copy_button = qt.QtWidgets.QPushButton("Use Saved Generator Connection")
+        copy_button.setToolTip("Copy the saved Kimodo Generator endpoint and deployment paths. "
+                              "Prepare and Build Image in Kimodo Generator before starting Docker here.")
+        copy_button.clicked.connect(self.use_generator_connection)
+        section.addWidget(copy_button)
         self.field(section, "Python executable", ("connection", "python_path"),
                    tooltip="Absolute Linux path for WSL, or absolute Windows path for native startup.")
         self.field(section, "WSL distribution", ("connection", "distribution"))
         row = self.add_labeled_layout("Text encoder", parent_layout=section)
         self.field(section, "Auto-start", ("connection", "start_encoder"), "boolean", inline_row=row)
         self.field(section, "URL", ("connection", "text_encoder_url"), inline_row=row)
-        self.field(section, "Token environment", "token_environment",
-                   tooltip="Optional environment variable name.\n"
-                           "Token values are never stored in batch files.")
+        self.field(section, "Token variable name", "token_environment",
+                   tooltip="The NAME of a Windows environment variable containing the bridge token, "
+                           "not the token itself. Set it before starting Maya. "
+                           "Local Docker uses Automatic credentials instead.")
         button = qt.QtWidgets.QPushButton("Test Connection")
         button.setToolTip("Check the configured Bridge and list available models without starting a\n"
                           "job.")
         button.clicked.connect(self.test_connection)
+        self.test_connection_button = button
         section.addWidget(button)
         section = self.section("Results")
         self.field(section, "Output", "result_mode", "choice", [
             ("maya", "Maya scenes only"), ("maya_and_artifacts", "Maya scenes + all artifacts"),
-            ("artifacts", "All artifacts only")])
+            ("artifacts", "All artifacts only"), ("numpy", "NumPy arrays only (.npz)")])
         row = self.add_labeled_layout("Maya output", parent_layout=section)
         self.field(section, "Format", "output_extension", "choice",
                    [(".ma", "Maya ASCII"), (".mb", "Maya Binary")], inline_row=row)
@@ -869,12 +978,14 @@ class AttrWidgetKimodoGenerate(AttrWidgetKimodo):
     def update_enabled_state(self):
         """Enables only connection, scene, and HumanIK settings that apply to the selected modes."""
         settings = self.task.settings
-        local_bridge = settings["connection"]["mode"] != "existing"
+        mode = settings["connection"]["mode"]
+        local_bridge = mode in ("wsl", "native")
+        self.update_authentication_controls()
         for key in ("python_path", "device", "text_encoder_url", "start_encoder"):
             self.set_field_enabled(("connection", key), local_bridge)
         self.set_field_enabled(("connection", "distribution"), settings["connection"]["mode"] == "wsl")
-        self.set_field_enabled("startup_timeout", local_bridge)
-        maya_output = settings["result_mode"] != "artifacts"
+        self.set_field_enabled("startup_timeout", mode != "existing")
+        maya_output = settings["result_mode"] in ("maya", "maya_and_artifacts")
         for key in ("output_extension", "namespace", "import_start_frame", "add_humanik", "import_incoming_scene",
                     "include_definition_attribute"):
             self.set_field_enabled(key, maya_output)
@@ -898,17 +1009,3 @@ class AttrWidgetKimodoGenerate(AttrWidgetKimodo):
         except ValueError:
             value = text
         self.store(("humanik", "reference_frame"), value)
-
-    def test_connection(self):
-        """Checks server health and models without starting or submitting anything."""
-        from gt.utils import kimodo
-
-        try:
-            token_name = self.task.settings["token_environment"]
-            client = kimodo.KimodoClient(kimodo.KimodoConnection(
-                token=os.environ.get(token_name) if token_name else None, **self.task.settings["connection"]))
-            health = client.health()
-            self.status.setText(f"Bridge ready; {health.get('queue_size', 0)} queued jobs.\n"
-                                + ", ".join(model["id"] for model in client.capabilities()["models"]))
-        except Exception as error:
-            self.status.setText(str(error))

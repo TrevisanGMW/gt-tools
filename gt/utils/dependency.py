@@ -5,8 +5,11 @@ this means the active mayapy environment. No installation is attempted until
 ``ensure_dependencies`` is called.
 """
 
+import codecs
 import importlib
+import locale
 import logging
+import os
 import sys
 
 
@@ -87,7 +90,7 @@ def is_auto_install_enabled():
 
 
 def build_pip_command(package_name):
-    """Builds the pip command for the active Python interpreter.
+    """Builds the pip command for the active Maya Python interpreter.
 
     Args:
         package_name (str): Distribution name or pip requirement specifier.
@@ -95,7 +98,36 @@ def build_pip_command(package_name):
     Returns:
         list: Command arguments suitable for subprocess or QProcess.
     """
-    return [sys.executable, "-m", "pip", "install", str(package_name)]
+    return [_get_python_executable(), "-m", "pip", "install", str(package_name)]
+
+
+def _get_python_executable():
+    """Resolves the Python executable associated with the current environment.
+
+    Returns:
+        str: Current Python executable, or Maya's ``mayapy`` executable when
+            running inside the Maya GUI.
+    """
+    executable = sys.executable
+    executable_name = os.path.basename(executable).lower()
+    if executable_name in ("mayapy", "mayapy.exe"):
+        return executable
+
+    mayapy_name = "mayapy.exe" if os.name == "nt" else "mayapy"
+    if executable_name in ("maya", "maya.exe"):
+        if sys.platform == "darwin":
+            maya_bin = os.path.join(os.path.dirname(os.path.dirname(executable)), "bin")
+        else:
+            maya_bin = os.path.dirname(executable)
+        return os.path.join(maya_bin, mayapy_name)
+
+    maya_location = os.environ.get("MAYA_LOCATION")
+    if maya_location:
+        maya_mayapy = os.path.join(maya_location, "bin", mayapy_name)
+        if os.path.isfile(maya_mayapy):
+            return maya_mayapy
+
+    return executable
 
 
 def _show_dependency_installer(missing_dependencies, auto_start, parent=None):
@@ -134,6 +166,7 @@ def _show_dependency_installer(missing_dependencies, auto_start, parent=None):
             self.package_index = 0
             self.install_succeeded = False
             self.process = None
+            self.output_decoder = None
             self.setWindowTitle("Tools Dependency Installer")
             self.setWindowIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_progress))
             self.setMinimumSize(680, 440)
@@ -228,6 +261,9 @@ def _show_dependency_installer(missing_dependencies, auto_start, parent=None):
             )
             command = build_pip_command(package_name)
             self.append_output("\n> {}\n".format(" ".join(command)))
+            output_encoding = locale.getpreferredencoding(False) or "utf-8"
+            output_decoder = codecs.getincrementaldecoder(output_encoding)
+            self.output_decoder = output_decoder(errors="replace")
             self.process = ui_qt.QtCore.QProcess(self)
             self.process.setProcessChannelMode(ui_qt.QtCore.QProcess.MergedChannels)
             self.process.readyReadStandardOutput.connect(self._read_process_output)
@@ -238,7 +274,9 @@ def _show_dependency_installer(missing_dependencies, auto_start, parent=None):
         def _read_process_output(self):
             """Reads and displays newly available pip output."""
             raw_output = self.process.readAllStandardOutput()
-            self.append_output(bytes(raw_output).decode("utf-8", errors="replace"))
+            if self.output_decoder:
+                output = self.output_decoder.decode(bytes(raw_output), final=False)
+                self.append_output(output)
 
         def _process_finished(self, exit_code, exit_status):
             """Handles completion of the active pip process.
@@ -248,6 +286,12 @@ def _show_dependency_installer(missing_dependencies, auto_start, parent=None):
                 exit_status (QProcess.ExitStatus): Qt process exit status.
             """
             self._read_process_output()
+            if self.output_decoder:
+                remaining_output = self.output_decoder.decode(b"", final=True)
+                if remaining_output:
+                    self.append_output(remaining_output)
+                self.output_decoder = None
+
             if ui_qt.IS_PYSIDE6:
                 expected_exit = ui_qt.QtCore.QProcess.ExitStatus.NormalExit
             else:

@@ -33,7 +33,9 @@ class TestBatchRunState(unittest.TestCase):
         environment = self.project.get_environment_variables(self.final, include_braces=False)
         self.assertEqual("0", environment["batch-status-known"])
         self.assertEqual("0", environment["batch-previous-tasks-succeeded"])
+        self.assertEqual("0", environment["batch-previous-task-skipped"])
         self.assertFalse(self.project.is_custom_environment_name_available("{batch-tasks-failed}"))
+        self.assertFalse(self.project.is_custom_environment_name_available("{batch-previous-task-skipped}"))
 
     def test_successful_previous_tasks_and_validation_are_visible(self):
         """Excludes the running final task from the completed-task requirement."""
@@ -44,6 +46,7 @@ class TestBatchRunState(unittest.TestCase):
         self.assertEqual("1", environment["batch-previous-tasks-succeeded"])
         self.assertEqual("1", environment["batch-validation-passed"])
         self.assertEqual("1", environment["batch-task-run-once"])
+        self.assertEqual("0", environment["batch-previous-task-skipped"])
         self.assertEqual("project", environment["batch-run-scope"])
         self.assertEqual("0", environment["batch-tasks-failed"])
 
@@ -54,7 +57,7 @@ class TestBatchRunState(unittest.TestCase):
         run_state.record_validation(self.project, True)
         run_state.record_task(self.project, self.validation, "failed")
         run_state.record_task(self.project, self.validation, "succeeded")
-        environment = run_state.get_environment_variables(self.project, self.final)
+        environment = self.project.get_environment_variables(self.final, include_braces=False)
         self.assertEqual("1", environment["batch-tasks-failed"])
         self.assertEqual("1", environment["batch-validation-failed"])
         self.assertEqual("0", environment["batch-validation-passed"])
@@ -64,9 +67,20 @@ class TestBatchRunState(unittest.TestCase):
         """Does not treat an enabled task's skip as completed work."""
         run_state.initialize(self.project, "sample-run")
         run_state.record_task(self.project, self.validation, "skipped")
-        environment = run_state.get_environment_variables(self.project, self.final)
+        environment = self.project.get_environment_variables(self.final, include_braces=False)
         self.assertEqual("1", environment["batch-tasks-incomplete"])
         self.assertEqual("0", environment["batch-tasks-failed"])
+        self.assertEqual("1", environment["batch-previous-task-skipped"])
+        self.assertEqual([self.validation.id], self.project._batch_run_state["skipped_task_ids"])
+
+    def test_skipped_task_ids_survive_state_merge(self):
+        """Retains skipped-task identity when worker results are combined."""
+        state = run_state.new_state("sample-run")
+        state["skipped_task_ids"] = [self.validation.id]
+
+        merged = run_state.merge_states([state], "sample-run", "project")
+
+        self.assertEqual([self.validation.id], merged["skipped_task_ids"])
 
     def test_no_validation_shortened_run_and_nonfinal_task_are_not_certified(self):
         """Requires actual validation and all previous enabled processing tasks."""
@@ -89,6 +103,9 @@ class TestBatchRunState(unittest.TestCase):
         """Malformed worker state cannot imply success."""
         state = run_state.new_state("sample-run")
         self.assertEqual(state, run_state.decode_state(json.dumps(state)))
+        legacy_state = dict(state)
+        legacy_state.pop("skipped_task_ids")
+        self.assertEqual([], run_state.decode_state(json.dumps(legacy_state))["skipped_task_ids"])
         state["tasks_failed"] = "false"
         self.assertIsNone(run_state.decode_state(json.dumps(state)))
         self.assertIsNone(run_state.decode_state("{}"))

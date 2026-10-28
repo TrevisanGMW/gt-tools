@@ -13,7 +13,7 @@ ENVIRONMENT_KEYS = (
     "batch-status-known", "batch-run-scope", "batch-run-id",
     "batch-tasks-failed", "batch-tasks-incomplete", "batch-validation-failed",
     "batch-validation-passed", "batch-previous-tasks-succeeded", "batch-is-final-task",
-    "batch-task-run-once",
+    "batch-previous-task-skipped", "batch-task-run-once",
 )
 
 
@@ -31,7 +31,7 @@ def new_state(run_id="", scope="worker"):
         "known": True, "run_id": run_id, "scope": scope,
         "tasks_failed": False, "tasks_incomplete": False,
         "validation_failed": False, "validation_checked": False,
-        "completed_task_ids": [],
+        "completed_task_ids": [], "skipped_task_ids": [],
     }
 
 
@@ -55,6 +55,8 @@ def merge_states(states, run_id="", scope="worker"):
             merged[key] = merged[key] or state.get(key) is True
         merged["completed_task_ids"] = sorted(set(merged["completed_task_ids"]) |
                                                set(state.get("completed_task_ids") or []))
+        merged["skipped_task_ids"] = sorted(set(merged["skipped_task_ids"]) |
+                                             set(state.get("skipped_task_ids") or []))
     return merged
 
 
@@ -76,6 +78,10 @@ def decode_state(value):
         completed = state.get("completed_task_ids")
         if not isinstance(completed, list) or any(not isinstance(value, str) for value in completed):
             return None
+        skipped = state.get("skipped_task_ids", [])
+        if not isinstance(skipped, list) or any(not isinstance(value, str) for value in skipped):
+            return None
+        state["skipped_task_ids"] = skipped
         if state.get("scope") not in ("project", "worker") or not isinstance(state.get("run_id"), str):
             return None
         return state
@@ -116,6 +122,8 @@ def record_task(project, task, status):
             state["completed_task_ids"].append(task.id)
         return
     state["tasks_incomplete"] = True
+    if status == "skipped" and task and task.id not in state["skipped_task_ids"]:
+        state["skipped_task_ids"].append(task.id)
     if status == "failed":
         state["tasks_failed"] = True
         if task and getattr(task, "category", "") == "Validation":
@@ -150,9 +158,11 @@ def get_environment_variables(project, task=None):
     state = getattr(project, "_batch_run_state", None) or {"known": False}
     enabled = project.get_enabled_tasks()
     previous = []
+    previous_task_id = None
     for candidate in enabled:
         if candidate is task:
             break
+        previous_task_id = candidate.id
         if not candidate.is_input_task:
             previous.append(candidate.id)
     known = state.get("known") is True
@@ -160,6 +170,9 @@ def get_environment_variables(project, task=None):
         known and task in enabled and not state.get("tasks_failed")
         and not state.get("tasks_incomplete")
         and set(previous).issubset(state.get("completed_task_ids") or [])
+    )
+    previous_task_skipped = (
+        known and task in enabled and previous_task_id in state.get("skipped_task_ids", [])
     )
     values = {
         "batch-status-known": known,
@@ -169,6 +182,7 @@ def get_environment_variables(project, task=None):
         "batch-validation-passed": known and state.get("validation_checked", False)
         and not state.get("validation_failed", False),
         "batch-previous-tasks-succeeded": previous_succeeded,
+        "batch-previous-task-skipped": previous_task_skipped,
         "batch-is-final-task": bool(task and enabled and task is enabled[-1]),
         "batch-task-run-once": bool(task and getattr(task, "is_aggregate_task", False)),
     }

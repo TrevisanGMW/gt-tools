@@ -283,6 +283,19 @@ class OptionWindow(metaclass=qt_utils.MayaWindowMeta):
         self._main_layout.addWidget(section)
         return section
 
+    def add_separator(self):
+        """Adds a horizontal separator line.
+
+        Returns:
+            QFrame: The created separator widget.
+        """
+        separator = ui_qt.QtWidgets.QFrame()
+        separator.setFrameShape(ui_qt.QtLib.FrameStyle.HLine)
+        separator.setFrameShadow(ui_qt.QtLib.FrameStyle.Sunken)
+        self._main_layout.addSpacing(2)
+        self._main_layout.addWidget(separator)
+        return separator
+
     def add_section_row(self, label, trailing_control=None):
         """Adds a centered section label with an optional trailing control.
 
@@ -352,6 +365,79 @@ class OptionWindow(metaclass=qt_utils.MayaWindowMeta):
         self._build_field_row(label, combo)
         self.controls[key or label] = combo
         return combo
+
+    def add_spinbox(
+        self,
+        label,
+        default=0,
+        minimum=0,
+        maximum=100,
+        step=1,
+        tooltip=None,
+        key=None,
+    ):
+        """Adds a labeled integer spin box.
+
+        Args:
+            label (str): Text shown beside the spin box.
+            default (int, optional): Initial value. Defaults to 0.
+            minimum (int, optional): Minimum allowed value. Defaults to 0.
+            maximum (int, optional): Maximum allowed value. Defaults to 100.
+            step (int, optional): Increment applied by the arrow buttons. Defaults to 1.
+            tooltip (str, optional): Tooltip text.
+            key (str, optional): Lookup key stored in ``controls``. Defaults to label.
+
+        Returns:
+            QSpinBox: The created spin box.
+        """
+        spin_box = ui_qt.QtWidgets.QSpinBox()
+        spin_box.setMinimumHeight(self.CONTROL_HEIGHT)
+        spin_box.setRange(int(minimum), int(maximum))
+        spin_box.setSingleStep(int(step))
+        spin_box.setValue(int(default))
+        if tooltip:
+            spin_box.setToolTip(tooltip)
+        self._build_field_row(label, spin_box)
+        self.controls[key or label] = spin_box
+        return spin_box
+
+    def add_double_spinbox(
+        self,
+        label,
+        default=0.0,
+        minimum=0.0,
+        maximum=100.0,
+        step=0.1,
+        decimals=2,
+        tooltip=None,
+        key=None,
+    ):
+        """Adds a labeled floating-point spin box.
+
+        Args:
+            label (str): Text shown beside the spin box.
+            default (float, optional): Initial value. Defaults to 0.0.
+            minimum (float, optional): Minimum allowed value. Defaults to 0.0.
+            maximum (float, optional): Maximum allowed value. Defaults to 100.0.
+            step (float, optional): Increment applied by the arrow buttons. Defaults to 0.1.
+            decimals (int, optional): Number of decimal places. Defaults to 2.
+            tooltip (str, optional): Tooltip text.
+            key (str, optional): Lookup key stored in ``controls``. Defaults to label.
+
+        Returns:
+            QDoubleSpinBox: The created spin box.
+        """
+        spin_box = ui_qt.QtWidgets.QDoubleSpinBox()
+        spin_box.setMinimumHeight(self.CONTROL_HEIGHT)
+        spin_box.setRange(float(minimum), float(maximum))
+        spin_box.setSingleStep(float(step))
+        spin_box.setDecimals(int(decimals))
+        spin_box.setValue(float(default))
+        if tooltip:
+            spin_box.setToolTip(tooltip)
+        self._build_field_row(label, spin_box)
+        self.controls[key or label] = spin_box
+        return spin_box
 
     def add_line_edit(
         self,
@@ -568,6 +654,12 @@ class OptionWindow(metaclass=qt_utils.MayaWindowMeta):
                 background-color: #4f6d4f; border: 1px solid #444444; color: #f0f0f0; padding: 2px 6px;
             }
             QPushButton#option_success_button:hover { background-color: #5a7c5a; }
+            QPushButton#option_normal_button:disabled,
+            QPushButton#option_primary_button:disabled,
+            QPushButton#option_warning_button:disabled,
+            QPushButton#option_success_button:disabled {
+                background-color: #383838; border: 1px solid #303030; color: #777777;
+            }
             QPushButton:pressed { background-color: #4b4b4b; }
         """
 

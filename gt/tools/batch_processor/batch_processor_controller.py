@@ -7,11 +7,14 @@ from gt.tools.batch_processor import batch_processor_tasks as tasks
 from gt.tools.batch_processor.widgets.attr_widget_base import get_icon_path
 from gt.tools.batch_processor.widgets.attr_widget_project import AttrWidgetProject
 from gt.tools.batch_processor.widgets.attr_widget_task import get_task_widget_class
+from gt.tools.batch_processor.widgets.environment_variables_dialog import (
+    EnvironmentVariablesDialog,
+)
 from gt.tools.batch_processor import batch_processor_templates
 from gt.tools.batch_processor import batch_processor_log_view
 from gt.tools.batch_processor import batch_processor_tracker
 from gt.tools.batch_processor import batch_processor_worker
-import gt.ui.python_output_view as ui_python_output_view
+from gt.tools.batch_processor.tracker import tracker_constants
 import gt.ui.resource_library as ui_res_lib
 import gt.ui.file_dialog as ui_file_dialog
 import gt.ui.qt_utils as ui_qt_utils
@@ -48,10 +51,12 @@ class BatchProcessorController:
         self.model = model
         self.view = view
         self.view.controller = self
+        self.environment_variables_window = None
         self.log_view = batch_processor_log_view.BatchProcessorLoggingView(parent=self.view)
         self._active_log_file_path = None
         self._saved_project_state = None
         self._prefs = core_prefs.Prefs(constants.Project.PREFS_FILENAME)
+        self._tracker_prefs = core_prefs.Prefs(tracker_constants.PREFS_FILENAME)
         self._recent_projects = core_prefs.RecentProjects(
             prefs=self._prefs,
             key=constants.Project.PREFS_KEY_RECENT_PROJECTS,
@@ -389,6 +394,35 @@ class BatchProcessorController:
 
         self.create_menu_checkbox_action(
             parent_menu=menu_preferences,
+            text="Auto Hide Completed Filter",
+            checked=self._tracker_prefs.get_bool(
+                tracker_constants.PREFS_KEY_HIDE_COMPLETED_BY_DEFAULT, default=False
+            ),
+            tooltip="Start new tracker windows with Filters > Hide Completed enabled.",
+            callback=self.toggle_tracker_hide_completed_by_default,
+        )
+
+        self.create_menu_checkbox_action(
+            parent_menu=menu_preferences,
+            text="Auto-Segment Imported Projects",
+            checked=self._auto_segment_imported_projects,
+            tooltip=(
+                "When importing a project whose first task is an Input Files task, automatically start a "
+                "new segment on it and name the segment after the imported project."
+            ),
+            callback=self.toggle_auto_segment_imported_projects,
+        )
+
+        self.create_menu_checkbox_action(
+            parent_menu=menu_preferences,
+            text="Confirm Task Delete",
+            checked=self._confirm_delete_task,
+            tooltip="Ask for confirmation before deleting a task from the right-click menu or task panel.",
+            callback=self.toggle_confirm_delete_task,
+        )
+
+        self.create_menu_checkbox_action(
+            parent_menu=menu_preferences,
             text="Convert Absolute Paths to Relative",
             checked=self._convert_abs_paths_to_relative,
             tooltip=(
@@ -396,17 +430,6 @@ class BatchProcessorController:
                 "{project-dir}."
             ),
             callback=self.toggle_convert_abs_paths_to_relative,
-        )
-
-        self.create_menu_checkbox_action(
-            parent_menu=menu_preferences,
-            text="Suppress Custom Env-Var Errors",
-            checked=self._suppress_custom_environment_query_errors,
-            tooltip=(
-                "Silence failed custom environment-variable queries during editing and batch runs.\n"
-                "Failed queries resolve to empty values.\nExplicit Test Query actions still report failures."
-            ),
-            callback=self.toggle_suppress_custom_environment_query_errors,
         )
 
         self.create_menu_checkbox_action(
@@ -431,22 +454,28 @@ class BatchProcessorController:
 
         self.create_menu_checkbox_action(
             parent_menu=menu_preferences,
-            text="Confirm Task Delete",
-            checked=self._confirm_delete_task,
-            tooltip="Ask for confirmation before deleting a task from the right-click menu or task panel.",
-            callback=self.toggle_confirm_delete_task,
+            text="Suppress Custom Env-Var Errors",
+            checked=self._suppress_custom_environment_query_errors,
+            tooltip=(
+                "Silence failed custom environment-variable queries during editing and batch runs.\n"
+                "Failed queries resolve to empty values.\nExplicit Test Query actions still report failures."
+            ),
+            callback=self.toggle_suppress_custom_environment_query_errors,
         )
 
-        self.create_menu_checkbox_action(
-            parent_menu=menu_preferences,
-            text="Auto-Segment Imported Projects",
-            checked=self._auto_segment_imported_projects,
-            tooltip=(
-                "When importing a project whose first task is an Input Files task, automatically start a "
-                "new segment on it and name the segment after the imported project."
-            ),
-            callback=self.toggle_auto_segment_imported_projects,
+    def toggle_tracker_hide_completed_by_default(self, checked):
+        """Stores the completed-row filter used when launching a tracker.
+
+        Args:
+            checked (bool): Whether new trackers should hide completed rows.
+        """
+        self._tracker_prefs.load()
+        self._tracker_prefs.set_bool(
+            tracker_constants.PREFS_KEY_HIDE_COMPLETED_BY_DEFAULT, bool(checked)
         )
+        self._tracker_prefs.save()
+        state_name = "enabled" if checked else "disabled"
+        self.log_status(f"Hide Completed in new tracker windows {state_name}.")
 
     def open_project_directory(self, *args):
         """Opens the resolved project directory in the system file browser.
@@ -988,20 +1017,33 @@ class BatchProcessorController:
         self.log_status('Added task: "{0}".'.format(new_task.display_name))
 
     def show_environment_variables(self):
-        """Shows resolved project environment variables."""
+        """Shows resolved project environment variables in a filterable table."""
+        if self.environment_variables_window is None:
+            self.environment_variables_window = EnvironmentVariablesDialog(
+                refresh_callback=self.get_current_environment_variables,
+                parent=self.view,
+            )
+
+        self.environment_variables_window.refresh()
+        self.environment_variables_window.show()
+        self.environment_variables_window.raise_()
+        self.environment_variables_window.activateWindow()
+        self.log_status("Opened environment variables window.")
+
+    def get_current_environment_variables(self):
+        """Gets resolved environment variables for the currently selected task.
+
+        Returns:
+            dict: Resolved environment-variable tokens and values.
+        """
         task_id = self.view.get_selected_task_id()
         task = self.model.get_task(task_id) if task_id else None
         task_index = self.model.get_task_environment_index(task) if task else None
-        environment_variables = self.model.get_environment_variables(
+        return self.model.get_environment_variables(
             task=task,
             task_index=task_index,
             include_braces=True,
         )
-        output_window = ui_python_output_view.PythonOutputView(parent=self.view, editable=False)
-        output_window.setWindowTitle("Batch Project Environment Variables")
-        output_window.set_python_output_text(json.dumps(environment_variables, indent=4, sort_keys=True))
-        output_window.show()
-        self.log_status("Opened environment variables window.")
 
     def validate_project(self):
         """Validates the current project and updates the view."""
@@ -1410,29 +1452,31 @@ class BatchProcessorController:
 
         menu = ui_qt.QtWidgets.QMenu()
 
-        action_duplicate = self.create_action("Duplicate", icon_path=ui_res_lib.Icon.rigger_action_duplicate)
+        action_duplicate = self.create_action(
+            "Duplicate", icon_path=ui_res_lib.Icon.rigger_action_duplicate_grayscale
+        )
         action_duplicate.triggered.connect(partial(self.context_menu_duplicate_task, source_task))
         self.view.add_menu_action(parent_menu=menu, action=action_duplicate)
 
-        action_copy = self.create_action("Copy", icon_path=ui_res_lib.Icon.rigger_action_copy)
+        action_copy = self.create_action("Copy", icon_path=ui_res_lib.Icon.rigger_action_copy_grayscale)
         action_copy.triggered.connect(partial(self.context_menu_copy_task, source_task))
         self.view.add_menu_action(parent_menu=menu, action=action_copy)
 
-        action_paste = self.create_action("Paste", icon_path=ui_res_lib.Icon.rigger_action_paste)
+        action_paste = self.create_action("Paste", icon_path=ui_res_lib.Icon.rigger_action_paste_grayscale)
         action_paste.triggered.connect(self.context_menu_paste_task)
         self.view.add_menu_action(parent_menu=menu, action=action_paste)
 
-        action_export = self.create_action("Export", icon_path=ui_res_lib.Icon.rigger_action_export)
+        action_export = self.create_action("Export", icon_path=ui_res_lib.Icon.rigger_action_export_grayscale)
         action_export.triggered.connect(partial(self.context_menu_export_task, source_task))
         self.view.add_menu_action(parent_menu=menu, action=action_export)
 
-        action_import = self.create_action("Import", icon_path=ui_res_lib.Icon.rigger_action_import)
+        action_import = self.create_action("Import", icon_path=ui_res_lib.Icon.rigger_action_import_grayscale)
         action_import.triggered.connect(self.context_menu_import_task)
         self.view.add_menu_action(parent_menu=menu, action=action_import)
 
         menu.addSeparator()
 
-        action_delete = self.create_action("Delete", icon_path=ui_res_lib.Icon.ui_delete)
+        action_delete = self.create_action("Delete", icon_path=ui_res_lib.Icon.rigger_action_delete_grayscale)
         action_delete.triggered.connect(partial(self.context_menu_delete_task, source_task))
         self.view.add_menu_action(parent_menu=menu, action=action_delete)
 
@@ -1741,6 +1785,9 @@ class BatchProcessorController:
 
     def purge_logs_for_run(self):
         """Deletes existing files from the configured log folder before a run."""
+        if any(task.task_type == constants.TaskType.RUN_BATCH_PROJECT for task in self.model.get_enabled_tasks()):
+            self.append_log("[INFO] - (logs) - Retaining previous logs for nested project runs.")
+            return
         logs_dir = self.model.get_logs_dir()
         if not logs_dir or not os.path.isdir(logs_dir):
             return

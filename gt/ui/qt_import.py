@@ -10,7 +10,6 @@ Use Example:
 
 import importlib
 import logging
-import pkg_resources
 
 # Logging Setup
 logging.basicConfig()
@@ -40,72 +39,53 @@ def _import_optional_qt_module(pyside_package, module_name):
 
 
 try:
-    import PySide2 as PySide
-    from PySide2 import (
-        QtCore,
-        QtGui,
-        QtWidgets,
-        QtSvg,
-        QtNetwork,
-        QtPrintSupport,
-        QtMultimedia,
-        QtQml,
-        QtQuick,
-        QtQuickWidgets,
-        QtOpenGL,
-        QtWebEngineWidgets,
-        QtWebSockets,
-        Qt3DCore,
-        Qt3DInput,
-    )
-    import shiboken2 as shiboken
-
+    PySide = importlib.import_module("PySide2")
 except ImportError:
-    logging.debug("Pyside2 not found, attempting to import PySide6")
-    import PySide6 as PySide
-    from PySide6 import (
-        QtCore,
-        QtGui,
-        QtWidgets,
-        QtSvg,
-        QtNetwork,
-        QtPrintSupport,
-        QtMultimedia,
-        QtQml,
-        QtQuick,
-        QtQuickWidgets,
-        QtOpenGL,
-        QtWebEngineWidgets,
-        QtWebSockets,
-        Qt3DCore,
-        Qt3DInput,
-    )
-    import shiboken6 as shiboken
-
+    logging.debug("PySide2 not found, attempting import PySide6")
+    PySide = importlib.import_module("PySide6")
     IS_PYSIDE6 = True
 
+shiboken_module = "shiboken6" if IS_PYSIDE6 else "shiboken2"
+shiboken = importlib.import_module(shiboken_module)
+
+# These modules are required by the UI abstraction. Import optional Qt
+# components independently so an unavailable component does not switch Maya
+# to a different Qt binding.
+QtCore = importlib.import_module(f"{PySide.__name__}.QtCore")
+QtGui = importlib.import_module(f"{PySide.__name__}.QtGui")
+QtWidgets = importlib.import_module(f"{PySide.__name__}.QtWidgets")
+
+QtSvg = _import_optional_qt_module(PySide, "QtSvg")
+QtNetwork = _import_optional_qt_module(PySide, "QtNetwork")
+QtPrintSupport = _import_optional_qt_module(PySide, "QtPrintSupport")
+QtMultimedia = _import_optional_qt_module(PySide, "QtMultimedia")
+QtQml = _import_optional_qt_module(PySide, "QtQml")
+QtQuick = _import_optional_qt_module(PySide, "QtQuick")
+QtQuickWidgets = _import_optional_qt_module(PySide, "QtQuickWidgets")
+QtOpenGL = _import_optional_qt_module(PySide, "QtOpenGL")
+QtWebEngineWidgets = _import_optional_qt_module(PySide, "QtWebEngineWidgets")
+QtWebSockets = _import_optional_qt_module(PySide, "QtWebSockets")
+Qt3DCore = _import_optional_qt_module(PySide, "Qt3DCore")
+Qt3DInput = _import_optional_qt_module(PySide, "Qt3DInput")
 QtTest = _import_optional_qt_module(PySide, "QtTest")
 
 
 def get_pyside_version(major_only=False):
     """
-    Get the version of PySide2 or PySide6 installed in the environment.
+    Gets the version of the PySide binding loaded by this module.
 
     Args:
         major_only (bool): If True, returns only the major version number.
                            Defaults to False, which returns the full version string.
 
     Returns:
-        str or None: The version of PySide2 or PySide6, or a message indicating that neither is installed. e.g. "6.5.3"
-                     If major_only is True, only the major version number is returned. e.g. "6"
+        str or None: The loaded binding's version, or None when unavailable. e.g. "6.5.3"
+            If major_only is True, only the major version number is returned. e.g. "6"
     """
-    for package in ["PySide2", "PySide6"]:
-        try:
-            version = pkg_resources.get_distribution(package).version
-            return version.split(".")[0] if major_only else version
-        except pkg_resources.DistributionNotFound:
-            continue
-    logger.debug("Neither PySide2 nor PySide6 is installed")
+    version = getattr(PySide, "__version__", None)
+    if version:
+        return version.split(".")[0] if major_only else version
+    logger.debug("The loaded PySide binding does not expose a version")
     return None
 
 
@@ -183,18 +163,21 @@ class QtLib:
         ArrowCursor = None
         CrossCursor = None
         SizeHorCursor = None
+        SizeVerCursor = None
         SplitHCursor = None
         PointingHandCursor = None
         if IS_PYSIDE6:  # PySide6
             ArrowCursor = QtCore.Qt.CursorShape.ArrowCursor
             CrossCursor = QtCore.Qt.CursorShape.CrossCursor
             SizeHorCursor = QtCore.Qt.CursorShape.SizeHorCursor
+            SizeVerCursor = QtCore.Qt.CursorShape.SizeVerCursor
             SplitHCursor = QtCore.Qt.CursorShape.SplitHCursor
             PointingHandCursor = QtCore.Qt.CursorShape.PointingHandCursor
         else:  # PySide2
             ArrowCursor = QtCore.Qt.ArrowCursor
             CrossCursor = QtCore.Qt.CrossCursor
             SizeHorCursor = QtCore.Qt.SizeHorCursor
+            SizeVerCursor = QtCore.Qt.SizeVerCursor
             SplitHCursor = QtCore.Qt.SplitHCursor
             PointingHandCursor = QtCore.Qt.PointingHandCursor
 

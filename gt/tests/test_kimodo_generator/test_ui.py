@@ -1,6 +1,7 @@
 """Offscreen Maya/Qt tests for authoring actions and asynchronous delivery."""
 
 import os
+import json
 import threading
 import time
 import unittest
@@ -45,6 +46,10 @@ class TestKimodoGeneratorUI(unittest.TestCase):
         self.view = KimodoGeneratorView()
         self.controller = KimodoGeneratorController(self.model, self.view)
         self.controller.timer.stop()
+        self.controller.connection_timer.stop()
+        names = patch("gt.tools.kimodo_generator.kimodo_generator_docker._docker_project_names", return_value=set())
+        names.start()
+        self.addCleanup(names.stop)
         self.app.processEvents()
 
     def tearDown(self):
@@ -140,7 +145,7 @@ class TestKimodoGeneratorUI(unittest.TestCase):
 
         self.assertEqual(True, self.view.show_console.isChecked())
         self.assertFalse(self.view.show_console.isEnabled())
-        self.assertEqual(3, self.view.launch_options.count())
+        self.assertEqual(2, self.view.launch_options.count())
         self.assertFalse(self.view.auto_connect.isChecked())
         self.assertTrue(self.view.launch_options.alignment() & QtCore.Qt.AlignmentFlag.AlignCenter)
         self.assertIs(self.view.auto_connect_options, self.view.launch_options)
@@ -155,7 +160,397 @@ class TestKimodoGeneratorUI(unittest.TestCase):
         self.assertFalse(self.view.windowIcon().isNull())
         self.assertEqual(["Connection", "Generate", "Constraints", "HumanIK", "Summary", "Results"],
                          [self.view.tabs.tabText(index) for index in range(self.view.tabs.count())])
+
+    def test_docker_mode_disables_python_settings_and_restores_private_job_token(self):
+        """Uses deployment credentials after reopening without forwarding them to other servers."""
+        from gt.tools.kimodo_generator import kimodo_generator_docker as docker
+
+        with tempfile.TemporaryDirectory() as directory:
+            docker.prepare_deployment(directory)
+            self.view.docker_directory.setText(directory)
+            self.view.mode.setCurrentIndex(self.view.mode.findData("docker"))
+            self.assertFalse(self.view.docker_group.isHidden())
+            self.assertFalse(self.view.python_path.isEnabled())
+            self.assertFalse(self.view.distribution.isEnabled())
+            self.assertFalse(self.view.token.isEnabled())
+            self.assertFalse(self.view.start_encoder.isEnabled())
+            self.assertTrue(self.view.buttons["restart_bridge"].isEnabled())
+            self.controller.gather_connection()
+            self.controller.tokens_by_url.clear()
+            client = self.controller._job_client({"url": self.model.connection["url"]})
+            self.assertEqual(docker.bridge_token(directory), client.connection.token)
+            other = self.controller._job_client({"url": "http://other-host:7861"})
+            self.assertIsNone(other.connection.token)
+            self.assertNotIn(client.connection.token, str(self.model.snapshot()))
+
+    def test_docker_folder_is_blank_until_chosen_and_saves_immediately(self):
+        """Persists typing and browsing without preparing files or requiring a connection."""
+        from gt.tools.kimodo_generator.kimodo_generator_model import KimodoGeneratorModel
+        from gt.ui import qt_import as ui_qt
+
+        self.assertEqual("", self.view.docker_directory.text())
+        self.model.prefs = Mock()
+        with tempfile.TemporaryDirectory() as directory:
+            self.view.docker_directory.setText(directory)
+            self.view.docker_directory.editingFinished.emit()
+            saved = self.model.prefs.set_raw_preferences.call_args.args[0]["state"]
+            self.assertEqual(directory, saved["docker"]["directory"])
+            self.model.prefs.save.assert_called_once()
+            restored = KimodoGeneratorModel(preferences=False)
+            restored.restore(saved)
+            self.assertEqual(directory, restored.docker["directory"])
+            self.view.docker_directory.clear()
+            with patch.object(ui_qt.QtWidgets.QFileDialog, "getExistingDirectory", return_value=directory):
+                self.controller.browse_docker()
+            self.assertEqual(directory, self.view.docker_directory.text())
+            self.assertEqual(2, self.model.prefs.save.call_count)
+            self.assertEqual([], os.listdir(directory))
+
+    def test_docker_disabled_controls_have_dimmed_text_and_distinct_background(self):
+        """Checks resolved Qt colors as modes disable and re-enable launch controls."""
+        from gt.ui import qt_import as ui_qt
+
+        palette = ui_qt.QtGui.QPalette
+        self.view.mode.setCurrentIndex(self.view.mode.findData("native"))
+        self.app.processEvents()
+        enabled_text = self.view.python_path.palette().color(palette.ColorRole.Text)
+        enabled_background = self.view.python_path.palette().color(palette.ColorRole.Base)
+        enabled_checkbox = self.view.start_encoder.palette().color(palette.ColorRole.WindowText)
+        self.view.mode.setCurrentIndex(self.view.mode.findData("docker"))
+        self.app.processEvents()
+        disabled_text = self.view.python_path.palette().color(palette.ColorRole.Text)
+        disabled_background = self.view.python_path.palette().color(palette.ColorRole.Base)
+        disabled_checkbox = self.view.start_encoder.palette().color(palette.ColorRole.WindowText)
+        self.assertNotEqual(enabled_text, disabled_text)
+        self.assertNotEqual(enabled_background, disabled_background)
+        self.assertNotEqual(enabled_checkbox, disabled_checkbox)
+        self.assertEqual(disabled_text, self.view.device.palette().color(palette.ColorRole.Text))
+        self.view.mode.setCurrentIndex(self.view.mode.findData("native"))
+        self.app.processEvents()
+        self.assertEqual(enabled_text, self.view.python_path.palette().color(palette.ColorRole.Text))
+        self.assertEqual(enabled_checkbox, self.view.start_encoder.palette().color(palette.ColorRole.WindowText))
+
+    def test_encoder_diagnostic_is_performed_through_bridge(self):
+        """Keeps a Docker-only hostname off Maya's direct network probe."""
+        from gt.utils import kimodo
+
+        with patch.object(self.controller, "run_network") as dispatch:
+            self.controller.test_encoder()
+            operation = dispatch.call_args.args[1]
+            expected = {"url": "http://text-encoder:9550", "api_name": "DemoWrapper"}
+            with patch.object(kimodo.KimodoClient, "test_text_encoder", return_value=expected) as probe:
+                with patch.object(kimodo, "probe_text_encoder") as direct:
+                    self.assertEqual(expected, operation())
+            probe.assert_called_once()
+            direct.assert_not_called()
         self.assertNotIn("help", self.view.buttons)
+
+    def test_find_docker_fills_and_saves_executable_without_starting_services(self):
+        """Finds the CLI on demand even without a deployment folder or valid existing path."""
+        from gt.tools.kimodo_generator import kimodo_generator_docker as docker
+
+        expected = os.path.join(tempfile.gettempdir(), "docker.exe")
+        self.view.docker_executable.setText("old-invalid-path")
+        with patch.object(docker, "find_docker", return_value=expected) as find:
+            with patch.object(docker, "check_engine") as engine, patch.object(self.model, "save_preferences") as save:
+                self.view.buttons["find_docker"].click()
+        find.assert_called_once_with()
+        save.assert_called_once()
+        engine.assert_not_called()
+        self.assertEqual(expected, self.view.docker_executable.text())
+        self.assertEqual(expected, self.model.docker["executable"])
+        self.assertEqual("", self.model.docker["directory"])
+        self.assertIn("empty", self.view.docker_executable.placeholderText())
+        self.assertIn("automatically", self.view.docker_executable.placeholderText())
+
+    def test_stable_revision_checkbox_defaults_off_and_persists_immediately(self):
+        """Keeps latest as the default and restores an explicit stable choice."""
+        from gt.tools.kimodo_generator.kimodo_generator_model import KimodoGeneratorModel
+
+        self.assertFalse(self.view.docker_stable_revisions.isChecked())
+        self.assertFalse(self.model.docker["use_stable_revisions"])
+        with patch.object(self.model, "save_preferences") as save:
+            self.view.docker_stable_revisions.setChecked(True)
+        save.assert_called_once()
+        restored = KimodoGeneratorModel(preferences=False)
+        restored.restore(self.model.snapshot())
+        self.assertTrue(restored.docker["use_stable_revisions"])
+
+    def test_docker_build_passes_revision_choice_to_service(self):
+        """Captures the selected policy before dispatching the background build."""
+        from gt.tools.kimodo_generator import kimodo_generator_docker as docker
+
+        with tempfile.TemporaryDirectory() as directory:
+            self.view.docker_directory.setText(directory)
+            self.view.docker_stable_revisions.setChecked(True)
+            with patch.object(self.controller, "run_network") as dispatch:
+                self.controller.build_docker()
+            operation = dispatch.call_args.args[1]
+            with patch.object(docker, "build_image", return_value="build.log") as build:
+                self.assertEqual("build.log", operation())
+            build.assert_called_once_with(directory, "", True, "kimodo-bridge")
+
+    def test_connection_indicator_locks_setup_and_disables_duplicate_connect(self):
+        """Makes deployment steps and live connection state explicit without stopping services."""
+        self.view.mode.setCurrentIndex(self.view.mode.findData("docker"))
+        self.controller.set_connection_state("connecting")
+        self.assertEqual("connecting", self.view.connection_indicator.property("connection_state"))
+        self.assertFalse(self.view.buttons["connect"].isEnabled())
+        self.controller.set_connection_state("connected")
+        self.assertEqual("Encoder Loading", self.view.connection_label.text())
+        self.assertFalse(self.view.connection_icon.pixmap().isNull())
+        for key in ("connect", "browse_docker", "find_docker", "prepare_docker", "build_docker",
+                    "remove_docker_image", "restart_bridge"):
+            self.assertFalse(self.view.buttons[key].isEnabled(), key)
+        self.assertFalse(self.view.docker_image_name.isEnabled())
+        self.assertFalse(self.view.docker_stable_revisions.isEnabled())
+        self.assertTrue(self.view.buttons["open_docker"].isEnabled())
+        self.assertTrue(self.view.buttons["docker_logs"].isEnabled())
+        self.assertTrue(self.view.buttons["stop_bridge"].isEnabled())
+        with patch.object(self.controller, "run_network") as dispatch:
+            self.controller.connect_bridge()
+        dispatch.assert_not_called()
+        self.controller.disconnect_bridge()
+        self.assertEqual("disconnected", self.view.connection_indicator.property("connection_state"))
+        self.assertTrue(self.view.buttons["build_docker"].isEnabled())
+        self.assertTrue(self.view.buttons["connect"].isEnabled())
+
+    def test_failed_connection_is_red_and_can_be_retried(self):
+        """Re-enables setup after failure and ignores stale health errors after disconnect."""
+        self.controller.set_connection_state("connecting")
+        self.controller.pending["connect"] = lambda result: None
+        self.controller._finished("connect", None, ConnectionError("unreachable"))
+        self.assertEqual("failed", self.view.connection_indicator.property("connection_state"))
+        self.assertTrue(self.view.buttons["connect"].isEnabled())
+        self.controller.disconnect_bridge()
+        self.controller.pending["connection_health"] = lambda result: None
+        self.controller._finished("connection_health", None, ConnectionError("stale check"))
+        self.assertEqual("disconnected", self.controller.connection_state)
+
+    def test_build_activity_bar_follows_pending_operation_and_hides_on_completion(self):
+        """Shows truthful activity/current output only while a build is pending."""
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as directory:
+            logs = Path(directory) / "logs"
+            logs.mkdir()
+            (logs / "build.log").write_text("#4 installing packages\n", encoding="utf-8")
+            self.controller._build_directory = directory
+            self.controller.pending["build_docker"] = lambda result: None
+            self.controller.refresh_connection_status()
+            self.assertFalse(self.view.docker_build_group.isHidden())
+            self.assertEqual(0, self.view.docker_build_progress.maximum())
+            self.assertIn("installing packages", self.view.docker_build_label.text())
+            self.controller._finished("build_docker", "done", None)
+            self.assertTrue(self.view.docker_build_group.isHidden())
+
+    def test_encoder_download_percentage_and_loading_stage_are_distinct(self):
+        """Displays measured transfers, indeterminate loading, and confirmed readiness."""
+        import time
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as directory:
+            self.view.mode.setCurrentIndex(self.view.mode.findData("docker"))
+            self.model.connection["mode"] = "docker"
+            self.model.docker["directory"] = directory
+            logs = Path(directory) / "logs"
+            logs.mkdir()
+            progress = logs / "encoder-progress.json"
+            data = {"stage": "downloading", "total_bytes": 4000, "downloaded_bytes": 1000,
+                    "updated_at": time.time()}
+            progress.write_text(json.dumps(data), encoding="utf-8")
+            self.controller.set_connection_state("connected")
+            self.controller.refresh_connection_status()
+            self.assertEqual(25, self.view.docker_encoder_progress.value())
+            data["stage"] = "loading"
+            progress.write_text(json.dumps(data), encoding="utf-8")
+            self.controller.refresh_connection_status()
+            self.assertEqual(0, self.view.docker_encoder_progress.maximum())
+            self.controller.encoder_ready = True
+            self.controller.refresh_connection_status()
+            self.assertEqual(100, self.view.docker_encoder_progress.value())
+            self.assertIn("ready", self.view.docker_encoder_label.text())
+            self.assertEqual("connected", self.view.connection_indicator.property("connection_state"))
+            self.controller._encoder_ready_since -= 3
+            self.controller.refresh_connection_status()
+            self.assertTrue(self.view.docker_encoder_group.isHidden())
+            self.controller.encoder_ready = False
+            self.controller.refresh_connection_status()
+            self.assertFalse(self.view.docker_encoder_group.isHidden())
+            self.assertEqual("loading", self.view.connection_indicator.property("connection_state"))
+
+    def test_open_deployment_folder_creates_only_folder_before_opening(self):
+        """Allows folder access without preparing or starting a deployment."""
+        from pathlib import Path
+        from gt.ui import qt_import as ui_qt
+
+        with tempfile.TemporaryDirectory() as parent:
+            directory = Path(parent) / "new-folder"
+            self.view.docker_directory.setText(str(directory))
+            with patch.object(ui_qt.QtGui.QDesktopServices, "openUrl", return_value=True) as opened:
+                self.controller.open_docker()
+            self.assertTrue(directory.is_dir())
+            self.assertFalse((directory / "deployment.json").exists())
+            self.assertTrue(opened.call_args.args[0].isLocalFile())
+
+    def test_docker_logs_show_container_output_in_refreshing_window(self):
+        """Delivers actual logs to a visible window instead of dispatching an unverified URI."""
+        from gt.ui import qt_import as ui_qt
+        from gt.tools.kimodo_generator import kimodo_generator_docker as docker
+
+        with tempfile.TemporaryDirectory() as directory:
+            self.view.docker_directory.setText(directory)
+            with patch.object(self.controller, "run_network") as dispatch:
+                self.controller.docker_logs()
+            operation, ready = dispatch.call_args.args[1:3]
+            with patch.object(docker, "_compose", return_value="encoder loaded") as compose:
+                self.assertEqual("encoder loaded", operation())
+            compose.assert_called_once_with(os.path.realpath(directory), ["logs", "--no-color", "--tail", "200", "text-encoder"], "")
+            with patch.object(docker, "_compose", side_effect=RuntimeError("Docker is unavailable")):
+                self.assertIn("Docker is unavailable", operation())
+            ready("encoder loaded")
+            dialog = self.controller.docker_logs_dialog
+            self.assertTrue(dialog.isVisible())
+            self.assertEqual("encoder loaded", dialog.findChild(ui_qt.QtWidgets.QPlainTextEdit).toPlainText())
+            dialog.close()
+            ready("late result")
+
+    def test_mode_panels_preserve_independent_python_settings(self):
+        """Shows only applicable settings and restores the two Python launch profiles."""
+        self.view.mode.setCurrentIndex(self.view.mode.findData("wsl"))
+        self.view.python_path.setText("/home/user/kimodo/bin/python")
+        self.view.distribution.setCurrentText("Ubuntu")
+        self.assertFalse(self.view.python_group.isHidden())
+        self.assertTrue(self.view.docker_group.isHidden())
+        self.view.mode.setCurrentIndex(self.view.mode.findData("native"))
+        self.assertTrue(self.view.distribution_row.isHidden())
+        self.assertEqual("", self.view.python_path.text())
+        self.view.python_path.setText("C:/kimodo/python.exe")
+        self.view.mode.setCurrentIndex(self.view.mode.findData("wsl"))
+        self.assertEqual("/home/user/kimodo/bin/python", self.view.python_path.text())
+        self.assertEqual("Ubuntu", self.view.distribution.currentText())
+        self.view.mode.setCurrentIndex(self.view.mode.findData("native"))
+        self.assertEqual("C:/kimodo/python.exe", self.view.python_path.text())
+        self.controller.gather_connection()
+        saved = self.model.snapshot()
+        self.model.restore(saved)
+        self.controller.load_widgets()
+        self.assertEqual("C:/kimodo/python.exe", self.view.python_path.text())
+        self.view.mode.setCurrentIndex(self.view.mode.findData("wsl"))
+        self.assertEqual("/home/user/kimodo/bin/python", self.view.python_path.text())
+
+    def test_connection_status_labels_always_use_title_case(self):
+        """Keeps state keys stable while consistently capitalizing visible state labels."""
+        for state, text, expected in (("loading", "encoder loading", "Encoder Loading"),
+                                      ("connecting", "connecting to bridge", "Connecting To Bridge"),
+                                      ("failed", "connection failed", "Connection Failed"),
+                                      ("disconnected", None, "Disconnected"),
+                                      ("connected", None, "Connected")):
+            self.view.set_connection_status(state, text)
+            self.assertEqual(expected, self.view.connection_label.text())
+            self.assertEqual(state, self.view.connection_indicator.property("connection_state"))
+
+    def test_connection_row_keeps_checkbox_compact_and_disclosure_titles_capitalized(self):
+        """Lets the selector fill spare row space while the checkbox keeps its natural width."""
+        from gt.ui import qt_import
+
+        self.assertEqual(qt_import.QtWidgets.QSizePolicy.Policy.Maximum,
+                         self.view.auto_connect.sizePolicy().horizontalPolicy())
+        self.assertEqual("Local Docker Deployment", self.view.docker_group.toggle_button.text())
+        for mode, title in (("wsl", "WSL Launch Settings"), ("native", "Windows Launch Settings")):
+            self.view.mode.setCurrentIndex(self.view.mode.findData(mode))
+            self.assertEqual(title, self.view.python_group.toggle_button.text())
+
+    def test_python_disclosure_is_independent_and_persistent(self):
+        """Keeps separate disclosure states across WSL/native changes and serialization."""
+        self.view.mode.setCurrentIndex(self.view.mode.findData("wsl"))
+        self.view.python_group.toggle_button.setChecked(False)
+        self.view.mode.setCurrentIndex(self.view.mode.findData("native"))
+        self.assertTrue(self.view.python_group.toggle_button.isChecked())
+        from gt.ui import qt_import
+        self.assertEqual(qt_import.QtCore.Qt.ArrowType.DownArrow, self.view.python_group.toggle_button.arrowType())
+        self.view.mode.setCurrentIndex(self.view.mode.findData("wsl"))
+        self.assertTrue(self.view.python_content.isHidden())
+        self.assertEqual({"wsl": False, "native": True}, self.model.snapshot()["launch_expanded"])
+        self.model.restore(self.model.snapshot())
+        self.controller.load_widgets()
+        self.assertFalse(self.view.python_group.toggle_button.isChecked())
+
+    def test_connection_reset_retains_unsaved_authoring_options(self):
+        """Resets references and tokens while keeping generation edits and history."""
+        self.view.namespace.setText("keep_this_namespace")
+        self.view.docker_directory.setText("Z:/Docker/custom")
+        from gt.utils import kimodo
+        self.model.add_job({"job_id": "a" * 32, "status": "succeeded"}, kimodo.KimodoConnection())
+        self.controller.reset_connection_settings()
+        self.assertEqual("keep_this_namespace", self.model.namespace)
+        self.assertEqual("", self.model.docker["directory"])
+        self.assertEqual(1, len(self.model.jobs))
+        self.controller.set_connection_state("connected")
+        self.assertFalse(self.view.buttons["reset_connection_settings"].isEnabled())
+        with self.assertRaises(ValueError):
+            self.controller.reset_connection_settings()
+
+    def test_docker_disclosure_persists_and_keeps_connect_available(self):
+        """Restores the collapsed setup section without hiding bridge controls."""
+        self.view.mode.setCurrentIndex(self.view.mode.findData("docker"))
+        self.view.docker_group.toggle_button.setChecked(False)
+        self.assertFalse(self.model.snapshot()["docker"]["expanded"])
+        self.controller.load_widgets()
+        self.assertTrue(self.view.docker_content.isHidden())
+        self.assertFalse(self.view.buttons["connect"].isHidden())
+        self.assertEqual("Force stable revisions", self.view.docker_stable_revisions.text())
+
+    def test_image_removal_requires_confirmation_and_rejects_connected_state(self):
+        """Offers destructive cleanup only after an explicit preview and confirmation."""
+        from gt.ui import qt_import as ui_qt
+        from gt.tools.kimodo_generator import kimodo_generator_docker_inspection as inspection
+
+        self.controller.set_connection_state("connected")
+        with self.assertRaisesRegex(ValueError, "Disconnect"):
+            self.controller.remove_docker_image()
+        self.controller.disconnect_bridge()
+        with tempfile.TemporaryDirectory() as directory:
+            self.view.docker_directory.setText(directory)
+            with patch.object(self.controller, "run_network") as dispatch:
+                self.controller.remove_docker_image()
+                ready = dispatch.call_args.args[2]
+                preview = {"image": "kimodo-bridge:1.12.0", "image_id": "sha256:expected", "containers": []}
+                with patch.object(ui_qt.QtWidgets.QMessageBox, "question",
+                                  return_value=ui_qt.QtWidgets.QMessageBox.StandardButton.No):
+                    ready(preview)
+                self.assertEqual(1, dispatch.call_count)
+                with patch.object(ui_qt.QtWidgets.QMessageBox, "question",
+                                  return_value=ui_qt.QtWidgets.QMessageBox.StandardButton.Yes):
+                    ready(preview)
+                operation = dispatch.call_args.args[1]
+            with patch.object(inspection, "remove_image", return_value=preview["image"]) as remove:
+                self.assertEqual(preview["image"], operation())
+            remove.assert_called_once_with(directory, preview["image_id"], "")
+
+    def test_starting_encoder_reports_status_instead_of_raising_background_error(self):
+        """Handles HTTP 503 during downloads while preserving real authentication failures."""
+        from gt.tools.kimodo_generator import kimodo_generator_docker as docker
+        from gt.utils import kimodo
+
+        with tempfile.TemporaryDirectory() as directory:
+            docker.prepare_deployment(directory)
+            self.view.docker_directory.setText(directory)
+            self.view.mode.setCurrentIndex(self.view.mode.findData("docker"))
+            with patch.object(self.controller, "run_network") as dispatch:
+                self.controller.test_encoder()
+            operation, ready = dispatch.call_args.args[1:3]
+            expected = {"status": "starting", "detail": "Encoder is starting: downloading or loading model weights."}
+            with patch.object(kimodo.KimodoClient, "test_text_encoder", side_effect=kimodo.KimodoEncoderUnavailable()):
+                with patch.object(docker, "encoder_status", return_value=expected):
+                    result = operation()
+            self.assertEqual(expected, result)
+            ready(result)
+            self.assertIn("STARTING", self.view.connection_info.text())
+            self.assertIn("downloading or loading", self.view.status.text())
+            with patch.object(kimodo.KimodoClient, "test_text_encoder", side_effect=RuntimeError("HTTP 403")):
+                with self.assertRaisesRegex(RuntimeError, "403"):
+                    operation()
 
     def test_randomize_seed_button_writes_unsigned_32bit_value_next_to_seed(self):
         """Places the seed action beside its field and generates a valid Kimodo seed."""
@@ -223,11 +618,12 @@ class TestKimodoGeneratorUI(unittest.TestCase):
             self.controller.test_bridge()
             self.assertEqual("test_bridge", dispatch.call_args.args[0])
             callback = dispatch.call_args.args[2]
-            callback({"status": "ready", "features": ["shutdown"], "runtime": {
+            health = {"status": "ready", "features": ["shutdown"], "runtime": {
                 "pid": 123, "platform": "Linux", "python_executable": "/env/bin/python",
                 "bridge_script": "/cache/gt/utils/kimodo.py", "job_directory": "/cache/jobs",
                 "device": "cuda", "text_encoder_url": "http://127.0.0.1:9550",
-                "queued_jobs": 0, "active_job_id": None, "unfinished_jobs": 0}})
+                "queued_jobs": 0, "active_job_id": None, "unfinished_jobs": 0}}
+            callback((health, {"models": []}, None))
             self.assertIn("PID: 123", self.view.connection_info.text())
             self.assertIn("Runs in: Linux", self.view.connection_info.text())
 
@@ -237,6 +633,7 @@ class TestKimodoGeneratorUI(unittest.TestCase):
             callback({"url": "http://127.0.0.1:9550", "api_name": "DemoWrapper"})
             self.assertIn("Text encoder is ready", self.view.status.text())
 
+        self.controller.disconnect_bridge()
         self.view.mode.setCurrentIndex(self.view.mode.findData("wsl"))
         self.view.python_path.setText("/home/test/kimodo_env/bin/python")
         self.view.distribution.setCurrentText("Ubuntu-Test")
@@ -430,14 +827,17 @@ class TestKimodoGeneratorUI(unittest.TestCase):
         self.assertLess(results_layout.indexOf(self.view.results_automation),
                         results_layout.indexOf(self.view.results_manual))
         self.assertEqual("Reset to Package Cache", self.view.buttons["use_cache"].text())
-        self.assertEqual("Reset to Default Setup", self.view.buttons["load_default_setup"].text())
+        self.assertEqual("Reset Kimodo Options", self.view.buttons["load_default_setup"].text())
         self.assertEqual(0, self.view.auto_humanik.geometry().y() - self.view.template_pose_previews.geometry().y())
         self.assertEqual(0, self.view.auto_humanik.geometry().y() -
                          self.view.limit_body_joint_translations.geometry().y())
-        title_layout = self.view.heading_label.parentWidget().layout().itemAt(0).layout()
-        self.assertEqual(["Load Setup", "Save Setup", "Reset to Default Setup"],
-                         [title_layout.itemAt(index).widget().text()
-                          for index in range(1, title_layout.count())])
+        self.assertFalse(hasattr(self.view, "heading_label"))
+        self.assertIs(self.view.tabs, self.view.layout().itemAt(0).widget())
+        setup_layout = self.view.summary_setup_group.layout().itemAt(0).layout()
+        self.assertEqual(["Load Setup", "Save Setup", "Reset Connection Settings", "Reset Kimodo Options"],
+                         [setup_layout.itemAt(index).widget().text() for index in range(setup_layout.count())])
+        for key in ("load_setup", "save_setup", "reset_connection_settings", "load_default_setup"):
+            self.assertIs(self.view.summary_setup_group, self.view.buttons[key].parentWidget())
         self.assertTrue(self.view.auto_frame_rate.isEnabled())
         self.assertTrue(self.view.auto_frame_range.isEnabled())
         self.assertFalse(any("Each row is one server request" in widget.text()
@@ -515,6 +915,7 @@ class TestKimodoGeneratorUI(unittest.TestCase):
         self.model.pose_previews_template = False
         self.model.add_constraint({"type": "root2d", "frame_indices": [0], "smooth_root_2d": [[0, 0]]})
         self.model.add_job({"job_id": "a" * 32, "status": "succeeded"}, kimodo.KimodoConnection())
+        self.controller.load_widgets()
         with patch.object(QtWidgets.QMessageBox, "question",
                           return_value=QtWidgets.QMessageBox.StandardButton.Yes):
             self.controller.load_default_setup()

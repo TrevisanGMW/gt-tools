@@ -60,10 +60,29 @@ class TrackerScheduler:
         self._finish_notified = False
         self._preserve_terminal_finalization = False
         self._report_parts_cleaned = False
+        from gt.tools.batch_processor.tracker.tracker_project_queue import ProjectQueue
+        from gt.tools.batch_processor.tracker.tracker_project_reporter import ProjectReporter
+
+        self.project_queue = ProjectQueue(self)
+        self.project_reporter = ProjectReporter(self)
         os.makedirs(self.session.session_dir, exist_ok=True)
         os.makedirs(self.get_events_dir(), exist_ok=True)
         os.makedirs(self.get_logs_dir(), exist_ok=True)
         self.write_state()
+
+    @property
+    def pending_segments(self):
+        """Gets segments whose inputs have not yet been discovered.
+
+        Returns:
+            list: Pending segment descriptors in execution order.
+        """
+        if not self.segmented:
+            return []
+        return [
+            segment for index, segment in enumerate(self.segments)
+            if index not in self._materialized_segments
+        ]
 
     def get_events_dir(self):
         """Gets the session event directory.
@@ -83,6 +102,7 @@ class TrackerScheduler:
 
     def tick(self):
         """Advances worker polling, event consumption, and queue scheduling."""
+        self.project_reporter.tick()
         changed = self._consume_events()
         changed = self._consume_worker_logs() or changed
         changed = self._collect_finished_processes() or changed
@@ -92,6 +112,7 @@ class TrackerScheduler:
             changed = self._advance_job_cancellations() or changed
             changed = self._advance_timeouts() or changed
             changed = self._advance_pending_restarts() or changed
+            changed = self.project_queue.advance_retries() or changed
             changed = self._advance_retries() or changed
             changed = self._finalize_timed_out_jobs() or changed
             if self.segmented:
@@ -114,6 +135,7 @@ class TrackerScheduler:
             if callable(self.update_callback):
                 self.update_callback()
         if self.session.finished and not self._finish_notified:
+            self.project_reporter.tick()
             self._finish_notified = True
             if callable(self.finish_callback):
                 self.finish_callback()
@@ -133,7 +155,7 @@ class TrackerScheduler:
         for process_data in self.running.values():
             process_data["job"].status = tracker_constants.Status.CANCELING
             self._cancel_remote_jobs(process_data)
-            tracker_process_utils.terminate_process_tree(process_data["process"], force=False)
+            self._request_worker_stop(process_data)
         self.write_state()
         if callable(self.update_callback):
             self.update_callback()
@@ -180,7 +202,7 @@ class TrackerScheduler:
             job.status = tracker_constants.Status.CANCELING
             self._consume_events()
             self._cancel_remote_jobs(process_data)
-            tracker_process_utils.terminate_process_tree(process_data["process"], force=False)
+            self._request_worker_stop(process_data)
             self._append_project_log(
                 f"[OPERATION] - (Multi-instance) - Cancellation requested for '{job.name}'.\n"
             )
@@ -198,10 +220,17 @@ class TrackerScheduler:
         Returns:
             bool: True when the job can safely be restarted.
         """
+        if getattr(self.options, "result_file", "") and self.session.finished:
+            return False
         if not job or job.is_finalization:
             return False
-        if self.segmented and getattr(job, "segment_index", 0) != self.current_segment_index:
-            return False
+        if self.segmented:
+            job_segment_index = getattr(job, "segment_index", 0)
+            if job_segment_index > self.current_segment_index:
+                return False
+            if job_segment_index < self.current_segment_index:
+                if not self.session.finished or self.running or self.regular_queue:
+                    return False
         if job.status not in tracker_constants.TERMINAL_STATUSES:
             return False
         if job.id in self.running or job in self.regular_queue:
@@ -284,27 +313,51 @@ class TrackerScheduler:
         Returns:
             bool: True when the job was queued.
         """
-        if not self.can_restart_job(job):
-            return False
-        self.timed_out_jobs.discard(job.id)
-        job.reset_for_restart()
-        self.regular_queue.append(job)
+        return bool(self.restart_jobs([job]))
+
+    def restart_jobs(self, jobs):
+        """Resets and queues multiple terminal regular jobs as one operation.
+
+        Validates every job before changing scheduler state. This allows bulk
+        restarts to include terminal jobs from completed earlier segments,
+        while keeping older segment jobs unavailable during active processing.
+
+        Args:
+            jobs (list): Terminal regular jobs to execute again.
+
+        Returns:
+            list: Jobs that were queued for another execution.
+        """
+        unique_jobs = []
+        seen_job_ids = set()
+        for job in jobs or []:
+            if not job or job.id in seen_job_ids:
+                continue
+            unique_jobs.append(job)
+            seen_job_ids.add(job.id)
+        if not unique_jobs or any(not self.can_restart_job(job) for job in unique_jobs):
+            return []
+
+        self._preserve_terminal_finalization = bool(
+            self.finalization_job
+            and self.finalization_job.status in tracker_constants.TERMINAL_STATUSES
+        )
+        for job in unique_jobs:
+            self.timed_out_jobs.discard(job.id)
+            job.reset_for_restart()
+            self.regular_queue.append(job)
+            self._append_project_log(
+                f"[OPERATION] - (Multi-instance) - Restart queued for '{job.name}'.\n"
+            )
         self.session.finished = False
         self.session.completed_at = ""
         self.session.aborting = False
         self.abort_requested_at = None
         self._finish_notified = False
-        self._preserve_terminal_finalization = bool(
-            self.finalization_job
-            and self.finalization_job.status in tracker_constants.TERMINAL_STATUSES
-        )
-        self._append_project_log(
-            f"[OPERATION] - (Multi-instance) - Restart queued for '{job.name}'.\n"
-        )
         self.write_state()
         if callable(self.update_callback):
             self.update_callback()
-        return True
+        return unique_jobs
 
     def _advance_retries(self):
         """Re-queues failed regular jobs that still have retry attempts left.
@@ -336,6 +389,7 @@ class TrackerScheduler:
             job
             for job in candidate_jobs
             if job.status == tracker_constants.Status.FAILED
+            and self.project_queue.get_settings(job) is None
             and self.job_retry_counts.get(job.id, 0) < self.max_retries
         ]
         if not retry_jobs:
@@ -361,7 +415,7 @@ class TrackerScheduler:
         Returns:
             bool: True when at least one retry attempt remains.
         """
-        return self.max_retries > 0 and self.job_retry_counts.get(job.id, 0) < self.max_retries
+        return self.job_retry_counts.get(job.id, 0) < self.project_queue.retry_limit(job)
 
     def _advance_timeouts(self):
         """Force-cancels regular jobs that exceed the configured runtime timeout.
@@ -381,7 +435,12 @@ class TrackerScheduler:
         current_time = time.monotonic()
         for job_id, process_data in self.running.items():
             job = process_data["job"]
-            if job.is_finalization or process_data.get("timed_out"):
+            if process_data.get("timed_out"):
+                requested = process_data.get("timeout_requested_at", current_time)
+                if current_time - requested > 10:
+                    tracker_process_utils.terminate_process_tree(process_data["process"], force=True)
+                continue
+            if job.is_finalization:
                 continue
             if process_data.get("cancel_requested_at") is not None:
                 continue
@@ -389,9 +448,13 @@ class TrackerScheduler:
             if started_monotonic is None or current_time - started_monotonic < self.timeout_seconds:
                 continue
             process_data["timed_out"] = True
+            process_data["timeout_requested_at"] = current_time
             self.timed_out_jobs.add(job_id)
             job.status = tracker_constants.Status.CANCELING
-            tracker_process_utils.terminate_process_tree(process_data["process"], force=True)
+            if process_data.get("child_projects"):
+                self._request_worker_stop(process_data)
+            else:
+                tracker_process_utils.terminate_process_tree(process_data["process"], force=True)
             self._append_project_log(
                 f"[OPERATION] - (Multi-instance) - Timed out '{job.name}' after "
                 f"{self.timeout_seconds // 60} minute(s); stopping worker.\n"
@@ -435,8 +498,15 @@ class TrackerScheduler:
             bool: Whether a worker was launched.
         """
         changed = False
-        while self.regular_queue and len(self.running) < self.session.worker_count:
-            job = self.regular_queue.pop(0)
+        for job in list(self.regular_queue):
+            eligible = self.project_queue.eligible(job)
+            if job.status == tracker_constants.Status.BLOCKED:
+                self.regular_queue.remove(job)
+                changed = True
+                continue
+            if not eligible or len(self.running) >= self.session.worker_count:
+                continue
+            self.regular_queue.remove(job)
             try:
                 self._launch_job(job)
             except Exception as exception:
@@ -478,6 +548,15 @@ class TrackerScheduler:
         source_files = []
         if self.project:
             source_files = self.project.discover_segment_input_files(segment.get("input_tasks"))
+            from gt.tools.batch_processor import batch_processor_projects
+
+            definitions = segment.get("definitions") or []
+            first_task = (self.project.get_task(definitions[0]["id"])
+                          if definitions and hasattr(self.project, "get_task") else None)
+            filtered_sources = batch_processor_projects.filter_project_inputs(source_files, first_task, self.project)
+            if len(filtered_sources) != len(source_files):
+                self._append_project_log("[INFO] - Ignored the launching project in child project inputs.\n")
+            source_files = filtered_sources
         self._append_project_log(
             "[OPERATION] - (Multi-instance) - Segment {0}/{1} discovered {2} file(s).\n".format(
                 segment_index + 1, len(self.segments), len(source_files)
@@ -625,6 +704,8 @@ class TrackerScheduler:
         job.log_path = log_path or job.log_path
         job.timing_log_path = timing_path or job.timing_log_path
         worker_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tracker_worker.py")
+        if getattr(self.options, "single_project", False):
+            worker_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tracker_project_worker.py")
         command = [
             self.options.mayapy,
             worker_script,
@@ -718,6 +799,12 @@ class TrackerScheduler:
                 if process_data and event.get("event") == "kimodo_job_done":
                     process_data["remote_jobs"] = [job for job in process_data.get("remote_jobs", [])
                                                    if job["remote_id"] != event.get("remote_id")]
+                if process_data and event.get("event") == "child_project":
+                    process_data.setdefault("child_projects", []).append(event)
+                if process_data and event.get("event") == "child_project_done":
+                    process_data["child_projects"] = [
+                        child for child in process_data.get("child_projects", [])
+                        if child["run_id"] != event.get("run_id")]
                 if process_data and process_data.get("cancel_requested_at") is not None:
                     process_data["job"].status = tracker_constants.Status.CANCELING
                 changed = True
@@ -734,11 +821,32 @@ class TrackerScheduler:
         for event in process_data.get("remote_jobs", []):
             try:
                 token_name = event.get("token_environment")
-                connection = kimodo.KimodoConnection(
-                    url=event["url"], timeout=2, token=os.environ.get(token_name) if token_name else None)
+                token = os.environ.get(token_name) if token_name else None
+                if event.get("docker_directory"):
+                    from gt.tools.kimodo_generator import kimodo_generator_docker as docker
+
+                    docker.validate_local_url(event["url"])
+                    token = docker.bridge_token(event["docker_directory"])
+                connection = kimodo.KimodoConnection(url=event["url"], timeout=2, token=token)
                 kimodo.KimodoClient(connection).cancel(event["remote_id"])
             except Exception as error:
                 self._append_project_log(f"[WARNING] - Remote Kimodo cancellation failed: {error}\n")
+
+    def _request_worker_stop(self, process_data):
+        """Requests child cleanup before falling back to process tree termination.
+
+        Args:
+            process_data (dict): Worker and registered child projects.
+        """
+        from gt.tools.batch_processor import batch_processor_projects as projects
+
+        active_children = [child for child in process_data.get("child_projects", [])
+                           if not projects.read_json(child["result_file"]).get("finished")]
+        if active_children:
+            for child in active_children:
+                projects.write_json(child["control_file"], {"action": "cancel", "run_id": child["run_id"]})
+        else:
+            tracker_process_utils.terminate_process_tree(process_data["process"], force=False)
 
     def _collect_finished_processes(self):
         """Collects exited workers and applies fallback terminal states.
@@ -786,6 +894,11 @@ class TrackerScheduler:
                         task.warnings += 1
                         task.messages.append(("Warning", "Worker exited without a terminal tracker event."))
                         task.completed_at = job.completed_at
+                if getattr(self.options, "result_file", ""):
+                    job.status = tracker_constants.Status.FAILED
+                    if job.tasks:
+                        job.tasks[0].errors += 1
+                        job.tasks[0].status = tracker_constants.Status.FAILED
             if final_task and not self.session.aborting:
                 self.final_task_index += 1
                 if self.final_task_index < len(job.tasks):
@@ -865,7 +978,8 @@ class TrackerScheduler:
             [job for job in regular_jobs if job.status in tracker_constants.TERMINAL_STATUSES]
         )
         completed_tasks = len([task for task in tasks if task.status in tracker_constants.TERMINAL_STATUSES])
-        failed = len([job for job in regular_jobs if job.status == tracker_constants.Status.FAILED])
+        failed = len([job for job in regular_jobs if job.status in (
+            tracker_constants.Status.FAILED, tracker_constants.Status.TIMED_OUT, tracker_constants.Status.BLOCKED)])
         canceled = len([job for job in regular_jobs if job.status == tracker_constants.Status.CANCELED])
         errors = sum(job.errors for job in regular_jobs)
         warnings = sum(job.warnings for job in regular_jobs)
@@ -894,6 +1008,7 @@ class TrackerScheduler:
         if self._preserve_terminal_finalization and job.status in tracker_constants.TERMINAL_STATUSES:
             return False
         blocking_statuses = {
+            tracker_constants.Status.BLOCKED,
             tracker_constants.Status.FAILED,
             tracker_constants.Status.TIMED_OUT,
             tracker_constants.Status.CANCELED,
@@ -971,7 +1086,8 @@ class TrackerScheduler:
         """
         if not self.running or self.abort_requested_at is None:
             return False
-        if time.monotonic() - self.abort_requested_at < 3.0:
+        grace = 10.0 if any(data.get("child_projects") for data in self.running.values()) else 3.0
+        if time.monotonic() - self.abort_requested_at < grace:
             return False
         for process_data in self.running.values():
             tracker_process_utils.terminate_process_tree(process_data["process"], force=True)
@@ -990,7 +1106,8 @@ class TrackerScheduler:
             requested_at = process_data.get("cancel_requested_at")
             if requested_at is None or process_data.get("cancel_force_requested"):
                 continue
-            if current_time - requested_at < 3.0:
+            grace = 10.0 if process_data.get("child_projects") else 3.0
+            if current_time - requested_at < grace:
                 continue
             tracker_process_utils.terminate_process_tree(process_data["process"], force=True)
             process_data["cancel_force_requested"] = True

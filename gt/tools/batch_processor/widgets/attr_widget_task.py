@@ -1282,4 +1282,8 @@ def get_task_widget_class(task):
         from gt.tools.batch_processor.widgets.attr_widget_batch_render import AttrWidgetBatchRenderTask
 
         return AttrWidgetBatchRenderTask
+    if task.task_type == constants.TaskType.RUN_BATCH_PROJECT:
+        from gt.tools.batch_processor.widgets.attr_widget_run_batch_project import AttrWidgetRunBatchProject
+
+        return AttrWidgetRunBatchProject
     return AttrWidgetTask

@@ -101,6 +101,14 @@ class TestAnimHikUtilsService(unittest.TestCase):
                 self.service.import_definition("hero", "unused.xml", DEFAULT_SETTINGS)
         self.hik.import_definition_from_xml.assert_not_called()
 
+    def test_matching_prefixes_lists_only_namespaces_with_xml_bones(self):
+        """Namespaces without any XML bone are not offered."""
+        self.cmds.namespaceInfo.return_value = ["b", "a", "empty"]
+        self.cmds.objExists.side_effect = lambda name: name in ("a:Hips", "b:Hips")
+        with patch("gt.tools.anim_hik_utils.anim_hik_utils_model.read_definition",
+                   return_value=[("Hips", "Hips")]):
+            self.assertEqual(["a:", "b:"], self.service.matching_prefixes("unused.xml"))
+
 
 if __name__ == "__main__":
     unittest.main()

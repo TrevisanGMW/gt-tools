@@ -213,9 +213,14 @@ class AnimCopyPasteView(metaclass=MayaWindowMeta):
             "Runs Maya's Euler filter on pasted rotation curves. Disable for intentional "
             "rotations larger than 180 degrees."
         )
+        self.reverse_animation_check = ui_qt.QtWidgets.QCheckBox("Reverse Animation")
+        self.reverse_animation_check.setToolTip(
+            "Pastes the copied animation in reverse, so its last key value becomes the first."
+        )
         euler_filter_layout = ui_qt.QtWidgets.QHBoxLayout()
         euler_filter_layout.addStretch()
         euler_filter_layout.addWidget(self.euler_filter_check)
+        euler_filter_layout.addWidget(self.reverse_animation_check)
         euler_filter_layout.addStretch()
         main_layout.addLayout(euler_filter_layout)
 
@@ -481,6 +486,7 @@ class AnimCopyPasteView(metaclass=MayaWindowMeta):
             "paste_at_current_frame": self.current_frame_radio.isChecked(),
             "paste_frame": self.paste_frame_spin.value(),
             "apply_euler_filter": self.euler_filter_check.isChecked(),
+            "reverse_animation": self.reverse_animation_check.isChecked(),
         }
 
     def set_settings(self, settings):
@@ -506,6 +512,7 @@ class AnimCopyPasteView(metaclass=MayaWindowMeta):
         self.custom_frame_radio.setChecked(not self.current_frame_radio.isChecked())
         self.paste_frame_spin.setValue(float(settings.get("paste_frame", 1.0)))
         self.euler_filter_check.setChecked(bool(settings.get("apply_euler_filter")))
+        self.reverse_animation_check.setChecked(bool(settings.get("reverse_animation")))
         self._update_paste_frame_enabled()
 
     def set_cache_summary(self, summary):
@@ -542,6 +549,7 @@ class AnimCopyPasteView(metaclass=MayaWindowMeta):
             "Dope Sheet keys, or keys before or after the current frame.\n\n"
             "Paste Insert adds the copied chunk at the chosen frame and shifts future keys. Paste Replace clears each "
             "affected target channel before applying the copied animation.\n\n"
+            "Enable Reverse Animation to paste the copied key values in reverse order.\n\n"
             "Use Selection Order for arbitrary source-to-target pairs, Name / Hierarchy for matching selected "
             "controls on another character, or Namespace Swap to paste directly from one character namespace "
             "to another. "

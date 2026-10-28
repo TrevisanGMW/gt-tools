@@ -1,6 +1,7 @@
 """Non-blocking Qt construction and binding tests for Kimodo task panels."""
 
 import unittest
+from unittest import mock
 import os
 from gt.ui import qt_import as qt
 from gt.tools.batch_processor import batch_processor_model
@@ -23,6 +24,15 @@ class TestKimodoWidgets(unittest.TestCase):
             if families:
                 cls.application.setFont(qt.QtGui.QFont(families[0], 10))
 
+    def setUp(self):
+        """Isolates connection tests from the user's saved generator preferences."""
+        from gt.tools.batch_processor.tasks import task_kimodo_connection as connections
+
+        patcher = mock.patch.object(connections, "generator_settings", return_value={
+            "connection": {"url": "http://127.0.0.1:7861"}, "docker": {"directory": "", "executable": ""}})
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_definition_widget(self):
         """Edits capture and generation values and validates parameter ranges."""
         task = TaskKimodoDefinition()
@@ -33,6 +43,8 @@ class TestKimodoWidgets(unittest.TestCase):
             widget.controls[("definition", "parameters", "num_samples")].setValue(3)
             self.assertEqual("kimodo_pose:motion", task.settings["pose_source"])
             self.assertEqual(3, task.settings["definition"]["parameters"]["num_samples"])
+            self.assertIn(("use_pre_generation_scene_for_generation",), widget.controls)
+            self.assertIn(("capture_in_world_space",), widget.controls)
             enabled, minimum, maximum, unused_integer = widget.variation_editor.inputs["guidance_text"]
             enabled.setChecked(True)
             minimum.setValue(3)
@@ -76,6 +88,139 @@ class TestKimodoWidgets(unittest.TestCase):
             widget.close()
             widget.deleteLater()
 
+    def test_docker_controls_and_numpy_dependencies(self):
+        """Enables deployment references only for Docker and Maya options only for scenes."""
+        task = TaskKimodoGenerate()
+        widget = AttrWidgetKimodoGenerate(task=task, project=batch_processor_model.BatchProcessorModel())
+        try:
+            controls = widget.controls
+            mode = controls[("connection", "mode")]
+            mode.setCurrentIndex(mode.findData("docker"))
+            self.assertTrue(controls[("docker", "directory")].isEnabled())
+            self.assertTrue(controls[("docker", "executable")].isEnabled())
+            for key in ("python_path", "distribution", "device", "start_encoder", "text_encoder_url"):
+                self.assertFalse(controls[("connection", key)].isEnabled())
+            self.assertFalse(controls[("token_environment",)].isEnabled())
+            result = controls[("result_mode",)]
+            result.setCurrentIndex(result.findData("numpy"))
+            for key in ("output_extension", "namespace", "import_start_frame", "add_humanik",
+                        "import_incoming_scene", "include_definition_attribute"):
+                self.assertFalse(controls[(key,)].isEnabled())
+            self.assertTrue(controls[("expected_model_fps",)].isEnabled())
+            mode.setCurrentIndex(mode.findData("existing"))
+            self.assertTrue(controls[("docker", "directory")].isEnabled())
+            self.assertFalse(controls[("startup_timeout",)].isEnabled())
+            restored = TaskKimodoGenerate.from_dict(task.to_dict())
+            self.assertEqual("numpy", restored.settings["result_mode"])
+        finally:
+            widget.close()
+            widget.deleteLater()
+
+    def test_credential_controls_follow_source_and_managed_docker(self):
+        """Makes local file credentials and explicit remote variables visibly distinct."""
+        task = TaskKimodoGenerate()
+        widget = AttrWidgetKimodoGenerate(task=task, project=batch_processor_model.BatchProcessorModel())
+        try:
+            controls = widget.controls
+            credentials = controls[("authentication",)]
+            mode = controls[("connection", "mode")]
+            self.assertEqual("auto", credentials.currentData())
+            self.assertTrue(controls[("docker", "directory")].isEnabled())
+            self.assertFalse(controls[("token_environment",)].isEnabled())
+            credentials.setCurrentIndex(credentials.findData("environment"))
+            self.assertTrue(controls[("token_environment",)].isEnabled())
+            self.assertFalse(controls[("docker", "directory")].isEnabled())
+            self.assertIn("before launching Maya", widget.authentication_note.text())
+            mode.setCurrentIndex(mode.findData("docker"))
+            self.assertEqual("auto", credentials.currentData())
+            self.assertFalse(credentials.isEnabled())
+            self.assertFalse(controls[("token_environment",)].isEnabled())
+            self.assertIn("secrets/bridge_token", widget.authentication_note.text())
+            mode.setCurrentIndex(mode.findData("existing"))
+            self.assertEqual("environment", credentials.currentData())
+            credentials.setCurrentIndex(credentials.findData("none"))
+            self.assertFalse(controls[("token_environment",)].isEnabled())
+            self.assertFalse(controls[("docker", "directory")].isEnabled())
+            self.assertIn("legacy", widget.authentication_note.text())
+        finally:
+            widget.close()
+            widget.deleteLater()
+
+    def test_copy_generator_connection_selects_automatic_credentials(self):
+        """Copies references instead of requiring a new environment-variable export."""
+        from gt.tools.batch_processor.tasks import task_kimodo_connection as connections
+
+        task = TaskKimodoGenerate()
+        task.settings.update(authentication="environment", token_environment="STALE_VARIABLE")
+        widget = AttrWidgetKimodoGenerate(task=task, project=batch_processor_model.BatchProcessorModel())
+        saved = {"connection": {"url": "http://127.0.0.1:7861", "mode": "existing"},
+                 "docker": {"directory": "Z:/Docker/example", "executable": ""}}
+        try:
+            with mock.patch.object(connections, "generator_settings", return_value=saved):
+                widget.use_generator_connection()
+            self.assertEqual("auto", task.settings["authentication"])
+            self.assertEqual("Z:/Docker/example", task.settings["docker"]["directory"])
+            self.assertFalse(widget.controls[("token_environment",)].isEnabled())
+            self.assertNotIn("token", task.settings["connection"])
+        finally:
+            widget.close()
+            widget.deleteLater()
+
+    def test_get_models_queries_downstream_docker_and_selects_current_metadata(self):
+        """Discovers future model IDs and their FPS from the generating task's endpoint."""
+        from gt.tools.batch_processor.widgets import kimodo_connection_controls as queries
+        from gt.tools.kimodo_generator import kimodo_generator_docker as docker
+
+        project = batch_processor_model.BatchProcessorModel()
+        task = TaskKimodoDefinition()
+        generate = TaskKimodoGenerate()
+        generate.settings["connection"]["mode"] = "docker"
+        generate.settings["docker"]["directory"] = "Z:/Docker/prepared"
+        project.tasks = [task, generate]
+        widget = AttrWidgetKimodoDefinition(task=task, project=project)
+        try:
+            with mock.patch.object(docker, "read_deployment", return_value={}), \
+                    mock.patch.object(queries.connections, "validate_deployment_endpoint"), \
+                    mock.patch.object(docker, "bridge_token", return_value="private-token"), \
+                    mock.patch.object(qt.QtCore.QThreadPool.globalInstance(), "start"):
+                widget.get_models()
+            self.assertFalse(widget.get_models_button.isEnabled())
+            worker = widget._query_worker
+            self.assertEqual("private-token", worker.connection.token)
+            self.assertNotIn("token", generate.settings["connection"])
+            client = mock.Mock()
+            client.capabilities.return_value = {"models": [{"id": "future-motion-model", "fps": 60}]}
+            with mock.patch.object(queries.kimodo, "KimodoClient", return_value=client), \
+                    mock.patch.object(docker, "_verify_identity"):
+                worker.run()
+            self.assertTrue(widget.get_models_button.isEnabled())
+            widget.models_menu.actions()[0].trigger()
+            self.assertEqual("future-motion-model", task.settings["definition"]["model"])
+            self.assertEqual(60, task.settings["model_fps"])
+            widget.controls[("template_path",)].setText("template.json")
+            self.assertFalse(widget.get_models_button.isEnabled())
+        finally:
+            widget.close()
+            widget.deleteLater()
+
+    def test_read_only_query_failure_restores_button(self):
+        """Reports connectivity errors without launching containers or leaving controls locked."""
+        from gt.tools.batch_processor.widgets import kimodo_connection_controls as queries
+
+        widget = AttrWidgetKimodoGenerate(task=TaskKimodoGenerate(),
+                                         project=batch_processor_model.BatchProcessorModel())
+        try:
+            with mock.patch.object(qt.QtCore.QThreadPool.globalInstance(), "start"):
+                widget.test_connection()
+            self.assertFalse(widget.test_connection_button.isEnabled())
+            with mock.patch.object(queries.kimodo.KimodoClient, "health", side_effect=ConnectionError("offline")):
+                widget._query_worker.run()
+            self.assertTrue(widget.test_connection_button.isEnabled())
+            self.assertIn("offline", widget.status.text())
+        finally:
+            widget.close()
+            widget.deleteLater()
+
     def test_motion_text_mode_preserves_table_and_template_dependencies(self):
         """Shows the active text source and retains rows while toggling modes and templates."""
         task = TaskKimodoDefinition(settings={"use_input_string": True})
@@ -88,11 +233,13 @@ class TestKimodoWidgets(unittest.TestCase):
             self.assertEqual("table", mode.currentData())
             self.assertFalse(text.isEnabled())
             self.assertTrue(widget.prompt_editor.isEnabled())
+            self.assertEqual(1.0, widget.prompt_editor.table_opacity.opacity())
+            self.assertNotIn(("use_input_string",), controls)
             original = widget.prompt_editor.table.item(0, 1).text()
             mode.setCurrentIndex(mode.findData("text"))
             self.assertTrue(text.isEnabled())
             self.assertFalse(widget.prompt_editor.isEnabled())
-            self.assertFalse(controls[("use_input_string",)].isEnabled())
+            self.assertEqual(0.4, widget.prompt_editor.table_opacity.opacity())
             self.assertIn("Text", widget.motion_source_status.text())
             self.assertTrue(controls[("definition", "parameters", "transition_frames")].isEnabled())
             text.setText('[[2, "Walk"], [1, "Stop"]]')
@@ -113,6 +260,7 @@ class TestKimodoWidgets(unittest.TestCase):
             mode.setCurrentIndex(mode.findData("table"))
             self.assertTrue(widget.prompt_editor.isEnabled())
             self.assertFalse(text.isEnabled())
+            self.assertEqual(1.0, widget.prompt_editor.table_opacity.opacity())
             self.assertEqual(original, widget.prompt_editor.table.item(0, 1).text())
         finally:
             widget.close()

@@ -1,5 +1,7 @@
 """Session state and persistent settings for Copy/Paste Animation."""
 
+import copy
+
 try:
     from gt.core.prefs import Prefs
 except ImportError:
@@ -89,6 +91,7 @@ class AnimCopyPasteModel:
         self.paste_at_current_frame = True
         self.paste_frame = 1.0
         self.apply_euler_filter = False
+        self.reverse_animation = False
 
     def load_preferences(self):
         """Loads valid saved settings."""
@@ -108,6 +111,7 @@ class AnimCopyPasteModel:
         self.paste_at_current_frame = bool(state.get("paste_at_current_frame", self.paste_at_current_frame))
         self.paste_frame = self._get_float(state.get("paste_frame"), self.paste_frame)
         self.apply_euler_filter = bool(state.get("apply_euler_filter", self.apply_euler_filter))
+        self.reverse_animation = bool(state.get("reverse_animation", self.reverse_animation))
 
     def save_preferences(self):
         """Saves current settings."""
@@ -134,6 +138,7 @@ class AnimCopyPasteModel:
         self.paste_at_current_frame = bool(settings.get("paste_at_current_frame", self.paste_at_current_frame))
         self.paste_frame = self._get_float(settings.get("paste_frame"), self.paste_frame)
         self.apply_euler_filter = bool(settings.get("apply_euler_filter", self.apply_euler_filter))
+        self.reverse_animation = bool(settings.get("reverse_animation", self.reverse_animation))
 
     def get_settings(self):
         """Gets serializable settings.
@@ -151,6 +156,7 @@ class AnimCopyPasteModel:
             "paste_at_current_frame": bool(self.paste_at_current_frame),
             "paste_frame": float(self.paste_frame),
             "apply_euler_filter": bool(self.apply_euler_filter),
+            "reverse_animation": bool(self.reverse_animation),
         }
 
     def set_clip_data(self, clip_data):
@@ -168,6 +174,57 @@ class AnimCopyPasteModel:
             bool: True when a clip can be pasted.
         """
         return bool(self.clip_data.get("objects"))
+
+    @staticmethod
+    def reverse_animation_clip(clip_data):
+        """Returns a copy of an animation clip with its key times reversed.
+
+        Args:
+            clip_data (dict): Portable animation clip payload.
+
+        Returns:
+            dict: Copied clip whose keys are reflected across its frame range.
+        """
+        reversed_clip = copy.deepcopy(clip_data if isinstance(clip_data, dict) else {})
+        clip_objects = reversed_clip.get("objects")
+        if not isinstance(clip_objects, list):
+            return reversed_clip
+
+        key_times = []
+        for object_data in clip_objects:
+            for attribute_data in (object_data.get("attributes") or []):
+                for key_data in (attribute_data.get("keys") or []):
+                    try:
+                        key_times.append(float(key_data.get("time")))
+                    except (AttributeError, TypeError, ValueError):
+                        continue
+        if not key_times:
+            return reversed_clip
+
+        start_frame = AnimCopyPasteModel._get_float(reversed_clip.get("start_frame"), min(key_times))
+        end_frame = AnimCopyPasteModel._get_float(reversed_clip.get("end_frame"), max(key_times))
+        if end_frame < start_frame:
+            start_frame, end_frame = end_frame, start_frame
+        time_sum = start_frame + end_frame
+
+        for object_data in clip_objects:
+            for attribute_data in (object_data.get("attributes") or []):
+                keys = attribute_data.get("keys") or []
+                for key_data in keys:
+                    try:
+                        key_data["time"] = time_sum - float(key_data["time"])
+                    except (KeyError, TypeError, ValueError):
+                        continue
+                    if "in_tangent" in key_data or "out_tangent" in key_data:
+                        in_tangent = key_data.pop("in_tangent", None)
+                        out_tangent = key_data.pop("out_tangent", None)
+                        if out_tangent is not None:
+                            key_data["in_tangent"] = out_tangent
+                        if in_tangent is not None:
+                            key_data["out_tangent"] = in_tangent
+                keys.sort(key=lambda key_data: key_data.get("time", 0.0))
+
+        return reversed_clip
 
     @staticmethod
     def get_available_mapping_modes():

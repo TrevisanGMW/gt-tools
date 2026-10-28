@@ -237,7 +237,7 @@ class CustomEnvironmentVariablesDialog(ui_qt.QtWidgets.QDialog):
         query_checkbox.setToolTip(
             "Evaluate the value as a Python expression.\nAvailable values include cmds, json, "
             "env, project, and task.\nUse import_module('module_name') to load a module "
-            "inside the expression."
+            "inside the expression.\nUse env['variable-name'] to reference a built-in or earlier variable."
         )
         query_container = ui_qt.QtWidgets.QWidget()
         query_layout = ui_qt.QtWidgets.QHBoxLayout(query_container)
@@ -256,7 +256,9 @@ class CustomEnvironmentVariablesDialog(ui_qt.QtWidgets.QDialog):
         run_button.setEnabled(bool(is_query))
         run_button.setToolTip(
             "Run this query in the current Maya scene and print its result.\n"
-            "Uses current editor values and preceding rows; task is None at project level."
+            "Uses current editor values and successful preceding rows.\n"
+            "Other query failures are ignored; this query's errors are reported.\n"
+            "task is None at project level."
         )
         run_button.clicked.connect(partial(self.test_variable_query, name_item=name_item))
         query_checkbox.toggled.connect(run_button.setEnabled)

@@ -164,6 +164,135 @@ class TestSetupCore(unittest.TestCase):
         self.assertEqual(expected, result)
 
     @patch("gt.core.setup.get_available_maya_preferences_dirs")
+    def test_generate_scripts_dir_list_locales(self, mock_get_preferences):
+        """Includes standard and localized paths and creates missing locale scripts."""
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()
+        os.makedirs(os.path.join(test_temp_dir, "scripts"))
+        locale_names = ["de_DE", "ja_JP", "zh_CN"]
+        for locale_name in locale_names:
+            os.makedirs(os.path.join(test_temp_dir, locale_name))
+        os.makedirs(os.path.join(test_temp_dir, "ja_JP", "scripts"))
+        mock_get_preferences.return_value = {"2027": test_temp_dir}
+
+        result = core_setup.generate_scripts_dir_list(core_setup.PACKAGE_USER_SETUP)
+
+        expected = [os.path.join(test_temp_dir, "scripts", core_setup.PACKAGE_USER_SETUP)]
+        expected.extend(
+            os.path.join(test_temp_dir, locale_name, "scripts", core_setup.PACKAGE_USER_SETUP)
+            for locale_name in locale_names
+        )
+        self.assertEqual(expected, result)
+        for file_path in expected:
+            self.assertTrue(os.path.isdir(os.path.dirname(file_path)))
+
+    @patch("gt.core.setup.get_available_maya_preferences_dirs")
+    def test_generate_scripts_dir_list_locales_across_versions(self, mock_get_preferences):
+        """Finds locales per version even when standard scripts folders are absent."""
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()
+        version_folders = {
+            "2026": os.path.join(test_temp_dir, "2026"),
+            "2027": os.path.join(test_temp_dir, "2027"),
+        }
+        expected = []
+        for version_folder in version_folders.values():
+            os.makedirs(os.path.join(version_folder, "zh_CN"))
+            expected.append(os.path.join(version_folder, "zh_CN", "scripts", "gt_tools_loader.py"))
+        mock_get_preferences.return_value = version_folders
+
+        result = core_setup.generate_scripts_dir_list("gt_tools_loader.py")
+
+        self.assertEqual(expected, result)
+        for version_folder in version_folders.values():
+            self.assertFalse(os.path.exists(os.path.join(version_folder, "scripts")))
+
+    @patch("gt.core.setup.get_available_maya_preferences_dirs")
+    def test_generate_scripts_dir_list_only_existing_locales(self, mock_get_preferences):
+        """Filters missing files without creating directories during cleanup."""
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()
+        os.makedirs(os.path.join(test_temp_dir, "zh_CN"))
+        scripts_dir = os.path.join(test_temp_dir, "ja_JP", "scripts")
+        os.makedirs(scripts_dir)
+        existing_file = os.path.join(scripts_dir, core_setup.PACKAGE_USER_SETUP)
+        with open(existing_file, "w") as setup_file:
+            setup_file.write("// Existing startup script\n")
+        os.makedirs(os.path.join(test_temp_dir, "de_DE", "scripts"))
+        mock_get_preferences.return_value = {"2027": test_temp_dir}
+
+        result = core_setup.generate_scripts_dir_list(core_setup.PACKAGE_USER_SETUP, only_existing=True)
+
+        self.assertEqual([existing_file], result)
+        self.assertFalse(os.path.exists(os.path.join(test_temp_dir, "zh_CN", "scripts")))
+        self.assertFalse(os.path.exists(os.path.join(test_temp_dir, "scripts")))
+
+    @patch("gt.core.setup.get_available_maya_preferences_dirs")
+    def test_generate_scripts_dir_list_ignores_non_locale_entries(self, mock_get_preferences):
+        """Ignores non-locale directories and files named like locales."""
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()
+        for folder_name in ["prefs", "zh_cn", "JA_JP", "zh_CN_backup", "ja_JP_extra"]:
+            os.makedirs(os.path.join(test_temp_dir, folder_name))
+        with open(os.path.join(test_temp_dir, "de_DE"), "w") as locale_file:
+            locale_file.write("Not a directory")
+        mock_get_preferences.return_value = {"2027": test_temp_dir}
+
+        result = core_setup.generate_scripts_dir_list(core_setup.PACKAGE_USER_SETUP)
+
+        self.assertEqual([], result)
+        self.assertFalse(os.path.exists(os.path.join(test_temp_dir, "scripts")))
+        for folder_name in ["prefs", "zh_cn", "JA_JP", "zh_CN_backup", "ja_JP_extra"]:
+            self.assertFalse(os.path.exists(os.path.join(test_temp_dir, folder_name, "scripts")))
+
+    @patch("gt.core.setup.get_available_maya_preferences_dirs")
+    def test_generate_scripts_dir_list_deduplicates_paths(self, mock_get_preferences):
+        """Returns each destination once even when preference roots repeat."""
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()
+        os.makedirs(os.path.join(test_temp_dir, "scripts"))
+        os.makedirs(os.path.join(test_temp_dir, "zh_CN"))
+        mock_get_preferences.return_value = {
+            "2026": test_temp_dir,
+            "2027": os.path.join(test_temp_dir, "."),
+        }
+
+        result = core_setup.generate_scripts_dir_list(core_setup.PACKAGE_USER_SETUP)
+
+        expected = [
+            os.path.join(test_temp_dir, "scripts", core_setup.PACKAGE_USER_SETUP),
+            os.path.join(test_temp_dir, "zh_CN", "scripts", core_setup.PACKAGE_USER_SETUP),
+        ]
+        self.assertEqual(expected, result)
+
+    @patch("gt.core.setup.get_available_maya_preferences_dirs")
+    def test_localized_startup_install_and_remove(self, mock_get_preferences):
+        """Installs once per path and removes package startup files while retaining user content."""
+        test_temp_dir = maya_test_tools.generate_test_temp_dir()
+        standard_scripts = os.path.join(test_temp_dir, "scripts")
+        locale_scripts = os.path.join(test_temp_dir, "zh_CN", "scripts")
+        os.makedirs(standard_scripts)
+        os.makedirs(os.path.dirname(locale_scripts))
+        standard_setup = os.path.join(standard_scripts, core_setup.PACKAGE_USER_SETUP)
+        user_content = "// Preserve custom startup commands\n"
+        with open(standard_setup, "w") as setup_file:
+            setup_file.write(user_content)
+        mock_get_preferences.return_value = {"2027": test_temp_dir}
+
+        for install_attempt in range(2):
+            core_setup.add_entry_point_to_maya_installs()
+            core_setup.copy_package_loader_to_maya_installs()
+        for scripts_dir in [standard_scripts, locale_scripts]:
+            setup_path = os.path.join(scripts_dir, core_setup.PACKAGE_USER_SETUP)
+            with open(setup_path) as setup_file:
+                self.assertEqual(1, setup_file.read().count(core_setup.PACKAGE_ENTRY_LINE))
+            self.assertTrue(os.path.isfile(os.path.join(scripts_dir, "gt_tools_loader.py")))
+
+        core_setup.remove_entry_point_from_maya_installs()
+        core_setup.remove_package_loader_from_maya_installs()
+
+        with open(standard_setup) as setup_file:
+            self.assertEqual(user_content, setup_file.read())
+        self.assertFalse(os.path.exists(os.path.join(locale_scripts, core_setup.PACKAGE_USER_SETUP)))
+        for scripts_dir in [standard_scripts, locale_scripts]:
+            self.assertFalse(os.path.exists(os.path.join(scripts_dir, "gt_tools_loader.py")))
+
+    @patch("gt.core.setup.get_available_maya_preferences_dirs")
     def test_generate_scripts_dir_list_invalid_preferences(self, mock_get_preferences):
         mock_get_preferences.return_value = {"1234": "invalid_path"}
         result = core_setup.generate_scripts_dir_list(file_name=core_setup.PACKAGE_USER_SETUP, only_existing=False)

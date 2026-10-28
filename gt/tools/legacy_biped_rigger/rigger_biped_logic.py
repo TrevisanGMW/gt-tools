@@ -332,7 +332,7 @@
 """
 from gt.tools.legacy_biped_rigger.rigger_utilities import *
 from gt.tools.legacy_biped_rigger.rigger_data import *
-from gt.tools.shape_offset.shape_offset  import offset_curve_shape
+from gt.core import transform as core_trans
 import maya.cmds as cmds
 import logging
 import random
@@ -5785,8 +5785,10 @@ def create_biped_rig(data_biped):
     z_offset_difference = cmds.xform(temp_clavicle_average_grp, q=True, ws=True, t=True)
     if z_offset_difference[2] < z_original_difference[2]:
         chest_ctrl_z_offset = -chest_ctrl_z_offset
-    offset_curve_shape([chest_ribbon_ctrl, chest_ribbon_offset_ctrl, chest_global_fk_ctrl],
-                       [0, chest_ctrl_y_offset, chest_ctrl_z_offset * .5])
+    for curve_transform in (chest_ribbon_ctrl, chest_ribbon_offset_ctrl, chest_global_fk_ctrl):
+        core_trans.translate_shapes(
+            obj_transform=curve_transform,
+            offset=(0, chest_ctrl_y_offset, chest_ctrl_z_offset * .5))
     cmds.delete(temp_clavicle_average_grp)
 
     # Spine Ctrl

@@ -444,6 +444,10 @@ def load_menu(*args):
         command=IMPORT_UTIL + 'initialize_utility("transform", "convert_transforms_to_locators")',
         tooltip="Converts transforms to locators. Function doesn't affect selected objects.",
         icon=ui_res_lib.Icon.util_convert_loc,
+        option_box=True,
+        option_box_command=(
+            IMPORT_TOOL + 'initialize_tool("utility_options", "open_convert_to_locators_options")'
+        ),
     )
 
     menu.add_divider(divider_label="Reference Utilities")  # References Section +++++++++++++++++++++++++++++++++

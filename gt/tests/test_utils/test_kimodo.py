@@ -171,6 +171,22 @@ class TestKimodoDefinition(unittest.TestCase):
             with self.subTest(change=change), self.assertRaises(ValueError):
                 kimodo.validate_motion(data)
 
+    def test_server_cache_defaults_to_bridge_folder_and_preserves_explicit_directory(self):
+        """Uses the requested cache namespace without changing Docker or custom job roots."""
+        with tempfile.TemporaryDirectory() as home:
+            for requested in (None, os.path.join(home, "custom", "jobs")):
+                expected = requested or os.path.join(home, ".cache", "kimodo-bridge", "jobs")
+                with patch.object(kimodo.os.path, "expanduser", return_value=home), \
+                        patch.object(kimodo, "ThreadingHTTPServer"), \
+                        patch.object(kimodo, "_lock_job_store"), \
+                        patch.object(kimodo, "_KimodoBackend"), \
+                        patch.object(kimodo, "_BridgeState") as state, \
+                        patch.object(kimodo.signal, "signal"), \
+                        patch.object(kimodo, "_suppress_known_runtime_warnings"), \
+                        patch("sys.stdout", new_callable=io.StringIO):
+                    kimodo.serve(directory=requested)
+                self.assertEqual(expected, state.call_args.args[0])
+
     def test_launch_modes_use_argument_lists(self):
         """Preserves spaces in native paths and uses the selected WSL distribution."""
         native = kimodo.KimodoConnection(mode="native", python_path=sys.executable)
@@ -388,6 +404,38 @@ class TestKimodoHttp(unittest.TestCase):
             self.client.download(job["job_id"], self.temporary.name)
         self.assertEqual(paths, self.client.download(job["job_id"], self.temporary.name, reuse_existing=True))
 
+    def test_encoder_diagnostics_use_server_network_and_require_authentication(self):
+        """Probes the backend's private endpoint without accepting caller-supplied URLs."""
+        self.backend.text_encoder_url = "http://text-encoder:9550"
+        expected = {"url": self.backend.text_encoder_url, "api_name": "DemoWrapper", "ready": True}
+        with patch.object(kimodo, "probe_text_encoder", return_value=expected) as probe:
+            self.assertEqual(expected, self.client.test_text_encoder())
+            probe.assert_called_once_with(self.backend.text_encoder_url, timeout=3)
+            unauthorized = kimodo.KimodoClient(kimodo.KimodoConnection(url=self.connection.url))
+            with self.assertRaisesRegex(RuntimeError, "403"):
+                unauthorized._request("/v1/diagnostics/text-encoder")
+            self.assertEqual(1, probe.call_count)
+
+    def test_encoder_failure_is_distinct_from_api_readiness(self):
+        """Keeps bridge health available while an independently managed encoder loads."""
+        self.backend.text_encoder_url = "http://text-encoder:9550"
+        with patch.object(kimodo, "probe_text_encoder", side_effect=ConnectionError("still loading")):
+            with self.assertRaisesRegex(kimodo.KimodoEncoderUnavailable, "503.*still loading"):
+                self.client.test_text_encoder()
+        self.assertEqual("ready", self.client.health()["status"])
+
+    def test_shutdown_policy_and_draining_reject_new_jobs(self):
+        """Honors server administration policy and closes the submit/shutdown race."""
+        self.server.allow_shutdown = False
+        self.assertNotIn("shutdown", self.client.health()["features"])
+        with self.assertRaisesRegex(ValueError, "disabled"):
+            self.client.shutdown()
+        with self.assertRaisesRegex(RuntimeError, "403"):
+            self.client._request("/v1/admin/shutdown", {"confirm": "shutdown"})
+        self.state.accepting_jobs = False
+        with self.assertRaisesRegex(RuntimeError, "stopping"):
+            self.client.submit(kimodo.KimodoGenerationDefinition("Walk"))
+
     def test_console_feedback_is_flushed_and_coarsely_throttled(self):
         """Always shows acceptance and terminal state without flooding every diffusion step."""
         job_id = "a" * 32
@@ -411,7 +459,8 @@ class TestKimodoHttp(unittest.TestCase):
     def test_health_reports_runtime_and_shutdown_refuses_busy_work(self):
         """Makes process ownership visible and stops only when no generation can be interrupted."""
         health = self.client.health()
-        self.assertEqual(["delete_jobs", "shutdown", "runtime_status", "root_heading_vectors"], health["features"])
+        self.assertEqual(["delete_jobs", "shutdown", "runtime_status", "root_heading_vectors",
+                          "encoder_diagnostics"], health["features"])
         self.assertEqual(os.getpid(), health["runtime"]["pid"])
         self.assertEqual(self.state.directory, health["runtime"]["job_directory"])
         self.assertIsNone(health["runtime"]["active_job_id"])
@@ -707,6 +756,138 @@ class TestEndEffectorDevicePatch(unittest.TestCase):
             constraint = EndEffectorConstraintSet(FakeTensor("cuda:0"))
         self.assertEqual("cuda:0", constraint.pos_indices.device)
         self.assertEqual("cuda:0", constraint.rot_indices.device)
+
+
+class TestGenerationProgress(unittest.TestCase):
+    """Checks real-step aggregation without Torch, weights or upstream source changes."""
+
+    def make_model(self):
+        """Builds a model whose inner sampler defaults to omitting progress.
+
+        Returns:
+            object: Minimal native-sampler stand-in.
+        """
+        class Model:
+            """Emulates the dropped callback in Kimodo's multi-prompt sampler."""
+
+            def __init__(self):
+                """Tracks completed denoising steps."""
+                self.completed = []
+
+            def _generate(self, count, progress_bar=iter):
+                """Runs steps using only the callback received by the inner sampler.
+
+                Args:
+                    count (int): Denoising step count.
+                    progress_bar (callable): Optional native iterator wrapper.
+
+                Returns:
+                    int: Finished steps.
+                """
+                for step in progress_bar(range(count)):
+                    self.completed.append(step)
+                return count
+
+        return Model()
+
+    def test_multi_prompt_progress_is_monotonic_and_follows_completed_steps(self):
+        """Recovers a dropped callback and counts both segments without restarting at zero."""
+        model = self.make_model()
+        updates = []
+
+        def update(**values):
+            """Checks that work finished before its fraction was published.
+
+            Args:
+                **values: Bridge progress event.
+            """
+            self.assertEqual(len(updates) + 1, len(model.completed))
+            updates.append(values["progress"])
+
+        original = type(model)._generate
+        with kimodo._generation_progress(model, update, 6):
+            model._generate(3)
+            self.assertLess(updates[-1], 0.5)
+            model._generate(3)
+        self.assertEqual(sorted(set(updates)), updates)
+        self.assertEqual(0.99, updates[-1])
+        self.assertEqual(6, len(updates))
+        self.assertNotIn("_generate", model.__dict__)
+        self.assertIs(original, model._generate.__func__)
+
+    def test_single_prompt_callback_is_not_counted_twice(self):
+        """Keeps the public callback path compatible with the inner sampler hook."""
+        model = self.make_model()
+        update = Mock()
+        with kimodo._generation_progress(model, update, 3) as progress:
+            model._generate(3, progress_bar=progress)
+        self.assertEqual(3, update.call_count)
+        self.assertEqual(0.99, update.call_args.kwargs["progress"])
+
+    def test_cancellation_restores_a_preexisting_instance_sampler(self):
+        """Restores other instance hooks when a progress callback raises cancellation."""
+        model = self.make_model()
+        previous = model._generate
+        model._generate = previous
+        with self.assertRaisesRegex(RuntimeError, "cancelled"):
+            with kimodo._generation_progress(model, Mock(side_effect=RuntimeError("cancelled")), 3):
+                model._generate(3)
+        self.assertIs(previous, model.__dict__["_generate"])
+
+    def test_many_steps_publish_at_most_one_event_per_percentage(self):
+        """Bounds persistent job-status writes while reserving 100 percent for completion."""
+        model = self.make_model()
+        update = Mock()
+        with kimodo._generation_progress(model, update, 500):
+            model._generate(500)
+        self.assertEqual(100, update.call_count)
+        self.assertEqual(0.99, update.call_args.kwargs["progress"])
+
+    def test_legacy_public_callback_remains_supported_without_inner_sampler(self):
+        """Allows older model implementations that correctly use the public callback."""
+        update = Mock()
+        with kimodo._generation_progress(object(), update, 2) as progress:
+            self.assertEqual([1, 2], list(progress([1, 2])))
+        self.assertEqual(2, update.call_count)
+
+
+class TestEmptyConstraintConditioning(unittest.TestCase):
+    """Checks sparse multi-prompt conditioning without Torch or a GPU."""
+
+    def test_empty_features_are_absent_and_nonempty_features_are_unchanged(self):
+        """Skips empty crops while preserving actual constraints and wrapping only once."""
+        values = {"absent": None, "empty": ([], []), "pose": ([184], [[1, 2, 3]])}
+
+        class ConditionWriters:
+            """Minimal stand-in for the runtime's feature gatherer."""
+
+            def gather(self, name):
+                """Returns a supplied feature.
+
+                Args:
+                    name (str): Test feature key.
+
+                Returns:
+                    tuple or None: Gathered indices and values.
+                """
+                return values[name]
+
+        module = type(sys)("kimodo.motion_rep.conditioning")
+        module.ConditionWriters = ConditionWriters
+        with patch.dict(sys.modules, {"kimodo.motion_rep.conditioning": module}):
+            kimodo._patch_empty_constraint_conditions()
+            wrapped = ConditionWriters.gather
+            kimodo._patch_empty_constraint_conditions()
+            self.assertIs(wrapped, ConditionWriters.gather)
+            writer = ConditionWriters()
+            self.assertIsNone(writer.gather("absent"))
+            self.assertIsNone(writer.gather("empty"))
+            self.assertIs(values["pose"], writer.gather("pose"))
+
+    def test_legacy_runtime_without_shared_condition_writer_is_supported(self):
+        """Does not break the older WSL runtime when the newer helper is absent."""
+        with patch.dict(sys.modules, {"kimodo.motion_rep.conditioning": None}):
+            kimodo._patch_empty_constraint_conditions()
 
 
 if __name__ == "__main__":

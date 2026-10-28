@@ -23,6 +23,7 @@ for to_append in [package_root_dir, tests_dir]:
         sys.path.append(to_append)
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_model
+from gt.tools.batch_processor import batch_processor_run_state as run_state
 from gt.tools.batch_processor import batch_processor_task_base as task_base
 from gt.tools.batch_processor import batch_processor_tasks as tasks
 from gt.tools.batch_processor.tasks import task_report
@@ -50,8 +51,10 @@ class TestBatchProcessorReport(unittest.TestCase):
             "include_in_task_index": False,
             "source_include_subdirectories": True,
             "overwrite": True,
-            "report_metrics": ["frame_count", "frame_rate", "file_size", "time"],
+            "report_metrics": ["frame_count", "file_size", "time"],
             "report_detail_mode": task_report.REPORT_DETAIL_TOTAL_ONLY,
+            "report_timestamp_format": task_report.DEFAULT_REPORT_TIMESTAMP_FORMAT,
+            "report_skip_condition": task_report.REPORT_SKIP_CONDITION_NONE,
             "report_file_name": "{project-name}_report.txt",
             "report_notes": task_report.DEFAULT_REPORT_NOTES,
             "run_once_after_multi_instance": True,
@@ -111,6 +114,117 @@ class TestBatchProcessorReport(unittest.TestCase):
 
         self.assertIn("Total Frames: 12", report_lines)
         self.assertNotIn("Files", [line.strip() for line in report_lines if line.strip() == "Files"])
+
+    def test_build_report_lines_formats_timestamp_readably_by_default(self):
+        report_data = self.task.build_report_data(entries=[])
+        report_data["created_at"] = "2026-08-26T20:42:49.242589"
+
+        report_lines = task_report.build_report_lines(report_data)
+
+        self.assertIn("Created: August 26, 2026 at 8:42 PM", report_lines)
+
+    def test_build_report_lines_can_use_iso_timestamp_format(self):
+        self.task.settings["report_timestamp_format"] = task_report.REPORT_TIMESTAMP_FORMAT_ISO_8601
+        report_data = self.task.build_report_data(entries=[])
+        report_data["created_at"] = "2026-08-26T20:42:49.242589"
+
+        report_lines = task_report.build_report_lines(report_data)
+
+        self.assertIn("Created: 2026-08-26T20:42:49.242589", report_lines)
+
+    def test_timestamp_format_options_show_lettered_examples(self):
+        timestamp = "2026-08-26T20:42:49.242589"
+        expected = [
+            "August 26, 2026 at 8:42 PM",
+            "Aug 26, 2026 at 8:42 PM",
+            "26 Aug 2026, 20:42",
+            "2026-08-26 20:42",
+            "2026-08-26T20:42:49.242589",
+        ]
+
+        result = [task_report.format_timestamp(timestamp, value) for value in task_report.REPORT_TIMESTAMP_FORMATS]
+
+        self.assertEqual(expected, result)
+        self.assertTrue(all(value[:1].isalpha() and " - " in value for value in task_report.REPORT_TIMESTAMP_FORMATS))
+
+    def test_timestamp_format_reads_legacy_setting_names(self):
+        self.task.settings["report_timestamp_format"] = "Readable"
+
+        result = self.task.get_timestamp_format()
+
+        self.assertEqual(task_report.REPORT_TIMESTAMP_FORMAT_LONG, result)
+
+    def test_report_task_skips_when_previous_task_was_skipped(self):
+        project = batch_processor_model.BatchProcessorModel()
+        previous_task = task_report.TaskSceneReport()
+        project.tasks = [previous_task, self.task]
+        run_state.initialize(project, "sample-run")
+        run_state.record_task(project, previous_task, "skipped")
+        self.task.settings["report_skip_condition"] = task_report.REPORT_SKIP_CONDITION_PREVIOUS_TASK_SKIPPED
+        work_item = task_base.WorkItem(source_path="sample.ma")
+
+        with self.assertRaisesRegex(task_base.TaskSkip, "previous task was skipped"):
+            self.task.execute(work_item, project, self.temp_dir)
+
+    def test_report_skip_condition_does_not_trigger_after_previous_task_succeeds(self):
+        project = batch_processor_model.BatchProcessorModel()
+        previous_task = task_report.TaskSceneReport()
+        project.tasks = [previous_task, self.task]
+        run_state.initialize(project, "sample-run")
+        run_state.record_task(project, previous_task, "succeeded")
+        self.task.settings["report_skip_condition"] = task_report.REPORT_SKIP_CONDITION_PREVIOUS_TASK_SKIPPED
+
+        self.assertFalse(self.task.should_skip(project))
+
+    def test_report_skip_condition_defaults_to_none(self):
+        expected = task_report.REPORT_SKIP_CONDITION_NONE
+
+        result = self.task.get_skip_condition()
+
+        self.assertEqual(expected, result)
+
+    def test_format_duration_uses_readable_units(self):
+        expected = "55m 31s 433ms"
+
+        result = task_report.format_duration(3331.433)
+
+        self.assertEqual(expected, result)
+
+    def test_format_duration_rounds_before_splitting_units(self):
+        expected = "1m"
+
+        result = task_report.format_duration(59.9998)
+
+        self.assertEqual(expected, result)
+
+    def test_format_duration_supports_clock_and_seconds_formats(self):
+        expected = ["00:55:31.433", "3,331.433s"]
+        result = [
+            task_report.format_duration(3331.433, task_report.REPORT_DURATION_FORMAT_CLOCK),
+            task_report.format_duration(3331.433, task_report.REPORT_DURATION_FORMAT_SECONDS),
+        ]
+
+        self.assertEqual(expected, result)
+
+    def test_time_duration_format_applies_to_totals_and_file_details(self):
+        self.task.settings["report_metrics"] = ["time"]
+        self.task.settings["report_detail_mode"] = task_report.REPORT_DETAIL_LIST_AND_TOTAL
+        self.task.settings["report_item_settings"] = {
+            "time": {"duration_format": task_report.REPORT_DURATION_FORMAT_CLOCK}
+        }
+        entries = [{"path": "a.ma", "values": {"duration_seconds": 3331.433}, "errors": []}]
+
+        report_lines = task_report.build_report_lines(self.task.build_report_data(entries))
+
+        self.assertIn("Total Duration: 00:55:31.433", report_lines)
+        self.assertIn("    Duration: 00:55:31.433", report_lines)
+
+    def test_report_item_list_defaults_to_selected_metrics_for_legacy_tasks(self):
+        self.task.settings["report_metrics"] = ["file_size", "time"]
+
+        result = self.task.get_report_item_keys()
+
+        self.assertEqual(["file_size", "time"], result)
 
     def test_build_report_lines_list_and_total_includes_file_list(self):
         self.task.settings["report_metrics"] = ["frame_count"]

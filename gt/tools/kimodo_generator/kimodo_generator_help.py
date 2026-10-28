@@ -1,14 +1,27 @@
 """User-facing guidance shared by the Kimodo Generator widgets."""
 
 ACTION_TOOLTIPS = {
+    "reset_connection_settings": "Reset only bridge, Docker and Python launch settings. Disconnect first. "
+                                 "Keeps generation options, files and running services.",
+    "disconnect_bridge": "Release this tool's active bridge connection so deployment settings can be edited. "
+                         "The server, encoder, and accepted jobs keep running. Use Stop Bridge instead to stop "
+                         "the local deployment before image removal or a stable rebuild.",
+    "open_docker": "Open the chosen deployment folder in the file browser to inspect configuration, jobs, and "
+                   "logs. A missing folder is created first. Choose a nonempty absolute path; this does not "
+                   "prepare, build, or start a deployment and remains available while connected.",
+    "remove_docker_image": "Optional recovery/cleanup after stopping the bridge and encoder. Preview the exact "
+                           "image and stopped containers, then confirm removal. Refuses running services or an "
+                           "image used by other containers; never removes models, jobs, credentials, or volumes. "
+                           "A stable rebuild usually needs no deletion. Build again before starting services.",
     "test_bridge": "Probe only the configured bridge URL without starting or changing any process. Reports whether "
                    "it is ready, where it runs (WSL, Windows, or another server), its PID, deployed code path, "
                    "server job directory, device, encoder URL, and queued/active work. A legacy bridge reports "
                    "limited information until it is restarted once with current GT Tools code.",
-    "test_encoder": "Probe the configured text-encoder URL independently of the bridge and model. Verifies the "
-                    "expected Kimodo Gradio API without computing embeddings, starting a process, or using GPU "
-                    "inference. A stopped encoder can still be launched on the next generation when Start missing "
-                    "text encoder is enabled and the bridge owns a local environment.",
+    "test_encoder": "Ask the bridge to probe its text encoder, including private Docker addresses. Checks the "
+                    "Gradio API without running inference. The Docker bridge can be ready while its encoder is "
+                    "still downloading or loading model weights; this reports Starting until the encoder accepts "
+                    "requests. View Docker Logs shows progress. A stopped native/WSL encoder can auto-start on "
+                    "generation when Auto-start text encoder is enabled.",
     "restart_bridge": "For Start in WSL or Start on Windows, gracefully stop an idle managed bridge, wait for its "
                       "port to close, deploy the current GT Tools bridge source, start it with the configured Kimodo "
                       "Python, and reconnect. The server refuses while work is active. Jobs, models, downloads, and "
@@ -60,7 +73,30 @@ ACTION_TOOLTIPS = {
                   "This does not save the Maya scene, connection credentials, or generated animations.",
     "connect": "Check the bridge and load its model list and SOMA pose skeleton. If no server is reachable, Start "
                "in WSL or Start on Windows deploys the current lightweight bridge source and launches it with your "
-               "chosen Kimodo Python. Connect to existing bridge never starts a process. Nothing is installed.",
+               "chosen Kimodo Python. Docker starts the selected prepared Compose project using its built image. "
+               "Connect to existing bridge never starts a process and supports remote container hosts.",
+    "browse_docker": "Choose a dedicated folder for one Kimodo Docker deployment, or select a previously prepared "
+                     "deployment to reuse it. This choice is saved immediately and restored next time. Choosing "
+                     "a folder does not create, build, or start containers, or move an existing deployment.",
+    "find_docker": "Find the Docker executable using PATH and standard Docker Desktop install locations. Fills and "
+                   "saves the executable field without starting Docker, building an image, or creating containers. "
+                   "Leave the field empty to perform the same lookup automatically when running Docker actions.",
+    "prepare_docker": "Set up the chosen folder with Docker configuration, a bridge access token, and folders for "
+                      "sources, models, jobs, and logs. Copy an available local Hugging Face credential once. "
+                      "This does not build an image or start containers. Existing settings, credentials, and data "
+                      "are retained. Next, click Build Image.",
+    "build_docker": "Download Kimodo sources and build a Docker image that includes Kimodo, its dependencies, "
+                    "and the current GT bridge. Docker stores the image; the deployment folder holds build sources "
+                    "and persistent service data. The first build downloads several GB; progress is in logs/build.log. "
+                    "Latest Kimodo and Viser source commits are resolved on each build unless Force stable revisions "
+                    "is checked. Lookup or build failure can retry the stable commits once; edited source folders "
+                    "are never reset. Actual commits are recorded in deployment.json. Find the "
+                    "built image in Docker Desktop > Images; its tag is KIMODO_IMAGE in configuration/.env. "
+                    "Model weights download on first startup, not during this build. Next, use Connect / Start. "
+                    "After rebuilding an active deployment, use Restart Bridge.",
+    "docker_logs": "Open a live log window for the selected bridge or text-encoder container. "
+                   "Choose Text encoder to watch download/loading summaries or startup errors. No folder is "
+                   "opened. The selected service must already have a container in this deployment.",
     "refresh_models": "Ask the currently configured bridge for its available model IDs and cached "
         "configuration status. "
                       "Connect first. Refresh after a model download to update the list.",
@@ -177,6 +213,36 @@ TABLE_ACTION_TOOLTIPS = {
 }
 
 CONTROL_TOOLTIPS = {
+    "docker_image_name": "Name for the image generated by the next Prepare/Build action. Defaults to kimodo-bridge; "
+                         "use lowercase letters, numbers, dots, underscores, or hyphens without a tag. Conflicts add "
+                         "a numeric suffix. This choice is saved; the existing deployment project keeps its identity. "
+                         "Disconnect or stop the bridge before changing it. The version tag is added automatically.",
+    "docker_log_service": "Choose which deployment container to inspect in the live log window. Text encoder shows "
+                          "model download and initialization progress; Bridge shows queue and generation activity. "
+                          "View Docker Logs opens the exact selected container's Logs tab, including stopped services.",
+    "docker_build_progress": "Visible only during image builds. The activity bar does not invent an overall "
+                             "percentage: Docker stages can download, compile, or use cached layers. The adjacent "
+                             "line follows actual build output. The complete output stays in logs/build.log.",
+    "docker_encoder_progress": "Reports actual Hugging Face download byte callbacks from the container. The percent "
+                               "covers downloads whose sizes are currently known, then becomes an activity bar while "
+                               "weights load into memory. Ready is confirmed through the encoder API. Rebuild older "
+                               "images to enable this reporting; existing model caches are retained.",
+    "docker_stable_revisions": "Off by default: Build Image tries the latest default-branch commits for Kimodo and "
+                               "its Viser dependency, then falls back to known stable commits if lookup or the "
+                               "build fails. Check this to use the stable commits directly without a latest lookup. "
+                               "The choice is saved immediately; actual build commits and fallback use are recorded "
+                               "in deployment.json and logs/build.log. Changes apply on the next build; running "
+                               "containers keep their current image until restarted.",
+    "docker_executable": "Optional Docker CLI path (docker.exe on Windows). Leave empty to find it automatically "
+                         "using PATH and standard Docker Desktop locations, or click Find Docker to fill and save "
+                         "the path now. This selects the CLI, not the container or image. Managed Docker mode "
+                         "requires a local Linux engine.",
+    "docker_directory": "Choose a dedicated folder for one Kimodo deployment, or an existing prepared deployment. "
+                        "Starts empty; your choice is saved and restored next time. Prepare Deployment creates its "
+                        "configuration and data folders. Build Image creates a Kimodo image with the GT bridge; "
+                        "Connect / Start runs its bridge and encoder containers. Sources, credentials, models, jobs, "
+                        "and logs stay here. Docker Desktop stores image layers and containers in its own storage. "
+                        "Changing this path does not move or delete the previous deployment.",
     "auto_maya_file": "Enabled by default and saved in preferences. After a job is downloaded, create one .ma per "
                       "sample beside its JSON file, with animation at its native FPS starting at frame 1 and a "
                       "locked HumanIK definition. Uses HumanIK overrides or the built-in Kimodo defaults. A separate "

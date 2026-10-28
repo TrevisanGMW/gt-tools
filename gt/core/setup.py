@@ -16,6 +16,7 @@ import logging
 import shutil
 import sys
 import os
+import re
 
 # Logging Setup
 logging.basicConfig()
@@ -43,7 +44,7 @@ def get_maya_preferences_dir():
         return os.path.dirname(cmds.about(preferences=True))
     except Exception as e:
         logger.debug(f'Unable to retrieve preferences directory using "cmds". Using system tools instead. Issue: {e}')
-        import gt.utils.system_utils as system_utils
+        import gt.utils.system as system_utils
 
         return system_utils.get_maya_preferences_dir(system_utils.get_system())
 
@@ -287,7 +288,9 @@ def remove_legacy_entry_point_from_maya_installs(verbose=True):
 
 def generate_scripts_dir_list(file_name, only_existing=False):
     """
-    Creates a list of potential files according to available preferences folders.
+    Creates file paths in standard and existing localized Maya preferences folders.
+    Missing localized scripts folders are created unless only_existing is True.
+    Standard scripts folders must already exist, preserving their existing behavior.
     For example, if preferences for Maya 2023 and 2024 are found, the path for both of these will be generated.
 
     Args:
@@ -304,15 +307,27 @@ def generate_scripts_dir_list(file_name, only_existing=False):
     if not maya_settings_dir:
         logger.warning(f"Unable to add entry lines. Failed to retrieve Maya preferences folders.")
         return user_setup_list
-    for version in maya_settings_dir:
-        folder = maya_settings_dir.get(version)
-        scripts_folder = os.path.join(folder, "scripts")
-        if os.path.isdir(scripts_folder):
+    seen_paths = set()
+    for folder in maya_settings_dir.values():
+        if not os.path.isdir(folder):
+            continue
+        preference_folders = [folder]
+        for child_name in sorted(os.listdir(folder)):
+            child_path = os.path.join(folder, child_name)
+            if re.fullmatch(r"[a-z]{2}_[A-Z]{2}", child_name) and os.path.isdir(child_path):
+                preference_folders.append(child_path)
+        for preference_folder in preference_folders:
+            scripts_folder = os.path.join(preference_folder, "scripts")
+            if preference_folder != folder and not only_existing:
+                os.makedirs(scripts_folder, exist_ok=True)
+            if not os.path.isdir(scripts_folder):
+                continue
             user_setup_file = os.path.join(scripts_folder, file_name)
-            if only_existing:
-                if os.path.exists(user_setup_file):
-                    user_setup_list.append(user_setup_file)
-            else:
+            path_key = os.path.normcase(os.path.abspath(user_setup_file))
+            if path_key in seen_paths:
+                continue
+            seen_paths.add(path_key)
+            if not only_existing or os.path.exists(user_setup_file):
                 user_setup_list.append(user_setup_file)
     return user_setup_list
 

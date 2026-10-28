@@ -9,6 +9,7 @@ import uuid
 from gt.utils import kimodo
 from gt.core.io import read_json_dict, write_json
 from gt.tools.kimodo_generator import kimodo_generator_hik as humanik
+from gt.tools.kimodo_generator import kimodo_generator_docker as docker_runtime
 
 logger = logging.getLogger(__name__)
 
@@ -139,6 +140,11 @@ class KimodoGeneratorModel:
                            "distribution": "", "device": "auto", "text_encoder_url": "http://127.0.0.1:9550",
                            "start_encoder": True, "show_console": True, "auto_connect": False}
         self.token = ""
+        self.launch_settings = {}
+        self.launch_expanded = {"wsl": True, "native": True}
+        self.docker = {"directory": docker_runtime.default_directory(), "executable": "",
+                       "use_stable_revisions": False, "image_name": docker_runtime.DEFAULT_PROJECT_NAME,
+                       "expanded": True}
         self.definition = kimodo.KimodoGenerationDefinition("A person walks forward and comes to a stop.").as_dict()
         self.prompt_durations_in_frames = False
         self.constraints = []
@@ -169,7 +175,9 @@ class KimodoGeneratorModel:
         Returns:
             dict: Preferences/setup payload.
         """
-        return copy.deepcopy({"connection": self.connection, "definition": self.definition,
+        return copy.deepcopy({"connection": self.connection, "launch_settings": self.launch_settings,
+                              "launch_expanded": self.launch_expanded,
+                              "docker": self.docker, "definition": self.definition,
                               "constraints": self.constraints, "jobs": self.jobs,
                               "path_curve_samples": self.path_curve_samples,
                               "path_heading_mode": self.path_heading_mode,
@@ -210,8 +218,21 @@ class KimodoGeneratorModel:
                 data.get("path_heading_mode", "none"), data.get("path_heading_offset", 0.0))
         except ValueError:
             self.path_heading_mode, self.path_heading_offset = "none", 0.0
+        self.launch_settings = copy.deepcopy(data.get("launch_settings", {}))
+        for mode in self.launch_expanded:
+            expanded = data.get("launch_expanded", {}).get(mode)
+            if isinstance(expanded, bool):
+                self.launch_expanded[mode] = expanded
         self.connection.update(data.get("connection", {}))
         self.connection.pop("token", None)
+        saved_docker = data.get("docker", {})
+        if isinstance(saved_docker, dict):
+            for key in ("directory", "executable", "image_name"):
+                if isinstance(saved_docker.get(key), str):
+                    self.docker[key] = saved_docker[key]
+            for key in ("use_stable_revisions", "expanded"):
+                if isinstance(saved_docker.get(key), bool):
+                    self.docker[key] = saved_docker[key]
         self.jobs = copy.deepcopy(data.get("jobs", []))
         for job in self.jobs:
             job.pop("downloading", None)
@@ -277,7 +298,12 @@ class KimodoGeneratorModel:
         """
         settings = dict(self.connection)
         settings.pop("auto_connect", None)
-        return kimodo.KimodoConnection(token=self.token or None, **settings)
+        token = self.token or None
+        if settings.get("mode") == "docker":
+            docker_runtime.validate_local_url(settings["url"])
+            settings["mode"] = "existing"
+            token = docker_runtime.bridge_token(self.docker["directory"])
+        return kimodo.KimodoConnection(token=token, **settings)
 
     def add_constraint(self, parameters, name=None):
         """Adds a detached constraint entry with a fresh stable identity.

@@ -64,7 +64,8 @@ class TrackerTask:
         elif event_name == "task_unit_progress":
             self.unit_completed = max(0, int(event.get("completed_units") or 0))
             self.unit_total = max(0, int(event.get("total_units") or 0))
-            self.unit_label = str(event.get("unit_label") or self.unit_label)
+            if "unit_label" in event:
+                self.unit_label = str(event.get("unit_label") or "")
             self._refresh_progress()
         elif event_name == "warning":
             self.reported_warnings += 1
@@ -144,8 +145,8 @@ class TrackerTask:
             return "-"
         count_text = f"{self.completed_items}/{self.total_items}"
         if self.unit_total:
-            unit_label = self.unit_label or "units"
-            count_text = f"{count_text} ({self.unit_completed}/{self.unit_total} {unit_label})"
+            unit_suffix = f" {self.unit_label}" if self.unit_label else ""
+            count_text = f"{count_text} ({self.unit_completed}/{self.unit_total}{unit_suffix})"
         return count_text
 
     def reset_for_restart(self):
@@ -221,6 +222,7 @@ class TrackerJob:
         self.flag_skips_as_warnings = True
         self._source_size = None
         self.runtime_state = None
+        self.empty = False
         self.tasks = []
         for definition in task_definitions:
             task = TrackerTask(
@@ -293,6 +295,8 @@ class TrackerJob:
             flag_skips_as_warnings (bool, optional): Whether skipped work produces warnings.
         """
         event_name = event.get("event")
+        if event_name == "project_empty":
+            self.empty = True
         if event_name == "run_state":
             incoming = run_state.decode_state(json.dumps(event.get("state")))
             if self.runtime_state is None:
@@ -469,6 +473,8 @@ class TrackerSession:
         Returns:
             int: Overall percentage.
         """
+        if self.finished:
+            return 100
         tasks = [task for job in self.jobs for task in job.tasks]
         return int(sum(task.progress for task in tasks) / len(tasks)) if tasks else 0
 
@@ -528,7 +534,8 @@ class TrackerSession:
         """
         if self.aborting or any(job.status == tracker_constants.Status.CANCELED for job in self.jobs):
             return tracker_constants.HealthState.ABORTED
-        if any(job.status == tracker_constants.Status.FAILED or job.errors for job in self.jobs):
+        if any(job.status in (tracker_constants.Status.FAILED, tracker_constants.Status.TIMED_OUT,
+                              tracker_constants.Status.BLOCKED) or job.errors for job in self.jobs):
             return tracker_constants.HealthState.ERROR
         if any(
             job.status == tracker_constants.Status.COMPLETED_WARNINGS or job.warnings
@@ -580,7 +587,8 @@ class TrackerSession:
             return [
                 job
                 for job in jobs
-                if job.status in {tracker_constants.Status.FAILED, tracker_constants.Status.TIMED_OUT}
+                if job.status in {tracker_constants.Status.FAILED, tracker_constants.Status.TIMED_OUT,
+                                  tracker_constants.Status.BLOCKED}
                 or job.errors
             ]
         if category == "warning":

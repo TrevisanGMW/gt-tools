@@ -5,6 +5,7 @@ import datetime
 import os
 import sys
 import tempfile
+import time
 import traceback
 import uuid
 
@@ -56,6 +57,12 @@ def parse_args():
     parser.add_argument("--maya-version-warning", default="", help="Optional Maya resolution warning.")
     parser.add_argument("--no-log", action="store_true", help="Disable human-readable worker logs.")
     parser.add_argument("--task-time-logs", action="store_true", help="Write task timing logs.")
+    parser.add_argument("--headless", action="store_true", help="Run the scheduler without a tracker window.")
+    parser.add_argument("--single-project", action="store_true", help="Execute a complete single-instance child.")
+    for option in ("session-dir", "result-file", "status-file", "control-file", "run-id", "parent-run-id"):
+        parser.add_argument(f"--{option}", default="")
+    parser.add_argument("--window-policy", default="Keep Open")
+    parser.add_argument("--empty-policy", default="Warning")
     return parser.parse_args()
 
 
@@ -214,17 +221,15 @@ def run_tracker(args):
     Returns:
         int: Qt application exit code.
     """
-    import gt.ui.qt_import as ui_qt
     from gt.tools.batch_processor import batch_processor_model
-    from gt.tools.batch_processor.tracker import tracker_controller
     from gt.tools.batch_processor.tracker import tracker_model
     from gt.tools.batch_processor.tracker import tracker_scheduler
-    from gt.tools.batch_processor.tracker import tracker_view
 
     project = batch_processor_model.BatchProcessorModel.from_file(args.project_file)
     segments, segmented_final_definitions, _segmented_final_tasks = build_segments(project, args)
     preflight_definitions = build_preflight_task_definitions(project, args)
-    segmented = len(segments) > 1
+    single_project = getattr(args, "single_project", False)
+    segmented = len(segments) > 1 and not single_project
     finalization_number = 10_000_000
     if segmented:
         # Segment jobs are materialized lazily by the scheduler, one phase at a
@@ -242,8 +247,17 @@ def run_tracker(args):
             )
         scheduler_segments = segments
     else:
-        regular_definitions, final_definitions = build_task_definitions(project, args)
         source_files = read_jobs(args.job_file)
+        if single_project:
+            regular_definitions = create_definitions(
+                [task for task in project.get_enabled_tasks() if not task.is_input_task])
+            final_definitions = []
+        else:
+            regular_definitions, final_definitions = build_task_definitions(project, args)
+            from gt.tools.batch_processor import batch_processor_projects
+
+            first_task = project.get_task(regular_definitions[0]["id"]) if regular_definitions else None
+            source_files = batch_processor_projects.filter_project_inputs(source_files, first_task, project)
         jobs = [
             tracker_model.TrackerJob(
                 job_id=f"job-{index:04d}",
@@ -280,22 +294,28 @@ def run_tracker(args):
         project_path=project.get_project_dir(),
         worker_count=args.worker_count,
         jobs=jobs,
-        session_dir=create_session_dir(args.logs_dir),
+        session_dir=getattr(args, "session_dir", "") or create_session_dir(args.logs_dir),
         project_log_path=args.project_log,
         source_project_file=args.source_project_file,
     )
+    scheduler = tracker_scheduler.TrackerScheduler(
+        session=session, options=args, project=project, segments=scheduler_segments)
+    if getattr(args, "headless", False):
+        while not session.finished:
+            scheduler.tick()
+            time.sleep(0.1)
+        return 0
+
+    import gt.ui.qt_import as ui_qt
+    from gt.tools.batch_processor.tracker import tracker_controller
+    from gt.tools.batch_processor.tracker import tracker_view
+
     application = ui_qt.QtWidgets.QApplication.instance() or ui_qt.QtWidgets.QApplication(sys.argv)
     application.setApplicationName("Batch Processor Tracker")
     # Installed on the application (not on widgets) so Qt Style Sheets still
     # render while menu icons are pinned to the check-indicator size.
     application.setStyle(tracker_view.MenuIconStyle(application.style()))
     view = tracker_view.TrackerView(project_name=project.project_name)
-    scheduler = tracker_scheduler.TrackerScheduler(
-        session=session,
-        options=args,
-        project=project,
-        segments=scheduler_segments,
-    )
     controller = tracker_controller.TrackerController(session=session, scheduler=scheduler, view=view)
     if args.maya_version_warning:
         view.statusBar().showMessage(args.maya_version_warning)
@@ -309,7 +329,10 @@ def main():
     args = parse_args()
     try:
         exit_code = run_tracker(args)
-    except Exception:
+    except Exception as error:
+        from gt.tools.batch_processor.tracker.tracker_project_reporter import publish_startup_failure
+
+        publish_startup_failure(args, error)
         crash_path = os.path.join(os.path.dirname(args.project_file), "gt_batch_tracker_crash.log")
         with open(crash_path, "w", encoding="utf-8") as crash_file:
             crash_file.write(traceback.format_exc())

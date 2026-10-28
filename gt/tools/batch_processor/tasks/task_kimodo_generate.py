@@ -16,6 +16,8 @@ from gt.tools.batch_processor.tasks.task_kimodo_base import (
     TaskKimodoBase, ClipSnapshotFileLock, report_message, write_record, read_json, fingerprint, resolve_path,
 )
 from gt.tools.kimodo_generator import kimodo_generator_hik as humanik
+from gt.tools.kimodo_generator import kimodo_generator_docker as docker_runtime
+from gt.tools.batch_processor.tasks import task_kimodo_connection as connections
 
 DEFINITION_ATTRIBUTE = "kimodoDefinition"
 BATCH_DEFINITION_ATTRIBUTE = "kimodoBatchDefinition"
@@ -43,7 +45,8 @@ class TaskKimodoGenerate(TaskKimodoBase):
             connection={"url": kimodo.DEFAULT_URL, "mode": "existing", "python_path": "",
                         "distribution": "", "device": "auto", "text_encoder_url": "http://127.0.0.1:9550",
                         "start_encoder": True, "timeout": 10},
-            token_environment="", startup_timeout=180, queue_timeout=7200, generation_timeout=1200,
+            docker={"directory": "", "executable": ""},
+            authentication="auto", token_environment="", startup_timeout=180, queue_timeout=7200, generation_timeout=1200,
             poll_interval=1, network_retries=5, cancel_on_timeout=False, retry_failed=False,
             result_mode="maya", output_extension=".ma", namespace="kimodo", import_start_frame=1,
             add_humanik=True, humanik=humanik.default_settings(), expected_model_fps=30,
@@ -60,8 +63,8 @@ class TaskKimodoGenerate(TaskKimodoBase):
         Returns:
             dict: Runtime settings.
         """
-        settings = copy.deepcopy(self.settings)
-        if settings["result_mode"] == "artifacts" or not settings["add_humanik"]:
+        settings = connections.resolve_settings(self.settings, project, self)
+        if settings["result_mode"] in ("artifacts", "numpy") or not settings["add_humanik"]:
             return settings
         for key in ("definition_path", "tpose_path"):
             settings["humanik"][key] = resolve_path(settings["humanik"].get(key), project, self)
@@ -80,19 +83,21 @@ class TaskKimodoGenerate(TaskKimodoBase):
         area = "Connection"
         try:
             settings = self.settings
-            kimodo.KimodoConnection(**settings["connection"])
+            connections.make_connection(connections.resolve_settings(settings, project, self))
 
             area = "Results"
-            if settings["result_mode"] not in ("maya", "maya_and_artifacts", "artifacts"):
+            if settings["result_mode"] not in ("maya", "maya_and_artifacts", "artifacts", "numpy"):
                 raise ValueError("Unknown result mode.")
-            if settings["output_extension"] not in (".ma", ".mb"):
+            if (settings["result_mode"] in ("maya", "maya_and_artifacts")
+                    and settings["output_extension"] not in (".ma", ".mb")):
                 raise ValueError("Maya output extension must be .ma or .mb.")
             if not isinstance(settings.get("import_incoming_scene", False), bool):
                 self.add_area_error(result, "Output", "Import incoming scene contents must be enabled or disabled.")
             if not isinstance(settings.get("include_definition_attribute", True), bool):
                 self.add_area_error(result, "Output", "Include definition attribute must be enabled or disabled.")
             kimodo._positive_number(float(settings["expected_model_fps"]), "expected_model_fps")
-            if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", settings["namespace"]):
+            if settings["result_mode"] in ("maya", "maya_and_artifacts") and not re.fullmatch(
+                    r"[A-Za-z_][A-Za-z0-9_]*", settings["namespace"]):
                 raise ValueError("Use a simple Maya namespace containing letters, numbers, and underscores.")
 
             area = "Recovery and Timeouts"
@@ -104,12 +109,25 @@ class TaskKimodoGenerate(TaskKimodoBase):
                 raise ValueError("Purge cache after success must be enabled or disabled.")
 
             area = "HumanIK"
-            if settings["add_humanik"] and settings["result_mode"] != "artifacts":
+            if settings["add_humanik"] and settings["result_mode"] in ("maya", "maya_and_artifacts"):
                 humanik_settings = self.resolved_settings(project)["humanik"]
                 humanik.validate_settings(humanik_settings, check_files=True)
         except (ValueError, TypeError, KeyError, OSError) as error:
             self.add_area_error(result, area, error)
         return result
+
+    def output_path(self, *args, **kwargs):
+        """Uses the normal sample naming for NumPy outputs.
+
+        Args:
+            *args: Standard output path arguments.
+            **kwargs: Standard output path options.
+
+        Returns:
+            str: Scene or NumPy output path.
+        """
+        path = super().output_path(*args, **kwargs)
+        return os.path.splitext(path)[0] + ".npz" if self.settings["result_mode"] == "numpy" else path
 
     def owned_path_lengths(self, item, directory, path):
         """Adds the artifact bundle ("<output>_artifacts/<job 32>/definition.json") to the estimate.
@@ -123,7 +141,7 @@ class TaskKimodoGenerate(TaskKimodoBase):
             list: Path lengths in characters.
         """
         lengths = super().owned_path_lengths(item, directory, path)
-        if self.settings.get("result_mode") != "maya":
+        if self.settings.get("result_mode") in ("artifacts", "maya_and_artifacts"):
             bundle = f"{os.path.splitext(os.path.abspath(path))[0]}_artifacts"
             lengths.append(len(bundle) + len("/") + 32 + len("/definition.json"))
         return lengths
@@ -141,7 +159,8 @@ class TaskKimodoGenerate(TaskKimodoBase):
             ValidationResult: Definition, output, and incoming scene diagnostics.
         """
         result = super().validate_work_items(work_items, project, step_output_dir, context)
-        if self.settings.get("import_incoming_scene") and self.settings["result_mode"] != "artifacts":
+        if (self.settings.get("import_incoming_scene")
+                and self.settings["result_mode"] in ("maya", "maya_and_artifacts")):
             for item in work_items:
                 try:
                     incoming_scene_path(item)
@@ -159,17 +178,18 @@ class TaskKimodoGenerate(TaskKimodoBase):
             context (dict, optional): Tracker context.
 
         Returns:
-            list: Maya outputs, or one artifact-manifest work item.
+            list: Named Maya/NumPy outputs, or one artifact-manifest work item.
         """
         self.check_source(work_item)
         errors = self.validate(project).errors
         if errors:
             raise ValueError("; ".join(errors))
         settings = self.resolved_settings(project)
-        if settings.get("import_incoming_scene") and settings["result_mode"] != "artifacts":
+        if settings.get("import_incoming_scene") and settings["result_mode"] in ("maya", "maya_and_artifacts"):
             settings["incoming_scene_path"] = incoming_scene_path(work_item)
         definition = kimodo.normalize_definition(read_json(work_item.current_path))
-        if settings.get("include_definition_attribute", True) and settings["result_mode"] != "artifacts":
+        if (settings.get("include_definition_attribute", True)
+                and settings["result_mode"] in ("maya", "maya_and_artifacts")):
             settings["batch_definition"] = build_batch_definition(work_item, project, self)
         cache = self.recovery_directory(work_item, step_output_dir)
         record_path = os.path.join(cache, "generation.json")
@@ -220,7 +240,7 @@ class TaskKimodoGenerate(TaskKimodoBase):
                                 for path in paths):
             raise ValueError("Generated output cannot overwrite the incoming source scene.")
         planned = paths if settings["result_mode"] != "artifacts" else []
-        if settings["result_mode"] != "maya":
+        if settings["result_mode"] in ("artifacts", "maya_and_artifacts"):
             planned = planned + [f"{bundle}_artifacts"]
         self.reserve_outputs(item, planned, directory)
         metadata = {"job_id": record["job_id"], "definition": item.current_path,
@@ -232,9 +252,9 @@ class TaskKimodoGenerate(TaskKimodoBase):
                 os.path.isfile(path) and os.path.getsize(path) for path in paths)
             artifact_manifest = record.get("artifact_manifest")
             artifact_job_id = record["job_id"]
-            if settings["result_mode"] != "maya" and not artifact_manifest:
+            if settings["result_mode"] in ("artifacts", "maya_and_artifacts") and not artifact_manifest:
                 artifact_manifest, artifact_job_id = find_published_bundle(f"{bundle}_artifacts")
-            bundle_ready = settings["result_mode"] == "maya" or verify_bundle(
+            bundle_ready = settings["result_mode"] in ("maya", "numpy") or verify_bundle(
                 artifact_manifest, artifact_job_id)
             if scenes_ready and bundle_ready:
                 if artifact_manifest:
@@ -245,6 +265,10 @@ class TaskKimodoGenerate(TaskKimodoBase):
                                self.output_item(item, path, dict(metadata, sample=index))
                                for index, path in enumerate(paths, 1)])
                 raise base.TaskSkip("All Kimodo outputs already exist.", work_item=outputs)
+        if record.get("status") in ("failed", "cancelled") and not settings["retry_failed"]:
+            raise RuntimeError(f"Recovery contains the previously {record['status']} Kimodo job {record['job_id']}. "
+                               "Enable Retry failed jobs under Recovery and Timeouts to submit a new job "
+                               "after fixing the bridge or request.")
         client = connect(settings, context)
         models = {model["id"]: model for model in client.capabilities()["models"]}
         if definition["model"] not in models:
@@ -272,7 +296,20 @@ class TaskKimodoGenerate(TaskKimodoBase):
                 DEFINITION_ATTRIBUTE: json.dumps(definition, indent=2),
                 BATCH_DEFINITION_ATTRIBUTE: json.dumps(settings["batch_definition"], indent=2),
             }
-        if settings["result_mode"] != "artifacts":
+        if settings["result_mode"] == "numpy":
+            from gt.tools.batch_processor.tasks.task_kimodo_numpy import publish_numpy
+
+            for index, (sample_name, path) in enumerate(zip(samples, paths), 1):
+                check_cancel(client, record["job_id"], context)
+                numpy_name = os.path.splitext(sample_name)[0] + ".npz"
+                if numpy_name not in artifacts:
+                    raise ValueError(f"Bridge did not return the NumPy array: {numpy_name}")
+                publish_numpy(artifacts[numpy_name], path, settings["overwrite"])
+                report_message(context, f"Published NumPy array: {path}")
+                record["outputs"][numpy_name] = path
+                write_record(record_path, record)
+                items.append(self.output_item(item, path, dict(metadata, sample=index)))
+        if settings["result_mode"] in ("maya", "maya_and_artifacts"):
             for index, (sample_name, path) in enumerate(zip(samples, paths), 1):
                 check_cancel(client, record["job_id"], context)
                 if os.path.exists(path) and not settings["overwrite"]:
@@ -285,7 +322,7 @@ class TaskKimodoGenerate(TaskKimodoBase):
                 record["outputs"][sample_name] = path
                 write_record(record_path, record)
                 items.append(self.output_item(item, path, dict(metadata, sample=index)))
-        if settings["result_mode"] != "maya":
+        if settings["result_mode"] in ("artifacts", "maya_and_artifacts"):
             manifest = publish_artifacts(artifacts, f"{bundle}_artifacts", record["job_id"])
             record["artifact_manifest"] = manifest
             metadata["artifacts"] = manifest
@@ -390,23 +427,27 @@ def connect(settings, context=None):
     Returns:
         KimodoClient: Healthy bridge client.
     """
-    token_name = settings.get("token_environment", "")
-    token = os.environ.get(token_name) if token_name else None
-    if token_name and not token:
-        raise ValueError(f"Bridge token environment variable is unset: {token_name}")
-    connection = kimodo.KimodoConnection(token=token, **settings["connection"])
+    connection = connections.make_connection(settings)
     client = kimodo.KimodoClient(connection)
-    if connection.mode == "existing":
-        client.health()
+    docker_mode = settings["connection"].get("mode") == "docker"
+    if connection.mode == "existing" and not docker_mode:
+        connections.check_health(client, settings)
     else:
         lock_path = os.path.join(tempfile.gettempdir(), f"gt_kimodo_start_{fingerprint(connection.url)[:24]}")
         with ClipSnapshotFileLock(lock_path, timeout_seconds=float(settings["startup_timeout"]) + 30):
-            try:
-                client.health()
-            except ConnectionError:
-                report_message(context, "Starting the configured local bridge.")
-                connection.start_local(startup_timeout=float(settings["startup_timeout"]))
-            client.health()
+            if docker_mode:
+                report_message(context, "Starting or reusing the configured Docker deployment.")
+                options = settings["docker"]
+                docker_runtime.start(options["directory"], connection, options.get("executable"))
+            else:
+                try:
+                    client.health()
+                except ConnectionError:
+                    report_message(context, "Starting the configured local bridge.")
+                    connection.start_local(startup_timeout=float(settings["startup_timeout"]))
+            connections.check_health(client, settings)
+    if docker_mode:
+        connections.wait_for_encoder(client, settings["startup_timeout"], context)
     return client
 
 
@@ -441,7 +482,12 @@ def wait_for_job(client, definition, record, record_path, settings, context):
     job_id = record["job_id"]
     register = (context or {}).get("register_remote_job")
     if callable(register):
-        register(client.connection.url, job_id, settings.get("token_environment", ""))
+        source = connections.authentication_source(settings)
+        if source["kind"] == "deployment":
+            register(client.connection.url, job_id, "", docker_directory=source["reference"])
+        else:
+            register(client.connection.url, job_id,
+                     source["reference"] if source["kind"] == "environment" else "")
     deadline = time.monotonic() + float(settings["queue_timeout"])
     retries = int(settings["network_retries"])
     attempt = 0
@@ -480,7 +526,7 @@ def wait_for_job(client, definition, record, record_path, settings, context):
             write_record(record_path, record)
         progress = (context or {}).get("report_progress")
         if callable(progress):
-            progress(int(float(result.get("progress", 0)) * 100), 100, "Kimodo generation")
+            progress(int(float(result.get("progress", 0)) * 100), 100, "")
         if result["status"] in ("succeeded", "failed", "cancelled"):
             unregister = (context or {}).get("unregister_remote_job")
             if callable(unregister):

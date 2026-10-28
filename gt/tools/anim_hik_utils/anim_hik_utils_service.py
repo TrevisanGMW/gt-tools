@@ -279,13 +279,29 @@ class AnimHikUtilsService:
             raise RuntimeError("HumanIK could not complete the operation. See the Script Editor.")
         return result
 
+    def matching_prefixes(self, file_path):
+        """Finds scene namespaces that contain at least one bone named in the XML.
+
+        Args:
+            file_path (str): Native XML path.
+
+        Returns:
+            list: Prefixes such as "hero:" (or "" for the root) in a stable order.
+        """
+        cmds, unused_hik = self.runtime()
+        bones = [bone for unused_slot, bone in tool_model.read_definition(file_path)
+                 if not re.search(r"[*?\[\]]", bone)]
+        namespaces = cmds.namespaceInfo(listOnlyNamespaces=True, recurse=True, absoluteName=False) or []
+        candidates = [""] + sorted(f"{namespace}:" for namespace in namespaces)
+        return [prefix for prefix in candidates if any(cmds.objExists(f"{prefix}{bone}") for bone in bones)]
+
     def preview_definition(self, character, file_path, settings):
         """Checks all XML mappings before any scene edits.
 
         Args:
             character (str): Target definition.
             file_path (str): Native XML path.
-            settings (dict): Prefix and namespace substitution options.
+            settings (dict): Mapping options including the XML prefix.
 
         Returns:
             list: Tuples containing slot, bone, and validation status.
@@ -294,7 +310,7 @@ class AnimHikUtilsService:
         cmds, hik = self.runtime()
         rows = []
         for slot, bone in tool_model.read_definition(
-            file_path, **{key: settings[key] for key in ("prefix", "search_namespace", "replace_namespace")}
+            file_path, prefix=settings["prefix"]
         ):
             matches = [] if re.search(r"[*?\[\]]", bone) else (cmds.ls(bone, long=True) or [])
             status = "Ready"
@@ -331,7 +347,7 @@ class AnimHikUtilsService:
         with self.scene_edit("Import HumanIK Definition"):
             result = hik.import_definition_from_xml(
                 character, file_path,
-                **{key: settings[key] for key in ("prefix", "search_namespace", "replace_namespace")},
+                prefix=settings["prefix"],
             )
         if not result:
             raise RuntimeError("HumanIK definition import failed. See the Script Editor.")

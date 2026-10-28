@@ -134,6 +134,7 @@ class AnimCopyPasteController:
                 source_namespace=self.model.source_namespace,
                 target_namespace=self.model.target_namespace,
                 apply_euler_filter=self.model.apply_euler_filter,
+                reverse_animation=self.model.reverse_animation,
             )
         except Exception as exception:
             logger.exception("Unable to paste animation.")

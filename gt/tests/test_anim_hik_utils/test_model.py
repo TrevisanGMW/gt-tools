@@ -44,20 +44,23 @@ class TestAnimHikUtilsModel(unittest.TestCase):
             with self.subTest(name=name), self.assertRaises(ValueError):
                 model_module.validate_node_name(name)
 
-    def test_xml_mapping_preserves_prefix_then_replacement_order(self):
+    def test_xml_mapping_adds_prefix(self):
         """Preview resolves bone names exactly as the shared importer does."""
         with tempfile.TemporaryDirectory() as directory:
             path = os.path.join(directory, "definition.xml")
             with open(path, "w", encoding="utf-8") as stream:
                 stream.write('<config_root><match_list><item key="Hips" value="Hips"/>'
                              '<item key="Spine" value=""/></match_list></config_root>')
-            result = model_module.read_definition(path, "source:", "source:", "target:")
+            result = model_module.read_definition(path, "target:")
             self.assertEqual([("Hips", "target:Hips")], result)
 
-    def test_xml_rejects_empty_find_before_reading(self):
-        """Replacing an empty string must not inject namespace text between letters."""
-        with self.assertRaisesRegex(ValueError, "Enter namespace"):
-            model_module.read_definition("unused.xml", replace_namespace="hero:")
+    def test_next_prefix_cycles_and_wraps(self):
+        """Cycling starts at the first match and wraps after the last."""
+        matches = ["a:", "b:"]
+        self.assertEqual("a:", model_module.next_prefix(matches, ""))
+        self.assertEqual("b:", model_module.next_prefix(matches, "a:"))
+        self.assertEqual("a:", model_module.next_prefix(matches, "b:"))
+        self.assertEqual("", model_module.next_prefix([], "a:"))
 
     def test_xml_rejects_empty_duplicate_and_wrong_schema(self):
         """Invalid XML cannot reach scene operations."""

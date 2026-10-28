@@ -160,6 +160,33 @@ class TestKimodoMaya(unittest.TestCase):
         self.assertEqual([[0, 0], [1, 2]], constraint["smooth_root_2d"])
         self.assertNotIn("global_root_heading", constraint)
 
+    def test_capture_pose_world_space_applies_group_transform(self):
+        """Includes placement-group translation and yaw in the captured root constraint."""
+        import maya.cmds as cmds
+        import maya.api.OpenMaya as om
+        from gt.tools.batch_processor.tasks.task_kimodo_definition import transform_pose_to_world_space
+
+        result = kimodo.import_motion(self.path)
+        group = result["group"]
+        root_joint = result["joints"][0]
+        cmds.setAttr(f"{group}.translate", 250, 0, -175, type="double3")
+        cmds.setAttr(f"{group}.rotateY", 90)
+        cmds.currentTime(1)
+
+        local_pose = kimodo.capture_pose(group, frame_index=0)
+        world_pose = transform_pose_to_world_space(local_pose, group)
+        world_position = cmds.xform(root_joint, query=True, worldSpace=True, translation=True)
+        expected_position = [value / 100.0 for value in world_position]
+        for expected, actual in zip(expected_position, world_pose["root_positions"][0]):
+            self.assertAlmostEqual(expected, actual, places=5)
+
+        world_matrix = om.MMatrix(cmds.getAttr(f"{root_joint}.worldMatrix[0]"))
+        world_rotation = om.MTransformationMatrix(world_matrix).rotation(asQuaternion=True)
+        axis, angle = world_rotation.asAxisAngle()
+        expected_rotation = [axis.x * angle, axis.y * angle, axis.z * angle]
+        for expected, actual in zip(expected_rotation, world_pose["local_joints_rot"][0][0]):
+            self.assertAlmostEqual(expected, actual, places=5)
+
     def test_root_path_node_heading_uses_transform_z_axis(self):
         """Encodes each locator's world +Z axis, including the backward offset."""
         import maya.cmds as cmds

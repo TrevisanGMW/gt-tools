@@ -3,6 +3,7 @@
 
 PREFS_FILENAME = "batch_processor_tracker"
 PREFS_KEY_FLAG_SKIPS_AS_WARNINGS = "flag_skips_as_warnings"
+PREFS_KEY_HIDE_COMPLETED_BY_DEFAULT = "hide_completed_by_default"
 
 
 class HealthState:
@@ -30,6 +31,7 @@ class Status:
     CANCELING = "Canceling"
     CANCELED = "Canceled"
     SKIPPED = "Skipped"
+    BLOCKED = "Blocked"
 
 
 STATUS_COLORS = {
@@ -44,6 +46,7 @@ STATUS_COLORS = {
     Status.CANCELING: "#b06f3c",
     Status.CANCELED: "#696d72",
     Status.SKIPPED: "#75659b",
+    Status.BLOCKED: "#a16e48",
 }
 
 TERMINAL_STATUSES = {
@@ -53,6 +56,7 @@ TERMINAL_STATUSES = {
     Status.TIMED_OUT,
     Status.CANCELED,
     Status.SKIPPED,
+    Status.BLOCKED,
 }
 
 EVENT_SCHEMA_VERSION = 1

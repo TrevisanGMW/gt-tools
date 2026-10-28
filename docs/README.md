@@ -587,12 +587,19 @@ with the provided prefix "Left Side Tag".</p>
 <h1>Kimodo Generator</h1>
 <img src="../gt/ui/resources/icons/tool_kimodo_generator.svg" height="72" align="right" alt="Kimodo Generator icon">
 
-<p>Generate animation in Maya from text, timed poses, and root paths using Kimodo in WSL, a native Windows Python
-environment, or an existing Kimodo bridge server. <b>WSL with Ubuntu is the recommended setup:</b> it keeps Kimodo's
-Linux/PyTorch environment separate from Maya's Python. Maya only needs GT Tools; native Windows and existing-server
-connections are also supported.</p>
+<p>Generate animation in Maya from text, timed poses, and root paths using Kimodo in Docker, WSL, a native Windows
+Python environment, or an existing bridge server on another machine. Maya only needs GT Tools; Kimodo and Torch run
+outside Maya. Docker packages a reproducible GPU environment, while existing WSL/Windows installations remain supported.</p>
 
-<p><b>Recommended setup: install Kimodo in WSL</b></p>
+<p><b>Docker setup:</b> choose <b>Start in Docker</b>, select a dedicated deployment folder, click
+<b>Prepare Deployment</b>, configure its Hugging Face credential if needed, then <b>Build Image</b> and
+<b>Connect / Start</b>. Configuration, secrets, model caches, jobs, and logs stay under the selected folder.
+The encoder stays private inside Docker. For a container on another machine, use <b>Connect to existing bridge</b>
+with its host URL and access token. See the
+<a href="../gt/tools/kimodo_generator/docker/README.md">Docker deployment guide</a> for storage, updates, networking,
+GPU settings, and Batch Processor configuration. On Windows, Docker Desktop GPU support uses WSL2.</p>
+
+<p><b>Alternative setup: install Kimodo in WSL</b></p>
 <ol>
   <li><b>Install WSL.</b> Follow Microsoft's
   <a href="https://learn.microsoft.com/en-us/windows/wsl/install">official WSL installation guide</a>.
@@ -625,7 +632,8 @@ install WSL, a Linux distribution, CUDA, or Kimodo itself.</p>
   your saved connection settings when the tool opens. Click <b>Connect / Start</b> to connect manually.</li>
   <li>The Connection tab's <b>Bridge control</b> explains and manages the separate server process.
   <b>Test Bridge</b> reports its WSL/Windows location, PID, Python/code paths, job store, device, encoder URL,
-  and activity. <b>Test Text Encoder</b> checks port 9550 independently. <b>Stop Bridge</b> refuses active jobs;
+  and activity. <b>Test Text Encoder</b> probes from the bridge's network, including private Docker services.
+  <b>Stop Bridge</b> refuses active jobs;
   <b>Restart Bridge</b> redeploys current GT Tools code for WSL/Windows modes and reconnects. Both preserve jobs,
   model caches, downloads, and independently managed/detached encoders. A legacy child encoder may stop during its
   one-time manual upgrade and should be tested afterward. <b>Open bridge console window</b> is enabled and saved by

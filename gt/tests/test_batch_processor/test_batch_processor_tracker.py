@@ -83,6 +83,16 @@ class TestBatchProcessorTracker(unittest.TestCase):
         expected = "0/1 (42/100 frames)"
         self.assertEqual(expected, task.get_count_text())
 
+    def test_task_unit_progress_can_clear_label(self):
+        """Formats unlabeled progress without a suffix or extra space."""
+        task = self.create_job().tasks[0]
+        task.apply_event({"event": "task_started", "total_items": 1})
+        task.unit_label = "Gen"
+        task.apply_event({"event": "task_unit_progress", "completed_units": 43,
+                          "total_units": 100, "unit_label": ""})
+
+        self.assertEqual("0/1 (43/100)", task.get_count_text())
+
     def test_task_unit_progress_is_scaled_across_multiple_items(self):
         job = self.create_job()
         task = job.tasks[0]

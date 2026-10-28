@@ -31,6 +31,7 @@ from gt.tools.batch_processor import batch_processor_view
 from gt.tools.batch_processor.tasks import task_annotation
 from gt.tools.batch_processor.tasks import task_batch_render
 from gt.tools.batch_processor.tasks import task_clip
+from gt.tools.batch_processor.tasks import task_report
 from gt.tools.batch_processor.tasks import task_utils
 from gt.tools.batch_processor.widgets import attr_widget_annotation
 from gt.tools.batch_processor.widgets import attr_widget_batch_render
@@ -40,6 +41,7 @@ from gt.tools.batch_processor.widgets import attr_widget_export_fbx
 from gt.tools.batch_processor.widgets import attr_widget_maya_import
 from gt.tools.batch_processor.widgets import attr_widget_project
 from gt.tools.batch_processor.widgets import attr_widget_python_script
+from gt.tools.batch_processor.widgets import attr_widget_report
 from gt.tools.batch_processor.widgets import attr_widget_task
 from gt.tools.batch_processor.widgets.custom_environment_variables_dialog import (
     CustomEnvironmentVariablesDialog,
@@ -71,6 +73,61 @@ class TestBatchProcessorUi(unittest.TestCase):
         """Closes test widgets and flushes deferred Qt events."""
         self.view.close()
         self.application.processEvents()
+
+    def test_report_items_are_addable_rows_with_item_preferences(self):
+        """Keeps each report value and its controls together in the item list."""
+        report_task = task_report.TaskSceneReport()
+        report_widget = attr_widget_report.AttrWidgetSceneReportTask(task=report_task, project=self.model)
+        self.addCleanup(report_widget.deleteLater)
+        self.addCleanup(report_widget.close)
+
+        self.assertEqual(["frame_count", "file_size", "time"], list(report_widget.report_item_rows))
+        self.assertNotIn("frame_rate", report_widget.report_item_rows)
+        self.assertNotIn("frame_rate", report_task.get_metric_keys())
+        self.assertEqual("", report_widget.add_report_item_button.text())
+        self.assertFalse(report_widget.add_report_item_button.icon().isNull())
+        self.assertEqual("Add Report Item", report_widget.add_report_item_button.accessibleName())
+        self.assertFalse(report_widget.report_item_rows["time"]["remove_button"].icon().isNull())
+        self.assertIn(task_report.REPORT_TIMESTAMP_FORMAT_LONG, task_report.REPORT_TIMESTAMP_FORMATS)
+
+        report_widget.show_add_report_item_menu()
+        available_labels = [action.text() for action in report_widget.add_report_item_menu.actions()]
+        self.assertIn("Frame Rates", available_labels)
+        self.assertNotIn("Time", available_labels)
+        report_widget.add_report_item_menu.hide()
+
+        report_widget.add_report_item(metric_key="frame_rate")
+        self.assertIn("frame_rate", report_widget.report_item_rows)
+        self.assertIn("frame_rate", report_task.get_metric_keys())
+
+        report_widget.metric_checkboxes["time"].click()
+        self.assertIn("time", report_task.get_report_item_keys())
+        self.assertNotIn("time", report_task.get_metric_keys())
+
+        report_widget.report_item_rows["time"]["duration_combo"].setCurrentText(
+            task_report.REPORT_DURATION_FORMAT_CLOCK
+        )
+        self.assertEqual(
+            task_report.REPORT_DURATION_FORMAT_CLOCK,
+            report_task.get_duration_format(),
+        )
+
+        report_widget.remove_report_item(metric_key="frame_rate")
+        self.assertNotIn("frame_rate", report_widget.report_item_rows)
+        self.assertNotIn("frame_rate", report_task.get_report_item_keys())
+
+        report_widget.resize(900, 1100)
+        report_widget.show()
+        self.application.processEvents()
+        detail_position = report_widget.detail_combo_box.mapTo(report_widget, ui_qt.QtCore.QPoint(0, 0))
+        timestamp_position = report_widget.timestamp_combo_box.mapTo(report_widget, ui_qt.QtCore.QPoint(0, 0))
+        load_mode_position = report_widget.load_mode_combo_box.mapTo(report_widget, ui_qt.QtCore.QPoint(0, 0))
+        skip_position = report_widget.skip_condition_combo_box.mapTo(report_widget, ui_qt.QtCore.QPoint(0, 0))
+        report_name_position = report_widget.report_name_field.mapTo(report_widget, ui_qt.QtCore.QPoint(0, 0))
+
+        self.assertEqual(detail_position.y(), timestamp_position.y())
+        self.assertEqual(load_mode_position.y(), skip_position.y())
+        self.assertEqual(detail_position.x(), report_name_position.x())
 
     @unittest.skipIf(ui_qt.QtTest is None, "PySide QtTest module is unavailable.")
     def test_task_rename_does_not_replace_widget_during_focus_change(self):
@@ -1298,6 +1355,104 @@ class TestBatchProcessorUi(unittest.TestCase):
         self.assertEqual(batch_path, batch_entry["field"].text())
         self.assertEqual("publish_*.py", batch_entry["include_field"].text())
         self.assertEqual("wip_*.py", batch_entry["exclude_field"].text())
+
+    def test_python_script_run_buttons_follow_edit_and_directory_controls(self):
+        """Places run actions beside their related path and ordering controls."""
+        external_task = batch_processor_tasks.TaskPythonScript(
+            settings={
+                "script_mode": "External File",
+                "external_scripts": [{"path": "first.py"}, {"path": "second.py"}],
+            }
+        )
+        external_widget = attr_widget_python_script.AttrWidgetPythonScriptTask(
+            task=external_task,
+            project=self.model,
+        )
+        external_row = external_widget.external_script_widgets[0]
+        external_layout = external_row["row"].layout()
+        self.assertLess(
+            external_layout.indexOf(external_row["edit_button"]),
+            external_layout.indexOf(external_row["run_button"]),
+        )
+        self.assertLess(
+            external_layout.indexOf(external_row["run_button"]),
+            external_layout.indexOf(external_row["move_up_button"]),
+        )
+        self.assertIn("Run this Python script", external_row["run_button"].toolTip())
+
+        batch_task = batch_processor_tasks.TaskPythonScript(
+            settings={
+                "script_mode": "Batch Directory",
+                "batch_directories": [{"path": "first"}, {"path": "second"}],
+            }
+        )
+        batch_widget = attr_widget_python_script.AttrWidgetPythonScriptTask(
+            task=batch_task,
+            project=self.model,
+        )
+        batch_row = batch_widget.batch_directory_widgets[0]
+        path_layout = batch_row["container"].layout().itemAt(0).layout()
+        self.assertLess(
+            path_layout.indexOf(batch_row["open_button"]),
+            path_layout.indexOf(batch_row["run_button"]),
+        )
+        self.assertLess(
+            path_layout.indexOf(batch_row["run_button"]),
+            path_layout.indexOf(batch_row["move_down_button"]),
+        )
+        self.assertIn("configured filters", batch_row["run_button"].toolTip())
+        self.assertFalse(external_row["run_button"].icon().isNull())
+        self.assertFalse(batch_row["run_button"].icon().isNull())
+        external_widget.close()
+        batch_widget.close()
+
+    def test_external_python_script_run_button_runs_its_script_with_context(self):
+        """Runs the selected external file with the script task preview context."""
+        with tempfile.TemporaryDirectory() as directory:
+            script_path = os.path.join(directory, "external.py")
+            with open(script_path, "w", encoding="utf-8") as script_file:
+                script_file.write("def run(context):\n    return context\n")
+            task = batch_processor_tasks.TaskPythonScript(settings={"script_mode": "External File"})
+            widget = attr_widget_python_script.AttrWidgetPythonScriptTask(task=task, project=self.model)
+            widget.external_script_widgets[0]["field"].setText(script_path)
+            with mock.patch.object(task, "run_python_script") as run_python_script:
+                widget.external_script_widgets[0]["run_button"].click()
+
+            run_python_script.assert_called_once()
+            call_kwargs = run_python_script.call_args.kwargs
+            self.assertEqual(script_path, call_kwargs["script_path"])
+            self.assertEqual([script_path], call_kwargs["context"]["script_paths"])
+            self.assertTrue(call_kwargs["context"]["preview"])
+            self.assertTrue(call_kwargs["context"]["run_script_now"])
+            widget.close()
+
+    def test_batch_directory_run_button_uses_configured_filters_and_order(self):
+        """Runs only filtered directory scripts, in the displayed sorted order."""
+        with tempfile.TemporaryDirectory() as directory:
+            for file_name in ["z_publish.py", "a_publish.py", "skip.py"]:
+                with open(os.path.join(directory, file_name), "w", encoding="utf-8") as script_file:
+                    script_file.write("def run(context):\n    return context\n")
+            task = batch_processor_tasks.TaskPythonScript(settings={"script_mode": "Batch Directory"})
+            widget = attr_widget_python_script.AttrWidgetPythonScriptTask(task=task, project=self.model)
+            batch_row = widget.batch_directory_widgets[0]
+            batch_row["field"].setText(directory)
+            batch_row["include_field"].setText("*_publish.py")
+            batch_row["exclude_field"].setText("skip*")
+            self.application.processEvents()
+            expected_paths = [
+                os.path.join(directory, "a_publish.py"),
+                os.path.join(directory, "z_publish.py"),
+            ]
+
+            with mock.patch.object(task, "run_python_script") as run_python_script:
+                batch_row["run_button"].click()
+
+            result = [call.kwargs["script_path"] for call in run_python_script.call_args_list]
+            self.assertEqual(expected_paths, result)
+            for call in run_python_script.call_args_list:
+                self.assertEqual(expected_paths, call.kwargs["context"]["script_paths"])
+                self.assertTrue(call.kwargs["context"]["run_script_now"])
+            widget.close()
 
     def test_inline_python_editor_loads_example_script_when_empty(self):
         """Ensures selecting an example fills an empty inline editor."""

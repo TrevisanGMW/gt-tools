@@ -16,8 +16,64 @@ from gt.tools.batch_processor.tasks.task_kimodo_generate import TaskKimodoGenera
 from gt.tools.batch_processor.tasks.task_kimodo_base import write_record
 
 
+_GENERATOR_DEFAULTS = None
+
+
+def setUpModule():
+    """Keeps unit tests independent of the workstation's saved deployment."""
+    global _GENERATOR_DEFAULTS
+    _GENERATOR_DEFAULTS = mock.patch.object(generation.connections, "generator_settings", return_value={
+        "connection": {"url": kimodo.DEFAULT_URL}, "docker": {"directory": "", "executable": ""}})
+    _GENERATOR_DEFAULTS.start()
+
+
+def tearDownModule():
+    """Restores generator preference resolution after the module suite."""
+    _GENERATOR_DEFAULTS.stop()
+
+
 class TestKimodoData(unittest.TestCase):
     """Tests timing, marker semantics, naming, and reproducible variations."""
+
+    def test_container_endpoint_uses_existing_transport_and_environment_token(self):
+        """Connects batch workers to Docker servers without starting local processes."""
+        settings = {"connection": {"mode": "existing", "url": "http://gpu-server:7861"},
+                    "token_environment": "GT_TEST_CONTAINER_TOKEN"}
+        with mock.patch.dict(os.environ, {"GT_TEST_CONTAINER_TOKEN": "fake-bridge-token"}):
+            with mock.patch.object(kimodo.KimodoClient, "health", return_value={"status": "ready"}) as health:
+                with mock.patch.object(kimodo.KimodoConnection, "start_local") as start:
+                    client = generation.connect(settings)
+        self.assertEqual("http://gpu-server:7861", client.connection.url)
+        self.assertEqual("fake-bridge-token", client.connection.token)
+        health.assert_called_once()
+        start.assert_not_called()
+
+    def test_local_docker_uses_deployment_secret_and_never_launches_python(self):
+        """Starts the selected deployment with shared locking and no serialized token."""
+        from gt.tools.batch_processor.tasks import task_kimodo_connection as connections
+        from gt.tools.kimodo_generator import kimodo_generator_docker as docker
+
+        settings = TaskKimodoGenerate().settings
+        settings["connection"]["mode"] = "docker"
+        settings["docker"]["directory"] = "Z:/Docker/test-deployment"
+        settings["token_environment"] = "UNSET_IRRELEVANT_ENV"
+        with mock.patch.object(docker, "read_deployment", return_value={}), \
+                mock.patch.object(connections, "validate_deployment_endpoint"), \
+                mock.patch.object(docker, "_verify_identity"), \
+                mock.patch.object(docker, "bridge_token", return_value="private-token"), \
+                mock.patch.object(docker, "start") as start, \
+                mock.patch.object(kimodo.KimodoClient, "health", return_value={}), \
+                mock.patch.object(kimodo.KimodoClient, "test_text_encoder", return_value={}), \
+                mock.patch.object(kimodo.KimodoConnection, "start_local") as python_start:
+            client = generation.connect(settings)
+        self.assertEqual("existing", client.connection.mode)
+        self.assertEqual("private-token", client.connection.token)
+        self.assertNotIn("token", settings["connection"])
+        start.assert_called_once_with(settings["docker"]["directory"], client.connection, "")
+        python_start.assert_not_called()
+        settings["connection"]["url"] = "http://other-machine:7861"
+        with self.assertRaises(ValueError):
+            connections.make_connection(settings)
 
     def test_marker_modes_and_endpoints(self):
         """Unions endpoints and explicit frames without duplicating held markers."""
@@ -169,6 +225,30 @@ class TestKimodoData(unittest.TestCase):
         self.assertEqual([0, 127, 352], definitions[0]["constraints"][0]["frame_indices"])
         self.assertEqual(353, int(definitions[0]["prompts"][0]["duration_seconds"] * 30))
         self.assertNotEqual(definitions[0]["parameters"]["seed"], definitions[1]["parameters"]["seed"])
+
+    def test_prepared_scene_path_is_project_scoped_and_saved(self):
+        """Persists the prepared source beside definitions for downstream scene import."""
+        with tempfile.TemporaryDirectory() as directory:
+            source_path = os.path.join(directory, "input.ma")
+            with open(source_path, "w", encoding="utf-8") as source_file:
+                source_file.write("scene")
+
+            class FakeMayaCommands:
+                """Writes a small stand-in scene when the save operation is requested."""
+
+                def file(self, *args, **kwargs):
+                    if kwargs.get("rename"):
+                        self.path = kwargs["rename"]
+                    elif kwargs.get("save"):
+                        with open(self.path, "w", encoding="utf-8") as scene_file:
+                            scene_file.write("prepared scene")
+
+            work_item = types.SimpleNamespace(current_path=source_path)
+            prepared_path = TaskKimodoDefinition.save_pre_generation_scene(
+                work_item, os.path.join(directory, "definitions"), FakeMayaCommands())
+            self.assertTrue(os.path.isfile(prepared_path))
+            self.assertEqual("_prepared_scenes", os.path.basename(os.path.dirname(prepared_path)))
+            self.assertTrue(os.path.basename(prepared_path).startswith("input_"))
 
     def test_path_mask_keeps_active_frames(self):
         """Drops root path frames where the mask is zero and rejects masks that leave too few."""
@@ -400,6 +480,38 @@ class TestKimodoGeneration(unittest.TestCase):
         self.assertEqual(job_id, self.client.submit.call_args.kwargs["job_id"])
         self.assertEqual(1, save.call_count)
 
+    def test_cached_failure_explains_opt_in_and_retries_with_new_job_id(self):
+        """Avoids repeating a stored failure and issues a new ID only after explicit retry."""
+        self.client.status.return_value = {"status": "failed", "stage": "failed", "error": "old failure"}
+        with mock.patch.object(generation, "connect", return_value=self.client):
+            with self.assertRaisesRegex(RuntimeError, "old failure"):
+                self.task.execute(self.item, None, self.output)
+        failed_id = self.client.submit.call_args.kwargs["job_id"]
+        with mock.patch.object(generation, "connect") as connect:
+            with self.assertRaisesRegex(RuntimeError, "Enable Retry failed jobs"):
+                self.task.execute(self.item, None, self.output)
+        connect.assert_not_called()
+        self.client.status.return_value = self.result
+        self.task.settings["retry_failed"] = True
+        with mock.patch.object(generation, "connect", return_value=self.client), \
+                mock.patch.object(generation, "publish_scene", side_effect=self.save_scene):
+            self.task.execute(self.item, None, self.output)
+        self.assertNotEqual(failed_id, self.client.submit.call_args.kwargs["job_id"])
+
+    def test_tracker_reports_intermediate_progress_without_label(self):
+        """Passes bridge fractions through the existing tracker hook without a unit label."""
+        self.client.status.side_effect = [
+            {"status": "running", "stage": "generating", "progress": 0.12},
+            {"status": "running", "stage": "generating", "progress": 0.5},
+            dict(self.result, progress=1.0)]
+        report = mock.Mock()
+        with mock.patch.object(generation.time, "sleep"):
+            generation.wait_for_job(self.client, self.definition, {"job_id": "a" * 32},
+                                    os.path.join(self.root, "progress.json"), self.task.settings,
+                                    {"report_progress": report})
+        self.assertEqual([mock.call(12, 100, ""), mock.call(50, 100, ""), mock.call(100, 100, "")],
+                         report.call_args_list)
+
     def test_submission_retry_keeps_job_id(self):
         """Retries a lost submission response without requesting duplicate GPU work."""
         self.client.submit.side_effect = [ConnectionError("lost response"), {}]
@@ -424,6 +536,43 @@ class TestKimodoGeneration(unittest.TestCase):
         self.task.reserve_outputs(self.item, [path], self.output)
         with self.assertRaises(ValueError):
             self.task.reserve_outputs(tasks.WorkItem(os.path.join(self.root, "other.json")), [path], self.output)
+
+    def test_numpy_only_moves_named_samples_and_skips_without_reconnecting(self):
+        """Publishes arrays with sample names, purges cache and emits no Maya or bundle files."""
+        self.task.settings.update(result_mode="numpy", import_incoming_scene=True,
+                                  namespace="unused invalid Maya namespace")
+        arrays = {}
+        for stem in ("motion", "sample_1"):
+            path = os.path.join(self.root, "downloads", f"{stem}.npz")
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, "wb") as stream:
+                stream.write(b"verified-native-array")
+            arrays[f"{stem}.npz"] = path
+        self.client.download.return_value = dict(self.paths, **arrays)
+        with mock.patch.object(generation, "connect", return_value=self.client), \
+                mock.patch.object(generation, "publish_scene") as scene:
+            outputs = self.task.execute(self.item, None, self.output)
+        self.assertEqual(["walk_s001.npz", "walk_s002.npz"],
+                         [os.path.basename(item.current_path) for item in outputs])
+        self.assertTrue(all(os.path.isfile(item.current_path) for item in outputs))
+        self.assertTrue(all(not os.path.exists(path) for path in arrays.values()))
+        self.assertFalse(os.path.exists(os.path.join(self.output, ".kimodo-cache")))
+        self.assertFalse(any(name.endswith("_artifacts") for name in os.listdir(self.output)))
+        scene.assert_not_called()
+        with mock.patch.object(generation, "connect") as reconnect:
+            with self.assertRaises(tasks.TaskSkip) as skipped:
+                self.task.execute(self.item, None, self.output)
+            self.assertEqual(2, len(skipped.exception.work_item))
+        reconnect.assert_not_called()
+
+    def test_numpy_missing_archive_does_not_create_scene_or_bundle(self):
+        """Rejects missing native output without silently substituting JSON or Maya."""
+        self.task.settings["result_mode"] = "numpy"
+        with mock.patch.object(generation, "connect", return_value=self.client), \
+                mock.patch.object(generation, "publish_scene") as scene:
+            with self.assertRaisesRegex(ValueError, "NumPy array"):
+                self.task.execute(self.item, None, self.output)
+        scene.assert_not_called()
 
     def test_artifacts_only_preserves_all_files(self):
         """Returns a manifest work item and reuses a verified bundle without importing Maya."""
@@ -483,6 +632,30 @@ class TestKimodoGeneration(unittest.TestCase):
             scheduler._cancel_remote_jobs(process)
         self.assertEqual("test-token", client.call_args.args[0].token)
         self.client.cancel.assert_called_once_with("owned_job")
+
+    def test_tracker_docker_cancellation_reads_secret_reference(self):
+        """Allows forced worker cancellation without serializing the deployment token."""
+        from gt.tools.batch_processor.tracker import tracker_scheduler
+        from gt.tools.kimodo_generator import kimodo_generator_docker as docker
+
+        event = {"url": kimodo.DEFAULT_URL, "remote_id": "owned_job", "docker_directory": "Z:/Docker/prepared"}
+        scheduler = object.__new__(tracker_scheduler.TrackerScheduler)
+        with mock.patch.object(docker, "bridge_token", return_value="private-token"), \
+                mock.patch.object(kimodo, "KimodoClient", return_value=self.client) as client:
+            scheduler._cancel_remote_jobs({"remote_jobs": [event]})
+        self.assertEqual("private-token", client.call_args.args[0].token)
+        self.client.cancel.assert_called_once_with("owned_job")
+        self.assertNotIn("private-token", json.dumps(event))
+
+    def test_docker_job_registration_emits_only_deployment_reference(self):
+        """Registers the selected directory so tracker cancellation can authenticate later."""
+        self.task.settings["connection"]["mode"] = "docker"
+        self.task.settings["docker"]["directory"] = "Z:/Docker/prepared"
+        record = {"job_id": "a" * 32}
+        register = mock.Mock()
+        generation.wait_for_job(self.client, self.definition, record, os.path.join(self.root, "record.json"),
+                                self.task.settings, {"register_remote_job": register})
+        register.assert_called_once_with(kimodo.DEFAULT_URL, "a" * 32, "", docker_directory="Z:/Docker/prepared")
 
     def test_timeout_does_not_cancel_unless_enabled(self):
         """Distinguishes a local wait timeout from remote cancellation."""

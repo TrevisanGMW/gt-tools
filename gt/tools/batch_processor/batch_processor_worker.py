@@ -467,7 +467,7 @@ class MultiInstanceBatchRunner:
         self.flag_running_tasks = bool(flag_running_tasks)
         self.project_log_path = project_log_path
 
-    def run(self, project, run_from_task_id=None, run_from_module_id=None, run_to_task_id=None):
+    def run(self, project, run_from_task_id=None, run_from_module_id=None, run_to_task_id=None, runtime_options=None):
         """Launches the tracker console for a project.
 
         Args:
@@ -475,10 +475,13 @@ class MultiInstanceBatchRunner:
             run_from_task_id (str, optional): Task id to start from.
             run_from_module_id (str, optional): Legacy task id alias.
             run_to_task_id (str, optional): Optional last task id to run.
+            runtime_options (dict, optional): Child supervisor reporting options.
 
         Returns:
             BatchProgressTracker: Tracker containing launch state.
         """
+        runtime_options = runtime_options or {}
+        self.process = None
         if run_from_task_id is None:
             run_from_task_id = run_from_module_id
         run_state.initialize(project, tasks.build_run_id())
@@ -511,7 +514,7 @@ class MultiInstanceBatchRunner:
             for task in process_tasks
             if not task.is_input_task and task not in preflight_tasks
         ]
-        if preflight_tasks and not remaining_processing_tasks:
+        if preflight_tasks and not remaining_processing_tasks and not runtime_options:
             return self._finish_preflight_multi_instance_run(
                 project=project,
                 preflight_tasks=preflight_tasks,
@@ -525,7 +528,15 @@ class MultiInstanceBatchRunner:
             task_list=process_tasks,
             excluded_task_ids=[task.id for task in preflight_tasks],
         )
-        if not source_files:
+        from gt.tools.batch_processor import batch_processor_projects
+
+        first_task = remaining_processing_tasks[0] if remaining_processing_tasks else None
+        filtered_sources = batch_processor_projects.filter_project_inputs(source_files, first_task, project)
+        ignored_self_only = bool(source_files) and not filtered_sources
+        if len(filtered_sources) != len(source_files):
+            preflight_messages.append("[INFO] - Ignored the launching project in child project inputs.")
+        source_files = filtered_sources
+        if not source_files and not runtime_options and not ignored_self_only:
             if preflight_tasks:
                 return self._finish_preflight_multi_instance_run(
                     project=project,
@@ -580,6 +591,12 @@ class MultiInstanceBatchRunner:
             command.append("--no-log")
         if project.run_settings.get("create_task_time_log", True):
             command.append("--task-time-logs")
+        for key in ("session_dir", "result_file", "status_file", "control_file", "run_id",
+                    "parent_run_id", "window_policy", "empty_policy"):
+            if runtime_options.get(key):
+                command.extend([f"--{key.replace('_', '-')}", str(runtime_options[key])])
+        if runtime_options.get("headless"):
+            command.append("--headless")
 
         creation_flags = 0
         popen_kwargs = {}
@@ -590,7 +607,7 @@ class MultiInstanceBatchRunner:
         env = dict(os.environ)
         env["PYTHONIOENCODING"] = "utf-8"
         env[run_state.WORKER_STATE_VARIABLE] = json.dumps(project._batch_run_state)
-        subprocess.Popen(
+        self.process = subprocess.Popen(
             command,
             stdin=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL,
@@ -817,6 +834,7 @@ class MultiInstanceBatchRunner:
         data = project.to_dict()
         data["runtime_options"] = {
             "suppress_custom_environment_query_errors": project._suppress_custom_environment_query_errors,
+            "source_project_file": project.project_file_path or "",
         }
         environment_variables = dict(data.get("environment_variables") or {})
         environment_variables["project-dir"] = project.get_project_dir()

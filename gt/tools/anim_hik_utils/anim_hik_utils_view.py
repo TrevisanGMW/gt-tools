@@ -268,10 +268,7 @@ class AnimHikUtilsView(metaclass=qt_utils.MayaWindowMeta):
         form = ui_qt.QtWidgets.QFormLayout()
         form.setRowWrapPolicy(ui_qt.QtWidgets.QFormLayout.RowWrapPolicy.WrapLongRows)
         for key, label, placeholder, tooltip in (
-            ("prefix", "Prefix:", "e.g. hero:", "Add this text to XML bone names. Also used when exporting XML."),
-            ("search_namespace", "Find namespace:", "e.g. source:", "Literal text to find after adding the prefix."),
-            ("replace_namespace", "Replace with:", "e.g. target:",
-             "Replacement text. Empty removes the matched text."),
+            ("prefix", "Prefix:", "e.g. hero:", "Namespace added to XML bone names. Also used when exporting XML."),
         ):
             field = ui_qt.QtWidgets.QLineEdit()
             field.setPlaceholderText(placeholder)
@@ -281,7 +278,8 @@ class AnimHikUtilsView(metaclass=qt_utils.MayaWindowMeta):
         layout.addLayout(form)
         mapping = ui_qt.QtWidgets.QHBoxLayout()
         mapping.addWidget(self.button(
-            "detect_namespace", "Use Character Namespace", "Fill Prefix from the mapped skeleton."
+            "cycle_namespace", "Next Matching Namespace",
+            "Fill Prefix with the next scene namespace that contains a bone named in the XML."
         ))
         mapping.addWidget(self.button(
             "preview_xml", "Preview XML", "Check every populated mapping without changing the scene."
