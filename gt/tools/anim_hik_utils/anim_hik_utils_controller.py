@@ -41,7 +41,7 @@ class AnimHikUtilsController:
             "browse_xml": self.browse_xml,
             "preview_xml": self.preview_xml,
             "import_definition": self.import_definition,
-            "detect_namespace": self.detect_namespace,
+            "cycle_namespace": self.cycle_namespace,
             "inspect": self.inspect,
             "cleanup": self.cleanup,
             "copy_properties": self.copy_properties,
@@ -297,15 +297,18 @@ class AnimHikUtilsController:
         self.character_changed()
         self.view.set_status(f"Imported {count} mappings. Review the definition and lock it when ready.")
 
-    def detect_namespace(self):
-        """Fills XML Prefix using the selected character's skeleton namespace."""
-        namespace = self.service.inspect_character(self.model.character)["namespace"]
-        self.model.settings["prefix"] = f"{namespace}:" if namespace else ""
-        self.model.settings["search_namespace"] = ""
-        self.model.settings["replace_namespace"] = ""
+    def cycle_namespace(self):
+        """Fills Prefix with the next scene namespace that matches bones in the XML."""
+        matches = self.service.matching_prefixes(self.view.xml_path.text().strip())
+        if not matches:
+            self.view.set_status("No scene namespace contains a bone named in the XML.")
+            return
+        prefix = tool_model.next_prefix(matches, self.model.settings["prefix"])
+        self.model.settings["prefix"] = prefix
         self.view.set_settings(self.model.settings)
         self.save_settings()
-        self.view.set_status(f"XML prefix set to {namespace or 'the root namespace'}.")
+        position = matches.index(prefix) + 1
+        self.view.set_status(f"XML prefix '{prefix or '<root>'}' ({position}/{len(matches)} matching namespaces).")
 
     def export_file(self, kind):
         """Exports the chosen data type after path and overwrite confirmation.

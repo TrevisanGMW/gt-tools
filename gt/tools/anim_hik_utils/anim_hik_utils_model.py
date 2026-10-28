@@ -13,8 +13,6 @@ DEFAULT_SETTINGS = {
     "world_space": False,
     "force_proxy": False,
     "prefix": "",
-    "search_namespace": "",
-    "replace_namespace": "",
     "last_directory": "",
 }
 
@@ -37,14 +35,12 @@ def validate_node_name(name):
     return name
 
 
-def read_definition(file_path, prefix="", search_namespace="", replace_namespace=""):
+def read_definition(file_path, prefix=""):
     """Reads native HumanIK XML and resolves its requested bone names.
 
     Args:
         file_path (str): Existing XML file.
-        prefix (str): Prefix added before namespace replacement.
-        search_namespace (str): Literal namespace text to replace.
-        replace_namespace (str): Replacement text.
+        prefix (str): Namespace prefix (for example "hero:") added to every bone name.
 
     Returns:
         list: Ordered pairs of HumanIK slots and requested bone names.
@@ -52,8 +48,6 @@ def read_definition(file_path, prefix="", search_namespace="", replace_namespace
     Raises:
         ValueError: If the XML schema or mapping options are invalid.
     """
-    if replace_namespace and not search_namespace:
-        raise ValueError("Enter namespace text to find, or use Prefix to add a namespace.")
     root = ElementTree.parse(file_path).getroot()
     if root.tag != "config_root" or root.find("match_list") is None:
         raise ValueError("Choose a native HumanIK XML match list (config_root / match_list).")
@@ -66,13 +60,27 @@ def read_definition(file_path, prefix="", search_namespace="", replace_namespace
         if slot in seen_slots:
             raise ValueError(f"Duplicate HumanIK slot in XML: {slot}")
         seen_slots.add(slot)
-        bone = f"{prefix}{bone}"
-        if search_namespace:
-            bone = bone.replace(search_namespace, replace_namespace)
-        mappings.append((slot, bone))
+        mappings.append((slot, f"{prefix}{bone}"))
     if not mappings:
         raise ValueError("The XML file has no populated bone mappings.")
     return mappings
+
+
+def next_prefix(matching_prefixes, current_prefix):
+    """Picks the prefix that follows the current one, wrapping around.
+
+    Args:
+        matching_prefixes (list): Candidate prefixes in a stable order.
+        current_prefix (str): Prefix currently entered by the user.
+
+    Returns:
+        str: Following prefix, the first one when the current is not a candidate, or "" when empty.
+    """
+    if not matching_prefixes:
+        return ""
+    if current_prefix not in matching_prefixes:
+        return matching_prefixes[0]
+    return matching_prefixes[(matching_prefixes.index(current_prefix) + 1) % len(matching_prefixes)]
 
 
 def read_properties(file_path):
