@@ -10,7 +10,6 @@ Use Example:
 
 import importlib
 import logging
-import pkg_resources
 
 # Logging Setup
 logging.basicConfig()
@@ -73,23 +72,20 @@ QtTest = _import_optional_qt_module(PySide, "QtTest")
 
 def get_pyside_version(major_only=False):
     """
-    Get the version of PySide2 or PySide6 installed in the environment.
+    Gets the version of the PySide binding loaded by this module.
 
     Args:
         major_only (bool): If True, returns only the major version number.
                            Defaults to False, which returns the full version string.
 
     Returns:
-        str or None: The version of PySide2 or PySide6, or a message indicating that neither is installed. e.g. "6.5.3"
-                     If major_only is True, only the major version number is returned. e.g. "6"
+        str or None: The loaded binding's version, or None when unavailable. e.g. "6.5.3"
+            If major_only is True, only the major version number is returned. e.g. "6"
     """
-    for package in ["PySide2", "PySide6"]:
-        try:
-            version = pkg_resources.get_distribution(package).version
-            return version.split(".")[0] if major_only else version
-        except pkg_resources.DistributionNotFound:
-            continue
-    logger.debug("Neither PySide2 nor PySide6 is installed")
+    version = getattr(PySide, "__version__", None)
+    if version:
+        return version.split(".")[0] if major_only else version
+    logger.debug("The loaded PySide binding does not expose a version")
     return None
 
 
