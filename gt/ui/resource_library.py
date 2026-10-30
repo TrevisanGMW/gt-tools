@@ -52,6 +52,21 @@ def get_icon_path(icon_name, sub_folder=None):
     return icon_path
 
 
+def get_sound_path(sound_name, sub_folder=None):
+    """
+    Get the path to a sound file. This file should exist inside the resources/sounds folder.
+    Args:
+        sound_name (str): Name of the file. It should contain its extension. For example "success.wav"
+        sub_folder (str, optional): In case the sound exists inside a sub-folder, it can be provided as an argument.
+    Returns:
+        str: Path to the sound.
+    """
+    sound_path = get_resource_path(sound_name, resource_folder=ResourceDirConstants.DIR_SOUNDS, sub_folder=sub_folder)
+    if not os.path.exists(sound_path) or sound_name == "":
+        logger.info(f'Could not find sound: "{sound_path}"')
+    return sound_path
+
+
 def get_font_path(font_name, sub_folder=None):
     """
     Get the path to a font file. This file should exist inside the resources/fonts folder.
@@ -234,6 +249,7 @@ class ResourceDirConstants:
     DIR_STYLESHEETS = os.path.join(DIR_RESOURCES, "stylesheets")
     DIR_ICONS = os.path.join(DIR_RESOURCES, "icons")
     DIR_FONTS = os.path.join(DIR_RESOURCES, "fonts")
+    DIR_SOUNDS = os.path.join(DIR_RESOURCES, "sounds")
 
 
 class Icon:
@@ -1310,6 +1326,21 @@ class Stylesheet:
     btn_tool_metro_green = get_stylesheet_content(
         stylesheet_name="btn_tool_metro_base", stylesheet_variables=StylesheetVariables.btn_tool_metro_green
     )
+
+
+class Sound:
+    def __init__(self):
+        """
+        A library of sounds. Access them like icons, for example "ui_res_lib.Sound.status_success"
+        """
+
+    # Status Sounds
+    status_starting = get_sound_path("starting.wav")
+    status_running = get_sound_path("running.wav")
+    status_success = get_sound_path("success.wav")
+    status_warning = get_sound_path("warning.wav")
+    status_failure = get_sound_path("failure.wav")
+    status_aborted = get_sound_path("aborted.wav")
 
 
 class Font:

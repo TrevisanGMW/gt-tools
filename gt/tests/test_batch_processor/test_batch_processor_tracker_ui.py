@@ -104,7 +104,14 @@ class TestTrackerPreferencesAndSegments(unittest.TestCase):
             if isinstance(widget, ui_qt.QtWidgets.QCheckBox)
         ]
         labels = [checkbox.text() for checkbox in checkboxes]
-        self.assertEqual(sorted(labels, key=str.casefold), labels)
+        tracker_labels = [
+            "Auto Hide Completed Filter",
+            "Auto-Close When Completed Without Errors",
+            "Play Sound When Completed",
+        ]
+        general_labels = [label for label in labels if label not in tracker_labels]
+        self.assertEqual(sorted(general_labels, key=str.casefold), general_labels)
+        self.assertEqual(tracker_labels, [label for label in labels if label in tracker_labels])
         checkbox = next(
             widget for widget in checkboxes if widget.text() == "Auto Hide Completed Filter"
         )

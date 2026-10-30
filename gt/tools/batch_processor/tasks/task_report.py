@@ -258,6 +258,7 @@ class TaskSceneReport(task_base.BatchTask):
             "report_timestamp_format": DEFAULT_REPORT_TIMESTAMP_FORMAT,
             "report_skip_condition": REPORT_SKIP_CONDITION_NONE,
             "report_file_name": DEFAULT_REPORT_FILE_NAME,
+            "run_after_failed_jobs": False,
             "report_notes": DEFAULT_REPORT_NOTES,
             "report_notes_collapsed": True,
             "overwrite": True,
@@ -355,6 +356,14 @@ class TaskSceneReport(task_base.BatchTask):
             self.settings.get("report_skip_condition") or REPORT_SKIP_CONDITION_NONE
         ).strip()
         return skip_condition if skip_condition in REPORT_SKIP_CONDITIONS else REPORT_SKIP_CONDITION_NONE
+
+    def runs_after_failed_jobs(self):
+        """Checks whether the run-once report should still run when regular jobs failed.
+
+        Returns:
+            bool: True when the report is allowed to run after failed jobs.
+        """
+        return bool(self.settings.get("run_after_failed_jobs", False))
 
     def should_skip(self, project):
         """Checks whether the report skip condition is met.

@@ -14,6 +14,7 @@ import gt.utils.system as utils_system
 from gt.tools.batch_processor.tracker import tracker_constants
 from gt.tools.batch_processor.tracker import tracker_model
 from gt.tools.batch_processor.tracker import tracker_system_stats
+from gt.tools.batch_processor.tracker import tracker_sounds
 from gt.tools.batch_processor.tracker import tracker_tree_model
 
 
@@ -22,14 +23,17 @@ class TrackerController:
 
     MAX_LOG_CHARACTERS = 200000
 
-    def __init__(self, session, scheduler, view):
+    def __init__(self, session, scheduler, view, preview_mode=False):
         """Initializes the tracker controller.
 
         Args:
             session (TrackerSession): Active tracker state.
             scheduler (TrackerScheduler): Worker scheduler.
             view (TrackerView): Standalone tracker view.
+            preview_mode (bool, optional): True for an idle window without a batch,
+                used only to edit preferences.
         """
+        self.preview_mode = preview_mode
         self.session = session
         self.scheduler = scheduler
         self.view = view
@@ -62,11 +66,29 @@ class TrackerController:
         self.session.set_flag_skips_as_warnings(flag_skips_as_warnings)
         self.view.flag_skips_as_warnings_action.setChecked(flag_skips_as_warnings)
         self.view.hide_completed_action.setChecked(hide_completed_by_default)
+        self.view.play_sound_action.setChecked(
+            self.prefs.get_bool(tracker_constants.PREFS_KEY_PLAY_SOUND_ON_COMPLETION, default=False)
+        )
+        self.view.auto_close_action.setChecked(
+            self.prefs.get_bool(tracker_constants.PREFS_KEY_AUTO_CLOSE_ON_SUCCESS, default=False)
+        )
+        self.auto_close_remaining = 0
+        self.auto_close_timer = ui_qt.QtCore.QTimer(self.view)
+        self.auto_close_timer.setInterval(1000)
+        self.auto_close_timer.timeout.connect(self._tick_auto_close)
         self.scheduler.update_callback = self.refresh
+        if self.preview_mode:
+            self.view.set_abort_enabled(False)
+            self.view.statusBar().showMessage(
+                "Preferences preview: no batch is running. Changes in the Preferences menu apply to new trackers."
+            )
         self.scheduler.finish_callback = self.on_finished
         self._connect_signals()
+        self._update_sort_indicator(0)
         self._configure_columns()
         self._create_timers()
+        if self.preview_mode:
+            self.scheduler_timer.stop()
         self._update_open_project_action()
         self.apply_filters()
         self.refresh()
@@ -87,6 +109,14 @@ class TrackerController:
         self.view.expand_all_action.triggered.connect(self.view.tree.expandAll)
         self.view.collapse_all_action.triggered.connect(self.view.tree.collapseAll)
         self.view.flag_skips_as_warnings_action.toggled.connect(self.toggle_skip_warnings)
+        self.view.play_sound_action.toggled.connect(
+            partial(self.save_bool_preference, tracker_constants.PREFS_KEY_PLAY_SOUND_ON_COMPLETION)
+        )
+        self.view.auto_close_action.toggled.connect(
+            partial(self.save_bool_preference, tracker_constants.PREFS_KEY_AUTO_CLOSE_ON_SUCCESS)
+        )
+        self.view.auto_close_action.toggled.connect(self._on_auto_close_toggled)
+        self.view.tree.header().sortIndicatorChanged.connect(self._update_sort_indicator)
         self.view.restart_failed_jobs_action.triggered.connect(self.restart_all_failed_jobs)
         self.view.restart_canceled_jobs_action.triggered.connect(self.restart_all_canceled_jobs)
         self.view.copy_failed_jobs_action.triggered.connect(
@@ -274,6 +304,13 @@ class TrackerController:
             failed (int): Number of failed regular jobs.
             warning_jobs (int): Number of jobs completed with warnings.
         """
+        if self.preview_mode:
+            self.view.set_status_icon(
+                ui_res_lib.Icon.ui_grey_circle,
+                "Preferences preview — no batch is running.",
+                "Tracker status: Preferences preview",
+            )
+            return
         state = self.session.health_state
         warning_status = (
             (
@@ -573,6 +610,81 @@ class TrackerController:
             widget.blockSignals(False)
         self.apply_filters()
 
+    def save_bool_preference(self, key, enabled):
+        """Persists one tracker preference so later trackers use it.
+
+        Args:
+            key (str): Preference key.
+            enabled (bool): Preference value.
+        """
+        self.prefs.load()
+        self.prefs.set_bool(key, bool(enabled))
+        self.prefs.save()
+
+    def _update_sort_indicator(self, section, order=None):
+        """Hides the sort arrow on the "#" column, where it renders as a stray accent.
+
+        Args:
+            section (int): Sorted header section.
+            order (Qt.SortOrder, optional): Sort order.
+        """
+        self.view.tree.header().setSortIndicatorShown(section != 0)
+
+    def _on_auto_close_toggled(self, enabled):
+        """Starts or cancels the countdown when the auto-close preference changes.
+
+        Args:
+            enabled (bool): New preference state.
+        """
+        if not enabled:
+            self._cancel_auto_close()
+        elif self.session.finished and self._finished_without_errors():
+            self._start_auto_close()
+
+    def _finished_without_errors(self):
+        """Checks whether the finished batch has neither errors nor an abort.
+
+        Returns:
+            bool: True for completed or completed-with-warnings batches.
+        """
+        health_state = tracker_constants.HealthState
+        return self.session.health_state in (health_state.COMPLETED, health_state.WARNING)
+
+    def _close_after_sound(self):
+        """Closes the window, leaving time for an enabled completion sound to finish."""
+        if self.view.play_sound_action.isChecked():
+            ui_qt.QtCore.QTimer.singleShot(tracker_constants.SOUND_TAIL_MS, self.view.close)
+            return
+        self.view.close()
+
+    def _start_auto_close(self):
+        """Starts the visible countdown that closes the window."""
+        self.auto_close_remaining = tracker_constants.AUTO_CLOSE_SECONDS
+        self._show_auto_close_message()
+        self.auto_close_timer.start()
+
+    def _cancel_auto_close(self):
+        """Stops a running countdown and clears its message."""
+        if self.auto_close_timer.isActive():
+            self.auto_close_timer.stop()
+            self.view.statusBar().clearMessage()
+
+    def _show_auto_close_message(self):
+        """Displays the remaining countdown in the status bar."""
+        self.view.statusBar().showMessage(
+            f"Batch completed without errors. Closing in {self.auto_close_remaining}s "
+            "(turn off Preferences > Auto-Close to cancel)."
+        )
+
+    def _tick_auto_close(self):
+        """Advances the countdown and closes the window at zero."""
+        self.auto_close_remaining -= 1
+        if self.auto_close_remaining <= 0:
+            self.auto_close_timer.stop()
+            self.view.close()
+            return
+        self._show_auto_close_message()
+
     def toggle_skip_warnings(self, enabled):
         """Updates whether skipped work produces warning results.
 
@@ -684,6 +796,7 @@ class TrackerController:
         if not self.scheduler.request_restart_job(job):
             return
         self.close_after_abort = False
+        self._cancel_auto_close()
         self.view.set_abort_enabled(True)
         self.scheduler_timer.start()
         self.log_timer.start()
@@ -722,6 +835,7 @@ class TrackerController:
         if not restarted_jobs:
             return
         self.close_after_abort = False
+        self._cancel_auto_close()
         self.view.set_abort_enabled(True)
         self.scheduler_timer.start()
         self.log_timer.start()
@@ -869,7 +983,7 @@ class TrackerController:
         Returns:
             bool: True when the window may close.
         """
-        if self.session.finished:
+        if self.session.finished or self.preview_mode:
             return True
         decision = self.view.confirm_close_active()
         if decision != "abort":
@@ -886,14 +1000,20 @@ class TrackerController:
         self.log_timer.stop()
         if self.close_after_abort:
             self.view.close()
-        elif getattr(self.scheduler.options, "result_file", ""):
+            return
+        if self.view.play_sound_action.isChecked():
+            tracker_sounds.play_health_state_sound(self.session.health_state)
+        if getattr(self.scheduler.options, "result_file", ""):
             from gt.tools.batch_processor import batch_processor_projects as projects
 
             result = projects.read_json(self.scheduler.options.result_file)
             policy = getattr(self.scheduler.options, "window_policy", "Keep Open")
             if policy == "Close When Finished" or (
                     policy == "Close On Success" and result.get("outcome") in projects.SUCCESS_OUTCOMES):
-                self.view.close()
+                self._close_after_sound()
+                return
+        if self.view.auto_close_action.isChecked() and self._finished_without_errors():
+            self._start_auto_close()
 
     @staticmethod
     def _create_log_widget():

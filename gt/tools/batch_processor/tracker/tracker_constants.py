@@ -4,6 +4,10 @@
 PREFS_FILENAME = "batch_processor_tracker"
 PREFS_KEY_FLAG_SKIPS_AS_WARNINGS = "flag_skips_as_warnings"
 PREFS_KEY_HIDE_COMPLETED_BY_DEFAULT = "hide_completed_by_default"
+PREFS_KEY_PLAY_SOUND_ON_COMPLETION = "play_sound_on_completion"
+PREFS_KEY_AUTO_CLOSE_ON_SUCCESS = "auto_close_on_success"
+AUTO_CLOSE_SECONDS = 10
+SOUND_TAIL_MS = 1500
 
 
 class HealthState:

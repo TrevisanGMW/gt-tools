@@ -1018,17 +1018,17 @@ class TrackerScheduler:
             for regular in self.session.regular_jobs
             if regular.status in blocking_statuses
         ]
-        if blocking_jobs:
-            skip_message = self._build_finalization_skip_message(blocking_jobs)
-            job.status = tracker_constants.Status.SKIPPED
-            job.completed_at = tracker_events.utc_now_iso()
-            for task in job.tasks:
-                task.status = tracker_constants.Status.SKIPPED
-                task.progress = 100
-                task.completed_at = job.completed_at
-                task.messages.append(("Info", skip_message))
-            self._append_project_log(f"[SKIPPED] - (Multi-instance) - {skip_message}\n")
-            return True
+        if blocking_jobs and self.final_task_index < len(job.tasks):
+            next_task = job.tasks[self.final_task_index]
+            if not self._final_task_runs_after_failures(next_task):
+                skip_message = self._build_finalization_skip_message(blocking_jobs)
+                next_task.status = tracker_constants.Status.SKIPPED
+                next_task.progress = 100
+                next_task.completed_at = tracker_events.utc_now_iso()
+                next_task.messages.append(("Info", skip_message))
+                self._append_project_log(f"[SKIPPED] - (Multi-instance) - {skip_message}\n")
+                self.final_task_index += 1
+                return True
         if self.final_task_index < len(job.tasks):
             try:
                 self._launch_job(job, final_task=job.tasks[self.final_task_index])
@@ -1039,12 +1039,28 @@ class TrackerScheduler:
             return True
         if any(task.status == tracker_constants.Status.FAILED for task in job.tasks):
             job.status = tracker_constants.Status.FAILED
+        elif job.tasks and all(task.status == tracker_constants.Status.SKIPPED for task in job.tasks):
+            job.status = tracker_constants.Status.SKIPPED
         elif any(task.status == tracker_constants.Status.COMPLETED_WARNINGS for task in job.tasks):
             job.status = tracker_constants.Status.COMPLETED_WARNINGS
         else:
             job.status = tracker_constants.Status.COMPLETED
         job.completed_at = tracker_events.utc_now_iso()
         return True
+
+    def _final_task_runs_after_failures(self, tracker_task):
+        """Checks whether a run-once final task opted in to running after failed jobs.
+
+        Args:
+            tracker_task (TrackerTask): Finalization task about to launch.
+
+        Returns:
+            bool: True when the task's project settings enable running after failed jobs.
+        """
+        project_task = self.project.get_task(tracker_task.id) if self.project else None
+        if not project_task:
+            return False
+        return bool(project_task.settings.get("run_after_failed_jobs", False))
 
     @staticmethod
     def _build_finalization_skip_message(blocking_jobs):

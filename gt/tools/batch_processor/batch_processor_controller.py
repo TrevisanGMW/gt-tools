@@ -346,6 +346,11 @@ class BatchProcessorController:
         action_validate.triggered.connect(self.validate_project)
         self.view.add_menu_action(parent_menu=menu_utils, action=action_validate)
 
+        action_open_tracker = self.create_action("Open Empty Tracker", icon_path=ui_res_lib.Icon.batch_tracker)
+        action_open_tracker.setToolTip("Open an empty tracker window to adjust tracker preferences without a run.")
+        action_open_tracker.triggered.connect(self.open_tracker_preferences_window)
+        self.view.add_menu_action(parent_menu=menu_utils, action=action_open_tracker)
+
         ui_qt_utils.add_labeled_separator(menu=menu_utils, text="Task Execution")
 
         action_print_selected_index = self.create_action(
@@ -391,16 +396,6 @@ class BatchProcessorController:
     def add_menu_preferences(self):
         """Adds the Preferences menu with the toolkit automation toggles."""
         menu_preferences = self.view.add_menu_parent("Preferences")
-
-        self.create_menu_checkbox_action(
-            parent_menu=menu_preferences,
-            text="Auto Hide Completed Filter",
-            checked=self._tracker_prefs.get_bool(
-                tracker_constants.PREFS_KEY_HIDE_COMPLETED_BY_DEFAULT, default=False
-            ),
-            tooltip="Start new tracker windows with Filters > Hide Completed enabled.",
-            callback=self.toggle_tracker_hide_completed_by_default,
-        )
 
         self.create_menu_checkbox_action(
             parent_menu=menu_preferences,
@@ -463,19 +458,70 @@ class BatchProcessorController:
             callback=self.toggle_suppress_custom_environment_query_errors,
         )
 
+        ui_qt_utils.add_labeled_separator(menu=menu_preferences, text="Tracker Window")
+        self.add_tracker_preferences(menu_preferences)
+
+    def add_tracker_preferences(self, parent_menu):
+        """Adds the tracker window preferences to a menu.
+
+        Args:
+            parent_menu (QMenu): Menu receiving the tracker preference checkboxes.
+        """
+        tracker_options = (
+            (
+                "Auto Hide Completed Filter",
+                tracker_constants.PREFS_KEY_HIDE_COMPLETED_BY_DEFAULT,
+                "Start new tracker windows with Filters > Hide Completed enabled.",
+            ),
+            (
+                "Auto-Close When Completed Without Errors",
+                tracker_constants.PREFS_KEY_AUTO_CLOSE_ON_SUCCESS,
+                "Close the tracker 10 seconds after a batch completes without errors.",
+            ),
+            (
+                "Play Sound When Completed",
+                tracker_constants.PREFS_KEY_PLAY_SOUND_ON_COMPLETION,
+                "Play a sound matching the final batch status when a tracker finishes.",
+            ),
+        )
+        for text, key, tooltip in tracker_options:
+            self.create_menu_checkbox_action(
+                parent_menu=parent_menu,
+                text=text,
+                checked=self._tracker_prefs.get_bool(key, default=False),
+                tooltip=tooltip,
+                callback=partial(self.save_tracker_preference, key, text),
+            )
+
+    def save_tracker_preference(self, key, text, checked):
+        """Stores one tracker preference used by new tracker windows.
+
+        Args:
+            key (str): Tracker preference key.
+            text (str): Preference label used in the status message.
+            checked (bool): New preference state.
+        """
+        self._tracker_prefs.load()
+        self._tracker_prefs.set_bool(key, bool(checked))
+        self._tracker_prefs.save()
+        state_name = "enabled" if checked else "disabled"
+        self.log_status(f"Tracker preference '{text}' {state_name}.")
+
     def toggle_tracker_hide_completed_by_default(self, checked):
         """Stores the completed-row filter used when launching a tracker.
 
         Args:
             checked (bool): Whether new trackers should hide completed rows.
         """
-        self._tracker_prefs.load()
-        self._tracker_prefs.set_bool(
-            tracker_constants.PREFS_KEY_HIDE_COMPLETED_BY_DEFAULT, bool(checked)
+        self.save_tracker_preference(
+            tracker_constants.PREFS_KEY_HIDE_COMPLETED_BY_DEFAULT, "Auto Hide Completed Filter", checked
         )
-        self._tracker_prefs.save()
-        state_name = "enabled" if checked else "disabled"
-        self.log_status(f"Hide Completed in new tracker windows {state_name}.")
+
+    def open_tracker_preferences_window(self, *args):
+        """Opens an idle tracker window used to edit tracker preferences."""
+        from gt.tools.batch_processor.tracker import tracker_preview
+
+        self._preview_tracker_controller = tracker_preview.open_preview_tracker()
 
     def open_project_directory(self, *args):
         """Opens the resolved project directory in the system file browser.

@@ -299,6 +299,15 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
             "Reset Filters",
         )
         self.reset_filters_action.setToolTip("Clear all tracker filters.")
+        self.preferences_menu = self.tracker_menu_bar.addMenu("Preferences")
+        self.play_sound_action = self.preferences_menu.addAction("Play Sound When Completed")
+        self.play_sound_action.setCheckable(True)
+        self.play_sound_action.setToolTip("Play a sound matching the final batch status. Saved for new trackers.")
+        self.auto_close_action = self.preferences_menu.addAction("Auto-Close When Completed Without Errors")
+        self.auto_close_action.setCheckable(True)
+        self.auto_close_action.setToolTip(
+            "Close this window 10 seconds after a batch completes without errors. Saved for new trackers."
+        )
         self.search_field = ui_qt.QtWidgets.QLineEdit()
         self.search_field.setPlaceholderText("Filter by job name...")
         self.search_field.setClearButtonEnabled(True)
@@ -416,6 +425,15 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
             "QHeaderView::section:hover { background-color: #4a555b; color: #ffffff; }"
             "QHeaderView::section:pressed { background-color: #55788a; color: #ffffff; }"
         )
+        status_bar = self.statusBar()
+        status_bar.setStyleSheet(
+            "QStatusBar { background: transparent; color: #e0e0e0; }"
+            "QStatusBar QLabel { background: transparent; color: #e0e0e0; }"
+        )
+        status_bar.setSizeGripEnabled(False)
+        # Keep the bar collapsed while empty so it never leaves a blank strip.
+        status_bar.setVisible(False)
+        status_bar.messageChanged.connect(lambda message: status_bar.setVisible(bool(message)))
         self.toolbar_widget.setStyleSheet(
             "QWidget#trackerToolbar { background-color: #292929; border: 1px solid #424242;"
             " border-radius: 4px; }"
