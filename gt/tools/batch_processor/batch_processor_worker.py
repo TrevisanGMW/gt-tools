@@ -16,6 +16,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import uuid
 
 # Logging Setup
 logging.basicConfig()
@@ -450,6 +451,9 @@ class MultiInstanceBatchRunner:
         flag_skipped_tasks=False,
         flag_running_tasks=True,
         project_log_path=None,
+        start_minimized=False,
+        result_dir=None,
+        window_policy=None,
     ):
         """Initializes a multi-instance launcher.
 
@@ -460,7 +464,18 @@ class MultiInstanceBatchRunner:
             flag_skipped_tasks (bool, optional): Whether skipped tasks should be printed in the tracker.
             flag_running_tasks (bool, optional): Whether running tasks should be printed in the tracker.
             project_log_path (str, optional): Main project log shown by the standalone tracker.
+            start_minimized (bool, optional): Launches the tracker minimized to the system tray
+                (taskbar if no tray exists), regardless of the user's tracker preferences.
+            result_dir (str, optional): Directory where the tracker publishes ``result.json``,
+                ``status.json`` and reads ``control.json``. Lets a caller detect completion.
+                Kept separate from ``runtime_options`` so run behavior is otherwise unchanged.
+            window_policy (str, optional): Tracker window policy after finishing, such as
+                "Close When Finished". Only applied when ``result_dir`` is set.
         """
+        self.result_dir = result_dir
+        self.window_policy = window_policy
+        self.run_id = ""
+        self.start_minimized = bool(start_minimized)
         self.tracker = tracker or batch_processor_tracker.BatchProgressTracker()
         self.verbose_tracker_updates = bool(verbose_tracker_updates or show_worker_windows)
         self.flag_skipped_tasks = bool(flag_skipped_tasks)
@@ -597,6 +612,19 @@ class MultiInstanceBatchRunner:
                 command.extend([f"--{key.replace('_', '-')}", str(runtime_options[key])])
         if runtime_options.get("headless"):
             command.append("--headless")
+        if self.start_minimized or runtime_options.get("start_minimized"):
+            command.append("--start-minimized")
+        if self.result_dir and not runtime_options.get("result_file"):
+            os.makedirs(self.result_dir, exist_ok=True)
+            self.run_id = uuid.uuid4().hex
+            command.extend([
+                "--result-file", os.path.join(self.result_dir, "result.json"),
+                "--status-file", os.path.join(self.result_dir, "status.json"),
+                "--control-file", os.path.join(self.result_dir, "control.json"),
+                "--run-id", self.run_id,
+            ])
+            if self.window_policy:
+                command.extend(["--window-policy", self.window_policy])
 
         creation_flags = 0
         popen_kwargs = {}

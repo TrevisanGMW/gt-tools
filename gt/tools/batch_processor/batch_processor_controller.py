@@ -483,6 +483,26 @@ class BatchProcessorController:
                 tracker_constants.PREFS_KEY_PLAY_SOUND_ON_COMPLETION,
                 "Play a sound matching the final batch status when a tracker finishes.",
             ),
+            (
+                "Show Project Row",
+                tracker_constants.PREFS_KEY_SHOW_PROJECT_ROW,
+                "Pin a project row with the overall progress above the jobs in new tracker windows.",
+            ),
+            (
+                "Launch in Compact Mode",
+                tracker_constants.PREFS_KEY_START_COMPACT,
+                "Open new tracker windows as the compact tracker (icon, name and progress bar only).",
+            ),
+            (
+                "Launch Minimized",
+                tracker_constants.PREFS_KEY_START_MINIMIZED,
+                "Open new tracker windows minimized to the system tray (taskbar if no tray exists).",
+            ),
+            (
+                "Minimize to System Tray Instead of Taskbar",
+                tracker_constants.PREFS_KEY_USE_SYSTEM_TRAY,
+                "Show tracker windows as a system tray icon with a progress badge instead of a taskbar button.",
+            ),
         )
         for text, key, tooltip in tracker_options:
             self.create_menu_checkbox_action(

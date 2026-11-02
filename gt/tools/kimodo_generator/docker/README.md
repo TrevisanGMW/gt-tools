@@ -320,9 +320,9 @@ not the token itself. Configure it before launching Maya so workers inherit it.
 requests without a token; choosing it does not disable Docker's server authentication.
 Local token files are never automatically forwarded to remote URLs.
 
-After correcting a failed request or updating the bridge, enable **Retry failed jobs**
-in the Generate task to submit a new job. Otherwise its recovery record deliberately
-retains the existing failed job ID. The sparse multi-prompt conditioning compatibility
+**Retry failed jobs** is enabled by default, so a recorded failed or cancelled job is
+resubmitted with a new job ID on the next run. Disable it in the Generate task to keep
+the recovery record's failed job ID and stop instead of resubmitting. The sparse multi-prompt conditioning compatibility
 fix is included in the bridge; existing images must be rebuilt and restarted to receive it.
 
 ### WSL cache location

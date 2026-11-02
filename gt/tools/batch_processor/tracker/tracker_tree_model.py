@@ -18,6 +18,7 @@ SORT_ROLE = USER_ROLE + 1
 STATUS_ROLE = USER_ROLE + 2
 PROGRESS_ROLE = USER_ROLE + 3
 OBJECT_ROLE = USER_ROLE + 4
+FONT_ROLE = ui_qt.QtCore.Qt.ItemDataRole.FontRole if ui_qt.IS_PYSIDE6 else ui_qt.QtCore.Qt.FontRole
 
 
 class TrackerFilterProxyModel(ui_qt.QtCore.QSortFilterProxyModel):
@@ -65,6 +66,8 @@ class TrackerFilterProxyModel(ui_qt.QtCore.QSortFilterProxyModel):
         item = source_index.data(OBJECT_ROLE)
         if not item:
             return False
+        if getattr(item, "is_project_row", False):
+            return True
         job = item.parent_job if isinstance(item, tracker_model.TrackerTask) else item
         if self.search_text and self.search_text not in job.name.lower():
             return False
@@ -76,6 +79,24 @@ class TrackerFilterProxyModel(ui_qt.QtCore.QSortFilterProxyModel):
         if self.hide_completed and item.status == tracker_constants.Status.COMPLETED:
             return False
         return True
+
+    def lessThan(self, source_left, source_right):
+        """Keeps the project summary row pinned above every sorted job.
+
+        Args:
+            source_left (QModelIndex): Left source index.
+            source_right (QModelIndex): Right source index.
+
+        Returns:
+            bool: True when the left row sorts before the right row.
+        """
+        if not source_left.parent().isValid():
+            ascending = self.sortOrder() == ui_qt.QtCore.Qt.AscendingOrder
+            if getattr(source_left.data(OBJECT_ROLE), "is_project_row", False):
+                return ascending
+            if getattr(source_right.data(OBJECT_ROLE), "is_project_row", False):
+                return not ascending
+        return super().lessThan(source_left, source_right)
 
 
 class TrackerTreeModel(ui_qt.QtCore.QAbstractItemModel):
@@ -94,17 +115,51 @@ class TrackerTreeModel(ui_qt.QtCore.QAbstractItemModel):
         "Elapsed",
     ]
 
-    def __init__(self, session, parent=None):
+    def __init__(self, session, parent=None, show_project_row=False):
         """Initializes the tracker tree model.
 
         Args:
             session (TrackerSession): Session state to expose.
             parent (QObject, optional): Qt parent.
+            show_project_row (bool, optional): Whether a pinned project summary
+                row is listed above the jobs.
         """
         super().__init__(parent)
         self.session = session
-        self.jobs = list(session.jobs)
+        self.project_row = tracker_model.TrackerProjectRow(session) if show_project_row else None
+        self.jobs = self._with_project_row(list(session.jobs))
         self._segment_previews = {}
+
+    def _with_project_row(self, jobs):
+        """Prepends the project summary row when it is enabled.
+
+        Args:
+            jobs (list): Top-level job rows.
+
+        Returns:
+            list: Top-level rows including the project row when enabled.
+        """
+        return [self.project_row] + jobs if self.project_row else jobs
+
+    def set_project_row_visible(self, visible):
+        """Shows or hides the pinned project row without rebuilding other rows.
+
+        Args:
+            visible (bool): Whether the project row should be listed.
+        """
+        visible = bool(visible)
+        if visible == bool(self.project_row):
+            return
+        if visible:
+            self.beginInsertRows(ui_qt.QtCore.QModelIndex(), 0, 0)
+            self.project_row = tracker_model.TrackerProjectRow(self.session)
+            self.jobs.insert(0, self.project_row)
+            self.endInsertRows()
+            return
+        self.beginRemoveRows(ui_qt.QtCore.QModelIndex(), 0, 0)
+        self.jobs.remove(self.project_row)
+        self.project_row = None
+        self.endRemoveRows()
 
     def sync_rows(self, pending_segments=None):
         """Shows upcoming segment tasks without adding work to the scheduler.
@@ -138,6 +193,7 @@ class TrackerTreeModel(ui_qt.QtCore.QAbstractItemModel):
         jobs = [job for job in self.session.jobs if not job.is_finalization or job.is_preflight]
         jobs.extend(previews)
         jobs.extend(job for job in self.session.jobs if job.is_finalization and not job.is_preflight)
+        jobs = self._with_project_row(jobs)
         if jobs != self.jobs:
             self.beginResetModel()
             self.jobs = jobs
@@ -234,6 +290,10 @@ class TrackerTreeModel(ui_qt.QtCore.QAbstractItemModel):
             return item.progress
         if role == DECORATION_ROLE and column == 1:
             return self._get_icon(item)
+        if role == FONT_ROLE and getattr(item, "is_project_row", False):
+            font = ui_qt.QtGui.QFont()
+            font.setBold(True)
+            return font
         if role == SORT_ROLE:
             return self._get_sort_value(item, column)
         if role == TEXT_ALIGNMENT_ROLE and column in {0, 2, 3, 4, 6}:
@@ -279,7 +339,7 @@ class TrackerTreeModel(ui_qt.QtCore.QAbstractItemModel):
         jobs while running, so newly added rows appear in the view.
         """
         self.beginResetModel()
-        self.jobs = list(self.session.jobs)
+        self.jobs = self._with_project_row(list(self.session.jobs))
         self.endResetModel()
 
     def notify_all_changed(self):
@@ -309,7 +369,7 @@ class TrackerTreeModel(ui_qt.QtCore.QAbstractItemModel):
             object: Display value.
         """
         values = {
-            0: item.number,
+            0: "" if getattr(item, "is_project_row", False) else item.number,
             1: item.name,
             2: f"{item.progress}%",
             3: item.get_count_text(),
@@ -337,7 +397,7 @@ class TrackerTreeModel(ui_qt.QtCore.QAbstractItemModel):
             0: item.number,
             1: item.name.lower(),
             2: item.progress,
-            3: len(item.tasks) if isinstance(item, tracker_model.TrackerJob) else item.total_items,
+            3: item.total_items if isinstance(item, tracker_model.TrackerTask) else len(item.tasks),
             4: item.errors,
             5: item.status,
             6: item.worker,
@@ -357,11 +417,39 @@ class TrackerTreeModel(ui_qt.QtCore.QAbstractItemModel):
         Returns:
             QIcon: Row icon.
         """
-        if isinstance(item, tracker_model.TrackerJob):
+        if getattr(item, "is_project_row", False):
+            path = ui_res_lib.Icon.batch_tracker_project
+        elif isinstance(item, tracker_model.TrackerJob):
             path = ui_res_lib.Icon.batch_project if item.is_finalization else ui_res_lib.Icon.batch_tracker
         else:
             path = item.icon or ui_res_lib.Icon.ui_progress
         return ui_qt.QtGui.QIcon(path)
+
+
+def paint_progress_bar(painter, rectangle, progress, status):
+    """Paints a status-colored progress bar with a centered percentage.
+
+    Args:
+        painter (QPainter): Active painter.
+        rectangle (QRect): Bar bounds.
+        progress (int): Percentage from 0 to 100.
+        status (str): Value from ``tracker_constants.Status`` selecting the color.
+    """
+    color = ui_qt.QtGui.QColor(tracker_constants.STATUS_COLORS.get(status, "#72777d"))
+    painter.save()
+    painter.setRenderHint(ui_qt.QtGui.QPainter.Antialiasing, True)
+    painter.setPen(ui_qt.QtGui.QPen(color.darker(125), 1))
+    painter.setBrush(ui_qt.QtGui.QColor("#30343a"))
+    painter.drawRoundedRect(rectangle, 3, 3)
+    fill_width = int(rectangle.width() * max(0, min(100, progress)) / 100.0)
+    if fill_width:
+        fill_rectangle = ui_qt.QtCore.QRect(rectangle.left(), rectangle.top(), fill_width, rectangle.height())
+        painter.setPen(ui_qt.QtCore.Qt.NoPen)
+        painter.setBrush(color)
+        painter.drawRoundedRect(fill_rectangle, 3, 3)
+    painter.setPen(ui_qt.QtGui.QColor("#f2f2f2"))
+    painter.drawText(rectangle, ui_qt.QtLib.AlignmentFlag.AlignCenter, f"{progress}%")
+    painter.restore()
 
 
 class ProgressBarDelegate(ui_qt.QtWidgets.QStyledItemDelegate):
@@ -377,22 +465,7 @@ class ProgressBarDelegate(ui_qt.QtWidgets.QStyledItemDelegate):
         """
         progress = int(index.data(PROGRESS_ROLE) or 0)
         status = index.data(STATUS_ROLE) or tracker_constants.Status.QUEUED
-        color = ui_qt.QtGui.QColor(tracker_constants.STATUS_COLORS.get(status, "#72777d"))
-        rectangle = option.rect.adjusted(5, 5, -5, -5)
-        painter.save()
-        painter.setRenderHint(ui_qt.QtGui.QPainter.Antialiasing, True)
-        painter.setPen(ui_qt.QtGui.QPen(color.darker(125), 1))
-        painter.setBrush(ui_qt.QtGui.QColor("#30343a"))
-        painter.drawRoundedRect(rectangle, 3, 3)
-        fill_width = int(rectangle.width() * max(0, min(100, progress)) / 100.0)
-        if fill_width:
-            fill_rectangle = ui_qt.QtCore.QRect(rectangle.left(), rectangle.top(), fill_width, rectangle.height())
-            painter.setPen(ui_qt.QtCore.Qt.NoPen)
-            painter.setBrush(color)
-            painter.drawRoundedRect(fill_rectangle, 3, 3)
-        painter.setPen(ui_qt.QtGui.QColor("#f2f2f2"))
-        painter.drawText(rectangle, ui_qt.QtLib.AlignmentFlag.AlignCenter, f"{progress}%")
-        painter.restore()
+        paint_progress_bar(painter, option.rect.adjusted(5, 5, -5, -5), progress, status)
 
     def sizeHint(self, option, index):
         """Gets a readable progress-cell size.

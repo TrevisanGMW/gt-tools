@@ -108,6 +108,10 @@ class TestTrackerPreferencesAndSegments(unittest.TestCase):
             "Auto Hide Completed Filter",
             "Auto-Close When Completed Without Errors",
             "Play Sound When Completed",
+            "Show Project Row",
+            "Launch in Compact Mode",
+            "Launch Minimized",
+            "Minimize to System Tray Instead of Taskbar",
         ]
         general_labels = [label for label in labels if label not in tracker_labels]
         self.assertEqual(sorted(general_labels, key=str.casefold), general_labels)
@@ -182,6 +186,67 @@ class TestTrackerPreferencesAndSegments(unittest.TestCase):
                 mock.patch.object(ui_qt.QtWidgets, "QMenu") as menu:
             controller.show_tree_context_menu(ui_qt.QtCore.QPoint())
             menu.assert_not_called()
+
+    def test_project_row_is_off_by_default(self):
+        """Lists only jobs until the project row preference is enabled."""
+        controller = self.create_controller()
+        self.assertIsNone(controller.source_model.project_row)
+        self.assertFalse(controller.view.show_project_row_action.isChecked())
+        self.assertEqual(0, controller.proxy_model.rowCount())
+
+    def test_project_row_stays_pinned_and_summarizes_the_session(self):
+        """Pins the row above sorted jobs and aggregates their progress."""
+        prefs = core_prefs.Prefs(tracker_constants.PREFS_FILENAME)
+        prefs.set_bool(tracker_constants.PREFS_KEY_SHOW_PROJECT_ROW, True)
+        prefs.save()
+        controller = self.create_controller()
+        for number, name in enumerate(("b.ma", "a.ma"), start=1):
+            job = tracker_model.TrackerJob(f"job-{number}", number, name, [{"id": f"t{number}", "number": 1, "name": "Task"}])
+            controller.session.jobs.append(job)
+        controller.session.jobs[0].tasks[0].progress = 100
+        controller.session.jobs[0].status = tracker_constants.Status.RUNNING
+        controller.refresh()
+        proxy = controller.proxy_model
+        self.assertTrue(controller.view.show_project_row_action.isChecked())
+        self.assertEqual(3, proxy.rowCount())
+        for column, order in ((1, ui_qt.QtCore.Qt.AscendingOrder), (1, ui_qt.QtCore.Qt.DescendingOrder),
+                              (2, ui_qt.QtCore.Qt.DescendingOrder), (0, ui_qt.QtCore.Qt.AscendingOrder)):
+            with self.subTest(column=column, order=order):
+                controller.view.tree.sortByColumn(column, order)
+                row = proxy.index(0, 0)
+                self.assertEqual("Test", proxy.index(0, 1).data())
+                self.assertEqual(0, proxy.rowCount(row))
+        project = proxy.index(0, 0)
+        self.assertEqual(50, project.data(tracker_tree_model.PROGRESS_ROLE))
+        self.assertEqual(tracker_constants.Status.RUNNING, project.data(tracker_tree_model.STATUS_ROLE))
+        self.assertEqual("0/2", proxy.index(0, 3).data())
+        controller.view.search_field.setText("zzz")
+        self.assertEqual(1, proxy.rowCount())
+        controller.session.finish()
+        self.assertEqual(
+            tracker_constants.Status.COMPLETED,
+            controller.source_model.project_row.status,
+        )
+
+    def test_project_row_follows_the_menu_toggle_in_an_open_tracker(self):
+        """Adds the row at the top and removes it live."""
+        controller = self.create_controller()
+        job = tracker_model.TrackerJob("job-1", 1, "a.ma", [])
+        controller.session.jobs.append(job)
+        controller.refresh()
+        proxy = controller.proxy_model
+        self.assertEqual(1, proxy.rowCount())
+        controller.view.show_project_row_action.setChecked(True)
+        self.assertEqual(2, proxy.rowCount())
+        self.assertEqual("Test", proxy.index(0, 1).data())
+        self.assertIsNotNone(proxy.index(0, 1).data(tracker_tree_model.DECORATION_ROLE))
+        self.assertEqual("a.ma", proxy.index(1, 1).data())
+        controller.refresh()
+        self.assertEqual(2, proxy.rowCount())
+        controller.view.show_project_row_action.setChecked(False)
+        self.assertEqual(1, proxy.rowCount())
+        self.assertEqual("a.ma", proxy.index(0, 1).data())
+        self.assertIsNone(controller.source_model.project_row)
 
     def test_segment_counter_is_hidden_without_multiple_segments(self):
         """Omits segment information for runs with zero or one segment."""

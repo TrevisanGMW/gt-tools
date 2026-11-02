@@ -11,10 +11,12 @@ import gt.ui.qt_import as ui_qt
 import gt.ui.resource_library as ui_res_lib
 import gt.utils.system as utils_system
 
+from gt.tools.batch_processor.tracker import tracker_compact_view
 from gt.tools.batch_processor.tracker import tracker_constants
 from gt.tools.batch_processor.tracker import tracker_model
 from gt.tools.batch_processor.tracker import tracker_system_stats
 from gt.tools.batch_processor.tracker import tracker_sounds
+from gt.tools.batch_processor.tracker import tracker_window_manager
 from gt.tools.batch_processor.tracker import tracker_tree_model
 
 
@@ -23,7 +25,7 @@ class TrackerController:
 
     MAX_LOG_CHARACTERS = 200000
 
-    def __init__(self, session, scheduler, view, preview_mode=False):
+    def __init__(self, session, scheduler, view, preview_mode=False, start_minimized=False):
         """Initializes the tracker controller.
 
         Args:
@@ -32,12 +34,18 @@ class TrackerController:
             view (TrackerView): Standalone tracker view.
             preview_mode (bool, optional): True for an idle window without a batch,
                 used only to edit preferences.
+            start_minimized (bool, optional): Forces a minimized launch regardless of
+                the saved Launch Minimized preference.
         """
         self.preview_mode = preview_mode
         self.session = session
         self.scheduler = scheduler
         self.view = view
-        self.source_model = tracker_tree_model.TrackerTreeModel(session=session, parent=view.tree)
+        self.prefs = core_prefs.Prefs(tracker_constants.PREFS_FILENAME)
+        show_project_row = self.prefs.get_bool(tracker_constants.PREFS_KEY_SHOW_PROJECT_ROW, default=False)
+        self.source_model = tracker_tree_model.TrackerTreeModel(
+            session=session, parent=view.tree, show_project_row=show_project_row
+        )
         self.proxy_model = tracker_tree_model.TrackerFilterProxyModel(view.tree)
         self.proxy_model.setSourceModel(self.source_model)
         self.proxy_model.setSortRole(tracker_tree_model.SORT_ROLE)
@@ -54,7 +62,6 @@ class TrackerController:
         self.cpu_percent = None
         self.memory_percent = None
         self.showing_project_log = False
-        self.prefs = core_prefs.Prefs(tracker_constants.PREFS_FILENAME)
         flag_skips_as_warnings = self.prefs.get_bool(
             tracker_constants.PREFS_KEY_FLAG_SKIPS_AS_WARNINGS,
             default=True,
@@ -71,6 +78,25 @@ class TrackerController:
         )
         self.view.auto_close_action.setChecked(
             self.prefs.get_bool(tracker_constants.PREFS_KEY_AUTO_CLOSE_ON_SUCCESS, default=False)
+        )
+        self.view.show_project_row_action.setChecked(show_project_row)
+        start_compact = self.prefs.get_bool(tracker_constants.PREFS_KEY_START_COMPACT, default=False)
+        use_system_tray = self.prefs.get_bool(tracker_constants.PREFS_KEY_USE_SYSTEM_TRAY, default=False)
+        start_minimized = start_minimized or self.prefs.get_bool(
+            tracker_constants.PREFS_KEY_START_MINIMIZED, default=False
+        )
+        start_minimized = start_minimized and not self.preview_mode
+        self.view.start_compact_action.setChecked(start_compact)
+        self.view.start_minimized_action.setChecked(
+            self.prefs.get_bool(tracker_constants.PREFS_KEY_START_MINIMIZED, default=False)
+        )
+        self.view.use_system_tray_action.setChecked(use_system_tray)
+        self.compact_view = tracker_compact_view.TrackerCompactView(project_name=session.project_name)
+        self.window_manager = tracker_window_manager.TrackerWindowManager(
+            view=self.view,
+            compact_view=self.compact_view,
+            abort_callback=self.request_abort,
+            allow_tray=not self.preview_mode,
         )
         self.auto_close_remaining = 0
         self.auto_close_timer = ui_qt.QtCore.QTimer(self.view)
@@ -93,7 +119,10 @@ class TrackerController:
         self.apply_filters()
         self.refresh()
         self.view.project_logs_button.setChecked(True)
-        self.view.show()
+        self.window_manager.set_tray_enabled(use_system_tray or start_minimized)
+        self._update_compact_view()
+        self.window_manager.show_initial(start_compact and not self.preview_mode, minimized=start_minimized)
+        self._update_compact_view()
 
     def _connect_signals(self):
         """Connects view signals."""
@@ -106,6 +135,23 @@ class TrackerController:
         self.view.tree.customContextMenuRequested.connect(self.show_tree_context_menu)
         self.view.open_batch_processor_action.triggered.connect(self.open_batch_processor)
         self.view.exit_action.triggered.connect(self.view.close)
+        self.view.switch_compact_action.triggered.connect(partial(self.window_manager.set_compact, True))
+        self.compact_view.expand_button.clicked.connect(partial(self.window_manager.set_compact, False))
+        self.compact_view.close_callback = self.view.close
+        self.compact_view.close_button.clicked.connect(self.view.close)
+        self.compact_view.minimize_button.clicked.connect(self.window_manager.minimize_active)
+        self.view.closed_callback = self.on_view_closed
+        self.view.start_minimized_action.toggled.connect(
+            partial(self.save_bool_preference, tracker_constants.PREFS_KEY_START_MINIMIZED)
+        )
+        self.view.start_compact_action.toggled.connect(
+            partial(self.save_bool_preference, tracker_constants.PREFS_KEY_START_COMPACT)
+        )
+        self.view.use_system_tray_action.toggled.connect(
+            partial(self.save_bool_preference, tracker_constants.PREFS_KEY_USE_SYSTEM_TRAY)
+        )
+        self.view.use_system_tray_action.toggled.connect(self.window_manager.set_tray_enabled)
+        self.view.use_system_tray_action.toggled.connect(lambda *args: self._update_compact_view())
         self.view.expand_all_action.triggered.connect(self.view.tree.expandAll)
         self.view.collapse_all_action.triggered.connect(self.view.tree.collapseAll)
         self.view.flag_skips_as_warnings_action.toggled.connect(self.toggle_skip_warnings)
@@ -116,6 +162,10 @@ class TrackerController:
             partial(self.save_bool_preference, tracker_constants.PREFS_KEY_AUTO_CLOSE_ON_SUCCESS)
         )
         self.view.auto_close_action.toggled.connect(self._on_auto_close_toggled)
+        self.view.show_project_row_action.toggled.connect(
+            partial(self.save_bool_preference, tracker_constants.PREFS_KEY_SHOW_PROJECT_ROW)
+        )
+        self.view.show_project_row_action.toggled.connect(self.source_model.set_project_row_visible)
         self.view.tree.header().sortIndicatorChanged.connect(self._update_sort_indicator)
         self.view.restart_failed_jobs_action.triggered.connect(self.restart_all_failed_jobs)
         self.view.restart_canceled_jobs_action.triggered.connect(self.restart_all_canceled_jobs)
@@ -294,6 +344,23 @@ class TrackerController:
             failed=failed,
             warning_jobs=warning_jobs,
         )
+        self._update_compact_view()
+
+    def _update_compact_view(self):
+        """Mirrors overall progress and status into the compact view and tray tooltip."""
+        project_row = tracker_model.TrackerProjectRow(self.session)
+        self.compact_view.set_progress(project_row.progress, project_row.status)
+        self.window_manager.set_progress_badge(project_row.progress, self.session.health_state)
+        self.window_manager.set_tooltip(
+            f"{self.session.project_name} - {project_row.progress}% ({project_row.get_count_text()}) - "
+            f"{project_row.status}"
+        )
+
+    def on_view_closed(self):
+        """Tears down the compact window and tray, and ends the process when standalone."""
+        self.window_manager.shutdown()
+        if not self.preview_mode:
+            ui_qt.QtWidgets.QApplication.quit()
 
     def _update_status_icon(self, errors, warnings, failed, warning_jobs):
         """Updates the overall batch-health icon and its explanatory tooltip.
@@ -306,6 +373,11 @@ class TrackerController:
         """
         if self.preview_mode:
             self.view.set_status_icon(
+                ui_res_lib.Icon.ui_grey_circle,
+                "Preferences preview — no batch is running.",
+                "Tracker status: Preferences preview",
+            )
+            self.compact_view.set_status_icon(
                 ui_res_lib.Icon.ui_grey_circle,
                 "Preferences preview — no batch is running.",
                 "Tracker status: Preferences preview",
@@ -372,7 +444,12 @@ class TrackerController:
             tracker_constants.HealthState.ABORTED: aborted_status,
         }
         icon_path, tooltip, accessible_name = status_data[state]
+        if state == tracker_constants.HealthState.RUNNING:
+            self.view.set_status_spinning(tooltip, accessible_name)
+            self.compact_view.set_status_spinning(tooltip, accessible_name)
+            return
         self.view.set_status_icon(icon_path, tooltip, accessible_name)
+        self.compact_view.set_status_icon(icon_path, tooltip, accessible_name)
 
     @staticmethod
     def _build_summary_html(items):
@@ -893,7 +970,9 @@ class TrackerController:
         paths = []
         messages = []
         item = self.selected_object
-        if isinstance(item, tracker_model.TrackerJob):
+        if getattr(item, "is_project_row", False):
+            paths.append(self.session.project_log_path)
+        elif isinstance(item, tracker_model.TrackerJob):
             paths.extend([item.log_path, item.timing_log_path])
             for task in item.tasks:
                 paths.extend(task.log_paths)
@@ -1001,6 +1080,10 @@ class TrackerController:
         if self.close_after_abort:
             self.view.close()
             return
+        self.window_manager.notify(
+            "Batch Processor Tracker",
+            f"{self.session.project_name}: batch finished ({self.session.health_state}).",
+        )
         if self.view.play_sound_action.isChecked():
             tracker_sounds.play_health_state_sound(self.session.health_state)
         if getattr(self.scheduler.options, "result_file", ""):

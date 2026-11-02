@@ -9,6 +9,7 @@ from copy import deepcopy
 import logging
 import os
 import re
+import sys
 
 # Logging Setup
 logging.basicConfig()
@@ -65,6 +66,39 @@ def get_sound_path(sound_name, sub_folder=None):
     if not os.path.exists(sound_path) or sound_name == "":
         logger.info(f'Could not find sound: "{sound_path}"')
     return sound_path
+
+
+def play_sound_file(sound_path):
+    """
+    Plays a sound file asynchronously without raising on failure.
+    Uses "winsound" on Windows and falls back to "QtMultimedia.QSoundEffect" elsewhere.
+
+    Args:
+        sound_path (str): Path to a WAV file. e.g. "Sound.status_success"
+
+    Returns:
+        bool: True when playback was started.
+    """
+    if not sound_path:
+        return False
+    try:
+        if sys.platform == "win32":
+            import winsound
+
+            winsound.PlaySound(sound_path, winsound.SND_FILENAME | winsound.SND_ASYNC)
+            return True
+        import gt.ui.qt_import as ui_qt
+
+        if ui_qt.QtMultimedia is None:
+            return False
+        effect = ui_qt.QtMultimedia.QSoundEffect()
+        effect.setSource(ui_qt.QtCore.QUrl.fromLocalFile(sound_path))
+        effect.play()
+        play_sound_file.active_effect = effect  # Keeps the effect alive until playback ends
+        return True
+    except Exception as exception:
+        logger.debug(f'Unable to play sound "{sound_path}": {exception}')
+        return False
 
 
 def get_font_path(font_name, sub_folder=None):
@@ -511,6 +545,7 @@ class Icon:
     batch_validator_pass = get_icon_path(r"batch_validator_pass.svg")
     batch_task_log_print = get_icon_path(r"batch_task_log_print.svg")
     batch_tracker = get_icon_path(r"batch_tracker.svg")
+    batch_tracker_project = get_icon_path(r"batch_tracker_project.svg")
     batch_task_import_file = get_icon_path(r"batch_task_import_file.svg")
     batch_task_input_strings = get_icon_path(r"batch_task_input_strings.svg")
     batch_task_input_pairs = get_icon_path(r"batch_task_input_pairs.svg")
@@ -560,6 +595,9 @@ class Icon:
     ui_trash = get_icon_path(r"ui_trash.svg")
     ui_new = get_icon_path(r"ui_new.svg")
     ui_open = get_icon_path(r"ui_open.svg")
+    ui_maximize = get_icon_path(r"ui_maximize.svg")
+    ui_window_minimize = get_icon_path(r"ui_window_minimize.svg")
+    ui_window_close = get_icon_path(r"ui_window_close.svg")
     ui_play = get_icon_path(r"ui_play.svg")
     ui_copy_text = get_icon_path(r"ui_copy_text.svg")
     ui_copy_text_bright = get_icon_path(r"ui_copy_text_bright.svg")

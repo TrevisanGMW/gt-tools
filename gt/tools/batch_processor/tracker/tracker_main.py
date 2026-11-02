@@ -58,6 +58,11 @@ def parse_args():
     parser.add_argument("--no-log", action="store_true", help="Disable human-readable worker logs.")
     parser.add_argument("--task-time-logs", action="store_true", help="Write task timing logs.")
     parser.add_argument("--headless", action="store_true", help="Run the scheduler without a tracker window.")
+    parser.add_argument(
+        "--start-minimized",
+        action="store_true",
+        help="Open the tracker minimized to the system tray (taskbar if no tray), regardless of preferences.",
+    )
     parser.add_argument("--single-project", action="store_true", help="Execute a complete single-instance child.")
     for option in ("session-dir", "result-file", "status-file", "control-file", "run-id", "parent-run-id"):
         parser.add_argument(f"--{option}", default="")
@@ -316,7 +321,12 @@ def run_tracker(args):
     # render while menu icons are pinned to the check-indicator size.
     application.setStyle(tracker_view.MenuIconStyle(application.style()))
     view = tracker_view.TrackerView(project_name=project.project_name)
-    controller = tracker_controller.TrackerController(session=session, scheduler=scheduler, view=view)
+    controller = tracker_controller.TrackerController(
+        session=session,
+        scheduler=scheduler,
+        view=view,
+        start_minimized=getattr(args, "start_minimized", False),
+    )
     if args.maya_version_warning:
         view.statusBar().showMessage(args.maya_version_warning)
     application.controller = controller

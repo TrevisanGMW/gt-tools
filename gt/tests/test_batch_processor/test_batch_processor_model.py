@@ -1086,6 +1086,56 @@ class TestBatchProcessorModel(unittest.TestCase):
 
         self.assertNotIn("--task-time-logs", captured_data.get("command"))
 
+    def test_multi_instance_runner_can_start_tracker_minimized(self):
+        input_dir = os.path.join(self.temp_dir, "01_input")
+        os.makedirs(input_dir)
+        self._write_file(os.path.join(input_dir, "clip.ma"), "maya scene")
+        model = batch_processor_model.BatchProcessorModel()
+        model.project_file_path = os.path.join(self.temp_dir, "project.batch")
+        captured_commands = []
+
+        def fake_popen(command, *args, **kwargs):
+            """Captures a Popen command without launching a tracker."""
+            captured_commands.append(command)
+            return object()
+
+        with mock.patch.object(batch_processor_worker, "find_mayapy_executable", return_value=sys.executable):
+            with mock.patch.object(batch_processor_worker.subprocess, "Popen", side_effect=fake_popen):
+                batch_processor_worker.MultiInstanceBatchRunner(start_minimized=True).run(model)
+                batch_processor_worker.MultiInstanceBatchRunner().run(model)
+
+        self.assertIn("--start-minimized", captured_commands[0])
+        self.assertNotIn("--start-minimized", captured_commands[1])
+
+    def test_multi_instance_runner_publishes_results_only_when_requested(self):
+        input_dir = os.path.join(self.temp_dir, "01_input")
+        os.makedirs(input_dir)
+        self._write_file(os.path.join(input_dir, "clip.ma"), "maya scene")
+        model = batch_processor_model.BatchProcessorModel()
+        model.project_file_path = os.path.join(self.temp_dir, "project.batch")
+        captured_commands = []
+
+        def fake_popen(command, *args, **kwargs):
+            """Captures a Popen command without launching a tracker."""
+            captured_commands.append(command)
+            return object()
+
+        result_dir = os.path.join(self.temp_dir, "results")
+        with mock.patch.object(batch_processor_worker, "find_mayapy_executable", return_value=sys.executable):
+            with mock.patch.object(batch_processor_worker.subprocess, "Popen", side_effect=fake_popen):
+                runner = batch_processor_worker.MultiInstanceBatchRunner(
+                    result_dir=result_dir, window_policy="Close When Finished"
+                )
+                runner.run(model)
+                batch_processor_worker.MultiInstanceBatchRunner().run(model)
+
+        command = captured_commands[0]
+        expected_result_file = os.path.join(result_dir, "result.json")
+        self.assertEqual(expected_result_file, command[command.index("--result-file") + 1])
+        self.assertEqual(runner.run_id, command[command.index("--run-id") + 1])
+        self.assertEqual("Close When Finished", command[command.index("--window-policy") + 1])
+        self.assertNotIn("--result-file", captured_commands[1])
+
     def test_multi_instance_runner_defers_run_once_zip_task(self):
         project_path = os.path.join(self.temp_dir, "project.batch")
         input_dir = os.path.join(self.temp_dir, "01_input")

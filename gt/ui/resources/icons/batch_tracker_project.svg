@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" viewBox="0 0 512 512" xml:space="preserve">
+<g id="tracker_x5F_project">
+	<rect style="fill:none;" width="512" height="512"/>
+	<path id="secondary-fill" style="fill:#9e9e9e;" d="M52,116c0-11,9-20,20-20h126c6,0,11,2,15,6l34,38H440c11,0,20,9,20,20v40H52V116z"/>
+	<rect id="tertiary-fill" style="fill:#d6d6d6;" x="52" y="196" width="408" height="228" rx="20" ry="20"/>
+	<rect id="progress-track" style="fill:#4a4a4a;" x="96" y="278" width="320" height="64" rx="32" ry="32"/>
+	<path id="progress-fill" style="fill:#3978b8;" d="M128,278h116v64H128c-17.7,0-32-14.3-32-32v0C96,292.3,110.3,278,128,278z"/>
+	<path id="primary-stroke" style="fill:none;stroke:#1D1D1D;stroke-width:20;stroke-linecap:round;stroke-linejoin:round;" d="M52,424V116c0-11,9-20,20-20h126c6,0,11,2,15,6l34,38H440c11,0,20,9,20,20v264c0,11-9,20-20,20H72C61,444,52,435,52,424z M52,196h408"/>
+	<rect id="progress-outline" style="fill:none;stroke:#1D1D1D;stroke-width:16;" x="96" y="278" width="320" height="64" rx="32" ry="32"/>
+</g>
+</svg>

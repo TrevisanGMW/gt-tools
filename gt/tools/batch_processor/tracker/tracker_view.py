@@ -4,6 +4,7 @@ import gt.core.session as core_session
 import gt.ui.qt_import as ui_qt
 import gt.ui.resource_library as ui_res_lib
 
+from gt.tools.batch_processor.tracker import tracker_spinner
 from gt.tools.batch_processor.tracker import tracker_tree_model
 
 
@@ -59,6 +60,18 @@ class TrackerTreeView(ui_qt.QtWidgets.QTreeView):
         self.last_viewport_width = 0
         self.resizing_columns = False
 
+    def mousePressEvent(self, event):
+        """Clears the selection when an empty area is clicked.
+
+        Args:
+            event (QMouseEvent): Mouse event.
+        """
+        point = event.position().toPoint() if hasattr(event, "position") else event.pos()
+        if not self.indexAt(point).isValid():
+            self.clearSelection()
+            self.setCurrentIndex(ui_qt.QtCore.QModelIndex())
+        super().mousePressEvent(event)
+
     def drawBranches(self, painter, rectangle, index):
         """Paints root and child branch icons for one row.
 
@@ -70,6 +83,8 @@ class TrackerTreeView(ui_qt.QtWidgets.QTreeView):
         if not index.isValid():
             return
         model = index.model()
+        if getattr(index.data(tracker_tree_model.OBJECT_ROLE), "is_project_row", False):
+            return
         child_count = model.rowCount(index)
         if child_count:
             icon_path = (
@@ -191,6 +206,8 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
         """
         super().__init__(parent)
         self.close_callback = None
+        self.closed_callback = None
+        self.minimize_to_tray_callback = None
         self.setWindowTitle(f"Batch Processor Tracker - {project_name}")
         self.setWindowIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.batch_tracker))
         self.resize(1320, 720)
@@ -229,6 +246,11 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
         self.open_batch_processor_action.setToolTip(
             "Open this project in an independent Batch Processor."
         )
+        self.switch_compact_action = self.file_menu.addAction(
+            ui_qt.QtGui.QIcon(ui_res_lib.Icon.batch_tracker_project),
+            "Switch to Compact Tracker",
+        )
+        self.switch_compact_action.setToolTip("Collapse the tracker to a small icon, name and progress bar.")
         self.file_menu.addSeparator()
         self.exit_action = self.file_menu.addAction(
             ui_qt.QtGui.QIcon(ui_res_lib.Icon.setup_close),
@@ -308,6 +330,24 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
         self.auto_close_action.setToolTip(
             "Close this window 10 seconds after a batch completes without errors. Saved for new trackers."
         )
+        self.show_project_row_action = self.preferences_menu.addAction("Show Project Row")
+        self.show_project_row_action.setCheckable(True)
+        self.show_project_row_action.setToolTip(
+            "Pin a project row with the overall progress above the jobs. Applies immediately and is saved."
+        )
+        self.start_compact_action = self.preferences_menu.addAction("Launch in Compact Mode")
+        self.start_compact_action.setCheckable(True)
+        self.start_compact_action.setToolTip("Open new trackers as the compact tracker. Saved for new trackers.")
+        self.start_minimized_action = self.preferences_menu.addAction("Launch Minimized")
+        self.start_minimized_action.setCheckable(True)
+        self.start_minimized_action.setToolTip(
+            "Open new trackers minimized to the system tray (or the taskbar when no tray exists). Saved for new trackers."
+        )
+        self.use_system_tray_action = self.preferences_menu.addAction("Minimize to System Tray Instead of Taskbar")
+        self.use_system_tray_action.setCheckable(True)
+        self.use_system_tray_action.setToolTip(
+            "Show a system tray icon (click to show or hide the tracker) and keep tracker windows off the taskbar."
+        )
         self.search_field = ui_qt.QtWidgets.QLineEdit()
         self.search_field.setPlaceholderText("Filter by job name...")
         self.search_field.setClearButtonEnabled(True)
@@ -333,6 +373,7 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
         self.status_icon_label.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignCenter)
         self.status_icon_label.setToolTip("Starting — preparing the worker queue.")
         self.status_icon_label.setAccessibleName("Tracker status: Starting")
+        self.status_spinner = tracker_spinner.StatusSpinner(self.status_icon_label, lambda: 20)
         self.primary_summary_label.setTextFormat(ui_qt.QtCore.Qt.RichText)
         self.secondary_summary_label.setTextFormat(ui_qt.QtCore.Qt.RichText)
         self.project_logs_button = ui_qt.QtWidgets.QPushButton("Project Logs")
@@ -484,6 +525,7 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
             tooltip (str): Detailed hover text.
             accessible_name (str): Screen-reader description.
         """
+        self.status_spinner.stop()
         pixmap = ui_qt.QtGui.QPixmap(icon_path)
         keep_aspect_ratio = (
             ui_qt.QtCore.Qt.AspectRatioMode.KeepAspectRatio
@@ -499,6 +541,17 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
         self.status_icon_label.setPixmap(pixmap)
         self.status_icon_label.setToolTip(tooltip)
         self.status_icon_label.setAccessibleName(accessible_name)
+
+    def set_status_spinning(self, tooltip, accessible_name):
+        """Shows the animated processing indicator instead of a static status icon.
+
+        Args:
+            tooltip (str): Detailed hover text.
+            accessible_name (str): Screen-reader description.
+        """
+        self.status_icon_label.setToolTip(tooltip)
+        self.status_icon_label.setAccessibleName(accessible_name)
+        self.status_spinner.start()
 
     def set_logs_visible(self, visible):
         """Shows or hides the log panel.
@@ -615,6 +668,25 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
         message_box.exec_()
         return "abort" if message_box.clickedButton() == abort_button else "keep_running"
 
+    def changeEvent(self, event):
+        """Sends minimize requests to the tray when tray mode is active.
+
+        Args:
+            event (QEvent): Change event.
+        """
+        super().changeEvent(event)
+        if (
+            event.type() == ui_qt.QtCore.QEvent.WindowStateChange
+            and self.isMinimized()
+            and callable(self.minimize_to_tray_callback)
+        ):
+            ui_qt.QtCore.QTimer.singleShot(0, self._minimize_to_tray)
+
+    def _minimize_to_tray(self):
+        """Runs the tray minimize callback if tray mode is still active."""
+        if callable(self.minimize_to_tray_callback):
+            self.minimize_to_tray_callback(self)
+
     def closeEvent(self, event):
         """Delegates active-session close decisions to the controller.
 
@@ -625,3 +697,5 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
             event.ignore()
             return
         event.accept()
+        if callable(self.closed_callback):
+            self.closed_callback()

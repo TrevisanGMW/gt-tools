@@ -482,6 +482,7 @@ class TestKimodoGeneration(unittest.TestCase):
 
     def test_cached_failure_explains_opt_in_and_retries_with_new_job_id(self):
         """Avoids repeating a stored failure and issues a new ID only after explicit retry."""
+        self.task.settings["retry_failed"] = False
         self.client.status.return_value = {"status": "failed", "stage": "failed", "error": "old failure"}
         with mock.patch.object(generation, "connect", return_value=self.client):
             with self.assertRaisesRegex(RuntimeError, "old failure"):

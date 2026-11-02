@@ -6,6 +6,10 @@ PREFS_KEY_FLAG_SKIPS_AS_WARNINGS = "flag_skips_as_warnings"
 PREFS_KEY_HIDE_COMPLETED_BY_DEFAULT = "hide_completed_by_default"
 PREFS_KEY_PLAY_SOUND_ON_COMPLETION = "play_sound_on_completion"
 PREFS_KEY_AUTO_CLOSE_ON_SUCCESS = "auto_close_on_success"
+PREFS_KEY_SHOW_PROJECT_ROW = "show_project_row"
+PREFS_KEY_START_COMPACT = "start_compact"
+PREFS_KEY_START_MINIMIZED = "start_minimized"
+PREFS_KEY_USE_SYSTEM_TRAY = "use_system_tray"
 AUTO_CLOSE_SECONDS = 10
 SOUND_TAIL_MS = 1500
 
@@ -51,6 +55,16 @@ STATUS_COLORS = {
     Status.CANCELED: "#696d72",
     Status.SKIPPED: "#75659b",
     Status.BLOCKED: "#a16e48",
+}
+
+TRAY_BADGE_DEFAULT_COLOR = "#141414"
+TRAY_BADGE_LIGHT_TEXT_COLOR = "#ffffff"
+TRAY_BADGE_DARK_TEXT_COLOR = "#111111"
+TRAY_BADGE_COLORS = {
+    HealthState.COMPLETED: "#7fbf8f",
+    HealthState.WARNING: "#d9b84a",
+    HealthState.ERROR: "#c96b6b",
+    HealthState.ABORTED: "#c96b6b",
 }
 
 TERMINAL_STATUSES = {

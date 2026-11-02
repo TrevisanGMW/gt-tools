@@ -47,7 +47,7 @@ class TaskKimodoGenerate(TaskKimodoBase):
                         "start_encoder": True, "timeout": 10},
             docker={"directory": "", "executable": ""},
             authentication="auto", token_environment="", startup_timeout=180, queue_timeout=7200, generation_timeout=1200,
-            poll_interval=1, network_retries=5, cancel_on_timeout=False, retry_failed=False,
+            poll_interval=1, network_retries=5, cancel_on_timeout=False, retry_failed=True,
             result_mode="maya", output_extension=".ma", namespace="kimodo", import_start_frame=1,
             add_humanik=True, humanik=humanik.default_settings(), expected_model_fps=30,
             import_incoming_scene=False, include_definition_attribute=True,

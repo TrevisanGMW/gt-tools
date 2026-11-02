@@ -1,7 +1,6 @@
 """Status sound playback for the standalone Batch Processor tracker."""
 
 import logging
-import sys
 
 import gt.ui.resource_library as ui_res_lib
 
@@ -30,37 +29,6 @@ def get_sound_for_health_state(health_state):
     return sounds.get(health_state, "")
 
 
-def play_sound_file(sound_path):
-    """Plays a sound file asynchronously without raising on failure.
-
-    Args:
-        sound_path (str): Path to a WAV file.
-
-    Returns:
-        bool: True when playback was started.
-    """
-    if not sound_path:
-        return False
-    try:
-        if sys.platform == "win32":
-            import winsound
-
-            winsound.PlaySound(sound_path, winsound.SND_FILENAME | winsound.SND_ASYNC)
-            return True
-        import gt.ui.qt_import as ui_qt
-
-        if ui_qt.QtMultimedia is None:
-            return False
-        effect = ui_qt.QtMultimedia.QSoundEffect()
-        effect.setSource(ui_qt.QtCore.QUrl.fromLocalFile(sound_path))
-        effect.play()
-        play_sound_file.active_effect = effect
-        return True
-    except Exception as exception:
-        logger.debug(f"Unable to play sound '{sound_path}': {exception}")
-        return False
-
-
 def play_health_state_sound(health_state):
     """Plays the sound matching a tracker health state.
 
@@ -70,4 +38,4 @@ def play_health_state_sound(health_state):
     Returns:
         bool: True when playback was started.
     """
-    return play_sound_file(get_sound_for_health_state(health_state))
+    return ui_res_lib.play_sound_file(get_sound_for_health_state(health_state))
