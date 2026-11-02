@@ -5,6 +5,7 @@ Auto Rigger Controller
 import gt.tools.auto_rigger.control_rig_pose_service as tools_control_pose_service
 import gt.tools.auto_rigger.attr_widgets.attr_widgets as tools_rig_attr_widget
 import gt.tools.auto_rigger.control_rig_pose as tools_control_pose
+import gt.tools.auto_rigger.rigger_build_sounds as tools_rig_build_sounds
 import gt.tools.auto_rigger.rigger_log_view as tools_rig_log_view
 import gt.tools.auto_rigger.rig_templates as tools_rig_templates
 import gt.tools.auto_rigger.rig_constants as tools_rig_const
@@ -189,6 +190,9 @@ class RiggerController:
         )
         self._on_build_auto_dock_log = self._prefs.get_bool(
             key=tools_rig_const.RiggerConstants.PREFS_KEY_ON_BUILD_AUTO_DOCK_LOG, default=True
+        )
+        self._on_build_play_sound = self._prefs.get_bool(
+            key=tools_rig_const.RiggerConstants.PREFS_KEY_ON_BUILD_PLAY_SOUND, default=False
         )
         self._on_set_path_abs_to_relative = self._prefs.get_bool(
             key=tools_rig_const.RiggerConstants.PREFS_KEY_ON_SET_PATH_ABS_TO_RELATIVE, default=True
@@ -672,6 +676,17 @@ class RiggerController:
         on_import_randomize_uuids_action.setToolTip(tooltip)
         self.view.add_menu_action(parent_menu=menu_prefs, action=on_import_randomize_uuids_action)
         on_import_randomize_uuids_action.setChecked(self._on_import_randomize_uuids)
+
+        # On Build Play Status Sound
+        on_build_play_sound_action = ui_qt.QtLib.QtGui.QAction("Play Sound When Build Completes", checkable=True)
+        on_build_play_sound_action.triggered.connect(self.toggle_on_build_play_sound)
+        tooltip = (
+            "If enabled, a sound matching the final status plays when a rig build finishes.\n"
+            "Success, warning (warnings were logged) or failure (errors were logged or the build stopped)."
+        )
+        on_build_play_sound_action.setToolTip(tooltip)
+        self.view.add_menu_action(parent_menu=menu_prefs, action=on_build_play_sound_action)
+        on_build_play_sound_action.setChecked(self._on_build_play_sound)
 
     def add_menu_log(self):
         """
@@ -1675,6 +1690,51 @@ class RiggerController:
         self._prefs.set_bool(key=tools_rig_const.RiggerConstants.PREFS_KEY_ON_BUILD_AUTO_DOCK_LOG, value=checked)
         self._prefs.save()
 
+    def toggle_on_build_play_sound(self, checked):
+        """Toggles playing a status sound when a rig build completes.
+
+        Args:
+            checked (bool): The new state for playing a sound on build completion.
+        """
+        self._on_build_play_sound = checked
+        self._prefs.set_bool(key=tools_rig_const.RiggerConstants.PREFS_KEY_ON_BUILD_PLAY_SOUND, value=checked)
+        self._prefs.save()
+
+    def get_build_status_loggers(self):
+        """Gets the loggers monitored to determine the final build status.
+
+        Matches the loggers displayed by the build log window: the Auto Rigger loggers and the root logger.
+
+        Returns:
+            list: Loggers (logging.Logger) to monitor during a build.
+        """
+        rigger_logger_name = core_log.get_logger_name(__name__)
+        loggers = core_log.get_loggers_by_name_prefix(rigger_logger_name)
+        loggers.append(logging.getLogger())
+        return loggers
+
+    def run_build_with_status_sound(self, build_function):
+        """Runs a build operation and, when enabled, plays a sound matching its final status.
+
+        Logged warnings play the warning sound, while logged errors or raised exceptions play the failure sound.
+        Exceptions are never suppressed.
+
+        Args:
+            build_function (callable): The build operation to run.
+        """
+        if not self._on_build_play_sound:
+            build_function()
+            return
+        log_monitor = tools_rig_build_sounds.BuildLogMonitor(loggers=self.get_build_status_loggers())
+        build_failed = True
+        try:
+            with log_monitor:
+                build_function()
+            build_failed = False
+        finally:
+            build_status = log_monitor.get_status(build_failed=build_failed)
+            tools_rig_build_sounds.play_build_status_sound(build_status)
+
     def show_log_view_for_build(self):
         """Shows the build log view and docks it below the Auto Rigger in Maya.
 
@@ -1963,6 +2023,15 @@ class RiggerController:
         if self._on_build_show_log_view:
             self.show_log_view_for_build()
 
+        self.run_build_with_status_sound(partial(self._build_rig_project, project))
+
+    @staticmethod
+    def _build_rig_project(project):
+        """Builds the optimized proxy and the rig for a project.
+
+        Args:
+            project (RigProject): The project to build.
+        """
         logger.operation(f'Initializing build rig operation for "{project.get_name()}".')
         project.build_proxy(optimized=True)
         project.build_rig()
