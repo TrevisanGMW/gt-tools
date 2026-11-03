@@ -4,7 +4,7 @@ import gt.core.session as core_session
 import gt.ui.qt_import as ui_qt
 import gt.ui.resource_library as ui_res_lib
 
-from gt.tools.batch_processor.tracker import tracker_spinner
+from gt.tools.batch_processor.tracker import tracker_title_bar
 from gt.tools.batch_processor.tracker import tracker_tree_model
 
 
@@ -45,6 +45,93 @@ class MenuIconStyle(ui_qt.QtWidgets.QProxyStyle):
         if metric == pixel_metric.PM_SmallIconSize:
             return MENU_ICON_SIZE
         return super().pixelMetric(metric, option, widget)
+
+
+class TrackerSplitterHandle(ui_qt.QtWidgets.QSplitterHandle):
+    """Splitter handle drawn as a small centered grip instead of a full-width line."""
+
+    GRIP_WIDTH = 44
+    GRIP_HEIGHT = 4
+
+    def paintEvent(self, event):
+        """Paints a rounded grip pill that brightens on hover.
+
+        Args:
+            event (QPaintEvent): Paint event.
+        """
+        painter = ui_qt.QtGui.QPainter(self)
+        painter.setRenderHint(ui_qt.QtGui.QPainter.Antialiasing, True)
+        active = self.underMouse() or self.property("dragging")
+        painter.setPen(ui_qt.QtCore.Qt.NoPen)
+        painter.setBrush(ui_qt.QtGui.QColor("#7d8e97" if active else "#5a5a5a"))
+        grip = ui_qt.QtCore.QRectF(
+            (self.width() - self.GRIP_WIDTH) / 2.0,
+            (self.height() - self.GRIP_HEIGHT) / 2.0,
+            self.GRIP_WIDTH,
+            self.GRIP_HEIGHT,
+        )
+        painter.drawRoundedRect(grip, self.GRIP_HEIGHT / 2.0, self.GRIP_HEIGHT / 2.0)
+
+    def enterEvent(self, event):
+        """Repaints for the hover color.
+
+        Args:
+            event (QEvent): Enter event.
+        """
+        super().enterEvent(event)
+        self.update()
+
+    def leaveEvent(self, event):
+        """Repaints for the idle color.
+
+        Args:
+            event (QEvent): Leave event.
+        """
+        super().leaveEvent(event)
+        self.update()
+
+    def mousePressEvent(self, event):
+        """Marks the grip as being dragged.
+
+        Args:
+            event (QMouseEvent): Mouse event.
+        """
+        self.setProperty("dragging", True)
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        """Clears the dragging mark.
+
+        Args:
+            event (QMouseEvent): Mouse event.
+        """
+        self.setProperty("dragging", False)
+        super().mouseReleaseEvent(event)
+        self.update()
+
+
+class TrackerSplitter(ui_qt.QtWidgets.QSplitter):
+    """Splitter whose handle blends with the tracker styling."""
+
+    HANDLE_THICKNESS = 12
+
+    def __init__(self, orientation, parent=None):
+        """Initializes the splitter with a roomier, borderless handle.
+
+        Args:
+            orientation (Qt.Orientation): Split direction.
+            parent (QWidget, optional): Qt parent.
+        """
+        super().__init__(orientation, parent)
+        self.setHandleWidth(self.HANDLE_THICKNESS)
+
+    def createHandle(self):
+        """Creates the custom handle.
+
+        Returns:
+            TrackerSplitterHandle: Handle for this splitter.
+        """
+        return TrackerSplitterHandle(self.orientation(), self)
 
 
 class TrackerTreeView(ui_qt.QtWidgets.QTreeView):
@@ -212,6 +299,10 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
         self.setWindowIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.batch_tracker))
         self.resize(1320, 720)
         self.setMinimumSize(900, 480)
+        self.window_frame = tracker_title_bar.FramelessWindowFrame(self)
+        self.status_icon_label = self.window_frame.title_bar.status_icon_label
+        self.status_spinner = self.window_frame.title_bar.status_spinner
+        self.compact_button = self.window_frame.title_bar.compact_button
         self._create_widgets()
         self._create_layout()
         self._apply_stylesheet()
@@ -247,7 +338,7 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
             "Open this project in an independent Batch Processor."
         )
         self.switch_compact_action = self.file_menu.addAction(
-            ui_qt.QtGui.QIcon(ui_res_lib.Icon.batch_tracker_project),
+            ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_tracker_compact),
             "Switch to Compact Tracker",
         )
         self.switch_compact_action.setToolTip("Collapse the tracker to a small icon, name and progress bar.")
@@ -359,7 +450,7 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
         self.log_tabs.setTabsClosable(False)
         self.log_tabs.setMinimumHeight(150)
 
-        self.splitter = ui_qt.QtWidgets.QSplitter(ui_qt.QtLib.Orientation.Vertical)
+        self.splitter = TrackerSplitter(ui_qt.QtLib.Orientation.Vertical)
         self.splitter.setChildrenCollapsible(False)
         self.splitter.addWidget(self.tree)
         self.splitter.addWidget(self.log_tabs)
@@ -368,12 +459,6 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
         self.information_widget = ui_qt.QtWidgets.QWidget()
         self.primary_summary_label = ui_qt.QtWidgets.QLabel()
         self.secondary_summary_label = ui_qt.QtWidgets.QLabel()
-        self.status_icon_label = ui_qt.QtWidgets.QLabel()
-        self.status_icon_label.setFixedSize(24, 24)
-        self.status_icon_label.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignCenter)
-        self.status_icon_label.setToolTip("Starting — preparing the worker queue.")
-        self.status_icon_label.setAccessibleName("Tracker status: Starting")
-        self.status_spinner = tracker_spinner.StatusSpinner(self.status_icon_label, lambda: 20)
         self.primary_summary_label.setTextFormat(ui_qt.QtCore.Qt.RichText)
         self.secondary_summary_label.setTextFormat(ui_qt.QtCore.Qt.RichText)
         self.project_logs_button = ui_qt.QtWidgets.QPushButton("Project Logs")
@@ -420,14 +505,13 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
         information_layout.addLayout(primary_layout)
         secondary_layout = ui_qt.QtWidgets.QHBoxLayout()
         secondary_layout.addWidget(self.secondary_summary_label, 1)
-        secondary_layout.addWidget(self.status_icon_label)
         secondary_layout.addWidget(self.project_folder_button)
         secondary_layout.addWidget(self.project_logs_button)
         secondary_layout.addWidget(self.show_logs_button)
         secondary_layout.addWidget(self.abort_button)
         information_layout.addLayout(secondary_layout)
         main_layout.addWidget(self.information_widget)
-        self.setCentralWidget(central_widget)
+        self.setCentralWidget(self.window_frame.wrap(central_widget))
 
     def _apply_stylesheet(self):
         """Applies repository-compatible standalone styling."""
@@ -502,7 +586,9 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
         )
         self.log_tabs.setStyleSheet(
             "QTabWidget { background-color: #292929; color: #e6e6e6; border-radius: 5px; }"
-            "QTabWidget::pane { background-color: #242424; border: 1px solid #484848; border-radius: 5px; }"
+            "QTabWidget::pane { background-color: #242424; border: 1px solid #484848; border-radius: 5px;"
+            " border-top-left-radius: 0px; top: -1px; }"
+            "QTabBar { qproperty-drawBase: 0; background: transparent; }"
             "QTabBar::tab { background-color: #303030; color: #cfcfcf; padding: 6px 10px;"
             " border: 1px solid #444444; border-bottom: none;"
             " border-top-left-radius: 4px; border-top-right-radius: 4px; }"
@@ -686,6 +772,21 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
         """Runs the tray minimize callback if tray mode is still active."""
         if callable(self.minimize_to_tray_callback):
             self.minimize_to_tray_callback(self)
+
+    def nativeEvent(self, event_type, message):
+        """Lets the custom frame handle native Windows messages.
+
+        Args:
+            event_type (QByteArray): Native event type.
+            message (object): Native message pointer.
+
+        Returns:
+            tuple: ``(handled, result)``.
+        """
+        handled, result = tracker_title_bar.handle_native_event(event_type, message)
+        if handled:
+            return True, result
+        return super().nativeEvent(event_type, message)
 
     def closeEvent(self, event):
         """Delegates active-session close decisions to the controller.

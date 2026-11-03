@@ -8,6 +8,7 @@ Import Line:
 import gt.core.session as core_session
 import gt.utils.system as utils_sys
 import gt.ui.qt_import as ui_qt
+import gt.ui.window_theme as window_theme
 import logging
 import sys
 import os
@@ -596,6 +597,12 @@ class MayaWindowMeta(type):
                     if not getattr(self, "allow_workspace_restore", True):
                         workspace_control_name = f"{self.objectName()}WorkspaceControl"
                         mcs._discard_workspace_control(workspace_control_name)
+                # Dark native title bar on Windows (opt out with ``use_dark_title_bar = False``)
+                try:
+                    if getattr(self, "use_dark_title_bar", True):
+                        window_theme.install_dark_title_bar(self)
+                except Exception as e:
+                    logger.debug(f'Unable to install the dark title bar. Issue: "{str(e)}".')
                 # Stay On Top macOS Tool Modality
                 try:
                     if utils_sys.is_system_macos() and not dockable:
