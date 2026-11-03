@@ -57,14 +57,15 @@ STATUS_COLORS = {
     Status.BLOCKED: "#a16e48",
 }
 
-TRAY_BADGE_DEFAULT_COLOR = "#141414"
-TRAY_BADGE_LIGHT_TEXT_COLOR = "#ffffff"
-TRAY_BADGE_DARK_TEXT_COLOR = "#111111"
+TRAY_BADGE_DEFAULT_COLOR = "#4a90d9"
+TRAY_TILE_COLOR = "#1b1e22"
+TRAY_TRACK_COLOR = "#454a50"
+TRAY_TEXT_COLOR = "#ffffff"
 TRAY_BADGE_COLORS = {
-    HealthState.COMPLETED: "#7fbf8f",
-    HealthState.WARNING: "#d9b84a",
-    HealthState.ERROR: "#c96b6b",
-    HealthState.ABORTED: "#c96b6b",
+    HealthState.COMPLETED: "#5fcf86",
+    HealthState.WARNING: "#e6b93a",
+    HealthState.ERROR: "#e8645e",
+    HealthState.ABORTED: "#e8645e",
 }
 
 TERMINAL_STATUSES = {

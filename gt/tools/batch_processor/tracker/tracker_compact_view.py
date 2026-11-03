@@ -40,7 +40,10 @@ def compute_ui_scale(widget):
     """
     screen = widget.screen() if hasattr(widget, "screen") else None
     screen = screen or ui_qt.QtWidgets.QApplication.primaryScreen()
-    scale_candidates = [1.0, widget.fontMetrics().height() / FONT_REFERENCE_HEIGHT]
+    # Measure the application font, not the widget font: the widget stylesheet
+    # sets a scaled font size, which would feed back into the scale on every call.
+    application_font_height = ui_qt.QtGui.QFontMetrics(ui_qt.QtWidgets.QApplication.font()).height()
+    scale_candidates = [1.0, application_font_height / FONT_REFERENCE_HEIGHT]
     if screen:
         scale_candidates.append(screen.geometry().height() / float(REFERENCE_SCREEN_HEIGHT))
         if screen.devicePixelRatio() <= 1.01:
@@ -179,10 +182,10 @@ class ResizeGrip(ui_qt.QtWidgets.QWidget):
         if self.is_left_edge:
             new_width = max(minimum_width, self.press_width - delta)
             new_left = self.press_left + (self.press_width - new_width)
-            self.target_window.setGeometry(new_left, self.target_window.y(), new_width, self.target_window.height())
+            self.target_window.user_resize(new_width, new_left)
         else:
             new_width = max(minimum_width, self.press_width + delta)
-            self.target_window.resize(new_width, self.target_window.height())
+            self.target_window.user_resize(new_width)
         event.accept()
 
 
@@ -200,6 +203,9 @@ class TrackerCompactView(ui_qt.QtWidgets.QWidget):
         self.close_callback = None
         self.drag_offset = None
         self.ui_scale = 0.0
+        self.width_units = float(BASE_WIDTH)
+        self.user_resizing = False
+        self.screen_connected = False
         self.setWindowTitle(f"Batch Processor Tracker - {project_name}")
         self.setWindowIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.batch_tracker))
         self.setWindowFlag(ui_qt.QtCore.Qt.FramelessWindowHint, True)
@@ -207,7 +213,7 @@ class TrackerCompactView(ui_qt.QtWidgets.QWidget):
         self._create_widgets(project_name)
         self._create_layout()
         self.apply_scale()
-        self.resize(self.scale_px(BASE_WIDTH), self.scale_px(BASE_HEIGHT))
+        self.resize(self.scale_px(self.width_units), self.scale_px(BASE_HEIGHT))
 
     def scale_px(self, value):
         """Scales a base pixel size by the current UI scale.
@@ -279,12 +285,66 @@ class TrackerCompactView(ui_qt.QtWidgets.QWidget):
         self.content_layout.addLayout(self.title_layout)
         self.content_layout.addWidget(self.progress_bar)
 
-    def apply_scale(self):
-        """Recomputes the UI scale and resizes every scaled element."""
+    def user_resize(self, width, left=None):
+        """Applies a width chosen by the user and remembers it in scale-independent units.
+
+        Args:
+            width (int): New window width in pixels.
+            left (int, optional): New left edge, used when dragging the left handle.
+        """
+        self.user_resizing = True
+        try:
+            if left is None:
+                self.resize(width, self.height())
+            else:
+                self.setGeometry(left, self.y(), width, self.height())
+            self.width_units = self.width() / self.ui_scale
+        finally:
+            self.user_resizing = False
+
+    def refresh_for_screen(self):
+        """Re-applies scale, size, and styling after the window moved to another screen.
+
+        The window keeps its remembered width (in scale-independent units) so
+        moving between monitors never grows or shrinks it, and every child is
+        repolished and repainted, since Qt can leave them blank after a DPI change.
+        """
+        self.apply_scale(force=True)
+        self._fit_width_to_screen()
+        for widget in [self] + self.findChildren(ui_qt.QtWidgets.QWidget):
+            widget.style().unpolish(widget)
+            widget.style().polish(widget)
+            widget.update()
+        self.update()
+
+    def _fit_width_to_screen(self):
+        """Resizes to the remembered width, clamped to the current screen."""
+        screen = self.screen() or ui_qt.QtWidgets.QApplication.primaryScreen()
+        width = self.scale_px(self.width_units)
+        if screen:
+            width = min(width, screen.availableGeometry().width())
+        width = max(width, self.minimumWidth())
+        if width != self.width():
+            self.resize(width, self.scale_px(BASE_HEIGHT))
+
+    def _on_screen_changed(self, screen=None):
+        """Defers the refresh until Qt has finished moving the window.
+
+        Args:
+            screen (QScreen, optional): New screen.
+        """
+        ui_qt.QtCore.QTimer.singleShot(0, self.refresh_for_screen)
+        ui_qt.QtCore.QTimer.singleShot(150, self.refresh_for_screen)
+
+    def apply_scale(self, force=False):
+        """Recomputes the UI scale and resizes every scaled element.
+
+        Args:
+            force (bool, optional): Re-apply even when the scale did not change.
+        """
         new_scale = compute_ui_scale(self)
-        if abs(new_scale - self.ui_scale) < 0.01:
+        if not force and abs(new_scale - self.ui_scale) < 0.01:
             return
-        previous_scale = self.ui_scale
         self.ui_scale = new_scale
         icon_size = self.scale_px(BASE_ICON_SIZE)
         button_size = self.scale_px(BASE_BUTTON_SIZE)
@@ -309,8 +369,8 @@ class TrackerCompactView(ui_qt.QtWidgets.QWidget):
         if self.status_pixmap_path and not self.status_spinner.is_active():
             self.set_status_icon(self.status_pixmap_path, self.status_icon_label.toolTip(),
                                  self.status_icon_label.accessibleName())
-        if previous_scale:
-            self.resize(int(self.width() * new_scale / previous_scale), self.height())
+        if self.width() > 1 and self.isVisible():
+            self._fit_width_to_screen()
 
     def _apply_stylesheet(self):
         """Applies styling consistent with the full tracker, scaled to the screen."""
@@ -334,7 +394,11 @@ class TrackerCompactView(ui_qt.QtWidgets.QWidget):
             event (QShowEvent): Show event.
         """
         super().showEvent(event)
+        if not self.screen_connected and self.windowHandle():
+            self.windowHandle().screenChanged.connect(self._on_screen_changed)
+            self.screen_connected = True
         self.apply_scale()
+        self._fit_width_to_screen()
 
     def resizeEvent(self, event):
         """Keeps the resize handles on the left and right edges.

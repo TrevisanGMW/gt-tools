@@ -224,7 +224,7 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         if button:
             group_layout.addWidget(button)
         group_layout.addStretch()
-        parent_layout.addWidget(group_widget)
+        parent_layout.addWidget(group_widget, 1)
 
     def add_source_path_field(self, tooltip=None):
         """Adds a standard source path-template field.
@@ -940,15 +940,37 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         Args:
             label_text (str, optional): Button text.
             tooltip (str, optional): Button tooltip.
+
+        Returns:
+            QPushButton: Created button.
         """
         tooltip = tooltip or "Run only this task using the current batch project settings."
         layout = self.add_labeled_layout("Actions", tooltip=tooltip)
-        button = ui_qt.QtWidgets.QPushButton(label_text)
-        button.setMinimumHeight(35)
-        button.setToolTip(tooltip)
+        button = self.create_action_button(label_text, tooltip=tooltip, icon_path=ui_res_lib.Icon.ui_play)
         button.clicked.connect(self.run_this_task_now)
         layout.addWidget(button)
         layout.addStretch()
+        return button
+
+    @staticmethod
+    def create_action_button(label_text, tooltip=None, icon_path=None):
+        """Creates an action button with horizontal padding so its text never touches the border.
+
+        Args:
+            label_text (str): Button text.
+            tooltip (str, optional): Button tooltip.
+            icon_path (str, optional): Optional icon resource path.
+
+        Returns:
+            QPushButton: Created button.
+        """
+        button = ui_qt.QtWidgets.QPushButton(label_text)
+        button.setMinimumHeight(35)
+        button.setStyleSheet("padding: 3px 16px;")
+        if icon_path:
+            button.setIcon(ui_qt.QtGui.QIcon(icon_path))
+        button.setToolTip(tooltip or label_text)
+        return button
 
     def run_this_task_now(self):
         """Runs this task through the owning batch controller."""
@@ -1270,6 +1292,10 @@ def get_task_widget_class(task):
         from gt.tools.batch_processor.widgets.attr_widget_validation import AttrWidgetFolderCompareValidationTask
 
         return AttrWidgetFolderCompareValidationTask
+    if task.task_type == constants.TaskType.PYTHON_SCRIPT_VALIDATE:
+        from gt.tools.batch_processor.widgets.attr_widget_validation import AttrWidgetPythonValidationTask
+
+        return AttrWidgetPythonValidationTask
     if task.task_type == constants.TaskType.THUMBNAIL_CAPTURE:
         from gt.tools.batch_processor.widgets.attr_widget_capture import AttrWidgetThumbnailCaptureTask
 

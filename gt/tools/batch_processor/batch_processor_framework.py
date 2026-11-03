@@ -105,6 +105,7 @@ TaskArchive = batch_processor_tasks.TaskArchive
 TaskValidationMayaScene = batch_processor_tasks.TaskValidationMayaScene
 TaskValidationFileIntegrity = batch_processor_tasks.TaskValidationFileIntegrity
 TaskValidationFolderCompare = batch_processor_tasks.TaskValidationFolderCompare
+TaskValidationPythonScript = batch_processor_tasks.TaskValidationPythonScript
 TaskCaptureThumbnail = batch_processor_tasks.TaskCaptureThumbnail
 TaskCapturePlayblast = batch_processor_tasks.TaskCapturePlayblast
 WorkItem = batch_processor_tasks.WorkItem

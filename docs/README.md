@@ -277,6 +277,7 @@ environments and custom queries for compatibility.</p>
   <li><b>Validate Scene:</b> Runs the configured Maya scene validators.</li>
   <li><b>Validate Integrity:</b> Checks files for expected integrity and availability.</li>
   <li><b>Validate Parity:</b> Compares folders for matching contents.</li>
+  <li><b>Validate Python:</b> Runs a custom inline or external Python validation script that reports errors, warnings, and skips for each file.</li>
   <li><b>Capture Thumbnail:</b> Saves a representative image of the result.</li>
   <li><b>Capture Playblast:</b> Creates a playblast from the processed scene.</li>
 </ul>

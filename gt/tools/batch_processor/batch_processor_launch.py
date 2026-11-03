@@ -114,7 +114,7 @@ def launch_project(
     start_minimized=True,
     run_from_task_id=None,
     run_to_task_id=None,
-    close_when_finished=False,
+    close_when_finished=True,
     result_dir=None,
 ):
     """Launches a saved Batch Processor project in its standalone tracker.
@@ -133,7 +133,8 @@ def launch_project(
         run_from_task_id (str, optional): Task id to start from.
         run_to_task_id (str, optional): Task id to stop after.
         close_when_finished (bool, optional): Close the tracker window and process as soon
-            as the run ends, instead of leaving it open for inspection.
+            as the run ends (default). Pass False to leave it open for inspection; the
+            tracker process then keeps running until closed, so do not wait on its exit.
         result_dir (str, optional): Where to publish result files. Defaults to a new temp folder.
 
     Returns:

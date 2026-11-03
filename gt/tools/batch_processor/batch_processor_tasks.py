@@ -68,6 +68,7 @@ from gt.tools.batch_processor.tasks.task_export_usd import TaskExportUsd
 from gt.tools.batch_processor.tasks.task_validation import TaskValidationFileIntegrity
 from gt.tools.batch_processor.tasks.task_validation import TaskValidationFolderCompare
 from gt.tools.batch_processor.tasks.task_validation import TaskValidationMayaScene
+from gt.tools.batch_processor.tasks.task_validation_python import TaskValidationPythonScript
 
 
 TASK_TYPES = {
@@ -98,6 +99,7 @@ TASK_TYPES = {
     constants.TaskType.MAYA_SCENE_VALIDATE: TaskValidationMayaScene,
     constants.TaskType.FILE_INTEGRITY_VALIDATE: TaskValidationFileIntegrity,
     constants.TaskType.FOLDER_COMPARE_VALIDATE: TaskValidationFolderCompare,
+    constants.TaskType.PYTHON_SCRIPT_VALIDATE: TaskValidationPythonScript,
     constants.TaskType.THUMBNAIL_CAPTURE: TaskCaptureThumbnail,
     constants.TaskType.PLAYBLAST_CAPTURE: TaskCapturePlayblast,
     constants.TaskType.BATCH_RENDER: TaskBatchRender,

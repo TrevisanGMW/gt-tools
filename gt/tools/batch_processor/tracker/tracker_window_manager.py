@@ -6,10 +6,13 @@ import gt.ui.resource_library as ui_res_lib
 from gt.tools.batch_processor.tracker import tracker_constants
 
 
-TRAY_ICON_SIZE = 64
-BADGE_HEIGHT = 32
-BADGE_MARGIN = 2
-BADGE_MAX_FONT_SIZE = 28
+TRAY_ICON_SIZES = (16, 20, 24, 28, 32, 40, 48, 64, 96, 128)
+TILE_BORDER_RATIO = 0.07
+TILE_RADIUS_RATIO = 0.24
+BAR_HEIGHT_RATIO = 0.17
+DIGIT_WIDTH_RATIO = 0.96
+DIGIT_HEIGHT_RATIO = 0.92
+MIN_BADGE_FONT_PIXELS = 5
 
 
 class TrackerWindowManager:
@@ -262,10 +265,7 @@ class TrackerWindowManager:
             window.showMinimized()
 
     def set_progress_badge(self, progress, health_state):
-        """Draws a percentage badge in the bottom-right of the tray icon.
-
-        The badge is black while running, soft green when completed, yellow with
-        warnings, and soft red for errors or aborts.
+        """Redraws the tray icon as a progress tile showing the percentage.
 
         Args:
             progress (int): Percentage from 0 to 100.
@@ -277,58 +277,99 @@ class TrackerWindowManager:
         if badge_key == self.badge_key:
             return
         self.badge_key = badge_key
-        background = tracker_constants.TRAY_BADGE_COLORS.get(health_state)
-        text_color = tracker_constants.TRAY_BADGE_LIGHT_TEXT_COLOR
-        if background:
-            text_color = tracker_constants.TRAY_BADGE_DARK_TEXT_COLOR
-        else:
-            background = tracker_constants.TRAY_BADGE_DEFAULT_COLOR
-        self.tray_icon.setIcon(self._build_badge_icon(int(progress), background, text_color))
+        accent = tracker_constants.TRAY_BADGE_COLORS.get(health_state, tracker_constants.TRAY_BADGE_DEFAULT_COLOR)
+        self.tray_icon.setIcon(self._build_badge_icon(int(progress), accent))
 
     @staticmethod
-    def _build_badge_icon(progress, background_color, text_color):
-        """Builds the tray icon with a rounded percentage badge.
+    def _build_badge_icon(progress, accent_color):
+        """Builds the tray icon at several sizes so every tray slot gets a crisp one.
 
         Args:
             progress (int): Percentage from 0 to 100.
-            background_color (str): Badge background color.
-            text_color (str): Badge text color.
+            accent_color (str): Status color for the border and progress bar.
 
         Returns:
             QIcon: Tray icon.
         """
-        pixmap = ui_qt.QtGui.QIcon(ui_res_lib.Icon.batch_tracker).pixmap(TRAY_ICON_SIZE, TRAY_ICON_SIZE)
-        pixmap = pixmap.scaled(
-            TRAY_ICON_SIZE,
-            TRAY_ICON_SIZE,
-            ui_qt.QtCore.Qt.KeepAspectRatio,
-            ui_qt.QtLib.TransformationMode.SmoothTransformation,
-        )
+        icon = ui_qt.QtGui.QIcon()
+        for size in TRAY_ICON_SIZES:
+            icon.addPixmap(TrackerWindowManager._build_badge_pixmap(size, progress, accent_color))
+        return icon
+
+    @staticmethod
+    def _build_badge_pixmap(size, progress, accent_color):
+        """Draws one tray icon size: dark tile, big digits, and a progress bar underneath.
+
+        The pixmap is created at exactly ``size`` device pixels with a device
+        pixel ratio of 1, so it does not depend on the screen scaling.
+
+        Args:
+            size (int): Edge length in pixels.
+            progress (int): Percentage from 0 to 100.
+            accent_color (str): Status color for the border and progress bar.
+
+        Returns:
+            QPixmap: Icon pixmap.
+        """
+        pixmap = ui_qt.QtGui.QPixmap(size, size)
+        pixmap.setDevicePixelRatio(1.0)
+        pixmap.fill(ui_qt.QtCore.Qt.transparent)
         painter = ui_qt.QtGui.QPainter(pixmap)
         painter.setRenderHint(ui_qt.QtGui.QPainter.Antialiasing, True)
-        badge_rectangle = ui_qt.QtCore.QRectF(
-            BADGE_MARGIN,
-            TRAY_ICON_SIZE - BADGE_HEIGHT - BADGE_MARGIN,
-            TRAY_ICON_SIZE - BADGE_MARGIN * 2,
-            BADGE_HEIGHT,
-        )
+        border_width = max(1.0, size * TILE_BORDER_RATIO)
+        half_border = border_width / 2.0
+        tile = ui_qt.QtCore.QRectF(half_border, half_border, size - border_width, size - border_width)
+        radius = size * TILE_RADIUS_RATIO
+        painter.setPen(ui_qt.QtGui.QPen(ui_qt.QtGui.QColor(accent_color), border_width))
+        painter.setBrush(ui_qt.QtGui.QColor(tracker_constants.TRAY_TILE_COLOR))
+        painter.drawRoundedRect(tile, radius, radius)
+        inset = border_width + size * 0.07
+        bar_height = max(2.0, size * BAR_HEIGHT_RATIO)
+        bar_track = ui_qt.QtCore.QRectF(inset, size - inset - bar_height, size - inset * 2, bar_height)
         painter.setPen(ui_qt.QtCore.Qt.NoPen)
-        painter.setBrush(ui_qt.QtGui.QColor(background_color))
-        painter.drawRoundedRect(badge_rectangle, 10, 10)
-        text = f"{progress}%"
-        font = painter.font()
-        font.setBold(True)
-        font.setPixelSize(BADGE_MAX_FONT_SIZE)
+        painter.setBrush(ui_qt.QtGui.QColor(tracker_constants.TRAY_TRACK_COLOR))
+        painter.drawRoundedRect(bar_track, bar_height / 2.0, bar_height / 2.0)
+        fill_width = bar_track.width() * max(0, min(100, progress)) / 100.0
+        if fill_width > 0:
+            painter.setBrush(ui_qt.QtGui.QColor(accent_color))
+            painter.drawRoundedRect(
+                ui_qt.QtCore.QRectF(bar_track.left(), bar_track.top(), max(fill_width, bar_height), bar_height),
+                bar_height / 2.0,
+                bar_height / 2.0,
+            )
+        text_area = ui_qt.QtCore.QRectF(inset, inset, size - inset * 2, bar_track.top() - inset * 1.4)
+        text = str(int(progress))
+        font = TrackerWindowManager.fit_badge_font(
+            painter.font(), text, text_area.width() * DIGIT_WIDTH_RATIO, text_area.height() * DIGIT_HEIGHT_RATIO
+        )
         painter.setFont(font)
-        text_width = painter.fontMetrics().horizontalAdvance(text)
-        available_width = badge_rectangle.width() - 6
-        if text_width > available_width:
-            font.setPixelSize(max(10, int(BADGE_MAX_FONT_SIZE * available_width / text_width)))
-            painter.setFont(font)
-        painter.setPen(ui_qt.QtGui.QColor(text_color))
-        painter.drawText(badge_rectangle, ui_qt.QtLib.AlignmentFlag.AlignCenter, text)
+        painter.setPen(ui_qt.QtGui.QColor(tracker_constants.TRAY_TEXT_COLOR))
+        painter.drawText(text_area, ui_qt.QtLib.AlignmentFlag.AlignCenter, text)
         painter.end()
-        return ui_qt.QtGui.QIcon(pixmap)
+        return pixmap
+
+    @staticmethod
+    def fit_badge_font(base_font, text, max_width, max_height):
+        """Finds the largest bold pixel font whose measured text fits a box.
+
+        Args:
+            base_font (QFont): Font to copy.
+            text (str): Text to measure.
+            max_width (float): Available width in pixels.
+            max_height (float): Available height in pixels.
+
+        Returns:
+            QFont: Bold font that fits, never smaller than the minimum readable size.
+        """
+        font = ui_qt.QtGui.QFont(base_font)
+        font.setBold(True)
+        pixel_size = max(MIN_BADGE_FONT_PIXELS, int(max_height * 1.4))
+        while True:
+            font.setPixelSize(pixel_size)
+            bounds = ui_qt.QtGui.QFontMetricsF(font).tightBoundingRect(text)
+            if (bounds.width() <= max_width and bounds.height() <= max_height) or pixel_size <= MIN_BADGE_FONT_PIXELS:
+                return font
+            pixel_size -= 1
 
     def set_tooltip(self, text):
         """Updates the tray hover text.

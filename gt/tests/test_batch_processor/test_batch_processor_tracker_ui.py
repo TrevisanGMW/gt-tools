@@ -320,3 +320,79 @@ class TestTrackerPreferencesAndSegments(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestTrayBadgeFit(unittest.TestCase):
+    """Checks the tray badge text always fits inside its badge."""
+
+    @classmethod
+    def setUpClass(cls):
+        """Creates an application without entering its event loop."""
+        cls.application = ui_qt.QtWidgets.QApplication.instance() or ui_qt.QtWidgets.QApplication([])
+
+    def test_text_fits_at_every_size_and_value(self):
+        from gt.tools.batch_processor.tracker import tracker_window_manager as window_manager
+
+        for size in window_manager.TRAY_ICON_SIZES:
+            for progress in (0, 7, 42, 100):
+                text = str(progress)
+                max_width = size * 0.8 * window_manager.DIGIT_WIDTH_RATIO
+                max_height = size * 0.5 * window_manager.DIGIT_HEIGHT_RATIO
+                font = window_manager.TrackerWindowManager.fit_badge_font(
+                    ui_qt.QtGui.QFont(), text, max_width, max_height
+                )
+                bounds = ui_qt.QtGui.QFontMetricsF(font).tightBoundingRect(text)
+                at_minimum = font.pixelSize() <= window_manager.MIN_BADGE_FONT_PIXELS
+                self.assertTrue(at_minimum or (bounds.width() <= max_width and bounds.height() <= max_height))
+
+    def test_pixmaps_ignore_screen_scaling(self):
+        from gt.tools.batch_processor.tracker import tracker_window_manager as window_manager
+
+        pixmap = window_manager.TrackerWindowManager._build_badge_pixmap(32, 100, "#5fcf86")
+        expected = (32, 32, 1.0)
+        self.assertEqual(expected, (pixmap.width(), pixmap.height(), pixmap.devicePixelRatio()))
+
+
+class TestTrackerFramelessWindow(unittest.TestCase):
+    """Checks the custom title bar replaces the native one without losing controls."""
+
+    @classmethod
+    def setUpClass(cls):
+        """Creates an application without entering its event loop."""
+        cls.application = ui_qt.QtWidgets.QApplication.instance() or ui_qt.QtWidgets.QApplication([])
+
+    def setUp(self):
+        """Creates a tracker view."""
+        self.view = tracker_view.TrackerView(project_name="Frame Test")
+        self.addCleanup(self.view.deleteLater)
+
+    def test_window_is_frameless_with_title_bar_and_grips(self):
+        expected = (True, "Batch Processor Tracker - Frame Test", 8)
+        result = (
+            bool(self.view.windowFlags() & ui_qt.QtCore.Qt.FramelessWindowHint),
+            self.view.window_frame.title_bar.title_label.text(),
+            len(self.view.window_frame.grips),
+        )
+        self.assertEqual(expected, result)
+
+    def test_title_follows_window_title_changes(self):
+        self.view.setWindowTitle("Renamed")
+        self.assertEqual("Renamed", self.view.window_frame.title_bar.title_label.text())
+
+    def test_maximize_button_toggles_state_and_grips(self):
+        title_bar = self.view.window_frame.title_bar
+        self.view.show()
+        title_bar.maximize_button.click()
+        self.assertTrue(self.view.isMaximized())
+        self.assertEqual("Restore", title_bar.maximize_button.toolTip())
+        self.assertFalse(any(grip.isVisible() for grip in self.view.window_frame.grips))
+        title_bar.maximize_button.click()
+        self.assertFalse(self.view.isMaximized())
+        self.assertEqual("Maximize", title_bar.maximize_button.toolTip())
+        self.view.hide()
+
+    def test_close_button_runs_the_close_flow(self):
+        closes = []
+        self.view.close_callback = lambda: closes.append(True) or False
+        self.view.window_frame.title_bar.close_button.click()
+        self.assertEqual([True], closes)

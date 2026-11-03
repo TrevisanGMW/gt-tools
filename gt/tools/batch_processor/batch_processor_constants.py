@@ -73,6 +73,7 @@ class TaskType:
     MAYA_SCENE_VALIDATE = "validate_maya_scene"
     FILE_INTEGRITY_VALIDATE = "validate_file_integrity"
     FOLDER_COMPARE_VALIDATE = "validate_folder_compare"
+    PYTHON_SCRIPT_VALIDATE = "validate_python_script"
     THUMBNAIL_CAPTURE = "thumbnail_capture"
     PLAYBLAST_CAPTURE = "playblast_capture"
     BATCH_RENDER = "output_batch_render"

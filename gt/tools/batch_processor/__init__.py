@@ -39,7 +39,7 @@ def launch_project(
     start_minimized=True,
     run_from_task_id=None,
     run_to_task_id=None,
-    close_when_finished=False,
+    close_when_finished=True,
     result_dir=None,
 ):
     """Launches a saved project in its standalone tracker without opening the editor (for scripts and agents).
@@ -53,7 +53,7 @@ def launch_project(
         start_minimized (bool, optional): Launch the tracker as a tray icon instead of a window.
         run_from_task_id (str, optional): Task id to start from.
         run_to_task_id (str, optional): Task id to stop after.
-        close_when_finished (bool, optional): Close the tracker as soon as the run ends.
+        close_when_finished (bool, optional): Close the tracker as soon as the run ends (default True).
         result_dir (str, optional): Where result files are published. Defaults to a temp folder.
 
     Returns:

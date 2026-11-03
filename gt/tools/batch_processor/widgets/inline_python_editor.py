@@ -279,6 +279,8 @@ class InlinePythonEditorWidget(ui_qt.QtWidgets.QWidget):
         font_size=14,
         font_size_changed_callback=None,
         sample_scripts_directory="",
+        run_code_callback=None,
+        run_code_tooltip="",
     ):
         """Initializes the inline Python editor.
 
@@ -292,9 +294,14 @@ class InlinePythonEditorWidget(ui_qt.QtWidgets.QWidget):
             font_size (int, optional): Initial editor font size.
             font_size_changed_callback (callable, optional): Called when font size changes.
             sample_scripts_directory (str, optional): Relative task sample directory.
+            run_code_callback (callable, optional): Replaces the default Run Code action.
+                Receives no arguments; read the code with get_text().
+            run_code_tooltip (str, optional): Tooltip used with a custom Run Code action.
         """
         super().__init__(parent=parent)
         self.owner = owner
+        self.run_code_callback = run_code_callback
+        self.run_code_tooltip = run_code_tooltip
         self.text_changed_callback = text_changed_callback
         self.font_size_changed_callback = font_size_changed_callback
         self.python_edit = None
@@ -334,7 +341,7 @@ class InlinePythonEditorWidget(ui_qt.QtWidgets.QWidget):
         run_code_btn = ui_qt.QtWidgets.QPushButton("Run Code")
         configure_inline_script_button(run_code_btn)
         run_code_btn.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.dev_code))
-        run_code_btn.setToolTip("Execute the Python code in the text editor.")
+        run_code_btn.setToolTip(self.run_code_tooltip or "Execute the Python code in the text editor.")
         run_code_btn.clicked.connect(self.on_button_run_code_clicked)
         top_layout.addWidget(run_code_btn)
 
@@ -438,7 +445,10 @@ class InlinePythonEditorWidget(ui_qt.QtWidgets.QWidget):
         self.python_edit.setPlainText(str(text or ""))
 
     def on_button_run_code_clicked(self):
-        """Executes the Python code from the text editor."""
+        """Executes the Python code from the text editor, or the custom run action when one is set."""
+        if callable(self.run_code_callback):
+            self.run_code_callback()
+            return
         import gt.utils.system as utils_sys
 
         utils_sys.execute_python_code(code=self.get_text(), import_cmds=True)

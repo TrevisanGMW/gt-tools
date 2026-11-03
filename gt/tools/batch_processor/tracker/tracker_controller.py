@@ -136,6 +136,7 @@ class TrackerController:
         self.view.open_batch_processor_action.triggered.connect(self.open_batch_processor)
         self.view.exit_action.triggered.connect(self.view.close)
         self.view.switch_compact_action.triggered.connect(partial(self.window_manager.set_compact, True))
+        self.view.compact_button.clicked.connect(partial(self.window_manager.set_compact, True))
         self.compact_view.expand_button.clicked.connect(partial(self.window_manager.set_compact, False))
         self.compact_view.close_callback = self.view.close
         self.compact_view.close_button.clicked.connect(self.view.close)
