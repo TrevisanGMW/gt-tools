@@ -275,6 +275,12 @@ def load_menu(*args):
     # ------------------------------------ Animation ------------------------------------
     menu.add_sub_menu("Animation", icon=ui_res_lib.Icon.root_animation, parent_to_root=True)
     menu.add_menu_item(
+        label="Animation Evaluator",
+        command=IMPORT_TOOL + 'initialize_tool("anim_evaluator")',
+        tooltip="Scores animation quality (jitter, pops, foot sliding, ground contact, and more) using skeleton templates.",
+        icon=ui_res_lib.Icon.tool_anim_evaluator,
+    )
+    menu.add_menu_item(
         label="Annotation Tracker",
         command=IMPORT_TOOL + 'initialize_tool("anim_annotation_tracker")',
         tooltip="Opens annotation tracker.",

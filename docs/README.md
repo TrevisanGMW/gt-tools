@@ -61,6 +61,7 @@
   <li><a href="#kimodo-generator">Kimodo Generator</a></li>
   <li><a href="#animation-clip-tracker">Animation Clip Tracker</a></li>
   <li><a href="#annotation-tracker">Annotation Tracker</a></li>
+  <li><a href="#animation-evaluator">Animation Evaluator</a></li>
   <li><a href="#create-testing-keys">Create Testing Keys</a></li>
   <li><a href="#world-space-baker">World Space Baker</a></li>
 </ul>
@@ -277,6 +278,7 @@ environments and custom queries for compatibility.</p>
   <li><b>Validate Scene:</b> Runs the configured Maya scene validators.</li>
   <li><b>Validate Integrity:</b> Checks files for expected integrity and availability.</li>
   <li><b>Validate Parity:</b> Compares folders for matching contents.</li>
+  <li><b>Validate Animation:</b> Scores the animation of each scene from 0 to 100 with configurable checks (jitter, pops, foot sliding, ground contact, limb intersection, and more). Set <b>Skeleton</b> to None for General checks only, or pick a skeleton to add the Biped checks. Optionally stores the score as a Maya attribute, exports graphs, and runs a post-script.</li>
   <li><b>Validate Python:</b> Runs a custom inline or external Python validation script that reports errors, warnings, and skips for each file.</li>
   <li><b>Capture Thumbnail:</b> Saves a representative image of the result.</li>
   <li><b>Capture Playblast:</b> Creates a playblast from the processed scene.</li>
@@ -1293,6 +1295,24 @@ Ribbon rigging is particularly useful for creating smooth and natural-looking de
 <p><b>Important data settings:</b> <b>Write Data to Scene Node (animAnnotationData)</b> keeps the tracker data with the Maya scene. <b>Import JSON</b> and <b>Export JSON</b> exchange the current ranges and metadata, while schema validation warns when imported data no longer matches the active schema.</p>
 
 <p><b>How to start:</b> Begin with the bundled sample schema, draw a range on the timeline, enter its metadata, and confirm the validation status. Create a copy of the sample schema when a project needs additional fields, and keep the schema with the animation data so future imports use the same field definitions.</p>
+</div>
+
+<!-- Animation Evaluator -->
+<div>
+<h1>Animation Evaluator</h1>
+<p>Animation Evaluator scores animation quality from 0 to 100. General mode works with any animated nodes (jitter, position and rotation pops, excessive speed, frozen motion, scale changes, bone stretch, invalid values). Biped mode adds foot sliding, planted-foot jitter, ground penetration, floating, contact flicker, knee hyperextension, limb intersection, balance, airborne gravity, and gait asymmetry. Every distance is scaled by the measured leg length, so the defaults work at any scene scale and frame rate.</p>
+
+<p><b>Main settings and workflow:</b></p>
+<ol>
+  <li>Choose the <b>Mode</b>: <b>General</b> checks any animated nodes (pick them with <b>Nodes</b>), <b>Biped</b> adds the body checks. Controls that do not apply to the current choice are disabled.</li>
+  <li>For Biped mode, pick a <b>Skeleton</b>. Maya HumanIK and Unreal Mannequin are built in. For any other rig, map the roles (hips, thighs, knees, feet, toes, arms) to joint names in the <b>Skeleton</b> tab, then use <b>Save As</b> to export a Custom Skeleton JSON file. Prefixes such as <code>Character1_</code> and namespaces are matched automatically.</li>
+  <li>Choose the frame range, then click <b>Evaluate Scene</b>. Double-click a frame span in <b>Results</b> to jump to it, or an offender to select it.</li>
+  <li>Tune the <b>Checks</b> tab: enable checks, set weights and warn/fail thresholds, allow failures, ignore frame ranges, and adjust each check's <b>Detection Settings</b>. Presets store only the values that differ from the defaults.</li>
+  <li>Use <b>Write Score</b> to store the score on an integer attribute (a dedicated <code>motionEval</code> network node by default). Where the score goes, and whether a short JSON summary (<b>Store Report</b>) is saved next to it, is set in the <b>Preferences</b> tab. <b>Export Graphs</b> saves PNG graphs of what each check measured, with its threshold and flagged frames, to a folder you choose.</li>
+</ol>
+
+<p><b>Batch Processor:</b> The <b>Validate Animation</b> task runs the same evaluation on every incoming scene. Its <b>Skeleton</b> setting decides what is checked: <b>None</b> runs only the General checks, and a built-in skeleton or a Custom Skeleton file adds the Biped checks. Checks come from an inline or saved preset. The task can write the score attribute, write outputs into its task folder (a batch summary sorted by score by default; optionally a batch JSON report, a batch graph with one row per file and one cell per check, and per-file summaries, JSON reports, and graphs, which can be limited to failed files; per-file outputs go in one folder per file unless Per-File Folders is off), run a post-script (an example copies the score into the Annotation Tracker quality field), and save the scene in place. Saving never overwrites the original input unless explicitly allowed.</p>
+<p><b>Without the Batch Processor:</b> <code>gt/core/motion_eval/README.md</code> shows how to run the same checks and outputs from Python or the command line (<code>mayapy -m ...motion_eval.runner job.json files...</code>), including headless servers.</p>
 </div>
 
 <!-- Create Testing Keys -->
