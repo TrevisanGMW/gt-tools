@@ -315,6 +315,14 @@ def run_tracker(args):
     from gt.tools.batch_processor.tracker import tracker_controller
     from gt.tools.batch_processor.tracker import tracker_view
 
+    from gt.tools.batch_processor.tracker import tracker_process_utils
+
+    if not ui_qt.QtWidgets.QApplication.instance():
+        tracker_process_utils.remove_qt_scaling_variables(os.environ)
+        if ui_qt.IS_PYSIDE6:
+            ui_qt.QtGui.QGuiApplication.setHighDpiScaleFactorRoundingPolicy(
+                ui_qt.QtCore.Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
+            )
     application = ui_qt.QtWidgets.QApplication.instance() or ui_qt.QtWidgets.QApplication(sys.argv)
     application.setApplicationName("Batch Processor Tracker")
     # Installed on the application (not on widgets) so Qt Style Sheets still

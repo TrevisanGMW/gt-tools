@@ -4,11 +4,12 @@ import sys
 
 import gt.ui.qt_import as ui_qt
 import gt.ui.resource_library as ui_res_lib
+import gt.ui.window_theme as window_theme
 
 from gt.tools.batch_processor.tracker import tracker_spinner
 
 
-TITLE_BAR_COLOR = "#121212"
+TITLE_BAR_COLOR = window_theme.DEFAULT_CAPTION_COLOR
 BORDER_COLOR = "#4a4a4a"
 DRAG_START_DISTANCE = 4
 MIN_TITLE_BAR_HEIGHT = 32
@@ -16,10 +17,11 @@ MIN_GRIP_SIZE = 5
 DWMWA_WINDOW_CORNER_PREFERENCE = 33
 DWMWCP_ROUND = 2
 DWMWA_BORDER_COLOR = 34
-DWMWA_COLOR_NONE = 0xFFFFFFFE
+NATIVE_BORDER_COLOR = "#121212"
 SEPARATOR_COLOR = "rgba(255, 255, 255, 24)"
 STATUS_ICON_SIZE = 20
 WM_NCCALCSIZE = 0x0083
+WM_NCACTIVATE = 0x0086
 GWL_STYLE = -16
 WS_THICKFRAME = 0x00040000
 WS_MINIMIZEBOX = 0x00020000
@@ -87,11 +89,13 @@ def apply_native_window_effects(window):
             ctypes.byref(ctypes.c_int(DWMWCP_ROUND)),
             ctypes.sizeof(ctypes.c_int),
         )
-        # Windows draws its own light outline on inactive windows; our frame draws the border.
+        # Windows draws its own light outline around inactive windows; give it a dark color instead.
+        color = ui_qt.QtGui.QColor(NATIVE_BORDER_COLOR)
+        colorref = (color.blue() << 16) | (color.green() << 8) | color.red()
         dwm.DwmSetWindowAttribute(
             handle,
             DWMWA_BORDER_COLOR,
-            ctypes.byref(ctypes.c_uint(DWMWA_COLOR_NONE)),
+            ctypes.byref(ctypes.c_uint(colorref)),
             ctypes.sizeof(ctypes.c_uint),
         )
     except Exception:  # pragma: no cover - cosmetic only
@@ -157,9 +161,20 @@ def handle_native_event(event_type, message):
             ]
 
         native_message = wintypes.MSG.from_address(int(message))
+        user32 = ctypes.windll.user32
+        if native_message.message == WM_NCACTIVATE:
+            # Passing -1 as lParam stops Windows from repainting the (invisible) frame when the
+            # window gains or loses focus, which otherwise leaves a white or grey outline.
+            user32.DefWindowProcW.restype = ctypes.c_ssize_t
+            user32.DefWindowProcW.argtypes = [
+                wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM,
+            ]
+            result = user32.DefWindowProcW(
+                native_message.hWnd, native_message.message, native_message.wParam, -1
+            )
+            return True, int(result)
         if native_message.message != WM_NCCALCSIZE or not native_message.wParam:
             return False, 0
-        user32 = ctypes.windll.user32
         if not user32.GetWindowLongW(native_message.hWnd, GWL_STYLE) & WS_THICKFRAME:
             return False, 0
         if user32.IsZoomed(native_message.hWnd):
@@ -257,6 +272,7 @@ class TitleBar(ui_qt.QtWidgets.QWidget):
         self.target_window = window
         self.press_point = None
         self.setObjectName("trackerTitleBar")
+        self.setAttribute(ui_qt.QtCore.Qt.WA_StyledBackground, True)
         self._create_widgets()
         self._create_layout()
         self.apply_metrics()
@@ -329,6 +345,7 @@ class TitleBar(ui_qt.QtWidgets.QWidget):
         for button in (self.compact_button, self.minimize_button, self.maximize_button, self.close_button):
             button.setFixedSize(int(button_size * 1.25), button_size)
             button.setIconSize(ui_qt.QtCore.QSize(int(icon_size * 0.8), int(icon_size * 0.8)))
+        self.compact_button.setIconSize(ui_qt.QtCore.QSize(int(button_size * 0.86), int(button_size * 0.86)))
         self.setStyleSheet(
             f"QWidget#trackerTitleBar {{ background-color: {TITLE_BAR_COLOR}; }}"
             "QLabel { background: transparent; color: #e0e0e0; font-weight: 600; }"
@@ -554,6 +571,11 @@ class FramelessWindowFrame(ui_qt.QtCore.QObject):
                     self._schedule_margin_update()
             elif event_type == ui_qt.QtCore.QEvent.WindowStateChange:
                 self._on_state_changed()
+            elif event_type in (
+                ui_qt.QtCore.QEvent.WindowActivate,
+                ui_qt.QtCore.QEvent.WindowDeactivate,
+            ):
+                apply_native_window_effects(self.window)
             elif event_type == ui_qt.QtCore.QEvent.Show:
                 apply_native_window_effects(self.window)
                 self._position_grips()

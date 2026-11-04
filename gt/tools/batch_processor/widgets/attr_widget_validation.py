@@ -194,17 +194,18 @@ class AttrWidgetValidationTaskBase(AttrWidgetTask):
         cell_layout.addStretch()
         return checkbox
 
-    def add_actions_row(self, buttons, tooltip=None):
+    def add_actions_row(self, buttons, tooltip=None, parent_layout=None):
         """Adds an Actions row holding padded action buttons.
 
         Args:
             buttons (list): Tuples of (label, tooltip, callback, icon path).
             tooltip (str, optional): Row label tooltip.
+            parent_layout (QLayout, optional): Layout receiving the row, for example a collapsible section.
 
         Returns:
             list: Created buttons.
         """
-        layout = self.add_labeled_layout("Actions", tooltip=tooltip)
+        layout = self.add_labeled_layout("Actions", tooltip=tooltip, parent_layout=parent_layout)
         created_buttons = []
         for label_text, button_tooltip, callback, icon_path in buttons:
             button = self.create_action_button(label_text, tooltip=button_tooltip, icon_path=icon_path)

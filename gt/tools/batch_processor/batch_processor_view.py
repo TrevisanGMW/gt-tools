@@ -735,14 +735,15 @@ class BatchProcessorView(metaclass=MayaWindowMeta):
         self.menu_items.append(submenu)
         return submenu
 
-    def set_status(self, message, status="info"):
+    def set_status(self, message, status="info", pulse=None):
         """Sets the status line.
 
         Args:
             message (str): Status message.
             status (str, optional): Status level used for color.
+            pulse (bool, optional): Pulse a glow to draw attention. None pulses for success, warning and error.
         """
-        qt_utils.set_status_line_text(self.status_text, str(message), status=status)
+        qt_utils.set_status_line_text(self.status_text, str(message), status=status, pulse=pulse)
 
     def set_progress(self, text):
         """Sets progress text.

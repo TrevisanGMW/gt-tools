@@ -93,6 +93,35 @@ class TestBatchProcessorTracker(unittest.TestCase):
 
         self.assertEqual("0/1 (43/100)", task.get_count_text())
 
+    def test_aggregate_task_shows_unit_count_while_running_and_after_finishing(self):
+        """Aggregate tasks show their own units (e.g. 51/144) instead of a 0/1 item count."""
+        task = self.create_job().tasks[0]
+        task.apply_event({"event": "task_started", "total_items": 1, "aggregate": True})
+        task.apply_event({"event": "task_unit_progress", "completed_units": 51, "total_units": 144})
+
+        expected = "51/144"
+        self.assertEqual(expected, task.get_count_text())
+        expected = 35
+        self.assertEqual(expected, task.progress)
+
+        task.apply_event({"event": "task_unit_progress", "completed_units": 144, "total_units": 144})
+        task.apply_event({"event": "task_progress", "completed_items": 1, "total_items": 1})
+        task.apply_event({"event": "task_finished", "status": "succeeded", "completed_items": 1, "total_items": 1})
+
+        expected = "144/144"
+        self.assertEqual(expected, task.get_count_text())
+        expected = 100
+        self.assertEqual(expected, task.progress)
+
+    def test_aggregate_task_without_units_counts_as_one_item(self):
+        """Aggregate tasks that never report units finish as 1/1."""
+        task = self.create_job().tasks[0]
+        task.apply_event({"event": "task_started", "total_items": 1, "aggregate": True})
+        task.apply_event({"event": "task_finished", "status": "succeeded", "completed_items": 1, "total_items": 1})
+
+        expected = "1/1"
+        self.assertEqual(expected, task.get_count_text())
+
     def test_task_unit_progress_is_scaled_across_multiple_items(self):
         job = self.create_job()
         task = job.tasks[0]

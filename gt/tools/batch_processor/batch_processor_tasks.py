@@ -54,6 +54,7 @@ from gt.tools.batch_processor.tasks.task_hik_retarget import HIK_BAKE_TARGETS
 from gt.tools.batch_processor.tasks.task_map_hierarchy import TaskMapHierarchy
 from gt.tools.batch_processor.tasks.task_maya_import import TaskMayaImport
 from gt.tools.batch_processor.tasks.task_maya_save import TaskMayaSave
+from gt.tools.batch_processor.tasks.task_merge_input import TaskMergeInput
 from gt.tools.batch_processor.tasks.task_kimodo_definition import TaskKimodoDefinition
 from gt.tools.batch_processor.tasks.task_kimodo_generate import TaskKimodoGenerate
 from gt.tools.batch_processor.tasks.task_external_mobu import TaskMotionBuilderScript
@@ -69,6 +70,7 @@ from gt.tools.batch_processor.tasks.task_validation import TaskValidationFileInt
 from gt.tools.batch_processor.tasks.task_validation import TaskValidationFolderCompare
 from gt.tools.batch_processor.tasks.task_validation import TaskValidationMayaScene
 from gt.tools.batch_processor.tasks.task_validation_python import TaskValidationPythonScript
+from gt.tools.batch_processor.tasks.task_validation_animation import TaskValidationAnimation
 
 
 TASK_TYPES = {
@@ -84,6 +86,7 @@ TASK_TYPES = {
     constants.TaskType.BLENDER_SCRIPT: TaskBlenderScript,
     constants.TaskType.UNREAL_SCRIPT: TaskUnrealScript,
     constants.TaskType.MAYA_SAVE: TaskMayaSave,
+    constants.TaskType.MERGE_INPUT: TaskMergeInput,
     constants.TaskType.USD_EXPORT: TaskExportUsd,
     constants.TaskType.FBX_EXPORT: TaskExportFbx,
     constants.TaskType.RETARGET: TaskRetarget,
@@ -100,6 +103,7 @@ TASK_TYPES = {
     constants.TaskType.FILE_INTEGRITY_VALIDATE: TaskValidationFileIntegrity,
     constants.TaskType.FOLDER_COMPARE_VALIDATE: TaskValidationFolderCompare,
     constants.TaskType.PYTHON_SCRIPT_VALIDATE: TaskValidationPythonScript,
+    constants.TaskType.ANIMATION_VALIDATE: TaskValidationAnimation,
     constants.TaskType.THUMBNAIL_CAPTURE: TaskCaptureThumbnail,
     constants.TaskType.PLAYBLAST_CAPTURE: TaskCapturePlayblast,
     constants.TaskType.BATCH_RENDER: TaskBatchRender,

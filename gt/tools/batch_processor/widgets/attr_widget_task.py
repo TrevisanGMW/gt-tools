@@ -1222,6 +1222,10 @@ def get_task_widget_class(task):
         from gt.tools.batch_processor.widgets.attr_widget_maya_save import AttrWidgetMayaSaveTask
 
         return AttrWidgetMayaSaveTask
+    if task.task_type == constants.TaskType.MERGE_INPUT:
+        from gt.tools.batch_processor.widgets.attr_widget_merge_input import AttrWidgetMergeInputTask
+
+        return AttrWidgetMergeInputTask
     if task.task_type == constants.TaskType.USD_EXPORT:
         from gt.tools.batch_processor.widgets.attr_widget_export_usd import AttrWidgetUsdExportTask
 
@@ -1296,6 +1300,10 @@ def get_task_widget_class(task):
         from gt.tools.batch_processor.widgets.attr_widget_validation import AttrWidgetPythonValidationTask
 
         return AttrWidgetPythonValidationTask
+    if task.task_type == constants.TaskType.ANIMATION_VALIDATE:
+        from gt.tools.batch_processor.widgets.attr_widget_validation_animation import AttrWidgetAnimationValidationTask
+
+        return AttrWidgetAnimationValidationTask
     if task.task_type == constants.TaskType.THUMBNAIL_CAPTURE:
         from gt.tools.batch_processor.widgets.attr_widget_capture import AttrWidgetThumbnailCaptureTask
 

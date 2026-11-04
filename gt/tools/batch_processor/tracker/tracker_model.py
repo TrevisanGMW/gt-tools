@@ -31,6 +31,7 @@ class TrackerTask:
         self.unit_completed = 0
         self.unit_total = 0
         self.unit_label = ""
+        self.is_aggregate = False
         self.errors = 0
         self.warnings = 0
         self.reported_warnings = 0
@@ -56,7 +57,9 @@ class TrackerTask:
             self.started_at = event.get("timestamp") or self.started_at
             self.total_items = max(0, int(event.get("total_items") or 0))
             self.worker = str(event.get("worker_id") or self.worker)
+            self.is_aggregate = bool(event.get("aggregate", False))
         elif event_name == "task_progress":
+            self._fold_aggregate_units()
             self.completed_items = max(self.completed_items, int(event.get("completed_items") or 0))
             self.total_items = max(self.total_items, int(event.get("total_items") or 0))
             self._reset_unit_progress()
@@ -81,6 +84,7 @@ class TrackerTask:
             if log_path and log_path not in self.log_paths:
                 self.log_paths.append(log_path)
         elif event_name == "task_finished":
+            self._fold_aggregate_units()
             self.completed_items = max(self.completed_items, int(event.get("completed_items") or 0))
             self.total_items = max(self.total_items, int(event.get("total_items") or 0))
             self.errors = max(self.errors, int(event.get("errors") or 0))
@@ -106,6 +110,17 @@ class TrackerTask:
         if self.unit_total:
             completed += min(1.0, float(self.unit_completed) / float(self.unit_total))
         self.progress = min(99, int(100 * completed / float(self.total_items)))
+
+    def _fold_aggregate_units(self):
+        """Keeps an aggregate task's unit count as its item count once the task completes.
+
+        Aggregate tasks are one item for the worker, but their units (e.g. 144 merged inputs)
+        are the meaningful count, so a finished task shows 144/144 instead of 1/1.
+        """
+        if not self.is_aggregate or not self.unit_total:
+            return
+        self.completed_items = self.unit_completed
+        self.total_items = self.unit_total
 
     def _reset_unit_progress(self):
         """Clears sub-item progress so a finished item cannot be counted twice."""
@@ -141,6 +156,8 @@ class TrackerTask:
         Returns:
             str: Completed and total item counts.
         """
+        if self.is_aggregate and self.unit_total:
+            return f"{self.unit_completed}/{self.unit_total}"
         if not self.total_items:
             return "-"
         count_text = f"{self.completed_items}/{self.total_items}"
@@ -158,6 +175,7 @@ class TrackerTask:
         self.unit_completed = 0
         self.unit_total = 0
         self.unit_label = ""
+        self.is_aggregate = False
         self.errors = 0
         self.warnings = 0
         self.reported_warnings = 0

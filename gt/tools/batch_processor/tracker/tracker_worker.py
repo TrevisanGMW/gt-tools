@@ -160,13 +160,17 @@ def main():
             remaining_tasks = max(0, total_task_count - task_index)
             args.current_task_index = task_index
             args.total_tasks = total_task_count
+            is_aggregate_task = bool(getattr(task, "is_aggregate_task", False))
+            # Aggregate tasks run once over every item, so the tracker counts them as one item
+            # and shows their own unit progress (e.g. inputs merged) as the visible count.
             event_writer.emit(
                 "task_started",
                 task_id=task.id,
                 task_index=task_index,
                 total_tasks=total_task_count,
-                total_items=max(1, len(current_items)),
+                total_items=1 if is_aggregate_task else max(1, len(current_items)),
                 worker_id=args.worker_id,
+                aggregate=is_aggregate_task,
             )
             print_running_task_flag(
                 args=args,
@@ -359,7 +363,7 @@ def main():
                 task_id=task.id,
                 status=task_status,
                 completed_items=task_succeeded + task_skipped,
-                total_items=max(1, len(current_items)),
+                total_items=1 if is_aggregate_task else max(1, len(current_items)),
                 errors=0,
                 warnings=0,
                 skipped_items=task_skipped,

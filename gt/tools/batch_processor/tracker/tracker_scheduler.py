@@ -1190,6 +1190,31 @@ class TrackerScheduler:
                     f"[WARNING] - (Report) - Unable to clean temporary report parts: {exception}\n"
                 )
                 continue
+        self._cleanup_task_run_files(run_id)
+
+    def _cleanup_task_run_files(self, run_id):
+        """Lets tasks that merge results from parallel workers delete their temporary files.
+
+        Any enabled task with a ``cleanup_run_files(project, run_id)`` method is called once
+        after every worker has stopped (for example Validate Animation's batch output parts).
+
+        Args:
+            run_id (str): Identifier of the finished run.
+        """
+        for task in self.project.get_enabled_tasks():
+            cleanup = getattr(task, "cleanup_run_files", None)
+            if not callable(cleanup):
+                continue
+            try:
+                deleted_count = cleanup(self.project, run_id)
+                if deleted_count:
+                    self._append_project_log(
+                        f"[INFO] - ({task.display_name}) - Removed {deleted_count} temporary part file(s).\n"
+                    )
+            except Exception as exception:
+                self._append_project_log(
+                    f"[WARNING] - ({task.display_name}) - Unable to clean temporary files: {exception}\n"
+                )
 
     @staticmethod
     def _mark_job_canceled(job):

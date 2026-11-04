@@ -8,6 +8,7 @@ import sys
 
 import gt.core.prefs as core_prefs
 import gt.ui.qt_import as ui_qt
+import gt.ui.qt_utils as qt_utils
 import gt.ui.resource_library as ui_res_lib
 import gt.utils.system as utils_system
 
@@ -122,6 +123,8 @@ class TrackerController:
         self.window_manager.set_tray_enabled(use_system_tray or start_minimized)
         self._update_compact_view()
         self.window_manager.show_initial(start_compact and not self.preview_mode, minimized=start_minimized)
+        if self.preview_mode:
+            qt_utils.pulse_status_bar(self.view.statusBar(), status=qt_utils.StatusLine.WARNING)
         self._update_compact_view()
 
     def _connect_signals(self):
@@ -739,6 +742,7 @@ class TrackerController:
         """Starts the visible countdown that closes the window."""
         self.auto_close_remaining = tracker_constants.AUTO_CLOSE_SECONDS
         self._show_auto_close_message()
+        qt_utils.pulse_status_bar(self.view.statusBar(), status=qt_utils.StatusLine.SUCCESS)
         self.auto_close_timer.start()
 
     def _cancel_auto_close(self):

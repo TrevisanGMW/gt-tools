@@ -205,7 +205,7 @@ class TrackerCompactView(ui_qt.QtWidgets.QWidget):
         self.ui_scale = 0.0
         self.width_units = float(BASE_WIDTH)
         self.user_resizing = False
-        self.screen_connected = False
+        self.connected_handle = None
         self.setWindowTitle(f"Batch Processor Tracker - {project_name}")
         self.setWindowIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.batch_tracker))
         self.setWindowFlag(ui_qt.QtCore.Qt.FramelessWindowHint, True)
@@ -394,9 +394,10 @@ class TrackerCompactView(ui_qt.QtWidgets.QWidget):
             event (QShowEvent): Show event.
         """
         super().showEvent(event)
-        if not self.screen_connected and self.windowHandle():
-            self.windowHandle().screenChanged.connect(self._on_screen_changed)
-            self.screen_connected = True
+        handle = self.windowHandle()
+        if handle and handle is not self.connected_handle:
+            handle.screenChanged.connect(self._on_screen_changed)
+            self.connected_handle = handle
         self.apply_scale()
         self._fit_width_to_screen()
 

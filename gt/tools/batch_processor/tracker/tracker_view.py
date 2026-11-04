@@ -4,6 +4,7 @@ import gt.core.session as core_session
 import gt.ui.qt_import as ui_qt
 import gt.ui.resource_library as ui_res_lib
 
+from gt.tools.batch_processor.tracker import tracker_columns
 from gt.tools.batch_processor.tracker import tracker_title_bar
 from gt.tools.batch_processor.tracker import tracker_tree_model
 
@@ -45,6 +46,47 @@ class MenuIconStyle(ui_qt.QtWidgets.QProxyStyle):
         if metric == pixel_metric.PM_SmallIconSize:
             return MENU_ICON_SIZE
         return super().pixelMetric(metric, option, widget)
+
+
+class CenteredStatusBar(ui_qt.QtWidgets.QStatusBar):
+    """Status bar that draws its temporary message centered with equal padding all around."""
+
+    VERTICAL_PADDING = 9
+
+    def sizeHint(self):
+        """Gets a height with the same padding above and below the text.
+
+        Returns:
+            QSize: Preferred size.
+        """
+        hint = super().sizeHint()
+        hint.setHeight(self.fontMetrics().height() + self.VERTICAL_PADDING * 2)
+        return hint
+
+    def minimumSizeHint(self):
+        """Gets the minimum size, matching the preferred height.
+
+        Returns:
+            QSize: Minimum size.
+        """
+        hint = super().minimumSizeHint()
+        hint.setHeight(self.fontMetrics().height() + self.VERTICAL_PADDING * 2)
+        return hint
+
+    def paintEvent(self, event):
+        """Paints the current message centered instead of left-aligned.
+
+        Args:
+            event (QPaintEvent): Paint event.
+        """
+        message = self.currentMessage()
+        if not message:
+            return
+        painter = ui_qt.QtGui.QPainter(self)
+        painter.setPen(ui_qt.QtGui.QColor("#e0e0e0"))
+        text_area = self.rect().adjusted(12, 0, -12, 0)
+        elided = self.fontMetrics().elidedText(message, ui_qt.QtCore.Qt.ElideRight, text_area.width())
+        painter.drawText(text_area, ui_qt.QtLib.AlignmentFlag.AlignCenter, elided)
 
 
 class TrackerSplitterHandle(ui_qt.QtWidgets.QSplitterHandle):
@@ -146,6 +188,22 @@ class TrackerTreeView(ui_qt.QtWidgets.QTreeView):
         super().__init__(parent)
         self.last_viewport_width = 0
         self.resizing_columns = False
+        self.column_ratios = []
+        self.header().sectionResized.connect(self._on_section_resized)
+
+    def _on_section_resized(self, logical_index, old_size, new_size):
+        """Remembers the proportions whenever the user (or setup code) resizes a column.
+
+        Args:
+            logical_index (int): Resized section.
+            old_size (int): Previous width.
+            new_size (int): New width.
+        """
+        if self.resizing_columns:
+            return
+        header = self.header()
+        widths = [header.sectionSize(column) for column in range(header.count())]
+        self.column_ratios = tracker_columns.capture_column_ratios(widths)
 
     def mousePressEvent(self, event):
         """Clears the selection when an empty area is clicked.
@@ -251,7 +309,7 @@ class TrackerTreeView(ui_qt.QtWidgets.QTreeView):
         painter.restore()
 
     def resizeEvent(self, event):
-        """Scales current user-defined column proportions with the viewport.
+        """Rescales columns to the new viewport width using the remembered proportions.
 
         Args:
             event (QResizeEvent): Tree resize event.
@@ -264,18 +322,20 @@ class TrackerTreeView(ui_qt.QtWidgets.QTreeView):
         column_count = header.count()
         if viewport_width <= 0 or not column_count:
             return
-        current_total = sum(header.sectionSize(column) for column in range(column_count))
-        if current_total <= 0 or viewport_width == self.last_viewport_width:
+        if len(self.column_ratios) != column_count:
+            widths = [header.sectionSize(column) for column in range(column_count)]
+            self.column_ratios = tracker_columns.capture_column_ratios(widths)
+            self.last_viewport_width = viewport_width
             return
-        scale = float(viewport_width) / float(current_total)
+        if viewport_width == self.last_viewport_width:
+            return
+        widths = tracker_columns.distribute_column_widths(
+            self.column_ratios, viewport_width, header.minimumSectionSize()
+        )
         self.resizing_columns = True
         try:
-            remaining_width = viewport_width
-            for column in range(column_count - 1):
-                width = max(header.minimumSectionSize(), int(header.sectionSize(column) * scale))
+            for column, width in enumerate(widths):
                 header.resizeSection(column, width)
-                remaining_width -= width
-            header.resizeSection(column_count - 1, max(header.minimumSectionSize(), remaining_width))
         finally:
             self.resizing_columns = False
             self.last_viewport_width = viewport_width
@@ -550,7 +610,8 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
             "QHeaderView::section:hover { background-color: #4a555b; color: #ffffff; }"
             "QHeaderView::section:pressed { background-color: #55788a; color: #ffffff; }"
         )
-        status_bar = self.statusBar()
+        status_bar = CenteredStatusBar()
+        self.setStatusBar(status_bar)
         status_bar.setStyleSheet(
             "QStatusBar { background: transparent; color: #e0e0e0; }"
             "QStatusBar QLabel { background: transparent; color: #e0e0e0; }"

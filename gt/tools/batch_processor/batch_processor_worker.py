@@ -633,6 +633,9 @@ class MultiInstanceBatchRunner:
         else:
             popen_kwargs["start_new_session"] = True
         env = dict(os.environ)
+        from gt.tools.batch_processor.tracker import tracker_process_utils
+
+        tracker_process_utils.remove_qt_scaling_variables(env)
         env["PYTHONIOENCODING"] = "utf-8"
         env[run_state.WORKER_STATE_VARIABLE] = json.dumps(project._batch_run_state)
         self.process = subprocess.Popen(

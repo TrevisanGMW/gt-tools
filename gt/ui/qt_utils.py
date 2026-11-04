@@ -10,6 +10,7 @@ import gt.utils.system as utils_sys
 import gt.ui.qt_import as ui_qt
 import gt.ui.window_theme as window_theme
 import logging
+import math
 import sys
 import os
 import re
@@ -29,25 +30,231 @@ class StatusLine:
     ERROR = "error"
 
 
-def set_status_line_text(line_edit, text, status=StatusLine.INFO):
+STATUS_LINE_COLORS = {
+    StatusLine.INFO: "#8f8f8f",
+    StatusLine.SUCCESS: "#7cae7a",
+    StatusLine.WARNING: "#d6b656",
+    StatusLine.ERROR: "#d66a6a",
+}
+STATUS_LINE_PULSE_DURATION_MS = 1800
+STATUS_LINE_PULSE_COUNT = 2
+STATUS_LINE_PULSE_BACKGROUND_ALPHA = 0.30
+# Status levels that pulse automatically when pulse=None, and their profile overrides.
+STATUS_LINE_AUTO_PULSE = (StatusLine.SUCCESS, StatusLine.WARNING, StatusLine.ERROR)
+STATUS_LINE_PULSE_PROFILES = {
+    # Single pulse, same look (background + border glow) and curve as warning/error.
+    StatusLine.SUCCESS: {"duration": 1100, "count": 1},
+}
+_STATUS_LINE_PULSE_DEFAULT_PROFILE = {
+    "duration": STATUS_LINE_PULSE_DURATION_MS,
+    "count": STATUS_LINE_PULSE_COUNT,
+    "background_alpha": STATUS_LINE_PULSE_BACKGROUND_ALPHA,
+    "border": True,
+}
+_STATUS_LINE_PULSE_ATTRIBUTE = "_status_line_pulse_animation"
+
+
+def _get_status_line_color(status):
+    """Gets the hex color of a status level.
+
+    Args:
+        status (str): Status level. Unknown values fall back to info.
+
+    Returns:
+        str: Hex color string.
+    """
+    return STATUS_LINE_COLORS.get(str(status or StatusLine.INFO).lower(), STATUS_LINE_COLORS[StatusLine.INFO])
+
+
+def calculate_pulse_intensity(progress, pulse_count=STATUS_LINE_PULSE_COUNT):
+    """Calculates the glow intensity of a fading pulse.
+
+    Args:
+        progress (float): Animation progress from 0.0 to 1.0.
+        pulse_count (int, optional): Number of brightness peaks over the animation.
+
+    Returns:
+        float: Intensity from 0.0 to 1.0. Starts and ends at 0.0, with exactly pulse_count
+            smooth peaks in between (each slightly weaker than the previous one).
+    """
+    progress = max(0.0, min(1.0, float(progress)))
+    wave = math.sin(math.pi * pulse_count * progress) ** 2
+    return wave * (1.0 - 0.4 * progress)
+
+
+def get_status_line_pulse_profile(status):
+    """Gets the pulse settings of a status level.
+
+    Args:
+        status (str): Status level.
+
+    Returns:
+        dict: Profile with duration (ms), count, background_alpha and border keys.
+    """
+    profile = dict(_STATUS_LINE_PULSE_DEFAULT_PROFILE)
+    profile.update(STATUS_LINE_PULSE_PROFILES.get(str(status or "").lower(), {}))
+    return profile
+
+
+def build_status_line_stylesheet(color, intensity=0.0, background_alpha=STATUS_LINE_PULSE_BACKGROUND_ALPHA, border=True):
+    """Builds the stylesheet of a status line, optionally with a glow.
+
+    Args:
+        color (str): Hex text/glow color, e.g. "#d66a6a".
+        intensity (float, optional): Glow intensity from 0.0 (none) to 1.0 (full).
+        background_alpha (float, optional): Background tint opacity at full intensity.
+        border (bool, optional): Whether the border also glows.
+
+    Returns:
+        str: Stylesheet string.
+    """
+    if intensity <= 0.0:
+        return "QLineEdit { color: " + color + "; }"
+    red, green, blue = (int(color.lstrip("#")[index : index + 2], 16) for index in (0, 2, 4))
+    rules = [
+        f"color: {color};",
+        f"background-color: rgba({red}, {green}, {blue}, {round(background_alpha * intensity, 3)});",
+    ]
+    if border:
+        rules.append(f"border-color: rgba({red}, {green}, {blue}, {round(intensity, 3)});")
+    return "QLineEdit { " + " ".join(rules) + " }"
+
+
+def stop_status_line_pulse(line_edit):
+    """Stops a running status line pulse without touching the current style.
+
+    Args:
+        line_edit (QLineEdit): Line edit that may be pulsing.
+    """
+    animation = getattr(line_edit, _STATUS_LINE_PULSE_ATTRIBUTE, None)
+    if animation is None:
+        return
+    setattr(line_edit, _STATUS_LINE_PULSE_ATTRIBUTE, None)
+    try:
+        animation.stop()
+        animation.deleteLater()
+    except RuntimeError:
+        pass  # Qt object already deleted with its parent.
+
+
+def start_status_line_pulse(line_edit, color, status=StatusLine.WARNING):
+    """Pulses a glow on a status line, then settles back to its normal look.
+
+    Args:
+        line_edit (QLineEdit): Line edit to animate.
+        color (str): Hex glow color.
+        status (str, optional): Status level that picks the pulse profile.
+    """
+    stop_status_line_pulse(line_edit)
+    profile = get_status_line_pulse_profile(status)
+    animation = ui_qt.QtCore.QVariantAnimation(line_edit)
+    animation.setDuration(profile["duration"])
+    animation.setStartValue(0.0)
+    animation.setEndValue(1.0)
+
+    def _apply_frame(progress):
+        """Applies one glow frame.
+
+        Args:
+            progress (float): Animation progress from 0.0 to 1.0.
+        """
+        if not is_qt_object_valid(line_edit):
+            return
+        intensity = calculate_pulse_intensity(progress, pulse_count=profile["count"])
+        line_edit.setStyleSheet(
+            build_status_line_stylesheet(
+                color,
+                intensity,
+                background_alpha=profile["background_alpha"],
+                border=profile["border"],
+            )
+        )
+
+    def _restore_style():
+        """Restores the resting style once the pulse ends."""
+        if is_qt_object_valid(line_edit):
+            line_edit.setStyleSheet(build_status_line_stylesheet(color))
+
+    animation.valueChanged.connect(_apply_frame)
+    animation.finished.connect(_restore_style)
+    setattr(line_edit, _STATUS_LINE_PULSE_ATTRIBUTE, animation)
+    animation.start()
+
+
+def set_status_line_text(line_edit, text, status=StatusLine.INFO, pulse=False):
     """Sets text and color for a QLineEdit used as a compact status line.
 
     Args:
         line_edit (QLineEdit): Line edit to update.
         text (str): Status text.
         status (str, optional): Status level. Supported: info, success, warning, error.
+        pulse (bool, optional): Pulse a glow to draw attention. None pulses for success, warning and error.
+            Success pulses once, warning and error pulse twice (same smooth curve and border glow).
+            Defaults to False so other tools keep their current behavior.
     """
     if not line_edit:
         return
-    status_colors = {
-        StatusLine.INFO: "#8f8f8f",
-        StatusLine.SUCCESS: "#7cae7a",
-        StatusLine.WARNING: "#d6b656",
-        StatusLine.ERROR: "#d66a6a",
-    }
-    color = status_colors.get(str(status or StatusLine.INFO).lower(), status_colors.get(StatusLine.INFO))
-    line_edit.setStyleSheet("QLineEdit { color: " + color + "; }")
+    color = _get_status_line_color(status)
+    stop_status_line_pulse(line_edit)
+    line_edit.setStyleSheet(build_status_line_stylesheet(color))
     line_edit.setText(str(text or ""))
+    if pulse is None:
+        pulse = str(status or "").lower() in STATUS_LINE_AUTO_PULSE
+    if pulse and text:
+        start_status_line_pulse(line_edit, color, status=status)
+
+
+def pulse_status_bar(status_bar, status=StatusLine.WARNING):
+    """Pulses the background of a QStatusBar once to draw attention to its message.
+
+    The status bar's original stylesheet is restored when the pulse ends. Calling it again while
+    a pulse is running restarts the pulse from the original stylesheet.
+
+    Args:
+        status_bar (QStatusBar): Status bar to animate.
+        status (str, optional): Status level that picks the color and pulse profile.
+    """
+    if not is_qt_object_valid(status_bar):
+        return
+    running_animation = getattr(status_bar, _STATUS_LINE_PULSE_ATTRIBUTE, None)
+    if running_animation is not None:
+        stop_status_line_pulse(status_bar)
+        original_stylesheet = getattr(status_bar, "_status_bar_original_stylesheet", "")
+    else:
+        original_stylesheet = status_bar.styleSheet()
+    status_bar._status_bar_original_stylesheet = original_stylesheet
+
+    color = _get_status_line_color(status)
+    red, green, blue = (int(color.lstrip("#")[index : index + 2], 16) for index in (0, 2, 4))
+    profile = get_status_line_pulse_profile(status)
+    animation = ui_qt.QtCore.QVariantAnimation(status_bar)
+    animation.setDuration(profile["duration"])
+    animation.setStartValue(0.0)
+    animation.setEndValue(1.0)
+
+    def _apply_frame(progress):
+        """Applies one glow frame.
+
+        Args:
+            progress (float): Animation progress from 0.0 to 1.0.
+        """
+        if not is_qt_object_valid(status_bar):
+            return
+        intensity = calculate_pulse_intensity(progress, pulse_count=profile["count"])
+        alpha = round(min(1.0, profile["background_alpha"] * 1.6) * intensity, 3)
+        status_bar.setStyleSheet(
+            f"{original_stylesheet} QStatusBar {{ background-color: rgba({red}, {green}, {blue}, {alpha}); }}"
+        )
+
+    def _restore_style():
+        """Restores the original stylesheet once the pulse ends."""
+        if is_qt_object_valid(status_bar):
+            status_bar.setStyleSheet(original_stylesheet)
+
+    animation.valueChanged.connect(_apply_frame)
+    animation.finished.connect(_restore_style)
+    setattr(status_bar, _STATUS_LINE_PULSE_ATTRIBUTE, animation)
+    animation.start()
 
 
 def is_qt_object_valid(qt_object):
