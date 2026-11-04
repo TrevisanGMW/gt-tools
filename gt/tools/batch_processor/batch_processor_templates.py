@@ -49,7 +49,7 @@ def get_package_template_source_dir():
         str: Path to the package template directory.
     """
     tool_dir = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(tool_dir, "templates", "package_templates")
+    return os.path.join(tool_dir, "templates")
 
 
 def save_project_template(project, template_path):

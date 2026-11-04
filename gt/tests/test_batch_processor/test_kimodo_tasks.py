@@ -286,7 +286,7 @@ class TestKimodoData(unittest.TestCase):
         """Loads Kimodo presets through the real project serializer and template loader."""
         from gt.tools.batch_processor import batch_processor_model
 
-        folder = os.path.join(os.path.dirname(tasks.__file__), "templates", "package_templates")
+        folder = os.path.join(os.path.dirname(tasks.__file__), "templates")
         names = ["Kimodo Animations.batch", "Kimodo From Strings.batch"]
         self.assertEqual(names, sorted(name for name in os.listdir(folder) if name.startswith("Kimodo")))
         for name in names:
