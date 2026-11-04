@@ -5,14 +5,14 @@ Batch Processor Merge Input Task Attribute Widget
 from gt.tools.batch_processor.widgets.attr_widget_maya_import import MayaSceneOptionControlsMixin
 from gt.tools.batch_processor.widgets.attr_widget_task import AttrWidgetTask
 from gt.tools.batch_processor.widgets.inline_python_editor import InlinePythonEditorWidget
-from gt.tools.batch_processor.tasks import task_merge_input_utils as merge_utils
+from gt.tools.batch_processor.tasks import task_merge_input
 import gt.ui.qt_import as ui_qt
 from functools import partial
 
 
 NAME_TOKEN_TOOLTIP = (
-    f"Supports {merge_utils.INPUT_NAME_TOKEN}, {merge_utils.INPUT_INDEX_TOKEN}, "
-    f"{merge_utils.INPUT_INDEX_PADDED_TOKEN}, and project variables."
+    f"Supports {task_merge_input.INPUT_NAME_TOKEN}, {task_merge_input.INPUT_INDEX_TOKEN}, "
+    f"{task_merge_input.INPUT_INDEX_PADDED_TOKEN}, and project variables."
 )
 
 
@@ -106,7 +106,7 @@ class AttrWidgetMergeInputTask(MayaSceneOptionControlsMixin, AttrWidgetTask):
         )
         load_combo = self.create_row_combo_box(
             value=self.task.settings.get("load_mode"),
-            values=merge_utils.LOAD_MODES,
+            values=task_merge_input.LOAD_MODES,
             tooltip="Import copies every node into the merged scene.\nReference links each input file instead.",
         )
         load_combo.currentTextChanged.connect(partial(self.set_setting_and_refresh, key="load_mode"))
@@ -156,7 +156,7 @@ class AttrWidgetMergeInputTask(MayaSceneOptionControlsMixin, AttrWidgetTask):
         self.add_row_label(options_layout, "On Error", tooltip="What to do when one input fails to load.")
         failure_combo = self.create_row_combo_box(
             value=self.task.settings.get("on_input_failure"),
-            values=merge_utils.FAILURE_POLICIES,
+            values=task_merge_input.FAILURE_POLICIES,
             tooltip="Skip Input logs the error and keeps merging. Fail Merge stops the task.",
         )
         failure_combo.currentTextChanged.connect(partial(self.set_task_setting, key="on_input_failure"))
@@ -263,7 +263,7 @@ class AttrWidgetMergeInputTask(MayaSceneOptionControlsMixin, AttrWidgetTask):
         range_layout = self.add_labeled_layout("Time Range", tooltip=range_tooltip)
         range_combo = self.create_row_combo_box(
             value=self.task.settings.get("time_range_mode"),
-            values=merge_utils.TIME_RANGE_MODES,
+            values=task_merge_input.TIME_RANGE_MODES,
             tooltip=range_tooltip,
         )
         range_combo.currentTextChanged.connect(partial(self.set_setting_and_refresh, key="time_range_mode"))
@@ -284,7 +284,7 @@ class AttrWidgetMergeInputTask(MayaSceneOptionControlsMixin, AttrWidgetTask):
         timing_layout = self.add_labeled_layout("Timing", tooltip=timing_tooltip)
         timing_combo = self.create_row_combo_box(
             value=self.task.settings.get("timing_mode"),
-            values=merge_utils.TIMING_MODES,
+            values=task_merge_input.TIMING_MODES,
             tooltip=timing_tooltip,
         )
         timing_combo.currentTextChanged.connect(partial(self.set_setting_and_refresh, key="timing_mode"))
@@ -409,11 +409,11 @@ class AttrWidgetMergeInputTask(MayaSceneOptionControlsMixin, AttrWidgetTask):
             self.reference_deferred_checkbox.setEnabled(is_reference)
         if self.remove_namespace_checkbox:
             self.remove_namespace_checkbox.setEnabled(not is_reference)
-        is_manual = self.task.settings.get("time_range_mode") == merge_utils.TIME_RANGE_MANUAL
+        is_manual = self.task.settings.get("time_range_mode") == task_merge_input.TIME_RANGE_MANUAL
         for widget in self.manual_range_widgets:
             widget.setEnabled(is_manual)
         if self.sequential_gap_spin_box:
-            is_sequential = self.task.settings.get("timing_mode") == merge_utils.TIMING_SEQUENTIAL
+            is_sequential = self.task.settings.get("timing_mode") == task_merge_input.TIMING_SEQUENTIAL
             self.sequential_gap_spin_box.setEnabled(is_sequential and not is_reference)
         for spin_box in self.offset_spin_boxes:
             spin_box.setEnabled(bool(self.task.settings.get("offset_inputs")))

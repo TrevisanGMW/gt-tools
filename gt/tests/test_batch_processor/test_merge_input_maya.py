@@ -11,7 +11,6 @@ from gt.tools.batch_processor import batch_processor_maya as maya_runtime
 from gt.tools.batch_processor import batch_processor_model as model
 from gt.tools.batch_processor import batch_processor_task_base as task_base
 from gt.tools.batch_processor.tasks import task_merge_input
-from gt.tools.batch_processor.tasks import task_merge_input_utils as merge_utils
 from gt.tools.batch_processor.tasks import task_utils
 
 
@@ -122,7 +121,7 @@ class TestMergeInputMaya(unittest.TestCase):
             display_layer_per_input=True,
             offset_inputs=True,
             input_offset=[100.0, 0.0, 0.0],
-            timing_mode=merge_utils.TIMING_SEQUENTIAL,
+            timing_mode=task_merge_input.TIMING_SEQUENTIAL,
             sequential_gap_frames=5,
             output_mode=task_base.OUTPUT_MODE_PASSTHROUGH,
         )
@@ -136,7 +135,7 @@ class TestMergeInputMaya(unittest.TestCase):
         self.assertEqual(expected, self.get_playback_range())
 
     def test_reference_mode_with_groups(self):
-        self.run_task(load_mode=merge_utils.LOAD_MODE_REFERENCE, group_each_input=True)
+        self.run_task(load_mode=task_merge_input.LOAD_MODE_REFERENCE, group_each_input=True)
         references = [node for node in self.cmds.ls(type="reference") if "sharedReferenceNode" not in node]
         expected = 2
         self.assertEqual(expected, len(references))
@@ -147,7 +146,7 @@ class TestMergeInputMaya(unittest.TestCase):
         self.assertEqual(expected, self.get_playback_range())
 
     def test_first_input_uses_saved_range(self):
-        self.run_task(time_range_mode=merge_utils.TIME_RANGE_FIRST_INPUT, sort_inputs_by_name=True)
+        self.run_task(time_range_mode=task_merge_input.TIME_RANGE_FIRST_INPUT, sort_inputs_by_name=True)
         expected = (5.0, 30.0)  # run.ma sorts first.
         self.assertEqual(expected, self.get_playback_range())
 
