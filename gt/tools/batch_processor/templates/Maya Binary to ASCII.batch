@@ -1,0 +1,66 @@
+{
+    "version": 1,
+    "project_name": "Maya Binary to ASCII",
+    "notes": "Converts Maya Binary scenes from the input directory to Maya ASCII files in the output directory. Existing output files are preserved.",
+    "environment_variables": {
+        "project-dir": "{project-file-dir}",
+        "project-file-dir": "",
+        "project-path": "",
+        "project-grandparent-dir": "",
+        "input-dir": "01_input",
+        "task-dir": "02_tasks",
+        "output-dir": "03_output"
+    },
+    "run_settings": {
+        "multi_instance": true,
+        "worker_count": 8,
+        "max_retries": 0,
+        "timeout_minutes": 0,
+        "preferred_maya_version": "",
+        "create_log": true,
+        "create_task_time_log": true,
+        "log_path": "logs",
+        "purge_logs_on_run": true,
+        "ignore_disabled_tasks_for_task_index": false
+    },
+    "tasks": [
+        {
+            "id": "ae522bf3-898f-4c08-88f1-d1c0dbd6ac21",
+            "task_type": "input",
+            "display_name": "Input Maya Binary Files",
+            "enabled": true,
+            "parameters": {
+                "include_in_task_index": false,
+                "source_path": "{project-dir}/{input-dir}",
+                "include_subdirectories": true,
+                "extensions": [
+                    ".mb"
+                ],
+                "exclude_patterns": [],
+                "explicit_files": [],
+                "start_new_input_list": false,
+                "force_segment_separator": false,
+                "segment_name": "",
+                "segment_color": "blue_light_sky"
+            }
+        },
+        {
+            "id": "924cd993-48df-4bb5-88eb-f5265a4f2a70",
+            "task_type": "output_maya_save",
+            "display_name": "Save Maya ASCII Files",
+            "enabled": true,
+            "parameters": {
+                "source_path": "{previous-task-path}",
+                "target_path": "{project-dir}/{output-dir}/maya_ascii",
+                "output_extension": ".ma",
+                "source_load_mode": "Open",
+                "load_relevant_plugins": true,
+                "overwrite": false,
+                "include_in_task_index": true,
+                "source_mode": "source_path",
+                "output_mode": "target_path",
+                "task_io_collapsed": false
+            }
+        }
+    ]
+}

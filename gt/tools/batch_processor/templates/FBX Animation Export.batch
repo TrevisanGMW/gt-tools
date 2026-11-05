@@ -1,0 +1,80 @@
+{
+    "version": 1,
+    "project_name": "FBX Animation Export",
+    "notes": "Exports each Maya scene in the input directory as an FBX animation using the scene playback range. Source scenes are not modified.",
+    "environment_variables": {
+        "project-dir": "{project-file-dir}",
+        "project-file-dir": "",
+        "project-path": "",
+        "project-grandparent-dir": "",
+        "input-dir": "01_input",
+        "task-dir": "02_tasks",
+        "output-dir": "03_output"
+    },
+    "run_settings": {
+        "multi_instance": true,
+        "worker_count": 8,
+        "max_retries": 0,
+        "timeout_minutes": 0,
+        "preferred_maya_version": "",
+        "create_log": true,
+        "create_task_time_log": true,
+        "log_path": "logs",
+        "purge_logs_on_run": true,
+        "ignore_disabled_tasks_for_task_index": false
+    },
+    "tasks": [
+        {
+            "id": "093039d3-251a-4976-83ed-a2ccc5a77c83",
+            "task_type": "input",
+            "display_name": "Input Maya Scenes",
+            "enabled": true,
+            "parameters": {
+                "include_in_task_index": false,
+                "source_path": "{project-dir}/{input-dir}",
+                "include_subdirectories": true,
+                "extensions": [
+                    ".ma",
+                    ".mb"
+                ],
+                "exclude_patterns": [],
+                "explicit_files": [],
+                "start_new_input_list": false,
+                "force_segment_separator": false,
+                "segment_name": "",
+                "segment_color": "blue_light_sky"
+            }
+        },
+        {
+            "id": "93884245-297c-4b3d-bd9e-92996335d284",
+            "task_type": "output_fbx_export",
+            "display_name": "Export FBX Animation",
+            "enabled": true,
+            "parameters": {
+                "source_path": "{previous-task-path}",
+                "target_path": "{project-dir}/{output-dir}/fbx",
+                "source_load_mode": "Open",
+                "load_relevant_plugins": true,
+                "export_mode": "Animation",
+                "export_selection": false,
+                "key_reducer": false,
+                "auto_frame_range": true,
+                "frame_start": 0,
+                "frame_end": 120,
+                "run_pre_export_script": false,
+                "pre_export_script_text": "",
+                "pre_export_script_collapsed": true,
+                "pre_export_script_font_size": 14,
+                "pre_export_script_pass_standard_arguments": true,
+                "pre_export_script_pass_environment_arguments": true,
+                "ascii": false,
+                "generate_log": false,
+                "overwrite": false,
+                "include_in_task_index": true,
+                "source_mode": "source_path",
+                "output_mode": "target_path",
+                "task_io_collapsed": false
+            }
+        }
+    ]
+}

@@ -1,0 +1,61 @@
+{
+    "version": 1,
+    "project_name": "Kimodo Animations",
+    "notes": "Capture poses from incoming Maya scenes, then generate characterized Maya animations. Save this project beside 01_input; Project Directory is {project-file-dir}. Enable marker capture and set its attribute when available. Connect to the Bridge before running. Describe the intended motion in the prompts; add path constraints to preserve travel between poses.",
+    "environment_variables": {
+        "project-dir": "{project-file-dir}",
+        "input-dir": "01_input",
+        "task-dir": "02_tasks",
+        "output-dir": "03_output"
+    },
+    "run_settings": {
+        "multi_instance": true,
+        "worker_count": 2,
+        "max_retries": 1,
+        "timeout_minutes": 0,
+        "create_log": true,
+        "create_task_time_log": true,
+        "log_path": "logs"
+    },
+    "tasks": [
+        {
+            "id": "711d7321-090e-4a8b-ad6c-e309dccde1bc",
+            "task_type": "input",
+            "display_name": "Input Maya Scenes",
+            "enabled": true,
+            "parameters": {
+                "source_path": "{project-dir}/{input-dir}",
+                "extensions": [".ma", ".mb"],
+                "include_subdirectories": true,
+                "include_in_task_index": false
+            }
+        },
+        {
+            "id": "62413ed7-e683-4a6a-ab1c-6570a73a7204",
+            "task_type": "kimodo_definition",
+            "display_name": "Kimodo Definition",
+            "enabled": true,
+            "parameters": {
+                "source_mode": "incoming",
+                "target_path": "{project-dir}/{task-dir}/kimodo_definitions",
+                "capture_first": true,
+                "capture_last": true,
+                "use_marker": false,
+                "overwrite": false
+            }
+        },
+        {
+            "id": "5117d727-cf20-443d-aab5-5220993f93ed",
+            "task_type": "kimodo_generate",
+            "display_name": "Kimodo Generate",
+            "enabled": true,
+            "parameters": {
+                "source_mode": "incoming",
+                "target_path": "{project-dir}/{output-dir}/kimodo",
+                "result_mode": "maya",
+                "add_humanik": true,
+                "overwrite": false
+            }
+        }
+    ]
+}

@@ -1,0 +1,77 @@
+{
+    "version": 1,
+    "project_name": "File Integrity Check",
+    "notes": "Checks Maya and FBX files in the input directory for empty or suspiciously small files. Results are written to logs without opening or changing the files.",
+    "environment_variables": {
+        "project-dir": "{project-file-dir}",
+        "project-file-dir": "",
+        "project-path": "",
+        "project-grandparent-dir": "",
+        "input-dir": "01_input",
+        "task-dir": "02_tasks",
+        "output-dir": "03_output"
+    },
+    "run_settings": {
+        "multi_instance": true,
+        "worker_count": 8,
+        "max_retries": 0,
+        "timeout_minutes": 0,
+        "preferred_maya_version": "",
+        "create_log": true,
+        "create_task_time_log": true,
+        "log_path": "logs",
+        "purge_logs_on_run": true,
+        "ignore_disabled_tasks_for_task_index": false
+    },
+    "tasks": [
+        {
+            "id": "bfefbf9c-112c-47af-9c9c-1d42ecb47c30",
+            "task_type": "input",
+            "display_name": "Input Files",
+            "enabled": true,
+            "parameters": {
+                "include_in_task_index": false,
+                "source_path": "{project-dir}/{input-dir}",
+                "include_subdirectories": true,
+                "extensions": [
+                    ".ma",
+                    ".mb",
+                    ".fbx"
+                ],
+                "exclude_patterns": [],
+                "explicit_files": [],
+                "start_new_input_list": false,
+                "force_segment_separator": false,
+                "segment_name": "",
+                "segment_color": "blue_light_sky"
+            }
+        },
+        {
+            "id": "be3d9a34-9b50-4685-ac46-221d3cfdf199",
+            "task_type": "validate_file_integrity",
+            "display_name": "Validate File Integrity",
+            "enabled": true,
+            "parameters": {
+                "source_path": "{previous-task-path}",
+                "target_path": "{log-dir}",
+                "log_mode": "Log Issues Only",
+                "fail_on_issues": false,
+                "minimum_file_size_bytes": 1,
+                "maximum_file_size_bytes": "",
+                "warn_when_empty": true,
+                "warn_when_size_differs_from_group": false,
+                "detect_duplicate_checksums": false,
+                "checksum_algorithm": "sha1",
+                "overwrite": true,
+                "run_once_after_multi_instance": false,
+                "force_segment_separator": false,
+                "segment_name": "",
+                "segment_color": "blue_light_sky",
+                "include_in_task_index": false,
+                "source_mode": "source_path",
+                "output_mode": "target_path",
+                "task_io_collapsed": false
+            }
+        }
+    ]
+}

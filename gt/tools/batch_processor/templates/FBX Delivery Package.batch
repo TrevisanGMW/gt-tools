@@ -1,0 +1,170 @@
+{
+    "version": 1,
+    "project_name": "FBX Delivery Package",
+    "notes": "Builds a delivery package from Maya scenes: checks file integrity, writes an audit report, exports FBX animation, and archives the FBX output. Source scenes are not modified.",
+    "environment_variables": {
+        "project-dir": "{project-file-dir}",
+        "project-file-dir": "",
+        "project-path": "",
+        "project-grandparent-dir": "",
+        "input-dir": "01_input",
+        "task-dir": "02_tasks",
+        "output-dir": "03_output"
+    },
+    "run_settings": {
+        "multi_instance": true,
+        "worker_count": 8,
+        "max_retries": 0,
+        "timeout_minutes": 0,
+        "preferred_maya_version": "",
+        "create_log": true,
+        "create_task_time_log": true,
+        "log_path": "logs",
+        "purge_logs_on_run": true,
+        "ignore_disabled_tasks_for_task_index": false
+    },
+    "tasks": [
+        {
+            "id": "51d195cf-08c3-4d15-a8d7-e1f015fa8bae",
+            "task_type": "input",
+            "display_name": "Input Maya Scenes",
+            "enabled": true,
+            "parameters": {
+                "include_in_task_index": false,
+                "source_path": "{project-dir}/{input-dir}",
+                "include_subdirectories": true,
+                "extensions": [
+                    ".ma",
+                    ".mb"
+                ],
+                "exclude_patterns": [],
+                "explicit_files": [],
+                "start_new_input_list": false,
+                "force_segment_separator": false,
+                "segment_name": "",
+                "segment_color": "blue_light_sky"
+            }
+        },
+        {
+            "id": "3d1a7889-cea6-4530-8fb1-19cf72c2b708",
+            "task_type": "validate_file_integrity",
+            "display_name": "Check File Integrity",
+            "enabled": true,
+            "parameters": {
+                "source_path": "{previous-task-path}",
+                "target_path": "{log-dir}",
+                "log_mode": "Log Issues Only",
+                "fail_on_issues": false,
+                "minimum_file_size_bytes": 1,
+                "maximum_file_size_bytes": "",
+                "warn_when_empty": true,
+                "warn_when_size_differs_from_group": false,
+                "detect_duplicate_checksums": false,
+                "checksum_algorithm": "sha1",
+                "overwrite": true,
+                "run_once_after_multi_instance": false,
+                "force_segment_separator": false,
+                "segment_name": "",
+                "segment_color": "blue_light_sky",
+                "include_in_task_index": false,
+                "source_mode": "source_path",
+                "output_mode": "target_path",
+                "task_io_collapsed": false
+            }
+        },
+        {
+            "id": "02cdc69e-335b-492b-bca5-0cae3a614bad",
+            "task_type": "scene_report",
+            "display_name": "Create Scene Audit Report",
+            "enabled": true,
+            "parameters": {
+                "source_path": "{previous-task-path}",
+                "target_path": "{log-dir}",
+                "source_include_subdirectories": true,
+                "source_load_mode": "Open",
+                "load_relevant_plugins": true,
+                "report_metrics": [
+                    "frame_count",
+                    "frame_rate",
+                    "file_size",
+                    "time",
+                    "mesh_count",
+                    "joint_count",
+                    "geometry_counts",
+                    "scene_units"
+                ],
+                "report_detail_mode": "List + Total",
+                "report_file_name": "{project-name}_report.txt",
+                "report_notes": "{project-notes}",
+                "report_notes_collapsed": true,
+                "overwrite": true,
+                "run_once_after_multi_instance": true,
+                "force_segment_separator": false,
+                "segment_name": "",
+                "segment_color": "blue_light_sky",
+                "include_in_task_index": false,
+                "source_mode": "source_path",
+                "output_mode": "target_path",
+                "task_io_collapsed": false
+            }
+        },
+        {
+            "id": "eb746570-49cf-46c7-9891-b594329cd390",
+            "task_type": "output_fbx_export",
+            "display_name": "Export FBX Animation",
+            "enabled": true,
+            "parameters": {
+                "source_path": "{previous-task-path}",
+                "target_path": "{project-dir}/{output-dir}/fbx",
+                "source_load_mode": "Open",
+                "load_relevant_plugins": true,
+                "export_mode": "Animation",
+                "export_selection": false,
+                "key_reducer": false,
+                "auto_frame_range": true,
+                "frame_start": 0,
+                "frame_end": 120,
+                "run_pre_export_script": false,
+                "pre_export_script_text": "",
+                "pre_export_script_collapsed": true,
+                "pre_export_script_font_size": 14,
+                "pre_export_script_pass_standard_arguments": true,
+                "pre_export_script_pass_environment_arguments": true,
+                "ascii": false,
+                "generate_log": false,
+                "overwrite": false,
+                "include_in_task_index": true,
+                "source_mode": "source_path",
+                "output_mode": "target_path",
+                "task_io_collapsed": false
+            }
+        },
+        {
+            "id": "8f88300a-4ac5-4b4e-b8b5-7be1fca458fd",
+            "task_type": "zip_compress",
+            "display_name": "Archive FBX Delivery",
+            "enabled": true,
+            "parameters": {
+                "source_path": "{previous-task-path}",
+                "target_path": "{project-dir}/{output-dir}/archives",
+                "archive_name": "{project-sanitized-name}_fbx_{version}.zip",
+                "archive_version": "01",
+                "archive_version_auto": true,
+                "archive_version_padding": 2,
+                "compression": "Deflated",
+                "run_once_after_multi_instance": true,
+                "use_source_path_as_relative_root": true,
+                "preserve_relative_paths": true,
+                "relative_root": "",
+                "overwrite": false,
+                "force_segment_separator": false,
+                "segment_name": "",
+                "segment_color": "blue_light_sky",
+                "include_in_task_index": true,
+                "source_mode": "source_path",
+                "output_mode": "target_path",
+                "task_io_collapsed": false
+            }
+        }
+    ]
+}
