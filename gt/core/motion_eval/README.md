@@ -1,8 +1,7 @@
 # motion_eval
 
-Scores animation quality from 0 to 100 with configurable checks, and writes the
-same summaries, JSON reports, and graphs as the Batch Processor
-**Validate Animation** task. Everything below uses only this package plus Maya,
+Scores animation quality from 0 to 100 with configurable checks, and writes
+summaries, JSON reports, and graphs. Everything below uses only this package plus Maya,
 so it can run inside Maya, in `mayapy`, or headless on a server.
 
 ## Contents
@@ -15,24 +14,27 @@ so it can run inside Maya, in `mayapy`, or headless on a server.
 | `evaluation` | Python (Maya to sample a scene) | Evaluates sampled motion and builds the report |
 | `batch_summary` | Python | Combines many reports (totals, sorted files, batch chart data) |
 | `outputs` | Python (Qt for graphs) | Writes summaries, JSON reports, and graphs |
-| `report_graphs` | Qt | PNG graphs (uses the host's Qt; falls back to PySide6, then PySide2) |
+| `report_graphs` | Qt | PNG graphs (PySide6, or PySide2 in older Maya versions) |
 | `sampling`, `scene_io` | Maya | Reads the open scene, writes the score attribute |
+| `usd_scene` | Maya + mayaUsdPlugin | Loads USD files: frame rate, frame range, up axis and unit alignment |
 | `runner` | Maya | Headless jobs: open files, evaluate, write every output |
 
 The package only uses relative imports, so the `motion_eval` folder can be copied
-anywhere on `sys.path` and imported as `motion_eval`. Inside this toolkit, import
-it from its full package path instead; the examples below use
+anywhere on `sys.path` and imported as `motion_eval`. The examples below use
 `from motion_eval import ...`.
 
-## 1. Quick start: evaluate many files with every output
+## 1. Quick start: evaluate a folder with every output
 
 ```python
+import os
 from motion_eval import runner
 
 job = runner.create_job(
     title="Locomotion Review",
+    input_dir="01_input",               # scenes to evaluate (sub-folders included)
+    output_dir="02_output",
+    result_path="02_output/run_result.json",
     skeleton="maya_humanik",            # "none" = General checks only
-    output_dir="D:/reviews/locomotion",
     outputs={
         "summary_batch": True,          # batch_summary.txt
         "report_batch": True,           # batch_report.json
@@ -45,8 +47,9 @@ job = runner.create_job(
     },
 )
 
-with runner.maya_session():             # starts maya.standalone if not inside Maya
-    run = runner.run_job(["D:/anims/walk_01.ma", "D:/anims/run_01.ma"], job)
+# Relative paths start from base_dir. Starts maya.standalone when needed and hides Maya's console
+# messages (quiet=False shows them). Prints one line per file with how many are left, then a summary.
+run = runner.run(job, base_dir=os.path.dirname(os.path.abspath(__file__)))
 
 print(run["totals"]["statuses"])        # {"failed": 1, "warning": 0, "passed": 1, "skipped": 0}
 print(run["failed_files"])              # failed or errored files
@@ -54,9 +57,34 @@ for result in run["results"]:
     print(result["source"], result["status"], result["score"], result["error"])
 ```
 
-`run_job` raises `ValueError` when the job is invalid (`runner.validate_job(job)`
-lists the problems without running anything). Errors in a single file do not stop
-the run: that file gets `status == "error"` and an `error` message.
+Console output:
+
+```text
+Locomotion Review: 19 file(s) | Skeleton: Maya HumanIK | 19 checks (16 on)
+Output: D:\reviews\02_output
+
+Starting Maya (this can take a few seconds)...
+[ 1/19] 18 left, ~1:07 | FAILED  score  18 | walk_01.mb
+[ 2/19] 17 left, ~0:45 | PASSED  score 100 | walk_02.mb
+[ 3/19] running... walk_03.mb
+```
+
+While a file is evaluated, a `running...` line shows its name; in a console it is
+replaced by the result line (in a log file both lines are kept). The run ends with:
+
+```text
+Done: 19 evaluated | passed 12 | warning 3 | failed 4 | errors 0
+```
+
+`run` raises `ValueError` when the job is invalid or no scene is found
+(`runner.validate_job(job)` lists problems without running anything). Errors in a
+single file do not stop the run: that file gets `status == "error"` and an `error`
+message. A ready-to-copy script is in
+[Standalone example script](#7-standalone-example-script).
+
+To evaluate a list of files instead of a folder, pass `file_paths=[...]` to `run`,
+or call the lower-level `run_job(file_paths, job, source_root="", progress_callback=None, quiet=False, start_callback=None)` inside
+`with runner.maya_session():`.
 
 ### Output layout
 
@@ -67,13 +95,12 @@ the run: that file gets `status == "error"` and an `error` message.
     batch_scores.png             one row per file, one colored cell per check
     walk_01/                     (directly in <output_dir> when file_folders is False)
         walk_01_summary.txt
-        walk_01_report.json      full report (same as Export Report in the tool)
+        walk_01_report.json      full report
         walk_01_00_summary.png
         walk_01_01_jitter.png ...
 ```
 
-Pass `source_root="D:/anims"` to `run_job` to keep input sub-folders under
-`<output_dir>` when `file_folders` is on.
+With `file_folders` on, sub-folders of `input_dir` are kept under `<output_dir>`.
 
 ## 2. Job settings
 
@@ -83,20 +110,29 @@ are merged with their defaults, so pass only what changes.
 | Key | Default | Meaning |
 |---|---|---|
 | `title` | `"Validate Animation"` | Title of batch summaries and graphs |
+| `input_dir` | `""` | Folder searched for scenes by `run()` and the command line |
+| `extensions` | `[".ma", ".mb", ".fbx", ".usd", ".usda", ".usdc"]` | Scene extensions searched in `input_dir` |
+| `include_subfolders` | `True` | Also search sub-folders of `input_dir` |
 | `skeleton` | `"none"` | `"none"`, a built-in key, a Custom Skeleton JSON path, or a template dictionary. Any skeleton adds the Biped checks |
 | `preset` | `None` | Preset dictionary, preset JSON path, or `None` for the defaults |
 | `range_mode` | `"Playback Range"` | `"Playback Range"`, `"Animation Range"`, `"Keyed Range"`, `"Custom"` |
 | `custom_start`, `custom_end` | `1`, `100` | Frames for `"Custom"` |
 | `general_scope` | `"All Joints"` | Nodes evaluated without a skeleton: `"All Joints"`, `"Animated Transforms"`, `"Node List"` |
 | `node_list` | `[]` | Names or wildcards for `"Node List"`, for example `["prop_ctrl", "*:root"]` |
-| `load_mode` | `"open"` | `"open"` the file, or `"import"` into a new scene (FBX is always imported) |
+| `load_mode` | `"open"` | `"open"` the file, or `"import"` into a new scene (FBX and USD are always imported) |
+| `align_up_axis` | `True` | USD files: rotate and scale the file into the scene's up axis and unit (see [USD files](#usd-files)) |
 | `output_dir` | `""` | Output folder; required when any output is on |
 | `outputs` | see above | Which files to write (`outputs.DEFAULT_OUTPUT_OPTIONS`) |
 | `write_score` | `False` | Store the score as a Maya attribute (see `score`) |
 | `score` | network node `motionEval.motionScore` | `target_mode`, `node_name`, `score_attribute`, `report_attribute`, `write_report`, `write_policy` (see `scene_io.write_score`) |
 | `save_copy_dir` | `""` | Save each evaluated scene (with its score) as a `.ma` copy here. Inputs are never overwritten |
+| `result_path` | `""` | `run()` writes a JSON summary of the run here (scores, errors, output paths) |
 
-The skeleton decides the mode, exactly like the Batch Processor task: with
+Relative paths (`input_dir`, `output_dir`, `result_path`, `save_copy_dir`, and
+skeleton or preset `.json` paths) start from the `base_dir` given to `run()`; the
+command line uses the job file's folder.
+
+The skeleton decides the mode: with
 `"none"` only the General checks run (on `general_scope` nodes); with a skeleton
 the General and Biped checks run on the joints the skeleton maps.
 
@@ -117,6 +153,25 @@ job = runner.load_job("D:/reviews/locomotion_job.json")   # missing keys get the
     "outputs": {"report_batch": true, "graphs_batch": true, "graphs_per_file": true}
 }
 ```
+
+### USD files
+
+`.usd`, `.usda`, and `.usdc` files are evaluated like Maya scenes (Maya's
+`mayaUsdPlugin` must be available; it ships with Maya). Each file is loaded by
+`usd_scene.load_usd_scene`:
+
+1. A new scene gets the file's frame rate (time codes per second), so every USD
+   time code is one Maya frame and speeds and gravity are measured correctly.
+2. The file is imported with `mayaUSDImport`; skeleton animation becomes keyed joints.
+3. The playback and animation range are set to the file's start and end time codes,
+   so `range_mode="Playback Range"` evaluates exactly the exported frames.
+4. With `align_up_axis` on (default), a file whose up axis differs from the scene
+   (for example a Z-up export in a Y-up Maya scene) is grouped under `usd_align`
+   and rotated into the scene's up axis. The group is also scaled when the file's
+   `metersPerUnit` differs from the scene unit.
+
+USD exports usually keep only the skeleton, so the Custom Skeleton should list the
+joint names as they appear in the USD file (namespaces are usually stripped).
 
 ## 3. Skeletons
 
@@ -144,7 +199,6 @@ hero = templates.load_template("D:/pipeline/skeletons/hero_skeleton.json")
 
 Roles: `templates.ROLE_KEYS`. Roles required by the Biped checks:
 `templates.REQUIRED_BIPED_ROLES` (hips, spine, head, both thighs, knees, and feet).
-Files saved from the Animation Evaluator's Skeleton tab use the same format.
 
 Inside Maya, `sampling.resolve_template_in_scene(template, require_biped=True)`
 shows which joint each role resolved to, and
@@ -184,8 +238,7 @@ Checks off by default: `below_ground` (needs the floor at a known height),
 `balance` (props, sitting, and leaning trigger it), and `gait_asymmetry` (turns,
 starts, and stops trigger it). Enable them for data where they apply.
 
-Preset files saved from the Animation Evaluator's Checks tab, or from the Batch
-Processor task, can be passed as `job["preset"]` directly.
+Preset files saved with `presets.save_preset` can be passed as `job["preset"]` directly.
 
 ## 5. Step by step (custom pipelines)
 
@@ -255,31 +308,55 @@ outputs on.
 ## 6. Command line (headless)
 
 ```bash
+mayapy -m motion_eval.runner job.json
 mayapy -m motion_eval.runner job.json D:/anims/walk_01.ma D:/anims/run_01.ma --result D:/out/result.json
 ```
 
-- `--source-root D:/anims` keeps input sub-folders under the output folder.
+- Without files, the scenes come from the job's `input_dir`.
+- Relative paths in the job start from the job file's folder.
 - `--result` writes totals, batch output paths, failed files, errors, and one compact
-  result per file (with its batch `entry`) as JSON.
+  result per file (with its batch `entry`) as JSON (same as the job's `result_path`).
+- `--verbose` shows Maya's own console messages (hidden by default).
 - Exit code: `0` every file passed or warned, `1` some file failed or errored,
   `2` invalid job.
 
 `maya.standalone` is initialized and uninitialized automatically. Run from the
 folder that contains `motion_eval` (or add it to `PYTHONPATH`).
 
-## 7. Batch Processor task settings and their job keys
+## 7. Standalone example script
 
-| Validate Animation task | Job key |
-|---|---|
-| Skeleton (None / built-in / Custom Skeleton + Custom SKM File) | `skeleton` (`"none"`, key, or JSON path) |
-| Checks and Thresholds (inline or Preset File) | `preset` (dictionary or JSON path) |
-| Frame Range, Start, End | `range_mode`, `custom_start`, `custom_end` |
-| Nodes, Node List | `general_scope`, `node_list` |
-| Scene Load (Open / Import) | `load_mode` |
-| Output Folder | `output_dir` |
-| Output > Summary / JSON Report / Graphs, Per-File Folders, Only On Failure | `outputs` |
-| Score Attribute > Write Score, Target, Attributes, Policy | `write_score`, `score` |
-| Score Attribute > Save Scene | `save_copy_dir` (saves a copy; inputs are never overwritten) |
+A complete script to hand to other people. Save it next to an `01_input` folder and
+run it with `mayapy run_validate_animation.py` (or a `.bat` that calls mayapy).
 
-Not included in the runner: the task's post-script, tracker reporting, and the
-validation log. Use the returned results for those.
+```python
+import os
+import sys
+
+# Folder that CONTAINS the "motion_eval" folder.
+sys.path.insert(0, r"D:/pipeline/python")
+from motion_eval import presets, runner
+
+THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))
+
+# Which checks run: start from the defaults and change only what you need.
+checks = presets.create_preset()
+checks = presets.set_check_value(checks, "balance", "enabled", True)        # off by default
+# checks = presets.set_check_value(checks, "foot_slide", "fail_below", 60)  # stricter foot sliding
+
+job = runner.create_job(
+    input_dir="01_input",
+    output_dir="02_output",
+    result_path="02_output/run_result.json",
+    skeleton="maya_humanik",       # "none", "unreal_mannequin", or "data/my_rig.json"
+    preset=checks,
+    outputs={"graphs_batch": True, "summary_per_file": True, "graphs_per_file": True},
+)
+
+if __name__ == "__main__":
+    try:
+        result = runner.run(job, base_dir=THIS_FOLDER)
+    except ValueError as error:
+        print(f"Setup problem: {error}")
+        sys.exit(2)
+    sys.exit(1 if result["failed_files"] else 0)
+```

@@ -1,9 +1,8 @@
 """
 Motion Evaluation Batch Summary - Combines evaluation reports of many files.
 
-Pure Python helpers used by batch tools (for example the Batch Processor
-"Validate Animation" task) to write one summary, JSON report, or graph for a
-whole batch, and per-file summaries. Nothing here imports Maya or Qt.
+Pure Python helpers used by batch runs to write one summary, JSON report, or
+graph for a whole batch, and per-file summaries. Nothing here imports Maya or Qt.
 """
 
 from .checks_base import STATUS_DISABLED, STATUS_FAILED, STATUS_PASSED, STATUS_SKIPPED

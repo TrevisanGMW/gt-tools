@@ -3,7 +3,10 @@
 import tempfile
 import unittest
 import math
+import io
 import os
+import sys
+from unittest import mock
 
 from gt.core.motion_eval import batch_summary
 from gt.core.motion_eval import checks_base
@@ -15,6 +18,7 @@ from gt.core.motion_eval import presets
 from gt.core.motion_eval import report_graphs
 from gt.core.motion_eval import scoring
 from gt.core.motion_eval import templates
+from gt.core.motion_eval import usd_scene
 
 FPS = 30.0
 FRAME_COUNT = 90
@@ -563,9 +567,89 @@ class TestMotionEvalRunnerJob(unittest.TestCase):
         self.assertEqual("unreal_mannequin", job["skeleton"])
         self.assertIn("graphs_only_on_failure", job["outputs"])
 
+    def test_relative_job_paths_start_from_base_dir(self):
+        job = runner.resolve_job_paths(
+            runner.create_job(input_dir="01_input", output_dir="D:/out", skeleton="data/rig.json"), "D:/project"
+        )
+        self.assertEqual(os.path.normpath("D:/project/01_input"), job["input_dir"])
+        self.assertEqual("D:/out", job["output_dir"])
+        self.assertEqual(os.path.normpath("D:/project/data/rig.json"), job["skeleton"])
+
+    def test_builtin_skeleton_is_not_treated_as_a_path(self):
+        job = runner.resolve_job_paths(runner.create_job(skeleton="maya_humanik"), "D:/project")
+        self.assertEqual("maya_humanik", job["skeleton"])
+
+    def test_find_scene_files(self):
+        with tempfile.TemporaryDirectory() as directory:
+            os.makedirs(os.path.join(directory, "sub"))
+            for name in ("a.ma", "b.txt", os.path.join("sub", "c.MB")):
+                open(os.path.join(directory, name), "w").close()
+            names = [os.path.basename(path) for path in runner.find_scene_files(directory)]
+            top_only = [os.path.basename(path) for path in runner.find_scene_files(directory, include_subfolders=False)]
+        self.assertEqual(["a.ma", "c.MB"], names)
+        self.assertEqual(["a.ma"], top_only)
+
+    def test_describe_job(self):
+        self.assertIn("Maya HumanIK", runner.describe_job(runner.create_job(skeleton="maya_humanik")))
+        self.assertIn("General checks only", runner.describe_job(runner.create_job()))
+
+    def test_run_rejects_a_missing_input_folder(self):
+        with self.assertRaises(ValueError):
+            runner.run(runner.create_job(input_dir="missing_folder", output_dir="D:/out"), base_dir="D:/nowhere",
+                       show_progress=False)
+
     def test_relative_dir(self):
         self.assertEqual("walks", runner.get_relative_dir("D:/in/walks/a.ma", "D:/in"))
         self.assertEqual("", runner.get_relative_dir("E:/other/a.ma", "D:/in"))
+
+    def test_quiet_output_swaps_and_restores_python_streams(self):
+        original = sys.stdout
+        with runner.quiet_output(True):
+            print("hidden")
+            self.assertIsNot(original, sys.stdout)
+        self.assertIs(original, sys.stdout)
+
+    def test_run_job_continues_after_an_unexpected_file_error(self):
+        with mock.patch.object(runner, "evaluate_file", side_effect=RuntimeError("broken scene")):
+            run_result = runner.run_job(["D:/in/a.ma", "D:/in/b.ma"], runner.create_job(output_dir="D:/out",
+                                                                                       outputs={"summary_batch": False}))
+        self.assertEqual(["error", "error"], [result["status"] for result in run_result["results"]])
+        self.assertEqual("RuntimeError: broken scene", run_result["errors"]["D:/in/b.ma"])
+        self.assertEqual(["D:/in/a.ma", "D:/in/b.ma"], run_result["failed_files"])
+
+    def test_progress_printer_shows_running_file_then_result(self):
+        stream = io.StringIO()
+        printer = runner.ProgressPrinter(stream=stream)
+        printer.start(1, 2, "D:/in/walk_01.ma")
+        printer(1, 2, {"error": "", "score": 75, "status": "warning", "source": "D:/in/walk_01.ma"})
+        lines = stream.getvalue().splitlines()
+        self.assertEqual("[1/2] running... walk_01.ma", lines[0])
+        self.assertTrue(lines[1].startswith("[1/2] 1 left, ~"))
+        self.assertTrue(lines[1].endswith("WARNING score  75 | walk_01.ma"))
+
+
+class TestMotionEvalUsdScene(unittest.TestCase):
+    def test_is_usd_file(self):
+        self.assertTrue(usd_scene.is_usd_file("D:/anims/walk.USDC"))
+        self.assertFalse(usd_scene.is_usd_file("D:/anims/walk.mb"))
+
+    def test_time_unit(self):
+        self.assertEqual("ntsc", usd_scene.get_time_unit(30.0))
+        self.assertEqual("12fps", usd_scene.get_time_unit(12))
+
+    def test_up_axis_rotation(self):
+        self.assertEqual(-90.0, usd_scene.get_up_axis_rotation("Z", "y"))
+        self.assertEqual(90.0, usd_scene.get_up_axis_rotation("y", "z"))
+        self.assertEqual(0.0, usd_scene.get_up_axis_rotation("y", "y"))
+
+    def test_unit_scale(self):
+        self.assertAlmostEqual(1.0, usd_scene.get_unit_scale(0.01, "cm"))
+        self.assertAlmostEqual(100.0, usd_scene.get_unit_scale(1.0, "cm"))
+        self.assertAlmostEqual(1.0, usd_scene.get_unit_scale(None, "cm"))
+
+    def test_default_extensions_include_usd(self):
+        self.assertIn(".usd", runner.create_job()["extensions"])
+        self.assertTrue(runner.create_job()["align_up_axis"])
 
 
 class TestMotionEvalModeLabels(unittest.TestCase):

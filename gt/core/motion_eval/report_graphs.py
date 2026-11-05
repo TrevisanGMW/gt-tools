@@ -203,7 +203,7 @@ class QtModules:
 
 
 def get_qt():
-    """Imports Qt lazily: the toolkit's wrapper when present, otherwise PySide6, then PySide2.
+    """Imports Qt lazily: PySide6 (Maya 2025 and newer), otherwise PySide2.
 
     Returns:
         object: Object exposing QtCore, QtGui, and QtWidgets.
@@ -211,12 +211,6 @@ def get_qt():
     Raises:
         ImportError: If no Qt binding is available.
     """
-    try:
-        import gt.ui.qt_import as ui_qt
-
-        return ui_qt
-    except ImportError:
-        pass
     try:
         from PySide6 import QtCore, QtGui, QtWidgets
     except ImportError:

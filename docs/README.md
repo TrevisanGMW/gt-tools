@@ -1312,7 +1312,20 @@ Ribbon rigging is particularly useful for creating smooth and natural-looking de
 </ol>
 
 <p><b>Batch Processor:</b> The <b>Validate Animation</b> task runs the same evaluation on every incoming scene. Its <b>Skeleton</b> setting decides what is checked: <b>None</b> runs only the General checks, and a built-in skeleton or a Custom Skeleton file adds the Biped checks. Checks come from an inline or saved preset. The task can write the score attribute, write outputs into its task folder (a batch summary sorted by score by default; optionally a batch JSON report, a batch graph with one row per file and one cell per check, and per-file summaries, JSON reports, and graphs, which can be limited to failed files; per-file outputs go in one folder per file unless Per-File Folders is off), run a post-script (an example copies the score into the Annotation Tracker quality field), and save the scene in place. Saving never overwrites the original input unless explicitly allowed.</p>
-<p><b>Without the Batch Processor:</b> <code>gt/core/motion_eval/README.md</code> shows how to run the same checks and outputs from Python or the command line (<code>mayapy -m ...motion_eval.runner job.json files...</code>), including headless servers.</p>
+<p><b>Without the Batch Processor:</b> <code>gt/core/motion_eval/README.md</code> shows how to run the same checks and outputs from Python or the command line (<code>mayapy -m ...motion_eval.runner job.json files...</code>), including headless servers. The package has no gt-tools imports, so the <code>motion_eval</code> folder can be copied on its own. Validate Animation task settings and their runner job keys:</p>
+<table>
+  <tr><th>Validate Animation task</th><th>Job key</th></tr>
+  <tr><td>Skeleton (None / built-in / Custom Skeleton + Custom SKM File)</td><td><code>skeleton</code> (<code>"none"</code>, key, or JSON path)</td></tr>
+  <tr><td>Checks and Thresholds (inline or Preset File)</td><td><code>preset</code> (dictionary or JSON path)</td></tr>
+  <tr><td>Frame Range, Start, End</td><td><code>range_mode</code>, <code>custom_start</code>, <code>custom_end</code></td></tr>
+  <tr><td>Nodes, Node List</td><td><code>general_scope</code>, <code>node_list</code></td></tr>
+  <tr><td>Scene Load (Open / Import)</td><td><code>load_mode</code></td></tr>
+  <tr><td>Output Folder</td><td><code>output_dir</code></td></tr>
+  <tr><td>Output &gt; Summary / JSON Report / Graphs, Per-File Folders, Only On Failure</td><td><code>outputs</code></td></tr>
+  <tr><td>Score Attribute &gt; Write Score, Target, Attributes, Policy</td><td><code>write_score</code>, <code>score</code></td></tr>
+  <tr><td>Score Attribute &gt; Save Scene</td><td><code>save_copy_dir</code> (saves a copy; inputs are never overwritten)</td></tr>
+</table>
+<p>Not included in the runner: the task's post-script, tracker reporting, and the validation log.</p>
 </div>
 
 <!-- Create Testing Keys -->
