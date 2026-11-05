@@ -123,11 +123,11 @@ class MorphingUtilitiesView(metaclass=MayaWindowMeta):
         search_layout.addWidget(replace_label, 1, 0)
         search_layout.addWidget(self.replace_field, 1, 1)
         search_layout.setColumnStretch(1, 1)
-        main_layout.addLayout(search_layout)
         self.rename_button = self._create_button(
             "Search Replace Target Names", "primaryButton"
         )
-        main_layout.addWidget(self.rename_button)
+        search_layout.addWidget(self.rename_button, 2, 0, 1, 2)
+        main_layout.addLayout(search_layout)
 
         mirror_options_layout = ui_qt.QtWidgets.QGridLayout()
         mirror_options_layout.setContentsMargins(6, 2, 6, 2)

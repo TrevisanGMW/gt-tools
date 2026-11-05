@@ -1,10 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <g id="script_library_missing_icon">
+  <title>Script Library preview placeholder</title>
+  <desc>A stack of script editor windows with fine outlines and muted green code symbols.</desc>
+  <g id="script_library_missing_icon" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
     <rect width="512" height="512" fill="#535353"/>
-    <path d="M128 72h174l82 82v286H128z" fill="#707487" stroke="#1D1D1D" stroke-width="22" stroke-linejoin="round"/>
-    <path d="M302 72v84h82" fill="#BDBDBD" stroke="#1D1D1D" stroke-width="22" stroke-linejoin="round"/>
-    <path d="M218 214l-55 48 55 48M300 214l55 48-55 48" fill="none" stroke="#42A5F5" stroke-width="23" stroke-linecap="round" stroke-linejoin="round" opacity=".5"/>
-    <path d="M288 190l-59 150" fill="none" stroke="#1D1D1D" stroke-width="19" stroke-linecap="round"/>
+    <circle cx="256" cy="256" r="196" fill="#4E5251"/>
+    <rect x="116" y="88" width="280" height="248" rx="18" fill="#535B57" stroke="#74837A"/>
+    <rect x="92" y="112" width="328" height="260" rx="18" fill="#4B514E" stroke="#84968A"/>
+    <rect x="68" y="140" width="376" height="260" rx="18" fill="#383E3B" stroke="#ADBBB1"/>
+    <path d="M70 188h372" fill="none" stroke="#ADBBB1"/>
+    <g fill="#84968A">
+      <circle cx="94" cy="164" r="4"/>
+      <circle cx="110" cy="164" r="4"/>
+      <circle cx="126" cy="164" r="4"/>
+    </g>
+    <path d="M326 164h90" fill="none" stroke="#84968A"/>
+    <g fill="none" stroke="#B8D7B9">
+      <path d="M216 232l-36 34 36 34M296 232l36 34-36 34M272 222l-32 88"/>
+      <path d="M166 342h64M246 342h30"/>
+    </g>
+    <path d="M292 342h54M196 364h120" fill="none" stroke="#74837A"/>
+    <path d="M222 428h68" fill="none" stroke="#84968A"/>
   </g>
 </svg>

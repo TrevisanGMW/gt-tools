@@ -83,7 +83,7 @@ class AnimCopyPasteModel:
     def reset_to_defaults(self):
         """Restores default paste behavior."""
         self.copy_scope = AnimCopyPasteConstants.CopyScope.ALL
-        self.mapping_mode = AnimCopyPasteConstants.MappingMode.SELECTION
+        self.mapping_mode = AnimCopyPasteConstants.MappingMode.NAME
         self.source_namespace = ""
         self.target_namespace = ""
         self.source_attribute = ""

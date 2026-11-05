@@ -196,11 +196,29 @@ class ScriptLibraryController:
             selected = False
             if preferred_id:
                 selected = self.view.select_script_id(preferred_id)
-            if not selected and self.view.item_list.count():
+            if not selected and scripts:
                 self.view.item_list.setCurrentRow(0)
+            if not scripts:
+                self.populate_empty_list_placeholder()
         finally:
             self.view.item_list.blockSignals(signals_blocked)
         self.on_selection_changed()
+
+    def populate_empty_list_placeholder(self):
+        """Explains how to add or reveal scripts when the list is empty."""
+        if not self.model.get_scripts(include_hidden=True):
+            title = "No scripts yet"
+            if self.model.get_edit_mode():
+                message = "Click Add Script or Import Script to get started."
+            else:
+                message = "Click Edit (pencil above)\nto add or manage scripts."
+        elif self.view.search_bar.text().strip():
+            title = "No matching scripts"
+            message = "Clear or change the search to see your scripts."
+        else:
+            title = "No visible scripts"
+            message = "Click Edit (pencil above)\nto manage hidden scripts."
+        self.view.add_placeholder_item(title, message)
 
     def on_selection_changed(self):
         """Saves pending edits and loads the newly selected script."""
@@ -526,6 +544,9 @@ class ScriptLibraryController:
         """
         list_item = self.view.item_list.itemAt(position)
         if not list_item:
+            return
+        metadata = list_item.data(ui_qt.QtLib.ItemDataRole.UserRole) or {}
+        if not metadata.get("script_id"):
             return
         self.view.item_list.setCurrentItem(list_item)
         self.script_context_menu = ui_qt.QtWidgets.QMenu(self.view)

@@ -124,13 +124,20 @@ class AnimCopyPasteView(metaclass=MayaWindowMeta):
         self.mapping_combo.addItem(
             "Namespace Swap (Characters)", copy_model.AnimCopyPasteConstants.MappingMode.NAMESPACE
         )
+        self.mapping_combo.setCurrentIndex(
+            self.mapping_combo.findData(copy_model.AnimCopyPasteConstants.MappingMode.NAME)
+        )
         self._set_combo_item_tooltips(
             self.mapping_combo,
             [
-                "After copying, select destination objects in the same order as their source objects. "
-                "The first copied object pastes to the first selected destination, and so on. "
+                "Warning: pairs objects by list position only; names and hierarchy are ignored. "
+                "The first stored object pastes to the first destination returned by Maya, and so on. "
+                "Maya's selection list may differ from click order, especially for group or box selections. "
+                "A different order can paste animation onto the wrong controls. "
+                "Use Show Stored Animation Details to inspect the copied order. "
                 "When one source object was copied, it pastes to every selected destination.",
-                "After copying, select equivalent destination controls or joints. Their complete DAG hierarchy "
+                "Recommended default for characters. Select equivalent destination controls or joints "
+                "in any order. Their complete DAG hierarchy "
                 "must match the copied hierarchy after namespace prefixes are ignored. "
                 "For example, |source:rig|source:hand matches |target:rig|target:hand.",
                 "Enter the Target Namespace below. The tool replaces the copied character namespace in each "
@@ -139,10 +146,12 @@ class AnimCopyPasteView(metaclass=MayaWindowMeta):
             ],
         )
         self.mapping_combo.setToolTip(
-            "Selection Order pairs copied objects with destination objects in their selection order. "
+            "Warning: Selection Order ignores names and hierarchy. It pairs the stored object list with "
+            "Maya's destination selection list by position, which may differ from click order. "
+            "A different order can paste animation onto the wrong controls. "
             "When one object was copied, it is pasted to every selected destination.\n\n"
-            "Name / Hierarchy matches selected destinations by their long DAG path after namespaces are removed. "
-            "Use it when equivalent controls are selected on another character.\n\n"
+            "Name / Hierarchy (recommended for characters) matches selected destinations by complete "
+            "DAG path with namespaces removed. Destination selection order does not matter.\n\n"
             "Namespace Swap replaces the copied character namespace with Target Namespace and finds matching "
             "controls or joints automatically; destination objects do not need to be selected."
         )
@@ -150,6 +159,13 @@ class AnimCopyPasteView(metaclass=MayaWindowMeta):
             self._create_tooltip_label("Object Mapping:", self.mapping_combo.toolTip()),
             self.mapping_combo,
         )
+        self.mapping_warning_label = ui_qt.QtWidgets.QLabel(
+            "Warning: Selection Order ignores names. A different object order can paste "
+            "animation onto the wrong controls."
+        )
+        self.mapping_warning_label.setWordWrap(True)
+        self.mapping_warning_label.setStyleSheet("color: #E2BE72;")
+        mapping_layout.addRow("", self.mapping_warning_label)
         self.source_namespace_field = ui_qt.QtWidgets.QLineEdit()
         self.source_namespace_field.setPlaceholderText("Optional — auto-detect when empty")
         self.source_namespace_field.setToolTip(
@@ -270,6 +286,8 @@ class AnimCopyPasteView(metaclass=MayaWindowMeta):
         self.message_label.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignCenter)
         main_layout.addWidget(self.message_label)
         self.current_frame_radio.toggled.connect(self._update_paste_frame_enabled)
+        self.mapping_combo.currentIndexChanged.connect(self._update_mapping_help)
+        self._update_mapping_help()
 
     def _build_title_bar(self):
         """Builds the compact title and help row.
@@ -466,6 +484,16 @@ class AnimCopyPasteView(metaclass=MayaWindowMeta):
         layout.addWidget(right_line, 1)
         return widget
 
+    def _update_mapping_help(self):
+        """Shows guidance and a positional-mapping warning for the current mode."""
+        tooltip = self.mapping_combo.itemData(
+            self.mapping_combo.currentIndex(), ui_qt.QtLib.ItemDataRole.ToolTipRole
+        )
+        self.mapping_combo.setToolTip(tooltip or "")
+        self.mapping_warning_label.setVisible(
+            self.mapping_combo.currentData() == copy_model.AnimCopyPasteConstants.MappingMode.SELECTION
+        )
+
     def _update_paste_frame_enabled(self):
         """Enables custom-frame input only when selected."""
         self.paste_frame_spin.setEnabled(self.custom_frame_radio.isChecked())
@@ -501,9 +529,11 @@ class AnimCopyPasteView(metaclass=MayaWindowMeta):
         )
         self.copy_scope_combo.setCurrentIndex(max(0, copy_scope_index))
         mapping_index = self.mapping_combo.findData(
-            settings.get("mapping_mode", copy_model.AnimCopyPasteConstants.MappingMode.SELECTION)
+            settings.get("mapping_mode", copy_model.AnimCopyPasteConstants.MappingMode.NAME)
         )
-        self.mapping_combo.setCurrentIndex(max(0, mapping_index))
+        if mapping_index < 0:
+            mapping_index = self.mapping_combo.findData(copy_model.AnimCopyPasteConstants.MappingMode.NAME)
+        self.mapping_combo.setCurrentIndex(mapping_index)
         self.source_namespace_field.setText(str(settings.get("source_namespace") or ""))
         self.target_namespace_field.setText(str(settings.get("target_namespace") or ""))
         self.source_attribute_field.setText(str(settings.get("source_attribute") or ""))
@@ -550,8 +580,12 @@ class AnimCopyPasteView(metaclass=MayaWindowMeta):
             "Paste Insert adds the copied chunk at the chosen frame and shifts future keys. Paste Replace clears each "
             "affected target channel before applying the copied animation.\n\n"
             "Enable Reverse Animation to paste the copied key values in reverse order.\n\n"
-            "Use Selection Order for arbitrary source-to-target pairs, Name / Hierarchy for matching selected "
-            "controls on another character, or Namespace Swap to paste directly from one character namespace "
+            "Name / Hierarchy is the default for characters: select matching controls in any order; "
+            "their complete hierarchy must match with namespaces ignored. "
+            "Selection Order ignores names and pairs objects by list position. Maya's selection list "
+            "may differ from click order, so a different order can animate the wrong controls. "
+            "Use Show Stored Animation Details to inspect the copied object order. "
+            "Namespace Swap pastes directly from one character namespace "
             "to another. "
             "Use the channel fields to paste one source channel onto another destination channel.",
         )

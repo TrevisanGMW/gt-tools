@@ -41,7 +41,7 @@ class MorpherView(metaclass=ui_qt_utils.MayaWindowMeta):
 
         window_title = "Mesh Morpher"
         if version:
-            window_title += " - (v{})".format(version)
+            window_title += f" - (v{version})"
         self.setWindowTitle(window_title)
         self.setMinimumSize(760, 560)
         self.setWindowFlags(
@@ -85,18 +85,9 @@ class MorpherView(metaclass=ui_qt_utils.MayaWindowMeta):
         layout.setContentsMargins(14, 10, 14, 10)
         layout.setSpacing(5)
 
-        text_layout = ui_qt.QtWidgets.QVBoxLayout()
-        text_layout.setSpacing(2)
         title = ui_qt.QtWidgets.QLabel("Mesh Morpher")
         title.setObjectName("toolTitle")
-        description = ui_qt.QtWidgets.QLabel(
-            "Choose morph caches, add the meshes to reshape, then configure optional post-processing."
-        )
-        description.setObjectName("toolDescription")
-        description.setWordWrap(True)
-        text_layout.addWidget(title)
-        text_layout.addWidget(description)
-        layout.addLayout(text_layout, 1)
+        layout.addWidget(title, 1)
 
         self.import_button = self._create_button(
             "Load Definitions", ui_res_lib.Icon.ui_open, "Load subject definitions from a JSON file."
@@ -216,7 +207,8 @@ class MorpherView(metaclass=ui_qt_utils.MayaWindowMeta):
         layout.setSpacing(7)
         layout.addWidget(
             self._create_hint_label(
-                "These settings belong to the highlighted subject. Use the tabs to control cleanup and output behavior."
+                "These settings belong to the highlighted subject. "
+                "Use the tabs to control cleanup and output behavior."
             )
         )
         self.post_tab_widget = ui_qt.QtWidgets.QTabWidget()
@@ -227,38 +219,21 @@ class MorpherView(metaclass=ui_qt_utils.MayaWindowMeta):
         return post_group
 
     def _build_run_panel(self):
-        """Builds the final generation action panel.
+        """Builds the full-width generation button.
 
         Returns:
-            QWidget: Run panel.
+            QPushButton: Generation button.
         """
-        panel = ui_qt.QtWidgets.QFrame()
-        panel.setObjectName("runCard")
-        layout = ui_qt.QtWidgets.QHBoxLayout(panel)
-        layout.setContentsMargins(14, 10, 14, 10)
-        layout.setSpacing(12)
-        text_layout = ui_qt.QtWidgets.QVBoxLayout()
-        text_layout.setSpacing(1)
-        title = ui_qt.QtWidgets.QLabel("Ready to reshape?")
-        title.setObjectName("runTitle")
-        description = ui_qt.QtWidgets.QLabel(
-            "The checked caches and enabled post-processing settings will be applied to every checked subject."
-        )
-        description.setObjectName("toolDescription")
-        description.setWordWrap(True)
-        text_layout.addWidget(title)
-        text_layout.addWidget(description)
-        layout.addLayout(text_layout, 1)
         self.generate_button = self._create_button(
             "Generate Reshaped Meshes",
-            ui_res_lib.Icon.ui_progress,
-            "Generate output meshes for all checked subjects.",
+            None,
+            "Generate output meshes for all checked subjects. "
+            "The checked caches and enabled post-processing settings will be applied to every checked subject.",
         )
         self.generate_button.setObjectName("generateButton")
         self.generate_button.setMinimumHeight(42)
         self.generate_button.setMinimumWidth(220)
-        layout.addWidget(self.generate_button)
-        return panel
+        return self.generate_button
 
     @staticmethod
     def _create_hint_label(text):
@@ -281,14 +256,15 @@ class MorpherView(metaclass=ui_qt_utils.MayaWindowMeta):
 
         Args:
             text (str): Button text.
-            icon (str): Icon path.
+            icon (str or None): Icon path, or None for a text-only button.
             tooltip (str): Button tooltip.
 
         Returns:
             QPushButton: Created button.
         """
         button = ui_qt.QtWidgets.QPushButton(text)
-        button.setIcon(ui_qt.QtGui.QIcon(icon))
+        if icon:
+            button.setIcon(ui_qt.QtGui.QIcon(icon))
         button.setToolTip(tooltip)
         button.setMinimumHeight(30)
         return button
@@ -313,27 +289,31 @@ class MorpherView(metaclass=ui_qt_utils.MayaWindowMeta):
         stylesheet += ui_res_lib.Stylesheet.tab_widget_base
         if not core_session.is_script_in_interactive_maya():
             stylesheet += ui_res_lib.Stylesheet.menu_base
-        stylesheet += """
-            QFrame#headerCard, QFrame#runCard {
-                background-color: #3b3d40; border: 1px solid #505257; border-radius: 4px;
-            }
-            QLabel#toolTitle { color: #f0f0f0; font-size: 18px; font-weight: bold; }
-            QLabel#toolDescription, QLabel#hintLabel { color: #aeb1b5; }
-            QLabel#microHint { color: #85898e; font-size: 10px; font-style: italic; }
-            QLabel#runTitle { color: #e5e5e5; font-weight: bold; }
-            QGroupBox {
-                border: 1px solid #505257; border-radius: 4px; margin-top: 9px; font-weight: bold;
-            }
-            QGroupBox::title { subcontrol-origin: margin; left: 9px; padding: 0 5px; color: #c9cbce; }
-            QScrollArea#cacheList, QListWidget#subjectList {
-                background-color: #292b2e; border: 1px solid #44474b; border-radius: 2px;
-            }
-            QPushButton#generateButton {
-                background-color: #4f7f86; color: #ffffff; border: 1px solid #65969d;
+        stylesheet += f"""
+            QFrame#headerCard {{
+                background-color: {ui_res_lib.Color.RGB.gray_mid_dark};
+                border: 1px solid {ui_res_lib.Color.RGB.gray_darker}; border-radius: 4px;
+            }}
+            QLabel#toolTitle {{ font-size: 18px; font-weight: bold; }}
+            QLabel#hintLabel {{ color: {ui_res_lib.Color.RGB.gray_lighter}; }}
+            QLabel#microHint {{
+                color: {ui_res_lib.Color.RGB.gray_lighter}; font-size: 10px; font-style: italic;
+            }}
+            QGroupBox {{
+                border: 1px solid {ui_res_lib.Color.RGB.gray_darker}; border-radius: 4px;
+                margin-top: 9px; font-weight: bold;
+            }}
+            QGroupBox::title {{
+                color: {ui_res_lib.Color.RGB.white_smoke_darker};
+                subcontrol-origin: margin; left: 9px; padding: 0 5px;
+            }}
+            QScrollArea#cacheList, QListWidget#subjectList {{
+                background-color: {ui_res_lib.Color.RGB.gray_darker};
+                border: 1px solid {ui_res_lib.Color.RGB.gray_mid_lighter}; border-radius: 2px;
+            }}
+            QPushButton#generateButton {{
                 border-radius: 3px; font-weight: bold; padding: 6px 14px;
-            }
-            QPushButton#generateButton:hover { background-color: #5d9098; }
-            QPushButton#generateButton:pressed { background-color: #3f6c72; }
+            }}
         """
         return stylesheet
 

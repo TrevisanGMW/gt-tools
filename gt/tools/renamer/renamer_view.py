@@ -125,22 +125,30 @@ class RenamerView(metaclass=MayaWindowMeta):
         """Fits the window to its screen and enables scrolling only when needed."""
         if not qt_utils.is_qt_object_valid(self):
             return
+        self.ensurePolished()
+        self._refresh_content_layout()
+        floating_window = self.window()
         available_geometry = self._get_available_screen_geometry()
         content_size = self.content_layout.sizeHint()
         minimum_content_size = self.content_layout.minimumSize()
+        viewport_size = self.content_scroll_area.maximumViewportSize()
+        # Include scroll-area styling and Maya's floating container without
+        # reserving space for scrollbars that disappear once the contents fit.
+        extra_width = max(0, floating_window.width() - viewport_size.width())
+        extra_height = max(0, floating_window.height() - viewport_size.height())
         target_width = max(
             self.WINDOW_WIDTH,
             content_size.width(),
             minimum_content_size.width(),
-        )
-        target_height = max(content_size.height(), minimum_content_size.height())
+        ) + extra_width
+        target_height = max(content_size.height(), minimum_content_size.height()) + extra_height
         if available_geometry:
             maximum_width = max(1, available_geometry.width() - self.SCREEN_MARGIN)
             maximum_height = max(1, available_geometry.height() - self.SCREEN_MARGIN)
             self.setMinimumWidth(min(self.WINDOW_WIDTH, maximum_width))
             target_width = min(target_width, maximum_width)
             target_height = min(target_height, maximum_height)
-        self.resize(int(target_width), int(target_height))
+        floating_window.resize(int(target_width), int(target_height))
 
     def _is_floating_window(self):
         """Determines whether the Renamer is currently floating.

@@ -1,6 +1,7 @@
 """Unit tests for the pure Copy/Paste Animation model."""
 
 import unittest
+from unittest import mock
 
 from gt.tools.anim_copy_paste.anim_copy_paste_model import (
     AnimCopyPasteModel,
@@ -10,6 +11,25 @@ from gt.tools.anim_copy_paste.anim_copy_paste_model import (
 
 class TestAnimCopyPasteModel(unittest.TestCase):
     """Tests Copy/Paste Animation settings and clip state."""
+
+    def test_default_mapping_matches_character_names_and_hierarchy(self):
+        """Uses name mapping when no mapping preference has been saved."""
+        model = AnimCopyPasteModel()
+        with mock.patch.object(model.prefs, "get_raw_preferences", return_value={}):
+            model.reset_to_defaults()
+            model.load_preferences()
+
+        expected = AnimCopyPasteConstants.MappingMode.NAME
+        self.assertEqual(expected, model.mapping_mode)
+
+    def test_reset_restores_name_mapping_after_selection_order(self):
+        """Restores character mapping after using positional mapping."""
+        model = AnimCopyPasteModel()
+        model.set_settings({"mapping_mode": AnimCopyPasteConstants.MappingMode.SELECTION})
+        model.reset_to_defaults()
+
+        expected = AnimCopyPasteConstants.MappingMode.NAME
+        self.assertEqual(expected, model.mapping_mode)
 
     def test_set_settings_updates_mapping_and_channel_fields(self):
         model = AnimCopyPasteModel()
@@ -38,6 +58,7 @@ class TestAnimCopyPasteModel(unittest.TestCase):
             "paste_at_current_frame": False,
             "paste_frame": 24.0,
             "apply_euler_filter": True,
+            "reverse_animation": False,
         }
         self.assertEqual(expected, model.get_settings())
 

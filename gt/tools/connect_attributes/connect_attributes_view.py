@@ -145,7 +145,7 @@ class ConnectAttributesView(metaclass=qt_utils.MayaWindowMeta):
         self.preview_button = ui_qt.QtWidgets.QPushButton("Preview")
         self.run_button = ui_qt.QtWidgets.QPushButton("Connect Attributes")
         self.preview_button.setStyleSheet(
-            "QPushButton { padding-left: 10px; padding-right: 10px; }"
+            "QPushButton { padding: 15px; }"
         )
         self.run_button.setStyleSheet(ui_res_lib.Stylesheet.btn_push_bright)
         action_button_height = max(
