@@ -163,6 +163,8 @@ job = runner.load_job("D:/reviews/locomotion_job.json")   # missing keys get the
 1. A new scene gets the file's frame rate (time codes per second), so every USD
    time code is one Maya frame and speeds and gravity are measured correctly.
 2. The file is imported with `mayaUSDImport`; skeleton animation becomes keyed joints.
+   The importer's own axis and unit conversion (on by default in Maya 2026 and later)
+   is turned off, so every Maya version imports the same way.
 3. The playback and animation range are set to the file's start and end time codes,
    so `range_mode="Playback Range"` evaluates exactly the exported frames.
 4. With `align_up_axis` on (default), a file whose up axis differs from the scene
