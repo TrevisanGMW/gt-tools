@@ -94,7 +94,7 @@ def main():
     runner = batch_processor_worker.SingleInstanceBatchRunner()
     if args.final_task_id:
         final_task = project.get_task(args.final_task_id)
-        if not final_task or final_task.is_input_task or not final_task.enabled:
+        if not final_task or not tasks.is_processing_task(final_task) or not final_task.enabled:
             raise RuntimeError(f"Unable to resolve enabled final task: {args.final_task_id}")
         process_tasks = [final_task]
     elif args.task_id:
@@ -110,7 +110,7 @@ def main():
         )
         skipped_task_ids = set(args.skip_task_id or [])
         process_tasks = [task for task in process_tasks if task.id not in skipped_task_ids]
-    executable_tasks = [task for task in process_tasks if not task.is_input_task]
+    executable_tasks = [task for task in process_tasks if tasks.is_processing_task(task)]
     total_task_count = len(executable_tasks)
     final_project_script = bool(args.final_task_id and executable_tasks[0].task_type == "python_script"
                                 and getattr(executable_tasks[0], "is_aggregate_task", False))

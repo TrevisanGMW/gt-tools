@@ -10,6 +10,7 @@ PREFS_KEY_SHOW_PROJECT_ROW = "show_project_row"
 PREFS_KEY_START_COMPACT = "start_compact"
 PREFS_KEY_START_MINIMIZED = "start_minimized"
 PREFS_KEY_USE_SYSTEM_TRAY = "use_system_tray"
+PREFS_KEY_KEEP_MANUAL_RUN_SETTINGS = "keep_manual_run_settings"
 AUTO_CLOSE_SECONDS = 10
 SOUND_TAIL_MS = 1500
 

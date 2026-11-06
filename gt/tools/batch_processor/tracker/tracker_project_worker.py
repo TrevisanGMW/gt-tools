@@ -7,6 +7,7 @@ import traceback
 if __name__ == "__main__":
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))))
 
+from gt.tools.batch_processor.batch_processor_task_base import is_processing_task
 from gt.tools.batch_processor.batch_processor_tracker import BatchProgressTracker
 
 
@@ -36,7 +37,7 @@ class ProjectProgressTracker(BatchProgressTracker):
         self.finish_step()
         super().start_step(step_index, step_name)
         task = self.project.get_enabled_tasks()[step_index - 1]
-        self.active_task = None if task.is_input_task else task
+        self.active_task = task if is_processing_task(task) else None
         self.step_counts = (self.succeeded, self.failed, self.skipped)
         if self.active_task:
             self.writer.emit("task_started", task_id=task.id, total_items=1)
@@ -106,7 +107,7 @@ def main():
         if empty:
             writer.emit("project_empty")
             for task in enabled:
-                if not task.is_input_task:
+                if is_processing_task(task):
                     writer.emit("task_finished", task_id=task.id, status="skipped", skipped_items=1)
             failed = False
         else:

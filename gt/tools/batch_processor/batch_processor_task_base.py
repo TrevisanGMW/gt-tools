@@ -489,6 +489,21 @@ def get_today_token():
     return datetime.date.today().strftime("%Y%m%d")
 
 
+def is_processing_task(task):
+    """Checks whether a task runs as a per-job processing step.
+
+    Input tasks and "Settings Override" control tasks never execute inside
+    worker jobs, so they are excluded from processing task lists.
+
+    Args:
+        task (BatchTask): Task to inspect.
+
+    Returns:
+        bool: True when the task executes during job processing.
+    """
+    return not getattr(task, "is_input_task", False) and not getattr(task, "is_settings_override_task", False)
+
+
 class BatchTask:
     """Base class for serializable batch processor tasks."""
 
@@ -509,6 +524,7 @@ class BatchTask:
     is_delete_task = False
     is_data_load_task = False
     is_task_path_passthrough = False
+    is_settings_override_task = False
     supports_run_once_after_jobs = False
     supports_run_once_before_jobs = False
 

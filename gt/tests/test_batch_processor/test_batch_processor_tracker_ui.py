@@ -187,6 +187,44 @@ class TestTrackerPreferencesAndSegments(unittest.TestCase):
             controller.show_tree_context_menu(ui_qt.QtCore.QPoint())
             menu.assert_not_called()
 
+    def test_worker_limit_control_changes_the_live_limit(self):
+        """Applies the inline Max Workers value to the running session."""
+        controller = self.create_controller()
+        self.assertEqual(1, controller.view.worker_limit_spin_box.value())
+        self.assertTrue(controller.view.worker_limit_spin_box.isEnabled())
+
+        controller.view.worker_limit_spin_box.setValue(4)
+        controller._apply_pending_worker_limit()
+
+        self.assertEqual(4, controller.session.worker_count)
+        self.assertIn("worker_count", controller.scheduler.run_settings.manual_keys)
+
+    def test_run_settings_dialog_applies_values(self):
+        """Applies retries and timeout from the Adjust Run Settings dialog."""
+        controller = self.create_controller()
+        controller.show_run_settings_dialog()
+        self.addCleanup(controller.run_settings_dialog.close)
+        dialog = controller.run_settings_dialog
+        dialog.spin_boxes["max_retries"].setValue(2)
+        dialog.spin_boxes["timeout_minutes"].setValue(15)
+
+        dialog.apply_button.click()
+
+        self.assertEqual(2, controller.scheduler.max_retries)
+        self.assertEqual(15, controller.scheduler.run_settings.timeout_minutes)
+
+    def test_keep_manual_run_settings_preference_is_saved_and_applied(self):
+        """Persists the keep-manual preference and forwards it to the scheduler."""
+        controller = self.create_controller()
+        self.assertFalse(controller.scheduler.run_settings.keep_manual_changes)
+
+        controller.view.keep_manual_run_settings_action.setChecked(True)
+
+        self.assertTrue(controller.scheduler.run_settings.keep_manual_changes)
+        later_controller = self.create_controller()
+        self.assertTrue(later_controller.view.keep_manual_run_settings_action.isChecked())
+        self.assertTrue(later_controller.scheduler.run_settings.keep_manual_changes)
+
     def test_project_row_is_off_by_default(self):
         """Lists only jobs until the project row preference is enabled."""
         controller = self.create_controller()

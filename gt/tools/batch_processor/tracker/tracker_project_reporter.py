@@ -19,6 +19,7 @@ class ProjectReporter:
         self.options = scheduler.options
         self.last_publication = 0
         self.published = False
+        self.last_run_settings_sequence = 0
 
     def tick(self):
         """Publishes liveness and terminal results, and consumes cancellation."""
@@ -29,6 +30,7 @@ class ProjectReporter:
         run_id = getattr(self.options, "run_id", "")
         if control.get("action") == "cancel" and control.get("run_id") == run_id:
             self.scheduler.abort()
+        self._consume_run_settings_request(run_id)
         session = self.scheduler.session
         if time.monotonic() - self.last_publication >= 1 or session.finished:
             status_file = getattr(self.options, "status_file", "")
@@ -39,6 +41,7 @@ class ProjectReporter:
                     "tracker_pid": os.getpid(),
                     "finished": session.finished, "session_dir": session.session_dir,
                     "active_workers": len(self.scheduler.running),
+                    "run_settings": self.scheduler.run_settings.to_dict(),
                 })
             self.last_publication = time.monotonic()
         if session.finished:
@@ -54,6 +57,32 @@ class ProjectReporter:
                     summary.write(f"{job.name}: {job.status}\n")
             projects.write_json(result_file, result)
             self.published = True
+
+    def _consume_run_settings_request(self, run_id):
+        """Applies a new live run settings request written by ``ProjectRun.set_run_settings``.
+
+        Requests carry an increasing sequence number so each one is applied once.
+        They count as manual changes, like edits made in the tracker window.
+
+        Args:
+            run_id (str): Run id the request must match.
+        """
+        request_path = projects.get_run_settings_request_path(getattr(self.options, "control_file", ""))
+        if not request_path or self.scheduler.session.finished:
+            return
+        request = projects.read_json(request_path)
+        if not request or request.get("run_id") != run_id:
+            return
+        try:
+            sequence = int(request.get("sequence") or 0)
+        except (TypeError, ValueError):
+            return
+        if sequence <= self.last_run_settings_sequence:
+            return
+        self.last_run_settings_sequence = sequence
+        if request.get("keep_manual_changes") is not None:
+            self.scheduler.run_settings.keep_manual_changes = bool(request.get("keep_manual_changes"))
+        self.scheduler.update_run_settings(request.get("settings") or {}, source="external request", manual=True)
 
 
 def publish_startup_failure(options, error):

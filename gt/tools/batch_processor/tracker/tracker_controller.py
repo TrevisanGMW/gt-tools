@@ -92,6 +92,18 @@ class TrackerController:
             self.prefs.get_bool(tracker_constants.PREFS_KEY_START_MINIMIZED, default=False)
         )
         self.view.use_system_tray_action.setChecked(use_system_tray)
+        keep_manual_run_settings = self.prefs.get_bool(
+            tracker_constants.PREFS_KEY_KEEP_MANUAL_RUN_SETTINGS, default=False
+        )
+        self.view.keep_manual_run_settings_action.setChecked(keep_manual_run_settings)
+        if keep_manual_run_settings:
+            self.scheduler.run_settings.keep_manual_changes = True
+        self.run_settings_dialog = None
+        self.pending_worker_limit = None
+        self.worker_limit_timer = ui_qt.QtCore.QTimer(self.view)
+        self.worker_limit_timer.setSingleShot(True)
+        self.worker_limit_timer.setInterval(500)
+        self.worker_limit_timer.timeout.connect(self._apply_pending_worker_limit)
         self.compact_view = tracker_compact_view.TrackerCompactView(project_name=session.project_name)
         self.window_manager = tracker_window_manager.TrackerWindowManager(
             view=self.view,
@@ -173,6 +185,12 @@ class TrackerController:
         self.view.tree.header().sortIndicatorChanged.connect(self._update_sort_indicator)
         self.view.restart_failed_jobs_action.triggered.connect(self.restart_all_failed_jobs)
         self.view.restart_canceled_jobs_action.triggered.connect(self.restart_all_canceled_jobs)
+        self.view.adjust_run_settings_action.triggered.connect(lambda *args: self.show_run_settings_dialog())
+        self.view.keep_manual_run_settings_action.toggled.connect(
+            partial(self.save_bool_preference, tracker_constants.PREFS_KEY_KEEP_MANUAL_RUN_SETTINGS)
+        )
+        self.view.keep_manual_run_settings_action.toggled.connect(self.set_keep_manual_run_settings)
+        self.view.worker_limit_spin_box.valueChanged.connect(self.on_worker_limit_changed)
         self.view.copy_failed_jobs_action.triggered.connect(
             partial(self.copy_job_names, "failed")
         )
@@ -340,6 +358,7 @@ class TrackerController:
             ("CPU", self.cpu_text, self._usage_color_role(self.cpu_percent)),
             ("RAM", self.memory_text, self._usage_color_role(self.memory_percent)),
         ]
+        self._update_run_settings_controls()
         self.view.primary_summary_label.setText(self._build_summary_html(primary_values))
         self.view.secondary_summary_label.setText(self._build_summary_html(secondary_values))
         self._update_status_icon(
@@ -349,6 +368,93 @@ class TrackerController:
             warning_jobs=warning_jobs,
         )
         self._update_compact_view()
+
+    def can_edit_run_settings(self):
+        """Checks whether run settings can still be changed live.
+
+        Returns:
+            bool: True while a multi-instance run is active.
+        """
+        if self.preview_mode or self.session.finished or self.session.aborting:
+            return False
+        return not getattr(self.scheduler.options, "single_project", False)
+
+    def _update_run_settings_controls(self):
+        """Syncs the worker limit control and dialog with the scheduler state."""
+        editable = self.can_edit_run_settings()
+        spin_box = self.view.worker_limit_spin_box
+        spin_box.setEnabled(editable)
+        self.view.adjust_run_settings_action.setEnabled(editable)
+        if self.pending_worker_limit is None and not spin_box.hasFocus():
+            spin_box.blockSignals(True)
+            spin_box.setValue(self.scheduler.run_settings.worker_count)
+            spin_box.blockSignals(False)
+        if self.run_settings_dialog is not None:
+            self.run_settings_dialog.set_editable(editable)
+
+    def on_worker_limit_changed(self, value):
+        """Debounces worker limit edits so arrow clicks apply as one change.
+
+        Args:
+            value (int): Requested maximum workers.
+        """
+        if not self.can_edit_run_settings():
+            return
+        self.pending_worker_limit = int(value)
+        self.worker_limit_timer.start()
+
+    def _apply_pending_worker_limit(self):
+        """Applies the debounced worker limit edit."""
+        value = self.pending_worker_limit
+        self.pending_worker_limit = None
+        if value is None:
+            return
+        self.apply_run_settings_changes({"worker_count": value})
+
+    def apply_run_settings_changes(self, values):
+        """Applies run settings edited in the tracker window.
+
+        Args:
+            values (dict): Run settings keyed by run setting key.
+
+        Returns:
+            list: Applied (key, old_value, new_value) changes.
+        """
+        if not self.can_edit_run_settings():
+            return []
+        changes = self.scheduler.update_run_settings(values, source="tracker", manual=True)
+        if changes:
+            from gt.tools.batch_processor import batch_processor_run_settings as run_settings
+
+            self.view.statusBar().showMessage(
+                f"Run settings changed: {run_settings.describe_changes(changes)}.", 8000
+            )
+            self.scheduler.write_state()
+        self.refresh()
+        return changes
+
+    def show_run_settings_dialog(self):
+        """Opens the non-modal dialog that edits live run settings."""
+        from gt.tools.batch_processor.tracker import tracker_run_settings_dialog
+
+        if self.run_settings_dialog is None:
+            self.run_settings_dialog = tracker_run_settings_dialog.TrackerRunSettingsDialog(
+                apply_callback=self.apply_run_settings_changes,
+                parent=self.view,
+            )
+        self.run_settings_dialog.set_values(self.scheduler.run_settings.values)
+        self.run_settings_dialog.set_editable(self.can_edit_run_settings())
+        self.run_settings_dialog.show()
+        self.run_settings_dialog.raise_()
+        self.run_settings_dialog.activateWindow()
+
+    def set_keep_manual_run_settings(self, enabled):
+        """Sets whether manual run setting changes survive later Settings Override tasks.
+
+        Args:
+            enabled (bool): True to keep manual changes.
+        """
+        self.scheduler.run_settings.keep_manual_changes = bool(enabled)
 
     def _update_compact_view(self):
         """Mirrors overall progress and status into the compact view and tray tooltip."""

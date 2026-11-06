@@ -85,7 +85,7 @@ class TaskRunBatchProject(task_base.BatchTask):
             result.add_error("A child project log folder is required.")
         if project:
             for segment in project.get_task_segments():
-                processing = [task for task in segment if task.enabled and not task.is_input_task]
+                processing = [task for task in segment if task.enabled and task_base.is_processing_task(task)]
                 if self in processing and processing[0] is not self:
                     result.add_error("Run Batch Project must be the first processing task in its input segment.")
             if not project.run_settings.get("multi_instance"):

@@ -112,6 +112,22 @@ class SingleInstanceBatchRunner:
                     )
                     task_timing_recorded = True
                     continue
+                if task.is_settings_override_task:
+                    self.tracker.record_message(
+                        '[INFO] - Settings Override task "{0}" has no effect in single-instance mode.'.format(
+                            task.display_name
+                        )
+                    )
+                    run_state.record_task(project, task, "succeeded")
+                    self._record_task_timing(
+                        task=task,
+                        task_index=step_index,
+                        total_tasks=len(process_tasks),
+                        started_at=active_task_started,
+                        status=constants.RunStatus.SUCCEEDED,
+                    )
+                    task_timing_recorded = True
+                    continue
 
                 current_items = self._get_task_source_items(
                     project=project,
@@ -234,7 +250,7 @@ class SingleInstanceBatchRunner:
             list: Source file paths used to seed the run.
         """
         for task in process_tasks:
-            if task.is_input_task:
+            if not tasks.is_processing_task(task):
                 continue
             if task.uses_incoming_files():
                 return project.discover_input_files()
@@ -508,7 +524,7 @@ class MultiInstanceBatchRunner:
             raise RuntimeError("Project validation failed: {0}".format("; ".join(validation.errors)))
         final_tasks = self._get_final_multi_instance_tasks(process_tasks)
         if final_tasks:
-            processing_tasks = [task for task in process_tasks if not task.is_input_task]
+            processing_tasks = [task for task in process_tasks if tasks.is_processing_task(task)]
             trailing_tasks = processing_tasks[len(processing_tasks) - len(final_tasks) :]
             if trailing_tasks != final_tasks:
                 offending_task = next(
@@ -527,7 +543,7 @@ class MultiInstanceBatchRunner:
         remaining_processing_tasks = [
             task
             for task in process_tasks
-            if not task.is_input_task and task not in preflight_tasks
+            if tasks.is_processing_task(task) and task not in preflight_tasks
         ]
         if preflight_tasks and not remaining_processing_tasks and not runtime_options:
             return self._finish_preflight_multi_instance_run(
@@ -537,21 +553,32 @@ class MultiInstanceBatchRunner:
                 completion_message="No remaining processing tasks. No worker jobs launched.",
             )
 
-        source_files = self._get_source_files_for_multi_run(
-            project=project,
-            run_from_task_id=run_from_task_id,
-            task_list=process_tasks,
-            excluded_task_ids=[task.id for task in preflight_tasks],
+        only_final_tasks = bool(remaining_processing_tasks) and all(
+            task in final_tasks for task in remaining_processing_tasks
         )
-        from gt.tools.batch_processor import batch_processor_projects
+        if only_final_tasks:
+            # Run-once tasks find their own files, so no input files or per-file worker jobs are needed.
+            source_files = []
+            ignored_self_only = False
+            preflight_messages.append(
+                "[INFO] - (multi-instance) - Only run-once tasks remain; they run without input files."
+            )
+        else:
+            source_files = self._get_source_files_for_multi_run(
+                project=project,
+                run_from_task_id=run_from_task_id,
+                task_list=process_tasks,
+                excluded_task_ids=[task.id for task in preflight_tasks],
+            )
+            from gt.tools.batch_processor import batch_processor_projects
 
-        first_task = remaining_processing_tasks[0] if remaining_processing_tasks else None
-        filtered_sources = batch_processor_projects.filter_project_inputs(source_files, first_task, project)
-        ignored_self_only = bool(source_files) and not filtered_sources
-        if len(filtered_sources) != len(source_files):
-            preflight_messages.append("[INFO] - Ignored the launching project in child project inputs.")
-        source_files = filtered_sources
-        if not source_files and not runtime_options and not ignored_self_only:
+            first_task = remaining_processing_tasks[0] if remaining_processing_tasks else None
+            filtered_sources = batch_processor_projects.filter_project_inputs(source_files, first_task, project)
+            ignored_self_only = bool(source_files) and not filtered_sources
+            if len(filtered_sources) != len(source_files):
+                preflight_messages.append("[INFO] - Ignored the launching project in child project inputs.")
+            source_files = filtered_sources
+        if not source_files and not runtime_options and not ignored_self_only and not only_final_tasks:
             if preflight_tasks:
                 return self._finish_preflight_multi_instance_run(
                     project=project,
@@ -563,11 +590,16 @@ class MultiInstanceBatchRunner:
         project_snapshot_path = self._write_project_snapshot(project)
         job_file_path = self._write_job_file(source_files)
         tracker_script_path = os.path.join(os.path.dirname(__file__), "tracker", "tracker_main.py")
-        preferred_maya_version = project.run_settings.get("preferred_maya_version")
+        run_settings_plan = project.build_run_settings_plan(
+            selected_tasks=process_tasks,
+            excluded_task_ids=[task.id for task in list(final_tasks) + list(preflight_tasks)],
+        )
+        initial_settings = run_settings_plan["initial"]
+        preferred_maya_version = initial_settings.get("preferred_maya_version")
         mayapy_path, maya_version_warning = resolve_mayapy_executable(preferred_version=preferred_maya_version)
-        worker_count = int(project.run_settings.get("worker_count") or 1)
-        max_retries = max(0, int(project.run_settings.get("max_retries") or 0))
-        timeout_minutes = max(0, int(project.run_settings.get("timeout_minutes") or 0))
+        worker_count = int(initial_settings.get("worker_count") or 1)
+        max_retries = max(0, int(initial_settings.get("max_retries") or 0))
+        timeout_minutes = max(0, int(initial_settings.get("timeout_minutes") or 0))
         logs_dir = project.get_logs_dir()
         command = [
             mayapy_path,
@@ -602,6 +634,8 @@ class MultiInstanceBatchRunner:
             command.extend(["--max-retries", str(max_retries)])
         if timeout_minutes:
             command.extend(["--timeout-minutes", str(timeout_minutes)])
+        if preferred_maya_version and not maya_version_warning:
+            command.extend(["--preferred-maya-version", str(preferred_maya_version)])
         if not project.run_settings.get("create_log", True):
             command.append("--no-log")
         if project.run_settings.get("create_task_time_log", True):
@@ -706,7 +740,7 @@ class MultiInstanceBatchRunner:
         """
         preflight_tasks = []
         for task in process_tasks:
-            if task.is_input_task:
+            if not tasks.is_processing_task(task):
                 continue
             if not getattr(task, "supports_run_once_before_jobs", False):
                 break
@@ -733,7 +767,7 @@ class MultiInstanceBatchRunner:
         ]
         if not configured_tasks:
             return
-        processing_tasks = [task for task in process_tasks if not task.is_input_task]
+        processing_tasks = [task for task in process_tasks if tasks.is_processing_task(task)]
         leading_tasks = processing_tasks[: len(configured_tasks)]
         if leading_tasks == configured_tasks:
             return

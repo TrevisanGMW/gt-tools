@@ -431,6 +431,14 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
             "Restart All Canceled Jobs",
         )
         self.restart_canceled_jobs_action.setToolTip("Queue every canceled job to run again.")
+        self.actions_menu.addSeparator()
+        self.adjust_run_settings_action = self.actions_menu.addAction(
+            ui_qt.QtGui.QIcon(ui_res_lib.Icon.batch_task_settings_override),
+            "Adjust Run Settings...",
+        )
+        self.adjust_run_settings_action.setToolTip(
+            "Change the max workers, retries, and timeout of this run while it is running."
+        )
         self.copy_menu = self.tracker_menu_bar.addMenu("Copy")
         copy_icon = ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_copy_text)
         self.copy_failed_jobs_action = self.copy_menu.addAction(copy_icon, "Copy Failed Job Names")
@@ -499,6 +507,12 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
         self.use_system_tray_action.setToolTip(
             "Show a system tray icon (click to show or hide the tracker) and keep tracker windows off the taskbar."
         )
+        self.keep_manual_run_settings_action = self.preferences_menu.addAction("Keep Manual Run Setting Changes")
+        self.keep_manual_run_settings_action.setCheckable(True)
+        self.keep_manual_run_settings_action.setToolTip(
+            "When on, run settings you change in the tracker (max workers, retries, timeout) are kept\n"
+            "even when a later \"Settings Override\" task would change them. Applies immediately and is saved."
+        )
         self.search_field = ui_qt.QtWidgets.QLineEdit()
         self.search_field.setPlaceholderText("Filter by job name...")
         self.search_field.setClearButtonEnabled(True)
@@ -532,6 +546,17 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
         self.show_logs_button.setCheckable(True)
         self.show_logs_button.setChecked(True)
         self.show_logs_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_templates))
+        self.worker_limit_label = ui_qt.QtWidgets.QLabel("Max Workers:")
+        self.worker_limit_spin_box = ui_qt.QtWidgets.QSpinBox()
+        self.worker_limit_spin_box.setRange(1, 256)
+        self.worker_limit_spin_box.setKeyboardTracking(False)
+        self.worker_limit_spin_box.setMinimumWidth(64)
+        worker_limit_tooltip = (
+            "Maximum concurrent workers for this run. Changes apply right away.\n"
+            "Lowering it never stops running jobs; new jobs wait until enough workers finish."
+        )
+        self.worker_limit_label.setToolTip(worker_limit_tooltip)
+        self.worker_limit_spin_box.setToolTip(worker_limit_tooltip)
         self.abort_button = ui_qt.QtWidgets.QPushButton("Abort All")
         self.abort_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_delete))
         self.abort_button.setToolTip("Stop scheduling and terminate all active worker process trees.")
@@ -565,6 +590,9 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
         information_layout.addLayout(primary_layout)
         secondary_layout = ui_qt.QtWidgets.QHBoxLayout()
         secondary_layout.addWidget(self.secondary_summary_label, 1)
+        secondary_layout.addWidget(self.worker_limit_label)
+        secondary_layout.addWidget(self.worker_limit_spin_box)
+        secondary_layout.addSpacing(6)
         secondary_layout.addWidget(self.project_folder_button)
         secondary_layout.addWidget(self.project_logs_button)
         secondary_layout.addWidget(self.show_logs_button)

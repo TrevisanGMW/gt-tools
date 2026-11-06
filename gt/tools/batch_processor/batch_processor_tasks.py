@@ -23,6 +23,7 @@ from gt.tools.batch_processor.batch_processor_task_base import get_work_item_rel
 from gt.tools.batch_processor.batch_processor_task_base import get_work_item_relative_path
 from gt.tools.batch_processor.batch_processor_task_base import hash_settings
 from gt.tools.batch_processor.batch_processor_task_base import has_supported_extension
+from gt.tools.batch_processor.batch_processor_task_base import is_processing_task
 from gt.tools.batch_processor.batch_processor_task_base import list_files_from_path
 from gt.tools.batch_processor.batch_processor_task_base import normalize_extensions
 from gt.tools.batch_processor.batch_processor_task_base import normalize_path
@@ -36,6 +37,7 @@ from gt.tools.batch_processor.tasks.task_archive import TaskArchive
 from gt.tools.batch_processor.tasks.task_auto_rig_build import TaskAutoRigBuild
 from gt.tools.batch_processor.tasks.task_batch_render import TaskBatchRender
 from gt.tools.batch_processor.tasks.task_run_batch_project import TaskRunBatchProject
+from gt.tools.batch_processor.tasks.task_settings_override import TaskSettingsOverride
 from gt.tools.batch_processor.tasks.task_external_blender import TaskBlenderScript
 from gt.tools.batch_processor.tasks.task_external_blender import find_blender_executable
 from gt.tools.batch_processor.tasks.task_external_blender import get_blender_executable_candidates
@@ -108,6 +110,7 @@ TASK_TYPES = {
     constants.TaskType.PLAYBLAST_CAPTURE: TaskCapturePlayblast,
     constants.TaskType.BATCH_RENDER: TaskBatchRender,
     constants.TaskType.RUN_BATCH_PROJECT: TaskRunBatchProject,
+    constants.TaskType.SETTINGS_OVERRIDE: TaskSettingsOverride,
 }
 
 LEGACY_TASK_TYPES = {
@@ -116,6 +119,7 @@ LEGACY_TASK_TYPES = {
     "usd_export": constants.TaskType.USD_EXPORT,
     "python_scripts": constants.TaskType.PYTHON_SCRIPT,
     constants.TaskType.PYTHON_SCRIPTS_FOLDER: constants.TaskType.PYTHON_SCRIPT,
+    "update_run_settings": constants.TaskType.SETTINGS_OVERRIDE,
 }
 
 LEGACY_BATCH_PYTHON_TASK_TYPES = set(["python_scripts", constants.TaskType.PYTHON_SCRIPTS_FOLDER])
