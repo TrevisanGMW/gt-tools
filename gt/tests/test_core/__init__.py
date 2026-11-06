@@ -37,3 +37,4 @@ from . import test_undo
 from . import test_uuid
 from . import test_version
 from . import test_blendshape
+from . import test_environment_references

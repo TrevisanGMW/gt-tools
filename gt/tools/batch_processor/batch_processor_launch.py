@@ -101,6 +101,63 @@ class ProjectRun:
         if self.process is not None:
             batch_processor_projects.write_json(self.control_file, {"action": "cancel", "run_id": self.run_id})
 
+    def set_run_settings(
+        self,
+        worker_count=None,
+        max_retries=None,
+        timeout_minutes=None,
+        preferred_maya_version=None,
+        keep_manual_changes=None,
+    ):
+        """Changes run settings of the running project, like editing them in the tracker.
+
+        Only the given values change. Lowering ``worker_count`` never stops running
+        jobs; new jobs wait until enough workers finish. A new timeout applies to
+        jobs launched afterwards. A Maya version change affects new workers only.
+
+        Args:
+            worker_count (int, optional): Maximum concurrent workers.
+            max_retries (int, optional): Retry attempts per failed job.
+            timeout_minutes (int, optional): Per-job timeout in minutes, 0 disables it.
+            preferred_maya_version (str, optional): Maya version for new workers, "" for the launch mayapy.
+            keep_manual_changes (bool, optional): When True, later Settings Override tasks
+                do not overwrite values changed here or in the tracker.
+
+        Returns:
+            int: Request sequence number, or 0 when nothing was launched or nothing was given.
+        """
+        if self.process is None:
+            return 0
+        requested = {
+            "worker_count": worker_count,
+            "max_retries": max_retries,
+            "timeout_minutes": timeout_minutes,
+            "preferred_maya_version": preferred_maya_version,
+        }
+        settings = {key: value for key, value in requested.items() if value is not None}
+        if not settings and keep_manual_changes is None:
+            return 0
+        request_path = batch_processor_projects.get_run_settings_request_path(self.control_file)
+        previous = batch_processor_projects.read_json(request_path)
+        sequence = int(previous.get("sequence") or 0) + 1
+        batch_processor_projects.write_json(request_path, {
+            "run_id": self.run_id,
+            "sequence": sequence,
+            "settings": settings,
+            "keep_manual_changes": keep_manual_changes,
+        })
+        return sequence
+
+    def get_run_settings(self):
+        """Reads the run settings the tracker last published.
+
+        Returns:
+            dict: Current run settings, or an empty dict before the first publication.
+        """
+        if self.process is None:
+            return {}
+        return dict(batch_processor_projects.read_json(self.status_file).get("run_settings") or {})
+
     def close(self):
         """Closes the tracker (and any workers) if it is still running, for example after a finished run."""
         if self.process is not None and self.process.poll() is None:

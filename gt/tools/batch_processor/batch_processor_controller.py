@@ -10,6 +10,7 @@ from gt.tools.batch_processor.widgets.attr_widget_task import get_task_widget_cl
 from gt.tools.batch_processor.widgets.environment_variables_dialog import (
     EnvironmentVariablesDialog,
 )
+from gt.tools.batch_processor import batch_processor_environment_variables
 from gt.tools.batch_processor import batch_processor_templates
 from gt.tools.batch_processor import batch_processor_handoff
 from gt.tools.batch_processor import batch_processor_log_view
@@ -1304,6 +1305,8 @@ class BatchProcessorController:
             self.environment_variables_window = EnvironmentVariablesDialog(
                 refresh_callback=self.get_current_environment_variables,
                 parent=self.view,
+                references_callback=self.get_environment_variable_references,
+                reference_activated_callback=self.select_environment_variable_reference,
             )
 
         self.environment_variables_window.refresh()
@@ -1326,6 +1329,31 @@ class BatchProcessorController:
             task_index=task_index,
             include_braces=True,
         )
+
+    def get_environment_variable_references(self):
+        """Finds where environment variables are used in the current project.
+
+        Returns:
+            dict: Unbraced token keys mapped to reference dictionaries.
+        """
+        return batch_processor_environment_variables.find_project_references(
+            self.model.to_dict()
+        )
+
+    def select_environment_variable_reference(self, reference):
+        """Selects the task owning a reference picked in the variables window.
+
+        Args:
+            reference (dict): Reference dictionary from the variables window.
+
+        Raises:
+            ValueError: If the reference does not point to a task in this project.
+        """
+        if reference.get("source_kind") != "task":
+            raise ValueError("only task references can be selected")
+        if not self.view.select_task_by_id(reference.get("source_id")):
+            raise ValueError("the task is no longer in the project")
+        self.update_details()
 
     def validate_project(self):
         """Validates the current project and updates the view."""

@@ -2,12 +2,30 @@
 Tests module
 """
 
+import os
+import sys
+
+# Configure imports before loading tests or standard-library dependencies. Adding
+# core directly to sys.path lets its uuid.py and math.py shadow Python modules.
+source_dir = os.path.dirname(os.path.abspath(__file__))
+package_root_dir = os.path.dirname(source_dir)
+package_parent_dir = os.path.dirname(package_root_dir)
+core_module_dir = os.path.normcase(os.path.realpath(os.path.join(package_root_dir, "core")))
+repository_dir = os.path.normcase(os.path.realpath(package_parent_dir))
+sys.path[:] = [
+    search_path
+    for search_path in sys.path
+    if os.path.normcase(os.path.realpath(search_path)) not in (core_module_dir, repository_dir)
+]
+sys.path.insert(0, package_parent_dir)
+for to_append in [source_dir, package_root_dir]:
+    if to_append not in sys.path:
+        sys.path.append(to_append)
+
 import unittest
 import logging
 import inspect
 import ast
-import sys
-import os
 import re
 import json
 import subprocess
@@ -26,14 +44,6 @@ logging.basicConfig()
 logger = logging.getLogger("tests")
 logger.setLevel(logging.INFO)
 
-# Paths to Append
-source_dir = os.path.dirname(__file__)
-package_root_dir = os.path.dirname(source_dir)
-package_parent_dir = os.path.dirname(package_root_dir)
-for to_append in [source_dir, package_root_dir, package_parent_dir]:
-    if to_append not in sys.path:
-        sys.path.append(to_append)
-
 # Modules to Test
 modules_to_test = [
     # Ui
@@ -44,10 +54,12 @@ modules_to_test = [
     test_ui.test_python_output_view,
     test_ui.test_qt_utils,
     test_ui.test_resource_library,
+    test_ui.test_environment_variables_dialog,
     # Tools
     test_auto_rigger.test_rig_utils,
     test_auto_rigger.test_rig_framework,
     test_auto_rigger.test_rig_constants,
+    test_auto_rigger.test_rigger_environment_references,
     test_auto_rigger.test_module_arm,
     test_auto_rigger.test_module_biped_arm,
     test_auto_rigger.test_module_biped_leg,
@@ -97,6 +109,7 @@ modules_to_test = [
     test_core.test_session,
     test_core.test_skin,
     test_core.test_str,
+    test_core.test_environment_references,
     test_core.test_surface,
     test_core.test_transform,
     test_core.test_undo,

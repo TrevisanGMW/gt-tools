@@ -13,3 +13,4 @@ from . import test_module_biped_leg
 from . import test_module_biped_finger
 from . import test_module_chain
 from . import test_module_ribbon
+from . import test_rigger_environment_references

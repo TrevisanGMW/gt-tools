@@ -554,6 +554,7 @@ class Icon:
     batch_task_python = get_icon_path(r"batch_task_python.svg")
     batch_task_rename = get_icon_path(r"batch_task_rename.svg")
     batch_task_run_batch_project = get_icon_path(r"batch_task_run_batch_project.svg")
+    batch_task_settings_override = get_icon_path(r"batch_task_settings_override.svg")
     batch_task_delete_project_files = get_icon_path(r"batch_task_delete_project_files.svg")
     batch_task_map_hierarchy = get_icon_path(r"batch_task_map_hierarchy.svg")
     batch_task_report = get_icon_path(r"batch_task_report.svg")

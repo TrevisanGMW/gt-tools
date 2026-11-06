@@ -12,6 +12,7 @@ import gt.tools.auto_rigger.rig_constants as tools_rig_const
 import gt.tools.auto_rigger.rig_modules as tools_rig_modules
 import gt.tools.auto_rigger.rig_framework as tools_rig_frm
 import gt.tools.auto_rigger.rig_utils as tools_rig_utils
+import gt.tools.auto_rigger.rigger_environment_references as tools_rig_env_refs
 from gt.tools.auto_rigger.environment_variables_dialog import (
     AutoRiggerEnvironmentVariablesDialog,
 )
@@ -1565,6 +1566,8 @@ class RiggerController:
         if self.environment_variables_window is None:
             self.environment_variables_window = AutoRiggerEnvironmentVariablesDialog(
                 refresh_callback=self.get_current_environment_variables,
+                references_callback=self.get_environment_variable_references,
+                reference_activated_callback=self.select_environment_variable_reference,
                 parent=self.view,
             )
         self.environment_variables_window.refresh()
@@ -1591,6 +1594,46 @@ class RiggerController:
                 f"Module data was skipped. Issue: {error}"
             )
         return environment_variables
+
+    def get_environment_variable_references(self):
+        """Finds where environment variables are used in the current rig project.
+
+        Returns:
+            dict: Unbraced token keys mapped to reference dictionaries.
+        """
+        project = self.model.get_project()
+        module_labels = {
+            module.get_uuid(): module.get_description_name()
+            for module in self.model.get_modules()
+        }
+        return tools_rig_env_refs.find_project_references(
+            project.get_project_as_dict(),
+            module_labels=module_labels,
+        )
+
+    def select_environment_variable_reference(self, reference):
+        """Selects the module or project owning a reference picked in the variables window.
+
+        Args:
+            reference (dict): Reference dictionary from the variables window.
+
+        Raises:
+            ValueError: If the referenced module is no longer in the tree.
+        """
+        project = self.model.get_project()
+        source_id = reference.get("source_id")
+        for tree_item in self.view.module_tree.get_all_items():
+            item_data = tree_item.data(1, 0)
+            if reference.get("source_kind") == "module":
+                is_match = hasattr(item_data, "get_uuid") and item_data is not project
+                is_match = is_match and item_data.get_uuid() == source_id
+            else:
+                is_match = item_data is project
+            if is_match:
+                self.view.module_tree.setCurrentItem(tree_item)
+                self.on_tree_item_clicked(tree_item)
+                return
+        raise ValueError("the source is no longer in the project")
 
     def open_geometry_preprocessor(self):
         """

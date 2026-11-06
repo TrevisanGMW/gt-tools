@@ -48,6 +48,26 @@ def read_json(path):
         return {}
 
 
+RUN_SETTINGS_REQUEST_FILE_NAME = "run_settings_request.json"
+
+
+def get_run_settings_request_path(control_file):
+    """Gets the live run settings request file that sits beside a control file.
+
+    Run settings requests use their own file so they never overwrite a pending
+    cancel request in the control file.
+
+    Args:
+        control_file (str): Tracker control file path.
+
+    Returns:
+        str: Request file path, or an empty string without a control file.
+    """
+    if not control_file:
+        return ""
+    return os.path.join(os.path.dirname(os.path.abspath(control_file)), RUN_SETTINGS_REQUEST_FILE_NAME)
+
+
 def write_json(path, data):
     """Publishes JSON atomically without replacing any source project.
 
