@@ -2,6 +2,8 @@
 
 import logging
 
+from gt.tools.connect_attributes.connect_attributes_inspector import ConnectAttributesInspector
+
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +102,17 @@ class ConnectAttributesService:
         attributes = self._get_cmds().listAttr(node, keyable=True) if keyable else self._get_cmds().listAttr(node)
         return sorted(attributes or [], key=lambda item: item.lower())
 
+    def inspect(self, request):
+        """Inspects planned operations without changing any Maya scene state.
+
+        Args:
+            request (dict): Normalized request from the model.
+
+        Returns:
+            list: Structured rows used by both Preview and Run.
+        """
+        return ConnectAttributesInspector(self._get_cmds()).inspect(request)
+
     def execute(self, request):
         """Executes a connect or disconnect request in one Maya undo chunk.
 
@@ -111,31 +124,40 @@ class ConnectAttributesService:
         """
         cmds = self._get_cmds()
         result = {"succeeded": 0, "skipped": 0, "created_nodes": [], "errors": []}
+        rows = self.inspect(request)
+        actionable_rows = []
+        for row in rows:
+            if row["status"] == "blocked":
+                result["errors"].append(f"{row['target']}: {row['details']}")
+            elif row["status"] == "skipped":
+                result["skipped"] += 1
+            else:
+                actionable_rows.append(row)
+        if not actionable_rows:
+            return result
         shared_input_node = None
         cmds.undoInfo(openChunk=True, chunkName="Connect Attributes")
         try:
-            if request.get("operation") == "connect" and request.get("use_utility_node"):
-                if request.get("use_shared_input"):
-                    shared_input_node = cmds.createNode(request.get("shared_input_node_type"))
-                    result["created_nodes"].append(shared_input_node)
-            for target_object in request.get("target_objects", []):
-                for target_attribute in request.get("target_attributes", []):
-                    try:
-                        if request.get("operation") == "disconnect":
-                            changed = self._disconnect_target(target_object, target_attribute)
-                            result["succeeded" if changed else "skipped"] += 1
-                        else:
-                            created_nodes = self._connect_target(
-                                request=request,
-                                target_object=target_object,
-                                target_attribute=target_attribute,
-                                shared_input_node=shared_input_node,
-                            )
-                            result["created_nodes"].extend(created_nodes)
-                            result["succeeded"] += 1
-                    except Exception as exception:
-                        target_plug = f"{target_object}.{target_attribute}"
-                        result["errors"].append(f"{target_plug}: {exception}")
+            for row in actionable_rows:
+                try:
+                    if request.get("operation") == "disconnect":
+                        cmds.disconnectAttr(row["source"], row["target"])
+                    else:
+                        if (request.get("use_utility_node") and request.get("use_shared_input")
+                                and shared_input_node is None):
+                            shared_input_node = cmds.createNode(request.get("shared_input_node_type"))
+                            result["created_nodes"].append(shared_input_node)
+                        target_object, target_attribute = row["target"].split(".", 1)
+                        created_nodes = self._connect_target(
+                            request=request,
+                            target_object=target_object,
+                            target_attribute=target_attribute,
+                            shared_input_node=shared_input_node,
+                        )
+                        result["created_nodes"].extend(created_nodes)
+                    result["succeeded"] += 1
+                except Exception as exception:
+                    result["errors"].append(f"{row['target']}: {exception}")
             if shared_input_node and not result["succeeded"]:
                 cmds.delete(shared_input_node)
                 result["created_nodes"].remove(shared_input_node)

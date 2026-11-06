@@ -1,6 +1,6 @@
 """Connect Attributes tool entry point."""
 
-__version_tuple__ = (2, 0, 0)
+__version_tuple__ = (2, 1, 0)
 __version_suffix__ = ""
 __version__ = ".".join(str(number) for number in __version_tuple__) + __version_suffix__
 
