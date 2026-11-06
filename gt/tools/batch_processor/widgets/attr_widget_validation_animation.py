@@ -9,6 +9,7 @@ from gt.tools.batch_processor.widgets.attr_widget_validation import (
     AttrWidgetValidationTaskBase,
     RUN_ONCE_AFTER_TOOLTIP,
     ROW_COLUMNS,
+    LABEL_WIDTH,
 )
 from gt.tools.batch_processor.widgets.inline_python_editor import InlinePythonEditorWidget
 from gt.tools.batch_processor.tasks import task_validation_animation as task_module
@@ -47,6 +48,12 @@ POLICY_LABELS = {
     scene_io.WRITE_POLICY_NEVER: "Never",
 }
 JSON_FILE_FILTER = "JSON Files (*.json);;All Files (*);;"
+FILTER_TOOLTIP = (
+    "Optionally evaluate only some of the files, by name.\n"
+    "Patterns are comma-separated and case-insensitive, and match the file name or its path.\n"
+    "Text without wildcards matches names that contain it (blue_fox = *blue_fox*).\n"
+    "Files skipped by the filters are not evaluated and are left out of the outputs."
+)
 OUTPUT_TOOLTIP = (
     "Folder that receives the outputs below (default: a folder named after this task in the task dir).\n"
     "Whole-batch files go directly in it. Per-file outputs go in <Output Folder>/<file name>/,\n"
@@ -90,8 +97,10 @@ class AttrWidgetAnimationValidationTask(AttrWidgetValidationTaskBase):
         self.score_option_widgets = []
         self.report_attribute_field = None
         self.graph_option_widgets = []
+        self.filter_field_widgets = []
         self.add_common_task_settings()
         self.add_preferences_section()
+        self.add_filters_section()
         self.add_checks_section()
         self.add_output_section()
         self.add_score_section()
@@ -184,17 +193,63 @@ class AttrWidgetAnimationValidationTask(AttrWidgetValidationTaskBase):
         Args:
             parent_layout (QLayout): Layout receiving the row.
         """
-        layout = self.add_labeled_layout("Scene Load", tooltip="How each incoming file is loaded.",
+        layout = self.add_labeled_layout("Scene Load",
+                                         tooltip="How each incoming file is loaded.\n"
+                                                 "Maya scenes (.ma, .mb), FBX, and USD files are evaluated;\n"
+                                                 "other files in the source folder are ignored.",
                                          parent_layout=parent_layout)
         self.add_option_checkbox(layout, "Load Scene", "load_scene",
                                  "Open or import each incoming file before evaluating.\n"
                                  "Turn off when a previous task already opened the scene.", True)
         self.add_row_combo_cell(layout, self.task.settings.get("source_load_mode") or "Open", ["Open", "Import"],
                                 "source_load_mode",
-                                tooltip="Open: open the file directly.\nImport: import it into a new empty scene.",
-                                span=ROW_COLUMNS - 2)
+                                tooltip="Open: open the file directly.\nImport: import it into a new empty scene.\n"
+                                        "USD files are always imported into a new scene, at the file's frame rate.")
         self.add_option_checkbox(layout, "Load Plugins", "load_relevant_plugins",
                                  "Load known file-format plugins (FBX, USD, ...) before opening or importing.", True)
+        self.add_option_checkbox(layout, "Align USD Up", "align_up_axis",
+                                 "USD files (.usd, .usda, .usdc) only: rotate (and scale) each file into Maya's\n"
+                                 "Y up and scene unit before evaluating, for example USD files exported Z up.\n"
+                                 "Keep it on unless the files are already Y up.", True)
+
+    # ------------------------------------------------ Filters ------------------------------------------------
+    def add_filters_section(self):
+        """Adds the optional Include/Exclude name filters inside a collapsible section."""
+        section = self.add_collapsible_section(
+            label_text="Filters",
+            collapsed=bool(self.task.settings.get("filter_collapsed", True)),
+            state_setter=partial(self.set_task_setting, key="filter_collapsed"),
+            tooltip=FILTER_TOOLTIP,
+        )
+        layout = section.get("content_layout")
+        row = self.add_labeled_layout("Name Filters", tooltip=FILTER_TOOLTIP, parent_layout=layout)
+        checkbox = self.add_option_checkbox(row, "Enable Filters", "filter_enabled",
+                                            "Evaluate only the files that pass the Include and Exclude patterns.\n"
+                                            "Off: every animation file is evaluated.", False)
+        checkbox.stateChanged.connect(lambda *args: self.refresh_visibility())
+        self.fill_row_cells(row)
+        self.filter_field_widgets = [
+            self.add_text_field(
+                "Include",
+                str(self.task.settings.get("filter_include_patterns") or ""),
+                partial(self.set_task_setting, key="filter_include_patterns"),
+                placeholder="blue_fox_0*, *_take_01.usd   (empty: every file)",
+                tooltip="Evaluate only files whose name matches one of these patterns.\n"
+                        "Empty: every file is included (Exclude still applies).\n\n" + FILTER_TOOLTIP,
+                label_width=LABEL_WIDTH,
+                parent_layout=layout,
+            ),
+            self.add_text_field(
+                "Exclude",
+                str(self.task.settings.get("filter_exclude_patterns") or ""),
+                partial(self.set_task_setting, key="filter_exclude_patterns"),
+                placeholder="*_backup*, */old/*",
+                tooltip="Skip files whose name matches one of these patterns (wins over Include).\n\n"
+                        + FILTER_TOOLTIP,
+                label_width=LABEL_WIDTH,
+                parent_layout=layout,
+            ),
+        ]
 
     def add_skeleton_rows(self, parent_layout):
         """Adds the skeleton selector, the Custom Skeleton file, and the checks summary.
@@ -625,6 +680,9 @@ class AttrWidgetAnimationValidationTask(AttrWidgetValidationTaskBase):
             widget.setEnabled(write_score)
         if self.report_attribute_field:
             self.report_attribute_field.setEnabled(write_score and bool(settings.get("write_report_attribute", True)))
+        filter_enabled = bool(settings.get("filter_enabled", False))
+        for widget in self.filter_field_widgets:
+            widget.setEnabled(filter_enabled)
         graphs_per_file = bool(settings.get("graphs_per_file", False))
         for widget in self.graph_option_widgets:
             widget.setEnabled(graphs_per_file)

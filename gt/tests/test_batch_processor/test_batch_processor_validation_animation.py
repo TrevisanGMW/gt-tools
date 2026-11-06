@@ -264,6 +264,86 @@ class TestTaskValidationAnimation(unittest.TestCase):
         task = self.create_task(preset_source=validation_animation.PRESET_SOURCE_FILE, preset_path=preset_path)
         self.assertEqual({"overall_fail_below": 10}, task.load_preset(self.project)["settings"])
 
+    def test_source_discovery_keeps_only_animation_files(self):
+        source_dir = os.path.join(self.temp_dir.name, "usd_exports")
+        os.makedirs(source_dir)
+        for name in ("walk.usd", "run.usda", "jump.usdc", "idle.fbx", "report.txt", "notes.json"):
+            with open(os.path.join(source_dir, name), "w", encoding="utf-8") as file_stream:
+                file_stream.write("")
+        task = self.create_task(source_mode="source_path", source_path=source_dir.replace("\\", "/"))
+        found = [os.path.basename(path) for path in task.discover_source_files(self.project)]
+        self.assertEqual(["idle.fbx", "jump.usdc", "run.usda", "walk.usd"], sorted(found))
+
+    def test_name_filters_are_off_by_default(self):
+        task = self.create_task()
+        self.assertFalse(task.settings.get("filter_enabled"))
+        self.assertTrue(task.passes_name_filters("C:/data/anything.usd"))
+
+    def test_name_filters_include_and_exclude(self):
+        source_dir = os.path.join(self.temp_dir.name, "filtered")
+        os.makedirs(source_dir)
+        for name in ("Blue_Fox_010.usd", "blue_fox_020.usd", "blue_fox_020_backup.usd", "idle_001.usd"):
+            with open(os.path.join(source_dir, name), "w", encoding="utf-8") as file_stream:
+                file_stream.write("")
+        task = self.create_task(source_mode="source_path", source_path=source_dir.replace("\\", "/"),
+                                filter_enabled=True, filter_include_patterns="blue_fox",
+                                filter_exclude_patterns="*_backup*")
+        found = [os.path.basename(path) for path in task.discover_source_files(self.project)]
+        self.assertEqual(["Blue_Fox_010.usd", "blue_fox_020.usd"], sorted(found))
+
+    def test_parse_name_patterns_wraps_plain_text(self):
+        expected = ["*blue_fox*", "idle_*.usd", "*take*"]
+        self.assertEqual(expected, validation_animation.parse_name_patterns("Blue_Fox, idle_*.usd; take"))
+
+    def test_filtered_incoming_file_is_skipped(self):
+        task = self.create_task(load_scene=True, filter_enabled=True, filter_exclude_patterns="walk")
+        usd_path = os.path.join(self.temp_dir.name, "walk.usd")
+        with patch.object(validation_animation.usd_scene, "load_usd_scene") as load_usd:
+            with self.assertRaises(task_base.TaskSkip):
+                task.execute(task_base.WorkItem(source_path=usd_path), self.project, self.log_dir, context={})
+        load_usd.assert_not_called()
+
+    def test_unsupported_incoming_file_is_skipped(self):
+        task = self.create_task(load_scene=True)
+        text_path = os.path.join(self.temp_dir.name, "report.txt")
+        with open(text_path, "w", encoding="utf-8") as file_stream:
+            file_stream.write("")
+        with self.assertRaises(task_base.TaskSkip):
+            task.execute(task_base.WorkItem(source_path=text_path), self.project, self.log_dir, context={})
+
+    def test_usd_files_load_with_up_axis_alignment(self):
+        task = self.create_task(load_scene=True, align_up_axis=False)
+        usd_path = os.path.join(self.temp_dir.name, "walk.usd")
+        with patch.object(validation_animation.usd_scene, "load_usd_scene") as load_usd, \
+                patch.object(validation_animation.batch_processor_maya, "load_relevant_file_plugin"), \
+                patch.object(validation_animation.task_utils, "load_source_scene") as load_maya:
+            task.load_scene(usd_path)
+        load_usd.assert_called_once_with(usd_path, align_up_axis=False)
+        load_maya.assert_not_called()
+
+    def test_maya_scenes_use_the_scene_load_settings(self):
+        task = self.create_task(load_scene=True, source_load_mode="Import")
+        with patch.object(validation_animation.usd_scene, "load_usd_scene") as load_usd, \
+                patch.object(validation_animation.task_utils, "load_source_scene") as load_maya:
+            task.load_scene(self.input_path)
+        load_maya.assert_called_once_with(self.input_path, source_load_mode="Import", load_relevant_plugins=True)
+        load_usd.assert_not_called()
+
+    def test_task_can_run_once_before_jobs(self):
+        task = self.create_task(run_once_before_multi_instance=True)
+        self.assertTrue(task.supports_run_once_before_jobs)
+        self.assertFalse(task.get_default_settings()["run_once_before_multi_instance"])
+        self.assertTrue(task.get_default_settings()["align_up_axis"])
+
+    def test_run_once_only_project_does_not_warn_about_inputs(self):
+        task = self.create_task(run_once_after_multi_instance=True, source_mode="source_path",
+                                source_path=self.temp_dir.name.replace("\\", "/"))
+        self.project.tasks = [task]
+        warnings = self.project.validate_project().warnings
+        self.assertNotIn("Project has no enabled input tasks.", warnings)
+        task.settings["run_once_after_multi_instance"] = False
+        self.assertIn("Project has no enabled input tasks.", self.project.validate_project().warnings)
+
     def test_passed_item_is_logged(self):
         task = self.create_task()
         result = self.execute(task, build_report(97, "passed"))

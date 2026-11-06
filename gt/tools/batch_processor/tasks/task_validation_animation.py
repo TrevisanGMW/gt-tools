@@ -1,8 +1,8 @@
 """
 Batch Processor Validate Animation Task
 
-Scores every incoming Maya scene with the motion evaluation checks
-(core.motion_eval), optionally stores the score as a Maya attribute, writes
+Scores every incoming animation file (Maya scene, FBX, or USD) with the motion
+evaluation checks (core.motion_eval), optionally stores the score as a Maya attribute, writes
 outputs (batch or per-file summaries, JSON reports, and graphs) into the task
 folder, runs an optional post-script (for example to copy the score elsewhere),
 and logs the report.
@@ -13,6 +13,11 @@ parallel workers each add their file without overwriting the others.
 The Skeleton setting decides what is checked: "None" runs the General checks on
 any animated nodes, while a skeleton (built-in or Custom Skeleton file) adds the
 Biped checks on the mapped joints.
+
+USD files are imported the same way as motion_eval.runner: the scene frame rate
+comes from the file, and Z-up files are rotated into Maya's Y up when Align USD
+Up Axis is on. Only supported animation files are picked up from the source
+folder (other files, such as reports, are ignored).
 """
 
 from gt.tools.batch_processor import batch_processor_constants as constants
@@ -28,7 +33,9 @@ from gt.core.motion_eval import presets
 from gt.core.motion_eval import sampling
 from gt.core.motion_eval import scene_io
 from gt.core.motion_eval import templates
+from gt.core.motion_eval import usd_scene
 import gt.ui.resource_library as ui_res_lib
+import fnmatch
 import os
 import sys
 
@@ -50,6 +57,7 @@ BATCH_GRAPH_FILE_NAME = outputs.BATCH_GRAPH_FILE_NAME
 BATCH_GENERAL_SCOPES = [scope for scope in sampling.GENERAL_SCOPES if scope != sampling.SCOPE_SELECTION]
 POST_SCRIPT_SAMPLES_DIRECTORY = "validate_animation"
 POST_SCRIPT_NAME = "<validate_animation_post_script>"
+SCENE_EXTENSIONS = (".ma", ".mb", ".fbx") + usd_scene.USD_EXTENSIONS
 
 
 class TaskValidationAnimation(task_base.BatchTask):
@@ -63,6 +71,7 @@ class TaskValidationAnimation(task_base.BatchTask):
     category_icon = ui_res_lib.Icon.batch_category_validation
     is_indexless_task = True
     supports_run_once_after_jobs = True
+    supports_run_once_before_jobs = True
     post_script_samples_directory = POST_SCRIPT_SAMPLES_DIRECTORY
 
     def get_default_settings(self):
@@ -77,6 +86,11 @@ class TaskValidationAnimation(task_base.BatchTask):
             "load_scene": True,
             "source_load_mode": "Open",
             "load_relevant_plugins": True,
+            "align_up_axis": True,
+            "filter_enabled": False,
+            "filter_include_patterns": "",
+            "filter_exclude_patterns": "",
+            "filter_collapsed": True,
             "skeleton_source": SKELETON_NONE,
             "custom_skeleton_path": DEFAULT_CUSTOM_SKELETON_PATH,
             "preset_source": PRESET_SOURCE_INLINE,
@@ -122,6 +136,7 @@ class TaskValidationAnimation(task_base.BatchTask):
             "output_collapsed": True,
             "actions_collapsed": True,
             "overwrite": True,
+            "run_once_before_multi_instance": False,
             "run_once_after_multi_instance": False,
             "force_segment_separator": False,
             "segment_name": "",
@@ -174,6 +189,57 @@ class TaskValidationAnimation(task_base.BatchTask):
             self.settings["output_collapsed"] = bool(incoming_settings.get("graphs_collapsed"))
         for legacy_key in ("export_graphs", "graphs_path", "graphs_collapsed"):
             self.settings.pop(legacy_key, None)
+
+    # ------------------------------------------------ Source Files ------------------------------------------------
+    def discover_source_files(self, project, task_index=None):
+        """Discovers the animation files in the source path, ignoring other files (reports, logs, ...).
+
+        Args:
+            project (BatchProcessorModel): Active project model.
+            task_index (int, optional): One-based task index.
+
+        Returns:
+            list: Sorted normalized animation file paths.
+        """
+        source_files = super().discover_source_files(project, task_index=task_index)
+        return [path for path in source_files if is_supported_file(path) and self.passes_name_filters(path)]
+
+    def passes_name_filters(self, file_path):
+        """Checks a file against the optional Include/Exclude name filters.
+
+        Args:
+            file_path (str): File path.
+
+        Returns:
+            bool: True when filters are off, or the file matches Include and not Exclude.
+        """
+        if not self.settings.get("filter_enabled", False):
+            return True
+        return matches_name_filters(
+            file_path,
+            parse_name_patterns(self.settings.get("filter_include_patterns")),
+            parse_name_patterns(self.settings.get("filter_exclude_patterns")),
+        )
+
+    def load_scene(self, file_path):
+        """Loads an animation file into a new scene.
+
+        USD files are imported with motion_eval (frame rate from the file, up axis alignment); Maya
+        scenes and FBX files use the Scene Load settings.
+
+        Args:
+            file_path (str): Animation file path.
+        """
+        if usd_scene.is_usd_file(file_path):
+            if self.settings.get("load_relevant_plugins", True):
+                batch_processor_maya.load_relevant_file_plugin(file_path)
+            usd_scene.load_usd_scene(file_path, align_up_axis=bool(self.settings.get("align_up_axis", True)))
+            return
+        task_utils.load_source_scene(
+            file_path,
+            source_load_mode=self.settings.get("source_load_mode") or "Open",
+            load_relevant_plugins=self.settings.get("load_relevant_plugins", True),
+        )
 
     # ------------------------------------------- Skeleton / Preset -------------------------------------------
     def get_mode(self):
@@ -635,14 +701,19 @@ class TaskValidationAnimation(task_base.BatchTask):
         from gt.core.motion_eval import evaluation
 
         context = context or {}
+        item_label = os.path.basename(work_item.current_path)
+        if self.settings.get("load_scene", True) and not is_supported_file(work_item.current_path):
+            message = (f"Validate Animation skipped {item_label}: not an animation file "
+                       f"({', '.join(SCENE_EXTENSIONS)}).")
+            sys.stdout.write(message + "\n")
+            raise task_base.TaskSkip(message)
+        if not self.passes_name_filters(work_item.current_path):
+            message = f"Validate Animation skipped {item_label}: excluded by the name filters."
+            sys.stdout.write(message + "\n")
+            raise task_base.TaskSkip(message)
         self.check_save_allowed(work_item)
         if self.settings.get("load_scene", True):
-            task_utils.load_source_scene(
-                work_item.current_path,
-                source_load_mode=self.settings.get("source_load_mode") or "Open",
-                load_relevant_plugins=self.settings.get("load_relevant_plugins", True),
-            )
-        item_label = os.path.basename(work_item.current_path)
+            self.load_scene(work_item.current_path)
         try:
             report = self.evaluate_current_scene(project)
         except (ValueError, IOError, OSError) as exception:
@@ -721,6 +792,72 @@ class TaskValidationAnimation(task_base.BatchTask):
             dict: Evaluation report (without graph series).
         """
         return self.evaluate_current_scene(project, include_series=False)
+
+
+def is_supported_file(file_path):
+    """Checks whether a file is an animation file the task can load.
+
+    Args:
+        file_path (str): File path.
+
+    Returns:
+        bool: True for Maya scenes, FBX, and USD files.
+    """
+    return os.path.splitext(str(file_path or ""))[1].lower() in SCENE_EXTENSIONS
+
+
+def parse_name_patterns(value):
+    """Parses comma, semicolon, or newline separated name patterns.
+
+    Args:
+        value (str or list): Raw pattern text or list.
+
+    Returns:
+        list: Clean, lowercase patterns. Text without wildcards becomes a "contains" pattern.
+    """
+    if isinstance(value, (list, tuple)):
+        raw_items = value
+    else:
+        raw_items = str(value or "").replace(";", "\n").replace(",", "\n").splitlines()
+    patterns = []
+    for item in raw_items:
+        pattern = str(item).strip().replace("\\", "/").lower()
+        if not pattern:
+            continue
+        if not any(character in pattern for character in "*?["):
+            pattern = f"*{pattern}*"
+        patterns.append(pattern)
+    return patterns
+
+
+def matches_name_filters(file_path, include_patterns, exclude_patterns):
+    """Checks a file name (or path) against include and exclude patterns.
+
+    Args:
+        file_path (str): File path.
+        include_patterns (list): Lowercase patterns from parse_name_patterns. Empty keeps every file.
+        exclude_patterns (list): Lowercase patterns from parse_name_patterns.
+
+    Returns:
+        bool: True when the file matches an include pattern (or there are none) and no exclude pattern.
+    """
+    normalized_path = str(file_path or "").replace("\\", "/").lower()
+    candidates = [os.path.basename(normalized_path), normalized_path]
+
+    def matches_any(patterns):
+        """Checks whether any pattern matches the file name or path.
+
+        Args:
+            patterns (list): Patterns to test.
+
+        Returns:
+            bool: True when one pattern matches.
+        """
+        return any(fnmatch.fnmatchcase(candidate, pattern) for pattern in patterns for candidate in candidates)
+
+    if include_patterns and not matches_any(include_patterns):
+        return False
+    return not matches_any(exclude_patterns)
 
 
 def read_batch_entries(parts_dir, run_id):
