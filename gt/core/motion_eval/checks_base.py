@@ -117,6 +117,7 @@ class CheckDefinition:
         function,
         parameters=None,
         required_roles=None,
+        required_data=None,
         enabled=True,
         weight=1.0,
         warn_below=85,
@@ -134,6 +135,9 @@ class CheckDefinition:
             function (callable): ``function(data, parameters)`` returning a CheckResult.
             parameters (list, optional): ParameterSpec objects.
             required_roles (list, optional): Roles that must be resolved, otherwise the check is skipped.
+            required_data (list, optional): Extra scene data keys the check reads with MotionData.get_extra
+                (data that is not a world matrix, see SceneHost.get_extra_data). Hosts that cannot provide
+                a key make the check skip with a reason instead of failing.
             enabled (bool): Default enabled state.
             weight (float): Default contribution to the overall score.
             warn_below (int): Default score below which the check warns.
@@ -148,6 +152,7 @@ class CheckDefinition:
         self.function = function
         self.parameters = list(parameters or [])
         self.required_roles = list(required_roles or [])
+        self.required_data = list(required_data or [])
         self.enabled = enabled
         self.weight = weight
         self.warn_below = warn_below
@@ -346,6 +351,7 @@ class MotionData:
         self.meters_per_unit = float(sample.get("meters_per_unit") or 0.01)
         self.nodes = sample.get("nodes") or {}
         self.roles = dict(sample.get("roles") or {})
+        self.extra = dict(sample.get("extra") or {})
         self._positions = {}
         self._reference_length = None
         self.cache = {}
@@ -406,6 +412,17 @@ class MotionData:
                 positions = [(position[0], position[2], -position[1]) for position in positions]
             self._positions[node_path] = positions
         return self._positions[node_path]
+
+    def get_extra(self, data_key):
+        """Gets extra scene data collected for checks with required_data.
+
+        Args:
+            data_key (str): Extra data key (see SceneHost.get_extra_data).
+
+        Returns:
+            object or None: JSON-compatible data, or None when the host did not provide it.
+        """
+        return self.extra.get(data_key)
 
     def has_role(self, role_key):
         """Checks whether a role was resolved and sampled.

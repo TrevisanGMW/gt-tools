@@ -57,6 +57,9 @@ def run_check(check, data, check_values):
     missing_roles = data.missing_roles(check.required_roles) if check.required_roles else []
     if missing_roles:
         return CheckResult.skipped(f"Missing roles: {', '.join(missing_roles)}")
+    missing_data = [key for key in check.required_data if data.get_extra(key) is None]
+    if missing_data:
+        return CheckResult.skipped(f"Needs scene data this program does not provide: {', '.join(missing_data)}")
     try:
         return check.function(data, dict(check_values["parameters"]))
     except Exception as exception:
@@ -154,9 +157,25 @@ def strip_series(report):
     return stripped
 
 
+def get_required_data(resolved_preset):
+    """Lists the extra scene data the enabled checks of a preset need.
+
+    Args:
+        resolved_preset (dict): Resolved preset.
+
+    Returns:
+        list: Extra data keys (see CheckDefinition.required_data), in check order.
+    """
+    keys = []
+    for check in presets.get_checks_for_mode(resolved_preset["mode"]):
+        if resolved_preset["checks"][check.key]["enabled"]:
+            keys.extend(key for key in check.required_data if key not in keys)
+    return keys
+
+
 def evaluate_scene(preset=None, template=None, frame_range=None, general_scope=None, node_names=None,
                    include_series=False):
-    """Samples the open Maya scene and evaluates it.
+    """Samples the open scene of the active host (Maya, Blender, or a motion sample) and evaluates it.
 
     Args:
         preset (dict, optional): Stored or resolved preset.
@@ -190,6 +209,7 @@ def evaluate_scene(preset=None, template=None, frame_range=None, general_scope=N
         frame_range=frame_range,
         general_scope=general_scope,
         node_names=node_names,
+        extra_data=get_required_data(resolved),
     )
     report = evaluate_sample(sample, preset=resolved, template=template, include_series=include_series)
     report["scene"] = sampling.get_scene_name()

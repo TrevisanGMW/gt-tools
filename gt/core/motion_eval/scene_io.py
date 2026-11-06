@@ -1,9 +1,13 @@
 """
-Motion Evaluation Scene IO - Stores evaluation scores and reports as Maya attributes.
+Motion Evaluation Scene IO - Stores evaluation scores and reports in the open scene.
 
-Maya runtime module. By default the score lives on a dedicated network node so
-referenced or locked rig nodes are never touched.
+Host-agnostic: the write policy and messages live here, the storage itself in the
+active host (hosts.get_host). In Maya the score is an attribute; by default it lives on
+a dedicated network node so referenced or locked rig nodes are never touched. In Blender
+it is a custom property, by default on a dedicated empty object.
 """
+
+from . import hosts
 
 import json
 import logging
@@ -25,15 +29,19 @@ TARGET_NAMED_NODE = "named_node"
 TARGET_MODES = [TARGET_DEDICATED_NODE, TARGET_ROLE, TARGET_NAMED_NODE]
 
 
-def get_maya_cmds():
-    """Imports maya.cmds lazily.
+def get_score_host():
+    """Gets the active host and checks that it can store scores.
 
     Returns:
-        module: maya.cmds.
-    """
-    import maya.cmds as cmds
+        SceneHost: Host.
 
-    return cmds
+    Raises:
+        ValueError: If the host cannot store scores (for example motion sample files).
+    """
+    host = hosts.get_host()
+    if not host.supports_score_write:
+        raise ValueError(f"{host.label} cannot store scores in the scene.")
+    return host
 
 
 def build_report_payload(report):
@@ -66,7 +74,7 @@ def build_report_payload(report):
 
 
 def resolve_target_node(target_mode=TARGET_DEDICATED_NODE, node_name="", roles=None, create=True):
-    """Resolves (and optionally creates) the node that stores the score.
+    """Resolves (and optionally creates) the node that stores the score (Maya node, Blender object or bone).
 
     Args:
         target_mode (str): One of TARGET_MODES.
@@ -80,31 +88,13 @@ def resolve_target_node(target_mode=TARGET_DEDICATED_NODE, node_name="", roles=N
     Raises:
         ValueError: If the target cannot be used.
     """
-    cmds = get_maya_cmds()
-    if target_mode == TARGET_ROLE:
-        role_path = (roles or {}).get(node_name)
-        if not role_path or not cmds.objExists(role_path):
-            raise ValueError(f'Score target role "{node_name}" was not resolved in this scene.')
-        return role_path
-    if target_mode == TARGET_NAMED_NODE:
-        matches = cmds.ls(node_name, long=True) or []
-        if not matches:
-            raise ValueError(f'Score target node "{node_name}" does not exist.')
-        if len(matches) > 1:
-            raise ValueError(f'Score target name "{node_name}" matches {len(matches)} nodes. Use a unique name.')
-        return matches[0]
-    node_name = node_name or DEFAULT_NODE_NAME
-    if cmds.objExists(node_name):
-        if cmds.nodeType(node_name) != "network":
-            raise ValueError(f'Score node "{node_name}" exists but is a {cmds.nodeType(node_name)} node.')
-        return node_name
-    if not create:
-        return None
-    return cmds.createNode("network", name=node_name, skipSelect=True)
+    if target_mode not in (TARGET_ROLE, TARGET_NAMED_NODE):
+        node_name = node_name or DEFAULT_NODE_NAME
+    return get_score_host().find_score_holder(target_mode, node_name, roles, create=create)
 
 
 def ensure_attribute(node, attribute_name, is_string):
-    """Adds an integer (0-100) or string attribute when missing.
+    """Adds an integer (0-100) or string attribute when missing (Maya only).
 
     Args:
         node (str): Node name.
@@ -114,15 +104,7 @@ def ensure_attribute(node, attribute_name, is_string):
     Raises:
         ValueError: If the attribute cannot be added or is locked.
     """
-    cmds = get_maya_cmds()
-    if not cmds.attributeQuery(attribute_name, node=node, exists=True):
-        if is_string:
-            cmds.addAttr(node, longName=attribute_name, dataType="string")
-        else:
-            cmds.addAttr(node, longName=attribute_name, attributeType="long", minValue=0, maxValue=100)
-        cmds.setAttr(f"{node}.{attribute_name}", channelBox=False)
-    if cmds.getAttr(f"{node}.{attribute_name}", lock=True):
-        raise ValueError(f'Attribute "{node}.{attribute_name}" is locked.')
+    hosts.get_host(hosts.HOST_MAYA).ensure_attribute(node, attribute_name, is_string)
 
 
 def read_score(target_mode=TARGET_DEDICATED_NODE, node_name="", score_attribute=DEFAULT_SCORE_ATTRIBUTE, roles=None):
@@ -137,14 +119,14 @@ def read_score(target_mode=TARGET_DEDICATED_NODE, node_name="", score_attribute=
     Returns:
         int or None: Stored score, or None when missing.
     """
-    cmds = get_maya_cmds()
     try:
+        host = get_score_host()
         node = resolve_target_node(target_mode, node_name, roles, create=False)
     except ValueError:
         return None
-    if not node or not cmds.attributeQuery(score_attribute, node=node, exists=True):
+    if not node:
         return None
-    return int(cmds.getAttr(f"{node}.{score_attribute}"))
+    return host.read_score_value(node, score_attribute)
 
 
 def write_score(
@@ -156,7 +138,7 @@ def write_score(
     write_policy=WRITE_POLICY_OVERWRITE,
     write_report=True,
 ):
-    """Writes the evaluation score (and optional report) to a Maya attribute.
+    """Writes the evaluation score (and optional report) to a scene attribute or custom property.
 
     Args:
         report (dict): Evaluation report.
@@ -173,7 +155,6 @@ def write_score(
     Raises:
         ValueError: If the target or attributes cannot be used.
     """
-    cmds = get_maya_cmds()
     score_attribute = str(score_attribute or DEFAULT_SCORE_ATTRIBUTE).strip()
     report_attribute = str(report_attribute or DEFAULT_REPORT_ATTRIBUTE).strip()
     outcome = {"written": False, "node": "", "attribute": "", "previous": None, "message": ""}
@@ -186,12 +167,12 @@ def write_score(
     if write_policy == WRITE_POLICY_IF_MISSING and previous is not None:
         outcome["message"] = f"Kept existing score {previous} (write policy: only if missing)."
         return outcome
+    host = get_score_host()
     node = resolve_target_node(target_mode, node_name, roles, create=True)
-    ensure_attribute(node, score_attribute, is_string=False)
-    cmds.setAttr(f"{node}.{score_attribute}", int(report.get("score", 0)))
-    if write_report and report_attribute:
-        ensure_attribute(node, report_attribute, is_string=True)
-        cmds.setAttr(f"{node}.{report_attribute}", build_report_payload(report), type="string")
+    with_report = bool(write_report and report_attribute)
+    host.write_score_values(node, score_attribute, int(report.get("score", 0)),
+                            report_attribute=report_attribute if with_report else "",
+                            report_text=build_report_payload(report) if with_report else "")
     outcome.update(
         {
             "written": True,

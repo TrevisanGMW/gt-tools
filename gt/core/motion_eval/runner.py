@@ -1,7 +1,8 @@
 """
 Motion Evaluation Runner - Headless evaluation of many scene files with every output.
 
-Uses only this package and Maya:
+Uses only this package and a scene host (Maya, Blender, or plain Python for motion
+sample files, see hosts/):
 
     1. Open (or import) each file.
     2. Evaluate it with a skeleton (built-in key, Custom Skeleton JSON, or none) and a preset.
@@ -9,19 +10,25 @@ Uses only this package and Maya:
     4. Write the enabled whole-batch outputs.
 
 Everything is driven by a JSON-compatible job dictionary (see create_job). The
-simplest call is run(job): it finds the scenes in job["input_dir"], starts Maya
-when needed, hides Maya's console output, prints progress, and writes every
-enabled output. Jobs can be saved and loaded as JSON, so servers can run them
-from the command line:
+simplest call is run(job): it finds the scenes in job["input_dir"], starts the
+host when needed (maya.standalone in mayapy), hides the host's console output,
+prints progress, and writes every enabled output. Jobs can be saved and loaded as
+JSON, so servers can run them from the command line (see cli.py):
 
-    mayapy -m <package>.motion_eval.runner job.json [file_a.ma file_b.ma]
+    mayapy -m motion_eval.runner job.json [file_a.ma file_b.ma]
+    blender --background --factory-startup --python motion_eval/cli.py -- job.json [file_a.fbx]
+    python motion_eval/cli.py job.json                     (motion sample files only)
 
-Maya is imported lazily. Call run_job inside Maya or mayapy; use maya_session()
-to initialize maya.standalone when needed.
+The job's "host" ("auto" by default) picks Maya or Blender; "auto" uses the program
+running the script. Motion sample files (.motion.json) are always evaluated in plain
+Python. Call run_job inside a host_session() (or inside Maya or Blender).
 """
 
 from .checks_base import MODE_BIPED, MODE_GENERAL, STATUS_FAILED
 from . import batch_summary
+from . import hosts
+from . import sample_io
+from .console import flush_stream, quiet_output  # noqa: F401 (public names kept on runner)
 from . import outputs
 from . import presets
 from . import sampling
@@ -45,10 +52,12 @@ STATUS_ERROR = "error"
 RANGE_PLAYBACK = sampling.RANGE_PLAYBACK
 SCOPE_ALL_JOINTS = sampling.SCOPE_ALL_JOINTS
 DEFAULT_EXTENSIONS = [".ma", ".mb", ".fbx", ".usd", ".usda", ".usdc"]
+HOST_AUTO = hosts.HOST_AUTO
 PATH_KEYS = ["input_dir", "output_dir", "result_path", "save_copy_dir"]
 DEFAULT_JOB = {
     "version": JOB_VERSION,
     "title": outputs.DEFAULT_TITLE,
+    "host": HOST_AUTO,
     "input_dir": "",
     "extensions": list(DEFAULT_EXTENSIONS),
     "include_subfolders": True,
@@ -188,7 +197,7 @@ def find_scene_files(input_dir, extensions=None, include_subfolders=True):
 
     Args:
         input_dir (str): Folder to search.
-        extensions (list, optional): File extensions. Defaults to .ma, .mb, and .fbx.
+        extensions (list, optional): File extensions. Defaults to DEFAULT_EXTENSIONS.
         include_subfolders (bool): Also search sub-folders.
 
     Returns:
@@ -277,6 +286,9 @@ def validate_job(job):
     except (IOError, OSError, ValueError) as exception:
         return [f"Skeleton or preset could not be loaded: {exception}"]
     errors.extend(presets.validate_preset(preset))
+    host_name = str(job.get("host") or HOST_AUTO).lower()
+    if host_name != HOST_AUTO and host_name not in hosts.HOST_NAMES:
+        errors.append(f'Unknown host "{job.get("host")}". Use "auto", "maya", or "blender".')
     if skeleton_template:
         errors.extend(templates.validate_template(skeleton_template, require_biped=True))
     if outputs.has_outputs(job.get("outputs")) and not str(job.get("output_dir") or "").strip():
@@ -326,32 +338,71 @@ def evaluate_open_scene(preset, template=None, range_mode=RANGE_PLAYBACK, custom
     )
 
 
-def load_scene(file_path, load_mode=LOAD_MODE_OPEN, align_up_axis=True):
-    """Opens or imports a scene file, discarding the current scene.
+def get_job_host(job=None):
+    """Gets the host a job runs in.
 
     Args:
-        file_path (str): Scene path (.ma, .mb, .fbx, .usd, .usda, .usdc, ...).
-        load_mode (str): "open" or "import" (into a new empty scene). USD files are always imported.
-        align_up_axis (bool): USD only: rotate and scale the file into the scene's up axis and unit
-            (see usd_scene.load_usd_scene).
+        job (dict, optional): Job. Its "host" is "auto" (the running program), "maya", or "blender".
+
+    Returns:
+        SceneHost: Host.
     """
-    import maya.cmds as cmds
+    return hosts.get_host(str((job or {}).get("host") or HOST_AUTO).lower())
 
-    if usd_scene.is_usd_file(file_path):
-        usd_scene.load_usd_scene(file_path, align_up_axis=align_up_axis)
-        return
 
-    if file_path.lower().endswith(".fbx") and not cmds.pluginInfo("fbxmaya", query=True, loaded=True):
-        cmds.loadPlugin("fbxmaya", quiet=True)
-    if load_mode == LOAD_MODE_IMPORT or not file_path.lower().endswith((".ma", ".mb")):
-        cmds.file(new=True, force=True)
-        cmds.file(file_path, i=True, force=True)
-    else:
-        cmds.file(file_path, open=True, force=True, prompt=False)
+def get_file_host(file_path, job=None):
+    """Gets the host that loads one file: motion sample files always use the plain-Python host.
+
+    Args:
+        file_path (str): Scene or motion sample path.
+        job (dict, optional): Job (see get_job_host).
+
+    Returns:
+        SceneHost: Host.
+    """
+    if sample_io.is_sample_file(file_path):
+        return hosts.get_host(hosts.HOST_SAMPLE)
+    return get_job_host(job)
+
+
+def get_job_extensions(job, host=None):
+    """Gets the extensions searched in a job's input folder.
+
+    The default list follows the host (Blender adds .blend and .bvh and cannot read .ma or .mb);
+    an edited list is used as it is.
+
+    Args:
+        job (dict): Job.
+        host (SceneHost, optional): Host. Defaults to the job's host.
+
+    Returns:
+        list: Lowercase extensions, motion sample files included.
+    """
+    extensions = [str(extension).lower() for extension in (job.get("extensions") or DEFAULT_EXTENSIONS)]
+    if extensions == DEFAULT_EXTENSIONS:
+        extensions = list((host or get_job_host(job)).scene_extensions)
+    if sample_io.SAMPLE_EXTENSION not in extensions:
+        extensions.append(sample_io.SAMPLE_EXTENSION)
+    return extensions
+
+
+def load_scene(file_path, load_mode=LOAD_MODE_OPEN, align_up_axis=True):
+    """Opens or imports a scene file in the active host, discarding the current scene.
+
+    Args:
+        file_path (str): Scene path (.ma, .mb, .fbx, .usd, .usda, .usdc, .blend, .bvh, .motion.json, ...).
+        load_mode (str): "open" or "import" (into a new empty scene). USD files are always imported.
+        align_up_axis (bool): USD in Maya: rotate and scale the file into the scene's up axis and unit
+            (see usd_scene.load_usd_scene).
+
+    Returns:
+        dict: Host load information.
+    """
+    return hosts.get_host().load_scene(file_path, load_mode=load_mode, align_up_axis=align_up_axis)
 
 
 def save_scene_copy(source_path, copy_dir):
-    """Saves the open scene as a copy, never over the input file.
+    """Saves the open scene as a copy (.ma in Maya, .blend in Blender), never over the input file.
 
     Args:
         source_path (str): Evaluated input path.
@@ -361,17 +412,17 @@ def save_scene_copy(source_path, copy_dir):
         str: Saved path.
 
     Raises:
-        RuntimeError: If the copy would overwrite the input.
+        RuntimeError: If the copy would overwrite the input, or the host cannot save scenes.
     """
-    import maya.cmds as cmds
-
+    host = hosts.get_host()
+    if not host.copy_extension:
+        raise RuntimeError(f"{host.label} cannot save scene copies.")
     os.makedirs(copy_dir, exist_ok=True)
     base_name = os.path.splitext(os.path.basename(source_path))[0]
-    target_path = os.path.join(copy_dir, f"{base_name}.ma")
+    target_path = os.path.join(copy_dir, f"{base_name}{host.copy_extension}")
     if os.path.normcase(os.path.abspath(target_path)) == os.path.normcase(os.path.abspath(source_path)):
         raise RuntimeError(f"Refusing to overwrite the input file: {source_path}")
-    cmds.file(rename=target_path)
-    cmds.file(save=True, force=True, type="mayaAscii")
+    host.save_scene_copy(target_path)
     return target_path
 
 
@@ -404,11 +455,28 @@ def evaluate_file(file_path, job, skeleton_template=None, preset=None, relative_
         dict: Result with "source", "status", "score", "report" (without series), "entry" (batch entry),
             "outputs" (written paths), "score_write", "saved_copy", "error" (message or ""), and "warnings".
     """
-    from . import evaluation
-
     if preset is None:
         skeleton_template = resolve_skeleton(job.get("skeleton"))
         preset = resolve_job_preset(job.get("preset"), skeleton_template)
+    with hosts.use_host(get_file_host(file_path, job).name):
+        return evaluate_file_in_host(file_path, job, skeleton_template, preset, relative_dir)
+
+
+def evaluate_file_in_host(file_path, job, skeleton_template, preset, relative_dir=""):
+    """Evaluates one file in the active host and writes its per-file outputs (see evaluate_file).
+
+    Args:
+        file_path (str): Scene path.
+        job (dict): Job.
+        skeleton_template (dict or None): Resolved skeleton.
+        preset (dict): Resolved preset.
+        relative_dir (str, optional): Source sub-folder kept under the output folder.
+
+    Returns:
+        dict: Result (see evaluate_file).
+    """
+    from . import evaluation
+
     result = build_error_result(file_path)
     started = time.time()
     try:
@@ -465,57 +533,6 @@ def write_job_score(report, job):
     from . import scene_io
 
     return scene_io.write_score(report, **(job.get("score") or {}))
-
-
-def flush_stream(stream):
-    """Flushes a console stream, ignoring streams that are missing or cannot be flushed.
-
-    Args:
-        stream (file): Stream such as sys.stdout. Can be None (for example under pythonw).
-    """
-    try:
-        if stream:
-            stream.flush()
-    except (OSError, ValueError):
-        pass
-
-
-@contextlib.contextmanager
-def quiet_output(enabled=True):
-    """Hides everything printed to the console (including Maya's own messages) inside the block.
-
-    Works at the operating-system level, so plugin and scene-loading messages printed by Maya
-    are hidden too. Python's own sys.stdout and sys.stderr are swapped for a null stream as well:
-    in a Windows console they write with console-only calls that fail on a redirected handle.
-    Python exceptions still propagate normally.
-
-    Args:
-        enabled (bool): False runs the block without hiding anything.
-
-    Yields:
-        None
-    """
-    if not enabled:
-        yield
-        return
-    saved_streams = (sys.stdout, sys.stderr)
-    flush_stream(sys.stdout)
-    flush_stream(sys.stderr)
-    saved_handles = [os.dup(1), os.dup(2)]
-    null_handle = os.open(os.devnull, os.O_WRONLY)
-    null_stream = open(os.devnull, "w", encoding="utf-8")
-    os.dup2(null_handle, 1)
-    os.dup2(null_handle, 2)
-    sys.stdout = sys.stderr = null_stream
-    try:
-        yield
-    finally:
-        sys.stdout, sys.stderr = saved_streams
-        null_stream.close()
-        os.dup2(saved_handles[0], 1)
-        os.dup2(saved_handles[1], 2)
-        for handle in saved_handles + [null_handle]:
-            os.close(handle)
 
 
 class ProgressPrinter:
@@ -627,6 +644,9 @@ def run_job(file_paths, job, source_root="", progress_callback=None, quiet=False
         raise ValueError(errors[0])
     skeleton_template = resolve_skeleton(job.get("skeleton"))
     preset = resolve_job_preset(job.get("preset"), skeleton_template)
+    graph_warning = get_graph_warning(job)
+    if graph_warning:
+        job["outputs"] = disable_graph_outputs(job.get("outputs"))
     results = []
     for index, file_path in enumerate(file_paths, start=1):
         relative_dir = get_relative_dir(file_path, source_root)
@@ -643,7 +663,7 @@ def run_job(file_paths, job, source_root="", progress_callback=None, quiet=False
             progress_callback(index, len(file_paths), result)
     entries = [result["entry"] for result in results if result["entry"]]
     batch_paths = []
-    batch_warnings = []
+    batch_warnings = [graph_warning] if graph_warning else []
     output_dir = str(job.get("output_dir") or "")
     if output_dir and outputs.has_batch_outputs(job.get("outputs")):
         settings = presets.resolve_preset(preset)["settings"]
@@ -665,6 +685,54 @@ def run_job(file_paths, job, source_root="", progress_callback=None, quiet=False
             f"{result['source']}: {warning}" for result in results for warning in result["warnings"]
         ],
     }
+
+
+def needs_graphs(options):
+    """Checks whether any graph output is enabled.
+
+    Args:
+        options (dict, optional): Output options.
+
+    Returns:
+        bool: True when per-file or batch graphs are on.
+    """
+    resolved = outputs.resolve_output_options(options)
+    return bool(resolved["graphs_per_file"] or resolved["graphs_batch"])
+
+
+def disable_graph_outputs(options):
+    """Turns off every graph output.
+
+    Args:
+        options (dict, optional): Output options.
+
+    Returns:
+        dict: Options copy without graphs.
+    """
+    resolved = outputs.resolve_output_options(options)
+    resolved["graphs_per_file"] = False
+    resolved["graphs_batch"] = False
+    return resolved
+
+
+def get_graph_warning(job, host=None):
+    """Explains why graphs cannot be written, when the job wants them and Qt is missing.
+
+    Args:
+        job (dict): Job.
+        host (SceneHost, optional): Host that runs the job. Defaults to the job's host.
+
+    Returns:
+        str: Warning with the pip command that installs Qt, or "" when graphs can be written or are off.
+    """
+    from . import report_graphs
+
+    if not needs_graphs(job.get("outputs")) or report_graphs.is_qt_available():
+        return ""
+    host = host or get_job_host(job)
+    command = " ".join(f'"{part}"' if " " in part else part
+                       for part in host.build_pip_install_command(report_graphs.QT_PIP_PACKAGES))
+    return f"Graphs skipped: Qt (PySide6) is not installed in this Python. To enable graphs, run: {command}"
 
 
 def get_relative_dir(file_path, source_root):
@@ -706,13 +774,13 @@ def build_result_summary(run):
 
 
 def run(job, base_dir="", file_paths=None, quiet=True, show_progress=True):
-    """Runs a job end to end: find files, start Maya if needed, evaluate, write outputs, print a summary.
+    """Runs a job end to end: find files, start the host if needed, evaluate, write outputs, print a summary.
 
     Args:
         job (dict): Job (see create_job). Scenes come from job["input_dir"] unless file_paths is given.
         base_dir (str, optional): Folder that relative job paths start from.
         file_paths (list, optional): Scenes to evaluate instead of searching input_dir.
-        quiet (bool): Hide Maya's console messages (scene loading, plugins, startup).
+        quiet (bool): Hide the host's console messages (scene loading, plugins, startup).
         show_progress (bool): Print a header, one line per file, and a final summary.
 
     Returns:
@@ -723,22 +791,31 @@ def run(job, base_dir="", file_paths=None, quiet=True, show_progress=True):
     """
     job = resolve_job_paths(job, base_dir)
     errors = validate_job(job)
-    if file_paths is None:
+    host = get_job_host(job) if not errors else None
+    if file_paths is None and host is not None:
         if not job.get("input_dir") or not os.path.isdir(job["input_dir"]):
             errors.append(f"Input folder not found: {job.get('input_dir') or '(empty)'}")
         else:
-            file_paths = find_scene_files(job["input_dir"], job.get("extensions"), job.get("include_subfolders"))
+            file_paths = find_scene_files(job["input_dir"], get_job_extensions(job, host),
+                                          job.get("include_subfolders"))
             if not file_paths:
                 errors.append(f"No scene files found in {job['input_dir']}")
+    needs_host = any(not sample_io.is_sample_file(path) for path in file_paths or [])
+    if not errors and needs_host and not host.is_available():
+        errors.append(host.get_unavailable_message())
     if errors:
         raise ValueError("; ".join(errors))
     printer = ProgressPrinter() if show_progress else None
     if printer:
         printer.message(f"{job.get('title')}: {len(file_paths)} file(s) | {describe_job(job)}\n"
+                        f"Host: {host.label if needs_host else get_file_host(file_paths[0]).label} | "
                         f"Output: {job.get('output_dir') or '(none)'}\n")
-        if not is_inside_maya():
-            printer.message("Starting Maya (this can take a few seconds)...")
-    with maya_session(quiet=quiet):
+        graph_warning = get_graph_warning(job, host)
+        if graph_warning:
+            printer.message(f"Warning: {graph_warning}\n")
+        if needs_host and not host.is_running():
+            printer.message(f"Starting {host.label} (this can take a few seconds)...")
+    with host_session(host.name if needs_host else hosts.HOST_SAMPLE, quiet=quiet):
         run_result = run_job(file_paths, job, source_root=job.get("input_dir") or "",
                              progress_callback=printer, quiet=quiet,
                              start_callback=printer.start if printer else None)
@@ -782,39 +859,56 @@ def is_inside_maya():
     Returns:
         bool: True when maya.cmds is usable.
     """
-    try:
-        import maya.cmds as cmds
-
-        return hasattr(cmds, "about") and bool(cmds.about(version=True))
-    except Exception:
-        return False
+    return hosts.get_host(hosts.HOST_MAYA).is_running()
 
 
-@contextlib.contextmanager
 def maya_session(quiet=False):
     """Initializes maya.standalone when not already inside Maya, and uninitializes it afterwards.
 
     Args:
         quiet (bool): Hide Maya's startup and shutdown messages.
 
-    Yields:
-        bool: True when this context started maya.standalone.
+    Returns:
+        contextmanager: Yields True when this context started maya.standalone.
     """
-    started = False
-    if not is_inside_maya():
-        import maya.standalone
+    return hosts.get_host(hosts.HOST_MAYA).session(quiet=quiet)
 
-        with quiet_output(quiet):
-            maya.standalone.initialize(name="python")
-        started = True
-    try:
-        yield started
-    finally:
-        if started:
-            import maya.standalone
 
-            with quiet_output(quiet):
-                maya.standalone.uninitialize()
+@contextlib.contextmanager
+def host_session(host_name=None, quiet=False):
+    """Starts a host when needed (maya.standalone in mayapy; Blender must already be running) and makes it
+    the active host inside the block.
+
+    Args:
+        host_name (str, optional): "auto" (default), "maya", "blender", or "sample".
+        quiet (bool): Hide the host's startup and shutdown messages.
+
+    Yields:
+        SceneHost: The active host.
+    """
+    host = hosts.get_host(host_name or HOST_AUTO)
+    with host.session(quiet=quiet):
+        with hosts.use_host(host.name) as active_host:
+            yield active_host
+
+
+def get_command_line_arguments(arguments=None):
+    """Gets the script arguments, skipping Blender's own (everything before "--").
+
+    Args:
+        arguments (list, optional): Explicit arguments.
+
+    Returns:
+        list: Script arguments.
+    """
+    if arguments is not None:
+        return list(arguments)
+    arguments = sys.argv[1:]
+    if "--" in sys.argv:
+        return sys.argv[sys.argv.index("--") + 1:]
+    if hosts.get_host(hosts.HOST_BLENDER).is_available():
+        return []
+    return arguments
 
 
 def main(arguments=None):
@@ -824,7 +918,8 @@ def main(arguments=None):
     from the job's input_dir.
 
     Args:
-        arguments (list, optional): Command line arguments (defaults to sys.argv[1:]).
+        arguments (list, optional): Command line arguments (defaults to sys.argv[1:], or the arguments after
+            "--" inside Blender).
 
     Returns:
         int: Exit code (0 all passed or warned, 1 some failed or errored, 2 invalid job).
@@ -835,11 +930,14 @@ def main(arguments=None):
     parser.add_argument("job", help="Job JSON file (see runner.create_job).")
     parser.add_argument("files", nargs="*", help="Scene files to evaluate. Defaults to the job's input_dir.")
     parser.add_argument("--result", default="", help="Optional JSON file receiving the run result.")
-    parser.add_argument("--verbose", action="store_true", help="Show Maya's console messages.")
-    options = parser.parse_args(arguments)
+    parser.add_argument("--host", default="", help='Overrides the job host: "auto", "maya", or "blender".')
+    parser.add_argument("--verbose", action="store_true", help="Show the host's console messages.")
+    options = parser.parse_args(get_command_line_arguments(arguments))
     job = load_job(options.job)
     if options.result:
         job["result_path"] = os.path.abspath(options.result)
+    if options.host:
+        job["host"] = options.host
     try:
         run_result = run(job, base_dir=os.path.dirname(os.path.abspath(options.job)),
                          file_paths=options.files or None, quiet=not options.verbose)

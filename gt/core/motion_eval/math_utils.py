@@ -191,6 +191,35 @@ def matrix_position(matrix):
     return (float(matrix[12]), float(matrix[13]), float(matrix[14]))
 
 
+def compose_matrix(position, quaternion=(0.0, 0.0, 0.0, 1.0), scale_values=(1.0, 1.0, 1.0)):
+    """Builds a flat row-major 4x4 matrix (Maya layout) from a position, rotation, and scale.
+
+    Args:
+        position (tuple): Translation (x, y, z).
+        quaternion (tuple): Rotation quaternion as (x, y, z, w). It is normalized first.
+        scale_values (tuple): Scale along the local X, Y, and Z axes.
+
+    Returns:
+        list: Sixteen matrix values, translation at indices 12, 13, 14.
+    """
+    x_value, y_value, z_value, w_value = (float(value) for value in quaternion)
+    norm = math.sqrt(x_value * x_value + y_value * y_value + z_value * z_value + w_value * w_value) or 1.0
+    x_value, y_value, z_value, w_value = (value / norm for value in (x_value, y_value, z_value, w_value))
+    rows = [
+        (1.0 - 2.0 * (y_value * y_value + z_value * z_value), 2.0 * (x_value * y_value + z_value * w_value),
+         2.0 * (x_value * z_value - y_value * w_value)),
+        (2.0 * (x_value * y_value - z_value * w_value), 1.0 - 2.0 * (x_value * x_value + z_value * z_value),
+         2.0 * (y_value * z_value + x_value * w_value)),
+        (2.0 * (x_value * z_value + y_value * w_value), 2.0 * (y_value * z_value - x_value * w_value),
+         1.0 - 2.0 * (x_value * x_value + y_value * y_value)),
+    ]
+    values = []
+    for row, row_scale in zip(rows, scale_values):
+        values.extend([row[0] * row_scale, row[1] * row_scale, row[2] * row_scale, 0.0])
+    values.extend([float(position[0]), float(position[1]), float(position[2]), 1.0])
+    return values
+
+
 def matrix_axes(matrix):
     """Gets the three axis rows of a flat row-major 4x4 Maya matrix.
 

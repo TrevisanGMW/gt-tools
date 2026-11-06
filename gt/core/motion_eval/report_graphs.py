@@ -5,7 +5,9 @@ Chart descriptions are built with pure Python (``build_check_chart`` and
 ``build_summary_chart``). Rendering uses Qt's QPainter, imported lazily (the host
 application's Qt wrapper when available, otherwise PySide6 or PySide2). Maya
 (interactive or standalone) already provides the QGuiApplication that painting
-text needs; outside Maya one is created on demand.
+text needs; outside Maya one is created on demand. Blender ships without Qt: check
+is_qt_available() first (the runner skips graphs with a warning when it is False) and
+install QT_PIP_PACKAGES with pip to enable them.
 
 The report must be produced with ``include_series=True`` for per-check graphs;
 without series only the summary image is written.
@@ -19,6 +21,7 @@ import re
 
 logger = logging.getLogger(__name__)
 
+QT_PIP_PACKAGES = ["PySide6-Essentials"]
 CHART_WIDTH = 1280
 CHART_HEIGHT = 460
 CLIP_FACTOR = 4.0
@@ -216,6 +219,26 @@ def get_qt():
     except ImportError:
         from PySide2 import QtCore, QtGui, QtWidgets
     return QtModules(QtCore, QtGui, QtWidgets)
+
+
+def is_qt_available():
+    """Checks whether a Qt binding (PySide6 or PySide2) can draw graphs in this Python.
+
+    Maya always has one; Blender and plain Python need it installed with pip
+    (see QT_PIP_PACKAGES and SceneHost.build_pip_install_command).
+
+    Returns:
+        bool: True when graphs can be written.
+    """
+    import importlib.util
+
+    for package in ("PySide6", "PySide2"):
+        try:
+            if importlib.util.find_spec(package) is not None:
+                return True
+        except (ImportError, ValueError):
+            continue
+    return False
 
 
 def ensure_gui_application():

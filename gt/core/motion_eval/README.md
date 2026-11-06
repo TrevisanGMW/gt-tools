@@ -1,8 +1,15 @@
 # motion_eval
 
 Scores animation quality from 0 to 100 with configurable checks, and writes
-summaries, JSON reports, and graphs. Everything below uses only this package plus Maya,
-so it can run inside Maya, in `mayapy`, or headless on a server.
+summaries, JSON reports, and graphs. Everything below uses only this package plus a
+program that can open the files:
+
+- **Maya**: inside Maya, in `mayapy`, or headless on a server (every format below).
+- **Blender**: `blender --background` (no Maya license needed; see [Blender](#blender)).
+- **Plain Python 3**: motion sample files only (see [Motion sample files](#motion-sample-files)).
+
+The checks never talk to Maya or Blender, so every check gives the same result in each
+of them (see [Hosts](#8-hosts-maya-blender-plain-python) and [Adding a check](#9-adding-a-check)).
 
 ## Contents
 
@@ -11,13 +18,16 @@ so it can run inside Maya, in `mayapy`, or headless on a server.
 | `templates` | Python | Skeletons: built-in templates, Custom Skeleton JSON files |
 | `presets` | Python | Which checks run, weights, thresholds, detection settings |
 | `checks_general`, `checks_biped`, `checks_base`, `scoring`, `math_utils` | Python | The checks and the scoring |
-| `evaluation` | Python (Maya to sample a scene) | Evaluates sampled motion and builds the report |
+| `evaluation` | Python (a host to sample a scene) | Evaluates sampled motion and builds the report |
 | `batch_summary` | Python | Combines many reports (totals, sorted files, batch chart data) |
 | `outputs` | Python (Qt for graphs) | Writes summaries, JSON reports, and graphs |
-| `report_graphs` | Qt | PNG graphs (PySide6, or PySide2 in older Maya versions) |
-| `sampling`, `scene_io` | Maya | Reads the open scene, writes the score attribute |
-| `usd_scene` | Maya + mayaUsdPlugin | Loads USD files: frame rate, frame range, up axis and unit alignment |
-| `runner` | Maya | Headless jobs: open files, evaluate, write every output |
+| `report_graphs` | Qt | PNG graphs (PySide6, or PySide2 in older Maya versions; Blender needs `PySide6-Essentials` from pip) |
+| `sampling`, `scene_io` | A host | Reads the open scene, writes the score attribute (through `hosts`) |
+| `runner`, `cli` | A host | Headless jobs: open files, evaluate, write every output |
+| `sample_io` | Python | Saves and loads motion sample files (`.motion.json`) |
+| `hosts` | Maya, Blender, or Python | The only code that talks to a program: `maya_host`, `blender_host`, `sample_host` |
+| `usd_scene` | Maya + mayaUsdPlugin | Loads USD files in Maya: frame rate, frame range, up axis and unit alignment |
+| `console` | Python | Hides the host's console output while files load |
 
 The package only uses relative imports, so the `motion_eval` folder can be copied
 anywhere on `sys.path` and imported as `motion_eval`. The examples below use
@@ -110,8 +120,9 @@ are merged with their defaults, so pass only what changes.
 | Key | Default | Meaning |
 |---|---|---|
 | `title` | `"Validate Animation"` | Title of batch summaries and graphs |
+| `host` | `"auto"` | Program that opens the files: `"auto"` (the program running the script), `"maya"`, or `"blender"`. Motion sample files always use plain Python |
 | `input_dir` | `""` | Folder searched for scenes by `run()` and the command line |
-| `extensions` | `[".ma", ".mb", ".fbx", ".usd", ".usda", ".usdc"]` | Scene extensions searched in `input_dir` |
+| `extensions` | `[".ma", ".mb", ".fbx", ".usd", ".usda", ".usdc"]` | Scene extensions searched in `input_dir`. Left at the default, the list follows the host (Blender: `.blend`, `.fbx`, `.usd*`, `.bvh`). `.motion.json` is always searched |
 | `include_subfolders` | `True` | Also search sub-folders of `input_dir` |
 | `skeleton` | `"none"` | `"none"`, a built-in key, a Custom Skeleton JSON path, or a template dictionary. Any skeleton adds the Biped checks |
 | `preset` | `None` | Preset dictionary, preset JSON path, or `None` for the defaults |
@@ -123,9 +134,9 @@ are merged with their defaults, so pass only what changes.
 | `align_up_axis` | `True` | USD files: rotate and scale the file into the scene's up axis and unit (see [USD files](#usd-files)) |
 | `output_dir` | `""` | Output folder; required when any output is on |
 | `outputs` | see above | Which files to write (`outputs.DEFAULT_OUTPUT_OPTIONS`) |
-| `write_score` | `False` | Store the score as a Maya attribute (see `score`) |
+| `write_score` | `False` | Store the score in the scene: a Maya attribute, or a Blender custom property (see `score`) |
 | `score` | network node `motionEval.motionScore` | `target_mode`, `node_name`, `score_attribute`, `report_attribute`, `write_report`, `write_policy` (see `scene_io.write_score`) |
-| `save_copy_dir` | `""` | Save each evaluated scene (with its score) as a `.ma` copy here. Inputs are never overwritten |
+| `save_copy_dir` | `""` | Save each evaluated scene (with its score) as a `.ma` copy (`.blend` in Blender) here. Inputs are never overwritten |
 | `result_path` | `""` | `run()` writes a JSON summary of the run here (scores, errors, output paths) |
 
 Relative paths (`input_dir`, `output_dir`, `result_path`, `save_copy_dir`, and
@@ -175,6 +186,82 @@ job = runner.load_job("D:/reviews/locomotion_job.json")   # missing keys get the
 USD exports usually keep only the skeleton, so the Custom Skeleton should list the
 joint names as they appear in the USD file (namespaces are usually stripped).
 
+### Blender
+
+The same jobs run in Blender, so files can be evaluated without a Maya license:
+
+```bash
+blender --background --factory-startup --python motion_eval/cli.py -- job.json
+blender --background --factory-startup --python run_validate_animation.py
+```
+
+Everything after `--` goes to the script. With `"host": "auto"` a job uses Blender when
+the script runs in Blender; `"host": "blender"` makes that explicit (a job that names
+Blender fails with a clear message when run in another program).
+
+| File | In Blender |
+|---|---|
+| `.blend` | Opened |
+| `.fbx` | Imported into an empty scene (keys kept on their frames, leaf bones kept) |
+| `.usd`, `.usda`, `.usdc` | Imported into an empty scene, at the file's frame rate and frame range |
+| `.bvh` | Imported into an empty scene, at the file's frame rate |
+| `.ma`, `.mb` | Not supported: export them to FBX or USD in Maya first |
+
+How Blender data is read:
+
+- **Joints** are the bones of every armature; a bone's path is its armature followed by
+  its bone chain (`|Armature|Hips|Spine`). Skeleton templates match the bone names, and
+  prefixes such as `mixamorig:` work like Maya namespaces.
+- **Transforms** are objects. **Up axis** is always Z, **units** come from the scene unit
+  scale (1.0 = meters); the checks handle both.
+- **Playback Range** is the preview range when it is on, otherwise the scene range;
+  **Animation Range** is the scene range.
+- **Scores** (`write_score`) are custom properties, by default on an empty object named
+  `motionEval`.
+
+Differences from Maya that come from the files, not the checks:
+
+- Maya joints can keep their children's length when scaled (segment scale compensate).
+  Blender bones (and USD) cannot, so scaling a spine also counts as bone stretch.
+- Blender's USD importer replaces NaN values with 0, so Invalid Values cannot see NaNs
+  authored in USD files (FBX keeps them).
+
+**Graphs need Qt.** Blender does not include it. Without it, graphs are skipped and the
+run prints a warning with the command that installs it; text and JSON outputs are still
+written. The command installs `PySide6-Essentials` with Blender's own Python into
+Blender's user module folder (always on Blender's `sys.path`, including background runs):
+
+```python
+from motion_eval import hosts, report_graphs
+
+# Run inside Blender to print the command for this Blender:
+print(hosts.get_host("blender").build_pip_install_command(report_graphs.QT_PIP_PACKAGES))
+```
+
+`report_graphs.is_qt_available()` says whether graphs can be written in the running Python.
+
+### Motion sample files
+
+A motion sample (`.motion.json`, see `sample_io`) stores what the checks read: world
+matrices per frame, parents, frame rate, units, and up axis. Samples are evaluated in
+plain Python 3 (no Maya, no Blender), so motion that never lives in a 3D program, such as
+the output of a motion model, can be scored directly:
+
+```python
+from motion_eval import math_utils, sample_io
+
+hips_matrices = [math_utils.compose_matrix(position=(0.0, 95.0, frame * 2.0)) for frame in range(60)]
+sample = sample_io.create_sample(
+    fps=30, start_frame=1, up_axis="y", meters_per_unit=0.01,
+    nodes={"|Hips": {"parent": None, "matrices": hips_matrices}},   # plus every other joint
+)
+sample_io.save_sample(sample, "D:/model_output/walk_01.motion.json")
+```
+
+Put the files in a job's `input_dir` and run the job with any Python 3
+(`python motion_eval/cli.py job.json`). A sample of an open Maya or Blender scene is
+saved with `sample_io.save_sample(sampling.sample_scene(...), path)`.
+
 ## 3. Skeletons
 
 ```python
@@ -202,7 +289,7 @@ hero = templates.load_template("D:/pipeline/skeletons/hero_skeleton.json")
 Roles: `templates.ROLE_KEYS`. Roles required by the Biped checks:
 `templates.REQUIRED_BIPED_ROLES` (hips, spine, head, both thighs, knees, and feet).
 
-Inside Maya, `sampling.resolve_template_in_scene(template, require_biped=True)`
+Inside Maya or Blender, `sampling.resolve_template_in_scene(template, require_biped=True)`
 shows which joint each role resolved to, and
 `templates.detect_builtin_template(node_paths)` picks the best built-in match.
 
@@ -288,7 +375,7 @@ before saving a report made with `include_series=True`.
 
 ### Parallel servers
 
-Run one `mayapy` process per file list (Maya scenes are not thread-safe), keep
+Run one `mayapy` (or `blender --background`) process per file list (scenes are not thread-safe), keep
 each result's `entry`, then build the batch outputs once:
 
 ```python
@@ -312,18 +399,23 @@ outputs on.
 ```bash
 mayapy -m motion_eval.runner job.json
 mayapy -m motion_eval.runner job.json D:/anims/walk_01.ma D:/anims/run_01.ma --result D:/out/result.json
+blender --background --factory-startup --python motion_eval/cli.py -- job.json D:/anims/walk_01.fbx
+python motion_eval/cli.py job.json                     # motion sample files only
 ```
 
 - Without files, the scenes come from the job's `input_dir`.
 - Relative paths in the job start from the job file's folder.
 - `--result` writes totals, batch output paths, failed files, errors, and one compact
   result per file (with its batch `entry`) as JSON (same as the job's `result_path`).
-- `--verbose` shows Maya's own console messages (hidden by default).
+- `--verbose` shows the host's own console messages (hidden by default).
+- `--host auto|maya|blender` overrides the job's `host`.
 - Exit code: `0` every file passed or warned, `1` some file failed or errored,
   `2` invalid job.
 
-`maya.standalone` is initialized and uninitialized automatically. Run from the
-folder that contains `motion_eval` (or add it to `PYTHONPATH`).
+`maya.standalone` is initialized and uninitialized automatically. Run `-m` from the
+folder that contains `motion_eval` (or add it to `PYTHONPATH`); `cli.py` can be run by
+path from anywhere. In Blender, add `--python-exit-code 2` to get exit code 2 when the
+script itself crashes.
 
 ## 7. Standalone example script
 
@@ -362,3 +454,120 @@ if __name__ == "__main__":
         sys.exit(2)
     sys.exit(1 if result["failed_files"] else 0)
 ```
+
+## 8. Hosts (Maya, Blender, plain Python)
+
+A **host** is the only code that talks to a program. Everything else (checks, scoring,
+outputs, runner) goes through it, which is why a check written once runs everywhere.
+
+```text
+runner / evaluation / sampling / scene_io      host-agnostic: call hosts.get_host()
+        |
+hosts/host_base.SceneHost                      the interface (load, ranges, nodes, matrices, scores)
+        |-- hosts/maya_host.MayaHost           maya.cmds + OpenMaya (lazy imports)
+        |-- hosts/blender_host.BlenderHost     bpy (lazy imports)
+        '-- hosts/sample_host.SampleHost       motion sample files, plain Python
+        |
+sample dictionary  ->  checks_base.MotionData  ->  checks (pure Python)
+```
+
+```python
+from motion_eval import hosts
+
+hosts.get_host()              # the active host: a running Maya, else Blender, else mayapy, else plain Python
+hosts.get_host("blender")     # a specific host
+with hosts.use_host("maya"):  # make one active inside a block
+    ...
+```
+
+Rules every host follows (details in `hosts/host_base.py`):
+
+- **Node paths** look like Maya long paths (`|group|Hips|Spine`); the last part is the
+  joint name templates match, optionally with a `namespace:` prefix.
+- **Matrices** are flat lists of 16 floats in Maya's row-major layout (translation at
+  indices 12, 13, 14). Hosts with column-vector math (Blender) transpose them.
+- **Units and up axis** are reported, never converted: `MotionData` turns Z up into Y up
+  and checks scale every distance by the character's own size.
+
+To add a host (for example another 3D program): subclass `SceneHost`, implement every
+method marked "Required", register it in `hosts/__init__.py` (`create_host`,
+`HOST_NAMES`), and run the parity test below on the sample files.
+
+**Rule enforced by the tests:** only `hosts/maya_host.py`, `hosts/blender_host.py`, and
+`usd_scene.py` may import `maya`, `bpy`, or `mathutils`.
+
+## 9. Adding a check
+
+A check is a pure function plus a `CheckDefinition`. It reads only `MotionData`, so it
+works in Maya, Blender, and plain Python with no extra work.
+
+1. **Write the function** in `checks_general.py` (any animated nodes) or
+   `checks_biped.py` (needs skeleton roles). It receives `data` (`MotionData`) and
+   `parameters` (the check's own settings) and returns a `CheckResult`:
+
+   ```python
+   def check_hand_speed(data, parameters):
+       """Flags frames where a hand moves faster than a limit.
+
+       Args:
+           data (MotionData): Sampled motion.
+           parameters (dict): max_speed (leg lengths per second).
+
+       Returns:
+           CheckResult: Findings.
+       """
+       result = CheckResult()
+       limit = parameters["max_speed"] * data.measure_leg_length()
+       series = []
+       for role in ("left_hand", "right_hand"):
+           speeds = math_utils.speeds(data.get_role_positions(role), data.fps)
+           series.append(speeds)
+           for index, speed in enumerate(speeds):
+               if speed > limit:
+                   result.flag(index, data.get_label(data.get_role_path(role)))
+       result.add_series("fastest hand", worst_per_frame(data.frame_count, series))
+       result.set_chart("units per second", limit, "Limit")
+       return result
+   ```
+
+2. **Register it** by adding a `CheckDefinition` to `GENERAL_CHECKS` or `BIPED_CHECKS`
+   at the bottom of the same file. Presets, reports, graphs, summaries, and every window
+   that lists checks pick it up from there:
+
+   ```python
+   CheckDefinition(
+       key="hand_speed",                       # stable: stored in presets and reports, never rename
+       label="Hand Speed",
+       mode=MODE_BIPED,
+       description="Hands moving faster than a plausible swing.",
+       function=check_hand_speed,
+       parameters=[ParameterSpec("max_speed", "Max Speed", 8.0, 0.1, 100.0,
+                                 "Fastest hand speed, in leg lengths per second.")],
+       required_roles=["left_hand", "right_hand"],   # skipped (not failed) when a skeleton lacks them
+       enabled=False,                                # start off until calibrated on real data
+       weight=1.0, warn_below=85, fail_below=50, event_penalty=0.0, frame_penalty=2.0,
+   ),
+   ```
+
+3. **Test it** with a synthetic sample (no Maya or Blender needed): build a clean motion
+   and a broken one, and check the score drops only for the broken one (see the existing
+   tests that call `evaluation.evaluate_sample`).
+
+4. **Check parity**: evaluate the Maya samples and their Blender versions
+   (`samples/01-03` and `04-06` in the standalone package) and compare the scores.
+
+Keep checks host-agnostic:
+
+- Use `data.get_positions`, `data.get_role_positions`, `data.get_matrices`, and the
+  `math_utils` helpers. Positions are already Y up.
+- Express distances as ratios of the character (`data.get_reference_length()`,
+  `data.measure_leg_length()`) and speeds per second (`data.fps`), never in centimeters
+  or frames, so files in any unit or frame rate score the same.
+- Prefer positions and frame-to-frame changes over local joint axes: Maya and Blender
+  (and FBX and USD exports) orient bones differently, so absolute local axes differ
+  between programs while positions and changes do not.
+- **Data that is not a world matrix** (mesh bounds, contact geometry, custom
+  attributes): add `required_data=["my_key"]` to the definition, read it with
+  `data.get_extra("my_key")`, and implement `get_extra_data` for `"my_key"` in each host
+  that can provide it (return JSON-compatible data). Hosts that cannot provide it make
+  the check skip with a clear reason instead of failing, so the other checks keep working.

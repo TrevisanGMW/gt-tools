@@ -1,13 +1,18 @@
 """
-Motion Evaluation Sampling - Samples world transforms from the open Maya scene.
+Motion Evaluation Sampling - Samples world transforms from the open scene of the active host.
 
-Maya runtime module. Maya is imported lazily so the package stays importable
-outside Maya, but these functions require a Maya session.
+Host-agnostic: every scene call goes through hosts.get_host() (Maya inside Maya or mayapy,
+Blender inside Blender, motion sample files in plain Python), so this module imports
+anywhere and works the same in every host. The sample it builds is what the checks read
+(see checks_base.MotionData).
 """
 
 from .checks_base import MODE_BIPED, MODE_GENERAL
+from . import hosts
 from . import templates
+from .hosts.maya_host import METERS_PER_LINEAR_UNIT  # noqa: F401 (kept for older imports)
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -38,48 +43,25 @@ SCOPE_TOOLTIPS = {
     SCOPE_SELECTION: "Only the nodes selected in Maya when Evaluate is pressed.",
 }
 
-METERS_PER_LINEAR_UNIT = {
-    "mm": 0.001,
-    "millimeter": 0.001,
-    "cm": 0.01,
-    "centimeter": 0.01,
-    "m": 1.0,
-    "meter": 1.0,
-    "km": 1000.0,
-    "kilometer": 1000.0,
-    "in": 0.0254,
-    "inch": 0.0254,
-    "ft": 0.3048,
-    "foot": 0.3048,
-    "yd": 0.9144,
-    "yard": 0.9144,
-    "mi": 1609.344,
-    "mile": 1609.344,
-}
 MAX_SAMPLED_NODES = 2000
 
 
-def get_maya_cmds():
-    """Imports maya.cmds lazily.
+def get_host():
+    """Gets the active scene host.
 
     Returns:
-        module: maya.cmds.
+        SceneHost: Host (see hosts.get_host).
     """
-    import maya.cmds as cmds
-
-    return cmds
+    return hosts.get_host()
 
 
-# ------------------------------------------------ Scene Info ------------------------------------------------
 def get_scene_name():
     """Gets the open scene file name without its folder and extension.
 
     Returns:
         str: Scene name, or "untitled" for unsaved scenes.
     """
-    import os
-
-    scene_path = get_maya_cmds().file(query=True, sceneName=True) or ""
+    scene_path = get_host().get_scene_path() or ""
     return os.path.splitext(os.path.basename(scene_path))[0] or "untitled"
 
 
@@ -89,9 +71,7 @@ def get_scene_fps():
     Returns:
         float: Frames per second.
     """
-    import maya.api.OpenMaya as om2
-
-    return float(om2.MTime(1.0, om2.MTime.kSeconds).asUnits(om2.MTime.uiUnit()))
+    return float(get_host().get_fps())
 
 
 def get_meters_per_unit():
@@ -100,9 +80,7 @@ def get_meters_per_unit():
     Returns:
         float: Meters per scene unit.
     """
-    cmds = get_maya_cmds()
-    unit = str(cmds.currentUnit(query=True, linear=True) or "cm").lower()
-    return METERS_PER_LINEAR_UNIT.get(unit, 0.01)
+    return float(get_host().get_meters_per_unit())
 
 
 def get_up_axis(template=None):
@@ -117,8 +95,7 @@ def get_up_axis(template=None):
     template_axis = str((template or {}).get("up_axis") or "scene").lower()
     if template_axis in ("y", "z"):
         return template_axis
-    cmds = get_maya_cmds()
-    return str(cmds.upAxis(query=True, axis=True) or "y").lower()
+    return str(get_host().get_up_axis() or "y").lower()
 
 
 def resolve_frame_range(range_mode=RANGE_PLAYBACK, custom_start=None, custom_end=None, node_paths=None):
@@ -133,22 +110,16 @@ def resolve_frame_range(range_mode=RANGE_PLAYBACK, custom_start=None, custom_end
     Returns:
         tuple: (start, end) integer frames.
     """
-    cmds = get_maya_cmds()
+    host = get_host()
     if range_mode == RANGE_CUSTOM and custom_start is not None and custom_end is not None:
         start, end = float(custom_start), float(custom_end)
     elif range_mode == RANGE_ANIMATION:
-        start = cmds.playbackOptions(query=True, animationStartTime=True)
-        end = cmds.playbackOptions(query=True, animationEndTime=True)
+        start, end = host.get_time_range("animation")
     elif range_mode == RANGE_KEYED and node_paths:
-        key_times = cmds.keyframe(list(node_paths), query=True, timeChange=True) or []
-        if key_times:
-            start, end = min(key_times), max(key_times)
-        else:
-            start = cmds.playbackOptions(query=True, minTime=True)
-            end = cmds.playbackOptions(query=True, maxTime=True)
+        key_range = host.get_key_range(list(node_paths))
+        start, end = key_range if key_range else host.get_time_range("playback")
     else:
-        start = cmds.playbackOptions(query=True, minTime=True)
-        end = cmds.playbackOptions(query=True, maxTime=True)
+        start, end = host.get_time_range("playback")
     start, end = int(round(start)), int(round(end))
     return min(start, end), max(start, end)
 
@@ -158,13 +129,10 @@ def list_template_candidates():
     """Lists scene nodes that templates may resolve, joints first.
 
     Returns:
-        list: Long node paths (joints, then other transforms).
+        list: Node paths (joints, then other transforms).
     """
-    cmds = get_maya_cmds()
-    joints = cmds.ls(type="joint", long=True) or []
-    joint_set = set(joints)
-    transforms = [path for path in (cmds.ls(type="transform", long=True) or []) if path not in joint_set]
-    return joints + transforms
+    host = get_host()
+    return host.list_joints() + host.list_transforms()
 
 
 def resolve_template_in_scene(template, require_biped=False):
@@ -182,17 +150,12 @@ def resolve_template_in_scene(template, require_biped=False):
 
 
 def list_animated_transforms():
-    """Lists transforms driven directly by animation curves.
+    """Lists transforms (joints included) driven directly by animation curves.
 
     Returns:
-        list: Long transform paths.
+        list: Node paths.
     """
-    cmds = get_maya_cmds()
-    curves = cmds.ls(type=["animCurveTL", "animCurveTA", "animCurveTU"]) or []
-    if not curves:
-        return []
-    connected = cmds.listConnections(curves, source=False, destination=True, type="transform") or []
-    return sorted(set(cmds.ls(connected, long=True) or []))
+    return get_host().list_animated_nodes()
 
 
 def get_keyed_range_nodes(mode, template=None, general_scope=None, node_names=None):
@@ -232,7 +195,7 @@ def collect_general_nodes(general_scope, template=None, node_names=None):
     Raises:
         ValueError: If the scope produces no nodes.
     """
-    cmds = get_maya_cmds()
+    host = get_host()
     warnings = []
     roles = {}
     scope = general_scope or SCOPE_ALL_JOINTS
@@ -248,14 +211,14 @@ def collect_general_nodes(general_scope, template=None, node_names=None):
     elif scope == SCOPE_NODE_LIST:
         node_paths = []
         for name in node_names or []:
-            matches = cmds.ls(str(name).strip(), long=True, type="transform") or []
+            matches = host.find_nodes(name)
             if not matches:
                 warnings.append(f'Node "{name}" was not found.')
             node_paths.extend(matches)
     elif scope == SCOPE_SELECTION:
-        node_paths = cmds.ls(selection=True, long=True, type="transform") or []
+        node_paths = host.get_selected_nodes()
     else:
-        node_paths = cmds.ls(type="joint", long=True) or []
+        node_paths = host.list_joints()
     node_paths = list(dict.fromkeys(node_paths))
     if not node_paths:
         raise ValueError(f'No nodes found for the "{scope}" scope.')
@@ -274,37 +237,12 @@ def get_parent_paths(node_paths):
     Returns:
         dict: Node path to parent path (or None).
     """
-    cmds = get_maya_cmds()
-    parents = {}
-    for node_path in node_paths:
-        parent = cmds.listRelatives(node_path, parent=True, fullPath=True) or []
-        parents[node_path] = parent[0] if parent else None
-    return parents
+    return get_host().get_parents(node_paths)
 
 
 # ------------------------------------------------ Sampling ------------------------------------------------
-def get_dag_paths(node_paths):
-    """Converts node paths into OpenMaya DAG paths.
-
-    Args:
-        node_paths (list): Long node paths.
-
-    Returns:
-        list: MDagPath objects in the same order.
-    """
-    import maya.api.OpenMaya as om2
-
-    selection = om2.MSelectionList()
-    for node_path in node_paths:
-        selection.add(node_path)
-    return [selection.getDagPath(index) for index in range(selection.length())]
-
-
 def sample_world_matrices(node_paths, start_frame, end_frame):
-    """Samples world matrices for every node at every frame.
-
-    The current time is restored afterwards and viewport refresh is suspended
-    while sampling.
+    """Samples world matrices for every node at every frame (the host restores its current frame).
 
     Args:
         node_paths (list): Long node paths.
@@ -314,27 +252,11 @@ def sample_world_matrices(node_paths, start_frame, end_frame):
     Returns:
         dict: Node path to a list of flat 16-value matrices.
     """
-    cmds = get_maya_cmds()
-    dag_paths = get_dag_paths(node_paths)
-    matrices = {node_path: [] for node_path in node_paths}
-    original_time = cmds.currentTime(query=True)
-    is_batch = cmds.about(batch=True)
-    if not is_batch:
-        cmds.refresh(suspend=True)
-    try:
-        for frame in range(int(start_frame), int(end_frame) + 1):
-            cmds.currentTime(frame, update=True)
-            for node_path, dag_path in zip(node_paths, dag_paths):
-                matrix = dag_path.inclusiveMatrix()
-                matrices[node_path].append([matrix[index] for index in range(16)])
-    finally:
-        cmds.currentTime(original_time, update=True)
-        if not is_batch:
-            cmds.refresh(suspend=False)
-    return matrices
+    return get_host().sample_world_matrices(node_paths, start_frame, end_frame)
 
 
-def sample_scene(mode=MODE_GENERAL, template=None, frame_range=None, general_scope=None, node_names=None):
+def sample_scene(mode=MODE_GENERAL, template=None, frame_range=None, general_scope=None, node_names=None,
+                 extra_data=None):
     """Samples the open scene for evaluation.
 
     Args:
@@ -343,6 +265,8 @@ def sample_scene(mode=MODE_GENERAL, template=None, frame_range=None, general_sco
         frame_range (tuple, optional): (start, end) frames. Defaults to the playback range.
         general_scope (str, optional): Node scope for general mode.
         node_names (list, optional): Names for the node list scope.
+        extra_data (list, optional): Extra data keys to collect (see SceneHost.get_extra_data); keys the
+            host cannot provide are left out, so the checks needing them are skipped.
 
     Returns:
         dict: Sample dictionary consumed by evaluation.evaluate_sample.
@@ -382,4 +306,47 @@ def sample_scene(mode=MODE_GENERAL, template=None, frame_range=None, general_sco
         "nodes": nodes,
         "roles": roles,
         "warnings": warnings,
+        "extra": collect_extra_data(extra_data, node_paths, start_frame, end_frame),
+    }
+
+
+def collect_extra_data(data_keys, node_paths, start_frame, end_frame):
+    """Asks the host for extra scene data needed by checks.
+
+    Args:
+        data_keys (list or None): Extra data keys.
+        node_paths (list): Sampled node paths.
+        start_frame (int): First frame.
+        end_frame (int): Last frame.
+
+    Returns:
+        dict: Key to data, only for keys the host provided.
+    """
+    host = get_host()
+    extra = {}
+    for data_key in data_keys or []:
+        value = host.get_extra_data(data_key, node_paths, start_frame, end_frame)
+        if value is not None:
+            extra[data_key] = value
+    return extra
+
+
+def describe_scene():
+    """Describes the open scene for tool windows (node lists, ranges, frame rate).
+
+    Returns:
+        dict: "host", "nodes" (joints first, then transforms), "joint_count", "joint_label"
+            ("joint" or "bone"), "playback" and "animation" ranges, "fps", and "up_axis".
+    """
+    host = get_host()
+    joints = host.list_joints()
+    return {
+        "host": host.name,
+        "nodes": joints + host.list_transforms(),
+        "joint_count": len(joints),
+        "joint_label": host.joint_label,
+        "playback": list(host.get_time_range("playback")),
+        "animation": list(host.get_time_range("animation")),
+        "fps": float(host.get_fps()),
+        "up_axis": str(host.get_up_axis()),
     }
