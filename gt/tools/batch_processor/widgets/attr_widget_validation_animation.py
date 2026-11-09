@@ -12,6 +12,7 @@ from gt.tools.batch_processor.widgets.attr_widget_validation import (
     LABEL_WIDTH,
 )
 from gt.tools.batch_processor.widgets.inline_python_editor import InlinePythonEditorWidget
+from gt.tools.batch_processor.widgets.table_height_handle import TableHeightHandle
 from gt.tools.batch_processor.tasks import task_validation_animation as task_module
 from gt.tools.anim_evaluator.anim_evaluator_widgets import PresetEditorWidget, DISABLED_STYLESHEET
 from gt.core.motion_eval import checks_base
@@ -412,6 +413,15 @@ class AttrWidgetAnimationValidationTask(AttrWidgetValidationTaskBase):
             changed_callback=partial(self.set_task_setting, key="preset"),
             show_mode=False,
         )
+        self.checks_table_height_handle = TableHeightHandle(
+            table=self.preset_editor.check_table,
+            task=self.task,
+            state_key="animation_checks_table_height",
+            parent=self.preset_editor,
+        )
+        preset_layout = self.preset_editor.layout()
+        table_index = preset_layout.indexOf(self.preset_editor.check_table)
+        preset_layout.insertWidget(table_index + 1, self.checks_table_height_handle)
         self.preset_editor.setMinimumHeight(600)
         editor_layout.addWidget(self.preset_editor)
         layout.addWidget(self.preset_editor_widget)
