@@ -458,63 +458,74 @@ def generate_udim_previews(verbose=True):
     return counter
 
 
-def reset_joint_display(jnt_list=None, verbose=True):
-    """
-    Resets the radius and drawStyle attributes for provided joints. (or all joints)
-    then changes the global multiplier (jointDisplayScale) back to one
+def reset_joint_display(
+    jnt_list=None, verbose=True, radius=1.0, draw_style=0, global_scale=1.0, visibility=True
+):
+    """Sets joint display attributes and the scene-wide joint display scale.
 
     Args:
-        jnt_list (list, str): A list with the name of the objects it should affect. (Strings are converted into list)
-        verbose (bool, optional): If True, it will return feedback about the operation.
+        jnt_list (list, str, optional): Joints to affect. None uses all scene joints.
+            An empty list changes nothing.
+        verbose (bool, optional): Report results and attribute failures.
+        radius (float, optional): Target radius, or None to keep existing values.
+        draw_style (int, optional): Bone (0), box (1), none (2), or joint (3).
+            None keeps existing values.
+        global_scale (float, optional): Scene-wide multiplier, even for an explicit
+            joint list. None keeps the current multiplier.
+        visibility (bool, optional): Target visibility, or None to keep it.
+
     Returns:
-        int: Number of affected joints.
+        int: Number of joints with at least one attribute successfully set.
     """
-    errors = ""
-    target_radius = 1
+    if isinstance(jnt_list, str):
+        joints = [jnt_list]
+    elif jnt_list is None:
+        joints = cmds.ls(type="joint", long=True) or []
+    else:
+        joints = list(jnt_list)
+    if not joints:
+        if verbose:
+            cmds.warning("No joints found in the requested scope.")
+        return 0
+
     counter = 0
-
-    _joints = None
-    if jnt_list and isinstance(jnt_list, list):
-        _joints = jnt_list
-    if jnt_list and isinstance(jnt_list, str):
-        _joints = [jnt_list]
-    if not _joints:
-        _joints = cmds.ls(type="joint", long=True) or []
-    # Update joints
-    for obj in _joints:
-        try:
-            if cmds.objExists(obj):
-                if cmds.getAttr(obj + ".radius", lock=True) is False:
-                    cmds.setAttr(obj + ".radius", 1)
-
-                if cmds.getAttr(obj + ".v", lock=True) is False:
-                    cmds.setAttr(obj + ".v", 1)
-
-                if cmds.getAttr(obj + ".drawStyle", lock=True) is False:
-                    cmds.setAttr(obj + ".drawStyle", 0)
+    errors = []
+    function_name = "Reset Joint Display"
+    cmds.undoInfo(openChunk=True, chunkName=function_name)
+    try:
+        for joint in dict.fromkeys(joints):
+            if not cmds.objExists(joint) or cmds.nodeType(joint) != "joint":
+                continue
+            updated = False
+            for attribute, value in (("radius", radius), ("drawStyle", draw_style), ("visibility", visibility)):
+                if value is None:
+                    continue
+                attribute_path = f"{joint}.{attribute}"
+                try:
+                    if cmds.getAttr(attribute_path, settable=True):
+                        cmds.setAttr(attribute_path, value)
+                        updated = True
+                except Exception as exception:
+                    errors.append(f"{attribute_path}: {exception}")
+            if updated:
                 counter += 1
-        except Exception as exception:
-            logger.debug(str(exception))
-            errors += str(exception) + "\n"
-    cmds.jointDisplayScale(target_radius)
-    # Give feedback
+        if global_scale is not None:
+            cmds.jointDisplayScale(global_scale)
+    finally:
+        cmds.undoInfo(closeChunk=True, chunkName=function_name)
     if verbose:
         feedback = FeedbackMessage(
             quantity=counter,
             singular="joint had its",
             plural="joints had their",
             conclusion="display reset.",
-            zero_overwrite_message="No joints found in this scene.",
+            zero_overwrite_message="No editable joints found in the requested scope.",
         )
-        feedback.print_inview_message(system_write=False)
-        feedback.conclusion = '"radius", "drawStyle" and "visibility" attributes reset.'
-        sys.stdout.write(f"\n{feedback.get_string_message()}")
-    # Print errors
+        feedback.print_inview_message()
+    for error in errors:
+        logger.debug(error)
     if errors and verbose:
-        print(("#" * 50) + "\n")
-        print(errors)
-        print("#" * 50)
-        cmds.warning("A few joints were not fully reset. Open script editor for more details.")
+        cmds.warning("Some joint attributes could not be changed. See the debug log for details.")
     return counter
 
 
@@ -523,22 +534,22 @@ def delete_display_layers(layer_list=None, verbose=True):
     Deletes provided (or all) display layers
 
     Args:
-        layer_list (list, str): A list with the name of the layers it should affect. (Strings are converted into list)
+        layer_list (list, str, optional): Layers to delete. None uses all scene layers.
+            An empty list changes nothing. The default layer is always kept.
         verbose (bool, optional): If True, it will return feedback about the operation.
     Returns:
-        int: Number of affected joints.
+        int: Number of deleted display layers.
     """
     function_name = "Delete All Display Layers"
     cmds.undoInfo(openChunk=True, chunkName=function_name)
     deleted_counter = 0
     try:
-        _layers = None
-        if layer_list and isinstance(layer_list, list):
-            _layers = layer_list
-        if layer_list and isinstance(layer_list, str):
-            _layers = [layer_list]
-        if not _layers:
+        if layer_list is None:
             _layers = cmds.ls(type="displayLayer", long=True) or []
+        elif isinstance(layer_list, str):
+            _layers = [layer_list]
+        else:
+            _layers = list(layer_list)
         for layer in _layers:
             if layer != "defaultLayer":
                 cmds.delete(layer)

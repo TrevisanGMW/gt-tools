@@ -501,10 +501,12 @@ def load_menu(*args):
         tooltip="Resets the radius attribute back to one in all joints, then changes the global "
         "multiplier (jointDisplayScale) back to one.",
         icon=ui_res_lib.Icon.util_reset_jnt_display,
+        option_box=True,
+        option_box_command=IMPORT_TOOL + 'initialize_tool("utility_options", "open_reset_joint_display_options")',
     )
     menu.add_menu_item(
         label='Reset "persp" Camera',
-        command=IMPORT_UTIL + 'initialize_utility("camera", "reset_persp_shape_attributes")',
+        command=IMPORT_UTIL + 'initialize_utility("camera", "reset_camera_attributes")',
         tooltip="If persp camera exists (default camera), reset its attributes.",
         icon=ui_res_lib.Icon.util_reset_persp,
     )
@@ -528,12 +530,16 @@ def load_menu(*args):
         command=IMPORT_UTIL + 'initialize_utility("namespace", "delete_namespaces")',
         tooltip="Deletes all namespaces in the scene.",
         icon=ui_res_lib.Icon.util_delete_ns,
+        option_box=True,
+        option_box_command=IMPORT_TOOL + 'initialize_tool("utility_options", "open_delete_namespaces_options")',
     )
     menu.add_menu_item(
         label="Delete Display Layers",
         command=IMPORT_UTIL + 'initialize_utility("display", "delete_display_layers")',
         tooltip="Deletes all display layers.",
         icon=ui_res_lib.Icon.util_delete_display_layers,
+        option_box=True,
+        option_box_command=IMPORT_TOOL + 'initialize_tool("utility_options", "open_delete_display_layers_options")',
     )
     menu.add_menu_item(
         label="Delete Unused Nodes",

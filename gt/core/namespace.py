@@ -8,9 +8,7 @@ Import Line:
 from gt.core.feedback import FeedbackMessage
 import maya.api.OpenMaya as OpenMaya
 import maya.cmds as cmds
-import maya.mel as mel
 import logging
-import sys
 
 # Logging Setup
 logging.basicConfig()
@@ -166,73 +164,68 @@ def namespaces_split(object_name):
         return ":".join(short_name[:-1]), short_name[-1]
 
 
-def delete_namespaces(object_list=None):
-    """
-    Deletes all namespaces in the scene
+def delete_namespaces(object_list=None, namespace_list=None, verbose=True):
+    """Removes namespaces by merging their contents into the root namespace.
+
     Args:
-        object_list ( list, optional): A list of objects to affect. If not provided, entire scene is used instead.
+        object_list (list, str, optional): Remove top-level namespaces of these
+            objects. Retained for compatibility.
+        namespace_list (list, str, optional): Explicit namespace paths to remove.
+            None uses the scene when object_list is not provided. An empty list
+            changes nothing. Nested namespaces are processed before parents.
+        verbose (bool, optional): Report results and removal failures.
+
     Returns:
-        Number of namespaces deleted (int)
+        int: Number of namespaces successfully removed.
     """
-    counter = 0
-    if object_list:
-        for obj in object_list:
-            if ":" in obj:
-                namespace = obj.split(":")[0]
-                cmds.namespace(removeNamespace=namespace, mergeNamespaceWithRoot=True)
-                counter += 1
-        return counter
-
-    function_name = "Delete All Namespaces"
-    cmds.undoInfo(openChunk=True, chunkName=function_name)
-    counter = 0
-    try:
-        default_namespaces = ["UI", "shared"]
-
-        def num_children(ns):
-            """
-            Used as a sort key, this will sort namespaces by how many children they have.
-            Sort key function to order namespaces by their depth.
-
-            Counts the number of colon separators to determine how many
-            child namespaces the given namespace has.
-
-            Args:
-                ns (str): The namespace string to evaluate.
-
-            Returns:
-                int: The count of colon characters in the namespace,
-                     representing its depth.
-            """
-            return ns.count(":")
-
+    if namespace_list is not None:
+        namespaces = [namespace_list] if isinstance(namespace_list, str) else list(namespace_list)
+    elif object_list:
+        objects = [object_list] if isinstance(object_list, str) else object_list
         namespaces = [
-            namespace for namespace in cmds.namespaceInfo(lon=True, r=True) if namespace not in default_namespaces
+            obj.rsplit("|", 1)[-1].lstrip(":").split(":")[0]
+            for obj in objects if ":" in obj.rsplit("|", 1)[-1].lstrip(":")
         ]
+    else:
+        namespaces = cmds.namespaceInfo(":", listOnlyNamespaces=True, recurse=True) or []
+    namespaces = {namespace.lstrip(":") for namespace in namespaces}
+    namespaces.difference_update(("", "UI", "shared"))
+    namespaces = sorted(namespaces, key=lambda namespace: (-namespace.count(":"), namespace))
+    if not namespaces:
+        if verbose:
+            cmds.warning("No namespaces found in the requested scope.")
+        return 0
 
-        # Reverse List
-        namespaces.sort(key=num_children, reverse=True)  # So it does the children first
-
-        logger.debug(namespaces)
-
+    function_name = "Delete Namespaces"
+    counter = 0
+    previous_namespace = cmds.namespaceInfo(currentNamespace=True, absoluteName=True)
+    cmds.undoInfo(openChunk=True, chunkName=function_name)
+    try:
+        cmds.namespace(set=":")
         for namespace in namespaces:
-            if namespace not in default_namespaces:
-                mel.eval('namespace -mergeNamespaceWithRoot -removeNamespace "' + namespace + '";')
+            try:
+                cmds.namespace(removeNamespace=f":{namespace}", mergeNamespaceWithRoot=True)
                 counter += 1
-    except Exception as e:
-        cmds.warning(str(e))
+            except Exception as exception:
+                logger.debug(f'Unable to remove namespace "{namespace}": {exception}')
+                if verbose:
+                    cmds.warning(str(exception))
     finally:
-        cmds.undoInfo(closeChunk=True, chunkName=function_name)
-    feedback = FeedbackMessage(
-        quantity=counter,
-        singular="namespace was",
-        plural="namespaces were",
-        conclusion="deleted.",
-        zero_overwrite_message="No namespaces found in this scene.",
-    )
-    feedback.print_inview_message(system_write=False)
-    feedback.conclusion = 'merged with the "root".'
-    sys.stdout.write(f"\n{feedback.get_string_message()}")
+        try:
+            if cmds.namespace(exists=previous_namespace):
+                cmds.namespace(set=previous_namespace)
+        finally:
+            cmds.undoInfo(closeChunk=True, chunkName=function_name)
+    if verbose:
+        feedback = FeedbackMessage(
+            quantity=counter,
+            singular="namespace was",
+            plural="namespaces were",
+            conclusion="merged with the root namespace.",
+            zero_overwrite_message="No namespaces were removed.",
+        )
+        feedback.print_inview_message()
+    return counter
 
 
 def apply_namespace_to_string(in_string, namespace=None):
