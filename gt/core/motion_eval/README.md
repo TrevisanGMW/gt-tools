@@ -17,7 +17,7 @@ of them (see [Hosts](#8-hosts-maya-blender-plain-python) and [Adding a check](#9
 |---|---|---|
 | `templates` | Python | Skeletons: built-in templates, Custom Skeleton JSON files |
 | `presets` | Python | Which checks run, weights, thresholds, detection settings |
-| `checks_general`, `checks_biped`, `checks_base`, `scoring`, `math_utils` | Python | The checks and the scoring |
+| `checks_general`, `checks_biped`, `checks_limits`, `checks_pose`, `checks_base`, `scoring`, `math_utils` | Python | The checks and the scoring |
 | `evaluation` | Python (a host to sample a scene) | Evaluates sampled motion and builds the report |
 | `batch_summary` | Python | Combines many reports (totals, sorted files, batch chart data) |
 | `outputs` | Python (Qt for graphs) | Writes summaries, JSON reports, and graphs |
@@ -324,8 +324,38 @@ print(presets.SCORING_PARAMETERS_BY_KEY["fail_below"].tooltip)       # what a se
 ```
 
 Checks off by default: `below_ground` (needs the floor at a known height),
-`balance` (props, sitting, and leaning trigger it), and `gait_asymmetry` (turns,
-starts, and stops trigger it). Enable them for data where they apply.
+`balance` (props, sitting, and leaning trigger it), `gait_asymmetry` (turns,
+starts, and stops trigger it), `elbow_side_bend` (forearm roll looks like side bend in
+normal poses), and `t_pose` (see below). Enable them for data where they apply.
+
+### Joint limits
+
+`elbow_hyperextension`, `elbow_side_bend`, `knee_side_bend`, `wrist_bend`,
+`forearm_twist`, and `head_turn` (in `checks_limits.py`) flag poses a body cannot
+reach. Joint axis conventions differ between skeletons, so they never read rotation
+values. Each joint learns its normal pose from the clip, in its parent joint's space:
+
+- Elbows and knees learn their hinge axis from frames bent 25 degrees or more. A joint
+  that never bends that far is reported in the details and not measured. Side bend is
+  only measured while the joint bends 30 degrees or more.
+- Wrist bend, forearm twist, and head turn measure the distance from the clip's median
+  pose. A joint held in an impossible pose for most of a clip becomes its own median and
+  is not flagged.
+- The arm checks need the arm, forearm, and hand roles of at least one side. Head turn
+  uses the chest role, or the lowest spine joint when the chest is not mapped.
+
+The joint limits also read joint rotations: wrist bend uses the hand's rotation, forearm
+twist uses the upper arm and hand, and head turn uses the chest and head.
+
+### T-pose
+
+`t_pose` (in `checks_pose.py`, off by default) flags calibration poses left in a clip.
+A frame matches when both arms point sideways at the pose height with straight elbows,
+and the trunk and knees are straight. It only counts while the arms and head hold still
+(`hold_speed`) for `min_hold_seconds`, so motion that passes through a similar pose is
+ignored. `search` = `edges` (default) only reports poses touching the first or last
+`edge_seconds`. `pose_type` is `t` (default), `a` (arms about 45 degrees down), or `both`.
+A one-frame bind pose on frame 0 is shorter than the hold time and is not reported.
 
 Preset files saved with `presets.save_preset` can be passed as `job["preset"]` directly.
 
@@ -502,7 +532,8 @@ A check is a pure function plus a `CheckDefinition`. It reads only `MotionData`,
 works in Maya, Blender, and plain Python with no extra work.
 
 1. **Write the function** in `checks_general.py` (any animated nodes) or
-   `checks_biped.py` (needs skeleton roles). It receives `data` (`MotionData`) and
+   `checks_biped.py` (needs skeleton roles; joint limits live in `checks_limits.py` and
+   pose checks in `checks_pose.py`). It receives `data` (`MotionData`) and
    `parameters` (the check's own settings) and returns a `CheckResult`:
 
    ```python

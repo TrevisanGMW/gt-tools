@@ -32,6 +32,7 @@ from gt.tools.batch_processor.batch_processor_task_base import sanitize_filename
 from gt.tools.batch_processor.tasks.task_input import TaskInput
 from gt.tools.batch_processor.tasks.task_input_strings import TaskInputStrings
 from gt.tools.batch_processor.tasks.task_input_pairs import TaskInputPairs
+from gt.tools.batch_processor.tasks.task_input_metadata import TaskInputMetadata
 from gt.tools.batch_processor.tasks.task_annotation import TaskAnnotationSnapshot
 from gt.tools.batch_processor.tasks.task_archive import TaskArchive
 from gt.tools.batch_processor.tasks.task_auto_rig_build import TaskAutoRigBuild
@@ -46,6 +47,7 @@ from gt.tools.batch_processor.tasks.task_external_unreal import find_unreal_exec
 from gt.tools.batch_processor.tasks.task_external_unreal import get_unreal_executable_candidates
 from gt.tools.batch_processor.tasks.task_capture import TaskCapturePlayblast
 from gt.tools.batch_processor.tasks.task_capture import TaskCaptureThumbnail
+from gt.tools.batch_processor.tasks.task_command import TaskCommand
 from gt.tools.batch_processor.tasks.task_clip import TaskClipSnapshot
 from gt.tools.batch_processor.tasks.task_clip import TaskClipSplit
 from gt.tools.batch_processor.tasks.task_delete_path import TaskDeleteProjectFiles
@@ -79,10 +81,12 @@ TASK_TYPES = {
     constants.TaskType.INPUT: TaskInput,
     constants.TaskType.INPUT_STRINGS: TaskInputStrings,
     constants.TaskType.INPUT_PAIRS: TaskInputPairs,
+    constants.TaskType.INPUT_METADATA: TaskInputMetadata,
     constants.TaskType.MAYA_IMPORT: TaskMayaImport,
     constants.TaskType.PYTHON_SCRIPT: TaskPythonScript,
     constants.TaskType.RENAME: TaskRename,
     constants.TaskType.MAP_HIERARCHY: TaskMapHierarchy,
+    constants.TaskType.COMMAND: TaskCommand,
     constants.TaskType.SCENE_REPORT: TaskSceneReport,
     constants.TaskType.MOTIONBUILDER_SCRIPT: TaskMotionBuilderScript,
     constants.TaskType.BLENDER_SCRIPT: TaskBlenderScript,

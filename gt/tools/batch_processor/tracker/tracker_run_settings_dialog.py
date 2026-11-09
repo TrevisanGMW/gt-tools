@@ -1,8 +1,55 @@
 """Non-modal dialog that changes run settings of an active tracker run."""
 
 import gt.ui.qt_import as ui_qt
+import gt.ui.resource_library as ui_res_lib
 
 from gt.tools.batch_processor import batch_processor_run_settings as run_settings
+
+
+def build_spin_box_stylesheet():
+    """Builds the dark tracker-themed stylesheet for spin boxes.
+
+    Returns:
+        str: Stylesheet text for QSpinBox widgets.
+    """
+    arrow_up = ui_res_lib.Icon.ui_arrow_up.replace("\\", "/")
+    arrow_down = ui_res_lib.Icon.ui_arrow_down.replace("\\", "/")
+    return (
+        "QSpinBox { background-color: #202020; color: #e6e6e6; border: 1px solid #484848;"
+        " border-radius: 3px; padding: 2px 4px 2px 7px; selection-background-color: #55788a;"
+        " selection-color: #ffffff; }"
+        "QSpinBox:hover { border-color: #65747c; }"
+        "QSpinBox:focus { border-color: #66899a; }"
+        "QSpinBox:disabled { background-color: #292929; color: #808080; border-color: #3a3a3a; }"
+        "QSpinBox::up-button, QSpinBox::down-button { subcontrol-origin: border; width: 16px;"
+        " background-color: #363636; border: none; border-left: 1px solid #484848; }"
+        "QSpinBox::up-button { subcontrol-position: top right; border-top-right-radius: 3px; }"
+        "QSpinBox::down-button { subcontrol-position: bottom right; border-bottom-right-radius: 3px;"
+        " border-top: 1px solid #484848; }"
+        "QSpinBox::up-button:hover, QSpinBox::down-button:hover { background-color: #465158; }"
+        "QSpinBox::up-button:pressed, QSpinBox::down-button:pressed { background-color: #55788a; }"
+        f"QSpinBox::up-arrow {{ image: url({arrow_up}); width: 8px; height: 8px; }}"
+        f"QSpinBox::down-arrow {{ image: url({arrow_down}); width: 8px; height: 8px; }}"
+    )
+
+
+def build_dialog_stylesheet():
+    """Builds the dark tracker-themed stylesheet for the run settings dialog.
+
+    Returns:
+        str: Stylesheet text for the dialog and its children.
+    """
+    return (
+        "QDialog { background-color: #292929; }"
+        "QLabel { background: transparent; color: #e6e6e6; }"
+        "QLabel#runSettingsNote { color: #9a9a9a; }"
+        "QToolTip { background-color: #444444; color: #e6e6e6; border: 1px solid #5a5a5a; }"
+        "QPushButton { background-color: #363636; color: #e6e6e6; border: 1px solid #4a4a4a;"
+        " border-radius: 3px; padding: 5px 14px; }"
+        "QPushButton:hover { background-color: #465158; border-color: #65747c; }"
+        "QPushButton:pressed { background-color: #55788a; border-color: #7395a5; color: #ffffff; }"
+        "QPushButton:disabled { background-color: #2d2d2d; color: #808080; border-color: #3a3a3a; }"
+    ) + build_spin_box_stylesheet()
 
 
 DIALOG_ROWS = (
@@ -67,7 +114,8 @@ class TrackerRunSettingsDialog(ui_qt.QtWidgets.QDialog):
             "Preferences > Keep Manual Run Setting Changes is on."
         )
         self.note_label.setWordWrap(True)
-        self.note_label.setStyleSheet("color: grey;")
+        self.note_label.setObjectName("runSettingsNote")
+        self.setStyleSheet(build_dialog_stylesheet())
         layout.addWidget(self.note_label)
         button_layout = ui_qt.QtWidgets.QHBoxLayout()
         button_layout.addStretch(1)

@@ -1,23 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <title>Orbital terminal</title>
-  <desc>A terminal at the center of a small constellation of script files.</desc>
+  <title>Isometric archive</title>
+  <desc>Dimensional script cards in a shallow archive tray, using a muted blue palette.</desc>
   <rect width="512" height="512" fill="#535353"/>
   <g fill="none" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
 
-    <circle cx="256" cy="256" r="184" fill="#4D5357"/>
-    <ellipse cx="256" cy="256" rx="210" ry="102" transform="rotate(-30 256 256)" stroke="#78949E"/>
-    <ellipse cx="256" cy="256" rx="210" ry="102" transform="rotate(30 256 256)" stroke="#667D86"/>
-    <circle cx="256" cy="256" r="140" fill="#3B474D" stroke="#A8C2CA"/>
-    <circle cx="256" cy="256" r="116" stroke="#536F77"/>
-    <path d="M202 218l42 38-42 38M268 296h48" stroke="#C4E1E5"/>
-    <path d="M210 334h92" stroke="#738E99"/>
-    <path d="M342 96h32l16 16v48h-48z" fill="#526E78" stroke="#B6D1D6"/>
-    <path d="M374 96v16h16M354 130h24M354 144h16" stroke="#B6D1D6"/>
-    <path d="M114 340h32l16 16v48h-48z" fill="#4C625D" stroke="#AEC9B8"/>
-    <path d="M146 340v16h16M126 374h24M126 388h16" stroke="#AEC9B8"/>
-    <circle cx="98" cy="178" r="7" fill="#AEC9B8" stroke="#4D5357"/>
-    <circle cx="416" cy="332" r="7" fill="#B6D1D6" stroke="#4D5357"/>
-    <circle cx="276" cy="440" r="4" fill="#78949E"/>
+    <path d="M88 344l168-92 168 92-168 92z" fill="#4B5057"/>
+    <path d="M94 288l162-88 162 88-162 88z" fill="#626F80" stroke="#B0C2D5"/>
+    <path d="M120 288l136-74 136 74-136 74z" fill="#3E4C5B" stroke="#7F98B0"/>
+    <path d="M216 102l96 52 28 44v116l-124-68z" fill="#486477" stroke="#A8C7D9"/>
+    <path d="M312 154v28l28 16" stroke="#A8C7D9"/>
+    <path d="M238 164l54 30M238 190l78 42M254 225l62 33" stroke="#7FA4BE"/>
+    <path d="M166 126l96 52 28 44v116l-124-68z" fill="#6C8099" stroke="#CBD8E7"/>
+    <path d="M262 178v28l28 16" fill="#4F647F" stroke="#CBD8E7"/>
+    <path d="M202 190l-16 7 16 25M248 215l16 25-16 7M232 196l-14 48" stroke="#DCE8F1"/>
+    <path d="M188 248l44 24M246 280l22 12" stroke="#B2C9DE"/>
+    <path d="M188 270l80 44" stroke="#9AB6D0"/>
+    <path d="M94 288l162 88v50L94 338z" fill="#4C6176" stroke="#B0C2D5"/>
+    <path d="M256 376l162-88v50l-162 88z" fill="#394C60" stroke="#B0C2D5"/>
+    <path d="M134 331l64 35M300 374l74-40" stroke="#7898B6"/>
+    <path d="M396 156v24M384 168h24" stroke="#8AA8C0"/>
   </g>
 </svg>

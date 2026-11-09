@@ -1,6 +1,7 @@
 """Programmatic project launching and completion tracking, intended for scripts and AI agents."""
 
 import os
+import sys
 import tempfile
 import time
 
@@ -10,11 +11,148 @@ from gt.tools.batch_processor import batch_processor_worker
 
 
 DEFAULT_POLL_INTERVAL = 0.5
+DEFAULT_STALE_AFTER = 120.0
+LAUNCH_FILE_NAME = "launch.json"
+UNKNOWN_EXIT_CODE = -1
+WINDOWS_PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+WINDOWS_STILL_ACTIVE = 259
+WINDOWS_ERROR_ACCESS_DENIED = 5
 NOTHING_TO_LAUNCH_RESULT = {
     "finished": True,
     "outcome": "succeeded",
     "reason": "No worker jobs were needed; nothing was launched.",
 }
+
+
+def is_process_alive(process_id):
+    """Checks whether a process with the given id is still running.
+
+    Args:
+        process_id (int): Operating system process id.
+
+    Returns:
+        bool: True while the process exists. False for an empty or invalid id.
+    """
+    try:
+        process_id = int(process_id)
+    except (TypeError, ValueError):
+        return False
+    if process_id <= 0:
+        return False
+    if sys.platform == "win32":
+        return _is_windows_process_alive(process_id)
+    try:
+        os.kill(process_id, 0)
+    except PermissionError:
+        return True
+    except OSError:
+        return False
+    return True
+
+
+def _is_windows_process_alive(process_id):
+    """Checks a Windows process through its exit code, without extra dependencies.
+
+    Args:
+        process_id (int): Windows process id.
+
+    Returns:
+        bool: True while the process exists and has not exited.
+    """
+    import ctypes
+    from ctypes import wintypes
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.OpenProcess.restype = wintypes.HANDLE
+    kernel32.OpenProcess.argtypes = (wintypes.DWORD, wintypes.BOOL, wintypes.DWORD)
+    kernel32.GetExitCodeProcess.argtypes = (wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD))
+    kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
+    handle = kernel32.OpenProcess(WINDOWS_PROCESS_QUERY_LIMITED_INFORMATION, False, process_id)
+    if not handle:
+        return ctypes.get_last_error() == WINDOWS_ERROR_ACCESS_DENIED
+    try:
+        exit_code = wintypes.DWORD()
+        if not kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code)):
+            return True
+        return exit_code.value == WINDOWS_STILL_ACTIVE
+    finally:
+        kernel32.CloseHandle(handle)
+
+
+class AttachedProcess:
+    """Process stand-in for a tracker started by another process, followed through its files.
+
+    It mimics the parts of ``subprocess.Popen`` that ``ProjectRun`` uses (``pid``, ``poll``
+    and ``returncode``). The tracker counts as exited when its process is gone or when it
+    stops publishing heartbeats for longer than ``stale_after`` seconds.
+    """
+
+    def __init__(self, process_id, status_file, started_at=None, stale_after=DEFAULT_STALE_AFTER):
+        """Stores what is needed to follow the tracker.
+
+        Args:
+            process_id (int): Tracker process id, or None when unknown.
+            status_file (str): Tracker ``status.json`` path.
+            started_at (float, optional): Launch time (epoch seconds), used before the first heartbeat.
+            stale_after (float, optional): Seconds without a heartbeat before the tracker counts
+                as exited. None disables the heartbeat check.
+        """
+        self.pid = process_id
+        self.status_file = status_file
+        self.started_at = started_at
+        self.stale_after = stale_after
+        self.returncode = None
+
+    def poll(self):
+        """Gets the exit state of the followed tracker.
+
+        Returns:
+            int: ``UNKNOWN_EXIT_CODE`` once the tracker is gone (its real exit code is not
+                available to other processes), or None while it is running.
+        """
+        if self.returncode is None and (not is_process_alive(self.pid) or self.is_stale()):
+            self.returncode = UNKNOWN_EXIT_CODE
+        return self.returncode
+
+    def is_stale(self):
+        """Checks whether the tracker stopped publishing heartbeats before finishing.
+
+        Returns:
+            bool: True when the last heartbeat (or the launch time) is older than ``stale_after``.
+        """
+        if self.stale_after is None:
+            return False
+        status = batch_processor_projects.read_json(self.status_file)
+        if status.get("finished"):
+            return False
+        last_seen = status.get("heartbeat") or self.started_at
+        if not last_seen:
+            return False
+        return time.time() - float(last_seen) > float(self.stale_after)
+
+
+def write_launch_file(result_dir, process, run_id, project_path):
+    """Records how a run was launched so other processes can reconnect to it later.
+
+    Args:
+        result_dir (str): Run result directory.
+        process (subprocess.Popen): Tracker process, or None when nothing was launched.
+        run_id (str): Unique run id.
+        project_path (str): Launched project file.
+
+    Returns:
+        str: Path of the written launch file.
+    """
+    launch_path = os.path.join(result_dir, LAUNCH_FILE_NAME)
+    batch_processor_projects.write_json(launch_path, {
+        "schema_version": batch_processor_projects.SCHEMA_VERSION,
+        "run_id": run_id or "",
+        "process_id": getattr(process, "pid", None),
+        "nothing_launched": process is None,
+        "launched_at": time.time(),
+        "project_path": os.path.abspath(project_path),
+    })
+    return launch_path
 
 
 class ProjectRun:
@@ -34,6 +172,37 @@ class ProjectRun:
         self.result_file = os.path.join(result_dir, "result.json")
         self.status_file = os.path.join(result_dir, "status.json")
         self.control_file = os.path.join(result_dir, "control.json")
+
+    @classmethod
+    def attach(cls, result_dir, stale_after=DEFAULT_STALE_AFTER):
+        """Reconnects to a run from its result directory, for example from another process.
+
+        Use this when the process that launched the run has exited. Waiting, progress,
+        cancellation and run settings work as for a handle returned by ``launch_project``.
+
+        Args:
+            result_dir (str): Result directory of the run.
+            stale_after (float, optional): Seconds without a tracker heartbeat before the run
+                counts as dead. None disables the heartbeat check.
+
+        Returns:
+            ProjectRun: Handle following the run.
+
+        Raises:
+            FileNotFoundError: When the directory holds no launch, status, or result file.
+        """
+        launch = batch_processor_projects.read_json(os.path.join(result_dir, LAUNCH_FILE_NAME))
+        status = batch_processor_projects.read_json(os.path.join(result_dir, "status.json"))
+        result = batch_processor_projects.read_json(os.path.join(result_dir, "result.json"))
+        if not launch and not status and not result:
+            raise FileNotFoundError(f"No Batch Processor run was published in: {result_dir}")
+        run_id = launch.get("run_id") or status.get("run_id") or result.get("run_id") or ""
+        if launch.get("nothing_launched"):
+            return cls(None, result_dir, run_id)
+        process_id = launch.get("process_id") or status.get("tracker_pid")
+        status_file = os.path.join(result_dir, "status.json")
+        process = AttachedProcess(process_id, status_file, launch.get("launched_at"), stale_after)
+        return cls(process, result_dir, run_id)
 
     def get_result(self):
         """Reads the published result without waiting.
@@ -211,4 +380,5 @@ def launch_project(
         window_policy="Close When Finished" if close_when_finished else None,
     )
     runner.run(project, run_from_task_id=run_from_task_id, run_to_task_id=run_to_task_id)
+    write_launch_file(result_dir, runner.process, runner.run_id, project_path)
     return ProjectRun(runner.process, result_dir, runner.run_id)

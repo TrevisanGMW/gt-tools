@@ -5,6 +5,7 @@ import gt.ui.qt_import as ui_qt
 import gt.ui.resource_library as ui_res_lib
 
 from gt.tools.batch_processor.tracker import tracker_columns
+from gt.tools.batch_processor.tracker import tracker_run_settings_dialog
 from gt.tools.batch_processor.tracker import tracker_title_bar
 from gt.tools.batch_processor.tracker import tracker_tree_model
 
@@ -690,7 +691,9 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
             "QWidget { background-color: #292929; border: 1px solid #424242; border-radius: 5px; }"
             "QLabel { background: transparent; border: none; }"
             "QPushButton { border-radius: 3px; padding: 4px 8px; }"
+            "QSpinBox { padding: 2px 4px 2px 7px; }"
         )
+        self.worker_limit_spin_box.setStyleSheet(tracker_run_settings_dialog.build_spin_box_stylesheet())
 
     def set_status_icon(self, icon_path, tooltip, accessible_name):
         """Updates the overall tracker status indicator.
@@ -717,16 +720,17 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
         self.status_icon_label.setToolTip(tooltip)
         self.status_icon_label.setAccessibleName(accessible_name)
 
-    def set_status_spinning(self, tooltip, accessible_name):
+    def set_status_spinning(self, tooltip, accessible_name, color=None):
         """Shows the animated processing indicator instead of a static status icon.
 
         Args:
             tooltip (str): Detailed hover text.
             accessible_name (str): Screen-reader description.
+            color (str, optional): Animation color. Defaults to the normal green.
         """
         self.status_icon_label.setToolTip(tooltip)
         self.status_icon_label.setAccessibleName(accessible_name)
-        self.status_spinner.start()
+        self.status_spinner.start(color=color)
 
     def set_logs_visible(self, visible):
         """Shows or hides the log panel.

@@ -353,6 +353,7 @@ class MotionData:
         self.roles = dict(sample.get("roles") or {})
         self.extra = dict(sample.get("extra") or {})
         self._positions = {}
+        self._rotations = {}
         self._reference_length = None
         self.cache = {}
 
@@ -412,6 +413,22 @@ class MotionData:
                 positions = [(position[0], position[2], -position[1]) for position in positions]
             self._positions[node_path] = positions
         return self._positions[node_path]
+
+    def get_rotations(self, node_path):
+        """Gets Y-up world rotation axes of a node (same space as get_positions).
+
+        Args:
+            node_path (str): Node path.
+
+        Returns:
+            list: Per frame, three unit axis vectors (X, Y, Z axes of the node in world space).
+        """
+        if node_path not in self._rotations:
+            rotations = [math_utils.matrix_rotation(matrix) for matrix in self.get_matrices(node_path)]
+            if self.up_axis == "z":
+                rotations = [[(axis[0], axis[2], -axis[1]) for axis in rotation] for rotation in rotations]
+            self._rotations[node_path] = rotations
+        return self._rotations[node_path]
 
     def get_extra(self, data_key):
         """Gets extra scene data collected for checks with required_data.

@@ -495,16 +495,17 @@ class TrackerCompactView(ui_qt.QtWidgets.QWidget):
         self.status_icon_label.setToolTip(tooltip)
         self.status_icon_label.setAccessibleName(accessible_name)
 
-    def set_status_spinning(self, tooltip, accessible_name):
+    def set_status_spinning(self, tooltip, accessible_name, color=None):
         """Shows the animated processing indicator instead of a static status icon.
 
         Args:
             tooltip (str): Detailed hover text.
             accessible_name (str): Screen-reader description.
+            color (str, optional): Animation color. Defaults to the normal green.
         """
         self.status_icon_label.setToolTip(tooltip)
         self.status_icon_label.setAccessibleName(accessible_name)
-        self.status_spinner.start()
+        self.status_spinner.start(color=color)
 
     def closeEvent(self, event):
         """Delegates close requests to the controller, which owns the close flow.

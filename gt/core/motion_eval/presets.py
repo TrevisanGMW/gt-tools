@@ -18,6 +18,8 @@ Preset layout (stored):
 from .checks_base import ParameterSpec, MODE_GENERAL, MODE_VALUES
 from .checks_general import GENERAL_CHECKS
 from .checks_biped import BIPED_CHECKS
+from .checks_limits import LIMIT_CHECKS
+from .checks_pose import POSE_CHECKS
 import hashlib
 import copy
 import json
@@ -34,7 +36,7 @@ SCORE_METHOD_MINIMUM = "minimum"
 SCORE_METHODS = [SCORE_METHOD_PENALTY_SUM, SCORE_METHOD_WEIGHTED_AVERAGE, SCORE_METHOD_MINIMUM]
 GROUND_MODES = ["auto", "fixed"]
 
-CHECK_DEFINITIONS = list(GENERAL_CHECKS) + list(BIPED_CHECKS)
+CHECK_DEFINITIONS = list(GENERAL_CHECKS) + list(BIPED_CHECKS) + list(LIMIT_CHECKS) + list(POSE_CHECKS)
 CHECKS_BY_KEY = {check.key: check for check in CHECK_DEFINITIONS}
 
 GLOBAL_PARAMETERS = [

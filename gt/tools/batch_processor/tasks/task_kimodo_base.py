@@ -11,6 +11,7 @@ import tempfile
 from functools import lru_cache, partial
 from contextlib import ExitStack, contextmanager
 from gt.core import io as core_io
+from gt.tools.batch_processor import batch_processor_input_metadata as input_metadata
 from gt.tools.batch_processor import batch_processor_task_base as base
 from gt.tools.batch_processor.tasks.task_clip import ClipSnapshotFileLock
 from gt.ui import resource_library as resources
@@ -148,6 +149,8 @@ class TaskKimodoBase(base.BatchTask):
             definition = None
             seed = 0
             samples = 1
+            variation = 1
+            variation_count = None
             if ".json" in self.extensions:
                 try:
                     definition = kimodo.normalize_definition(read_json(item.current_path))
@@ -164,11 +167,23 @@ class TaskKimodoBase(base.BatchTask):
                 if seed_policy == "fixed":
                     seed = int(self.settings.get("base_seed", 0))
                 elif seed_policy == "per_file":
-                    seed = int(fingerprint([int(self.settings.get("base_seed", 0)), identity, 1])[:8], 16)
+                    seed = derive_seed(int(self.settings.get("base_seed", 0)), identity, 1)
+                elif seed_policy == "list":
+                    try:
+                        variation_count, plan = self.get_seed_plan(project, item, evaluate_queries=False)
+                    except (ValueError, TypeError) as error:
+                        self.add_area_error(result, "Variations", f"{item.current_path}: {error}")
+                        continue
+                    if not plan:
+                        continue
+                    variation, seed = plan[0]
+                    if seed is None:
+                        seed = derive_seed(int(self.settings.get("base_seed", 0)), identity, variation)
                 else:
                     seed = int(fingerprint([self.id, identity])[:8], 16)
             try:
-                path = self.output_path(item, step_output_dir, seed=seed, samples=samples, definition=definition)
+                path = self.output_path(item, step_output_dir, variation=variation, seed=seed, samples=samples,
+                                        definition=definition, variation_count=variation_count)
             except (ValueError, OSError) as error:
                 self.add_area_error(result, self.output_section_name, error)
                 continue
@@ -217,7 +232,32 @@ class TaskKimodoBase(base.BatchTask):
         if not self.writes_to_target_path():
             raise ValueError("Kimodo tasks cannot modify inputs in place or pass through.")
 
-    def output_path(self, item, directory, variation=1, seed=0, sample=1, samples=1, definition=None):
+    def get_seed_plan(self, project, work_item=None, evaluate_queries=True):
+        """Resolves which definitions to create and which seeds they use.
+
+        Only the "list" seed policy reads the Seed list setting. Its text may use project and
+        per-input variables, such as {input-meta-seed}; an empty result keeps the repeatable
+        per-file seeds for every definition.
+
+        Args:
+            project (BatchProcessorModel): Owning project.
+            work_item (WorkItem, optional): Input whose variables resolve the list.
+            evaluate_queries (bool, optional): Whether query variables can run now.
+
+        Returns:
+            tuple: Definition count for naming (int) and (variation, seed) pairs (list), where
+                seed is None when the policy decides it.
+        """
+        variations = int(self.settings.get("variations", 1))
+        if self.settings.get("seed_policy", "per_file") != "list":
+            return variations, [(variation, None) for variation in range(1, variations + 1)]
+        text = resolve_motion_text(str(self.settings.get("seed_list") or ""), project, self,
+                                   work_item=work_item, evaluate_queries=evaluate_queries)
+        text = input_metadata.replace_metadata_variables(text, {})
+        return build_seed_plan(parse_seed_list(text), variations)
+
+    def output_path(self, item, directory, variation=1, seed=0, sample=1, samples=1, definition=None,
+                    variation_count=None):
         """Builds an owned output path while preserving source-relative folders.
 
         Args:
@@ -228,6 +268,8 @@ class TaskKimodoBase(base.BatchTask):
             sample (int): Sample index.
             samples (int): Number of samples.
             definition (dict, optional): Resolved Kimodo definition for descriptive name tokens.
+            variation_count (int, optional): Definition count used for the variation suffix;
+                defaults to the Definitions per file setting.
 
         Returns:
             str: Output path.
@@ -237,7 +279,7 @@ class TaskKimodoBase(base.BatchTask):
             source_name = re.sub(r"_v[0-9]+$", "", source_name, flags=re.IGNORECASE)
         name = output_name(
             self.settings["name_pattern"], source_name,
-            variation, seed, sample, int(self.settings.get("variations", 1)), samples,
+            variation, seed, sample, int(variation_count or self.settings.get("variations", 1)), samples,
             suffix=self.settings.get("filename_suffix", ""), definition=definition,
             append_variation_suffix=self.settings.get("include_version_suffix", True))
         extension = self.settings.get("output_extension", ".json")
@@ -642,6 +684,80 @@ def write_record(path, record):
     kimodo._write_json(path, record)
 
 
+SEED_LIST_REPEATABLE = "*"
+SEED_LIST_SKIP = "-"
+MAX_SEED_LIST_ENTRIES = 1000
+
+
+def parse_seed_list(text):
+    """Parses a seed list such as "[123, 456, 789]", "*, *, 517" or "-, -, 789".
+
+    Entry N applies to definition N. A whole number is used as that definition's exact seed,
+    "*" keeps the repeatable per-file seed, and "-" skips that definition.
+
+    Args:
+        text (str): Resolved seed list text; commas, semicolons, spaces, and brackets are accepted.
+
+    Returns:
+        list: One int seed, "*", or "-" per definition position.
+
+    Raises:
+        ValueError: If an entry is not a 32-bit unsigned seed, "*", or "-".
+    """
+    stripped = str(text or "").strip()
+    if stripped.startswith("[") and stripped.endswith("]"):
+        stripped = stripped[1:-1]
+    entries = []
+    for token in re.split(r"[\s,;]+", stripped):
+        if not token:
+            continue
+        if token in (SEED_LIST_REPEATABLE, SEED_LIST_SKIP):
+            entries.append(token)
+            continue
+        if not re.fullmatch(r"[0-9]+", token) or int(token) >= 2 ** 32:
+            raise ValueError(f'Seed list entry "{token}" must be a seed from 0 to 4294967295, '
+                             f'"{SEED_LIST_REPEATABLE}" (repeatable seed), or "{SEED_LIST_SKIP}" (skip).')
+        entries.append(int(token))
+    if len(entries) > MAX_SEED_LIST_ENTRIES:
+        raise ValueError(f"Seed lists support at most {MAX_SEED_LIST_ENTRIES} entries.")
+    return entries
+
+
+def build_seed_plan(entries, variations):
+    """Builds the definitions to create from parsed seed list entries.
+
+    Args:
+        entries (list): Parsed entries from parse_seed_list.
+        variations (int): Definitions per file; positions past the list keep repeatable seeds.
+
+    Returns:
+        tuple: Definition count used for naming (int) and the planned definitions (list of
+            (variation, seed) pairs, where seed is None for the repeatable per-file seed).
+    """
+    count = max(int(variations), len(entries))
+    plan = []
+    for variation in range(1, count + 1):
+        entry = entries[variation - 1] if variation <= len(entries) else SEED_LIST_REPEATABLE
+        if entry == SEED_LIST_SKIP:
+            continue
+        plan.append((variation, None if entry == SEED_LIST_REPEATABLE else entry))
+    return count, plan
+
+
+def derive_seed(base_seed, identity, variation):
+    """Derives the repeatable per-file seed for one definition.
+
+    Args:
+        base_seed (int): Task base seed.
+        identity (str): Stable source-relative identity.
+        variation (int): One-based definition index.
+
+    Returns:
+        int: Unsigned 32-bit seed.
+    """
+    return int(fingerprint([base_seed, identity, variation])[:8], 16)
+
+
 def fingerprint(data):
     """Hashes JSON data deterministically.
 
@@ -774,7 +890,7 @@ def resolve_motion_text(text, project=None, task=None, work_item=None, evaluate_
             str: Project value or the unchanged placeholder.
         """
         key = match.group(1).lower().replace("_", "-")
-        if key in RUNTIME_KEYS or key not in variables:
+        if key in RUNTIME_KEYS or input_metadata.is_metadata_variable_key(key) or key not in variables:
             return match.group(0)
         return str(variables[key] if variables[key] is not None else "")
 
@@ -795,6 +911,7 @@ def resolve_motion_text(text, project=None, task=None, work_item=None, evaluate_
         "input-file-stem": os.path.splitext(filename)[0],
         "input-file-path": work_item.current_path,
     }
+    values.update(input_metadata.build_environment_values(work_item.metadata.get(input_metadata.METADATA_KEY)))
 
     def replace_runtime_variable(match):
         """Inserts a runtime value once without expanding placeholders in its content.
@@ -826,6 +943,7 @@ def uses_runtime_variables(text, project=None):
         runtime_keys.update(name for name, definition in project.custom_environment_variables.items()
                             if definition.get("query"))
     return any(match.group(1).lower().replace("_", "-") in runtime_keys
+               or input_metadata.is_metadata_variable_key(match.group(1).lower().replace("_", "-"))
                for match in VARIABLE_PATTERN.finditer(text))
 
 

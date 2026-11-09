@@ -8,6 +8,7 @@ tool remains usable without loading the UI.
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_tasks as tasks
 from gt.tools.batch_processor import batch_processor_run_state as run_state
+from gt.tools.batch_processor import batch_processor_input_metadata as input_metadata
 import copy
 import datetime
 import json
@@ -296,7 +297,9 @@ class BatchProcessorModel:
         """
         if not is_valid_custom_environment_name(name):
             return False
-        return normalize_environment_key(name) not in _RESERVED_ENVIRONMENT_KEYS
+        normalized_name = normalize_environment_key(name)
+        return (normalized_name not in _RESERVED_ENVIRONMENT_KEYS
+                and not input_metadata.is_metadata_variable_key(normalized_name))
 
     @staticmethod
     def get_reserved_environment_keys():
@@ -400,7 +403,7 @@ class BatchProcessorModel:
                 """
                 key = normalize_environment_key(match.group(1))
                 key = _LEGACY_INDEX_ENVIRONMENT_ALIASES.get(key, key)
-                if key in ("input-file", "input-string"):
+                if key in ("input-file", "input-string") or input_metadata.is_metadata_variable_key(key):
                     return match.group(0)
                 if key not in environment_variables:
                     return match.group(0)
@@ -411,12 +414,13 @@ class BatchProcessorModel:
                 break
             resolved = new_resolved
         runtime_values = getattr(self, "_input_string_environment", {})
-        return re.sub(
+        resolved = re.sub(
             r"\{input[-_](file|string)\}",
             lambda match: str(runtime_values.get(f"input-{match.group(1).lower()}", "")),
             resolved,
             flags=re.IGNORECASE,
         )
+        return input_metadata.replace_metadata_variables(resolved, runtime_values)
 
     def resolve_template_path(self, path, task=None, task_index=None, include_neighbor_paths=True):
         """Resolves a path after expanding batch environment variables.
@@ -1344,6 +1348,7 @@ class BatchProcessorModel:
             if (
                 not _CUSTOM_ENVIRONMENT_NAME_PATTERN.match(formatted_name)
                 or normalized_name in _RESERVED_ENVIRONMENT_KEYS
+                or input_metadata.is_metadata_variable_key(normalized_name)
             ):
                 continue
             if isinstance(raw_definition, dict):

@@ -23,6 +23,9 @@ logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+# Run-once tasks of these types reuse incoming items instead of loading input files.
+RUN_ONCE_PASSTHROUGH_TASK_TYPES = (constants.TaskType.PYTHON_SCRIPT, constants.TaskType.COMMAND)
+
 
 class SingleInstanceBatchRunner:
     """Runs enabled tasks in one Python process."""
@@ -272,7 +275,7 @@ class SingleInstanceBatchRunner:
         Returns:
             list: Work items to feed into this task.
         """
-        if task.task_type == constants.TaskType.PYTHON_SCRIPT and getattr(task, "is_aggregate_task", False):
+        if task.task_type in RUN_ONCE_PASSTHROUGH_TASK_TYPES and getattr(task, "is_aggregate_task", False):
             return list(current_items)
         if task.uses_incoming_files() and current_items:
             return current_items

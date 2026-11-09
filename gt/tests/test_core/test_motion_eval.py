@@ -81,6 +81,23 @@ def build_matrix(position):
     return [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, position[0], position[1], position[2], 1.0]
 
 
+def build_rotated_matrix(position, axis, degrees):
+    """Builds a matrix rotated around an axis at a position.
+
+    Args:
+        position (tuple): Translation.
+        axis (tuple): Unit rotation axis.
+        degrees (float): Rotation angle in degrees.
+
+    Returns:
+        list: Sixteen matrix values.
+    """
+    rows = [math_utils.rotate_vector(basis, axis, math.radians(degrees))
+            for basis in ((1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0))]
+    return [rows[0][0], rows[0][1], rows[0][2], 0.0, rows[1][0], rows[1][1], rows[1][2], 0.0,
+            rows[2][0], rows[2][1], rows[2][2], 0.0, position[0], position[1], position[2], 1.0]
+
+
 def build_idle_positions(frame_count=FRAME_COUNT):
     """Builds a gentle standing idle: smooth upper-body sway, planted feet.
 
@@ -99,21 +116,30 @@ def build_idle_positions(frame_count=FRAME_COUNT):
     return positions
 
 
-def build_sample(positions, meters_per_unit=0.01):
+def build_sample(positions, meters_per_unit=0.01, rotations=None):
     """Builds a sample dictionary from role positions.
 
     Args:
         positions (dict): Role to positions.
         meters_per_unit (float): Scene unit size.
+        rotations (dict, optional): Role to {frame index: (axis, degrees)} rotations. Other frames use identity.
 
     Returns:
         dict: Sample dictionary.
     """
+    rotations = rotations or {}
     nodes = {}
     for role, role_positions in positions.items():
         parent = PARENTS.get(role)
+        role_rotations = rotations.get(role) or {}
+        matrices = []
+        for index, position in enumerate(role_positions):
+            if index in role_rotations:
+                matrices.append(build_rotated_matrix(position, *role_rotations[index]))
+            else:
+                matrices.append(build_matrix(position))
         nodes[f"|{role}_jnt"] = {
-            "matrices": [build_matrix(position) for position in role_positions],
+            "matrices": matrices,
             "parent": f"|{parent}_jnt" if parent else None,
         }
     return {
@@ -408,7 +434,7 @@ class TestMotionEvalEvaluation(unittest.TestCase):
 
     def test_every_enabled_check_records_a_series(self):
         preset = self.biped_preset
-        for check_key in ("balance", "gait_asymmetry", "below_ground"):
+        for check_key in ("balance", "gait_asymmetry", "below_ground", "t_pose", "elbow_side_bend"):
             preset = presets.set_check_value(preset, check_key, "enabled", True)
         report = evaluation.evaluate_sample(build_sample(build_idle_positions()), preset, include_series=True)
         missing = [entry["key"] for entry in report["checks"] if not entry.get("chart")]
@@ -425,6 +451,259 @@ class TestMotionEvalEvaluation(unittest.TestCase):
         preset = presets.set_global_value(self.biped_preset, "ignore_ranges", "10-12")
         report = evaluation.evaluate_sample(build_sample(build_idle_positions()), preset)
         self.assertEqual([[10, 12]], report["ignored_ranges"])
+
+
+def set_limb_bend(positions, side, parts, index, upper_length, lower_length, bend, side_angle=0.0,
+                  bend_direction=1.0):
+    """Places a straight-down limb bent forward (or backward) and optionally sideways on one frame.
+
+    Args:
+        positions (dict): Role to positions (edited in place).
+        side (str): "left" or "right".
+        parts (tuple): Upper, middle, and lower role suffixes.
+        index (int): Frame index.
+        upper_length (float): Upper bone length.
+        lower_length (float): Lower bone length.
+        bend (float): Bend in degrees towards bend_direction (negative bends the other way).
+        side_angle (float): Sideways angle out of the bend plane, in degrees.
+        bend_direction (float): 1.0 bends towards +Z (elbows), -1.0 towards -Z (knees).
+    """
+    upper_role, middle_role, lower_role = [f"{side}_{part}" for part in parts]
+    start = positions[upper_role][index]
+    middle = (start[0], start[1] - upper_length, start[2])
+    bend_radians = math.radians(bend)
+    side_radians = math.radians(side_angle)
+    direction = (math.sin(side_radians), -math.cos(side_radians) * math.cos(bend_radians),
+                 bend_direction * math.cos(side_radians) * math.sin(bend_radians))
+    positions[middle_role][index] = middle
+    positions[lower_role][index] = math_utils.add(middle, math_utils.scale(direction, lower_length))
+
+
+def set_arm_elevation(positions, index, elevation):
+    """Places both arms straight and sideways at an elevation on one frame.
+
+    Args:
+        positions (dict): Role to positions (edited in place).
+        index (int): Frame index.
+        elevation (float): Degrees above horizontal (0 = T-pose, -80 = arms down).
+    """
+    radians = math.radians(elevation)
+    for side, side_sign in (("left", 1.0), ("right", -1.0)):
+        shoulder = positions[f"{side}_arm"][index]
+        direction = (side_sign * math.cos(radians), math.sin(radians), 0.0)
+        positions[f"{side}_forearm"][index] = math_utils.add(shoulder, math_utils.scale(direction, 27.0))
+        positions[f"{side}_hand"][index] = math_utils.add(shoulder, math_utils.scale(direction, 50.0))
+
+
+def build_elevation_positions(elevations):
+    """Builds an idle whose straight arms follow an elevation per frame.
+
+    Args:
+        elevations (list): Arm elevation in degrees per frame.
+
+    Returns:
+        dict: Role to positions.
+    """
+    positions = build_idle_positions(frame_count=len(elevations))
+    for index, elevation in enumerate(elevations):
+        set_arm_elevation(positions, index, elevation)
+    return positions
+
+
+def ramp(start_value, end_value, count):
+    """Builds evenly spaced values.
+
+    Args:
+        start_value (float): First value.
+        end_value (float): Last value.
+        count (int): Number of values.
+
+    Returns:
+        list: Values from start to end.
+    """
+    return [start_value + (end_value - start_value) * step / max(count - 1, 1) for step in range(count)]
+
+
+class TestMotionEvalDirections(unittest.TestCase):
+    def test_signed_angle_around_axis(self):
+        self.assertAlmostEqual(90.0, math_utils.signed_angle((1, 0, 0), (0, 1, 0), (0, 0, 1)))
+        self.assertAlmostEqual(-90.0, math_utils.signed_angle((1, 0, 0), (0, 1, 0), (0, 0, -1)))
+
+    def test_rotate_from_to(self):
+        result = math_utils.rotate_from_to((0, 0, 1), (1, 0, 0), (0, 1, 0))
+        for expected, value in zip((0.0, 0.0, 1.0), result):
+            self.assertAlmostEqual(expected, value)
+
+    def test_local_world_round_trip(self):
+        rotation = math_utils.matrix_rotation(build_rotated_matrix((0, 0, 0), (0.0, 1.0, 0.0), 35.0))
+        vector = (0.3, -0.2, 0.9)
+        result = math_utils.to_world(rotation, math_utils.to_local(rotation, vector))
+        for expected, value in zip(vector, result):
+            self.assertAlmostEqual(expected, value)
+
+    def test_circular_median_wraps(self):
+        self.assertAlmostEqual(180.0, abs(math_utils.circular_median_degrees([170.0, -170.0, 180.0])))
+
+    def test_perpendicular_vector(self):
+        direction = math_utils.normalize((0.2, -0.9, 0.1))
+        self.assertAlmostEqual(0.0, math_utils.dot(direction, math_utils.perpendicular_vector(direction)))
+
+
+class TestMotionEvalJointLimits(unittest.TestCase):
+    def setUp(self):
+        self.biped_preset = presets.create_preset(mode=checks_base.MODE_BIPED)
+
+    def evaluate(self, positions, rotations=None, preset=None):
+        """Evaluates a synthetic clip.
+
+        Args:
+            positions (dict): Role to positions.
+            rotations (dict, optional): See build_sample.
+            preset (dict, optional): Preset; defaults to the biped preset.
+
+        Returns:
+            dict: Report.
+        """
+        return evaluation.evaluate_sample(build_sample(positions, rotations=rotations), preset or self.biped_preset)
+
+    def test_idle_passes_every_limit(self):
+        report = self.evaluate(build_idle_positions())
+        for check_key in ("elbow_hyperextension", "knee_side_bend", "wrist_bend", "forearm_twist", "head_turn"):
+            self.assertEqual(checks_base.STATUS_PASSED, get_check_entry(report, check_key)["status"])
+
+    def test_unbent_hinge_is_reported_not_measured(self):
+        entry = get_check_entry(self.evaluate(build_idle_positions()), "elbow_hyperextension")
+        self.assertIn("never bends", entry["details"][0])
+
+    def test_elbow_hyperextension_is_detected(self):
+        positions = build_idle_positions()
+        for index in range(FRAME_COUNT):
+            bend = -45.0 if 60 <= index < 80 else 70.0
+            set_limb_bend(positions, "left", ("arm", "forearm", "hand"), index, 27.0, 23.0, bend)
+        preset = presets.set_check_value(self.biped_preset, "elbow_side_bend", "enabled", True)
+        report = self.evaluate(positions, preset=preset)
+        entry = get_check_entry(report, "elbow_hyperextension")
+        self.assertEqual(20, entry["flagged_frames"])
+        self.assertEqual("left elbow", entry["offenders"][0]["name"])
+        self.assertEqual(0, get_check_entry(report, "elbow_side_bend")["flagged_frames"])
+
+    def test_elbow_side_bend_is_detected(self):
+        positions = build_idle_positions()
+        for index in range(FRAME_COUNT):
+            side_angle = 70.0 if 60 <= index < 80 else 0.0
+            set_limb_bend(positions, "left", ("arm", "forearm", "hand"), index, 27.0, 23.0, 70.0, side_angle)
+        preset = presets.set_check_value(self.biped_preset, "elbow_side_bend", "enabled", True)
+        report = self.evaluate(positions, preset=preset)
+        self.assertEqual(20, get_check_entry(report, "elbow_side_bend")["flagged_frames"])
+        self.assertEqual(0, get_check_entry(report, "elbow_hyperextension")["flagged_frames"])
+
+    def test_knee_side_bend_is_detected(self):
+        positions = build_idle_positions()
+        for index in range(FRAME_COUNT):
+            side_angle = 55.0 if 60 <= index < 80 else 0.0
+            set_limb_bend(positions, "left", ("up_leg", "leg", "foot"), index, 42.0, 40.0, 60.0, side_angle,
+                          bend_direction=-1.0)
+        entry = get_check_entry(self.evaluate(positions), "knee_side_bend")
+        self.assertEqual(20, entry["flagged_frames"])
+        self.assertEqual("left knee", entry["offenders"][0]["name"])
+
+    def test_wrist_bend_is_detected(self):
+        rotations = {"left_hand": {index: ((1.0, 0.0, 0.0), 120.0) for index in range(40, 60)}}
+        report = self.evaluate(build_idle_positions(), rotations)
+        entry = get_check_entry(report, "wrist_bend")
+        self.assertEqual(20, entry["flagged_frames"])
+        self.assertEqual("left wrist", entry["offenders"][0]["name"])
+
+    def test_forearm_twist_is_detected_without_wrist_bend(self):
+        rest = REST_POSE
+        axis = math_utils.normalize(math_utils.subtract(rest["left_hand"], rest["left_forearm"]))
+        rotations = {"left_hand": {index: (axis, 150.0) for index in range(40, 60)}}
+        report = self.evaluate(build_idle_positions(), rotations)
+        entry = get_check_entry(report, "forearm_twist")
+        self.assertEqual(20, entry["flagged_frames"])
+        self.assertEqual("left forearm", entry["offenders"][0]["name"])
+        self.assertEqual(0, get_check_entry(report, "wrist_bend")["flagged_frames"])
+
+    def test_head_turn_is_detected(self):
+        rotations = {"head": {index: ((0.0, 1.0, 0.0), 130.0) for index in range(40, 60)}}
+        entry = get_check_entry(self.evaluate(build_idle_positions(), rotations), "head_turn")
+        self.assertEqual(20, entry["flagged_frames"])
+
+    def test_limits_match_in_z_up(self):
+        rotations = {"head": {index: ((0.0, 1.0, 0.0), 130.0) for index in range(40, 60)}}
+        sample = build_sample(build_idle_positions(), rotations=rotations)
+        for node in sample["nodes"].values():
+            converted = []
+            for matrix in node["matrices"]:
+                rows = [matrix[0:3], matrix[4:7], matrix[8:11], matrix[12:15]]
+                rows = [(row[0], -row[2], row[1]) for row in rows]
+                converted.append([rows[0][0], rows[0][1], rows[0][2], 0.0, rows[1][0], rows[1][1], rows[1][2], 0.0,
+                                  rows[2][0], rows[2][1], rows[2][2], 0.0, rows[3][0], rows[3][1], rows[3][2], 1.0])
+            node["matrices"] = converted
+        sample["up_axis"] = "z"
+        report = evaluation.evaluate_sample(sample, self.biped_preset)
+        self.assertEqual(20, get_check_entry(report, "head_turn")["flagged_frames"])
+
+    def test_missing_arm_roles_skip_arm_limits(self):
+        positions = build_idle_positions()
+        for role in ("left_hand", "right_hand"):
+            positions.pop(role)
+        entry = get_check_entry(self.evaluate(positions), "wrist_bend")
+        self.assertEqual(checks_base.STATUS_SKIPPED, entry["status"])
+
+
+class TestMotionEvalTPose(unittest.TestCase):
+    def setUp(self):
+        self.preset = presets.set_check_value(presets.create_preset(mode=checks_base.MODE_BIPED),
+                                              "t_pose", "enabled", True)
+
+    def evaluate(self, elevations, **parameters):
+        """Evaluates a clip of straight arms at the given elevations.
+
+        Args:
+            elevations (list): Arm elevation per frame.
+            **parameters: T-pose parameter overrides.
+
+        Returns:
+            dict: T-pose check entry.
+        """
+        preset = self.preset
+        for key, value in parameters.items():
+            preset = presets.set_check_value(preset, "t_pose", key, value)
+        report = evaluation.evaluate_sample(build_sample(build_elevation_positions(elevations)), preset)
+        return get_check_entry(report, "t_pose")
+
+    def test_off_by_default(self):
+        self.assertFalse(presets.get_check_defaults("t_pose")["enabled"])
+
+    def test_held_t_pose_at_start_is_detected(self):
+        entry = self.evaluate([0.0] * 30 + ramp(0.0, -80.0, 10) + [-80.0] * 50)
+        self.assertEqual(1, entry["events"])
+        self.assertEqual(1, entry["spans"][0][0])
+        self.assertEqual(checks_base.STATUS_FAILED, entry["status"])
+
+    def test_held_t_pose_at_end_is_detected(self):
+        entry = self.evaluate([-80.0] * 50 + ramp(-80.0, 0.0, 10) + [0.0] * 30)
+        self.assertEqual(1, entry["events"])
+        self.assertEqual(90, entry["spans"][0][1])
+
+    def test_middle_t_pose_needs_search_anywhere(self):
+        elevations = [-80.0] * 25 + ramp(-80.0, 0.0, 10) + [0.0] * 20 + ramp(0.0, -80.0, 10) + [-80.0] * 25
+        self.assertEqual(0, self.evaluate(elevations, edge_seconds=0.5)["events"])
+        self.assertEqual(1, self.evaluate(elevations, search="anywhere")["events"])
+
+    def test_passing_through_t_pose_is_ignored(self):
+        elevations = [-80.0] * 30 + ramp(-80.0, 80.0, 15) + ramp(80.0, -80.0, 15) + [-80.0] * 30
+        self.assertEqual(0, self.evaluate(elevations, search="anywhere")["events"])
+
+    def test_a_pose_needs_pose_type(self):
+        elevations = [-45.0] * 30 + ramp(-45.0, -80.0, 10) + [-80.0] * 50
+        self.assertEqual(0, self.evaluate(elevations)["events"])
+        self.assertEqual(1, self.evaluate(elevations, pose_type="both")["events"])
+        self.assertEqual(1, self.evaluate(elevations, pose_type="a")["events"])
+
+    def test_arms_down_idle_is_not_a_pose(self):
+        self.assertEqual(0, self.evaluate([-80.0] * FRAME_COUNT, search="anywhere")["events"])
 
 
 class TestMotionEvalGraphs(unittest.TestCase):

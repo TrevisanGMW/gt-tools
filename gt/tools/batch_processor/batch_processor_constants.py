@@ -48,6 +48,7 @@ class TaskType:
     INPUT = "input"
     INPUT_STRINGS = "input_strings"
     INPUT_PAIRS = "input_pairs"
+    INPUT_METADATA = "input_metadata"
     MAYA_IMPORT = "import_maya"
     RENAME = "rename"
     PYTHON_SCRIPT = "python_script"
@@ -81,6 +82,7 @@ class TaskType:
     BATCH_RENDER = "output_batch_render"
     RUN_BATCH_PROJECT = "run_batch_project"
     SETTINGS_OVERRIDE = "settings_override"
+    COMMAND = "command"
 
 
 class ModuleType(TaskType):

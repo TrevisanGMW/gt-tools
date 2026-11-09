@@ -1320,6 +1320,14 @@ def get_task_widget_class(task):
         from gt.tools.batch_processor.widgets.attr_widget_run_batch_project import AttrWidgetRunBatchProject
 
         return AttrWidgetRunBatchProject
+    if task.task_type == constants.TaskType.INPUT_METADATA:
+        from gt.tools.batch_processor.widgets.attr_widget_input_metadata import AttrWidgetInputMetadataTask
+
+        return AttrWidgetInputMetadataTask
+    if task.task_type == constants.TaskType.COMMAND:
+        from gt.tools.batch_processor.widgets.attr_widget_command import AttrWidgetCommandTask
+
+        return AttrWidgetCommandTask
     if task.task_type == constants.TaskType.SETTINGS_OVERRIDE:
         from gt.tools.batch_processor.widgets.attr_widget_settings_override import AttrWidgetSettingsOverrideTask
 

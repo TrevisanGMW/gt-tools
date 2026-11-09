@@ -260,6 +260,7 @@ environments and custom queries for compatibility.</p>
   <li><b>Python:</b> Runs inline Python or a configured Python script.</li>
   <li><b>Rename:</b> Applies a consistent name to the current work item.</li>
   <li><b>Map Hierarchy:</b> Maps relationships between source and target hierarchies.</li>
+  <li><b>Command:</b> Runs a program or shell command (System Shell or PowerShell) and streams its output into the batch log. Supports arguments, a working directory, extra environment variables, accepted exit codes, and a Fail/Warning/Ignore failure action. <b>Wait Until Ready</b> waits for a URL, port, file, or check command (for example, start a Docker container and wait for its health URL). <b>Launch And Continue</b> opens a program without waiting for it. Runs once per item, or once before or after all jobs.</li>
   <li><b>MotionBuilder:</b> Runs a script in MotionBuilder.</li>
   <li><b>Blender:</b> Runs a script in Blender.</li>
   <li><b>Unreal Engine:</b> Runs a script in Unreal when the executable is configured.</li>

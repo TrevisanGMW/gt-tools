@@ -8,10 +8,12 @@ SPINNER_STEP_DEGREES = 30
 SPINNER_ARC_DEGREES = 110
 SPINNER_TRACK_COLOR = "#3f8f5f"
 SPINNER_ARC_COLOR = "#5fd08a"
+SPINNER_WARNING_COLOR = "#ffcc32"
+SPINNER_ERROR_COLOR = "#f44336"
 
 
 class StatusSpinner(ui_qt.QtCore.QObject):
-    """Rotates a green arc inside a label while a batch is processing."""
+    """Rotates a colored arc inside a label while a batch is processing."""
 
     def __init__(self, label, size_getter):
         """Initializes the spinner without starting it.
@@ -24,6 +26,7 @@ class StatusSpinner(ui_qt.QtCore.QObject):
         self.label = label
         self.size_getter = size_getter
         self.angle = 0
+        self.color = SPINNER_ARC_COLOR
         self.timer = ui_qt.QtCore.QTimer(self)
         self.timer.setInterval(SPINNER_INTERVAL_MS)
         self.timer.timeout.connect(self._advance)
@@ -36,12 +39,19 @@ class StatusSpinner(ui_qt.QtCore.QObject):
         """
         return self.timer.isActive()
 
-    def start(self):
-        """Starts the animation; calling it while running is a no-op."""
-        if self.timer.isActive():
+    def start(self, color=None):
+        """Starts or recolors the animation without resetting its rotation.
+
+        Args:
+            color (str, optional): Arc color. Defaults to the normal green.
+        """
+        color = color or SPINNER_ARC_COLOR
+        if self.timer.isActive() and self.color == color:
             return
+        self.color = color
         self._render()
-        self.timer.start()
+        if not self.timer.isActive():
+            self.timer.start()
 
     def stop(self):
         """Stops the animation."""
@@ -65,12 +75,13 @@ class StatusSpinner(ui_qt.QtCore.QObject):
         pen_width = max(2.0, edge * 0.14)
         inset = pen_width / 2.0 + 1
         rectangle = ui_qt.QtCore.QRectF(inset, inset, edge - inset * 2, edge - inset * 2)
-        track_color = ui_qt.QtGui.QColor(SPINNER_TRACK_COLOR)
+        track_color_name = SPINNER_TRACK_COLOR if self.color == SPINNER_ARC_COLOR else self.color
+        track_color = ui_qt.QtGui.QColor(track_color_name)
         track_color.setAlpha(80)
         track_pen = ui_qt.QtGui.QPen(track_color, pen_width)
         painter.setPen(track_pen)
         painter.drawEllipse(rectangle)
-        arc_pen = ui_qt.QtGui.QPen(ui_qt.QtGui.QColor(SPINNER_ARC_COLOR), pen_width)
+        arc_pen = ui_qt.QtGui.QPen(ui_qt.QtGui.QColor(self.color), pen_width)
         arc_pen.setCapStyle(ui_qt.QtCore.Qt.RoundCap)
         painter.setPen(arc_pen)
         painter.drawArc(rectangle, self.angle * 16, SPINNER_ARC_DEGREES * 16)

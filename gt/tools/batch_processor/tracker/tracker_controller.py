@@ -17,6 +17,7 @@ from gt.tools.batch_processor.tracker import tracker_constants
 from gt.tools.batch_processor.tracker import tracker_model
 from gt.tools.batch_processor.tracker import tracker_system_stats
 from gt.tools.batch_processor.tracker import tracker_sounds
+from gt.tools.batch_processor.tracker import tracker_spinner
 from gt.tools.batch_processor.tracker import tracker_window_manager
 from gt.tools.batch_processor.tracker import tracker_tree_model
 
@@ -483,12 +484,12 @@ class TrackerController:
         """
         if self.preview_mode:
             self.view.set_status_icon(
-                ui_res_lib.Icon.ui_grey_circle,
+                ui_res_lib.Icon.ui_sleep,
                 "Preferences preview — no batch is running.",
                 "Tracker status: Preferences preview",
             )
             self.compact_view.set_status_icon(
-                ui_res_lib.Icon.ui_grey_circle,
+                ui_res_lib.Icon.ui_sleep,
                 "Preferences preview — no batch is running.",
                 "Tracker status: Preferences preview",
             )
@@ -535,7 +536,7 @@ class TrackerController:
         )
         status_data = {
             tracker_constants.HealthState.STARTING: (
-                ui_res_lib.Icon.ui_grey_circle,
+                ui_res_lib.Icon.ui_sleep,
                 "Starting — preparing the worker queue.",
                 "Tracker status: Starting",
             ),
@@ -554,9 +555,14 @@ class TrackerController:
             tracker_constants.HealthState.ABORTED: aborted_status,
         }
         icon_path, tooltip, accessible_name = status_data[state]
-        if state == tracker_constants.HealthState.RUNNING:
-            self.view.set_status_spinning(tooltip, accessible_name)
-            self.compact_view.set_status_spinning(tooltip, accessible_name)
+        spinner_colors = {
+            tracker_constants.HealthState.RUNNING: None,
+            tracker_constants.HealthState.WARNING: tracker_spinner.SPINNER_WARNING_COLOR,
+            tracker_constants.HealthState.ERROR: tracker_spinner.SPINNER_ERROR_COLOR,
+        }
+        if not self.session.finished and state in spinner_colors:
+            self.view.set_status_spinning(tooltip, accessible_name, color=spinner_colors[state])
+            self.compact_view.set_status_spinning(tooltip, accessible_name, color=spinner_colors[state])
             return
         self.view.set_status_icon(icon_path, tooltip, accessible_name)
         self.compact_view.set_status_icon(icon_path, tooltip, accessible_name)

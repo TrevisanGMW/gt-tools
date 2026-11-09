@@ -18,7 +18,7 @@ from gt.tools.batch_processor import batch_processor_task_base as base
 from gt.tools.batch_processor.batch_processor_item_context import is_string_scene
 from gt.tools.batch_processor.tasks.task_kimodo_base import (
     TaskKimodoBase, ClipSnapshotFileLock, report_message, write_record, read_json, fingerprint, resolve_path,
-    resolve_motion_text, uses_runtime_variables, parse_motion_text,
+    resolve_motion_text, uses_runtime_variables, parse_motion_text, derive_seed, parse_seed_list,
 )
 from gt.tools.batch_processor.tasks import task_utils
 
@@ -56,7 +56,7 @@ class TaskKimodoDefinition(TaskKimodoBase):
             root_heading="none", root_heading_offset=0.0,
             model_fps=30, duration_mode="source",
             retime_constraints=False, constraint_mode="replace", variations=1, seed_policy="per_file",
-            base_seed=12345, variation_ranges="{}", prompt_choices="", prompt_replacements=[],
+            base_seed=12345, seed_list="", variation_ranges="{}", prompt_choices="", prompt_replacements=[],
             output_extension=".json", use_input_string=False, prompt_mode="table", prompt_text="",
         )
         return settings
@@ -203,13 +203,18 @@ class TaskKimodoDefinition(TaskKimodoBase):
             if "duration_seconds" in ranges and not self.settings["retime_constraints"]:
                 raise ValueError("Duration variation requires Retime Constraints.")
             vary_definition(definition, self.settings, "validation", 1)
+            if self.settings.get("seed_policy") == "list":
+                seed_text = resolve_motion_text(str(self.settings.get("seed_list") or ""), project, self,
+                                                evaluate_queries=False)
+                if not uses_runtime_variables(seed_text, project):
+                    parse_seed_list(seed_text)
         except (ValueError, TypeError, KeyError, OSError) as error:
             self.add_area_error(result, area, error)
         if not isinstance(self.settings.get("purge_cache_on_success", True), bool):
             self.add_area_error(result, "Recovery", "Purge cache after success must be enabled or disabled.")
         return result
 
-    def build_definitions(self, captured, definition, identity, report=None):
+    def build_definitions(self, captured, definition, identity, report=None, plan=None):
         """Applies timing, captured constraints, and deterministic variations.
 
         Args:
@@ -217,25 +222,33 @@ class TaskKimodoDefinition(TaskKimodoBase):
             definition (dict): Base generation request.
             identity (str): Stable source identity.
             report (callable, optional): Status reporter for selected curve paths.
+            plan (list, optional): (variation, seed) pairs from get_seed_plan; defaults to every
+                definition with policy seeds.
 
         Returns:
-            list: Fully resolved definitions.
+            list: Fully resolved definitions, in plan order.
         """
         definitions = []
         fps = float(self.settings["model_fps"])
         ranges = self.settings["variation_ranges"]
         ranges = json.loads(ranges) if isinstance(ranges, str) else ranges
-        variations = [vary_definition(definition, self.settings, identity, variation)
-                      for variation in range(1, int(self.settings["variations"]) + 1)]
+        if plan is None:
+            plan = [(variation, None) for variation in range(1, int(self.settings["variations"]) + 1)]
+        variations = [(variation, vary_definition(definition, self.settings, identity, variation, seed=seed))
+                      for variation, seed in plan]
         path_options = captured.get("path_options") or []
-        if path_options:
+        if path_options and variations:
             path_options = list(path_options)
-            first_seed = variations[0]["parameters"]["seed"]
+            if self.settings["seed_policy"] == "list":
+                # Seed lists only change generation seeds; curve order stays as in per-file mode.
+                first_seed = derive_seed(int(self.settings["base_seed"]), identity, 1)
+            else:
+                first_seed = variations[0][1]["parameters"]["seed"]
             path_rng_seed = int(fingerprint([
                 first_seed, [option["name"] for option in path_options], "root-path-cycle",
             ])[:8], 16)
             random.Random(path_rng_seed).shuffle(path_options)
-        for variation, resolved in enumerate(variations, 1):
+        for variation, resolved in variations:
             path = captured["path"]
             if path_options:
                 selected_path = path_options[(variation - 1) % len(path_options)]
@@ -301,6 +314,10 @@ class TaskKimodoDefinition(TaskKimodoBase):
         if validation.errors:
             raise ValueError("; ".join(validation.errors))
         report = partial(report_message, context)
+        variation_count, plan = self.get_seed_plan(project, work_item)
+        if not plan:
+            report("The seed list skips every definition for this input; nothing to create.")
+            return []
         cache = self.recovery_directory(work_item, step_output_dir)
         record_path = os.path.join(cache, "capture.json")
         string_scene = is_string_scene(work_item)
@@ -329,7 +346,7 @@ class TaskKimodoDefinition(TaskKimodoBase):
                 raise ValueError("Use input string as prompt requires nonblank text from Input Strings or Input Pairs.")
             definition["prompts"][0]["text"] = value
         if string_scene:
-            signature = fingerprint([self.settings, definition, work_item.metadata["input_string"]])
+            signature = fingerprint([self.settings, definition, plan, work_item.metadata["input_string"]])
         else:
             stat = os.stat(work_item.current_path)
             dependency_path = resolve_path(
@@ -337,7 +354,7 @@ class TaskKimodoDefinition(TaskKimodoBase):
             dependency_hash = self.hash_file(dependency_path) if (
                 self.settings.get("run_pre_generation_script") and dependency_path) else ""
             signature = fingerprint([
-                self.settings, definition, stat.st_size, stat.st_mtime_ns, dependency_hash])
+                self.settings, definition, plan, stat.st_size, stat.st_mtime_ns, dependency_hash])
         with self.recovery_lock(work_item, step_output_dir, timeout_seconds=3600, context=context):
             try:
                 with ClipSnapshotFileLock(record_path, timeout_seconds=3600):
@@ -345,27 +362,33 @@ class TaskKimodoDefinition(TaskKimodoBase):
                     if record.get("signature") != signature:
                         identity = base.get_work_item_relative_path(work_item) or work_item.current_path
                         if string_scene:
-                            definitions = [vary_definition(definition, self.settings, identity, variation)
-                                           for variation in range(1, int(self.settings["variations"]) + 1)]
+                            definitions = [vary_definition(definition, self.settings, identity, variation,
+                                                           seed=seed)
+                                           for variation, seed in plan]
                             fps = float(self.settings["model_fps"])
                             count = sum(int(prompt["duration_seconds"] * fps) for prompt in definition["prompts"])
                             captured = {"frames": [], "start": 0, "end": count - 1, "source_fps": fps}
                             report("Building definitions from input text using prompt durations; no scene capture.")
                         else:
                             captured = capture_scene(self.settings, report)
-                            definitions = self.build_definitions(captured, definition, identity, report=report)
+                            definitions = self.build_definitions(captured, definition, identity, report=report,
+                                                                 plan=plan)
                         record = {"signature": signature, "source": work_item.current_path, "definitions": definitions,
                                   "source_frames": captured["frames"], "source_start": captured["start"],
                                   "source_end": captured["end"], "source_fps": captured["source_fps"],
                                   "model_fps": float(self.settings["model_fps"]),
                                   "source_scene": prepared_scene_path or work_item.current_path,
-                                  "group_warning": captured.get("group_warning")}
+                                  "group_warning": captured.get("group_warning"),
+                                  "variations": [variation for variation, unused_seed in plan],
+                                  "variation_count": variation_count}
                         write_record(record_path, record)
                     if record.get("group_warning"):
                         report(f"[WARNING] {record['group_warning']}")
+                    indices = record.get("variations") or list(range(1, len(record["definitions"]) + 1))
                     paths = [self.output_path(work_item, step_output_dir, variation=index,
-                                              seed=value["parameters"]["seed"], definition=value)
-                             for index, value in enumerate(record["definitions"], 1)]
+                                              seed=value["parameters"]["seed"], definition=value,
+                                              variation_count=record.get("variation_count"))
+                             for index, value in zip(indices, record["definitions"])]
                     if len({os.path.normcase(path) for path in paths}) != len(paths):
                         raise ValueError("Definition output names collide.")
                     self.reserve_outputs(work_item, paths, step_output_dir)
@@ -545,7 +568,7 @@ def mask_path_frames(frames, values):
     return kept
 
 
-def vary_definition(definition, settings, identity, variation):
+def vary_definition(definition, settings, identity, variation, seed=None):
     """Resolves seeds and opted-in parameter variations before capture.
 
     Args:
@@ -553,6 +576,9 @@ def vary_definition(definition, settings, identity, variation):
         settings (dict): Task settings.
         identity (str): Stable source-relative identity.
         variation (int): One-based variation index.
+        seed (int, optional): Exact seed from a seed list. With the "list" policy, None keeps the
+            repeatable per-file seed. Variation ranges and prompt choices always follow the
+            per-file seed, so a listed seed changes only the generation seed.
 
     Returns:
         dict: Independent resolved definition.
@@ -562,10 +588,13 @@ def vary_definition(definition, settings, identity, variation):
     base_seed = int(settings["base_seed"])
     if float(settings["base_seed"]) != base_seed or not 0 <= base_seed < 2 ** 32:
         raise ValueError("Base seed must be an unsigned 32-bit integer.")
-    derived = int(fingerprint([base_seed, identity, variation])[:8], 16)
-    if policy not in ("fixed", "per_file", "random"):
+    derived = derive_seed(base_seed, identity, variation)
+    if policy not in ("fixed", "per_file", "random", "list"):
         raise ValueError("Unknown seed policy.")
-    seed = secrets.randbits(32) if policy == "random" else base_seed if policy == "fixed" else derived
+    if policy == "list":
+        seed = derived if seed is None else int(seed)
+    else:
+        seed = secrets.randbits(32) if policy == "random" else base_seed if policy == "fixed" else derived
     data["parameters"]["seed"] = seed
     rng = random.Random(seed if policy == "random" else derived)
     ranges = settings.get("variation_ranges") or {}

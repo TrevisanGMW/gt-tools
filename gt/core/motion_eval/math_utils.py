@@ -282,6 +282,202 @@ def rotation_angle_between(matrix_a, matrix_b):
     return math.degrees(math.acos(cosine))
 
 
+# ------------------------------------------------ Directions ------------------------------------------------
+def cross(vector_a, vector_b):
+    """Computes the cross product of two vectors.
+
+    Args:
+        vector_a (tuple): First vector.
+        vector_b (tuple): Second vector.
+
+    Returns:
+        tuple: Cross product.
+    """
+    return (
+        vector_a[1] * vector_b[2] - vector_a[2] * vector_b[1],
+        vector_a[2] * vector_b[0] - vector_a[0] * vector_b[2],
+        vector_a[0] * vector_b[1] - vector_a[1] * vector_b[0],
+    )
+
+
+def normalize(vector):
+    """Scales a vector to unit length.
+
+    Args:
+        vector (tuple): Vector to normalize.
+
+    Returns:
+        tuple or None: Unit vector, or None when the vector is too short to have a direction.
+    """
+    vector_length = length(vector)
+    if not SMALL_NUMBER < vector_length < float("inf"):
+        return None  # Also rejects NaN, so invalid frames are not measured.
+    return scale(vector, 1.0 / vector_length)
+
+
+def angle_between(vector_a, vector_b):
+    """Measures the unsigned angle between two vectors.
+
+    Args:
+        vector_a (tuple): First vector.
+        vector_b (tuple): Second vector.
+
+    Returns:
+        float: Angle in degrees from 0 to 180 (0 when a vector has no length).
+    """
+    length_product = length(vector_a) * length(vector_b)
+    if length_product <= SMALL_NUMBER:
+        return 0.0
+    cosine = max(-1.0, min(1.0, dot(vector_a, vector_b) / length_product))
+    return math.degrees(math.acos(cosine))
+
+
+def signed_angle(vector_a, vector_b, axis):
+    """Measures the angle from one vector to another around an axis.
+
+    Both vectors are projected onto the plane perpendicular to the axis first.
+
+    Args:
+        vector_a (tuple): Start vector.
+        vector_b (tuple): End vector.
+        axis (tuple): Unit rotation axis. Counter-clockwise (right-handed) rotation is positive.
+
+    Returns:
+        float: Angle in degrees from -180 to 180.
+    """
+    return math.degrees(math.atan2(dot(cross(vector_a, vector_b), axis), dot(vector_a, vector_b)
+                                   - dot(vector_a, axis) * dot(vector_b, axis)))
+
+
+def to_local(rotation, vector):
+    """Expresses a world vector in the space of a rotation.
+
+    Args:
+        rotation (list): Three unit axis vectors (see matrix_rotation).
+        vector (tuple): World vector.
+
+    Returns:
+        tuple: Vector in local coordinates.
+    """
+    return (dot(vector, rotation[0]), dot(vector, rotation[1]), dot(vector, rotation[2]))
+
+
+def to_world(rotation, vector):
+    """Expresses a local vector in world space.
+
+    Args:
+        rotation (list): Three unit axis vectors (see matrix_rotation).
+        vector (tuple): Local vector.
+
+    Returns:
+        tuple: World vector.
+    """
+    return tuple(
+        vector[0] * rotation[0][axis_index] + vector[1] * rotation[1][axis_index] + vector[2] * rotation[2][axis_index]
+        for axis_index in range(3)
+    )
+
+
+def rotate_vector(vector, axis, angle_radians):
+    """Rotates a vector around a unit axis (Rodrigues' formula).
+
+    Args:
+        vector (tuple): Vector to rotate.
+        axis (tuple): Unit rotation axis.
+        angle_radians (float): Right-handed rotation angle in radians.
+
+    Returns:
+        tuple: Rotated vector.
+    """
+    cosine = math.cos(angle_radians)
+    sine = math.sin(angle_radians)
+    axis_cross = cross(axis, vector)
+    axis_dot = dot(axis, vector)
+    return tuple(
+        vector[index] * cosine + axis_cross[index] * sine + axis[index] * axis_dot * (1.0 - cosine)
+        for index in range(3)
+    )
+
+
+def rotate_from_to(vector, from_direction, to_direction):
+    """Applies the smallest rotation that turns one direction into another.
+
+    Args:
+        vector (tuple): Vector to rotate.
+        from_direction (tuple): Unit start direction.
+        to_direction (tuple): Unit end direction.
+
+    Returns:
+        tuple: Rotated vector. Opposite directions return the vector unchanged.
+    """
+    axis = normalize(cross(from_direction, to_direction))
+    if axis is None:
+        return tuple(vector)
+    cosine = max(-1.0, min(1.0, dot(from_direction, to_direction)))
+    return rotate_vector(vector, axis, math.acos(cosine))
+
+
+def perpendicular_vector(direction):
+    """Builds a stable unit vector perpendicular to a direction.
+
+    Args:
+        direction (tuple): Unit direction.
+
+    Returns:
+        tuple: Unit vector perpendicular to the direction.
+    """
+    candidates = [(1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0)]
+    helper = min(candidates, key=lambda candidate: abs(dot(candidate, direction)))
+    return normalize(subtract(helper, scale(direction, dot(helper, direction))))
+
+
+def median_direction(vectors):
+    """Gets a robust average direction (normalized per-component median).
+
+    Args:
+        vectors (list): Unit vectors. None entries are ignored.
+
+    Returns:
+        tuple or None: Unit direction, or None when no vector was given.
+    """
+    vectors = [vector for vector in vectors if vector is not None]
+    if not vectors:
+        return None
+    return normalize(tuple(median([vector[index] for vector in vectors]) for index in range(3)))
+
+
+def wrap_degrees(angle):
+    """Wraps an angle to the -180 to 180 range.
+
+    Args:
+        angle (float): Angle in degrees.
+
+    Returns:
+        float: Equivalent angle from -180 (exclusive) to 180.
+    """
+    wrapped = math.fmod(angle + 180.0, 360.0)
+    if wrapped <= 0.0:
+        wrapped += 360.0
+    return wrapped - 180.0
+
+
+def circular_median_degrees(angles):
+    """Gets a robust center of angles that may wrap around 180 degrees.
+
+    Args:
+        angles (list): Angles in degrees. None entries are ignored.
+
+    Returns:
+        float or None: Center angle, or None when no angle was given.
+    """
+    angles = [angle for angle in angles if angle is not None]
+    if not angles:
+        return None
+    mean = math.degrees(math.atan2(sum(math.sin(math.radians(angle)) for angle in angles),
+                                   sum(math.cos(math.radians(angle)) for angle in angles)))
+    return wrap_degrees(mean + median([wrap_degrees(angle - mean) for angle in angles]))
+
+
 def is_finite_sequence(values):
     """Checks whether every value in a sequence is a finite number.
 
