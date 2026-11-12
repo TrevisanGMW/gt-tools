@@ -38,6 +38,7 @@ def build_batch_entry(report, source_path):
                 "flagged_frames": entry.get("flagged_frames", 0),
                 "events": entry.get("events", 0),
                 "spans": entry.get("spans") or [],
+                "offenders": entry.get("offenders") or [],
             }
         )
     return {

@@ -319,6 +319,86 @@ class MayaHost(SceneHost):
                 cmds.refresh(suspend=False)
         return matrices
 
+    # ------------------------------------------------ Keying (repairs) ---------------------------------------
+    supports_keying = True
+
+    @contextlib.contextmanager
+    def edit_block(self, label="motion_eval_repair"):
+        """Groups scene edits into one undo step.
+
+        Args:
+            label (str): Undo chunk name.
+
+        Yields:
+            None: Nothing.
+        """
+        cmds = get_maya_cmds()
+        cmds.undoInfo(openChunk=True, chunkName=label)
+        try:
+            yield
+        finally:
+            cmds.undoInfo(closeChunk=True)
+
+    def key_local_transforms(self, node_path, frames, local_matrices, channels=("rotate",)):
+        """Keys a node's rotate and/or translate channels from local matrices.
+
+        Joint orient and rotate axis are taken out of the rotation, the node's rotate order is
+        kept, and each Euler solution is the one closest to the previous frame (no flips). Scale
+        is ignored. Channels driven by something other than keys are skipped with a warning.
+
+        Args:
+            node_path (str): Node path.
+            frames (list): Whole frame numbers.
+            local_matrices (list): Flat 16-value local matrices, one per frame.
+            channels (tuple): "rotate" and/or "translate".
+
+        Returns:
+            dict: {"keys": int, "warnings": list}.
+        """
+        import math
+
+        import maya.api.OpenMaya as om2
+
+        cmds = get_maya_cmds()
+        warnings = []
+        writable = {}
+        for channel in channels:
+            for axis in "XYZ":
+                attribute = f"{node_path}.{channel}{axis}"
+                if cmds.getAttr(attribute, lock=True) or not cmds.getAttr(attribute, settable=True) and \
+                        not cmds.listConnections(attribute, source=True, destination=False, type="animCurve"):
+                    warnings.append(f"Skipped {attribute}: it is locked or driven by a connection.")
+                    continue
+                writable[attribute] = (channel, "XYZ".index(axis))
+        if not writable:
+            return {"keys": 0, "warnings": warnings}
+        rotate_order = int(cmds.getAttr(f"{node_path}.rotateOrder"))
+        rotate_axis = om2.MEulerRotation(*[math.radians(value) for value in cmds.getAttr(f"{node_path}.rotateAxis")[0]])
+        joint_orient = om2.MMatrix()
+        if cmds.nodeType(node_path) == "joint":
+            orient_values = cmds.getAttr(f"{node_path}.jointOrient")[0]
+            joint_orient = om2.MEulerRotation(*[math.radians(value) for value in orient_values]).asMatrix()
+        rotate_axis_inverse = rotate_axis.asMatrix().inverse()
+        joint_orient_inverse = joint_orient.inverse()
+        start_values = cmds.getAttr(f"{node_path}.rotate", time=frames[0])[0] if frames else (0.0, 0.0, 0.0)
+        previous = om2.MEulerRotation(*[math.radians(value) for value in start_values], order=rotate_order)
+        key_count = 0
+        for frame, local_matrix in zip(frames, local_matrices):
+            transform = om2.MTransformationMatrix(om2.MMatrix([float(value) for value in local_matrix]))
+            rotation_matrix = rotate_axis_inverse * transform.rotation(asQuaternion=True).asMatrix() * \
+                joint_orient_inverse
+            euler = om2.MTransformationMatrix(rotation_matrix).rotation().reorder(rotate_order)
+            euler = euler.closestSolution(previous)
+            previous = euler
+            values = {
+                "rotate": [math.degrees(euler.x), math.degrees(euler.y), math.degrees(euler.z)],
+                "translate": [float(local_matrix[12]), float(local_matrix[13]), float(local_matrix[14])],
+            }
+            for attribute, (channel, axis_index) in writable.items():
+                cmds.setKeyframe(attribute, time=(frame, frame), value=values[channel][axis_index])
+                key_count += 1
+        return {"keys": key_count, "warnings": warnings}
+
     # ------------------------------------------------ Score Storage ------------------------------------------
     def find_score_holder(self, target_mode, node_name, roles=None, create=True):
         """Resolves (and optionally creates) the node that stores the score.

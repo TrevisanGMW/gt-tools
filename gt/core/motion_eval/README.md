@@ -28,6 +28,7 @@ of them (see [Hosts](#8-hosts-maya-blender-plain-python) and [Adding a check](#9
 | `hosts` | Maya, Blender, or Python | The only code that talks to a program: `maya_host`, `blender_host`, `sample_host` |
 | `usd_scene` | Maya + mayaUsdPlugin | Loads USD files in Maya: frame rate, frame range, up axis and unit alignment |
 | `console` | Python | Hides the host's console output while files load |
+| `repairs` | Python (a host that can write keys to apply) | Targeted fixes for reported problems, driven by a patch manifest |
 
 The package only uses relative imports, so the `motion_eval` folder can be copied
 anywhere on `sys.path` and imported as `motion_eval`. The examples below use
@@ -602,3 +603,73 @@ Keep checks host-agnostic:
   `data.get_extra("my_key")`, and implement `get_extra_data` for `"my_key"` in each host
   that can provide it (return JSON-compatible data). Hosts that cannot provide it make
   the check skip with a clear reason instead of failing, so the other checks keep working.
+
+## 10. Repairs (patching reported problems)
+
+`repairs` applies small, targeted fixes to the frames a check flagged. A **patch manifest**
+(JSON) lists the steps for each take; a step names a fix (or a custom script) and the frame
+span to repair, usually a span from the report (`checks[].spans`, `checks[].offenders`).
+
+```python
+from motion_eval.repairs import apply, registry
+
+print(registry.describe_fixes())          # every fix, its parameters, and the fixes per check
+result = apply.apply_manifest("patches.json", ["walk_042_v003"], seed=4711)
+print(result["status"])                   # none / skipped / applied / partial / failed
+```
+
+```json
+{
+  "schema": "motion_eval_patches", "version": 1,
+  "template": "data/custom_skeleton.json",
+  "on_error": "warn",
+  "takes": {
+    "walk_042_v003": {
+      "seed": 4711, "frame_range": [0, 311],
+      "steps": [
+        {"fix": "foot_lock", "frames": [120, 141], "params": {"side": "left"}},
+        {"fix": "span_bridge", "frames": [200, 202], "nodes": ["calf_l (left_leg)"]},
+        {"script": "custom/walk_042_v003.py", "frames": [250, 260], "params": {}}
+      ]
+    }
+  }
+}
+```
+
+| Fix | For | What it does |
+|---|---|---|
+| `foot_lock` | foot_slide, planted_foot_jitter, contact_flicker | Pins planted feet over a contact span with two-bone IK (bone lengths kept, foot keeps its world rotation); `side: auto` picks the planted feet |
+| `hips_follow` | foot_slide (body drift) | Moves the body along the ground so the planted foot stays put |
+| `foot_floor_clamp` | ground_penetration, below_ground | Lifts only a sinking foot with two-bone IK |
+| `ground_snap` | below_ground, floating, contact_flicker | Moves the hips up/down so the lowest foot/toe sits on the floor |
+| `spike_clamp` | position/rotation pops | Caps the speed inside the span relative to the motion around it |
+| `span_bridge` | pops, invalid values, wrists, twist, head | Replaces a short span with a smooth transition between the poses around it |
+| `span_smooth` | jitter | Gaussian smoothing over the span with blend in/out (`adaptive` keeps accents) |
+| `limit_clamp` | knee/elbow hyperextension and side bend | Rotates the hinge back inside its limit (hinge axis learned from the clip) |
+
+**Presets and order.** Each fix has named presets (`"preset": "contact"` in a step; the step's own
+`params` override them) and `registry.LADDERS` lists, per check, which fix/preset to try first and
+what to try next (`registry.get_ladder`, `registry.next_rungs`). `registry.describe_fixes()` prints all of it.
+
+**Preview.** `repairs.preview` loads a scene, scores it, applies a patch in memory, and scores it again
+(nothing is saved), so candidates can be compared quickly:
+
+```
+mayapy -m motion_eval.repairs.preview --job job.json --source walk.usd --patch patch.json --out result.json
+```
+
+`job.json` uses the runner job keys (skeleton, preset, range_mode, general_scope, align_up_axis, ...).
+
+- Paths in the manifest are relative to the manifest's folder. `template` is a Custom Skeleton
+  file or a built-in key (`maya_humanik`); it lets steps use role keys (`left_foot`) as node names.
+  Report offender labels such as `"foot_l (left_foot)"` work as node names too.
+- **Fingerprint**: `seed` and `frame_range` are optional. When both the entry and the scene know a
+  value and it differs, the patch is skipped: the take was regenerated and the patch no longer fits.
+- `on_error`: `"warn"` logs a failed step and goes on; `"fail"` raises `apply.PatchError`.
+- A custom script defines `run(context)`; `context` holds `scene` (`RepairScene`: `resolve_node`,
+  `sample`, `key_world_matrices`, `host`), `frames`, `params`, `take`, `log`, and the modules
+  `fixes`, `solvers`, `transform_math`, `registry`.
+- Fixes only key the frames they change (inside one undo chunk in Maya). Writing keys needs a host
+  with `supports_keying` (Maya); the math (`transform_math`, `solvers`) and `manifest` are pure.
+- A patch changes the motion; it must not hide problems (no deleted frames, no frozen spans).
+

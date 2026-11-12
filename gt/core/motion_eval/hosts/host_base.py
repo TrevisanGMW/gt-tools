@@ -259,6 +259,34 @@ class SceneHost:
         """
         return None
 
+    # ------------------------------------------------ Keying (repairs) ---------------------------------------
+    supports_keying = False
+
+    def edit_block(self, label="motion_eval_repair"):
+        """Optional. Groups scene edits (for example into one undo step).
+
+        Args:
+            label (str): Name of the edit group.
+
+        Returns:
+            contextlib.AbstractContextManager: Context manager around the edits.
+        """
+        return contextlib.nullcontext()
+
+    def key_local_transforms(self, node_path, frames, local_matrices, channels=("rotate",)):
+        """Optional (needed by repairs). Keys a node's local transform on the given frames.
+
+        Args:
+            node_path (str): Node path.
+            frames (list): Whole frame numbers.
+            local_matrices (list): One flat 16-value local matrix (child-in-parent space) per frame.
+            channels (tuple): "rotate" and/or "translate".
+
+        Returns:
+            dict: {"keys": int keys set, "warnings": list of str}.
+        """
+        raise NotImplementedError(f"The {self.label or self.name} host cannot write keys.")
+
     # ------------------------------------------------ Score Storage ------------------------------------------
     def find_score_holder(self, target_mode, node_name, roles=None, create=True):
         """Finds (and optionally creates) the object that stores the score (supports_score_write hosts).
