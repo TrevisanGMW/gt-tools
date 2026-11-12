@@ -46,6 +46,8 @@ class TaskSettingsOverride(task_base.BatchTask):
                 "timeout_minutes": 0,
                 "override_preferred_maya_version": False,
                 "preferred_maya_version": "",
+                "override_custom_variables": False,
+                "custom_variables": [],
             }
         )
         return settings
@@ -100,6 +102,13 @@ class TaskSettingsOverride(task_base.BatchTask):
             result.add_warning(
                 f'Task "{self.display_name}" Maya version "{maya_version}" was not found in default '
                 "Autodesk install locations; the current mayapy will be kept."
+            )
+        result_rows = self.settings.get("custom_variables") or []
+        if self.settings.get("override_custom_variables") and len(overrides.get(
+                run_settings.CUSTOM_VARIABLES) or {}) < len(result_rows):
+            result.add_warning(
+                f'Task "{self.display_name}" has custom variable rows with invalid, reserved, or '
+                "duplicate names; those rows are ignored."
             )
         if self.enabled and self in run_settings.find_mid_segment_tasks(project.get_task_segments()):
             result.add_warning(

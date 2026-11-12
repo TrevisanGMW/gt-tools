@@ -5,7 +5,9 @@ Batch Processor Settings Override Task Widget
 from gt.tools.batch_processor import batch_processor_run_settings as run_settings
 from gt.tools.batch_processor.widgets import attr_widget_base
 from gt.tools.batch_processor.widgets.attr_widget_task import AttrWidgetTask
+from gt.tools.batch_processor.widgets.settings_override_variables_dialog import SettingsOverrideVariablesDialog
 import gt.ui.qt_import as ui_qt
+import gt.ui.resource_library as ui_res_lib
 from functools import partial
 
 
@@ -81,6 +83,7 @@ class AttrWidgetSettingsOverrideTask(AttrWidgetTask):
         for setting_key, label_text, tooltip, minimum, maximum in OVERRIDE_ROWS:
             self.add_override_spin_box_row(setting_key, label_text, tooltip, minimum, maximum)
         self.add_override_maya_version_row()
+        self.add_override_custom_variables_row()
         self.add_widget_separator_line(label_text="How It Applies")
         self.add_apply_info_label()
         self.content_layout.addStretch()
@@ -168,6 +171,85 @@ class AttrWidgetSettingsOverrideTask(AttrWidgetTask):
         text_field.editingFinished.connect(lambda: self.set_task_setting(text_field.text().strip(), key=setting_key))
         self.add_override_row_widgets(setting_key, "Preferred Maya", tooltip, text_field)
 
+    def add_override_custom_variables_row(self):
+        """Adds the custom variables override row, its editor button, and its summary line."""
+        tooltip = (
+            "Set new or modify existing custom variables ({my-variable}) for this run, from this task's\n"
+            "segment on. The project's saved variables are not changed."
+        )
+        button = ui_qt.QtWidgets.QPushButton("Edit Variables")
+        button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_env_var))
+        button.setAutoDefault(False)
+        button.clicked.connect(self.edit_custom_variables)
+        self.add_override_row_widgets(run_settings.CUSTOM_VARIABLES, "Custom Variables", tooltip, button)
+        self.custom_variable_summary_label = ui_qt.QtWidgets.QLabel()
+        attr_widget_base.configure_label_for_scaled_displays(self.custom_variable_summary_label, word_wrap=True)
+        summary_layout = ui_qt.QtWidgets.QHBoxLayout()
+        summary_layout.setContentsMargins(12, 0, 12, 6)
+        summary_layout.addWidget(self.custom_variable_summary_label)
+        self.content_layout.addLayout(summary_layout)
+        self.refresh_custom_variable_summary()
+
+    def get_existing_custom_variables(self):
+        """Gets the variables defined where this task runs.
+
+        Returns:
+            dict: Project custom variables with the overrides of earlier Settings Override
+                tasks applied, keyed by normalized name.
+        """
+        definitions = self.project.get_custom_environment_variables()
+        for task in self.project.tasks:
+            if task is self.task or getattr(task, "id", None) == self.task.id:
+                break
+            earlier = run_settings.get_task_overrides(task).get(run_settings.CUSTOM_VARIABLES)
+            if earlier:
+                definitions = run_settings.apply_custom_variable_overrides(definitions, earlier)
+        return definitions
+
+    def edit_custom_variables(self):
+        """Opens the custom variable override editor and stores its rows."""
+        dialog = SettingsOverrideVariablesDialog(
+            override_rows=self.task.settings.get(run_settings.CUSTOM_VARIABLES),
+            existing_variables=self.get_existing_custom_variables(),
+            parent=self,
+            project=self.project,
+        )
+        if self.exec_dialog(dialog) != ui_qt.QtWidgets.QDialog.Accepted:
+            return
+        rows = dialog.get_override_rows()
+        if rows is None:
+            return
+        self.task.settings[run_settings.CUSTOM_VARIABLES] = rows
+        self.refresh_custom_variable_summary()
+        summary_text = self.get_custom_variable_summary_text()
+        self.emit_status_message(f"Saved custom variable overrides: {summary_text}.")
+
+    def get_custom_variable_summary_text(self):
+        """Builds the override counts for the saved rows.
+
+        Returns:
+            str: Text such as "2 overridden, 1 new, 5 unchanged", or a hint when there are no rows.
+        """
+        overrides = run_settings.normalize_custom_variable_overrides(
+            self.task.settings.get(run_settings.CUSTOM_VARIABLES)
+        )
+        if not overrides:
+            return "no variable rows"
+        summary = run_settings.summarize_custom_variable_overrides(self.get_existing_custom_variables(), overrides)
+        return run_settings.format_custom_variable_summary(summary)
+
+    def refresh_custom_variable_summary(self):
+        """Refreshes the summary line under the custom variables row."""
+        label = getattr(self, "custom_variable_summary_label", None)
+        if label is None:
+            return
+        enabled = bool(self.task.settings.get(run_settings.get_override_flag_key(run_settings.CUSTOM_VARIABLES)))
+        text = self.get_custom_variable_summary_text()
+        has_rows = text != "no variable rows"
+        label.setText(f"Custom variables: {text}." + ("" if enabled or not has_rows else " (override is off)"))
+        color = ui_res_lib.Color.Hex.green_pale if has_rows and enabled else ui_res_lib.Color.Hex.gray_dim
+        label.setStyleSheet(f"color: {color};")
+
     def add_apply_info_label(self):
         """Adds a padded explanation of when the overrides are applied."""
         info_label = ui_qt.QtWidgets.QLabel(APPLY_INFO_TEXT)
@@ -187,6 +269,8 @@ class AttrWidgetSettingsOverrideTask(AttrWidgetTask):
         """
         self.set_task_setting(bool(enabled), key=run_settings.get_override_flag_key(setting_key))
         self.refresh_value_enabled_state(setting_key)
+        if setting_key == run_settings.CUSTOM_VARIABLES:
+            self.refresh_custom_variable_summary()
 
     def refresh_value_enabled_state(self, setting_key):
         """Enables a value widget only while its override is on.

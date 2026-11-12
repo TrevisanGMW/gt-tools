@@ -11,8 +11,12 @@ WORKER_COUNT = "worker_count"
 MAX_RETRIES = "max_retries"
 TIMEOUT_MINUTES = "timeout_minutes"
 PREFERRED_MAYA_VERSION = "preferred_maya_version"
+CUSTOM_VARIABLES = "custom_variables"
 
-RUNTIME_SETTING_KEYS = (WORKER_COUNT, MAX_RETRIES, TIMEOUT_MINUTES, PREFERRED_MAYA_VERSION)
+CUSTOM_VARIABLE_SET = "set"
+CUSTOM_VARIABLE_UNSET = "unset"
+
+RUNTIME_SETTING_KEYS = (WORKER_COUNT, MAX_RETRIES, TIMEOUT_MINUTES, PREFERRED_MAYA_VERSION, CUSTOM_VARIABLES)
 LIVE_EDITABLE_KEYS = (WORKER_COUNT, MAX_RETRIES, TIMEOUT_MINUTES)
 
 SETTING_LABELS = {
@@ -20,6 +24,7 @@ SETTING_LABELS = {
     MAX_RETRIES: "Retries",
     TIMEOUT_MINUTES: "Timeout (min)",
     PREFERRED_MAYA_VERSION: "Preferred Maya",
+    CUSTOM_VARIABLES: "Custom variables",
 }
 
 MAX_WORKER_COUNT = 256
@@ -76,7 +81,159 @@ def normalize_setting_value(setting_key, value):
         return _clamp_integer(value, 0, MAX_TIMEOUT_MINUTES, 0)
     if setting_key == PREFERRED_MAYA_VERSION:
         return str(value or "").strip()
+    if setting_key == CUSTOM_VARIABLES:
+        return normalize_custom_variable_overrides(value)
     return value
+
+
+def _iter_custom_variable_entries(value):
+    """Iterates raw custom variable override entries from a list or dictionary.
+
+    Args:
+        value (list or dict): Rows with a "name" key, or entries keyed by name.
+
+    Returns:
+        list: (raw_name, entry) tuples in source order.
+    """
+    if isinstance(value, dict):
+        return list(value.items())
+    entries = []
+    for row in value or []:
+        if isinstance(row, dict):
+            entries.append((row.get("name", ""), row))
+    return entries
+
+
+def normalize_custom_variable_overrides(value):
+    """Normalizes custom variable overrides into an ordered dictionary.
+
+    Names follow the same rules as the project's Custom Variables editor: the
+    ``{name}`` format, and no built-in or reserved names. Invalid entries are
+    dropped. When a name appears more than once, the last entry wins.
+
+    Args:
+        value (list or dict): Rows with "name", "value", "query" and "action" keys,
+            or entries keyed by name.
+
+    Returns:
+        dict: Entries keyed by normalized name. Each entry is
+            ``{"action": "set", "value": str, "query": bool}`` or ``{"action": "unset"}``.
+    """
+    from gt.tools.batch_processor import batch_processor_model as model
+
+    normalized = {}
+    for raw_name, entry in _iter_custom_variable_entries(value):
+        if not isinstance(entry, dict):
+            continue
+        # Editor rows must already use {name}; stored dictionary keys are unbraced.
+        if isinstance(value, dict):
+            braced_name = model.format_environment_key(raw_name)
+        else:
+            braced_name = str(raw_name or "").strip()
+        if not model.BatchProcessorModel.is_custom_environment_name_available(braced_name):
+            continue
+        name = model.normalize_environment_key(raw_name)
+        normalized.pop(name, None)
+        if str(entry.get("action", CUSTOM_VARIABLE_SET)).strip().lower() == CUSTOM_VARIABLE_UNSET:
+            normalized[name] = {"action": CUSTOM_VARIABLE_UNSET}
+            continue
+        is_query = entry.get("query", False)
+        if isinstance(is_query, str):
+            is_query = is_query.strip().lower() in {"1", "true", "yes", "on"}
+        raw_value = entry.get("value", "")
+        normalized[name] = {
+            "action": CUSTOM_VARIABLE_SET,
+            "value": "" if raw_value is None else str(raw_value),
+            "query": bool(is_query),
+        }
+    return normalized
+
+
+def merge_custom_variable_overrides(*override_dicts):
+    """Merges custom variable overrides per variable name, later entries winning.
+
+    Args:
+        *override_dicts (dict): Normalized custom variable overrides in application order.
+
+    Returns:
+        dict: Merged overrides keyed by normalized name.
+    """
+    merged = {}
+    for overrides in override_dicts:
+        for name, entry in (overrides or {}).items():
+            merged[name] = dict(entry)
+    return merged
+
+
+def apply_custom_variable_overrides(base_definitions, overrides):
+    """Applies custom variable overrides on top of project definitions.
+
+    Args:
+        base_definitions (dict): Project definitions keyed by normalized name,
+            each ``{"value": str, "query": bool}``.
+        overrides (dict): Normalized custom variable overrides.
+
+    Returns:
+        dict: New definitions. Existing names keep their position, new names are
+            appended, and unset names are removed. The inputs are not modified.
+    """
+    definitions = {name: dict(definition) for name, definition in (base_definitions or {}).items()}
+    for name, entry in (overrides or {}).items():
+        if entry.get("action") == CUSTOM_VARIABLE_UNSET:
+            definitions.pop(name, None)
+            continue
+        definitions[name] = {"value": entry.get("value", ""), "query": bool(entry.get("query", False))}
+    return definitions
+
+
+def summarize_custom_variable_overrides(base_definitions, overrides):
+    """Counts how overrides change a set of project definitions.
+
+    Args:
+        base_definitions (dict): Definitions keyed by normalized name.
+        overrides (dict): Normalized custom variable overrides.
+
+    Returns:
+        dict: Counts under "overridden" (existing variables whose value or query
+            changes), "new" (variables added), "removed" (existing variables
+            unset), "ignored" (unset of undefined variables), and "unchanged"
+            (existing variables left as they are).
+    """
+    base_definitions = base_definitions or {}
+    summary = {"overridden": 0, "new": 0, "removed": 0, "ignored": 0}
+    for name, entry in (overrides or {}).items():
+        existing = base_definitions.get(name)
+        if entry.get("action") == CUSTOM_VARIABLE_UNSET:
+            summary["removed" if existing is not None else "ignored"] += 1
+        elif existing is None:
+            summary["new"] += 1
+        elif (existing.get("value", ""), bool(existing.get("query", False))) != (
+            entry.get("value", ""), bool(entry.get("query", False))
+        ):
+            summary["overridden"] += 1
+    summary["unchanged"] = max(0, len(base_definitions) - summary["overridden"] - summary["removed"])
+    return summary
+
+
+def format_custom_variable_summary(summary):
+    """Formats custom variable override counts for status messages and logs.
+
+    Args:
+        summary (dict): Counts from ``summarize_custom_variable_overrides``.
+
+    Returns:
+        str: Text such as "2 overridden, 1 new, 5 unchanged".
+    """
+    parts = [
+        f"{summary.get('overridden', 0)} overridden",
+        f"{summary.get('new', 0)} new",
+        f"{summary.get('unchanged', 0)} unchanged",
+    ]
+    if summary.get("removed"):
+        parts.append(f"{summary['removed']} removed")
+    if summary.get("ignored"):
+        parts.append(f"{summary['ignored']} unset ignored (not defined)")
+    return ", ".join(parts)
 
 
 def build_overrides_from_task_settings(settings):
@@ -87,17 +244,23 @@ def build_overrides_from_task_settings(settings):
 
     Returns:
         dict: Normalized values for every enabled override, keyed by runtime setting key.
+            Custom variable overrides with no valid rows are omitted.
     """
     settings = settings or {}
     overrides = {}
     for setting_key in RUNTIME_SETTING_KEYS:
         if settings.get(get_override_flag_key(setting_key)):
-            overrides[setting_key] = normalize_setting_value(setting_key, settings.get(setting_key))
+            value = normalize_setting_value(setting_key, settings.get(setting_key))
+            if setting_key == CUSTOM_VARIABLES and not value:
+                continue
+            overrides[setting_key] = value
     return overrides
 
 
 def merge_overrides(*override_dicts):
     """Merges override dictionaries in order, later values winning.
+
+    Custom variable overrides merge per variable name so they accumulate.
 
     Args:
         *override_dicts (dict): Override dictionaries in application order.
@@ -107,7 +270,11 @@ def merge_overrides(*override_dicts):
     """
     merged = {}
     for overrides in override_dicts:
-        merged.update(overrides or {})
+        for setting_key, value in (overrides or {}).items():
+            if setting_key == CUSTOM_VARIABLES:
+                merged[setting_key] = merge_custom_variable_overrides(merged.get(setting_key), value)
+            else:
+                merged[setting_key] = value
     return merged
 
 
@@ -176,7 +343,9 @@ def build_run_settings_schedule(task_segments):
         for task in segment_tasks:
             if is_settings_override_task(task):
                 target = trailing if has_processing else leading
-                target.update(get_task_overrides(task))
+                merged_target = merge_overrides(target, get_task_overrides(task))
+                target.clear()
+                target.update(merged_target)
             elif not getattr(task, "is_input_task", False):
                 has_processing = True
         if not has_processing:
@@ -241,6 +410,9 @@ def describe_changes(changes):
     parts = []
     for setting_key, old_value, new_value in changes or []:
         label = SETTING_LABELS.get(setting_key, setting_key)
+        if setting_key == CUSTOM_VARIABLES:
+            parts.append(f"{label} {len(new_value or {})} active override(s)")
+            continue
         parts.append(
             f"{label} {format_setting_value(setting_key, old_value)} -> "
             f"{format_setting_value(setting_key, new_value)}"
@@ -276,6 +448,7 @@ class RunSettingsState:
             MAX_RETRIES: normalize_setting_value(MAX_RETRIES, max_retries),
             TIMEOUT_MINUTES: normalize_setting_value(TIMEOUT_MINUTES, timeout_minutes),
             PREFERRED_MAYA_VERSION: normalize_setting_value(PREFERRED_MAYA_VERSION, preferred_maya_version),
+            CUSTOM_VARIABLES: {},
         }
         self.mayapy_path = str(mayapy_path or "")
         self.keep_manual_changes = bool(keep_manual_changes)
@@ -318,6 +491,15 @@ class RunSettingsState:
         return self.values[TIMEOUT_MINUTES] * 60
 
     @property
+    def custom_variables(self):
+        """Gets the cumulative custom variable overrides.
+
+        Returns:
+            dict: Normalized overrides keyed by variable name.
+        """
+        return self.values[CUSTOM_VARIABLES]
+
+    @property
     def preferred_maya_version(self):
         """Gets the preferred Maya version for new workers.
 
@@ -347,6 +529,8 @@ class RunSettingsState:
             if setting_key not in (overrides or {}):
                 continue
             new_value = normalize_setting_value(setting_key, overrides[setting_key])
+            if setting_key == CUSTOM_VARIABLES:
+                new_value = merge_custom_variable_overrides(self.values[setting_key], new_value)
             if not manual and self.keep_manual_changes and setting_key in self.manual_keys:
                 if new_value != self.values[setting_key]:
                     protected_keys.append(setting_key)

@@ -65,7 +65,34 @@ def parse_args():
     parser.add_argument("--flag-running-tasks", action="store_true", help="Print concise running-task updates.")
     parser.add_argument("--flag-skipped-tasks", action="store_true", help="Print explicit skipped-task warnings.")
     parser.add_argument("--hold-open-seconds", type=float, default=0, help="Seconds to keep a worker console open.")
+    parser.add_argument(
+        "--custom-variables-file",
+        default="",
+        help="JSON file with Settings Override custom variable overrides to apply after loading the project.",
+    )
     return parser.parse_args()
+
+
+def apply_custom_variable_overrides_file(project, file_path):
+    """Applies custom variable overrides from a tracker-written JSON file.
+
+    Args:
+        project (BatchProcessorModel): Loaded project snapshot.
+        file_path (str): JSON file written by the tracker scheduler.
+
+    Returns:
+        int: Number of override entries applied.
+    """
+    import json
+
+    from gt.tools.batch_processor import batch_processor_run_settings as run_settings
+
+    with open(file_path, "r", encoding="utf-8") as file_object:
+        overrides = run_settings.normalize_custom_variable_overrides(json.load(file_object))
+    project.set_custom_environment_variables(
+        run_settings.apply_custom_variable_overrides(project.get_custom_environment_variables(), overrides)
+    )
+    return len(overrides)
 
 
 def main():
@@ -91,7 +118,10 @@ def main():
     print("[OPERATION] - (worker) - Starting worker {0}".format(args.worker_id or ""))
     print("[INFO] - (worker) - Source file: {0}".format(args.source_file))
     project = batch_processor_model.BatchProcessorModel.from_file(args.project_file)
-    runner = batch_processor_worker.SingleInstanceBatchRunner()
+    if args.custom_variables_file:
+        applied_count = apply_custom_variable_overrides_file(project, args.custom_variables_file)
+        print(f"[INFO] - (worker) - Applied {applied_count} custom variable override(s).")
+    runner =batch_processor_worker.SingleInstanceBatchRunner()
     if args.final_task_id:
         final_task = project.get_task(args.final_task_id)
         if not final_task or not tasks.is_processing_task(final_task) or not final_task.enabled:

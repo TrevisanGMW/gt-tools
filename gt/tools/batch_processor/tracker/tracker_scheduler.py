@@ -66,6 +66,7 @@ class TrackerScheduler:
         )
         self.run_settings_plan = run_settings_plan or {}
         self._final_run_settings_applied = False
+        self._base_custom_variables = self._read_project_custom_variables()
         self.job_retry_counts = {}
         self.timed_out_jobs = set()
         self.pending_restarts = set()
@@ -91,6 +92,12 @@ class TrackerScheduler:
         os.makedirs(self.session.session_dir, exist_ok=True)
         os.makedirs(self.get_events_dir(), exist_ok=True)
         os.makedirs(self.get_logs_dir(), exist_ok=True)
+        initial_custom_variables = (self.run_settings_plan.get("initial") or {}).get(run_settings.CUSTOM_VARIABLES)
+        if initial_custom_variables:
+            self.update_run_settings(
+                {run_settings.CUSTOM_VARIABLES: initial_custom_variables},
+                source="start of run, earlier tasks",
+            )
         if not self.segmented:
             self.apply_planned_run_settings(0, "start of run")
         self.write_state()
@@ -160,10 +167,13 @@ class TrackerScheduler:
                 self.session.worker_count = new_value
             elif setting_key == run_settings.PREFERRED_MAYA_VERSION:
                 self._resolve_run_settings_mayapy(new_value)
-        if changes:
+            elif setting_key == run_settings.CUSTOM_VARIABLES:
+                self._apply_custom_variable_overrides(new_value, source)
+        scalar_changes = [change for change in changes if change[0] != run_settings.CUSTOM_VARIABLES]
+        if scalar_changes:
             self._append_project_log(
                 f"[OPERATION] - (Multi-instance) - Run settings changed ({source}): "
-                f"{run_settings.describe_changes(changes)}.\n"
+                f"{run_settings.describe_changes(scalar_changes)}.\n"
             )
         if protected_keys:
             labels = ", ".join(run_settings.SETTING_LABELS.get(key, key) for key in protected_keys)
@@ -172,6 +182,50 @@ class TrackerScheduler:
                 f"ignored the value from {source}.\n"
             )
         return changes
+
+    def _read_project_custom_variables(self):
+        """Reads the project's own custom variable definitions before any override.
+
+        Returns:
+            dict: Definitions keyed by normalized name, or an empty dictionary.
+        """
+        getter = getattr(self.project, "get_custom_environment_variables", None)
+        definitions = getter() if callable(getter) else {}
+        return definitions if isinstance(definitions, dict) else {}
+
+    def get_custom_variables_file_path(self):
+        """Gets the file that hands custom variable overrides to workers.
+
+        Returns:
+            str: JSON file path inside the session folder.
+        """
+        return os.path.join(self.session.session_dir, "custom_variables.json")
+
+    def _apply_custom_variable_overrides(self, overrides, source):
+        """Applies cumulative custom variable overrides to the tracker project and workers.
+
+        The overrides are always applied on top of the project's original
+        definitions, so repeating them is harmless. Workers read them from a
+        JSON file at launch, so running workers keep the values they started with.
+
+        Args:
+            overrides (dict): Cumulative normalized custom variable overrides.
+            source (str): Readable origin of the change for the log.
+        """
+        if hasattr(self.project, "set_custom_environment_variables"):
+            self.project.set_custom_environment_variables(
+                run_settings.apply_custom_variable_overrides(self._base_custom_variables, overrides)
+            )
+        file_path = self.get_custom_variables_file_path()
+        temporary_path = f"{file_path}.tmp"
+        with open(temporary_path, "w", encoding="utf-8") as file_object:
+            json.dump(overrides, file_object, indent=2)
+        os.replace(temporary_path, file_path)
+        summary = run_settings.summarize_custom_variable_overrides(self._base_custom_variables, overrides)
+        self._append_project_log(
+            f"[OPERATION] - (Multi-instance) - Custom variables changed ({source}): "
+            f"{run_settings.format_custom_variable_summary(summary)}.\n"
+        )
 
     def _resolve_run_settings_mayapy(self, maya_version):
         """Resolves the mayapy used by new workers after a Maya version change.
@@ -872,6 +926,8 @@ class TrackerScheduler:
                 command.extend(["--skip-task-id", task_id])
             for task_id in getattr(self.options, "skip_task_id", []) or []:
                 command.extend(["--skip-task-id", task_id])
+        if self.run_settings.custom_variables and not getattr(self.options, "single_project", False):
+            command.extend(["--custom-variables-file", self.get_custom_variables_file_path()])
         if log_path:
             command.extend(["--log-file", log_path])
         if timing_path:
