@@ -1608,6 +1608,9 @@ class BatchProcessorController:
         Args:
             preserve_scroll (bool, optional): Restore the panel position after rebuilding it.
         """
+        if not self.view.task_tree.selectedItems():
+            self.view.clear_task_widget()
+            return
         if self.view.is_segment_separator_selected():
             segment_name = self.view.get_selected_segment_name()
             self.view.set_task_widget(

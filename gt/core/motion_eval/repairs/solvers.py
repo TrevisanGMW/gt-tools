@@ -361,7 +361,9 @@ def build_pin_targets(positions, span_start, span_end, up_axis="y", pin_height=F
     """Builds the pinned foot positions for a contact span.
 
     The ground-plane position comes from ``anchor``; the height follows the original motion
-    unless ``pin_height`` is on (then the anchor's height is used).
+    unless ``pin_height`` is on (then the anchor's height is used). Frames outside the span keep
+    their position: easing a grounded foot onto the pin scores as sliding, while the one-frame
+    move at the span edge reads as a step (measured on real takes).
 
     Args:
         positions (list): Per-frame foot positions.
@@ -620,3 +622,74 @@ def limit_hinge_direction(upper, lower, hinge, measure, limit_degrees):
     limit_radians = math.radians(limit_degrees) * (1.0 if side_angle > 0 else -1.0)
     return math_utils.normalize(math_utils.add(math_utils.scale(planar, math.cos(limit_radians)),
                                                math_utils.scale(hinge, math.sin(limit_radians))))
+
+
+CONTACT_MODES = ("auto", "down", "up")
+
+
+def choose_contact_states(weights, mode="auto"):
+    """Picks one clean contact state per frame for a flickering span.
+
+    "auto" tries every plan with at most one change (all down, all up, up then down, down then up)
+    and keeps the one closest to the measured contact weights, so a real landing or lift-off
+    survives while the toggling around it is removed.
+
+    Args:
+        weights (list): Contact weights (0 = in the air, 1 = on the ground) over the span.
+        mode (str): "auto", "down" (keep the foot down), or "up" (keep it in the air).
+
+    Returns:
+        list: True (down) or False (up) per frame.
+
+    Raises:
+        ValueError: When the mode is unknown.
+    """
+    count = len(weights)
+    if mode == "down":
+        return [True] * count
+    if mode == "up":
+        return [False] * count
+    if mode != "auto":
+        raise ValueError(f'mode must be one of {", ".join(CONTACT_MODES)}, not "{mode}".')
+    candidates = [[True] * count, [False] * count]
+    for split in range(1, count):
+        candidates.append([index >= split for index in range(count)])
+        candidates.append([index < split for index in range(count)])
+
+    def cost(states):
+        """Measures how far a plan is from the weights (a change costs a little extra).
+
+        Args:
+            states (list): Plan.
+
+        Returns:
+            float: Cost.
+        """
+        changes = sum(1 for index in range(1, count) if states[index] != states[index - 1])
+        return sum(abs(weight - (1.0 if down else 0.0)) for weight, down in zip(weights, states)) + 0.5 * changes
+
+    return min(candidates, key=cost)
+
+
+def build_settle_offsets(lowest_heights, states, down_height, up_height):
+    """Computes how far to move a foot along the up axis so each frame reads clearly down or up.
+
+    Down frames whose lowest point is above ``down_height`` are lowered to it; up frames below
+    ``up_height`` are raised to it. Frames already clear of the thresholds are left alone.
+
+    Args:
+        lowest_heights (list): Lowest foot/toe/heel height above its floor, per frame.
+        states (list): True (down) or False (up) per frame.
+        down_height (float): Height a grounded foot is brought down to.
+        up_height (float): Height a lifted foot is brought up to.
+
+    Returns:
+        list: Signed offsets per frame (negative lowers).
+    """
+    offsets = []
+    for height, down in zip(lowest_heights, states):
+        if down:
+            offsets.append(min(0.0, down_height - height))
+        else:
+            offsets.append(max(0.0, up_height - height))
+    return offsets

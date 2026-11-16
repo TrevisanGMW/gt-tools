@@ -165,6 +165,41 @@ class TestBatchProcessorUi(unittest.TestCase):
         self.assertTrue(ui_qt_utils.is_qt_object_valid(task_widget.task_name_field))
         refresh_parent.assert_not_called()
 
+    @unittest.skipIf(ui_qt.QtTest is None, "PySide QtTest is unavailable.")
+    def test_empty_tree_click_clears_selection_and_details(self):
+        """Empty clicks clear details while task and project clicks restore them."""
+        controller = batch_processor_controller.BatchProcessorController.__new__(
+            batch_processor_controller.BatchProcessorController
+        )
+        controller.model = self.model
+        controller.view = self.view
+        self.view.controller = controller
+        self.view.task_tree.itemSelectionChanged.connect(controller.update_details)
+        controller.update_details()
+        self.view.show()
+        self.application.processEvents()
+        tree = self.view.task_tree
+        empty_position = ui_qt.QtCore.QPoint(10, tree.viewport().height() - 5)
+        self.assertIsNone(tree.itemAt(empty_position))
+
+        ui_qt.QtTest.QTest.mouseClick(tree.viewport(), ui_qt.QtLib.MouseButton.LeftButton, pos=empty_position)
+        self.application.processEvents()
+
+        self.assertEqual([], tree.selectedItems())
+        self.assertIsNone(tree.currentItem())
+        self.assertIsNone(self.view.get_selected_task_id())
+        labels = self.view.get_task_widget().findChildren(ui_qt.QtWidgets.QLabel)
+        self.assertIn("Nothing selected", [label.text() for label in labels])
+
+        task_item = self.view.project_item.child(0)
+        ui_qt.QtTest.QTest.mouseClick(
+            tree.viewport(), ui_qt.QtLib.MouseButton.LeftButton, pos=tree.visualItemRect(task_item).center()
+        )
+        self.assertEqual(self.task.id, self.view.get_selected_task_id())
+        self.assertIsInstance(self.view.get_task_widget(), attr_widget_task.AttrWidgetTask)
+        tree.setCurrentItem(self.view.project_item)
+        self.assertIsInstance(self.view.get_task_widget(), attr_widget_project.AttrWidgetProject)
+
     def test_refresh_tree_blocks_intermediate_selection_signals(self):
         """Ensures a tree rebuild does not emit transient selection changes."""
         selection_changed = mock.MagicMock()

@@ -639,9 +639,10 @@ print(result["status"])                   # none / skipped / applied / partial /
 | Fix | For | What it does |
 |---|---|---|
 | `foot_lock` | foot_slide, planted_foot_jitter, contact_flicker | Pins planted feet over a contact span with two-bone IK (bone lengths kept, foot keeps its world rotation); `side: auto` picks the planted feet |
+| `contact_settle` | contact_flicker | Measures contact like the checks, picks one clean down/up state per frame (at most one change), lowers and holds down frames, lifts up frames; moves only that leg |
 | `hips_follow` | foot_slide (body drift) | Moves the body along the ground so the planted foot stays put |
 | `foot_floor_clamp` | ground_penetration, below_ground | Lifts only a sinking foot with two-bone IK |
-| `ground_snap` | below_ground, floating, contact_flicker | Moves the hips up/down so the lowest foot/toe sits on the floor |
+| `ground_snap` | below_ground, floating, contact_flicker (fallback) | Moves the hips up/down so the lowest foot/toe sits on the floor |
 | `spike_clamp` | position/rotation pops | Caps the speed inside the span relative to the motion around it |
 | `span_bridge` | pops, invalid values, wrists, twist, head | Replaces a short span with a smooth transition between the poses around it |
 | `span_smooth` | jitter | Gaussian smoothing over the span with blend in/out (`adaptive` keeps accents) |

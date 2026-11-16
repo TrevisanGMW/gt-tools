@@ -108,6 +108,36 @@ FIXES = [
         side_effects="A pin far from the original path bends the knee a lot; short blends can add flicker.",
     ),
     FixDefinition(
+        key="contact_settle",
+        label="Contact Settle",
+        summary="Removes contact flicker: measures contact like the checks, picks one clean down/up state per "
+                "frame (at most one change, so real landings and lift-offs stay), then lowers and holds down "
+                "frames on the floor and lifts up frames clear, moving only that leg with two-bone IK.",
+        function=fixes.contact_settle,
+        parameters={
+            "side": ("auto", '"left", "right", or "auto" (the feet whose contact toggles in the span).'),
+            "mode": ("auto", '"auto" (best plan with at most one change), "down" (keep down), or "up".'),
+            "blend": (6, "Frames to blend in before and out after the span (6 scored best on real takes)."),
+            "hold": (True, "Hold down frames in place along the ground (no sliding while down)."),
+            "extend_max": (20, "Most frames a hold continues past the span while the foot stays on the floor."),
+            "down_ratio": (0.5, "Down frames go to this fraction of the firm-contact height."),
+            "up_ratio": (1.25, "Up frames go to this multiple of the contact height."),
+            "height_ratio": (0.06, "Contact height as a fraction of leg length; match the preset's "
+                                   "contact_height_ratio when it is not the default."),
+            "min_base_speed": (0.5, "Match the preset's contact_min_base_speed when it is not the default."),
+        },
+        presets={
+            "down": ({"mode": "down"}, "Keep the foot planted through the whole span."),
+            "up": ({"mode": "up"}, "Keep the foot in the air through the whole span."),
+            "long": ({"blend": 10}, "Longer blends; helped some idles, hurt others (preview it)."),
+            "short": ({"blend": 3}, "Shorter blends when the span sits between two real steps."),
+        },
+        checks=["contact_flicker"],
+        needs_nodes="none (side auto), side, or nodes [thigh, knee, foot]; needs a skeleton template",
+        side_effects="Lowering a hovering foot can add a little ground contact; holding may add slide at "
+                     "the blend edges.",
+    ),
+    FixDefinition(
         key="hips_follow",
         label="Hips Follow",
         summary="Moves the body along the ground so the planted foot stays put, without bending the legs "
@@ -245,7 +275,8 @@ FIXES = [
 
 LADDERS = {
     "foot_slide": [
-        ("foot_lock", "default", "First try: pin the planted foot over the reported span."),
+        ("foot_lock", "default", "First try: pin the planted foot over the reported span. If the take also "
+                                 "flickers, add contact_settle steps on the flicker spans in the same patch."),
         ("foot_lock", "contact", "Slide left at the span edges: lock the whole contact (often best on idles)."),
         ("hips_follow", "default", "Locks add flicker, or the whole body drifts: move the body instead."),
         ("foot_lock", "still", "The foot still drifts: pin where it is most still."),
@@ -255,6 +286,8 @@ LADDERS = {
         ("span_smooth", "light", "Jitter remains: smooth the foot and ankle lightly."),
     ],
     "contact_flicker": [
+        ("contact_settle", "default", "First try: make the toggling foot clearly down or up."),
+        ("contact_settle", "long", "Flicker or sliding remains at the span edges: blend longer."),
         ("ground_snap", "default", "Feet hover and dip around the floor: settle the body on the floor."),
         ("foot_lock", "planted", "One foot toggles: hold it down over the whole contact."),
     ],

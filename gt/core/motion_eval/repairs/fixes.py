@@ -9,8 +9,9 @@ Every fix has the signature ``fix(scene, frames, nodes, params)``:
     params (dict): Fix parameters, already merged with the registry defaults (and preset).
 and returns ``{"keys": int, "nodes": list, "frames": [start, end], "warnings": list}``.
 
-Implementations live in fixes_feet (feet and ground) and fixes_spans (any joint); shared helpers
-in fixes_common. Custom patch scripts receive this module as ``context["fixes"]``.
+Implementations live in fixes_feet (feet and ground), fixes_contact (contact flicker), and
+fixes_spans (any joint); shared helpers in fixes_common. Custom patch scripts receive this
+module as ``context["fixes"]``.
 """
 
 from .fixes_common import CHANNELS
@@ -21,6 +22,7 @@ from .fixes_common import get_parent_matrices
 from .fixes_common import key_local_series
 from .fixes_common import require_nodes
 from .fixes_common import sample_local_series
+from .fixes_contact import contact_settle
 from .fixes_feet import foot_floor_clamp
 from .fixes_feet import foot_lock
 from .fixes_feet import ground_snap
@@ -36,7 +38,7 @@ from .fixes_spans import spike_clamp
 
 __all__ = [
     "CHANNELS", "add_key_result", "build_result", "get_channels", "get_parent_matrices", "key_local_series",
-    "require_nodes", "sample_local_series", "foot_floor_clamp", "foot_lock", "ground_snap", "hips_follow",
-    "measure_leg", "pick_planted_legs", "resolve_legs", "solve_leg_window", "limit_clamp", "span_bridge",
+    "require_nodes", "sample_local_series", "contact_settle", "foot_floor_clamp", "foot_lock", "ground_snap",
+    "hips_follow", "measure_leg", "pick_planted_legs", "resolve_legs", "solve_leg_window", "limit_clamp", "span_bridge",
     "span_smooth", "spike_clamp",
 ]
