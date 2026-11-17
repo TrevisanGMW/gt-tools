@@ -479,7 +479,7 @@ class InlinePythonEditorWidget(ui_qt.QtWidgets.QWidget):
         """
         if not self.python_edit:
             return
-        dynamic_stylesheet = self.base_stylesheet + "; font-size: {0}pt;".format(int(font_size or 14))
+        dynamic_stylesheet = f"{self.base_stylesheet}\nQTextEdit {{ font-size: {int(font_size or 14)}pt; }}"
         self.python_edit.setStyleSheet(dynamic_stylesheet)
         if self.python_editor_widget:
             self.python_editor_widget.number_bar.setFont(self.python_edit.font())
