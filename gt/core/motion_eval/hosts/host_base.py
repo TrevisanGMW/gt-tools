@@ -273,6 +273,15 @@ class SceneHost:
         """
         return contextlib.nullcontext()
 
+    def prepare_bounded_keying(self, node_paths, start_frame, end_frame):
+        """Optionally preserves curve shape around a bounded rotation edit.
+
+        Args:
+            node_paths (list): Nodes whose rotation channels will be keyed.
+            start_frame (int): First permitted edit frame.
+            end_frame (int): Last permitted edit frame.
+        """
+
     def key_local_transforms(self, node_path, frames, local_matrices, channels=("rotate",)):
         """Optional (needed by repairs). Keys a node's local transform on the given frames.
 

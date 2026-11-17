@@ -99,6 +99,96 @@ class TestBatchProjects(unittest.TestCase):
         restored = tasks.create_task_from_dict(self.task.to_dict())
         self.assertEqual(self.task.to_dict(), restored.to_dict())
 
+    def make_windows_file_error(self, code=5):
+        """Builds a Windows access error without depending on the test host OS.
+
+        Args:
+            code (int, optional): Windows access or sharing error number.
+
+        Returns:
+            PermissionError: Exception carrying a Windows error number.
+        """
+        error = PermissionError("File is temporarily locked.")
+        error.winerror = code
+        return error
+
+    def test_json_writer_retries_windows_file_locks(self):
+        """Recovers from each Windows access/sharing violation atomically."""
+        for code in projects.WINDOWS_FILE_ACCESS_ERRORS:
+            with self.subTest(winerror=code):
+                path = os.path.join(self.root, "status.json")
+                projects.write_json(path, {"progress": 1})
+                replace = projects.os.replace
+                with mock.patch.object(projects.os, "replace", wraps=replace, side_effect=[
+                        self.make_windows_file_error(code), mock.DEFAULT]) as replacement, \
+                        mock.patch.object(projects.time, "sleep") as sleep:
+                    projects.write_json(path, {"progress": 2})
+                self.assertEqual({"progress": 2}, projects.read_json(path))
+                self.assertEqual(2, replacement.call_count)
+                sleep.assert_called_once()
+                self.assertEqual([], [name for name in os.listdir(self.root) if name.endswith(".tmp")])
+
+    def test_json_writer_preserves_previous_file_when_lock_persists(self):
+        """Bounds retries and removes the temporary file after publication fails."""
+        path = os.path.join(self.root, "status.json")
+        projects.write_json(path, {"progress": 1})
+        with mock.patch.object(projects.os, "replace", side_effect=self.make_windows_file_error()) as replacement, \
+                mock.patch.object(projects.time, "sleep") as sleep:
+            with self.assertRaises(PermissionError):
+                projects.write_json(path, {"progress": 2})
+        self.assertEqual({"progress": 1}, projects.read_json(path))
+        self.assertEqual(projects.JSON_REPLACE_ATTEMPTS, replacement.call_count)
+        self.assertEqual(projects.JSON_REPLACE_ATTEMPTS - 1, sleep.call_count)
+        self.assertEqual([], [name for name in os.listdir(self.root) if name.endswith(".tmp")])
+
+    def test_json_writer_does_not_retry_unrelated_errors(self):
+        """Surfaces non-sharing filesystem failures immediately."""
+        with mock.patch.object(projects.os, "replace", side_effect=FileNotFoundError("Missing directory")), \
+                mock.patch.object(projects.time, "sleep") as sleep:
+            with self.assertRaises(FileNotFoundError):
+                projects.write_json(os.path.join(self.root, "status.json"), {"progress": 1})
+        sleep.assert_not_called()
+
+    def test_locked_progress_file_does_not_stop_processing(self):
+        """Defers locked status updates and recovers on the next publication."""
+        scheduler = self.make_scheduler(1)
+        scheduler.options.result_file = os.path.join(self.root, "result.json")
+        scheduler.options.status_file = os.path.join(self.root, "status.json")
+        scheduler.options.run_id = "test"
+        reporter = scheduler.project_reporter
+        with mock.patch.object(projects, "write_json", side_effect=[self.make_windows_file_error(), None]) as write, \
+                mock.patch.object(time, "monotonic", side_effect=[10, 10, 12, 12]):
+            with self.assertLogs("gt.tools.batch_processor.tracker.tracker_project_reporter", level="WARNING"):
+                reporter.tick()
+            self.assertTrue(reporter.status_write_failed)
+            reporter.tick()
+        self.assertFalse(reporter.status_write_failed)
+        self.assertFalse(reporter.published)
+        self.assertFalse(scheduler.session.finished)
+        self.assertEqual(2, write.call_count)
+
+    def test_locked_progress_file_does_not_block_terminal_result(self):
+        """Publishes completion even while the optional status file is locked."""
+        scheduler = self.make_scheduler(1)
+        scheduler.options.result_file = os.path.join(self.root, "result.json")
+        scheduler.options.status_file = os.path.join(self.root, "status.json")
+        scheduler.options.run_id = "test"
+        self.mark_finished(scheduler.session.jobs[0], tracker_constants.Status.COMPLETED)
+        scheduler.session.finish()
+        with mock.patch.object(projects, "write_json", side_effect=[self.make_windows_file_error(), None]) as write:
+            with self.assertLogs("gt.tools.batch_processor.tracker.tracker_project_reporter", level="WARNING"):
+                scheduler.project_reporter.tick()
+        self.assertTrue(scheduler.project_reporter.published)
+        self.assertEqual(scheduler.options.result_file, write.call_args.args[0])
+        self.assertEqual("succeeded", write.call_args.args[1]["outcome"])
+
+    def test_status_publication_surfaces_unrelated_io_errors(self):
+        """Retains errors that are unrelated to Windows reader locks."""
+        scheduler = self.make_scheduler(1)
+        with mock.patch.object(projects, "write_json", side_effect=OSError("Disk full")):
+            with self.assertRaisesRegex(OSError, "Disk full"):
+                scheduler.project_reporter._publish_status(os.path.join(self.root, "status.json"), "test")
+
     def test_timezone_is_required(self):
         """Rejects ambiguous local schedule timestamps."""
         with self.assertRaises(ValueError):
@@ -367,6 +457,66 @@ class TestBatchProjects(unittest.TestCase):
             service.wait_for_result(process, {"run_id": "test", "run_dir": self.root,
                                              "settings": self.task.settings}, {})
 
+    def test_child_monitor_has_no_deadlines_by_default(self):
+        """Allows long startup and stale status when watchdogs are disabled."""
+        request = {"run_id": "test", "run_dir": self.root, "settings": self.task.settings}
+        terminal = {"schema_version": 1, "run_id": "test", "finished": True, "outcome": "succeeded"}
+        for status in ({}, {"run_id": "test", "heartbeat": 1}):
+            with self.subTest(status=status):
+                process = mock.Mock()
+                process.poll.return_value = None
+                with mock.patch.object(projects, "read_json", side_effect=[{}, status, {}, status, terminal]), \
+                        mock.patch.object(service.time, "monotonic", side_effect=[0, 121, 10000]), \
+                        mock.patch.object(service.time, "time", return_value=10000), \
+                        mock.patch.object(service.time, "sleep"):
+                    result = service.wait_for_result(process, request, {})
+                self.assertEqual("succeeded", result["outcome"])
+
+    def test_started_child_survives_temporary_status_read_failure(self):
+        """Keeps startup complete across unreadable or unrelated status reads."""
+        request = {"run_id": "test", "run_dir": self.root, "settings": self.task.settings}
+        status = {"run_id": "test", "heartbeat": 1000, "progress": 50}
+        terminal = {"schema_version": 1, "run_id": "test", "finished": True, "outcome": "succeeded"}
+        for unavailable in ({}, {"run_id": "unrelated", "heartbeat": 1000}):
+            with self.subTest(status=unavailable):
+                process = mock.Mock()
+                process.poll.return_value = None
+                with mock.patch.object(service, "LAUNCH_TIMEOUT_SECONDS", 120), \
+                        mock.patch.object(service, "HEARTBEAT_TIMEOUT_SECONDS", 120), \
+                        mock.patch.object(projects, "read_json", side_effect=[{}, status, {}, unavailable, terminal]), \
+                        mock.patch.object(service.time, "monotonic", side_effect=[0, 1, 121]), \
+                        mock.patch.object(service.time, "time", return_value=1000), \
+                        mock.patch.object(service.time, "sleep"):
+                    result = service.wait_for_result(process, request, {})
+                self.assertEqual("succeeded", result["outcome"])
+
+    def test_enabled_startup_timeout_is_failure(self):
+        """Rejects a child that never reports startup when its watchdog is enabled."""
+        process = mock.Mock()
+        process.poll.return_value = None
+        with mock.patch.object(service, "LAUNCH_TIMEOUT_SECONDS", 120), \
+                mock.patch.object(projects, "read_json", return_value={}), \
+                mock.patch.object(service.time, "monotonic", side_effect=[0, 121]):
+            with self.assertRaisesRegex(RuntimeError, "startup timed out"):
+                service.wait_for_result(process, {
+                    "run_id": "test", "run_dir": self.root, "settings": self.task.settings}, {})
+
+    def test_enabled_heartbeat_timeout_survives_status_read_failure(self):
+        """Uses the last valid heartbeat when status becomes unreadable."""
+        process = mock.Mock()
+        process.poll.return_value = None
+        status = {"run_id": "test", "heartbeat": 1000}
+        with mock.patch.object(service, "LAUNCH_TIMEOUT_SECONDS", 120), \
+                mock.patch.object(service, "HEARTBEAT_TIMEOUT_SECONDS", 120), \
+                mock.patch.object(projects, "read_json", side_effect=[{}, status, {}, {}]), \
+                mock.patch.object(service.time, "monotonic", side_effect=[0, 1, 121]), \
+                mock.patch.object(service.time, "time", side_effect=[1001, 1121]), \
+                mock.patch.object(service.time, "sleep"):
+            with self.assertRaisesRegex(RuntimeError, "heartbeat timed out"):
+                service.wait_for_result(process, {
+                    "run_id": "test", "run_dir": self.root, "settings": self.task.settings}, {})
+
+    @mock.patch.object(service, "HEARTBEAT_TIMEOUT_SECONDS", 120)
     def test_heartbeat_timeout_is_failure(self):
         """Detects a stalled scheduler independently of task progress."""
         projects.write_json(os.path.join(self.root, "status.json"), {"run_id": "test", "heartbeat": 1})

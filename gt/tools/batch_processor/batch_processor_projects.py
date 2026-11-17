@@ -5,6 +5,7 @@ import json
 import os
 import re
 import tempfile
+import time
 
 
 SCHEMA_VERSION = 1
@@ -15,6 +16,8 @@ DEPENDENCY_OUTCOMES = ["Completion", "Success", "Failure"]
 WINDOW_POLICIES = ["Keep Open", "Close When Finished", "Close On Success"]
 FAILURE_POLICIES = ["Continue", "Stop Launching"]
 SUCCESS_OUTCOMES = {"succeeded", "warning"}
+WINDOWS_FILE_ACCESS_ERRORS = (5, 32, 33)
+JSON_REPLACE_ATTEMPTS = 10
 
 
 def canonical_path(path):
@@ -71,6 +74,9 @@ def get_run_settings_request_path(control_file):
 def write_json(path, data):
     """Publishes JSON atomically without replacing any source project.
 
+    Windows readers can briefly prevent replacement of an existing status file.
+    Retry access/sharing violations while preserving the previous valid file.
+
     Args:
         path (str): Destination path.
         data (dict): JSON-compatible payload.
@@ -81,7 +87,15 @@ def write_json(path, data):
     try:
         with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
             json.dump(data, stream, indent=2, ensure_ascii=False, sort_keys=True)
-        os.replace(temporary, path)
+        for attempt in range(JSON_REPLACE_ATTEMPTS):
+            try:
+                os.replace(temporary, path)
+                break
+            except OSError as error:
+                if (getattr(error, "winerror", None) not in WINDOWS_FILE_ACCESS_ERRORS
+                        or attempt == JSON_REPLACE_ATTEMPTS - 1):
+                    raise
+                time.sleep(min(0.01 * (2 ** attempt), 0.25))
     finally:
         if os.path.exists(temporary):
             os.remove(temporary)

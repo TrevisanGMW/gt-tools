@@ -175,6 +175,9 @@ class TaskValidationMayaScene(task_base.BatchTask):
             has_issues=has_issues,
             context=context,
         )
+        from gt.tools.batch_processor.batch_processor_file_control import apply_issue_action
+
+        apply_issue_action(self, project, work_item, step_output_dir, has_issues)
         if has_issues and self.settings.get("fail_on_issues"):
             raise RuntimeError("Maya scene validation found issues in: {0}".format(work_item.current_path))
         return task_base.WorkItem(
@@ -377,6 +380,9 @@ class TaskValidationFileIntegrity(task_base.BatchTask):
         has_issues = bool(issues)
         run_state.record_validation(project, not has_issues)
         self.write_validation_log_if_needed(work_item, step_output_dir, issues, has_issues, context=context)
+        from gt.tools.batch_processor.batch_processor_file_control import apply_issue_action
+
+        apply_issue_action(self, project, work_item, step_output_dir, has_issues)
         if has_issues and self.settings.get("fail_on_issues"):
             raise RuntimeError("File integrity validation found issues in: {0}".format(work_item.current_path))
         return task_base.WorkItem(

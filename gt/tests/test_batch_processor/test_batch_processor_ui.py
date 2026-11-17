@@ -74,6 +74,40 @@ class TestBatchProcessorUi(unittest.TestCase):
         self.view.close()
         self.application.processEvents()
 
+    def test_validation_filter_controls_preserve_existing_policy_and_store_templates(self):
+        """Enables routing fields only for copying and preserves the old failure setting."""
+        from gt.tools.batch_processor.tasks.task_validation_python import TaskValidationPythonScript
+        from gt.tools.batch_processor.widgets.attr_widget_validation import AttrWidgetPythonValidationTask
+
+        task = TaskValidationPythonScript(settings={"fail_on_issues": True})
+        widget = AttrWidgetPythonValidationTask(task=task, project=self.model)
+        self.addCleanup(widget.close)
+        self.addCleanup(widget.deleteLater)
+        self.assertTrue(widget.filter_fail_checkbox.isEnabled())
+        self.assertFalse(widget.filter_folder_field.isEnabled())
+        self.assertEqual("filtered", widget.filter_folder_field.text())
+        widget.filter_action_combo.setCurrentText("Copy to folder and stop")
+        self.assertFalse(widget.filter_fail_checkbox.isEnabled())
+        self.assertTrue(widget.filter_folder_field.isEnabled())
+        widget.filter_mode_combo.setCurrentText("Custom folder")
+        widget.filter_folder_field.setText("{project-dir}/{output-dir}/excluded")
+        self.assertEqual("Copy to folder and stop", task.settings["issue_action"])
+        self.assertEqual("Custom folder", task.settings["filter_destination_mode"])
+        self.assertEqual("{project-dir}/{output-dir}/excluded", task.settings["filter_folder"])
+        widget.filter_action_combo.setCurrentText("Existing behavior")
+        self.assertTrue(widget.filter_fail_checkbox.isEnabled())
+        self.assertTrue(task.settings["fail_on_issues"])
+
+    def test_python_filter_samples_are_available(self):
+        """Exposes the three filtering examples in the existing script sample menu."""
+        from gt.tools.batch_processor.tasks.task_python_script import TaskPythonScript
+
+        paths = [sample["relative_path"] for sample in task_utils.get_script_samples(
+            TaskPythonScript.sample_scripts_directory
+        )]
+        for sample_name in ("skip_file", "save_to_subfolder", "save_to_custom_folder"):
+            self.assertIn(f"filtering/{sample_name}.py", [path.replace("\\", "/") for path in paths])
+
     def test_report_items_are_addable_rows_with_item_preferences(self):
         """Keeps each report value and its controls together in the item list."""
         report_task = task_report.TaskSceneReport()
@@ -1579,6 +1613,93 @@ class TestBatchProcessorUi(unittest.TestCase):
         after_height = document.documentLayout().blockBoundingRect(document.firstBlock()).height()
         self.assertGreater(after_height, before_height)
         widget.close()
+
+    def test_python_editor_tooltips_keep_application_font_size(self):
+        """Changing either editor's code size leaves its displayed tooltip font unchanged."""
+        task_widget = attr_widget_python_script.AttrWidgetPythonScriptTask(
+            task=batch_processor_tasks.TaskPythonScript(), project=self.model,
+        )
+        inline_widget = InlinePythonEditorWidget(text="pass", tooltip="Python editor help")
+        for widget in (task_widget, inline_widget):
+            self.addCleanup(widget.close)
+            self.addCleanup(widget.deleteLater)
+            widget.setAttribute(ui_qt.QtCore.Qt.WA_DontShowOnScreen, True)
+            widget.show()
+            font_sizes = []
+            for font_size in (8, 24):
+                widget.set_editor_font_size(font_size)
+                editor = widget.python_edit
+                ui_qt.QtWidgets.QToolTip.showText(
+                    editor.mapToGlobal(ui_qt.QtCore.QPoint(5, 5)),
+                    f"{editor.toolTip()}\nSize setting: {font_size}", editor,
+                )
+                self.application.processEvents()
+                tooltips = [tooltip for tooltip in self.application.topLevelWidgets()
+                            if tooltip.objectName() == "qtooltip_label"]
+                self.assertTrue(tooltips)
+                font_sizes.append(tooltips[-1].font().pointSizeF())
+                ui_qt.QtWidgets.QToolTip.hideText()
+            self.assertEqual(font_sizes[0], font_sizes[1])
+            self.assertEqual(ui_qt.QtWidgets.QToolTip.font().pointSizeF(), font_sizes[0])
+
+    def test_scene_output_groups_are_evenly_spaced_and_centered(self):
+        """Keeps compact scene controls centered within equal-width cells at different widths."""
+        widget = attr_widget_python_script.AttrWidgetPythonScriptTask(
+            task=batch_processor_tasks.TaskPythonScript(), project=self.model,
+        )
+        self.addCleanup(widget.close)
+        self.addCleanup(widget.deleteLater)
+        widget.setAttribute(ui_qt.QtCore.Qt.WA_DontShowOnScreen, True)
+        widget.show()
+        for width in (850, 1100):
+            widget.resize(width, 900)
+            self.application.processEvents()
+            first_group = widget.scene_load_mode_combo.parentWidget()
+            row = first_group.parentWidget().layout()
+            scene_label = next(label for label in widget.findChildren(ui_qt.QtWidgets.QLabel)
+                               if label.text() == "Scene Output:")
+            scene_row = next(row.itemAt(index).layout() for index in range(row.count())
+                             if row.itemAt(index).layout()
+                             and row.itemAt(index).layout().indexOf(scene_label) >= 0)
+            groups = [scene_row.itemAt(index).widget() for index in range(1, scene_row.count())]
+            group_widths = [group.width() for group in groups]
+            self.assertLessEqual(max(group_widths) - min(group_widths), 1)
+            for group in groups:
+                layout = group.layout()
+                first_control = layout.itemAt(1).widget()
+                last_control = layout.itemAt(layout.count() - 2).widget()
+                content_center = (first_control.geometry().left() + last_control.geometry().right()) / 2
+                self.assertLessEqual(abs(content_center - group.rect().center().x()), 1)
+
+    def test_scene_output_dropdowns_fit_all_labels_with_styled_fonts(self):
+        """Includes the longest option, arrow, and theme padding when sizing scene dropdowns."""
+        widget = attr_widget_python_script.AttrWidgetPythonScriptTask(
+            task=batch_processor_tasks.TaskPythonScript(), project=self.model,
+        )
+        self.addCleanup(widget.close)
+        self.addCleanup(widget.deleteLater)
+        widget.setAttribute(ui_qt.QtCore.Qt.WA_DontShowOnScreen, True)
+        widget.resize(1100, 900)
+        widget.show()
+        style = ui_qt.QtWidgets.QStyle
+        complex_controls = getattr(style, "ComplexControl", style)
+        sub_controls = getattr(style, "SubControl", style)
+        for font_size in (10, 18):
+            widget.setStyleSheet(
+                f"QComboBox {{ font-size: {font_size}pt; padding: 4px 28px 4px 12px; }}"
+            )
+            self.application.processEvents()
+            for combo in (widget.scene_load_mode_combo, widget.output_extension_combo):
+                for index in range(combo.count()):
+                    combo.setCurrentIndex(index)
+                    self.application.processEvents()
+                    option = ui_qt.QtWidgets.QStyleOptionComboBox()
+                    combo.initStyleOption(option)
+                    text_rect = combo.style().subControlRect(
+                        complex_controls.CC_ComboBox, option, sub_controls.SC_ComboBoxEditField, combo,
+                    )
+                    text_width = combo.fontMetrics().boundingRect(combo.currentText()).width()
+                    self.assertGreaterEqual(text_rect.width(), text_width)
 
     def test_inline_python_editor_keeps_existing_code_when_replacement_is_cancelled(self):
         """Ensures an example cannot silently replace a user's inline script."""

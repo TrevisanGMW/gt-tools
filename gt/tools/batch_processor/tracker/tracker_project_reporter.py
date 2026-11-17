@@ -1,9 +1,13 @@
 """Durable child project progress, result publication, and cancellation."""
 
+import logging
 import os
 import time
 
 from gt.tools.batch_processor import batch_processor_projects as projects
+
+
+logger = logging.getLogger(__name__)
 
 
 class ProjectReporter:
@@ -20,6 +24,7 @@ class ProjectReporter:
         self.last_publication = 0
         self.published = False
         self.last_run_settings_sequence = 0
+        self.status_write_failed = False
 
     def tick(self):
         """Publishes liveness and terminal results, and consumes cancellation."""
@@ -35,14 +40,7 @@ class ProjectReporter:
         if time.monotonic() - self.last_publication >= 1 or session.finished:
             status_file = getattr(self.options, "status_file", "")
             if status_file:
-                projects.write_json(status_file, {
-                    "schema_version": projects.SCHEMA_VERSION, "run_id": run_id,
-                    "heartbeat": time.time(), "progress": session.progress,
-                    "tracker_pid": os.getpid(),
-                    "finished": session.finished, "session_dir": session.session_dir,
-                    "active_workers": len(self.scheduler.running),
-                    "run_settings": self.scheduler.run_settings.to_dict(),
-                })
+                self._publish_status(status_file, run_id)
             self.last_publication = time.monotonic()
         if session.finished:
             result = projects.build_result(
@@ -57,6 +55,35 @@ class ProjectReporter:
                     summary.write(f"{job.name}: {job.status}\n")
             projects.write_json(result_file, result)
             self.published = True
+
+    def _publish_status(self, status_file, run_id):
+        """Publishes progress without failing animation jobs on Windows file locks.
+
+        Args:
+            status_file (str): Owned status publication path.
+            run_id (str): Current run identity.
+        """
+        session = self.scheduler.session
+        try:
+            projects.write_json(status_file, {
+                "schema_version": projects.SCHEMA_VERSION, "run_id": run_id,
+                "heartbeat": time.time(), "progress": session.progress,
+                "tracker_pid": os.getpid(),
+                "finished": session.finished, "session_dir": session.session_dir,
+                "active_workers": len(self.scheduler.running),
+                "run_settings": self.scheduler.run_settings.to_dict(),
+            })
+        except OSError as error:
+            if getattr(error, "winerror", None) not in projects.WINDOWS_FILE_ACCESS_ERRORS:
+                raise
+            if not self.status_write_failed:
+                logger.warning("Status file is locked; processing continues and publication will retry: %s (%s)",
+                               status_file, error)
+            self.status_write_failed = True
+            return
+        if self.status_write_failed:
+            logger.info("Status file publication recovered: %s", status_file)
+        self.status_write_failed = False
 
     def _consume_run_settings_request(self, run_id):
         """Applies a new live run settings request written by ``ProjectRun.set_run_settings``.

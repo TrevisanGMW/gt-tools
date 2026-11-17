@@ -339,6 +339,34 @@ class MayaHost(SceneHost):
         finally:
             cmds.undoInfo(closeChunk=True)
 
+    def prepare_bounded_keying(self, node_paths, start_frame, end_frame):
+        """Inserts shape-preserving guard keys inside an accepted edit interval.
+
+        This also protects sparse animation curves, whose nearest existing keys
+        may otherwise be outside the interval being repaired.
+
+        Args:
+            node_paths (list): Nodes whose rotation channels will be keyed.
+            start_frame (int): First permitted edit frame.
+            end_frame (int): Last permitted edit frame.
+        """
+        import maya.cmds as cmds
+
+        guards = sorted({start_frame, start_frame + 1, end_frame - 1, end_frame})
+        for node_path in node_paths:
+            for axis in "XYZ":
+                attribute = f"{node_path}.rotate{axis}"
+                if (cmds.getAttr(attribute, lock=True)
+                        or not cmds.getAttr(attribute, settable=True)
+                        and not cmds.listConnections(attribute, source=True, destination=False, type="animCurve")):
+                    continue
+                for frame in guards:
+                    if cmds.keyframe(attribute, query=True, keyframeCount=True):
+                        cmds.setKeyframe(attribute, time=(frame, frame), insert=True)
+                    else:
+                        cmds.setKeyframe(attribute, time=(frame, frame),
+                                         value=cmds.getAttr(attribute, time=frame))
+
     def key_local_transforms(self, node_path, frames, local_matrices, channels=("rotate",)):
         """Keys a node's rotate and/or translate channels from local matrices.
 

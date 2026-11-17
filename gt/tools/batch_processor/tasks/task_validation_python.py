@@ -8,6 +8,7 @@ or by returning a simple value from ``run(context)``.
 
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_task_base as task_base
+from gt.tools.batch_processor import batch_processor_file_control as file_control
 from gt.tools.batch_processor import batch_processor_run_state as run_state
 from gt.tools.batch_processor.tasks import task_validation
 from gt.tools.batch_processor.tasks import task_utils
@@ -418,6 +419,8 @@ def execute_validation_script(script_text, context, reporter, script_path=INLINE
         run_function = namespace.get("run")
         if callable(run_function):
             apply_script_result(run_function(context), reporter)
+    except file_control.FileFiltered:
+        raise
     except Exception as exception:
         reporter.script_error = True
         reporter.error(
@@ -603,6 +606,11 @@ class TaskValidationPythonScript(task_base.BatchTask):
                 "log_dir": step_output_dir,
                 "scene_loaded": bool(self.settings.get("load_scene", True)),
                 "preview": bool(preview),
+                "control": file_control.FileControl(
+                    self, project, work_item,
+                    os.path.join(step_output_dir, os.path.basename(work_item.current_path)) if work_item else "",
+                    preview=bool(preview),
+                ),
             },
             pass_standard_arguments=self.settings.get("pass_standard_arguments", True),
             pass_environment_arguments=self.settings.get("pass_environment_arguments", True),
@@ -685,6 +693,7 @@ class TaskValidationPythonScript(task_base.BatchTask):
         )
         if reporter.script_error and self.settings.get("fail_on_script_error", True):
             raise RuntimeError(f"Validation script failed to run for: {work_item.current_path}")
+        file_control.apply_issue_action(self, project, work_item, step_output_dir, has_issues)
         if has_issues and self.settings.get("fail_on_issues"):
             summary = reporter.get_summary()
             raise RuntimeError(f"Python validation found issues ({summary}) in: {work_item.current_path}")

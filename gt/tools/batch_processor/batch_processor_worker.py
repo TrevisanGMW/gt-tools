@@ -79,6 +79,8 @@ class SingleInstanceBatchRunner:
         active_task_started = None
         task_timing_recorded = True
         executed_tasks = []
+        self._filtered_file_count = 0
+        filtered_stream = False
         try:
             current_items = []
             for step_index, task in enumerate(process_tasks, 1):
@@ -88,10 +90,12 @@ class SingleInstanceBatchRunner:
                 task_timing_recorded = False
                 failures_before = self.tracker.failed
                 skipped_before = self.tracker.skipped
+                filtered_before = self._filtered_file_count
                 task_environment_index = project.get_task_environment_index(task)
                 self.tracker.start_step(step_index, task.display_name)
                 self._record_operation(task)
                 if task.is_input_task:
+                    filtered_stream = False
                     new_items = task.prepare(project, context={"task_index": task_environment_index})
                     if task.starts_new_input_list():
                         current_items = list(new_items)
@@ -132,6 +136,15 @@ class SingleInstanceBatchRunner:
                     task_timing_recorded = True
                     continue
 
+                if filtered_stream and not current_items and not getattr(task, "is_aggregate_task", False):
+                    self.tracker.record_message(f"[FILTERED] {task.display_name}: no incoming files remain.")
+                    run_state.record_task(project, task, "skipped")
+                    self._record_task_timing(
+                        task=task, task_index=step_index, total_tasks=len(process_tasks),
+                        started_at=active_task_started, status=constants.RunStatus.SKIPPED,
+                    )
+                    task_timing_recorded = True
+                    continue
                 current_items = self._get_task_source_items(
                     project=project,
                     task=task,
@@ -154,6 +167,8 @@ class SingleInstanceBatchRunner:
                     self.tracker.record_message("[WARNING] - ({0}) - {1}".format(task.task_type, warning))
                 executed_tasks.append(task)
                 current_items = self._run_task(project, task, current_items, step_output_dir)
+                filtered_count = self._filtered_file_count - filtered_before
+                filtered_stream = filtered_stream or bool(filtered_count)
                 task_status = constants.RunStatus.SUCCEEDED
                 if self.tracker.failed > failures_before:
                     task_status = constants.RunStatus.FAILED
@@ -390,6 +405,8 @@ class SingleInstanceBatchRunner:
                     output_items.append(output_item)
                 self.tracker.record_success()
             except tasks.TaskSkip as exception:
+                if getattr(exception, "filters_file", False):
+                    self._filtered_file_count = getattr(self, "_filtered_file_count", 0) + 1
                 self._append_skipped_output_items(
                     output_items=output_items,
                     exception=exception,
@@ -419,6 +436,8 @@ class SingleInstanceBatchRunner:
             exception (TaskSkip): Skip exception carrying optional output data.
             work_item (WorkItem, optional): Current work item used as fallback.
         """
+        if getattr(exception, "filters_file", False):
+            return
         if exception.work_item:
             if isinstance(exception.work_item, list):
                 output_items.extend(exception.work_item)

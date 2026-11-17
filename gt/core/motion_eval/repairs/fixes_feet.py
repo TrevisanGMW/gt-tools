@@ -137,19 +137,20 @@ def pick_planted_legs(scene, legs, frames, up_axis=None):
     return planted or [lowest[1]]
 
 
-def get_contact_span(scene, leg, frames, max_extend):
-    """Grows a span to the whole contact of a foot (neighbor frames where it stays planted and close).
+def get_contact_span(scene, leg, frames, max_extend, measurement=None):
+    """Grows a span over adjacent held contact with limited foot drift.
 
     Args:
         scene (RepairScene): Scene access.
-        leg (list): [thigh, knee, foot].
-        frames (tuple): Reported (start, end) frames.
-        max_extend (int): Most frames added on each side.
+        leg (list): Thigh, knee and foot paths.
+        frames (tuple): Inclusive requested span.
+        max_extend (int): Maximum additional frames per side.
+        measurement (dict, optional): Cached measure_leg result.
 
     Returns:
-        tuple: (start, end) frames.
+        tuple: Inclusive extended frame range.
     """
-    measurement = measure_leg(scene, leg)
+    measurement = measurement if measurement is not None else measure_leg(scene, leg)
     start, end = get_span_indexes(measurement, frames)
     start, end = solvers.extend_contact_span(
         measurement["lift"], start, end, PLANTED_HEIGHT_RATIO * measurement["leg_length"], max_extend,
@@ -158,27 +159,32 @@ def get_contact_span(scene, leg, frames, max_extend):
     return start + measurement["start"], end + measurement["start"]
 
 
-def solve_leg_window(scene, leg, frames, blend, build_targets):
-    """Re-poses a leg with two-bone IK over a span (plus blend frames) and keys it.
+def solve_leg_window(scene, leg, frames, blend, build_targets, blend_out=None):
+    """Re-poses a leg with two-bone IK over a weighted window.
 
     Args:
         scene (RepairScene): Scene access.
-        leg (list): [thigh, knee, foot] node paths.
-        frames (tuple): (start, end) span.
-        blend (int): Blend frames before and after.
-        build_targets (callable): ``build_targets(foot_positions, span_start, span_end)`` returning
-            the target foot position per window index.
+        leg (list): Thigh, knee and foot paths.
+        frames (tuple): Inclusive full-weight range.
+        blend (int): Entry ramp length, also release length unless overridden.
+        build_targets (callable): Builds ankle targets from sampled positions and hold indexes.
+        blend_out (int, optional): Independent release length. Clips the window to playback
+            and includes unchanged boundary samples when supplied.
 
     Returns:
-        dict: Fix result for this leg.
+        dict: Keying result for the leg.
     """
     thigh, knee, foot = leg
     start_frame, end_frame = int(frames[0]), int(frames[1])
     window_start, window_end = start_frame - blend, end_frame + blend
+    if blend_out is not None:
+        clip_start, clip_end = scene.host.get_time_range("playback")
+        window_start = max(int(clip_start), start_frame - blend - 1)
+        window_end = min(int(clip_end), end_frame + blend_out + 1)
     matrices, parents = scene.sample([thigh, knee, foot], window_start, window_end)
     frame_count = window_end - window_start + 1
-    span_start, span_end = blend, blend + end_frame - start_frame
-    weights = solvers.build_blend_weights(frame_count, span_start, span_end, blend)
+    span_start, span_end = start_frame - window_start, end_frame - window_start
+    weights = solvers.build_blend_weights(frame_count, span_start, span_end, blend, blend_out)
     foot_positions = scene.get_positions(matrices[foot])
     targets = build_targets(foot_positions, span_start, span_end)
     thigh_parents = get_parent_matrices(matrices, parents.get(thigh), frame_count)
@@ -208,55 +214,32 @@ def solve_leg_window(scene, leg, frames, blend, build_targets):
 
 # ------------------------------------------------ Fixes ------------------------------------------------
 def foot_lock(scene, frames, nodes, params):
-    """Pins planted feet in place over a contact span with two-bone IK, blending in and out.
+    """Pins planted feet using easing contained within the reported issue span.
 
-    The thigh and knee rotate so the ankle reaches the pinned position; the foot keeps its world
-    rotation. Bone lengths never change. With side "auto" (the default) every foot that is
-    planted during the span is locked, because report spans do not say which foot slid.
-    ``pin_at`` picks where the foot is pinned; ``extend_contact`` grows the span to the whole
-    contact so the blend does not lift the foot inside the contact (less contact flicker).
+    The surrounding animation and two edge samples on either side stay unchanged.
+    Short spans or corrections that increase foot travel are skipped. Contact
+    extension settings in existing recipes cannot expand this operation's scope.
 
     Args:
         scene (RepairScene): Scene access.
-        frames (tuple): (start, end) contact frames.
-        nodes (list): Optional [thigh, knee, foot].
-        params (dict): side, blend, pin_height, min_height, pin_at, extend_contact, extend_max.
+        frames (tuple): Inclusive issue interval.
+        nodes (list): Optional explicit thigh, knee and foot chain.
+        params (dict): Side, blend_in, blend_out, stagger, lead_side, pin_at,
+            pin_height, min_height and max_extension settings. Requested timing
+            is reduced to fit the issue interval.
 
     Returns:
-        dict: Fix result.
+        dict: Keying result and per-foot applied or skipped status.
     """
+    from . import fixes_lock
+
     legs = resolve_legs(scene, nodes, params, "foot_lock")
     if is_auto_side(nodes, params):
         legs = pick_planted_legs(scene, legs, frames)
-    up_axis = scene.get_up_axis()
-    min_height = params.get("min_height")
-    min_height = None if min_height in (None, "") else float(min_height)
-    anchor = str(params.get("pin_at") or "average").lower()
-    blend = max(0, int(params.get("blend", 4)))
-
-    def build_targets(foot_positions, span_start, span_end):
-        """Builds pinned targets for one leg.
-
-        Args:
-            foot_positions (list): Foot positions per window index.
-            span_start (int): First pinned index.
-            span_end (int): Last pinned index.
-
-        Returns:
-            list: Targets per window index.
-        """
-        return solvers.build_pin_targets(foot_positions, span_start, span_end, up_axis,
-                                         bool(params.get("pin_height")), min_height, anchor)
-
-    result = build_result(frames, [])
-    for leg in legs:
-        leg_frames = frames
-        if params.get("extend_contact"):
-            leg_frames = get_contact_span(scene, leg, frames, max(0, int(params.get("extend_max", 30))))
-        leg_result = solve_leg_window(scene, leg, leg_frames, blend, build_targets)
-        result["nodes"].extend(leg_result["nodes"])
-        add_key_result(result, leg_result)
-    return result
+    settings = dict(params)
+    minimum = settings.get("min_height")
+    settings["min_height"] = None if minimum in (None, "") else float(minimum)
+    return fixes_lock.apply_foot_lock(scene, legs, frames, settings)
 
 
 def foot_floor_clamp(scene, frames, nodes, params):

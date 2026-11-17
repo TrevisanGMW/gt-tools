@@ -7,6 +7,7 @@ from gt.tools.batch_processor.widgets.inline_python_editor import InlinePythonEd
 from gt.tools.batch_processor.widgets.table_height_handle import TableHeightHandle
 from gt.tools.batch_processor.tasks import task_validation_python
 from gt.tools.batch_processor.tasks import task_validation
+from gt.tools.batch_processor import batch_processor_file_control as file_control
 import gt.ui.python_output_view as ui_python_output_view
 import gt.ui.resource_library as ui_res_lib
 import gt.ui.qt_import as ui_qt
@@ -150,7 +151,56 @@ class AttrWidgetValidationTaskBase(AttrWidgetTask):
             span=ROW_COLUMNS - 1,
         )
         fail_checkbox = self.add_option_checkbox(layout, fail_label, fail_key, fail_tooltip)
+        if fail_key != "fail_on_differences":
+            self.add_file_filter_settings(fail_checkbox, parent_layout)
         return log_combo, fail_checkbox
+
+    def add_file_filter_settings(self, fail_checkbox, parent_layout=None):
+        """Adds optional per-file filtering without changing existing failure settings.
+
+        Args:
+            fail_checkbox (QCheckBox): Existing failure-policy control.
+            parent_layout (QLayout, optional): Layout receiving the controls.
+        """
+        self.filter_fail_checkbox = fail_checkbox
+        self.filter_action_combo = self.add_combo_box(
+            "On Issues", self.task.settings.get("issue_action", file_control.ISSUE_ACTIONS[0]),
+            file_control.ISSUE_ACTIONS, partial(self.set_task_setting, key="issue_action"),
+            tooltip="Stop removes this file from the remaining tasks. Copy preserves the input bytes, then stops.\n"
+                    "Existing behavior uses the failure checkbox above. Script errors remain errors.",
+            parent_layout=parent_layout,
+        )
+        self.filter_mode_combo = self.add_combo_box(
+            "Destination", self.task.settings.get("filter_destination_mode", "Subfolder"),
+            file_control.DESTINATION_MODES, partial(self.set_task_setting, key="filter_destination_mode"),
+            tooltip="Subfolder is relative to this task's output folder.\n"
+                    "Custom folder supports environment variables.",
+            parent_layout=parent_layout,
+        )
+        self.filter_folder_field = self.add_text_field(
+            "Folder", self.task.settings.get("filter_folder", "filtered"),
+            partial(self.set_task_setting, key="filter_folder"), placeholder="filtered",
+            tooltip="Choose any subfolder name, or a custom folder template such as\n"
+                    "{project-dir}/{output-dir}/filtered. The incoming filename is preserved.\n"
+                    "Overwrite applies at the destination. Modify must be disabled for copying.\n"
+                    "Later tasks scanning this folder can discover these files again.",
+            label_width=LABEL_WIDTH, parent_layout=parent_layout,
+        )
+        self.filter_action_combo.currentIndexChanged.connect(lambda *args: self.refresh_filter_controls())
+        self.filter_mode_combo.currentIndexChanged.connect(lambda *args: self.refresh_filter_controls())
+        self.refresh_filter_controls()
+
+    def refresh_filter_controls(self):
+        """Enables destination controls only when copying filtered files."""
+        action = self.filter_action_combo.currentText()
+        copying = action == file_control.ISSUE_ACTIONS[2]
+        self.filter_fail_checkbox.setEnabled(action == file_control.ISSUE_ACTIONS[0])
+        self.filter_mode_combo.setEnabled(copying)
+        self.filter_folder_field.setEnabled(copying)
+        self.filter_folder_field.setPlaceholderText(
+            "filtered" if self.filter_mode_combo.currentText() == "Subfolder"
+            else "{project-dir}/{output-dir}/filtered"
+        )
 
     def add_checkbox_row(self, label_text, options, tooltip=None, parent_layout=None):
         """Adds a labeled row of evenly distributed checkboxes.

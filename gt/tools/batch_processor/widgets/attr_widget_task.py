@@ -409,6 +409,7 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         )
         load_mode_combo.currentTextChanged.connect(partial(self.set_task_setting, key=load_mode_key))
         load_mode_layout.addWidget(load_mode_combo)
+        load_mode_layout.addStretch()
         self.scene_load_mode_combo = load_mode_combo
 
         output_extension_layout = self.add_row_option_group(
@@ -428,6 +429,7 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
                 partial(self.set_task_setting, key=output_extension_key)
             )
         output_extension_layout.addWidget(output_extension_combo)
+        output_extension_layout.addStretch()
         self.output_extension_combo = output_extension_combo
 
         if include_load_plugins:
@@ -448,7 +450,7 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
 
     @staticmethod
     def add_row_option_group(parent_layout, label_text, tooltip=None):
-        """Adds an evenly distributed compact option group to a row.
+        """Adds a compact option group centered within an evenly distributed row cell.
 
         Args:
             parent_layout (QLayout): Parent row layout.
@@ -464,6 +466,7 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         group_layout = ui_qt.QtWidgets.QHBoxLayout(group_widget)
         group_layout.setContentsMargins(0, 0, 0, 0)
         group_layout.setSpacing(5)
+        group_layout.addStretch()
         label = ui_qt.QtWidgets.QLabel("{0}:".format(label_text))
         attr_widget_base.configure_label_for_scaled_displays(label)
         label.setToolTip(tooltip or label_text)
@@ -503,8 +506,10 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         """
         combo_box = ui_qt.QtWidgets.QComboBox()
         combo_box.setMinimumHeight(35)
-        combo_box.setMinimumWidth(90)
-        combo_box.setSizePolicy(ui_qt.QtLib.SizePolicy.Expanding, ui_qt.QtLib.SizePolicy.Fixed)
+        # Let Qt include the longest label, stylesheet padding, and arrow in the minimum size.
+        combo_box.setSizePolicy(ui_qt.QtLib.SizePolicy.Minimum, ui_qt.QtLib.SizePolicy.Fixed)
+        size_adjust_policy = getattr(ui_qt.QtWidgets.QComboBox, "SizeAdjustPolicy", ui_qt.QtWidgets.QComboBox)
+        combo_box.setSizeAdjustPolicy(size_adjust_policy.AdjustToContents)
         combo_box.setToolTip(tooltip or "")
         for item in values:
             combo_box.addItem(str(item))

@@ -363,6 +363,19 @@ class TestTaskValidationAnimation(unittest.TestCase):
         result = self.execute(task, build_report(20, "failed"))
         self.assertEqual(self.input_path, result.current_path)
 
+    def test_filtered_item_does_not_save_source_scene(self):
+        """Filtering suppresses scene saving even when source overwrite was explicitly allowed."""
+        from gt.tools.batch_processor.batch_processor_file_control import FileFiltered
+
+        task = self.create_task(
+            issue_action="Stop processing file", save_scene=True, allow_source_overwrite=True,
+        )
+        with patch.object(task, "save_scene_if_needed") as save:
+            with self.assertRaises(FileFiltered):
+                self.execute(task, build_report(20, "failed"), write_outcome={"written": True})
+        save.assert_not_called()
+        self.assertTrue(os.path.isfile(self.input_path))
+
     def test_warning_is_reported(self):
         warnings = []
         task = self.create_task()

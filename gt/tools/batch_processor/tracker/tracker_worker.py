@@ -236,6 +236,7 @@ def main():
             output_items = []
             task_succeeded = 0
             task_skipped = 0
+            task_filtered = 0
             if task.writes_to_target_path():
                 ensure_directory(step_output_dir)
             if getattr(task, "is_aggregate_task", False):
@@ -352,6 +353,8 @@ def main():
                         succeeded += 1
                         task_succeeded += 1
                     except tasks.TaskSkip as exception:
+                        if getattr(exception, "filters_file", False):
+                            task_filtered += 1
                         skipped += 1
                         task_skipped += 1
                         append_skipped_output_items(
@@ -409,6 +412,15 @@ def main():
             task_timing_recorded = True
             current_items = output_items
             if not current_items:
+                if task_filtered:
+                    for remaining_task in executable_tasks[task_index:]:
+                        run_state.record_task(project, remaining_task, "skipped")
+                        event_writer.emit(
+                            "task_finished", task_id=remaining_task.id, status="skipped",
+                            completed_items=0, total_items=1, errors=0, warnings=0, skipped_items=1,
+                        )
+                    print("[FILTERED] - No incoming files remain for subsequent tasks.")
+                    break
                 if task_index < total_task_count:
                     run_state.record_task(project, None, "incomplete")
                     print(f"[SKIPPED] - ({task.task_type}) - No output items remained for subsequent tasks.")
@@ -627,6 +639,8 @@ def append_skipped_output_items(output_items, exception, work_item=None):
     """
     from gt.tools.batch_processor import batch_processor_tasks as tasks
 
+    if getattr(exception, "filters_file", False):
+        return
     if exception.work_item:
         if isinstance(exception.work_item, list):
             output_items.extend(exception.work_item)

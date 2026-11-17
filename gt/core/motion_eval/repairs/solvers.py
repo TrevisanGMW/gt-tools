@@ -9,27 +9,30 @@ from .. import math_utils
 from . import transform_math
 
 
-def build_blend_weights(frame_count, span_start, span_end, blend_frames):
-    """Builds per-frame weights: 1 inside a span, smooth ramps before and after it, 0 elsewhere.
+def build_blend_weights(frame_count, span_start, span_end, blend_frames, blend_out_frames=None):
+    """Builds smooth entry and release weights around a fully weighted span.
 
     Args:
-        frame_count (int): Number of frames in the window.
-        span_start (int): First index of the span (inclusive).
-        span_end (int): Last index of the span (inclusive).
-        blend_frames (int): Ramp length on each side.
+        frame_count (int): Number of sampled frames.
+        span_start (int): First fully weighted index.
+        span_end (int): Last fully weighted index.
+        blend_frames (int): Entry ramp length.
+        blend_out_frames (int, optional): Release length; defaults to entry length.
 
     Returns:
-        list: Weights between 0 and 1.
+        list: Weights between zero and one.
     """
     weights = []
     blend_frames = max(0, int(blend_frames))
+    blend_out_frames = blend_frames if blend_out_frames is None else max(0, int(blend_out_frames))
     for index in range(frame_count):
         if span_start <= index <= span_end:
             weights.append(1.0)
         elif blend_frames and span_start - blend_frames <= index < span_start:
             weights.append(math_utils.smoothstep((index - (span_start - blend_frames - 1)) / float(blend_frames + 1)))
-        elif blend_frames and span_end < index <= span_end + blend_frames:
-            weights.append(math_utils.smoothstep((span_end + blend_frames + 1 - index) / float(blend_frames + 1)))
+        elif blend_out_frames and span_end < index <= span_end + blend_out_frames:
+            weights.append(math_utils.smoothstep(
+                (span_end + blend_out_frames + 1 - index) / float(blend_out_frames + 1)))
         else:
             weights.append(0.0)
     return weights
@@ -361,9 +364,8 @@ def build_pin_targets(positions, span_start, span_end, up_axis="y", pin_height=F
     """Builds the pinned foot positions for a contact span.
 
     The ground-plane position comes from ``anchor``; the height follows the original motion
-    unless ``pin_height`` is on (then the anchor's height is used). Frames outside the span keep
-    their position: easing a grounded foot onto the pin scores as sliding, while the one-frame
-    move at the span edge reads as a step (measured on real takes).
+    unless ``pin_height`` is on (then the anchor's height is used). Targets extend over
+    the complete sampled window so blend weights can ease onto and away from the pin.
 
     Args:
         positions (list): Per-frame foot positions.
@@ -375,17 +377,16 @@ def build_pin_targets(positions, span_start, span_end, up_axis="y", pin_height=F
         anchor (str): See get_pin_position.
 
     Returns:
-        list: Target positions for every frame (outside the span the original position).
+        list: Pin targets for every frame, including the surrounding blend window.
     """
     axis_index = get_axis_index(up_axis)
     pin = get_pin_position(positions, span_start, span_end, anchor, up_axis)
     targets = []
-    for index, position in enumerate(positions):
+    for position in positions:
         target = list(position)
-        if span_start <= index <= span_end:
-            for axis in range(3):
-                if axis != axis_index or pin_height:
-                    target[axis] = pin[axis]
+        for axis in range(3):
+            if axis != axis_index or pin_height:
+                target[axis] = pin[axis]
         if min_height is not None:
             target[axis_index] = max(float(min_height), target[axis_index])
         targets.append(tuple(target))

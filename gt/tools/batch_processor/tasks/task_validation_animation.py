@@ -730,7 +730,13 @@ class TaskValidationAnimation(task_base.BatchTask):
         if write_outcome.get("message"):
             sys.stdout.write(f"  {write_outcome['message']}\n")
         script_ran = self.run_post_script_if_needed(project, work_item, step_output_dir, report, write_outcome, context)
-        saved_path = self.save_scene_if_needed(work_item, bool(write_outcome.get("written")) or script_ran)
+        filtering = (
+            report.get("status") != checks_base.STATUS_PASSED
+            and self.settings.get("issue_action", "Existing behavior") != "Existing behavior"
+        )
+        saved_path = None if filtering else self.save_scene_if_needed(
+            work_item, bool(write_outcome.get("written")) or script_ran
+        )
         if saved_path:
             sys.stdout.write(f"  Saved scene: {saved_path}\n")
         sys.stdout.flush()
@@ -757,6 +763,9 @@ class TaskValidationAnimation(task_base.BatchTask):
             report_warning = context.get("report_warning")
             if callable(report_warning):
                 report_warning(f"{item_label}: animation score {report.get('score')} (warning)")
+        from gt.tools.batch_processor.batch_processor_file_control import apply_issue_action
+
+        apply_issue_action(self, project, work_item, step_output_dir, has_issues)
         if status == checks_base.STATUS_FAILED and self.settings.get("fail_on_failed", True):
             raise RuntimeError(
                 f"Animation validation failed with score {report.get('score')}: {work_item.current_path}"

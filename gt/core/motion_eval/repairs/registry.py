@@ -89,23 +89,27 @@ FIXES = [
         parameters={
             "side": ("auto", '"left", "right", or "auto" (every foot planted during the span; report spans do '
                              'not say which foot slid). Or give "nodes": [thigh, knee, foot].'),
-            "blend": (4, "Frames to blend in before and out after the span."),
+            "blend": (None, "Requested equal entry/release lengths, fitted inside the issue interval."),
+            "blend_in": (None, "Requested entry frames; default 0.4 seconds, shortened to fit the issue."),
+            "blend_out": (None, "Requested release frames; default 0.533 seconds, shortened to fit the issue."),
+            "stagger": (None, "Requested foot timing offset; default 0.267 seconds, limited to the issue."),
+            "max_extension": (0.98, "Maximum corrected leg reach as a fraction of combined bone length."),
+            "lead_side": ("auto", '"auto" uses contact timing and motion, or choose "left" or "right".'),
             "pin_at": ("average", '"average", "start", "end", or "still" (frame where the foot moves least).'),
             "pin_height": (False, "Also pin the height (planted-foot jitter); off keeps heel/toe roll."),
             "min_height": (None, "Lowest allowed foot height in scene units (fixes a sinking foot)."),
-            "extend_contact": (False, "Grow the span to the whole contact so the blend does not lift the foot "
-                                      "inside it (less contact flicker)."),
-            "extend_max": (30, "Most frames extend_contact adds on each side."),
+            "extend_contact": (False, "Retained for saved recipes; cannot expand a foot-lock issue interval."),
+            "extend_max": (30, "Retained for saved recipes; foot locks always stay inside the reported interval."),
         },
         presets={
-            "contact": ({"extend_contact": True}, "Lock the whole contact, not just the reported frames."),
+            "contact": ({"extend_contact": True}, "Lock contact within the reported issue interval."),
             "still": ({"pin_at": "still", "extend_contact": True}, "Pin where the foot is most still."),
             "planted": ({"pin_height": True, "extend_contact": True}, "Pin height too (jitter, flicker)."),
             "start": ({"pin_at": "start"}, "Pin at the first frame (slide that starts late)."),
         },
         checks=["foot_slide", "planted_foot_jitter", "contact_flicker", "ground_penetration"],
         needs_nodes="none (side auto), side, or nodes [thigh, knee, foot]",
-        side_effects="A pin far from the original path bends the knee a lot; short blends can add flicker.",
+        side_effects="Short or unsafe intervals are skipped. Easing cannot extend beyond the reported issue.",
     ),
     FixDefinition(
         key="contact_settle",

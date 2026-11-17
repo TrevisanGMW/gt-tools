@@ -104,6 +104,14 @@ class FakeKeyHost(host_base.SceneHost):
         """
         return self.frame_range
 
+    def get_fps(self):
+        """Gets the sample frame rate.
+
+        Returns:
+            float: Thirty frames per second.
+        """
+        return 30.0
+
     def get_local(self, node_path, frame):
         """Gets a local matrix, holding the first/last frame outside the range.
 
@@ -309,14 +317,16 @@ class TestRepairManifest(unittest.TestCase):
 
 class TestRepairFixes(unittest.TestCase):
     def test_foot_lock_pins_foot(self):
-        host = build_leg_host()
+        host = build_leg_host(hips_step=0.0)
+        host.local_frames[HIPS][15] = translation_matrix((0.0, 95.0, 5.0))
         scene = RepairScene(host=host, template=build_template())
         before = host.sample_world_matrices([LEFT_FOOT], 10, 20)[LEFT_FOOT]
-        result = registry.get_fix("foot_lock").function(scene, (10, 20), [], {"side": "left", "blend": 3})
+        result = registry.get_fix("foot_lock").function(
+            scene, (10, 20), [], {"side": "left", "blend": 3, "max_extension": 1.0})
         after = host.sample_world_matrices([LEFT_FOOT, LEFT_KNEE, LEFT_THIGH], 0, FRAME_COUNT - 1)
-        pinned = [math_utils.matrix_position(matrix) for matrix in after[LEFT_FOOT][10:21]]
+        pinned = [math_utils.matrix_position(matrix) for matrix in after[LEFT_FOOT][14:17]]
         before_positions = [math_utils.matrix_position(matrix) for matrix in before]
-        travel_before = math_utils.distance(before_positions[0], before_positions[-1])
+        travel_before = max(math_utils.distance(before_positions[0], value) for value in before_positions)
         travel_after = math_utils.distance(pinned[0], pinned[-1])
         self.assertGreater(travel_before, 2.0)
         self.assertLess(travel_after, 0.01)
@@ -325,7 +335,7 @@ class TestRepairFixes(unittest.TestCase):
             foot = math_utils.matrix_position(after[LEFT_FOOT][frame])
             self.assertAlmostEqual(math.sqrt(40.0 ** 2 + 8.0 ** 2), math_utils.distance(knee, foot), places=4)
         self.assertEqual([LEFT_THIGH, LEFT_KNEE, LEFT_FOOT], result["nodes"])
-        self.assertEqual(list(range(7, 24)), host.key_calls[0][1])
+        self.assertEqual(list(range(12, 19)), host.key_calls[0][1])
 
     def test_foot_lock_auto_picks_planted_leg(self):
         host = build_leg_host()
