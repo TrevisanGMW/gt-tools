@@ -266,6 +266,13 @@ class TestMotionEvalPresets(unittest.TestCase):
         expected = [[10, 24], [80, 80], [5, 7]]
         self.assertEqual(expected, presets.parse_frame_ranges("10-24, 80 7-5"))
 
+    def test_merge_frame_range_texts(self):
+        expected = "1-12, 80, 200-400"
+        self.assertEqual(expected, presets.merge_frame_range_texts("200-300, 80", "", "1-10, 9-12, 250-400"))
+        self.assertEqual("", presets.merge_frame_range_texts("", None))
+        with self.assertRaises(ValueError):
+            presets.merge_frame_range_texts("10-20", "abc")
+
     def test_invalid_frame_range_is_reported(self):
         preset = presets.set_global_value(presets.DEFAULT_PRESET, "ignore_ranges", "abc")
         self.assertTrue(presets.validate_preset(preset))

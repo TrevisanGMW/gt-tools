@@ -300,7 +300,7 @@ def validate_job(job):
 
 # ------------------------------------------------ Evaluation ------------------------------------------------
 def evaluate_open_scene(preset, template=None, range_mode=RANGE_PLAYBACK, custom_start=None, custom_end=None,
-                        general_scope=SCOPE_ALL_JOINTS, node_names=None, include_series=False):
+                        general_scope=SCOPE_ALL_JOINTS, node_names=None, include_series=False, ignore_ranges=None):
     """Evaluates the scene open in Maya, resolving the frame range from range_mode.
 
     Args:
@@ -312,6 +312,7 @@ def evaluate_open_scene(preset, template=None, range_mode=RANGE_PLAYBACK, custom
         general_scope (str): Node scope without a skeleton.
         node_names (list, optional): Nodes for the "Node List" scope.
         include_series (bool): Keep graph series (needed for per-file graphs).
+        ignore_ranges (str, optional): Extra frames left out of every check, such as "200-400".
 
     Returns:
         dict: Evaluation report.
@@ -335,6 +336,7 @@ def evaluate_open_scene(preset, template=None, range_mode=RANGE_PLAYBACK, custom
         general_scope=general_scope,
         node_names=node_names,
         include_series=include_series,
+        ignore_ranges=ignore_ranges,
     )
 
 

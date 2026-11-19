@@ -388,6 +388,30 @@ def parse_frame_ranges(text):
     return ranges
 
 
+def merge_frame_range_texts(*texts):
+    """Merges several frame range texts into one normalized text.
+
+    Args:
+        *texts (str): Frame range texts such as "10-24, 80". Empty texts are skipped.
+
+    Returns:
+        str: Sorted, merged, non-overlapping ranges such as "10-24, 80". Empty when nothing is set.
+
+    Raises:
+        ValueError: If a text is not a valid frame range text.
+    """
+    spans = []
+    for text in texts:
+        spans.extend(parse_frame_ranges(text))
+    merged = []
+    for start, end in sorted(spans):
+        if merged and start <= merged[-1][1] + 1:
+            merged[-1][1] = max(merged[-1][1], end)
+        else:
+            merged.append([start, end])
+    return ", ".join(str(start) if start == end else f"{start}-{end}" for start, end in merged)
+
+
 def validate_preset(preset):
     """Validates a preset before running.
 

@@ -37,8 +37,10 @@ from gt.core.motion_eval import usd_scene
 import gt.ui.resource_library as ui_res_lib
 import fnmatch
 import os
+import re
 import sys
 
+UNRESOLVED_TOKEN_PATTERN = re.compile(r"\{[^{}]*\}")
 SKELETON_NONE = "none"
 SKELETON_CUSTOM = "custom"
 SKELETON_SOURCE_VALUES = [SKELETON_NONE] + templates.get_builtin_template_keys() + [SKELETON_CUSTOM]
@@ -99,6 +101,7 @@ class TaskValidationAnimation(task_base.BatchTask):
             "range_mode": sampling.RANGE_PLAYBACK,
             "custom_start": 1,
             "custom_end": 100,
+            "ignore_ranges": "",
             "general_scope": sampling.SCOPE_ALL_JOINTS,
             "node_list": "",
             "log_mode": task_validation.VALIDATION_LOG_ALL,
@@ -343,6 +346,8 @@ class TaskValidationAnimation(task_base.BatchTask):
         if self.settings.get("range_mode") == sampling.RANGE_CUSTOM:
             if int(self.settings.get("custom_end", 0)) <= int(self.settings.get("custom_start", 0)):
                 result.add_error("Validate Animation custom frame range needs an end frame after the start frame.")
+        for error in self.validate_ignore_settings():
+            result.add_error(f"Validate Animation {error}")
         if self.settings.get("write_score"):
             if not str(self.settings.get("score_attribute") or "").strip():
                 result.add_error("Validate Animation score attribute name cannot be empty.")
@@ -373,6 +378,73 @@ class TaskValidationAnimation(task_base.BatchTask):
         """
         return [name.strip() for name in str(self.settings.get("node_list") or "").split(",") if name.strip()]
 
+    def validate_ignore_settings(self):
+        """Checks the Ignore Frames field when it holds plain frames.
+
+        A value with a variable (such as "{input-meta-ignore}") is only checked when it resolves,
+        at run time.
+
+        Returns:
+            list: Error messages. Empty when valid.
+        """
+        field_text = str(self.settings.get("ignore_ranges") or "").strip()
+        if not field_text or UNRESOLVED_TOKEN_PATTERN.search(field_text):
+            return []
+        try:
+            presets.parse_frame_ranges(field_text)
+        except ValueError as exception:
+            return [f"Ignore Frames: {exception}"]
+        return []
+
+    def resolve_ignore_text(self, project, text, label):
+        """Resolves the batch variables of one ignore value and checks it is a valid frame range text.
+
+        Args:
+            project (BatchProcessorModel): Active project (None skips variable resolution).
+            text (str): Raw value, possibly with variables such as "{ignore-ranges}".
+            label (str): Name used in error messages.
+
+        Returns:
+            str: Resolved text, empty when the variable resolved to nothing.
+
+        Raises:
+            ValueError: If a variable stays unresolved or the text is not a valid frame range text.
+        """
+        resolved = project.resolve_template(str(text or ""), task=self) if project else str(text or "")
+        resolved = resolved.strip()
+        if UNRESOLVED_TOKEN_PATTERN.search(resolved):
+            raise ValueError(f'{label} has an unresolved variable: "{resolved}".')
+        try:
+            presets.parse_frame_ranges(resolved)
+        except ValueError as exception:
+            raise ValueError(f'{label} "{resolved}": {exception}')
+        return resolved
+
+    def resolve_ignore_ranges(self, project):
+        """Resolves the Ignore Frames field for the current input.
+
+        Variables such as {input-meta-ignore} or a custom variable resolve per input, so each input
+        can carry its own frames.
+
+        Args:
+            project (BatchProcessorModel): Active project.
+
+        Returns:
+            tuple: (ranges_text, sources). ranges_text is the merged frames such as "200-400"
+                (empty when nothing is ignored); sources lists where they came from.
+
+        Raises:
+            ValueError: If the resolved value is not a valid frame range text.
+        """
+        raw_text = str(self.settings.get("ignore_ranges") or "").strip()
+        field_text = self.resolve_ignore_text(project, raw_text, "Ignore Frames")
+        if not field_text:
+            return "", []
+        source = f"Ignore Frames: {field_text}"
+        if raw_text != field_text:
+            source = f"{source} (from {raw_text})"
+        return presets.merge_frame_range_texts(field_text), [source]
+
     def evaluate_current_scene(self, project, include_series=None):
         """Evaluates the scene currently open in Maya (same steps as motion_eval.runner).
 
@@ -390,7 +462,8 @@ class TaskValidationAnimation(task_base.BatchTask):
 
         if include_series is None:
             include_series = outputs.needs_series(self.get_output_options())
-        return runner.evaluate_open_scene(
+        ignore_ranges, ignore_sources = self.resolve_ignore_ranges(project)
+        report = runner.evaluate_open_scene(
             self.load_preset(project),
             template=self.load_skeleton_template(project),
             range_mode=self.settings.get("range_mode") or sampling.RANGE_PLAYBACK,
@@ -399,7 +472,10 @@ class TaskValidationAnimation(task_base.BatchTask):
             general_scope=self.settings.get("general_scope") or sampling.SCOPE_ALL_JOINTS,
             node_names=self.get_node_names(),
             include_series=include_series,
+            ignore_ranges=ignore_ranges,
         )
+        report["ignore_sources"] = ignore_sources
+        return report
 
     # ------------------------------------------------ Outputs ------------------------------------------------
     def get_output_options(self):
@@ -789,6 +865,8 @@ class TaskValidationAnimation(task_base.BatchTask):
         sys.stdout.write(f"Validate Animation [{report.get('status')}] {item_label}\n")
         for line in evaluation.summarize_report(report):
             sys.stdout.write(f"  {line}\n")
+        if report.get("ignore_sources"):
+            sys.stdout.write(f"  Ignore sources: {' | '.join(report['ignore_sources'])}\n")
         sys.stdout.flush()
 
     def run_on_current_scene(self, project):

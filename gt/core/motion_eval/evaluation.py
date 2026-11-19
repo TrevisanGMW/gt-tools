@@ -174,7 +174,7 @@ def get_required_data(resolved_preset):
 
 
 def evaluate_scene(preset=None, template=None, frame_range=None, general_scope=None, node_names=None,
-                   include_series=False):
+                   include_series=False, ignore_ranges=None):
     """Samples the open scene of the active host (Maya, Blender, or a motion sample) and evaluates it.
 
     Args:
@@ -184,6 +184,8 @@ def evaluate_scene(preset=None, template=None, frame_range=None, general_scope=N
         general_scope (str, optional): Node scope used in general mode (see sampling.GENERAL_SCOPES).
         node_names (list, optional): Nodes used by the "Node List" scope.
         include_series (bool): Store per-check graph series in the report.
+        ignore_ranges (str, optional): Extra frames left out of every check, such as "200-400".
+            Merged with the preset's own Ignore Frames.
 
     Returns:
         dict: Evaluation report.
@@ -197,6 +199,9 @@ def evaluate_scene(preset=None, template=None, frame_range=None, general_scope=N
     errors = presets.validate_preset(resolved)
     if errors:
         raise ValueError(errors[0])
+    if str(ignore_ranges or "").strip():
+        merged_ranges = presets.merge_frame_range_texts(resolved["settings"].get("ignore_ranges", ""), ignore_ranges)
+        resolved = presets.resolve_preset(presets.set_global_value(resolved, "ignore_ranges", merged_ranges))
     if resolved["mode"] == MODE_BIPED:
         if not template:
             raise ValueError("Biped mode needs a skeleton template.")
@@ -231,6 +236,9 @@ def summarize_report(report, max_spans=4):
         f"Mode: {report.get('mode_label')} | Template: {report.get('template') or '-'} | "
         f"Frames: {report.get('frame_range')} @ {report.get('fps')} fps",
     ]
+    if report.get("ignored_ranges"):
+        span_text = ", ".join(f"{start}-{end}" for start, end in report["ignored_ranges"])
+        lines.append(f"Ignored frames: {span_text} ({report.get('ignored_frames', 0)} frame(s))")
     for warning in report.get("warnings") or []:
         lines.append(f"Warning: {warning}")
     for entry in report.get("checks") or []:
