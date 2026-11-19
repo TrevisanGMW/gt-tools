@@ -138,7 +138,7 @@ def retarget_sample(source_group, source_character, target):
     cmds.namespace(rename=(temporary_namespace, available_namespace))
 
 
-def export_maya_files(paths, settings=None, mayapy_path=None, target=None, warnings=None):
+def export_maya_files(paths, settings=None, mayapy_path=None, target=None, warnings=None, output_time_unit=""):
     """Creates retarget-ready scenes in an owned child process, never the open scene.
 
     Args:
@@ -151,6 +151,9 @@ def export_maya_files(paths, settings=None, mayapy_path=None, target=None, warni
     """
     from gt.tools.kimodo_generator.kimodo_generator_hik import validate_settings
 
+    from gt.tools.kimodo_generator import kimodo_generator_time_units
+    if not kimodo_generator_time_units.valid_time_unit(output_time_unit):
+        raise ValueError("Unsupported output frame rate.")
     motions = motion_paths(paths)
     settings = validate_settings(settings or {}, check_files=True)
     settings["lock_definition"] = True
@@ -178,7 +181,7 @@ def export_maya_files(paths, settings=None, mayapy_path=None, target=None, warni
     with tempfile.TemporaryDirectory(prefix="kimodo_export_") as temporary:
         request = os.path.join(temporary, "request.json")
         response = os.path.join(temporary, "response.json")
-        if not write_json(request, {"motions": motions, "settings": settings, "target": target}):
+        if not write_json(request, {"motions": motions, "settings": settings, "target": target, "output_time_unit": output_time_unit}):
             raise RuntimeError("Could not write the temporary Maya export request.")
         code = (f"import sys; sys.path.insert(0, {package_root!r}); "
                 "from gt.tools.kimodo_generator.kimodo_generator_export import run_worker; "
@@ -199,7 +202,7 @@ def export_maya_files(paths, settings=None, mayapy_path=None, target=None, warni
         return result["files"]
 
 
-def _export_sample(path, settings, target=None):
+def _export_sample(path, settings, target=None, output_time_unit=""):
     """Builds one fresh scene inside the child Maya session and publishes exclusively.
 
     Args:
@@ -215,6 +218,8 @@ def _export_sample(path, settings, target=None):
     output = os.path.splitext(path)[0] + ".ma"
     receipt_path = output + ".kimodo.json"
     identity = {"source_sha256": file_digest(path), "settings": settings}
+    if output_time_unit:
+        identity["output_time_unit"] = output_time_unit
     if target:
         identity["target"] = target
         identity["target_sha256"] = file_digest(target["rig_path"])
@@ -236,7 +241,7 @@ def _export_sample(path, settings, target=None):
     motion = read_json_dict(path)
     kimodo.validate_motion(motion)
     cmds.file(new=True, force=True)
-    cmds.currentUnit(linear="cm", angle="deg", time=f"{motion['fps']:g}fps")
+    cmds.currentUnit(linear="cm", angle="deg", time=output_time_unit or f"{motion['fps']:g}fps")
     cmds.upAxis(axis="y")
     imported = kimodo.import_motion(path, namespace="kimodo_animation", start_frame=1)
     source = kimodo.create_humanik_definition(imported["group"], settings)
@@ -275,12 +280,12 @@ def run_worker(request_path, response_path):
         warnings = []
         for name, path in request["motions"].items():
             try:
-                files[name] = _export_sample(path, request["settings"], request.get("target"))
+                files[name] = _export_sample(path, request["settings"], request.get("target"), request.get("output_time_unit", ""))
             except Exception as error:
                 if not request.get("target"):
                     raise
                 warnings.append(f"{name}: target retargeting failed ({error}); imported Kimodo source only.")
-                files[name] = _export_sample(path, request["settings"], None)
+                files[name] = _export_sample(path, request["settings"], None, request.get("output_time_unit", ""))
         write_json(response_path, {"files": files, "warnings": warnings})
     except Exception:
         write_json(response_path, {"error": traceback.format_exc()})

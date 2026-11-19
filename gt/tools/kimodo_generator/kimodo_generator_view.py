@@ -709,6 +709,17 @@ class KimodoGeneratorView(metaclass=qt_utils.MayaWindowMeta):
         self.target_hik_enabled.setToolTip("Use the target rig configured in the HumanIK tab when creating Maya files.")
         options_layout.addLayout(self.row(self.auto_frame_range, self.target_hik_enabled))
         automation_layout.addLayout(options_layout)
+        from gt.tools.kimodo_generator import kimodo_generator_time_units
+        self.output_time_unit = QtWidgets.QComboBox()
+        self.output_time_unit.addItem("Model frame rate", "")
+        for label, unit in kimodo_generator_time_units.TIME_UNITS:
+            self.output_time_unit.addItem(label, unit)
+        self.output_time_unit.setToolTip(
+            "Maya output scene rate. Model frame rate uses the model's native rate. "
+            "Other rates preserve motion duration and may create fractional keys.")
+        output_form = self.form()
+        output_form.addRow("Output frame rate", self.output_time_unit)
+        automation_layout.addLayout(output_form)
         import_heading = QtWidgets.QLabel("Maya import defaults")
         import_heading_font = ui_qt.QtGui.QFont(import_heading.font())
         import_heading_font.setBold(True)

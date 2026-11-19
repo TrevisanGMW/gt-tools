@@ -181,6 +181,7 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions, KimodoDockerAc
         view.auto_import_all_samples.toggled.connect(self._action_callback("save_auto_import_all_samples"))
         view.auto_clear_scene.toggled.connect(self._action_callback("save_auto_clear_scene"))
         view.auto_frame_rate.toggled.connect(self._action_callback("save_auto_frame_rate"))
+        view.output_time_unit.currentIndexChanged.connect(self._action_callback("save_output_time_unit"))
         view.auto_frame_range.toggled.connect(self._action_callback("save_auto_frame_range"))
         view.show_console.toggled.connect(self._action_callback("save_show_console"))
         view.auto_connect.toggled.connect(self._action_callback("save_auto_connect"))
@@ -796,6 +797,7 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions, KimodoDockerAc
         view.auto_import_maya.setChecked(self.model.auto_import_maya)
         view.auto_import_all_samples.setChecked(self.model.auto_import_all_samples)
         view.auto_clear_scene.setChecked(self.model.auto_clear_scene)
+        view.output_time_unit.setCurrentIndex(max(0, view.output_time_unit.findData(self.model.output_time_unit)))
         view.auto_frame_rate.setChecked(self.model.auto_frame_rate)
         view.auto_frame_range.setChecked(self.model.auto_frame_range)
         for widget in (view.auto_import_all_samples, view.auto_clear_scene,
@@ -1763,6 +1765,11 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions, KimodoDockerAc
         clear_scene = automatic and self.model.auto_clear_scene
         if clear_scene:
             cmds.file(new=True, force=True)
+        adjustments = []
+        if automatic and motion_metadata and self.model.auto_frame_rate:
+            time_unit = self.model.output_time_unit or f"{motion_metadata['fps']:g}fps"
+            cmds.currentUnit(time=time_unit, updateAnimation=True)
+            adjustments.append(f"{time_unit} time unit")
         use_sample_namespaces = import_all_samples and len(sample_names) > 1
         for sample_name in sample_names:
             import_options = {"i": True, "type": "mayaAscii", "ignoreVersion": True,
@@ -1776,13 +1783,14 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions, KimodoDockerAc
                     namespace = f"kimodo_{namespace}"
                 import_options["namespace"] = self._namespace(namespace)
             cmds.file(paths[sample_name], **import_options)
-        adjustments = []
         if automatic and motion_metadata:
-            if self.model.auto_frame_rate:
-                cmds.currentUnit(time=f"{motion_metadata['fps']:g}fps", updateAnimation=False)
-                adjustments.append(f"{motion_metadata['fps']:g} FPS")
             if self.model.auto_frame_range:
-                end_frame = motion_metadata["frame_count"]
+                if self.model.auto_frame_rate and not self.model.output_time_unit:
+                    timeline_fps = motion_metadata["fps"]
+                else:
+                    import maya.api.OpenMaya as om
+                    timeline_fps = om.MTime(1, om.MTime.kSeconds).asUnits(om.MTime.uiUnit())
+                end_frame = 1 + (motion_metadata["frame_count"] - 1) * timeline_fps / motion_metadata["fps"]
                 cmds.playbackOptions(minTime=1, maxTime=end_frame,
                                      animationStartTime=1, animationEndTime=end_frame)
                 adjustments.append(f"frames 1–{end_frame}")
@@ -2368,6 +2376,7 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions, KimodoDockerAc
         self.model.auto_import_maya = defaults.auto_import_maya
         self.model.auto_import_all_samples = defaults.auto_import_all_samples
         self.model.auto_clear_scene = defaults.auto_clear_scene
+        self.model.output_time_unit = defaults.output_time_unit
         self.model.auto_frame_rate = defaults.auto_frame_rate
         self.model.auto_frame_range = defaults.auto_frame_range
         self.model.table_widths = preserved_widths
@@ -2497,6 +2506,12 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions, KimodoDockerAc
         folder = os.path.dirname(path)
         if not ui_qt.QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromLocalFile(folder)):
             raise ValueError(f"Could not open the results folder: {folder}")
+
+    def save_output_time_unit(self):
+        """Persists the output scene time unit independently of the model rate."""
+        if not self.loading:
+            self.model.output_time_unit = self.view.output_time_unit.currentData() or ""
+            self.model.save_preferences()
 
     def save_target_hik(self):
         """Persists the optional target rig settings and updates their status label."""

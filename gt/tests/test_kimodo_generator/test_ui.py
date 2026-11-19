@@ -594,6 +594,9 @@ class TestKimodoGeneratorUI(unittest.TestCase):
     def test_generation_advanced_settings_are_collapsible_and_compact(self):
         """Uses arrow disclosure for advanced controls and groups Curve samples tightly."""
         self.assertEqual("Advanced Settings", self.view.advanced.toggle_button.text())
+        self.assertEqual("", self.view.output_time_unit.currentData())
+        self.assertGreaterEqual(self.view.output_time_unit.findData("29.97df"), 0)
+        self.assertGreaterEqual(self.view.output_time_unit.findData("48000fps"), 0)
         self.assertFalse(self.view.advanced.toggle_button.isChecked())
         self.assertTrue(self.view.advanced_content.isHidden())
         self.assertIs(self.view.advanced_content, self.view.postprocess.parentWidget())
@@ -1357,11 +1360,11 @@ class TestKimodoGeneratorUI(unittest.TestCase):
                     patch.object(self.controller, "populate_jobs"), \
                     patch.object(io, "read_json_dict", return_value={"fps": 24.0, "frame_count": 48}), \
                     patch.object(kimodo, "validate_motion"), \
-                    patch("maya.cmds.file"), patch("maya.cmds.currentUnit") as set_time_unit, \
+                    patch("maya.cmds.file") as import_file, patch("maya.cmds.currentUnit") as set_time_unit, \
                     patch("maya.cmds.playbackOptions") as set_playback:
                 self.controller.import_generated_maya_file(job, automatic=True)
 
-            set_time_unit.assert_called_once_with(time="24fps", updateAnimation=False)
+            set_time_unit.assert_called_once_with(time="24fps", updateAnimation=True)
             set_playback.assert_called_once_with(minTime=1, maxTime=48,
                                                  animationStartTime=1, animationEndTime=48)
 

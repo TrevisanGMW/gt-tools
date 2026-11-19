@@ -225,6 +225,7 @@ class KimodoJobActions:
             raise ValueError("This job is being cleaned. Wait for cleanup to finish.")
         paths, settings = copy.deepcopy(job["paths"]), copy.deepcopy(self.model.humanik)
         target = copy.deepcopy(self.model.target_hik) if self.model.target_hik_enabled else None
+        output_time_unit = self.model.output_time_unit
         job["exporting_maya"] = True
         job.pop("maya_export_error", None)
 
@@ -236,7 +237,7 @@ class KimodoJobActions:
             """
             try:
                 warnings = []
-                files = scene_export.export_maya_files(paths, settings, target=target, warnings=warnings)
+                files = scene_export.export_maya_files(paths, settings, target=target, warnings=warnings, output_time_unit=output_time_unit)
                 return files, None, warnings
             except Exception as error:
                 return None, str(error)

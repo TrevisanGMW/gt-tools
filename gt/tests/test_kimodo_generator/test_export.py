@@ -19,6 +19,14 @@ class TestExportHelpers(unittest.TestCase):
                 "assert not any(name in sys.modules for name in ('maya', 'PySide6', 'torch', 'numpy'))")
         subprocess.run([sys.executable, "-c", code], check=True, capture_output=True)
 
+    def test_output_time_unit_validation(self):
+        """Accepts Maya menu units and rejects unknown units before launching Maya."""
+        from gt.tools.kimodo_generator import kimodo_generator_time_units
+        self.assertTrue(kimodo_generator_time_units.valid_time_unit(""))
+        self.assertTrue(kimodo_generator_time_units.valid_time_unit("29.97df"))
+        self.assertTrue(kimodo_generator_time_units.valid_time_unit("48000fps"))
+        self.assertFalse(kimodo_generator_time_units.valid_time_unit("invalid"))
+
     def test_target_validation(self):
         """Requires a real target scene and preserves the source for live connections."""
         self.assertIsNone(scene_export.validate_target(None))
