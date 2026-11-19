@@ -20,6 +20,7 @@ DWMWA_BORDER_COLOR = 34
 NATIVE_BORDER_COLOR = "#121212"
 SEPARATOR_COLOR = "rgba(255, 255, 255, 24)"
 STATUS_ICON_SIZE = 20
+WM_GETMINMAXINFO = 0x0024
 WM_NCCALCSIZE = 0x0083
 WM_NCACTIVATE = 0x0086
 GWL_STYLE = -16
@@ -150,6 +151,13 @@ def handle_native_event(event_type, message):
 
             _fields_ = [("rgrc", wintypes.RECT * 3), ("lppos", ctypes.c_void_p)]
 
+        class MinMaxInfo(ctypes.Structure):
+            """Win32 MINMAXINFO structure."""
+
+            _fields_ = [("reserved", wintypes.POINT), ("max_size", wintypes.POINT),
+                        ("max_position", wintypes.POINT), ("min_track_size", wintypes.POINT),
+                        ("max_track_size", wintypes.POINT)]
+
         class MonitorInfo(ctypes.Structure):
             """Win32 MONITORINFO structure."""
 
@@ -162,6 +170,21 @@ def handle_native_event(event_type, message):
 
         native_message = wintypes.MSG.from_address(int(message))
         user32 = ctypes.windll.user32
+        user32.MonitorFromWindow.argtypes = [wintypes.HWND, wintypes.DWORD]
+        user32.MonitorFromWindow.restype = wintypes.HANDLE
+        user32.GetMonitorInfoW.argtypes = [wintypes.HANDLE, ctypes.POINTER(MonitorInfo)]
+        user32.GetMonitorInfoW.restype = wintypes.BOOL
+        if native_message.message == WM_GETMINMAXINFO:
+            monitor = user32.MonitorFromWindow(native_message.hWnd, 2)
+            info = MonitorInfo()
+            info.cbSize = ctypes.sizeof(MonitorInfo)
+            if monitor and user32.GetMonitorInfoW(monitor, ctypes.byref(info)):
+                bounds = MinMaxInfo.from_address(native_message.lParam)
+                bounds.max_position.x = info.rcWork.left - info.rcMonitor.left
+                bounds.max_position.y = info.rcWork.top - info.rcMonitor.top
+                bounds.max_size.x = info.rcWork.right - info.rcWork.left
+                bounds.max_size.y = info.rcWork.bottom - info.rcWork.top
+                return True, 0
         if native_message.message == WM_NCACTIVATE:
             # Passing -1 as lParam stops Windows from repainting the (invisible) frame when the
             # window gains or loses focus, which otherwise leaves a white or grey outline.
@@ -177,13 +200,9 @@ def handle_native_event(event_type, message):
             return False, 0
         if not user32.GetWindowLongW(native_message.hWnd, GWL_STYLE) & WS_THICKFRAME:
             return False, 0
-        if user32.IsZoomed(native_message.hWnd):
-            params = NcCalcSizeParams.from_address(native_message.lParam)
-            monitor = user32.MonitorFromWindow(native_message.hWnd, 2)
-            info = MonitorInfo()
-            info.cbSize = ctypes.sizeof(MonitorInfo)
-            if user32.GetMonitorInfoW(monitor, ctypes.byref(info)):
-                params.rgrc[0] = info.rcWork
+        # WM_GETMINMAXINFO constrains the outer window to the work area.
+        # Keep the proposed client rectangle: replacing it with monitor bounds
+        # can enlarge the window during a per-monitor DPI transition.
         return True, 0
     except Exception:  # pragma: no cover - fall back to Qt handling
         return False, 0
@@ -338,7 +357,7 @@ class TitleBar(ui_qt.QtWidgets.QWidget):
         button_size = bar_height - 8
         icon_size = int(bar_height * 0.5)
         self.setFixedHeight(bar_height)
-        self.row_layout.setContentsMargins(10, 0, 6, 0)
+        self.row_layout.setContentsMargins(10, 0, 10, 0)
         self.row_layout.setSpacing(6)
         self.icon_size = icon_size
         self.status_icon_label.setFixedSize(STATUS_ICON_SIZE + 4, STATUS_ICON_SIZE + 4)
@@ -480,9 +499,16 @@ class TitleBar(ui_qt.QtWidgets.QWidget):
         """
         window = self.target_window
         if window.isMaximized():
-            width_ratio = (point.x() - window.x()) / max(1, window.width())
+            # Use title-bar coordinates rather than the maximized window geometry,
+            # which can include the invisible native frame on Windows.
+            local_point = self.mapFromGlobal(point)
+            width_ratio = max(0.0, min(1.0, local_point.x() / max(1, self.width())))
+            title_offset = max(0, min(self.height() - 1, local_point.y()))
+            restored_width = window.normalGeometry().width()
             window.showNormal()
-            window.move(point.x() - int(window.width() * width_ratio), point.y() - self.height() // 2)
+            if restored_width <= 0:
+                restored_width = window.width()
+            window.move(point.x() - int(restored_width * width_ratio), point.y() - title_offset)
         handle = window.windowHandle()
         if handle:
             handle.startSystemMove()
@@ -599,7 +625,9 @@ class FramelessWindowFrame(ui_qt.QtCore.QObject):
         """Keeps content inside the real client area while maximized."""
         if not self.window.isVisible():
             return
-        margins = get_native_client_margins(self.window) if self.window.isMaximized() else (0, 0, 0, 0)
+        # Windows already clips the client rectangle to the monitor work area.
+        # Applying the native frame margins again would inset the Qt content twice.
+        margins = (0, 0, 0, 0)
         current = self.window.contentsMargins()
         if (current.left(), current.top(), current.right(), current.bottom()) != margins:
             self.window.setContentsMargins(*margins)

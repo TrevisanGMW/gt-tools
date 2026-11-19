@@ -49,6 +49,14 @@ POLICY_LABELS = {
     scene_io.WRITE_POLICY_NEVER: "Never",
 }
 JSON_FILE_FILTER = "JSON Files (*.json);;All Files (*);;"
+IGNORE_FRAMES_TOOLTIP = (
+    "Frames left out of every check, as if they had no issues (for example a pre-existing\n"
+    "animation played between generated parts). Frames like \"650\" and ranges like \"200-400\",\n"
+    "separated by commas. Merged with the preset's own Ignore Frames.\n\n"
+    "Batch variables are resolved for each input, so the frames can differ per input: use an\n"
+    "Input Metadata value ({input-meta-ignore}) or a custom variable. A variable that resolves\n"
+    "to nothing ignores nothing; a value that is not a frame range fails the item."
+)
 FILTER_TOOLTIP = (
     "Optionally evaluate only some of the files, by name.\n"
     "Patterns are comma-separated and case-insensitive, and match the file name or its path.\n"
@@ -165,6 +173,7 @@ class AttrWidgetAnimationValidationTask(AttrWidgetValidationTaskBase):
         self.add_skeleton_rows(layout)
         self.add_scope_rows(layout)
         self.add_range_row(layout)
+        self.add_ignore_rows(layout)
         self.add_results_row(
             log_tooltip="Write JSON reports (score and every check) for every file, only files with issues, or never.",
             fail_key="fail_on_failed",
@@ -332,6 +341,22 @@ class AttrWidgetAnimationValidationTask(AttrWidgetValidationTaskBase):
             spin.valueChanged.connect(partial(self.set_task_setting, key=key))
             cell.addWidget(spin, 1)
             self.custom_range_widgets.append(spin)
+
+    def add_ignore_rows(self, parent_layout):
+        """Adds the frames left out of every check (for all inputs, and per input).
+
+        Args:
+            parent_layout (QLayout): Layout receiving the rows.
+        """
+        self.add_text_field(
+            "Ignore Frames",
+            str(self.task.settings.get("ignore_ranges") or ""),
+            partial(self.set_task_setting, key="ignore_ranges"),
+            placeholder="200-400, 650   or   {input-meta-ignore}",
+            tooltip=IGNORE_FRAMES_TOOLTIP,
+            label_width=LABEL_WIDTH,
+            parent_layout=parent_layout,
+        )
 
     def add_scope_rows(self, parent_layout):
         """Adds the node scope used without a skeleton.

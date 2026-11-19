@@ -7,6 +7,7 @@ import json
 import os
 
 from gt.tools.batch_processor import batch_processor_constants as constants
+from gt.tools.batch_processor import batch_processor_item_context as item_context
 from gt.tools.batch_processor import batch_processor_model
 from gt.tools.batch_processor import batch_processor_run_state as run_state
 from gt.tools.batch_processor import batch_processor_task_base as task_base
@@ -113,6 +114,40 @@ class TestTaskValidationAnimation(unittest.TestCase):
         self.assertFalse(task.settings["graphs_per_file"])
         self.assertTrue(task.settings["graphs_only_on_failure"])
         self.assertEqual(validation_animation.DEFAULT_OUTPUT_PATH, task.settings["output_path"])
+
+    def test_ignore_ranges_resolve_custom_variable(self):
+        self.project.set_custom_environment_variables({"{ignore-ranges}": {"value": "200-400", "query": False}})
+        task = self.create_task(ignore_ranges="1-5, {ignore-ranges}")
+        expected = ("1-5, 200-400", ["Ignore Frames: 1-5, 200-400 (from 1-5, {ignore-ranges})"])
+        self.assertEqual(expected, task.resolve_ignore_ranges(self.project))
+
+    def test_empty_ignore_variable_ignores_nothing(self):
+        self.project.set_custom_environment_variables({"{ignore-ranges}": {"value": "", "query": False}})
+        task = self.create_task(ignore_ranges="{ignore-ranges}")
+        self.assertEqual(("", []), task.resolve_ignore_ranges(self.project))
+
+    def test_unresolved_or_invalid_ignore_value_raises(self):
+        task = self.create_task(ignore_ranges="{missing-variable}")
+        with self.assertRaises(ValueError):
+            task.resolve_ignore_ranges(self.project)
+        self.project.set_custom_environment_variables({"{ignore-ranges}": {"value": "abc", "query": False}})
+        task = self.create_task(ignore_ranges="{ignore-ranges}")
+        with self.assertRaises(ValueError):
+            task.resolve_ignore_ranges(self.project)
+
+    def test_ignore_ranges_resolve_input_metadata_per_input(self):
+        task = self.create_task(ignore_ranges="{input-meta-ignore}")
+        for value, expected in (("200-400", ("200-400", ["Ignore Frames: 200-400 (from {input-meta-ignore})"])),
+                                ("", ("", []))):
+            work_item = task_base.WorkItem(
+                source_path=self.input_path, metadata={"input_metadata": {"ignore": value}}
+            )
+            with item_context.work_item_context(self.project, work_item):
+                self.assertEqual(expected, task.resolve_ignore_ranges(self.project))
+
+    def test_invalid_ignore_settings_are_errors(self):
+        self.assertEqual([], self.create_task(ignore_ranges="{input-meta-ignore}").validate(self.project).errors)
+        self.assertTrue(self.create_task(ignore_ranges="abc").validate(self.project).errors)
 
     def test_default_settings_validate(self):
         self.assertEqual([], self.create_task().validate(self.project).errors)
