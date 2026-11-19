@@ -1,4 +1,4 @@
-"""Offscreen Maya/Qt tests for authoring actions and asynchronous delivery."""
+﻿"""Offscreen Maya/Qt tests for authoring actions and asynchronous delivery."""
 
 import os
 import json
@@ -1145,14 +1145,14 @@ class TestKimodoGeneratorUI(unittest.TestCase):
             self.assertIn("#b0b0b0", self.view.buttons[key].styleSheet())
             self.assertNotIn("#375957", self.view.buttons[key].styleSheet())
 
-    def test_humanik_tab_is_source_only(self):
-        """Target controls, actions, and persistent state are no longer part of this tool."""
+    def test_humanik_tab_includes_optional_target(self):
+        """Target settings are editable while automatic retargeting is disabled."""
         from gt.ui import resource_library as resources
 
-        self.assertFalse(hasattr(self.model, "humanik_target"))
-        self.assertFalse(any("target" in key for key in self.view.buttons))
-        for field in ("hik_target_character", "hik_target_namespace", "hik_target_rig", "hik_target_properties"):
-            self.assertFalse(hasattr(self.view, field))
+        self.assertFalse(self.model.target_hik_enabled)
+        self.assertIn("browse_target_hik", self.view.buttons)
+        self.assertTrue(self.view.target_hik_path.isEnabled())
+        self.assertTrue(self.view.target_hik_delete.isChecked())
         for key in ("hik_export_pose", "hik_export_source", "hik_apply_pose", "hik_import_source"):
             self.assertIn(key, self.view.buttons)
             self.assertFalse(self.view.buttons[key].icon().isNull())
@@ -1274,7 +1274,7 @@ class TestKimodoGeneratorUI(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "export to finish"):
                 self.controller._confirm_cleanup([job])
             with patch.object(self.controller, "import_generated_maya_file") as import_file:
-                callback(({"motion.json": __file__}, None))
+                callback(({"motion.json": __file__}, None, []))
                 import_file.assert_called_once_with(job, automatic=True)
             self.assertNotIn("exporting_maya", job)
             self.assertEqual({"motion.json": __file__}, job["maya_files"])
@@ -1479,7 +1479,7 @@ class TestKimodoGeneratorUI(unittest.TestCase):
         with patch.object(self.controller, "run_network") as dispatch:
             self.controller.poll_jobs()
             callback = dispatch.call_args.args[2]
-            callback((None, "Simulated export failure"))
+            callback((None, "Simulated export failure", []))
             self.assertEqual("Maya Export Failed", self.view.jobs.item(0, 2).text())
             self.controller.poll_jobs()
             dispatch.assert_called_once()
@@ -1487,7 +1487,7 @@ class TestKimodoGeneratorUI(unittest.TestCase):
             self.controller.create_maya_files()
             callback = dispatch.call_args.args[2]
             self.assertNotIn("maya_export_error", job)
-            callback(({"motion.json": "missing.ma"}, None))
+            callback(({"motion.json": "missing.ma"}, None, []))
             self.assertEqual("Maya Files Missing", self.view.jobs.item(0, 2).text())
             self.controller.poll_jobs()
             self.assertEqual(2, dispatch.call_count)
