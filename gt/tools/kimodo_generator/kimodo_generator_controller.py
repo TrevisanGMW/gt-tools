@@ -160,6 +160,11 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions, KimodoDockerAc
         for field in (view.hik_name, view.hik_xml, view.hik_pose, view.hik_frame):
             field.editingFinished.connect(self._action_callback("save_humanik_settings"))
         view.hik_lock.toggled.connect(self._action_callback("save_humanik_settings"))
+        for field in (view.target_hik_path, view.target_hik_character, view.target_hik_namespace):
+            field.editingFinished.connect(self._action_callback("save_target_hik"))
+        view.target_hik_bake.currentIndexChanged.connect(self._action_callback("save_target_hik"))
+        view.target_hik_delete.toggled.connect(self._action_callback("save_target_hik"))
+        view.target_hik_enabled.toggled.connect(self._action_callback("save_target_hik"))
         view.auto_humanik.toggled.connect(self._action_callback("save_auto_humanik"))
         view.limit_body_joint_translations.toggled.connect(self._action_callback("save_auto_humanik"))
         view.template_pose_previews.toggled.connect(self._action_callback("save_pose_preview_template"))
@@ -774,6 +779,14 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions, KimodoDockerAc
         view.hik_pose.setText(hik["tpose_path"])
         view.hik_frame.setText("" if hik["reference_frame"] is None else str(hik["reference_frame"]))
         view.hik_lock.setChecked(hik["lock_definition"])
+        target = self.model.target_hik
+        view.target_hik_path.setText(target["rig_path"])
+        view.target_hik_character.setText(target["character"])
+        view.target_hik_namespace.setText(target.get("namespace", ""))
+        view.target_hik_bake.setCurrentText(target["bake_target"])
+        view.target_hik_delete.setChecked(target["delete_source"])
+        view.target_hik_enabled.setChecked(self.model.target_hik_enabled)
+        view.target_hik_disabled_label.setVisible(not self.model.target_hik_enabled)
         view.auto_humanik.setChecked(self.model.definition["maya"]["auto_humanik"])
         view.limit_body_joint_translations.setChecked(
             self.model.definition["maya"]["limit_body_joint_translations"])
@@ -2348,6 +2361,8 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions, KimodoDockerAc
         self.model.namespace = defaults.namespace
         self.model.start_frame = defaults.start_frame
         self.model.humanik = copy.deepcopy(defaults.humanik)
+        self.model.target_hik = copy.deepcopy(defaults.target_hik)
+        self.model.target_hik_enabled = defaults.target_hik_enabled
         self.model.auto_download = defaults.auto_download
         self.model.auto_maya_file = defaults.auto_maya_file
         self.model.auto_import_maya = defaults.auto_import_maya
@@ -2482,6 +2497,28 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions, KimodoDockerAc
         folder = os.path.dirname(path)
         if not ui_qt.QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromLocalFile(folder)):
             raise ValueError(f"Could not open the results folder: {folder}")
+
+    def save_target_hik(self):
+        """Persists the optional target rig settings and updates their status label."""
+        if self.loading:
+            return
+        view = self.view
+        self.model.target_hik = {"rig_path": view.target_hik_path.text().strip(),
+                                 "character": view.target_hik_character.text().strip(),
+                                 "namespace": view.target_hik_namespace.text().strip(),
+                                 "bake_target": view.target_hik_bake.currentText(),
+                                 "delete_source": view.target_hik_delete.isChecked()}
+        self.model.target_hik_enabled = view.target_hik_enabled.isChecked()
+        view.target_hik_disabled_label.setVisible(not self.model.target_hik_enabled)
+        self.model.save_preferences()
+
+    def browse_target_hik(self):
+        """Chooses a Maya or FBX file containing the target HumanIK rig."""
+        path, _ = QtWidgets.QFileDialog.getOpenFileName(
+            self.view, "Target HumanIK Rig", self.view.target_hik_path.text(), "Maya and FBX files (*.ma *.mb *.fbx);;Maya scenes (*.ma *.mb);;FBX files (*.fbx)")
+        if path:
+            self.view.target_hik_path.setText(path)
+            self.save_target_hik()
 
     def gather_humanik(self):
         """Validates the optional HumanIK fields independently of generation inputs."""

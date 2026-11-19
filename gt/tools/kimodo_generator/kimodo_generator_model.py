@@ -154,6 +154,8 @@ class KimodoGeneratorModel:
         self.jobs = []
         self.auto_download = True
         self.auto_maya_file = True
+        self.target_hik_enabled = False
+        self.target_hik = {"rig_path": "", "character": "", "namespace": "", "bake_target": "Skeleton", "delete_source": True}
         self.auto_import_maya = True
         self.auto_import_all_samples = True
         self.auto_clear_scene = True
@@ -185,6 +187,7 @@ class KimodoGeneratorModel:
                               "output_directory": self.output_directory, "namespace": self.namespace,
                               "start_frame": self.start_frame, "humanik": self.humanik,
                               "auto_download": self.auto_download, "auto_maya_file": self.auto_maya_file,
+                              "target_hik_enabled": self.target_hik_enabled, "target_hik": self.target_hik,
                               "auto_import_maya": self.auto_import_maya,
                               "auto_import_all_samples": self.auto_import_all_samples,
                               "auto_frame_rate": self.auto_frame_rate,
@@ -238,6 +241,17 @@ class KimodoGeneratorModel:
             job.pop("downloading", None)
             job.pop("exporting_maya", None)
         self.auto_download = bool(data.get("auto_download", True))
+        self.target_hik_enabled = bool(data.get("target_hik_enabled", False))
+        target = data.get("target_hik", {})
+        if not isinstance(target, dict):
+            target = {}
+        self.target_hik = {"rig_path": str(target.get("rig_path", "")),
+                           "character": str(target.get("character", "")),
+                           "namespace": str(target.get("namespace", "")),
+                           "bake_target": target.get("bake_target", "Skeleton"),
+                           "delete_source": bool(target.get("delete_source", True))}
+        if self.target_hik["bake_target"] not in ("None", "Skeleton", "Control Rig", "Custom Control Rig"):
+            self.target_hik["bake_target"] = "Skeleton"
         self.auto_maya_file = bool(data.get("auto_maya_file", True))
         self.auto_import_maya = bool(data.get("auto_import_maya", True))
         self.auto_import_all_samples = bool(data.get("auto_import_all_samples", True))

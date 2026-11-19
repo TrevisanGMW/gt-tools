@@ -53,8 +53,8 @@ class TestResultCleanup(unittest.TestCase):
         expected = "Preparing Request · kimodo-soma-rp-v1.1 · 3.5s / 2 Segments / 100 Steps"
         self.assertEqual(expected, results.display_stage_and_request(self.job))
 
-    def test_cleanup_preserves_added_and_edited_files(self):
-        """Deletes verified metadata while retaining modified motion and user-added scene data."""
+    def test_cleanup_removes_added_and_edited_files(self):
+        """Deletes the selected job folder including edited and added files."""
         extra = os.path.join(self.directory, "my_scene.ma")
         with open(extra, "w") as stream:
             stream.write("user scene")
@@ -64,16 +64,15 @@ class TestResultCleanup(unittest.TestCase):
         self.assertTrue(os.path.isfile(self.job["paths"]["result.json"]))
         outcome = results.delete_local_artifacts(self.job)
         self.assertEqual(plan["deleted"], outcome["deleted"])
-        self.assertTrue(os.path.isfile(extra))
-        self.assertTrue(os.path.isfile(self.job["paths"]["motion.json"]))
-        self.assertEqual(2, len(outcome["preserved"]))
+        self.assertFalse(os.path.exists(self.directory))
+        self.assertEqual([], outcome["preserved"])
 
     def test_exact_job_cleanup_removes_empty_folder(self):
         """Keeps the selected parent and unrelated sibling intact."""
         sibling = os.path.join(self.temporary.name, "keep.txt")
         with open(sibling, "w") as stream:
             stream.write("keep")
-        self.assertEqual(2, len(results.delete_local_artifacts(self.job)["deleted"]))
+        self.assertEqual(1, len(results.delete_local_artifacts(self.job)["deleted"]))
         self.assertFalse(os.path.exists(self.directory))
         self.assertTrue(os.path.isfile(sibling))
         self.assertEqual([], results.delete_local_artifacts(self.job)["deleted"])

@@ -19,6 +19,30 @@ class TestExportHelpers(unittest.TestCase):
                 "assert not any(name in sys.modules for name in ('maya', 'PySide6', 'torch', 'numpy'))")
         subprocess.run([sys.executable, "-c", code], check=True, capture_output=True)
 
+    def test_target_validation(self):
+        """Requires a real target scene and preserves the source for live connections."""
+        self.assertIsNone(scene_export.validate_target(None))
+        with self.assertRaises(ValueError):
+            scene_export.validate_target({"rig_path": "missing.ma"})
+        with tempfile.TemporaryDirectory() as directory:
+            path = os.path.join(directory, "rig.ma")
+            with open(path, "w") as stream:
+                stream.write("rig")
+            with self.assertRaises(ValueError):
+                scene_export.validate_target({"rig_path": path, "bake_target": "None"})
+            target = scene_export.validate_target({"rig_path": path, "bake_target": "None", "delete_source": False})
+            self.assertEqual("None", target["bake_target"])
+            self.assertFalse(target["delete_source"])
+            self.assertEqual("kimodo", target["namespace"])
+            target = scene_export.validate_target({"rig_path": path, "namespace": "custom_rig"})
+            self.assertEqual("custom_rig", target["namespace"])
+            fbx_path = os.path.join(directory, "rig.fbx")
+            with open(fbx_path, "w") as stream:
+                stream.write("rig")
+            self.assertEqual(fbx_path, scene_export.validate_target({"rig_path": fbx_path})["rig_path"])
+            with self.assertRaises(ValueError):
+                scene_export.validate_target({"rig_path": path, "namespace": "invalid namespace"})
+
     def test_samples_and_missing_files(self):
         """Selects every motion sample without treating manifests as animations."""
         paths = dict.fromkeys(("motion.json", "sample_1.json", "result.json", "motion.npz"), __file__)
@@ -81,6 +105,19 @@ class TestIsolatedMayaExport(unittest.TestCase):
             self.assertEqual([], cmds.ls(type="HIKCharacterNode"))
             self.assertEqual("", cmds.file(query=True, sceneName=True))
             self.assertEqual(source_digest, scene_export.file_digest(paths["motion.json"]))
+            target_dir = os.path.join(directory, "target_test")
+            os.mkdir(target_dir)
+            target_motion = os.path.join(target_dir, "motion.json")
+            write_json(target_motion, motion)
+            target_settings = {"rig_path": files["motion.json"], "character": "", "bake_target": "Skeleton",
+                               "delete_source": True}
+            retargeted = scene_export.export_maya_files(
+                {"motion.json": target_motion}, mayapy_path=sys.executable, target=target_settings)
+            cmds.file(retargeted["motion.json"], open=True, force=True)
+            self.assertEqual(["kimodo:kimodo"], cmds.ls(type="HIKCharacterNode"))
+            self.assertFalse(cmds.objExists("kimodo_animation:Hips"))
+            self.assertTrue(cmds.keyframe("kimodo:kimodo_animation:Hips", query=True, keyframeCount=True))
+            cmds.file(new=True, force=True)
             modified_time = os.path.getmtime(files["motion.json"])
             self.assertEqual(files, scene_export.export_maya_files(paths, mayapy_path=sys.executable))
             self.assertEqual(modified_time, os.path.getmtime(files["motion.json"]))

@@ -42,8 +42,8 @@ ACTION_TOOLTIPS = {
                              "Script Editor and the status field. WSL returns a Linux path; native Windows returns "
                              "a Windows path. This is not the local download folder. Requires an updated bridge.",
     "clear_finished": "Clear succeeded, failed and cancelled jobs. A confirmation lets you delete server/WSL "
-                      "job files (default on) and optionally verified local artifacts. Imported animation, model "
-                      "weights, edited files and added Maya scenes are preserved. Failures retain history for retry.",
+                      "job files (default on) and optionally the entire local job folder. Imported animation and model "
+                      "weights remain untouched. Local Maya scenes and added files are deleted when local cleanup is selected. Failures retain history for retry.",
     "clear_history": "Clear all tracked jobs after confirmation. Active jobs are cancelled first; their history "
                      "stays until they stop and cleanup succeeds. Choose server/WSL deletion and optional local "
                      "artifact deletion. Uncheck both for history-only removal. File deletion is permanent.",
@@ -197,6 +197,7 @@ ACTION_TOOLTIPS = {
                       "Create a native HumanIK character using the SOMA77 mapping and rest T-pose, then restore "
                       "existing animation. Optional overrides are in HumanIK. No server connection is needed. "
                       "Already characterized skeletons are left unchanged; manage them in Maya HumanIK.",
+    "browse_target_hik": "Choose a Maya or FBX file containing the target HumanIK rig for automatic retargeting.",
     "browse_hik_xml": "Choose an optional HumanIK Match List XML with key/value joint assignments, as used by the "
                       "batch processor. Names resolve only inside the chosen hierarchy. "
                       "Leave blank to automatically use the default Kimodo definition.",
@@ -248,7 +249,8 @@ CONTROL_TOOLTIPS = {
                       "locked HumanIK definition. Uses HumanIK overrides or the built-in Kimodo defaults. A separate "
                       "local mayapy process keeps the open scene untouched. If auto-download is off, download "
                       "manually first. Runs while this tool is open; failed exports require manual retry. Cleanup "
-                      "preserves these Maya scenes and their verification receipts. No retargeting is performed.",
+                      "can remove these Maya scenes and their receipts when local job cleanup is selected. "
+                      "Optional target HumanIK retargeting is configured in the HumanIK tab.",
     "auto_download": "Enabled by default and saved in preferences. Completed generation jobs download to the "
                      "configured folder while this window is open. Status becomes Downloaded after verification. "
                      "Missing files are flagged; use Download Results to repair them. Failed automatic downloads "
