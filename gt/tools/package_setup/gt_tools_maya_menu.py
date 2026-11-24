@@ -100,6 +100,12 @@ def load_menu(*args):
         icon=ui_res_lib.Icon.tool_renamer,
     )
     menu.add_menu_item(
+        label="Scene Evaluator",
+        command=IMPORT_TOOL + 'initialize_tool("scene_evaluator")',
+        tooltip="Runs a configurable checklist of scene validations.",
+        icon=ui_res_lib.Icon.tool_scene_evaluator,
+    )
+    menu.add_menu_item(
         label="Selection Manager",
         command=IMPORT_TOOL + 'initialize_tool("selection_manager")',
         tooltip="Manages or creates custom selections.",
