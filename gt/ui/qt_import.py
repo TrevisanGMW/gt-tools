@@ -239,6 +239,7 @@ class QtLib:
         ToolTipRole = None
         if IS_PYSIDE6:  # PySide6
             UserRole = QtCore.Qt.ItemDataRole.UserRole
+            DisplayRole = QtCore.Qt.ItemDataRole.DisplayRole
             ForegroundRole = QtCore.Qt.ItemDataRole.ForegroundRole
             ToolTipRole = QtCore.Qt.ItemDataRole.ToolTipRole
         else:  # PySide2

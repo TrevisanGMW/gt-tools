@@ -12,6 +12,10 @@ import gt.ui.qt_import as ui_qt
 class TestQtImport(unittest.TestCase):
     """Tests optional Qt imports and active binding version detection."""
 
+    def test_display_role_matches_active_binding(self):
+        """Ensures list models can respond to the active binding's display role."""
+        self.assertEqual(ui_qt.QtCore.Qt.DisplayRole, ui_qt.QtLib.ItemDataRole.DisplayRole)
+
     def test_import_optional_qt_module_returns_module(self):
         """Returns the imported module when the optional Qt module exists."""
         expected = mock.MagicMock()
