@@ -197,7 +197,7 @@ class AttrWidgetBase(ui_qt.QtWidgets.QWidget):
         if callable(self.refresh_parent_func):
             ui_qt.QtCore.QTimer.singleShot(0, self.refresh_parent_func)
 
-    def add_labeled_layout(self, label_text, label_width=110, tooltip=None, parent_layout=None):
+    def add_labeled_layout(self, label_text, label_width=110, tooltip=None, parent_layout=None, layout=None):
         """Adds a horizontal row with a fixed-width label.
 
         Args:
@@ -205,12 +205,13 @@ class AttrWidgetBase(ui_qt.QtWidgets.QWidget):
             label_width (int, optional): Label width.
             tooltip (str, optional): Tooltip assigned to the label.
             parent_layout (QLayout, optional): Layout that receives the new row.
+            layout (QHBoxLayout, optional): Existing layout to use for the new row.
 
         Returns:
             QHBoxLayout: Created layout.
         """
         target_layout = parent_layout or self.content_layout
-        layout = ui_qt.QtWidgets.QHBoxLayout()
+        layout = layout if layout is not None else ui_qt.QtWidgets.QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 5)
         layout.setSpacing(8)
         label = ui_qt.QtWidgets.QLabel("{0}:".format(label_text))

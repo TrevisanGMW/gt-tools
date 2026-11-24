@@ -15,6 +15,28 @@ import json
 import ast
 
 
+class _SceneOutputLayout(ui_qt.QtWidgets.QHBoxLayout):
+    """Keeps the Scene Output groups centered in equally sized cells."""
+
+    def minimumSize(self):
+        """Gets the minimum size with room for the widest group in every cell.
+
+        Returns:
+            QSize: Minimum row size.
+        """
+        minimum_size = super().minimumSize()
+        if self.count() == 0:
+            return minimum_size
+
+        label_item = self.itemAt(0)
+        # The row label can take its preferred width even when it has a smaller explicit minimum.
+        label_extra_width = label_item.sizeHint().width() - label_item.minimumSize().width()
+        group_widths = [self.itemAt(index).minimumSize().width() for index in range(1, self.count())]
+        equal_groups_width = max(group_widths, default=0) * len(group_widths)
+        minimum_size.setWidth(minimum_size.width() + label_extra_width + equal_groups_width - sum(group_widths))
+        return minimum_size
+
+
 class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
     """Base widget for task-level settings."""
 
@@ -396,6 +418,7 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
             label_width=100,
             tooltip="Scene loading and output settings.",
             parent_layout=parent_layout,
+            layout=_SceneOutputLayout(),
         )
         load_mode_layout = self.add_row_option_group(
             parent_layout=layout,
@@ -461,8 +484,7 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
             QHBoxLayout: Layout inside the created option group widget.
         """
         group_widget = ui_qt.QtWidgets.QWidget()
-        group_widget.setMinimumWidth(1)
-        group_widget.setSizePolicy(ui_qt.QtLib.SizePolicy.Expanding, ui_qt.QtLib.SizePolicy.Fixed)
+        group_widget.setSizePolicy(ui_qt.QtLib.SizePolicy.Minimum, ui_qt.QtLib.SizePolicy.Fixed)
         group_layout = ui_qt.QtWidgets.QHBoxLayout(group_widget)
         group_layout.setContentsMargins(0, 0, 0, 0)
         group_layout.setSpacing(5)

@@ -76,6 +76,8 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
                 "output_extension_values": [".ma", ".mb"],
             }
         )
+        for combo_box in (self.scene_load_mode_combo, self.output_extension_combo):
+            combo_box.setMinimumWidth(144)
         self.add_python_mode_controls()
         self.add_python_context_controls()
         self.add_single_script_controls()

@@ -1735,7 +1735,7 @@ class TestBatchProcessorUi(unittest.TestCase):
                 self.assertLessEqual(abs(content_center - group.rect().center().x()), 1)
 
     def test_scene_output_dropdowns_fit_all_labels_with_styled_fonts(self):
-        """Includes the longest option, arrow, and theme padding when sizing scene dropdowns."""
+        """Keeps dropdowns wide enough for their options and styled padding."""
         widget = attr_widget_python_script.AttrWidgetPythonScriptTask(
             task=batch_processor_tasks.TaskPythonScript(), project=self.model,
         )
@@ -1747,12 +1747,15 @@ class TestBatchProcessorUi(unittest.TestCase):
         style = ui_qt.QtWidgets.QStyle
         complex_controls = getattr(style, "ComplexControl", style)
         sub_controls = getattr(style, "SubControl", style)
+        dropdowns = (widget.scene_load_mode_combo, widget.output_extension_combo)
+        for combo in dropdowns:
+            self.assertGreaterEqual(combo.minimumWidth(), 144)
         for font_size in (10, 18):
             widget.setStyleSheet(
                 f"QComboBox {{ font-size: {font_size}pt; padding: 4px 28px 4px 12px; }}"
             )
             self.application.processEvents()
-            for combo in (widget.scene_load_mode_combo, widget.output_extension_combo):
+            for combo in dropdowns:
                 for index in range(combo.count()):
                     combo.setCurrentIndex(index)
                     self.application.processEvents()
