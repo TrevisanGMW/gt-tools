@@ -702,3 +702,141 @@ def export_scene_to_usd(output_path, settings=None):
     """
     with UsdExporter(**build_export_options(settings)) as exporter:
         return exporter.export_file(path=output_path)
+
+
+# ----------------------------------------- USD file information and import -----------------------------------------
+USD_SHADING_MODES = {
+    True: [["useRegistry", "UsdPreviewSurface"]],
+    False: [["none", "default"]],
+}
+
+
+def build_usd_info(
+    time_codes_per_second=None,
+    frames_per_second=None,
+    start_time_code=None,
+    end_time_code=None,
+    meters_per_unit=None,
+    up_axis=None,
+):
+    """Converts USD layer metadata into scene information values.
+
+    Args:
+        time_codes_per_second (float, optional): Layer timeCodesPerSecond.
+        frames_per_second (float, optional): Layer framesPerSecond, used when timeCodesPerSecond is missing.
+        start_time_code (float, optional): Layer startTimeCode.
+        end_time_code (float, optional): Layer endTimeCode.
+        meters_per_unit (float, optional): Stage metersPerUnit.
+        up_axis (str, optional): Stage upAxis ("Y" or "Z").
+
+    Returns:
+        dict: "fps", "linear_unit", "up_axis" and "time_range" when known.
+    """
+    file_info = {}
+    fps = time_codes_per_second or frames_per_second
+    if fps and float(fps) > 0:
+        file_info["fps"] = float(fps)
+    if meters_per_unit:
+        centimeters = float(meters_per_unit) * 100.0
+        unit_by_centimeters = {0.1: "mm", 1.0: "cm", 100.0: "m", 2.54: "in", 30.48: "ft", 91.44: "yd"}
+        for unit_size, unit_name in unit_by_centimeters.items():
+            if abs(unit_size - centimeters) <= unit_size * 0.01:
+                file_info["linear_unit"] = unit_name
+                break
+    if str(up_axis or "").lower() in ("y", "z"):
+        file_info["up_axis"] = str(up_axis).lower()
+    if start_time_code is not None and end_time_code is not None and float(start_time_code) <= float(end_time_code):
+        file_info["time_range"] = (float(start_time_code), float(end_time_code))
+    return file_info
+
+
+def read_usd_file_info(file_path):
+    """Reads frame rate, unit, up axis and time range from a USD layer without loading it into Maya.
+
+    Args:
+        file_path (str): USD path.
+
+    Returns:
+        dict: Known values (see build_usd_info). Empty when pxr is unavailable or the file cannot be opened.
+    """
+    try:
+        from pxr import Sdf
+    except Exception as exception:
+        logger.debug(f"pxr unavailable, skipping USD info. Issue: {exception}")
+        return {}
+    try:
+        layer = Sdf.Layer.FindOrOpen(file_path)
+    except Exception as exception:
+        logger.debug(f'Unable to open USD layer "{file_path}". Issue: {exception}')
+        return {}
+    if not layer:
+        return {}
+    root = layer.pseudoRoot
+    return build_usd_info(
+        time_codes_per_second=layer.timeCodesPerSecond if layer.HasTimeCodesPerSecond() else None,
+        frames_per_second=layer.framesPerSecond if layer.HasFramesPerSecond() else None,
+        start_time_code=layer.startTimeCode if layer.HasStartTimeCode() else None,
+        end_time_code=layer.endTimeCode if layer.HasEndTimeCode() else None,
+        meters_per_unit=root.GetInfo("metersPerUnit") if root.HasInfo("metersPerUnit") else None,
+        up_axis=root.GetInfo("upAxis") if root.HasInfo("upAxis") else None,
+    )
+
+
+def import_usd_file(file_path, namespace="", prim_path="/", read_animation=True, import_materials=True):
+    """Converts USD prims into regular Maya nodes with mayaUSDImport.
+
+    Args:
+        file_path (str): USD path.
+        namespace (str, optional): Namespace for the new nodes.
+        prim_path (str, optional): Root prim to import.
+        read_animation (bool, optional): Convert time samples to animation curves.
+        import_materials (bool, optional): Convert USD materials.
+
+    Returns:
+        list: Long names of the created nodes.
+    """
+    import gt.core.namespace as core_nspace
+    import gt.core.uuid as core_uuid
+
+    cmds = get_maya_cmds()
+    ensure_maya_usd_plugin_loaded()
+    node_ids_before = core_uuid.capture_scene_uuids()
+    with core_nspace.NamespaceContext(namespace):
+        cmds.mayaUSDImport(
+            file=file_path,
+            primPath=prim_path or "/",
+            readAnimData=bool(read_animation),
+            shadingMode=USD_SHADING_MODES[bool(import_materials)],
+        )
+    return core_uuid.get_nodes_created_since(node_ids_before)
+
+
+def create_usd_stage(file_path, namespace="", prim_path="/", load_payloads=True):
+    """Loads a USD file as a stage (mayaUsdProxyShape) without converting it to Maya nodes.
+
+    Args:
+        file_path (str): USD path.
+        namespace (str, optional): Namespace for the new nodes.
+        prim_path (str, optional): Root prim shown by the stage.
+        load_payloads (bool, optional): Load payloads when the stage opens.
+
+    Returns:
+        list: Long names of the created nodes (stage transform and proxy shape).
+    """
+    import gt.core.namespace as core_nspace
+    import gt.core.str as core_str
+    import gt.core.uuid as core_uuid
+
+    cmds = get_maya_cmds()
+    ensure_maya_usd_plugin_loaded()
+    node_ids_before = core_uuid.capture_scene_uuids()
+    base_name = core_str.sanitize_maya_name(os.path.splitext(os.path.basename(file_path))[0], "usd_stage")
+    with core_nspace.NamespaceContext(namespace):
+        stage_transform = cmds.createNode("transform", name=base_name, skipSelect=True)
+        proxy_shape = cmds.createNode("mayaUsdProxyShape", name=f"{base_name}Shape", parent=stage_transform,
+                                      skipSelect=True)
+    cmds.setAttr(f"{proxy_shape}.filePath", file_path, type="string")
+    cmds.setAttr(f"{proxy_shape}.primPath", prim_path or "/", type="string")
+    cmds.setAttr(f"{proxy_shape}.loadPayloads", bool(load_payloads))
+    cmds.connectAttr("time1.outTime", f"{proxy_shape}.time", force=True)
+    return core_uuid.get_nodes_created_since(node_ids_before)

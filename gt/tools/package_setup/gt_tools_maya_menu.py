@@ -76,6 +76,12 @@ def load_menu(*args):
         icon=ui_res_lib.Icon.tool_color_manager_roller,
     )
     menu.add_menu_item(
+        label="Multi-File Importer",
+        command=IMPORT_TOOL + 'initialize_tool("multi_file_importer")',
+        tooltip="Imports or references many files into the current scene and lays them out for review.",
+        icon=ui_res_lib.Icon.tool_multi_file_importer,
+    )
+    menu.add_menu_item(
         label="Outliner Sorter",
         command=IMPORT_TOOL + 'initialize_tool("outliner_sorter")',
         tooltip="Manages the order of the elements in the outliner.",

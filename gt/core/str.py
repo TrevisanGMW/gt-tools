@@ -541,6 +541,47 @@ def replace_keys_with_values(input_string, replacements_dict, case_sensitive=Tru
     return input_string
 
 
+def sanitize_maya_name(raw_name, fallback_name="input"):
+    """Builds a Maya-safe node or namespace name.
+
+    Args:
+        raw_name (str): Requested name.
+        fallback_name (str, optional): Name used when the cleaned name is empty.
+
+    Returns:
+        str: Name containing only letters, digits, and underscores, never starting with a digit.
+    """
+    cleaned_name = re.sub(r"[^A-Za-z0-9_]+", "_", str(raw_name or "")).strip("_")
+    cleaned_name = re.sub(r"_+", "_", cleaned_name)
+    if not cleaned_name:
+        cleaned_name = re.sub(r"[^A-Za-z0-9_]+", "_", str(fallback_name or "input")).strip("_") or "input"
+    if cleaned_name[0].isdigit():
+        cleaned_name = f"_{cleaned_name}"
+    return cleaned_name
+
+
+def build_unique_name(base_name, used_names):
+    """Builds a name that is not present in a set of used names.
+
+    Comparison is case-insensitive, matching how Maya treats clashing namespaces on Windows.
+
+    Args:
+        base_name (str): Preferred name.
+        used_names (set): Names already taken. The returned name is added to this set.
+
+    Returns:
+        str: Unique name, numbered when the preferred name is taken.
+    """
+    candidate_name = base_name
+    suffix_number = 1
+    lowered_names = set(name.lower() for name in used_names)
+    while candidate_name.lower() in lowered_names:
+        candidate_name = f"{base_name}_{suffix_number}"
+        suffix_number += 1
+    used_names.add(candidate_name)
+    return candidate_name
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     an_input_string = "Hello, World! This is a test."

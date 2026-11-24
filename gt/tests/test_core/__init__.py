@@ -31,6 +31,7 @@ from . import test_selection
 from . import test_session
 from . import test_skin
 from . import test_str
+from . import test_timeline
 from . import test_surface
 from . import test_transform
 from . import test_undo

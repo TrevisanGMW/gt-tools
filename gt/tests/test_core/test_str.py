@@ -678,3 +678,16 @@ class TestStringCore(unittest.TestCase):
         expected_output = "Special Characters !@#"
         result = core_str.snake_to_title(input_string)
         self.assertEqual(expected_output, result)
+
+    def test_sanitize_maya_name(self):
+        expected = "_1_walk_cycle"
+        result = core_str.sanitize_maya_name("1 walk--cycle!")
+        self.assertEqual(expected, result)
+        self.assertEqual("fallback", core_str.sanitize_maya_name("!!!", "fallback"))
+
+    def test_build_unique_name(self):
+        used_names = {"Walk", "walk_1"}
+        expected = "walk_2"
+        result = core_str.build_unique_name("walk", used_names)
+        self.assertEqual(expected, result)
+        self.assertIn("walk_2", used_names)

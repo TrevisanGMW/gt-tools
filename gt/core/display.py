@@ -604,6 +604,70 @@ def set_grid_divisions(grid_size=12.0, grid_spacing=5.0, grid_divisions=5):
         pass  # Safe in batch/headless mode
 
 
+def set_model_panels_options(**editor_flags):
+    """Applies modelEditor flags to every model panel (viewport).
+
+    Example:
+        set_model_panels_options(joints=False, displayTextures=True, displayAppearance="smoothShaded")
+
+    Args:
+        **editor_flags: modelEditor edit flags and values, for example joints=False.
+
+    Returns:
+        list: Model panels that accepted every flag.
+    """
+    updated_panels = []
+    if not editor_flags:
+        return updated_panels
+    for panel in cmds.getPanel(type="modelPanel") or []:
+        try:
+            cmds.modelEditor(panel, edit=True, **editor_flags)
+            updated_panels.append(panel)
+        except Exception as exception:
+            logger.debug(f'Unable to update model panel "{panel}". Issue: {exception}')
+    return updated_panels
+
+
+def frame_nodes_in_viewports(nodes=None, fit_factor=0.9):
+    """Frames nodes (or the whole scene) in the camera of every visible model panel.
+
+    The current selection is restored afterwards.
+
+    Args:
+        nodes (list, optional): Nodes to frame. When empty, every object in the scene is framed.
+        fit_factor (float, optional): How much of the view the framed content should fill (0 to 1).
+
+    Returns:
+        list: Cameras that were framed.
+    """
+    existing_nodes = [node for node in (nodes or []) if cmds.objExists(node)]
+    selection = cmds.ls(selection=True, long=True) or []
+    framed_cameras = []
+    visible_panels = cmds.getPanel(visiblePanels=True) or []
+    model_panels = [panel for panel in (cmds.getPanel(type="modelPanel") or []) if panel in visible_panels]
+    try:
+        if existing_nodes:
+            cmds.select(existing_nodes, replace=True)
+        for panel in model_panels:
+            camera = cmds.modelPanel(panel, query=True, camera=True)
+            if not camera or camera in framed_cameras:
+                continue
+            try:
+                if existing_nodes:
+                    cmds.viewFit(camera, fitFactor=fit_factor)
+                else:
+                    cmds.viewFit(camera, allObjects=True, fitFactor=fit_factor)
+                framed_cameras.append(camera)
+            except Exception as exception:
+                logger.debug(f'Unable to frame camera "{camera}". Issue: {exception}')
+    finally:
+        if selection:
+            cmds.select(selection, replace=True)
+        else:
+            cmds.select(clear=True)
+    return framed_cameras
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     set_lra_state(cmds.ls(typ="joint"), True)

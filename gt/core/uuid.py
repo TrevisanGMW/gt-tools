@@ -196,5 +196,58 @@ def add_uuid_attr(obj_list, attr_name, set_initial_uuid_value=True):
     return created_attrs
 
 
+def get_uuids(nodes):
+    """Gets UUIDs for several nodes so they can be found again after renames or reparenting.
+
+    Args:
+        nodes (list): Node names. Missing nodes are ignored.
+
+    Returns:
+        list: Node UUID strings.
+    """
+    existing_nodes = [node for node in (nodes or []) if cmds.objExists(node)]
+    if not existing_nodes:
+        return []
+    return cmds.ls(existing_nodes, uuid=True) or []
+
+
+def get_objects_from_uuids(uuid_list):
+    """Gets the current long names of several nodes from their UUIDs.
+
+    Args:
+        uuid_list (list): Node UUID strings.
+
+    Returns:
+        list: Current long node names, skipping deleted nodes.
+    """
+    if not uuid_list:
+        return []
+    return cmds.ls(list(uuid_list), long=True) or []
+
+
+def capture_scene_uuids():
+    """Captures the UUID of every node in the scene, to find new nodes later.
+
+    Returns:
+        set: Node UUID strings.
+    """
+    return set(cmds.ls(uuid=True) or [])
+
+
+def get_nodes_created_since(uuid_snapshot):
+    """Gets the nodes created after a snapshot taken with capture_scene_uuids.
+
+    Args:
+        uuid_snapshot (set): UUIDs captured earlier.
+
+    Returns:
+        list: Long names of the new nodes.
+    """
+    new_uuids = list(capture_scene_uuids() - set(uuid_snapshot or []))
+    if not new_uuids:
+        return []
+    return cmds.ls(new_uuids, long=True) or []
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)

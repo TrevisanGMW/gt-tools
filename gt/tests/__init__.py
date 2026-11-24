@@ -34,6 +34,7 @@ import subprocess
 import gt.tests.test_curve_library as test_curve_library
 import gt.tests.test_auto_rigger as test_auto_rigger
 import gt.tests.test_sample_tool as test_sample_tool
+import gt.tests.test_multi_file_importer as test_multi_file_importer
 import gt.tests.test_script_library as test_script_library
 import gt.tests.test_utils as test_utils
 import gt.tests.test_core as test_core
@@ -73,6 +74,10 @@ modules_to_test = [
     test_auto_rigger.test_template_biped,
     test_curve_library.test_curve_library_model,
     test_sample_tool.test_sample_tool_model,
+    test_multi_file_importer.test_multi_file_importer_formats,
+    test_multi_file_importer.test_multi_file_importer_layout,
+    test_multi_file_importer.test_multi_file_importer_model,
+    test_multi_file_importer.test_multi_file_importer_scene,
     test_script_library.test_script_library_model,
     # Core
     test_core.test_anim,
@@ -109,6 +114,7 @@ modules_to_test = [
     test_core.test_session,
     test_core.test_skin,
     test_core.test_str,
+    test_core.test_timeline,
     test_core.test_environment_references,
     test_core.test_surface,
     test_core.test_transform,
@@ -122,6 +128,9 @@ modules_to_test = [
     test_utils.test_system,
     test_utils.test_hypertext,
     test_utils.test_dependency,
+    test_utils.test_bvh,
+    test_utils.test_numpy,
+    test_utils.test_usd,
 ]
 
 

@@ -16,6 +16,8 @@ https://docs.unity3d.com/560/Documentation/Manual/HOWTO-exportFBX.html
 
 """
 import maya.cmds as cmds
+import struct
+import re
 import logging
 import os
 
@@ -1007,6 +1009,206 @@ class FbxScene:
                 self.fbx_common.SaveScene(self.sdk_manager, self.scene, self.path)
         except Exception as e:
             logger.error(f"Failed to save the fbx file. Issue: {e}")
+
+
+# ----------------------------------------- FBX file information and import -----------------------------------------
+FBX_INFO_SCAN_SIZE = 4 * 1024 * 1024
+FBX_TIME_MODE_FPS = {
+    1: 120.0,
+    2: 100.0,
+    3: 60.0,
+    4: 50.0,
+    5: 48.0,
+    6: 30.0,
+    7: 30.0,
+    8: 29.97,
+    9: 29.97,
+    10: 25.0,
+    11: 24.0,
+    12: 1000.0,
+    13: 23.976,
+    15: 96.0,
+    16: 72.0,
+    17: 59.94,
+    18: 119.88,
+}
+FBX_TIME_MODE_CUSTOM = 14
+FBX_UP_AXIS = {1: "y", 2: "z"}
+FBX_IMPORT_MODES = {"Add": "add", "Merge": "merge", "Update Animation": "exmerge"}
+
+
+def _read_fbx_binary_value(data, offset):
+    """Reads one typed property value from binary FBX data.
+
+    Args:
+        data (bytes): FBX bytes.
+        offset (int): Offset of the type code.
+
+    Returns:
+        tuple: (value, next_offset).
+
+    Raises:
+        ValueError: When the type code is not a scalar or string type.
+    """
+    type_code = data[offset : offset + 1]
+    offset += 1
+    if type_code in (b"S", b"R"):
+        length = struct.unpack_from("<I", data, offset)[0]
+        offset += 4
+        return data[offset : offset + length], offset + length
+    scalar_formats = {b"I": "<i", b"D": "<d", b"L": "<q", b"F": "<f", b"Y": "<h", b"C": "<?"}
+    if type_code not in scalar_formats:
+        raise ValueError(f"Unsupported FBX property type: {type_code!r}")
+    value_format = scalar_formats[type_code]
+    return struct.unpack_from(value_format, data, offset)[0], offset + struct.calcsize(value_format)
+
+
+def find_fbx_binary_property(data, property_name):
+    """Finds the value of a GlobalSettings property in binary FBX data.
+
+    FBX 7 property records store: name, type name, label, flags, value.
+
+    Args:
+        data (bytes): FBX bytes.
+        property_name (str): Property name, e.g. "TimeMode".
+
+    Returns:
+        object: Property value, or None when not found.
+    """
+    name_bytes = property_name.encode("ascii")
+    marker = b"S" + struct.pack("<I", len(name_bytes)) + name_bytes
+    offset = data.find(marker)
+    if offset == -1:
+        return None
+    offset += len(marker)
+    try:
+        for _ in range(3):
+            _, offset = _read_fbx_binary_value(data, offset)
+        value, _ = _read_fbx_binary_value(data, offset)
+        return value
+    except (ValueError, struct.error, IndexError):
+        return None
+
+
+def find_fbx_ascii_property(text, property_name):
+    """Finds the value of a GlobalSettings property in ASCII FBX text.
+
+    Args:
+        text (str): FBX text.
+        property_name (str): Property name, e.g. "TimeMode".
+
+    Returns:
+        float: Property value, or None when not found.
+    """
+    pattern = rf'P:\s*"{re.escape(property_name)}"\s*,\s*"[^"]*"\s*,\s*"[^"]*"\s*,\s*"[^"]*"\s*,\s*([-+0-9.eE]+)'
+    match = re.search(pattern, text)
+    if not match:
+        return None
+    try:
+        return float(match.group(1))
+    except ValueError:
+        return None
+
+
+def parse_fbx_global_settings(data):
+    """Parses frame rate, unit and up axis from the start of an FBX file (binary or ASCII).
+
+    Args:
+        data (bytes): Start of an FBX file (GlobalSettings is written near the top).
+
+    Returns:
+        dict: "fps", "linear_unit" and "up_axis" when found.
+    """
+    import gt.core.scene as core_scene
+
+    if data.startswith(b"Kaydara FBX Binary"):
+
+        def read_property(name):
+            return find_fbx_binary_property(data, name)
+
+    else:
+        text = data.decode("utf-8", "ignore")
+
+        def read_property(name):
+            return find_fbx_ascii_property(text, name)
+
+    file_info = {}
+    time_mode = read_property("TimeMode")
+    if time_mode is not None:
+        time_mode = int(time_mode)
+        if time_mode == FBX_TIME_MODE_CUSTOM:
+            custom_rate = read_property("CustomFrameRate")
+            if custom_rate and float(custom_rate) > 0:
+                file_info[core_scene.SCENE_INFO_FPS] = float(custom_rate)
+        elif time_mode in FBX_TIME_MODE_FPS:
+            file_info[core_scene.SCENE_INFO_FPS] = FBX_TIME_MODE_FPS[time_mode]
+    unit_scale = read_property("UnitScaleFactor")
+    linear_unit = core_scene.get_closest_linear_unit(unit_scale) if unit_scale is not None else ""
+    if linear_unit:
+        file_info[core_scene.SCENE_INFO_LINEAR_UNIT] = linear_unit
+    up_axis = read_property("UpAxis")
+    if up_axis is not None and int(up_axis) in FBX_UP_AXIS:
+        file_info[core_scene.SCENE_INFO_UP_AXIS] = FBX_UP_AXIS[int(up_axis)]
+    return file_info
+
+
+def read_fbx_file_info(file_path):
+    """Reads frame rate, unit and up axis from an FBX file without importing it.
+
+    Args:
+        file_path (str): FBX path.
+
+    Returns:
+        dict: "fps", "linear_unit" and "up_axis" when found.
+    """
+    try:
+        with open(file_path, "rb") as fbx_file:
+            return parse_fbx_global_settings(fbx_file.read(FBX_INFO_SCAN_SIZE))
+    except (IOError, OSError) as exception:
+        logger.debug(f'Unable to read "{file_path}". Issue: {exception}')
+        return {}
+
+
+def import_fbx_file(
+    file_path,
+    namespace="",
+    reference=False,
+    import_mode="Add",
+    merge_animation_layers=True,
+    cameras=False,
+    lights=False,
+    constraints=False,
+    use_file_frame_rate=False,
+):
+    """Imports or references an FBX file with explicit importer settings.
+
+    Args:
+        file_path (str): FBX path.
+        namespace (str, optional): Namespace for new nodes.
+        reference (bool, optional): Reference instead of import.
+        import_mode (str, optional): A FBX_IMPORT_MODES key ("Add" always creates new nodes).
+        merge_animation_layers (bool, optional): Merge animation layers into one.
+        cameras (bool, optional): Import cameras.
+        lights (bool, optional): Import lights.
+        constraints (bool, optional): Import constraints.
+        use_file_frame_rate (bool, optional): Let the FBX plugin change the scene frame rate.
+
+    Returns:
+        tuple: (new_nodes, reference_node).
+    """
+    import gt.core.scene as core_scene
+
+    cmds.loadPlugin("fbxmaya", quiet=True)
+    with FbxImporter():
+        cmds.FBXImportSetTake("-ti", -1)  # Last take; the default (no take) imports no animation.
+        cmds.FBXImportMode("-v", FBX_IMPORT_MODES.get(import_mode, "add"))
+        cmds.FBXImportMergeAnimationLayers("-v", bool(merge_animation_layers))
+        cmds.FBXImportCameras("-v", bool(cameras))
+        cmds.FBXImportLights("-v", bool(lights))
+        cmds.FBXImportConstraints("-v", bool(constraints))
+        cmds.FBXImportSetMayaFrameRate("-v", bool(use_file_frame_rate))
+        cmds.FBXImportFillTimeline("-v", False)
+        return core_scene.load_file_into_scene(file_path, file_type="FBX", namespace=namespace, reference=reference)
 
 
 if __name__ == "__main__":

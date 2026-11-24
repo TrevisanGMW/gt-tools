@@ -371,6 +371,79 @@ class StripNamespace(object):
             api_node.setName(original_name)
 
 
+def get_all_namespaces():
+    """Gets every namespace currently in the scene.
+
+    Returns:
+        set: Namespace names without the leading colon. Maya's default "UI" and "shared" are included.
+    """
+    namespaces = cmds.namespaceInfo(":", listOnlyNamespaces=True, recurse=True) or []
+    return set(str(namespace).lstrip(":") for namespace in namespaces)
+
+
+def merge_namespace_with_root(namespace):
+    """Removes a namespace by moving its contents into the root namespace.
+
+    Maya renames nodes whose names would clash with existing root nodes.
+
+    Args:
+        namespace (str): Namespace to remove.
+
+    Returns:
+        bool: True when the namespace existed and was removed.
+    """
+    namespace = str(namespace or "").strip(":")
+    if not namespace or not cmds.namespace(exists=f":{namespace}"):
+        return False
+    cmds.namespace(removeNamespace=f":{namespace}", mergeNamespaceWithRoot=True)
+    return True
+
+
+class NamespaceContext:
+    """Context manager that makes a namespace current while nodes are created.
+
+    Useful for commands without a namespace flag. The namespace is created when missing and the
+    previous current namespace is restored on exit.
+    """
+
+    def __init__(self, namespace):
+        """Initializes the context.
+
+        Args:
+            namespace (str): Namespace to use. Empty keeps the current namespace.
+        """
+        self.namespace = str(namespace or "").strip(":")
+        self.previous_namespace = None
+
+    def __enter__(self):
+        """Creates (when needed) and sets the namespace.
+
+        Returns:
+            NamespaceContext: This context.
+        """
+        if not self.namespace:
+            return self
+        self.previous_namespace = cmds.namespaceInfo(currentNamespace=True, absoluteName=True)
+        if not cmds.namespace(exists=f":{self.namespace}"):
+            cmds.namespace(add=self.namespace, parent=":")
+        cmds.namespace(setNamespace=f":{self.namespace}")
+        return self
+
+    def __exit__(self, *args):
+        """Restores the previous namespace.
+
+        Args:
+            *args: Exception information, unused.
+        """
+        if self.previous_namespace is None:
+            return
+        try:
+            cmds.namespace(setNamespace=self.previous_namespace)
+        except Exception as exception:
+            logger.debug(f"Unable to restore namespace. Issue: {exception}")
+            cmds.namespace(setNamespace=":")
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint

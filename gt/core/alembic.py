@@ -147,6 +147,22 @@ class AlembicNode:
         return trans
 
 
+def get_alembic_time_range(nodes):
+    """Gets the frame range cached by the AlembicNodes found in a node list.
+
+    Args:
+        nodes (list): Node names, for example the nodes created by an Alembic import.
+
+    Returns:
+        tuple: (start, end) covering every AlembicNode, or None when there are none.
+    """
+    import gt.core.timeline as core_timeline
+
+    alembic_nodes = cmds.ls(nodes or [], type="AlembicNode") or []
+    time_ranges = [(cmds.getAttr(f"{node}.startFrame"), cmds.getAttr(f"{node}.endFrame")) for node in alembic_nodes]
+    return core_timeline.combine_time_ranges(time_ranges)
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     from pprint import pprint

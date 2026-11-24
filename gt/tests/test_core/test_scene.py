@@ -281,3 +281,36 @@ class TestSceneCore(unittest.TestCase):
             stay_time=4000,
             system_write=False,
         )
+
+
+class TestSceneFileInfo(unittest.TestCase):
+    """Checks the pure scene-file readers and unit helpers (no Maya scene needed)."""
+
+    def test_unit_helpers(self):
+        self.assertEqual("m", core_scene.get_closest_linear_unit(100.0))
+        self.assertEqual("in", core_scene.get_closest_linear_unit(2.54))
+        self.assertEqual("", core_scene.get_closest_linear_unit(3.0))
+        self.assertEqual(24.0, core_scene.get_fps_from_time_unit("film"))
+        self.assertEqual(120.0, core_scene.get_fps_from_time_unit("120fps"))
+        self.assertEqual("cm", core_scene.normalize_linear_unit("centimeter"))
+        self.assertEqual("z", core_scene.normalize_up_axis("Z"))
+
+    def test_maya_ascii_units(self):
+        data = b'requires maya "2025";\ncurrentUnit -l meter -a degree -t ntscf;\n'
+        expected = {"linear_unit": "m", "fps": 60.0}
+        self.assertEqual(expected, core_scene.parse_maya_current_unit(data))
+
+    def test_maya_binary_units(self):
+        data = b"FOR8LUNI\n" + b"\x00" * 10 + b"\x02cm\x00\x00TUNI\n" + b"\x00" * 10 + b"\x04film\x00"
+        expected = {"fps": 24.0, "linear_unit": "cm"}
+        self.assertEqual(expected, core_scene.parse_maya_binary_units(data))
+
+    def test_read_scene_file_info(self):
+        temp_dir = tempfile.mkdtemp(prefix="gt_scene_info_test_")
+        scene_path = os.path.join(temp_dir, "scene.ma")
+        with open(scene_path, "wb") as scene_file:
+            scene_file.write(b'currentUnit -l centimeter -a degree -t film;\n'
+                             b'createNode script -n "upAxisScriptNode";\n setAttr ".b" -type "string" '
+                             b'"upAxis -ax \\"z\\"";\nplaybackOptions -min 1 -max 48 -ast 1 -aet 48 ;\n')
+        expected = {"fps": 24.0, "linear_unit": "cm", "up_axis": "z", "time_range": (1.0, 48.0)}
+        self.assertEqual(expected, core_scene.read_scene_file_info(scene_path))

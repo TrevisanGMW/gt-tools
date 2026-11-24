@@ -2158,6 +2158,77 @@ def paste_animation_clip(
     }
 
 
+def create_keyed_curve(attribute, frames, values, tangent_type="linear"):
+    """Creates an animation curve with many keys at once and connects it to an attribute.
+
+    Much faster than calling setKeyframe per key, which matters for dense data such as motion capture.
+    The curve node is created with maya.cmds, so undoing the surrounding chunk removes it.
+
+    Args:
+        attribute (str): Destination attribute, for example "hips.rotateX".
+        frames (list): Key times in the current timeline units.
+        values (list): Key values. Linear values use the scene linear unit, angular values use degrees.
+        tangent_type (str, optional): "linear", "clamped", "auto", "step" or "spline".
+
+    Returns:
+        str: Created animation curve name, or an empty string when nothing was keyed.
+    """
+    frames = [float(frame) for frame in (frames or [])]
+    values = [float(value) for value in (values or [])]
+    if not frames or len(frames) != len(values) or not cmds.objExists(attribute):
+        return ""
+    node_name, attribute_name = attribute.rsplit(".", 1)
+    attribute_type = cmds.getAttr(attribute, type=True)
+    curve_type = {
+        "doubleLinear": "animCurveTL",
+        "doubleAngle": "animCurveTA",
+        "time": "animCurveTT",
+    }.get(attribute_type, "animCurveTU")
+    curve_name = f"{node_name.split('|')[-1]}_{attribute_name}"
+    curve = cmds.createNode(curve_type, name=curve_name, skipSelect=True)
+    cmds.connectAttr(f"{curve}.output", attribute, force=True)
+    try:
+        _add_keys_open_maya(curve, curve_type, frames, values, tangent_type)
+    except Exception as exception:
+        logger.debug(f"OpenMaya key creation failed, using setKeyframe. Issue: {exception}")
+        for frame, value in zip(frames, values):
+            cmds.setKeyframe(attribute, time=frame, value=value, inTangentType=tangent_type,
+                             outTangentType=tangent_type)
+    return curve
+
+
+def _add_keys_open_maya(curve, curve_type, frames, values, tangent_type):
+    """Adds keys to an existing animation curve with OpenMaya.
+
+    Args:
+        curve (str): Animation curve node.
+        curve_type (str): Curve node type, used to convert values to internal units.
+        frames (list): Key times in the current timeline units.
+        values (list): Key values (scene linear unit or degrees).
+        tangent_type (str): Tangent type name.
+    """
+    import maya.api.OpenMaya as open_maya
+    import maya.api.OpenMayaAnim as open_maya_anim
+
+    if curve_type == "animCurveTA":
+        values = [math.radians(value) for value in values]
+    elif curve_type == "animCurveTL":
+        linear_unit = open_maya.MDistance.uiUnit()
+        values = [open_maya.MDistance(value, linear_unit).asCentimeters() for value in values]
+    tangent_lookup = {
+        "linear": open_maya_anim.MFnAnimCurve.kTangentLinear,
+        "clamped": open_maya_anim.MFnAnimCurve.kTangentClamped,
+        "auto": open_maya_anim.MFnAnimCurve.kTangentAuto,
+        "step": open_maya_anim.MFnAnimCurve.kTangentStep,
+        "spline": open_maya_anim.MFnAnimCurve.kTangentSmooth,
+    }
+    tangent = tangent_lookup.get(str(tangent_type).lower(), open_maya_anim.MFnAnimCurve.kTangentLinear)
+    time_unit = open_maya.MTime.uiUnit()
+    times = open_maya.MTimeArray([open_maya.MTime(frame, time_unit) for frame in frames])
+    selection_list = open_maya.MSelectionList()
+    selection_list.add(curve)
+    curve_function = open_maya_anim.MFnAnimCurve(selection_list.getDependNode(0))
+    curve_function.addKeys(times, values, tangent, tangent)
 
 
 if __name__ == "__main__":

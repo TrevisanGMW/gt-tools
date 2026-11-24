@@ -641,6 +641,319 @@ def set_scene_from_dict(scene_dict):
             )
 
 
+# ----------------------------------------- Scene file information -----------------------------------------
+SCENE_INFO_FPS = "fps"
+SCENE_INFO_LINEAR_UNIT = "linear_unit"
+SCENE_INFO_UP_AXIS = "up_axis"
+SCENE_INFO_TIME_RANGE = "time_range"
+LINEAR_UNIT_ALIASES = {
+    "mm": "mm",
+    "millimeter": "mm",
+    "cm": "cm",
+    "centimeter": "cm",
+    "m": "m",
+    "meter": "m",
+    "km": "km",
+    "kilometer": "km",
+    "in": "in",
+    "inch": "in",
+    "ft": "ft",
+    "foot": "ft",
+    "yd": "yd",
+    "yard": "yd",
+    "mi": "mi",
+    "mile": "mi",
+}
+CENTIMETERS_PER_LINEAR_UNIT = {
+    "mm": 0.1,
+    "cm": 1.0,
+    "m": 100.0,
+    "km": 100000.0,
+    "in": 2.54,
+    "ft": 30.48,
+    "yd": 91.44,
+    "mi": 160934.4,
+}
+TIME_UNIT_FPS = {
+    "game": 15.0,
+    "film": 24.0,
+    "pal": 25.0,
+    "ntsc": 30.0,
+    "show": 48.0,
+    "palf": 50.0,
+    "ntscf": 60.0,
+    "millisec": 1000.0,
+    "sec": 1.0,
+    "23.976fps": 23.976,
+    "29.97fps": 29.97,
+    "29.97df": 29.97,
+    "47.952fps": 47.952,
+    "59.94fps": 59.94,
+}
+SCENE_FILE_HEAD_SIZE = 2 * 1024 * 1024
+SCENE_FILE_TAIL_SIZE = 8 * 1024 * 1024
+MAYA_CURRENT_UNIT_PATTERN = re.compile(rb"currentUnit((?:\s+-[A-Za-z]+\s+\"?[A-Za-z0-9.]+\"?)+)")
+MAYA_FLAG_PATTERN = re.compile(rb"-(?P<flag>[A-Za-z]+)\s+\"?(?P<value>[A-Za-z0-9.]+)\"?")
+MAYA_Z_UP_PATTERNS = (b'upAxis -ax \\"z\\"', b'upAxis -ax "z"')
+# Maya binary (IFF) headers store units as tagged chunks, e.g. b"TUNI" + size bytes + b"ntsc\x00".
+MAYA_BINARY_TIME_PATTERN = re.compile(
+    rb"TUNI.{4,16}?(?P<value>[0-9.]+fps|[0-9.]+df|film|ntscf|ntsc|palf|pal|game|show)\x00", re.S
+)
+MAYA_BINARY_LINEAR_PATTERN = re.compile(rb"LUNI.{4,16}?(?P<value>mm|cm|km|m|in|ft|yd|mi)\x00", re.S)
+
+
+def normalize_linear_unit(unit_name):
+    """Converts a Maya or file linear unit name to its short form.
+
+    Args:
+        unit_name (str): Unit such as "centimeter" or "cm".
+
+    Returns:
+        str: Short unit ("cm", "m", ...), or an empty string when unknown.
+    """
+    return LINEAR_UNIT_ALIASES.get(str(unit_name or "").strip().lower(), "")
+
+
+def get_closest_linear_unit(centimeters_per_unit, tolerance=0.01):
+    """Finds the Maya linear unit matching a size in centimeters per unit.
+
+    Args:
+        centimeters_per_unit (float): Size of one unit in centimeters (e.g. 100 for meters).
+        tolerance (float, optional): Relative tolerance for a match.
+
+    Returns:
+        str: Short unit name, or an empty string when nothing matches.
+    """
+    try:
+        centimeters_per_unit = float(centimeters_per_unit)
+    except (TypeError, ValueError):
+        return ""
+    if centimeters_per_unit <= 0:
+        return ""
+    for unit_name, unit_size in CENTIMETERS_PER_LINEAR_UNIT.items():
+        if abs(unit_size - centimeters_per_unit) <= unit_size * tolerance:
+            return unit_name
+    return ""
+
+
+def get_fps_from_time_unit(time_unit):
+    """Converts a Maya time unit name to frames per second.
+
+    Args:
+        time_unit (str): Maya time unit such as "film", "ntsc" or "120fps".
+
+    Returns:
+        float: Frames per second, or 0.0 when unknown.
+    """
+    time_unit = str(time_unit or "").strip().lower()
+    if time_unit in TIME_UNIT_FPS:
+        return TIME_UNIT_FPS[time_unit]
+    if time_unit.endswith("fps"):
+        try:
+            return float(time_unit[:-3])
+        except ValueError:
+            return 0.0
+    return 0.0
+
+
+def normalize_up_axis(up_axis):
+    """Normalizes an up axis value.
+
+    Args:
+        up_axis (str): Axis name in any case.
+
+    Returns:
+        str: "y" or "z", or an empty string when unknown.
+    """
+    up_axis = str(up_axis or "").strip().lower()
+    return up_axis if up_axis in ("y", "z") else ""
+
+
+def parse_maya_current_unit(data):
+    """Parses the first currentUnit command of Maya ASCII data.
+
+    Args:
+        data (bytes): Maya ASCII bytes.
+
+    Returns:
+        dict: SCENE_INFO_FPS and SCENE_INFO_LINEAR_UNIT when found.
+    """
+    match = MAYA_CURRENT_UNIT_PATTERN.search(data or b"")
+    if not match:
+        return {}
+    file_info = {}
+    for flag_match in MAYA_FLAG_PATTERN.finditer(match.group(1)):
+        flag = flag_match.group("flag").decode("ascii", "ignore")
+        value = flag_match.group("value").decode("ascii", "ignore")
+        if flag in ("t", "time") and get_fps_from_time_unit(value):
+            file_info[SCENE_INFO_FPS] = get_fps_from_time_unit(value)
+        elif flag in ("l", "linear") and normalize_linear_unit(value):
+            file_info[SCENE_INFO_LINEAR_UNIT] = normalize_linear_unit(value)
+    return file_info
+
+
+def parse_maya_binary_units(data):
+    """Parses the time and linear unit tags of Maya binary data.
+
+    Args:
+        data (bytes): Maya binary header bytes.
+
+    Returns:
+        dict: SCENE_INFO_FPS and SCENE_INFO_LINEAR_UNIT when found.
+    """
+    file_info = {}
+    time_match = MAYA_BINARY_TIME_PATTERN.search(data or b"")
+    if time_match:
+        fps = get_fps_from_time_unit(time_match.group("value").decode("ascii", "ignore"))
+        if fps:
+            file_info[SCENE_INFO_FPS] = fps
+    linear_match = MAYA_BINARY_LINEAR_PATTERN.search(data or b"")
+    if linear_match:
+        linear_unit = normalize_linear_unit(linear_match.group("value").decode("ascii", "ignore"))
+        if linear_unit:
+            file_info[SCENE_INFO_LINEAR_UNIT] = linear_unit
+    return file_info
+
+
+def read_scene_file_info(file_path):
+    """Reads frame rate, linear unit, up axis and playback range from a .ma or .mb file without opening it.
+
+    Args:
+        file_path (str): Maya scene path.
+
+    Returns:
+        dict: Known SCENE_INFO_* values. Empty when the file cannot be read.
+    """
+    import gt.core.timeline as core_timeline
+
+    try:
+        file_size = os.path.getsize(file_path)
+        with open(file_path, "rb") as scene_file:
+            head_bytes = scene_file.read(SCENE_FILE_HEAD_SIZE)
+            tail_bytes = b""
+            if file_size > SCENE_FILE_HEAD_SIZE:
+                scene_file.seek(max(SCENE_FILE_HEAD_SIZE, file_size - SCENE_FILE_TAIL_SIZE))
+                tail_bytes = scene_file.read()
+    except (IOError, OSError) as exception:
+        logger.debug(f'Unable to read "{file_path}". Issue: {exception}')
+        return {}
+    if file_path.lower().endswith(".mb"):
+        file_info = parse_maya_binary_units(head_bytes)
+    else:
+        file_info = parse_maya_current_unit(head_bytes)
+    scanned_bytes = head_bytes + tail_bytes
+    file_info[SCENE_INFO_UP_AXIS] = "z" if any(pattern in scanned_bytes for pattern in MAYA_Z_UP_PATTERNS) else "y"
+    playback_range = core_timeline.read_stored_playback_range(file_path)
+    if playback_range:
+        file_info[SCENE_INFO_TIME_RANGE] = playback_range
+    return file_info
+
+
+def load_file_into_scene(
+    file_path, file_type=None, namespace="", reference=False, execute_script_nodes=True, extra_kwargs=None
+):
+    """Imports or references a file with Maya's file command and reports what it created.
+
+    Note: Maya's file import flushes the undo queue, so it cannot be undone.
+
+    Args:
+        file_path (str): File to load.
+        file_type (str, optional): Maya translator name, e.g. "FBX". Maya detects it when omitted.
+        namespace (str, optional): Namespace for new nodes.
+        reference (bool, optional): Reference instead of import.
+        execute_script_nodes (bool, optional): Allow script nodes stored in the file to run (imports only).
+        extra_kwargs (dict, optional): Extra flags passed to cmds.file.
+
+    Returns:
+        tuple: (new_nodes, reference_node). new_nodes are long names; reference_node is empty for imports.
+    """
+    import gt.core.uuid as core_uuid
+
+    node_ids_before = core_uuid.capture_scene_uuids()
+    references_before = set(cmds.ls(type="reference") or [])
+    file_kwargs = {"ignoreVersion": True, "returnNewNodes": True}
+    if reference:
+        file_kwargs.update({"reference": True, "mergeNamespacesOnClash": False})
+    else:
+        file_kwargs.update({"i": True, "executeScriptNodes": bool(execute_script_nodes)})
+    if file_type:
+        file_kwargs["type"] = file_type
+    if namespace:
+        file_kwargs["namespace"] = namespace
+    file_kwargs.update(extra_kwargs or {})
+    returned_nodes = cmds.file(file_path, **file_kwargs) or []
+    new_nodes = core_uuid.get_nodes_created_since(node_ids_before)
+    for node in cmds.ls(returned_nodes, long=True) or []:
+        if node not in new_nodes:
+            new_nodes.append(node)
+    reference_node = ""
+    if reference:
+        for candidate_node in sorted(set(cmds.ls(type="reference") or []) - references_before):
+            if candidate_node.endswith("sharedReferenceNode"):
+                continue
+            try:
+                cmds.referenceQuery(candidate_node, filename=True)
+            except RuntimeError:
+                continue
+            reference_node = candidate_node
+            break
+    return new_nodes, reference_node
+
+
+def create_new_scene(prompt_save=True):
+    """Starts a new scene, offering to save unsaved changes first.
+
+    Untitled scenes open a "Save Scene As" dialog when the user chooses Save.
+
+    Args:
+        prompt_save (bool, optional): Ask about unsaved changes. When False, changes are discarded.
+
+    Returns:
+        bool: True when a new scene was created, False when the user cancelled.
+    """
+    if prompt_save and cmds.file(query=True, modified=True):
+        user_choice = cmds.confirmDialog(
+            title="Unsaved Changes",
+            message="The current scene has unsaved changes. Save them before starting a new scene?",
+            button=["Save", "Don't Save", "Cancel"],
+            defaultButton="Save",
+            cancelButton="Cancel",
+            dismissString="Cancel",
+            icon="warning",
+        )
+        if user_choice == "Cancel":
+            return False
+        if user_choice == "Save" and not save_current_scene():
+            return False
+    cmds.file(new=True, force=True)
+    return True
+
+
+def save_current_scene():
+    """Saves the current scene, asking for a path when it has never been saved.
+
+    Returns:
+        bool: True when the scene was saved, False when the user cancelled the dialog.
+    """
+    scene_path = cmds.file(query=True, sceneName=True)
+    if scene_path:
+        cmds.file(save=True)
+        return True
+    picked_paths = cmds.fileDialog2(
+        caption="Save Scene As",
+        fileMode=0,
+        fileFilter="Maya ASCII (*.ma);;Maya Binary (*.mb)",
+        dialogStyle=2,
+    )
+    if not picked_paths:
+        return False
+    scene_path = picked_paths[0]
+    file_type = "mayaBinary" if scene_path.lower().endswith(".mb") else "mayaAscii"
+    cmds.file(rename=scene_path)
+    cmds.file(save=True, type=file_type)
+    return True
+
+
 if __name__ == "__main__":
     from pprint import pprint
 
