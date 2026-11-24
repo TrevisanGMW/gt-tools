@@ -334,11 +334,17 @@ def _is_keyframe_node_within_scope(keyframe_node, obj_list):
     Returns:
         bool: True when the curve has destinations and all are scoped.
     """
+    if not obj_list:
+        return False
     destination_plugs = _get_keyframe_destination_plugs(keyframe_node)
     if not destination_plugs:
         return False
-    scoped_destination_plugs = _get_keyframe_destination_plugs(keyframe_node, obj_list=obj_list)
-    return set(destination_plugs) == set(scoped_destination_plugs)
+    # Resolve the scope and destinations in batches, without traversing the same
+    # downstream graph twice or querying every scoped object for every plug.
+    scoped_nodes = set(cmds.ls(obj_list, long=True) or [])
+    destination_nodes = {plug.split(".", 1)[0] for plug in destination_plugs}
+    resolved_destinations = set(cmds.ls(list(destination_nodes), long=True) or [])
+    return bool(resolved_destinations) and resolved_destinations.issubset(scoped_nodes)
 
 
 def _get_keyframe_cut_plugs(keyframe_node, obj_list=None):
@@ -372,35 +378,49 @@ def _get_keyframe_cut_plugs(keyframe_node, obj_list=None):
     return _get_keyframe_destination_plugs(keyframe_node, obj_list=obj_list)
 
 
-def _cut_time_keys(keyframe_node, key_times, obj_list=None):
-    """Removes specific time keys from an animation curve's targets.
+def _cut_time_keys(keyframe_node, key_times, obj_list=None, use_connected_attributes=True):
+    """Removes requested time keys in contiguous batches.
 
     Args:
-        keyframe_node (str): Animation curve node whose keys are being removed.
-        key_times (list): Time values to remove from the curve.
-        obj_list (list, optional): Explicit object scope. Keys are removed through
-            connected destination plugs owned by these objects. If None, all connected
-            destination plugs are used.
+        keyframe_node (str): Source animation curve.
+        key_times (list): Exact key times to remove; gaps are preserved.
+        obj_list (list, optional): Allowed destination objects. Shared curves
+            affecting objects outside this scope are always skipped.
+        use_connected_attributes (bool, optional): Edit connected attributes
+            for control rigs and animation blends. False edits curves directly.
 
     Returns:
-        int: Number of curve key times removed.
+        int: Number of source key times removed.
     """
-    unique_key_times = sorted(set(key_times))
-    if not unique_key_times:
+    requested_times = set(key_times)
+    if not requested_times:
         return 0
-
     if obj_list is not None and not _is_keyframe_node_within_scope(keyframe_node, obj_list):
         return 0
-    destination_plugs = _get_keyframe_cut_plugs(keyframe_node, obj_list=obj_list)
-    for destination_plug in destination_plugs:
-        for key_time in unique_key_times:
-            cmds.cutKey(
-                destination_plug,
-                time=(key_time, key_time),
-                clear=True,
-                animation="objects",
-            )
-    return len(unique_key_times) if destination_plugs else 0
+    targets = (
+        _get_keyframe_cut_plugs(keyframe_node)
+        if use_connected_attributes else [keyframe_node]
+    )
+    # Group adjacent source keys instead of issuing one Maya edit per key.
+    # Use source adjacency rather than frame spacing to preserve unrequested keys.
+    curve_times = cmds.keyframe(keyframe_node, query=True, timeChange=True) or []
+    time_ranges = []
+    range_start = None
+    range_end = None
+    for key_time in curve_times:
+        if key_time in requested_times:
+            if range_start is None:
+                range_start = key_time
+            range_end = key_time
+        elif range_start is not None:
+            time_ranges.append((range_start, range_end))
+            range_start = None
+    if range_start is not None:
+        time_ranges.append((range_start, range_end))
+    for target in targets:
+        for time_range in time_ranges:
+            cmds.cutKey(target, time=time_range, clear=True, animation="objects")
+    return len(requested_times.intersection(curve_times)) if targets else 0
 
 
 def get_keyframes(obj_list=None, key_scope=KeyframeScope.TIME):
@@ -555,7 +575,13 @@ def delete_keyframes(obj_list=None, key_scope=KeyframeScope.TIME):
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
 
-def delete_keyframes_in_range(obj_list=None, start=None, end=None, key_scope=KeyframeScope.TIME):
+def delete_keyframes_in_range(
+    obj_list=None,
+    start=None,
+    end=None,
+    key_scope=KeyframeScope.TIME,
+    use_connected_attributes=True,
+):
     """
     Removes keyframes that fall within a time range, leaving keyframes outside the range
     (and the animation curves themselves) intact. Keys are not shifted to close the gap.
@@ -571,6 +597,8 @@ def delete_keyframes_in_range(obj_list=None, start=None, end=None, key_scope=Key
         key_scope (str, optional): Which keyframes to affect. A "KeyframeScope" value:
             TIME, DOUBLE or BOTH. DOUBLE curves are excluded because this is a time
             range operation. Defaults to KeyframeScope.TIME.
+        use_connected_attributes (bool, optional): Cut through connected attributes
+            for control rigs and blends. False edits animation curves directly.
 
     Returns:
         int: number of keyframe (animation curve) nodes that had keys removed.
@@ -601,7 +629,10 @@ def delete_keyframes_in_range(obj_list=None, start=None, end=None, key_scope=Key
                 times_in_range = [
                     key_time for key_time in keyframe_times if range_start <= key_time <= range_end
                 ]
-                if _cut_time_keys(keyframe_node, times_in_range, obj_list=obj_list):
+                if _cut_time_keys(
+                    keyframe_node, times_in_range, obj_list=obj_list,
+                    use_connected_attributes=use_connected_attributes,
+                ):
                     affected_counter += 1
             except Exception as e:
                 logger.debug(str(e))
@@ -622,7 +653,12 @@ def delete_keyframes_in_range(obj_list=None, start=None, end=None, key_scope=Key
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
 
-def delete_keyframes_before_current_frame(obj_list=None, include_current=False, key_scope=KeyframeScope.TIME):
+def delete_keyframes_before_current_frame(
+    obj_list=None,
+    include_current=False,
+    key_scope=KeyframeScope.TIME,
+    use_connected_attributes=True,
+):
     """
     Removes keyframes located before the current frame.
 
@@ -633,6 +669,8 @@ def delete_keyframes_before_current_frame(obj_list=None, include_current=False, 
             removed. Defaults to False.
         key_scope (str, optional): Which keyframes to affect. A "KeyframeScope" value:
             TIME, DOUBLE or BOTH. Defaults to KeyframeScope.TIME.
+        use_connected_attributes (bool, optional): Cut through connected attributes
+            for control rigs and blends. False edits animation curves directly.
 
     Returns:
         int: number of keyframe (animation curve) nodes that had keys removed.
@@ -640,10 +678,13 @@ def delete_keyframes_before_current_frame(obj_list=None, include_current=False, 
     current_frame = cmds.currentTime(query=True)
     epsilon = 0.0001
     end = current_frame if include_current else current_frame - epsilon
-    return delete_keyframes_in_range(obj_list=obj_list, start=None, end=end, key_scope=key_scope)
+    return delete_keyframes_in_range(
+        obj_list=obj_list, start=None, end=end, key_scope=key_scope,
+        use_connected_attributes=use_connected_attributes,
+    )
 
 
-def delete_keyframes_at_current_frame(obj_list=None, key_scope=KeyframeScope.TIME):
+def delete_keyframes_at_current_frame(obj_list=None, key_scope=KeyframeScope.TIME, use_connected_attributes=True):
     """Removes keyframes on the current frame, leaving the animation curves intact.
 
     Args:
@@ -652,6 +693,8 @@ def delete_keyframes_at_current_frame(obj_list=None, key_scope=KeyframeScope.TIM
         key_scope (str, optional): Which keyframes to affect. A "KeyframeScope" value:
             TIME, DOUBLE or BOTH. DOUBLE curves are excluded because they are driven
             by values rather than scene time. Defaults to KeyframeScope.TIME.
+        use_connected_attributes (bool, optional): Cut through connected attributes
+            for control rigs and blends. False edits animation curves directly.
 
     Returns:
         int: Number of time keys deleted.
@@ -686,6 +729,7 @@ def delete_keyframes_at_current_frame(obj_list=None, key_scope=KeyframeScope.TIM
                     keyframe_node,
                     matching_times,
                     obj_list=obj_list,
+                    use_connected_attributes=use_connected_attributes,
                 )
             except Exception as exception:
                 logger.debug(str(exception))
@@ -706,7 +750,12 @@ def delete_keyframes_at_current_frame(obj_list=None, key_scope=KeyframeScope.TIM
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
 
-def delete_keyframes_after_current_frame(obj_list=None, include_current=False, key_scope=KeyframeScope.TIME):
+def delete_keyframes_after_current_frame(
+    obj_list=None,
+    include_current=False,
+    key_scope=KeyframeScope.TIME,
+    use_connected_attributes=True,
+):
     """
     Removes keyframes located after the current frame.
 
@@ -717,6 +766,8 @@ def delete_keyframes_after_current_frame(obj_list=None, include_current=False, k
             removed. Defaults to False.
         key_scope (str, optional): Which keyframes to affect. A "KeyframeScope" value:
             TIME, DOUBLE or BOTH. Defaults to KeyframeScope.TIME.
+        use_connected_attributes (bool, optional): Cut through connected attributes
+            for control rigs and blends. False edits animation curves directly.
 
     Returns:
         int: number of keyframe (animation curve) nodes that had keys removed.
@@ -724,10 +775,19 @@ def delete_keyframes_after_current_frame(obj_list=None, include_current=False, k
     current_frame = cmds.currentTime(query=True)
     epsilon = 0.0001
     start = current_frame if include_current else current_frame + epsilon
-    return delete_keyframes_in_range(obj_list=obj_list, start=start, end=None, key_scope=key_scope)
+    return delete_keyframes_in_range(
+        obj_list=obj_list, start=start, end=None, key_scope=key_scope,
+        use_connected_attributes=use_connected_attributes,
+    )
 
 
-def delete_time_keyframes_outside_range(start, end, obj_list=None, range_name="range"):
+def delete_time_keyframes_outside_range(
+    start,
+    end,
+    obj_list=None,
+    range_name="range",
+    use_connected_attributes=True,
+):
     """Removes time keyframes outside an inclusive frame range.
 
     The range bounds are preserved. This function finds the actual keyframe times on
@@ -742,6 +802,8 @@ def delete_time_keyframes_outside_range(start, end, obj_list=None, range_name="r
             the whole scene is considered.
         range_name (str, optional): User-facing name for the preserved range. Defaults
             to "range".
+        use_connected_attributes (bool, optional): Cut through connected attributes
+            for control rigs and blends. False edits animation curves directly.
 
     Returns:
         int: Number of time keyframes deleted.
@@ -774,6 +836,7 @@ def delete_time_keyframes_outside_range(start, end, obj_list=None, range_name="r
                     keyframe_node,
                     out_of_range_times,
                     obj_list=obj_list,
+                    use_connected_attributes=use_connected_attributes,
                 )
             except Exception as e:
                 logger.debug(str(e))
@@ -794,12 +857,14 @@ def delete_time_keyframes_outside_range(start, end, obj_list=None, range_name="r
         cmds.undoInfo(closeChunk=True, chunkName=function_name)
 
 
-def delete_time_keyframes_outside_animation_range(obj_list=None):
+def delete_time_keyframes_outside_animation_range(obj_list=None, use_connected_attributes=True):
     """Removes time keyframes outside Maya's animation timeline range.
 
     Args:
         obj_list (list, optional): Objects whose time keyframes are affected. If None,
             the whole scene is considered.
+        use_connected_attributes (bool, optional): Cut through connected attributes
+            for control rigs and blends. False edits animation curves directly.
 
     Returns:
         int: Number of time keyframes deleted.
@@ -810,16 +875,19 @@ def delete_time_keyframes_outside_animation_range(obj_list=None):
         start=start,
         end=end,
         obj_list=obj_list,
+        use_connected_attributes=use_connected_attributes,
         range_name="Timeline",
     )
 
 
-def delete_time_keyframes_outside_playback_range(obj_list=None):
+def delete_time_keyframes_outside_playback_range(obj_list=None, use_connected_attributes=True):
     """Removes time keyframes outside Maya's current playback range.
 
     Args:
         obj_list (list, optional): Objects whose time keyframes are affected. If None,
             the whole scene is considered.
+        use_connected_attributes (bool, optional): Cut through connected attributes
+            for control rigs and blends. False edits animation curves directly.
 
     Returns:
         int: Number of time keyframes deleted.
@@ -830,6 +898,7 @@ def delete_time_keyframes_outside_playback_range(obj_list=None):
         start=start,
         end=end,
         obj_list=obj_list,
+        use_connected_attributes=use_connected_attributes,
         range_name="Playback Range",
     )
 

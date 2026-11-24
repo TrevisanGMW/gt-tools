@@ -340,7 +340,7 @@ class OptionWindow(metaclass=qt_utils.MayaWindowMeta):
         self._main_layout.addSpacing(2)
         self._main_layout.addLayout(row_layout)
 
-    def add_combobox(self, label, items, default=None, tooltip=None, key=None):
+    def add_combobox(self, label, items, default=None, tooltip=None, key=None, trailing_control=None):
         """
         Adds a labeled combobox.
 
@@ -350,6 +350,7 @@ class OptionWindow(metaclass=qt_utils.MayaWindowMeta):
             default (str, optional): Item selected by default.
             tooltip (str, optional): Tooltip text.
             key (str, optional): Lookup key stored in ``controls``. Defaults to label.
+        trailing_control (QWidget, optional): Control placed after the combobox.
 
         Returns:
             QComboBox: The created combobox.
@@ -362,7 +363,7 @@ class OptionWindow(metaclass=qt_utils.MayaWindowMeta):
             combo.setCurrentText(str(default))
         if tooltip:
             combo.setToolTip(tooltip)
-        self._build_field_row(label, combo)
+        self._build_field_row(label, combo, trailing_control=trailing_control)
         self.controls[key or label] = combo
         return combo
 

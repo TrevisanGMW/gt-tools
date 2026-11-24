@@ -99,11 +99,23 @@ def open_delete_keyframes_options():
         default=SCOPE_ALL,
         tooltip="Affect only selected objects or every object in the scene.",
     )
+    connected_attributes_checkbox = window.add_checkbox(
+        "Use Connections",
+        checked=True,
+        tooltip=(
+            "Use connected attributes for control rigs\n"
+            "and animation blends.\n\n"
+            "Turn off to edit animation curves directly.\n"
+            "Applies only to time-range deletion.\n"
+            "Shared-curve scope checks always apply."
+        ),
+    )
     key_type_combo = window.add_combobox(
         "Keyframe Type",
         [KEY_TYPE_TIME, KEY_TYPE_DOUBLE, KEY_TYPE_BOTH],
         default=KEY_TYPE_TIME,
         tooltip="Time keyframes are standard animation. Double keyframes are Set Driven Keys.",
+        trailing_control=connected_attributes_checkbox,
     )
 
     def _run_scoped_action(action):
@@ -141,6 +153,7 @@ def open_delete_keyframes_options():
             obj_list (list or None): Object names to affect, or None for the entire scene.
         """
         core_anim.delete_keyframes_before_current_frame(
+            use_connected_attributes=connected_attributes_checkbox.isChecked(),
             obj_list=obj_list,
             key_scope=_resolve_key_scope(key_type_combo),
         )
@@ -152,6 +165,7 @@ def open_delete_keyframes_options():
             obj_list (list or None): Object names to affect, or None for the entire scene.
         """
         core_anim.delete_keyframes_at_current_frame(
+            use_connected_attributes=connected_attributes_checkbox.isChecked(),
             obj_list=obj_list,
             key_scope=_resolve_key_scope(key_type_combo),
         )
@@ -163,6 +177,7 @@ def open_delete_keyframes_options():
             obj_list (list or None): Object names to affect, or None for the entire scene.
         """
         core_anim.delete_keyframes_after_current_frame(
+            use_connected_attributes=connected_attributes_checkbox.isChecked(),
             obj_list=obj_list,
             key_scope=_resolve_key_scope(key_type_combo),
         )
@@ -174,6 +189,7 @@ def open_delete_keyframes_options():
             obj_list (list or None): Object names to affect, or None for the entire scene.
         """
         core_anim.delete_time_keyframes_outside_animation_range(
+            use_connected_attributes=connected_attributes_checkbox.isChecked(),
             obj_list=obj_list,
         )
 
@@ -184,6 +200,7 @@ def open_delete_keyframes_options():
             obj_list (list or None): Object names to affect, or None for the entire scene.
         """
         core_anim.delete_time_keyframes_outside_playback_range(
+            use_connected_attributes=connected_attributes_checkbox.isChecked(),
             obj_list=obj_list,
         )
 
