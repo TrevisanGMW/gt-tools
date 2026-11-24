@@ -234,6 +234,69 @@ class TestBatchProcessorUi(unittest.TestCase):
         tree.setCurrentItem(self.view.project_item)
         self.assertIsInstance(self.view.get_task_widget(), attr_widget_project.AttrWidgetProject)
 
+    def test_project_context_menus_append_with_a_task_selected(self):
+        """Blank space and the project row show task actions but only enable Paste and Import."""
+        controller = batch_processor_controller.BatchProcessorController.__new__(
+            batch_processor_controller.BatchProcessorController
+        )
+        controller.model = self.model
+        controller.view = self.view
+        controller.log_status = mock.Mock()
+        trailing_task = self.model.add_task_by_type(batch_processor_constants.TaskType.RENAME)
+        self.view.refresh_tree(self.model)
+        self.view.show()
+        self.application.processEvents()
+
+        tree = self.view.task_tree
+        empty_position = ui_qt.QtCore.QPoint(10, tree.viewport().height() - 5)
+        project_position = tree.visualItemRect(self.view.project_item).center()
+        self.assertIsNone(tree.itemAt(empty_position))
+        task_payload = json.dumps(trailing_task.to_dict())
+        clipboard = mock.Mock()
+        clipboard.text.return_value = task_payload
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            task_path = os.path.join(temp_dir, "task.json")
+            with open(task_path, "w", encoding="utf-8") as task_file:
+                task_file.write(task_payload)
+
+            menu_requests = (
+                ("Paste", empty_position),
+                ("Import", empty_position),
+                ("Import", project_position),
+            )
+            for action_name, position in menu_requests:
+                with self.subTest(action=action_name, position=position):
+                    self.view.select_task_by_id(self.task.id)
+                    self.assertEqual(self.task.id, self.view.get_selected_task_id())
+                    original_task_ids = [task.id for task in self.model.tasks]
+                    menu = ui_qt.QtWidgets.QMenu()
+                    exec_name = "exec_" if hasattr(menu, "exec_") else "exec"
+                    menu_patch = mock.patch.object(ui_qt.QtWidgets, "QMenu", return_value=menu)
+                    with mock.patch.object(menu, exec_name) as exec_menu, menu_patch:
+                        controller.show_task_tree_context_menu(position)
+                    exec_menu.assert_called_once_with(tree.viewport().mapToGlobal(position))
+
+                    actions = {action.text(): action for action in menu.actions() if not action.isSeparator()}
+                    enabled_actions = [label for label, action in actions.items() if action.isEnabled()]
+                    self.assertEqual(["Duplicate", "Copy", "Paste", "Export", "Import", "Delete"], list(actions))
+                    self.assertEqual(["Paste", "Import"], enabled_actions)
+                    clipboard_patch = mock.patch.object(
+                        ui_qt.QtWidgets.QApplication, "clipboard", return_value=clipboard
+                    )
+                    dialog_patch = mock.patch.object(
+                        batch_processor_controller.ui_file_dialog, "file_dialog", return_value=task_path
+                    )
+                    with clipboard_patch, dialog_patch:
+                        actions[action_name].trigger()
+
+                    inserted_task_id = self.view.get_selected_task_id()
+                    self.assertNotIn(inserted_task_id, original_task_ids)
+                    self.assertEqual(
+                        original_task_ids + [inserted_task_id],
+                        [task.id for task in self.model.tasks],
+                    )
+
     def test_refresh_tree_blocks_intermediate_selection_signals(self):
         """Ensures a tree rebuild does not emit transient selection changes."""
         selection_changed = mock.MagicMock()

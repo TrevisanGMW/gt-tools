@@ -1756,9 +1756,7 @@ class BatchProcessorController:
             position (QPoint): Tree viewport position for the context-menu request.
         """
         item = self.view.task_tree.itemAt(position)
-        if item is None:
-            return
-        item_data = item.data(0, self.view.DATA_ROLE)
+        item_data = item.data(0, self.view.DATA_ROLE) if item is not None else "project"
         source_task = None
         if item_data != "project":
             source_task = self.model.get_task(item_data)
@@ -1775,8 +1773,9 @@ class BatchProcessorController:
         action_copy.triggered.connect(partial(self.context_menu_copy_task, source_task))
         self.view.add_menu_action(parent_menu=menu, action=action_copy)
 
+        append = source_task is None
         action_paste = self.create_action("Paste", icon_path=ui_res_lib.Icon.rigger_action_paste_grayscale)
-        action_paste.triggered.connect(self.context_menu_paste_task)
+        action_paste.triggered.connect(partial(self.context_menu_paste_task, append))
         self.view.add_menu_action(parent_menu=menu, action=action_paste)
 
         action_export = self.create_action("Export", icon_path=ui_res_lib.Icon.rigger_action_export_grayscale)
@@ -1784,7 +1783,7 @@ class BatchProcessorController:
         self.view.add_menu_action(parent_menu=menu, action=action_export)
 
         action_import = self.create_action("Import", icon_path=ui_res_lib.Icon.rigger_action_import_grayscale)
-        action_import.triggered.connect(self.context_menu_import_task)
+        action_import.triggered.connect(partial(self.context_menu_import_task, append))
         self.view.add_menu_action(parent_menu=menu, action=action_import)
 
         menu.addSeparator()
@@ -1793,7 +1792,7 @@ class BatchProcessorController:
         action_delete.triggered.connect(partial(self.context_menu_delete_task, source_task))
         self.view.add_menu_action(parent_menu=menu, action=action_delete)
 
-        if not source_task:
+        if source_task is None:
             action_duplicate.setEnabled(False)
             action_copy.setEnabled(False)
             action_export.setEnabled(False)
@@ -1839,12 +1838,16 @@ class BatchProcessorController:
         except Exception as exception:
             self.log_status("Unable to copy task to clipboard: {0}".format(exception), status="warning")
 
-    def context_menu_paste_task(self):
-        """Pastes a task JSON payload from the clipboard."""
+    def context_menu_paste_task(self, append=False):
+        """Pastes a task JSON payload from the clipboard.
+
+        Args:
+            append (bool, optional): Whether to append the task at the end of the project.
+        """
         try:
             clipboard_content = ui_qt.QtWidgets.QApplication.clipboard().text()
             task_data = json.loads(clipboard_content)
-            inserted_task = self.insert_task_from_data(task_data)
+            inserted_task = self.insert_task_from_data(task_data, append=append)
             self.refresh_widgets()
             self.view.select_task_by_id(inserted_task.id)
             self.log_status('Pasted task: "{0}".'.format(inserted_task.display_name))
@@ -1878,8 +1881,12 @@ class BatchProcessorController:
             json.dump(source_task.to_dict(), task_file, indent=4, sort_keys=True)
         self.log_status('Exported task "{0}" to: {1}'.format(source_task.display_name, file_path))
 
-    def context_menu_import_task(self):
-        """Imports a task JSON payload from disk."""
+    def context_menu_import_task(self, append=False):
+        """Imports a task JSON payload from disk.
+
+        Args:
+            append (bool, optional): Whether to append the task at the end of the project.
+        """
         file_path = ui_file_dialog.file_dialog(
             parent=self.view,
             caption="Import Batch Task",
@@ -1894,7 +1901,7 @@ class BatchProcessorController:
         try:
             with open(file_path, "r", encoding="utf-8") as task_file:
                 task_data = json.load(task_file)
-            inserted_task = self.insert_task_from_data(task_data)
+            inserted_task = self.insert_task_from_data(task_data, append=append)
             self.refresh_widgets()
             self.view.select_task_by_id(inserted_task.id)
             self.log_status('Imported task "{0}" from: {1}'.format(inserted_task.display_name, file_path))
@@ -1928,16 +1935,17 @@ class BatchProcessorController:
         self.refresh_widgets()
         self.log_status('Deleted task: "{0}".'.format(source_task.display_name))
 
-    def insert_task_from_data(self, task_data):
+    def insert_task_from_data(self, task_data, append=False):
         """Inserts a task from serialized data after the selected task when possible.
 
         Args:
             task_data (dict): Serialized task data.
+            append (bool, optional): Whether to append the task at the end of the project.
 
         Returns:
             BatchTask: Inserted task.
         """
-        insert_index = self.get_selected_task_insert_index()
+        insert_index = None if append else self.get_selected_task_insert_index()
         return self.model.add_task_from_dict(data=task_data, index=insert_index, reinitialize_id=True)
 
     def get_selected_task_insert_index(self):
