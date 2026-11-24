@@ -5,8 +5,7 @@ Connects the view and the model, and runs the import loop. Files are imported on
 Maya's main thread; Qt events are processed between files so the progress bar updates and the
 Cancel button works (a cancel takes effect after the current file).
 
-Every change is saved to the preferences shortly after it happens (debounced), so nothing depends
-on the window close event.
+Edits to settings and the file list are written to preferences as they happen.
 """
 
 from gt.tools.multi_file_importer import multi_file_importer_constants as constants
@@ -127,9 +126,6 @@ class MultiFileImporterController:
     def write_changes(self, **change_flags):
         """Writes the changed values to the tool preferences immediately.
 
-        Only the given keys are written (on top of what is on disk), so nothing is kept pending in
-        memory and no other window can overwrite them with older values.
-
         Args:
             **change_flags: Arguments for MultiFileImporterModel.write_changes.
         """
@@ -152,7 +148,6 @@ class MultiFileImporterController:
             expanded (bool): Expanded state.
         """
         self.model.set_section_state(section_key, expanded)
-        self.write_changes(section_keys=[section_key])
 
     def on_format_selected(self):
         """Shows the selected format and remembers it."""
@@ -186,8 +181,11 @@ class MultiFileImporterController:
 
     def reset_settings(self):
         """Restores every setting to its default. The file list is kept."""
-        self.model.reset_preferences()
+        saved = self.model.reset_preferences()
         self.sync_view_from_model()
+        if not saved:
+            self.view.set_status("Unable to save reset settings (see Script Editor).", StatusLine.WARNING)
+            return
         self.view.set_status("Settings reset to defaults.")
         print(f"{constants.TOOL_NAME}: settings reset to defaults.")
 
@@ -205,8 +203,8 @@ class MultiFileImporterController:
             self.view.set_status(f"Unable to export settings: {exception}", StatusLine.ERROR)
             return
         self.model.last_directory = os.path.dirname(file_path)
-        self.write_changes(last_directory=True)
         self.view.set_status(f"Settings exported: {os.path.basename(file_path)}", StatusLine.SUCCESS)
+        self.write_changes(last_directory=True)
 
     def import_settings(self):
         """Loads settings and format options from a JSON file."""
@@ -222,7 +220,9 @@ class MultiFileImporterController:
             return
         self.model.last_directory = os.path.dirname(file_path)
         self.sync_view_from_model()
-        self.model.save_preferences()
+        if not self.model.save_preferences():
+            self.view.set_status("Settings imported, but could not be saved to preferences.", StatusLine.WARNING)
+            return
         files_text = f" Added {added_count} file(s)." if added_count else ""
         self.view.set_status(f"Settings imported: {os.path.basename(file_path)}.{files_text}", StatusLine.SUCCESS)
 
@@ -248,9 +248,12 @@ class MultiFileImporterController:
 
     # ------------------------------------------------------------------ file list
     def refresh_entries(self):
-        """Shows the model entries in the list and saves them when the list is kept between sessions."""
+        """Shows the model entries in the file list."""
         self.view.set_entries(self.model.entries)
-        if self.model.settings.get("keep_file_list"):
+
+    def save_file_list(self):
+        """Writes changes to the file list when persistence is enabled."""
+        if self.model.settings["keep_file_list"]:
             self.write_changes(files=True)
 
     def get_start_directory(self):
@@ -278,9 +281,7 @@ class MultiFileImporterController:
             self.view, "Add Files", self.get_start_directory(), self.build_file_dialog_filter()
         )
         if file_paths:
-            self.model.last_directory = os.path.dirname(file_paths[0])
-            self.write_changes(last_directory=True)
-            self.add_paths(file_paths)
+            self.add_paths(file_paths, last_directory=os.path.dirname(file_paths[0]))
 
     def add_folder_from_dialog(self):
         """Adds every supported file of a folder picked in a dialog."""
@@ -288,21 +289,21 @@ class MultiFileImporterController:
             self.view, "Add Folder", self.get_start_directory()
         )
         if folder_path:
-            self.model.last_directory = folder_path
-            self.write_changes(last_directory=True)
-            self.add_paths([folder_path])
+            self.add_paths([folder_path], last_directory=folder_path)
 
-    def add_paths(self, paths):
+    def add_paths(self, paths, last_directory=None):
         """Adds files and folders to the list and reports the result.
 
         Args:
             paths (list): File and folder paths.
+            last_directory (str, optional): Directory picked in a file or folder dialog.
         """
         if self.is_running:
             return
+        if last_directory is not None:
+            self.model.last_directory = last_directory
         result = self.model.add_paths(paths)
         self.refresh_entries()
-        self.schedule_save()
         details = []
         if result["duplicates"]:
             details.append(f"{result['duplicates']} already listed")
@@ -311,6 +312,9 @@ class MultiFileImporterController:
         detail_text = f" ({', '.join(details)})" if details else ""
         status = StatusLine.INFO if result["added"] else StatusLine.WARNING
         self.view.set_status(f"Added {result['added']} file(s){detail_text}.", status)
+        save_files = bool(result["added"]) and self.model.settings["keep_file_list"]
+        if save_files or last_directory is not None:
+            self.write_changes(files=save_files, last_directory=last_directory is not None)
 
     def remove_selected(self):
         """Removes the selected files from the list."""
@@ -320,6 +324,7 @@ class MultiFileImporterController:
         self.refresh_entries()
         if removed_count:
             self.view.set_status(f"Removed {removed_count} file(s).")
+            self.save_file_list()
 
     def remove_unchecked(self):
         """Removes every unchecked file from the list."""
@@ -328,6 +333,8 @@ class MultiFileImporterController:
         removed_count = self.model.remove_unchecked()
         self.refresh_entries()
         self.view.set_status(f"Removed {removed_count} unchecked file(s).")
+        if removed_count:
+            self.save_file_list()
 
     def remove_missing(self):
         """Removes files that no longer exist on disk."""
@@ -336,6 +343,8 @@ class MultiFileImporterController:
         removed_count = self.model.remove_missing()
         self.refresh_entries()
         self.view.set_status(f"Removed {removed_count} missing file(s).")
+        if removed_count:
+            self.save_file_list()
 
     def clear_entries(self):
         """Removes every file from the list."""
@@ -344,6 +353,7 @@ class MultiFileImporterController:
         self.model.clear_entries()
         self.refresh_entries()
         self.view.set_status("File list cleared.")
+        self.save_file_list()
 
     def sort_entries(self, sort_mode):
         """Sorts the list.
@@ -353,6 +363,7 @@ class MultiFileImporterController:
         """
         self.model.sort_entries(sort_mode)
         self.refresh_entries()
+        self.save_file_list()
 
     def set_checks(self, entry_ids, checked):
         """Checks or unchecks entries.
@@ -363,16 +374,19 @@ class MultiFileImporterController:
         """
         self.model.set_entries_enabled(entry_ids, checked)
         self.refresh_entries_keep_selection()
+        self.save_file_list()
 
     def solo_selected(self):
         """Checks only the selected files."""
         self.model.solo_entries(self.view.get_selected_entry_ids())
         self.refresh_entries_keep_selection()
+        self.save_file_list()
 
     def invert_checks(self):
         """Inverts every checkbox."""
         self.model.invert_checks()
         self.refresh_entries_keep_selection()
+        self.save_file_list()
 
     def toggle_selected(self):
         """Toggles the checkboxes of the selected rows (Space key)."""
@@ -448,8 +462,7 @@ class MultiFileImporterController:
         """
         self.model.set_entry_enabled(self.view.get_item_entry_id(item), self.view.is_item_checked(item))
         self.view.update_counts(self.model.entries)
-        if self.model.settings.get("keep_file_list"):
-            self.schedule_save()
+        self.save_file_list()
 
     # ------------------------------------------------------------------ import
     def build_jobs(self, entries):
@@ -641,6 +654,5 @@ class MultiFileImporterController:
         return ui_qt_utils.is_qt_object_valid(self.view)
 
     def on_close(self):
-        """Cancels a running import and writes any pending (not yet saved) changes when the window closes."""
+        """Requests cancellation if the window closes during an import."""
         self.request_cancel()
-        self.flush_pending_save()

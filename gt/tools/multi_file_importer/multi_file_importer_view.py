@@ -585,13 +585,6 @@ class MultiFileImporterView(metaclass=ui_qt_utils.MayaWindowMeta):
         )
         layout.addWidget(
             self.create_checkbox(
-                "remember_section_states",
-                "Remember expanded sections",
-                "Open the tool with the same sections expanded as last time. Off: every section starts collapsed.",
-            )
-        )
-        layout.addWidget(
-            self.create_checkbox(
                 "include_files_in_export",
                 "Include file list in exported settings",
                 "Export Settings also saves the file list; Import Settings adds those files to the list.",
@@ -1351,9 +1344,6 @@ class MultiFileImporterView(metaclass=ui_qt_utils.MayaWindowMeta):
     # ------------------------------------------------------------------ close
     def set_close_callback(self, callback):
         """Sets a function called when the window closes.
-
-        Stored as "close_func", the name MayaWindowMeta clears on windows it replaces, so a window that is
-        being replaced by a newer instance does not run (and save) its old state.
 
         Args:
             callback (callable): Function called without arguments.

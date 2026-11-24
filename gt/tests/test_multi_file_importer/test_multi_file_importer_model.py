@@ -91,7 +91,7 @@ class TestMultiFileImporterModel(unittest.TestCase):
         reloaded_model = model.MultiFileImporterModel(prefs=self.prefs)
         self.assertEqual(constants.OFFSET_GRID, reloaded_model.settings["offset_mode"])
         self.assertEqual(3.0, reloaded_model.get_format_settings("bvh")["scale"])
-        self.assertTrue(reloaded_model.section_states[constants.SECTION_REVIEW])
+        self.assertFalse(reloaded_model.section_states[constants.SECTION_REVIEW])
         reloaded_model.reset_preferences()
         self.assertEqual(constants.DEFAULT_SETTINGS, reloaded_model.settings)
 
@@ -104,22 +104,73 @@ class TestMultiFileImporterModel(unittest.TestCase):
         for key, value in changed_settings.items():
             self.assertEqual(value, reloaded_model.settings[key], key)
 
-    def test_file_list_persistence_is_optional(self):
-        self.model.add_paths([self.temp_dir])
-        self.model.save_preferences()
-        self.assertEqual([], model.MultiFileImporterModel(prefs=self.prefs).entries)
-        self.model.update_settings({"keep_file_list": True})
-        self.model.set_entry_enabled(self.model.entries[0].entry_id, False)
-        self.model.save_preferences()
-        reloaded_model = model.MultiFileImporterModel(prefs=self.prefs)
-        self.assertEqual([("a.fbx", False), ("b.ma", True)],
-                         [(entry.name, entry.enabled) for entry in reloaded_model.entries])
+    def test_immediate_writes_with_fresh_prefs(self):
+        """Reads each saved edit from disk while the original model is still alive."""
+        try:
+            from gt.core.prefs import Prefs
+        except ModuleNotFoundError as exception:
+            if exception.name != "maya":
+                raise
+            self.skipTest("GT Prefs requires Maya's Python modules.")
 
-    def test_sections_start_collapsed_unless_remembered(self):
-        self.model.set_section_state(constants.SECTION_PLACEMENT, True)
-        self.assertFalse(any(self.model.get_startup_section_states().values()))
-        self.model.update_settings({"remember_section_states": True})
-        self.assertTrue(self.model.get_startup_section_states()[constants.SECTION_PLACEMENT])
+        prefs = Prefs(constants.PREFS_FILENAME, location_dir=self.temp_dir)
+        prefs.set_raw_preferences({
+            constants.PREFS_KEY_SETTINGS: {"keep_file_list": False, "remember_section_states": True},
+            constants.PREFS_KEY_SECTIONS: {constants.SECTION_PLACEMENT: True},
+        })
+        self.assertTrue(prefs.save())
+        importer = model.MultiFileImporterModel(prefs=prefs)
+        self.assertEqual(constants.DEFAULT_SECTION_STATES, importer.get_startup_section_states())
+        stale_prefs = Prefs(constants.PREFS_FILENAME, location_dir=self.temp_dir)
+        stale_importer = model.MultiFileImporterModel(prefs=stale_prefs)
+
+        keys = importer.update_settings({"frame_rate_custom": "29.97", "post_script": "print('ready')"})
+        self.assertTrue(importer.write_changes(setting_keys=keys))
+        self.assertEqual([], importer.update_settings({"frame_rate_custom": ""}))
+        importer.add_paths([self.temp_dir])
+        importer.sort_entries(constants.SORT_REVERSE)
+        importer.set_entry_enabled(importer.entries[0].entry_id, False)
+        self.assertTrue(importer.write_changes(files=True))
+        self.assertNotIn(constants.PREFS_KEY_FILES, importer.prefs.get_raw_preferences())
+        keys = importer.update_settings({"keep_file_list": True})
+        self.assertTrue(importer.write_changes(setting_keys=keys, files=True))
+        stale_importer.set_section_state(constants.SECTION_PLACEMENT, True)
+        stale_importer.set_format_settings("bvh", {"scale": 3.0})
+        stale_importer.selected_format = "bvh"
+        stale_importer.last_directory = self.temp_dir
+        self.assertTrue(stale_importer.write_changes(
+            format_keys=["bvh"], selected_format=True, last_directory=True,
+        ))
+
+        reloaded = model.MultiFileImporterModel(prefs=Prefs(constants.PREFS_FILENAME, location_dir=self.temp_dir))
+        self.assertEqual("29.97", reloaded.settings["frame_rate_custom"])
+        self.assertEqual("print('ready')", reloaded.settings["post_script"])
+        self.assertEqual([("b.ma", False), ("a.fbx", True)],
+                         [(entry.name, entry.enabled) for entry in reloaded.entries])
+        self.assertTrue(reloaded.settings["keep_file_list"])
+        self.assertEqual(constants.DEFAULT_SECTION_STATES, reloaded.get_startup_section_states())
+        self.assertNotIn(constants.PREFS_KEY_SECTIONS, reloaded.prefs.get_raw_preferences())
+        self.assertEqual(3.0, reloaded.get_format_settings("bvh")["scale"])
+        self.assertEqual("bvh", reloaded.selected_format)
+        self.assertEqual(self.temp_dir, reloaded.last_directory)
+
+        self.assertTrue(reloaded.reset_preferences())
+        reset = model.MultiFileImporterModel(prefs=Prefs(constants.PREFS_FILENAME, location_dir=self.temp_dir))
+        self.assertEqual(constants.DEFAULT_SETTINGS, reset.settings)
+        self.assertEqual(constants.DEFAULT_SECTION_STATES, reset.get_startup_section_states())
+        self.assertEqual({}, reset.format_settings)
+        self.assertEqual("bvh", reset.selected_format)
+        self.assertEqual(self.temp_dir, reset.last_directory)
+        self.assertEqual(2, len(reloaded.entries))
+        self.assertEqual([], reset.entries)
+
+    def test_restores_file_list_saved_without_toggle(self):
+        """Retains file lists saved while persistence was automatic."""
+        file_path = os.path.join(self.temp_dir, "b.ma")
+        self.prefs.get_raw_preferences()[constants.PREFS_KEY_FILES] = [{"path": file_path, "enabled": False}]
+        reloaded = model.MultiFileImporterModel(prefs=self.prefs)
+        self.assertTrue(reloaded.settings["keep_file_list"])
+        self.assertEqual([{"path": file_path, "enabled": False}], [entry.to_dict() for entry in reloaded.entries])
 
     def test_export_and_import_settings(self):
         self.model.add_paths([self.temp_dir])

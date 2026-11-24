@@ -323,6 +323,8 @@ class MultiFileImporterModel:
         merged_settings = dict(self.settings)
         merged_settings.update(settings or {})
         previous_settings = self.settings
+        if parse_frame_rate(merged_settings["frame_rate_custom"]) <= 0:
+            merged_settings["frame_rate_custom"] = previous_settings["frame_rate_custom"]
         self.settings = normalize_settings(merged_settings)
         return [key for key, value in self.settings.items() if previous_settings.get(key) != value]
 
@@ -372,10 +374,8 @@ class MultiFileImporterModel:
         """Gets the section states to show when the tool opens.
 
         Returns:
-            dict: Saved states when "remember_section_states" is on, otherwise the defaults (all collapsed).
+            dict: Collapsed states for every section.
         """
-        if self.settings.get("remember_section_states"):
-            return dict(self.section_states)
         return dict(constants.DEFAULT_SECTION_STATES)
 
     # ------------------------------------------------------------------ validation and names
@@ -500,17 +500,23 @@ class MultiFileImporterModel:
     def load_preferences(self):
         """Loads saved settings. Missing or invalid values keep their defaults."""
         data = self._get_raw_preferences()
-        self.settings = normalize_settings(data.get(constants.PREFS_KEY_SETTINGS))
+        stored_settings = data.get(constants.PREFS_KEY_SETTINGS)
+        stored_settings = stored_settings if isinstance(stored_settings, dict) else {}
+        stored_files = data.get(constants.PREFS_KEY_FILES)
+        self.settings = normalize_settings(stored_settings)
+        if "keep_file_list" not in stored_settings and isinstance(stored_files, list):
+            # Preserve lists saved during the version where file list persistence was automatic.
+            self.settings["keep_file_list"] = True
         self.format_settings = self._read_format_settings(data.get(constants.PREFS_KEY_FORMAT_SETTINGS))
-        self.section_states = self._read_section_states(data.get(constants.PREFS_KEY_SECTIONS))
+        self.section_states = self.get_startup_section_states()
         self.last_directory = str(data.get(constants.PREFS_KEY_LAST_DIRECTORY) or "")
         self.selected_format = str(data.get(constants.PREFS_KEY_SELECTED_FORMAT) or "")
         self.entries = []
-        if self.settings.get("keep_file_list"):
-            self._append_entries(read_file_items(data.get(constants.PREFS_KEY_FILES)))
+        if self.settings["keep_file_list"]:
+            self._append_entries(read_file_items(stored_files))
 
     def save_preferences(self):
-        """Saves every setting, format option, section state, the last folder and (optionally) the file list.
+        """Saves all tool settings, format options, the last folder and the optional file list.
 
         Returns:
             bool: True when the preferences were written.
@@ -521,33 +527,27 @@ class MultiFileImporterModel:
             raw_preferences = self.prefs.get_raw_preferences()
             raw_preferences[constants.PREFS_KEY_SETTINGS] = dict(self.settings)
             raw_preferences[constants.PREFS_KEY_FORMAT_SETTINGS] = dict(self.format_settings)
-            raw_preferences[constants.PREFS_KEY_SECTIONS] = dict(self.section_states)
+            raw_preferences.pop(constants.PREFS_KEY_SECTIONS, None)
             raw_preferences[constants.PREFS_KEY_LAST_DIRECTORY] = self.last_directory
             raw_preferences[constants.PREFS_KEY_SELECTED_FORMAT] = self.selected_format
-            if self.settings.get("keep_file_list"):
-                raw_preferences[constants.PREFS_KEY_FILES] = [entry.to_dict() for entry in self.entries]
-            else:
-                raw_preferences.pop(constants.PREFS_KEY_FILES, None)
-            self.prefs.save()
-            return True
+            self._store_file_list(raw_preferences)
+            return self.prefs.save() is not False
         except Exception as exception:
             logger.warning(f"Unable to save {constants.TOOL_NAME} preferences: {exception}")
             return False
 
-    def write_changes(self, setting_keys=None, format_keys=None, section_keys=None, last_directory=False,
-                      selected_format=False, files=False):
+    def write_changes(self, setting_keys=None, format_keys=None, last_directory=False, selected_format=False,
+                      files=False):
         """Writes only the given values to the preferences file, right away.
 
-        The file is re-read first and only the listed keys are replaced, so values written by any other
-        window (or Maya session) are never overwritten with stale data.
+        Reloads Prefs before applying the listed changes to preserve other saved values.
 
         Args:
             setting_keys (list, optional): Tool setting keys to write.
             format_keys (list, optional): Format keys whose settings should be written.
-            section_keys (list, optional): Section keys whose expanded state should be written.
             last_directory (bool, optional): Write the last used folder.
             selected_format (bool, optional): Write the format shown in Format Options.
-            files (bool, optional): Write the file list (or remove it when "keep_file_list" is off).
+            files (bool, optional): Update the stored file list according to the file list preference.
 
         Returns:
             bool: True when the preferences were written.
@@ -565,30 +565,39 @@ class MultiFileImporterModel:
             stored_formats = _get_stored_dict(raw_preferences, constants.PREFS_KEY_FORMAT_SETTINGS)
             for format_key in format_keys or []:
                 stored_formats[format_key] = self.get_format_settings(format_key)
-            stored_sections = _get_stored_dict(raw_preferences, constants.PREFS_KEY_SECTIONS)
-            for section_key in section_keys or []:
-                stored_sections[section_key] = bool(self.section_states.get(section_key))
+            raw_preferences.pop(constants.PREFS_KEY_SECTIONS, None)
             if last_directory:
                 raw_preferences[constants.PREFS_KEY_LAST_DIRECTORY] = self.last_directory
             if selected_format:
                 raw_preferences[constants.PREFS_KEY_SELECTED_FORMAT] = self.selected_format
             if files:
-                if self.settings.get("keep_file_list"):
-                    raw_preferences[constants.PREFS_KEY_FILES] = [entry.to_dict() for entry in self.entries]
-                else:
-                    raw_preferences.pop(constants.PREFS_KEY_FILES, None)
-            self.prefs.save()
-            return True
+                self._store_file_list(raw_preferences)
+            return self.prefs.save() is not False
         except Exception as exception:
             logger.warning(f"Unable to save {constants.TOOL_NAME} preferences: {exception}")
             return False
 
     def reset_preferences(self):
-        """Restores every setting to its default and saves it. The file list is kept."""
+        """Resets the settings and keeps the current file list in the open tool.
+
+        Returns:
+            bool: True when preferences were written.
+        """
         self.settings = dict(constants.DEFAULT_SETTINGS)
         self.format_settings = {}
         self.section_states = dict(constants.DEFAULT_SECTION_STATES)
-        self.save_preferences()
+        return self.save_preferences()
+
+    def _store_file_list(self, raw_preferences):
+        """Updates the stored file list according to the current persistence preference.
+
+        Args:
+            raw_preferences (dict): Stored preferences to update.
+        """
+        if self.settings["keep_file_list"]:
+            raw_preferences[constants.PREFS_KEY_FILES] = [entry.to_dict() for entry in self.entries]
+        else:
+            raw_preferences.pop(constants.PREFS_KEY_FILES, None)
 
     @staticmethod
     def _read_format_settings(data):
@@ -805,22 +814,22 @@ def list_folder_files(folder_path, recursive=False):
 
 
 def create_preferences():
-    """Creates the preferences object, falling back to memory outside Maya.
+    """Creates the tool's persistent preferences object.
 
     Returns:
-        Prefs or MemoryPrefs: Preferences object.
+        Prefs or None: Preferences object, or None if unavailable.
     """
     try:
         import gt.core.prefs as core_prefs
 
         return core_prefs.Prefs(constants.PREFS_FILENAME)
     except Exception as exception:
-        logger.debug(f"Using in-memory {constants.TOOL_NAME} preferences. Issue: {exception}")
-        return MemoryPrefs()
+        logger.warning(f"Unable to load {constants.TOOL_NAME} preferences: {exception}")
+        return None
 
 
 class MemoryPrefs:
-    """In-memory preferences used when Maya preferences are unavailable."""
+    """Preferences backend for callers that need in-memory storage."""
 
     def __init__(self):
         """Initializes the in-memory preferences."""

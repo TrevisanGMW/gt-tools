@@ -204,12 +204,15 @@ class Prefs:
     def save(self):
         """
         Saves all modified preferences to the JSON file.
+
+        Returns:
+            bool: True when the JSON file was written successfully.
         """
         _prefs_dir = os.path.dirname(self.file_name)
         if not os.path.isdir(_prefs_dir):
             os.makedirs(_prefs_dir)
             logger.debug(f'Missing Prefs directory created during "save" command: "{_prefs_dir}".')
-        write_json(path=self.file_name, data=self.preferences)
+        return write_json(path=self.file_name, data=self.preferences) is not None
 
     # ------------------------------------ Utilities ------------------------------------
     def get_dir_path(self):

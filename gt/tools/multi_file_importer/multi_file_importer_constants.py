@@ -161,7 +161,6 @@ DEFAULT_SETTINGS = {
     # Preferences
     "keep_file_list": False,
     "new_scene_on_import": False,
-    "remember_section_states": False,
     "include_files_in_export": False,
 }
 
