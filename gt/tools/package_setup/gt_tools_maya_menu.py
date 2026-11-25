@@ -294,7 +294,7 @@ def load_menu(*args):
     )
     menu.add_menu_item(
         label="Annotation Tracker",
-        command=IMPORT_TOOL + 'initialize_tool("anim_annotation_tracker")',
+        command=IMPORT_TOOL + 'initialize_tool("annotation_tracker")',
         tooltip="Opens annotation tracker.",
         icon=ui_res_lib.Icon.tool_annotation_tracker,
     )

@@ -9,8 +9,8 @@ ONLY_IF_UNSET = True  # Keep existing ratings (empty, "---", and 0 count as unse
 import json
 import sys
 import maya.cmds as cmds
-from gt.tools.anim_annotation_tracker import annotation_tracker_model
-from gt.tools.anim_annotation_tracker import annotation_tracker_scene
+from gt.tools.annotation_tracker import annotation_tracker_model
+from gt.tools.annotation_tracker import annotation_tracker_scene
 
 node_attribute = f"{annotation_tracker_model.SCENE_DATA_NODE_NAME}.{annotation_tracker_model.SCENE_DATA_ATTRIBUTE}"
 payload = {"file_data": {}, "range_data": []}

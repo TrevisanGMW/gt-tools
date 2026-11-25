@@ -5,9 +5,9 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
-from gt.tools.anim_annotation_tracker import annotation_tracker_view
-from gt.tools.anim_annotation_tracker import annotation_tracker_model
-from gt.tools.anim_annotation_tracker.annotation_tracker_view import AnnotationTrackerView
+from gt.tools.annotation_tracker import annotation_tracker_view
+from gt.tools.annotation_tracker import annotation_tracker_model
+from gt.tools.annotation_tracker.annotation_tracker_view import AnnotationTrackerView
 
 
 class TestAnnotationTrackerView(unittest.TestCase):
@@ -140,7 +140,7 @@ class TestAnnotationTrackerView(unittest.TestCase):
         )
 
         with patch(
-            "gt.tools.anim_annotation_tracker.annotation_tracker_view."
+            "gt.tools.annotation_tracker.annotation_tracker_view."
             "ui_python_output_view.PythonOutputView",
             return_value=output_window,
         ) as mock_output_view:
@@ -162,8 +162,7 @@ class TestAnnotationTrackerView(unittest.TestCase):
         copied_path = "C:\\schemas\\schema.json"
         stdout = SimpleNamespace(write=MagicMock())
         view = SimpleNamespace(
-            schema_path_fld=SimpleNamespace(setText=MagicMock()),
-            check_schema_path=MagicMock(return_value=True),
+            select_custom_schema=MagicMock(return_value=True),
             status_bar=SimpleNamespace(setText=MagicMock()),
         )
 
@@ -183,8 +182,7 @@ class TestAnnotationTrackerView(unittest.TestCase):
             AnnotationTrackerView.create_example_schema(view)
 
         mock_copy.assert_called_once_with(requested_path)
-        view.schema_path_fld.setText.assert_called_once_with(copied_path)
-        view.check_schema_path.assert_called_once_with(rebuild=True)
+        view.select_custom_schema.assert_called_once_with(copied_path)
         view.status_bar.setText.assert_called_once_with(
             f"Created and applied schema: {copied_path}"
         )
