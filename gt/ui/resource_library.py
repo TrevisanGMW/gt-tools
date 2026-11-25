@@ -9,6 +9,7 @@ from copy import deepcopy
 import logging
 import os
 import re
+import sys
 
 # Logging Setup
 logging.basicConfig()
@@ -50,6 +51,54 @@ def get_icon_path(icon_name, sub_folder=None):
     if not os.path.exists(icon_path) or icon_name == "":
         logger.info(f'Could not find icon: "{icon_path}"')
     return icon_path
+
+
+def get_sound_path(sound_name, sub_folder=None):
+    """
+    Get the path to a sound file. This file should exist inside the resources/sounds folder.
+    Args:
+        sound_name (str): Name of the file. It should contain its extension. For example "success.wav"
+        sub_folder (str, optional): In case the sound exists inside a sub-folder, it can be provided as an argument.
+    Returns:
+        str: Path to the sound.
+    """
+    sound_path = get_resource_path(sound_name, resource_folder=ResourceDirConstants.DIR_SOUNDS, sub_folder=sub_folder)
+    if not os.path.exists(sound_path) or sound_name == "":
+        logger.info(f'Could not find sound: "{sound_path}"')
+    return sound_path
+
+
+def play_sound_file(sound_path):
+    """
+    Plays a sound file asynchronously without raising on failure.
+    Uses "winsound" on Windows and falls back to "QtMultimedia.QSoundEffect" elsewhere.
+
+    Args:
+        sound_path (str): Path to a WAV file. e.g. "Sound.status_success"
+
+    Returns:
+        bool: True when playback was started.
+    """
+    if not sound_path:
+        return False
+    try:
+        if sys.platform == "win32":
+            import winsound
+
+            winsound.PlaySound(sound_path, winsound.SND_FILENAME | winsound.SND_ASYNC)
+            return True
+        import gt.ui.qt_import as ui_qt
+
+        if ui_qt.QtMultimedia is None:
+            return False
+        effect = ui_qt.QtMultimedia.QSoundEffect()
+        effect.setSource(ui_qt.QtCore.QUrl.fromLocalFile(sound_path))
+        effect.play()
+        play_sound_file.active_effect = effect  # Keeps the effect alive until playback ends
+        return True
+    except Exception as exception:
+        logger.debug(f'Unable to play sound "{sound_path}": {exception}')
+        return False
 
 
 def get_font_path(font_name, sub_folder=None):
@@ -234,6 +283,7 @@ class ResourceDirConstants:
     DIR_STYLESHEETS = os.path.join(DIR_RESOURCES, "stylesheets")
     DIR_ICONS = os.path.join(DIR_RESOURCES, "icons")
     DIR_FONTS = os.path.join(DIR_RESOURCES, "fonts")
+    DIR_SOUNDS = os.path.join(DIR_RESOURCES, "sounds")
 
 
 class Icon:
@@ -254,7 +304,9 @@ class Icon:
     root_dev = get_icon_path(r"root_dev.svg")
     # General
     tool_batch_processor = get_icon_path(r"tool_batch_processor.svg")
+    tool_multi_file_importer = get_icon_path(r"tool_multi_file_importer.svg")
     tool_renamer = get_icon_path(r"tool_renamer.svg")
+    tool_scene_evaluator = get_icon_path(r"tool_scene_evaluator.svg")
     tool_outliner_sorter = get_icon_path(r"tool_outliner_sorter.svg")
     tool_selection_manager = get_icon_path(r"tool_selection_manager.svg")
     tool_path_manager = get_icon_path(r"tool_path_manager.svg")
@@ -267,6 +319,7 @@ class Icon:
     tool_offset_keyframes = get_icon_path(r"tool_offset_keyframes.svg")
     tool_anim_copy_paste = get_icon_path(r"tool_anim_copy_paste.svg")
     tool_anim_hik_utils = get_icon_path(r"tool_anim_hik_utils.svg")
+    tool_anim_evaluator = get_icon_path(r"tool_anim_evaluator.svg")
     tool_script_library = get_icon_path(r"tool_script_library.svg")
     anim_copy = get_icon_path(r"anim_copy.svg")
     anim_paste = get_icon_path(r"anim_paste.svg")
@@ -495,17 +548,22 @@ class Icon:
     batch_validator_pass = get_icon_path(r"batch_validator_pass.svg")
     batch_task_log_print = get_icon_path(r"batch_task_log_print.svg")
     batch_tracker = get_icon_path(r"batch_tracker.svg")
+    batch_tracker_project = get_icon_path(r"batch_tracker_project.svg")
     batch_task_import_file = get_icon_path(r"batch_task_import_file.svg")
     batch_task_input_strings = get_icon_path(r"batch_task_input_strings.svg")
     batch_task_input_pairs = get_icon_path(r"batch_task_input_pairs.svg")
+    batch_task_input_metadata = get_icon_path(r"batch_task_input_metadata.svg")
     batch_task_maya_import = get_icon_path(r"batch_task_maya_import.svg")
     batch_task_python = get_icon_path(r"batch_task_python.svg")
+    batch_task_command = get_icon_path(r"batch_task_command.svg")
     batch_task_rename = get_icon_path(r"batch_task_rename.svg")
     batch_task_run_batch_project = get_icon_path(r"batch_task_run_batch_project.svg")
+    batch_task_settings_override = get_icon_path(r"batch_task_settings_override.svg")
     batch_task_delete_project_files = get_icon_path(r"batch_task_delete_project_files.svg")
     batch_task_map_hierarchy = get_icon_path(r"batch_task_map_hierarchy.svg")
     batch_task_report = get_icon_path(r"batch_task_report.svg")
     batch_task_save_maya = get_icon_path(r"batch_task_save_maya.svg")
+    batch_task_merge_input = get_icon_path(r"batch_task_merge_input.svg")
     batch_task_export_usd = get_icon_path(r"batch_task_export_usd.svg")
     batch_task_export_fbx = get_icon_path(r"batch_task_export_fbx.svg")
     batch_task_archive = get_icon_path(r"batch_task_archive.svg")
@@ -516,6 +574,10 @@ class Icon:
     batch_task_clip_split = get_icon_path(r"batch_task_clip_split.svg")
     batch_task_clip_snapshot = get_icon_path(r"batch_task_clip_snapshot.svg")
     batch_task_annotation_snapshot = get_icon_path(r"batch_task_annotation_snapshot.svg")
+    batch_task_validate_integrity = get_icon_path(r"batch_task_validate_integrity.svg")
+    batch_task_validate_parity = get_icon_path(r"batch_task_validate_parity.svg")
+    batch_task_validate_python = get_icon_path(r"batch_task_validate_python.svg")
+    batch_task_validate_animation = get_icon_path(r"batch_task_validate_animation.svg")
     batch_task_generic = get_icon_path(r"batch_task_generic.svg")
     batch_project = get_icon_path(r"batch_project.svg")
 
@@ -528,6 +590,7 @@ class Icon:
     ui_thin_arrow_right = get_icon_path(r"ui_thin_arrow_right.svg")
     ui_exclamation = get_icon_path(r"ui_exclamation.svg")
     ui_checkbox_checked = get_icon_path(r"ui_checkbox_checked.svg")
+    ui_checkmark_muted = get_icon_path(r"ui_checkmark_muted.svg")
     ui_checkbox_unchecked = get_icon_path(r"ui_checkbox_unchecked.svg")
     ui_checkbox_checked_disabled = get_icon_path(r"ui_checkbox_checked_disabled.svg")
     ui_checkbox_unchecked_disabled = get_icon_path(r"ui_checkbox_unchecked_disabled.svg")
@@ -544,6 +607,13 @@ class Icon:
     ui_trash = get_icon_path(r"ui_trash.svg")
     ui_new = get_icon_path(r"ui_new.svg")
     ui_open = get_icon_path(r"ui_open.svg")
+    ui_relaunch_outside_maya = get_icon_path(r"ui_relaunch_outside_maya.svg")
+    ui_maximize = get_icon_path(r"ui_maximize.svg")
+    ui_window_minimize = get_icon_path(r"ui_window_minimize.svg")
+    ui_window_close = get_icon_path(r"ui_window_close.svg")
+    ui_tracker_compact = get_icon_path(r"ui_tracker_compact.svg")
+    ui_window_maximize = get_icon_path(r"ui_window_maximize.svg")
+    ui_window_restore = get_icon_path(r"ui_window_restore.svg")
     ui_play = get_icon_path(r"ui_play.svg")
     ui_copy_text = get_icon_path(r"ui_copy_text.svg")
     ui_copy_text_bright = get_icon_path(r"ui_copy_text_bright.svg")
@@ -556,6 +626,7 @@ class Icon:
     ui_yellow_circle = get_icon_path(r"ui_yellow_circle.svg")
     ui_green_circle = get_icon_path(r"ui_green_circle.svg")
     ui_grey_circle = get_icon_path(r"ui_grey_circle.svg")
+    ui_sleep = get_icon_path(r"ui_sleep.svg")
     ui_plus = get_icon_path(r"ui_plus.svg")
     ui_reset = get_icon_path(r"ui_reset.svg")
     ui_read_only = get_icon_path(r"ui_read_only.svg")
@@ -1310,6 +1381,21 @@ class Stylesheet:
     btn_tool_metro_green = get_stylesheet_content(
         stylesheet_name="btn_tool_metro_base", stylesheet_variables=StylesheetVariables.btn_tool_metro_green
     )
+
+
+class Sound:
+    def __init__(self):
+        """
+        A library of sounds. Access them like icons, for example "ui_res_lib.Sound.status_success"
+        """
+
+    # Status Sounds
+    status_starting = get_sound_path("starting.wav")
+    status_running = get_sound_path("running.wav")
+    status_success = get_sound_path("success.wav")
+    status_warning = get_sound_path("warning.wav")
+    status_failure = get_sound_path("failure.wav")
+    status_aborted = get_sound_path("aborted.wav")
 
 
 class Font:

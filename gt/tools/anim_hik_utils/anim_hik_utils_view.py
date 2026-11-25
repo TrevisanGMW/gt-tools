@@ -8,6 +8,17 @@ from gt.ui import resource_library as ui_res_lib
 class AnimHikUtilsView(metaclass=qt_utils.MayaWindowMeta):
     """Constructs widgets independently of Maya scene data and controller state."""
 
+    TAB_STYLE = (
+        "QTabWidget::pane { border: 1px solid #5A5A5A; border-radius: 6px; background-color: #2F2F2F; top: -1px; } "
+        "QTabBar::tab { background-color: #262626; color: #AAAAAA; border: 1px solid #4A4A4A; "
+        "border-top-left-radius: 8px; border-top-right-radius: 8px; border-bottom: none; "
+        "padding: 6px 14px; margin-right: 3px; } "
+        "QTabBar::tab:hover { background-color: #3A3A3A; color: #FFFFFF; } "
+        "QTabBar::tab:selected { background-color: #4A4A4A; color: #FFFFFF; border-color: #6A6A6A; "
+        "border-top: 2px solid #FFFFFF;} "
+        "QScrollArea { border: none; background: transparent; }"
+    )
+
     def __init__(self, parent=None, version=None):
         """Builds the HumanIK window.
 
@@ -30,6 +41,7 @@ class AnimHikUtilsView(metaclass=qt_utils.MayaWindowMeta):
             "QWidget { color: #DDDDDD; } QLabel { font-weight: 400; } "
             "QPlainTextEdit { background-color: #2B2B2B; color: #DDDDDD; } "
             "QGroupBox { margin-top: 12px; padding-top: 8px; }",
+            self.TAB_STYLE,
         )))
         self.setMinimumWidth(440)
         layout = ui_qt.QtWidgets.QVBoxLayout(self)
@@ -268,18 +280,23 @@ class AnimHikUtilsView(metaclass=qt_utils.MayaWindowMeta):
         form = ui_qt.QtWidgets.QFormLayout()
         form.setRowWrapPolicy(ui_qt.QtWidgets.QFormLayout.RowWrapPolicy.WrapLongRows)
         for key, label, placeholder, tooltip in (
-            ("prefix", "Prefix:", "e.g. hero:", "Namespace added to XML bone names. Also used when exporting XML."),
+            ("prefix", "Prefix/Namespace:", 'e.g. hero: (or use "Next Matching Namespace")',
+             "Namespace added to every XML bone name, e.g. 'hero:' turns Hips into hero:Hips. "
+             "Click Next Matching Namespace to fill it from the scene. Also used when exporting XML."),
         ):
             field = ui_qt.QtWidgets.QLineEdit()
             field.setPlaceholderText(placeholder)
             field.setToolTip(tooltip)
             self.settings_widgets[key] = field
             form.addRow(label, field)
+        form.setVerticalSpacing(8)
         layout.addLayout(form)
+        layout.addSpacing(6)
         mapping = ui_qt.QtWidgets.QHBoxLayout()
         mapping.addWidget(self.button(
             "cycle_namespace", "Next Matching Namespace",
-            "Fill Prefix with the next scene namespace that contains a bone named in the XML."
+            "Detect scene namespaces that contain a bone named in the XML and fill the Namespace prefix with the next one. "
+            "Click again to cycle."
         ))
         mapping.addWidget(self.button(
             "preview_xml", "Preview XML", "Check every populated mapping without changing the scene."

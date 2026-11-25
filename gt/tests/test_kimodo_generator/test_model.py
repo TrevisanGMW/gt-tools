@@ -96,20 +96,24 @@ class TestKimodoGeneratorModel(unittest.TestCase):
         """Persists frame entry and auto-import timing toggles with compatible defaults."""
         self.model.prompt_durations_in_frames = True
         self.model.auto_frame_rate = False
+        self.model.output_time_unit = "29.97df"
         self.model.auto_frame_range = False
         restored = KimodoGeneratorModel(preferences=False)
         restored.restore(self.model.snapshot())
         self.assertTrue(restored.prompt_durations_in_frames)
         self.assertFalse(restored.auto_frame_rate)
+        self.assertEqual("29.97df", restored.output_time_unit)
         self.assertFalse(restored.auto_frame_range)
 
         old_preferences = self.model.snapshot()
         old_preferences.pop("prompt_durations_in_frames")
+        old_preferences.pop("output_time_unit")
         old_preferences.pop("auto_frame_rate")
         old_preferences.pop("auto_frame_range")
         restored.restore(old_preferences)
         self.assertFalse(restored.prompt_durations_in_frames)
         self.assertTrue(restored.auto_frame_rate)
+        self.assertEqual("", restored.output_time_unit)
         self.assertTrue(restored.auto_frame_range)
 
     def test_pose_preview_template_defaults_and_persists(self):

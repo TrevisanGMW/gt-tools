@@ -6,3 +6,4 @@ from . import test_python_output_view
 from . import test_qt_import
 from . import test_qt_utils
 from . import test_resource_library
+from . import test_environment_variables_dialog

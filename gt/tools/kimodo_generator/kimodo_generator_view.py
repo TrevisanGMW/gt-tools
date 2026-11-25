@@ -36,7 +36,7 @@ class KimodoGeneratorView(metaclass=qt_utils.MayaWindowMeta):
         self._screen_handle = None
         self._sized_once = False
         self._updating_metrics = False
-        self.setWindowTitle(f"Kimodo Generator — {version or '1.0'}")
+        self.setWindowTitle(f"Kimodo Generator - {version or '1.0'}")
         self.setWindowIcon(ui_qt.QtGui.QIcon(resources.Icon.tool_kimodo_generator))
         self.setMinimumSize(460, 380)
         self.setStyleSheet(resources.Stylesheet.maya_dialog_base + """
@@ -705,8 +705,21 @@ class KimodoGeneratorView(metaclass=qt_utils.MayaWindowMeta):
         options_layout.addLayout(self.row(self.auto_download, self.auto_maya_file))
         options_layout.addLayout(self.row(self.auto_import_maya, self.auto_import_all_samples))
         options_layout.addLayout(self.row(self.auto_clear_scene, self.auto_frame_rate))
-        options_layout.addLayout(self.row(self.auto_frame_range))
+        self.target_hik_enabled = QtWidgets.QCheckBox("Retarget to target HumanIK rig")
+        self.target_hik_enabled.setToolTip("Use the target rig configured in the HumanIK tab when creating Maya files.")
+        options_layout.addLayout(self.row(self.auto_frame_range, self.target_hik_enabled))
         automation_layout.addLayout(options_layout)
+        from gt.tools.kimodo_generator import kimodo_generator_time_units
+        self.output_time_unit = QtWidgets.QComboBox()
+        self.output_time_unit.addItem("Model frame rate", "")
+        for label, unit in kimodo_generator_time_units.TIME_UNITS:
+            self.output_time_unit.addItem(label, unit)
+        self.output_time_unit.setToolTip(
+            "Maya output scene rate. Model frame rate uses the model's native rate. "
+            "Other rates preserve motion duration and may create fractional keys.")
+        output_form = self.form()
+        output_form.addRow("Output frame rate", self.output_time_unit)
+        automation_layout.addLayout(output_form)
         import_heading = QtWidgets.QLabel("Maya import defaults")
         import_heading_font = ui_qt.QtGui.QFont(import_heading.font())
         import_heading_font.setBold(True)
@@ -762,7 +775,7 @@ class KimodoGeneratorView(metaclass=qt_utils.MayaWindowMeta):
         self.results_selected = QtWidgets.QGroupBox("Selected result")
         self.results_selected.setToolTip(
             "Open the downloaded job folder, or import its motion skeleton into the current Maya scene. "
-            "The sample chooser appears only for jobs containing multiple alternatives. Expand Automatic Processing "
+            "The sample chooser appears only for jobs containing multiple alternatives. \nExpand Automatic Processing "
             "to choose automatic import of every generated sample into one scene, or edit the import namespace and "
             "start frame used by Import Sample.")
         selected_layout = QtWidgets.QVBoxLayout(self.results_selected)
@@ -848,6 +861,44 @@ class KimodoGeneratorView(metaclass=qt_utils.MayaWindowMeta):
                 button.setIcon(ui_qt.QtGui.QIcon(icon))
                 buttons.append(button)
             layout.addLayout(self.row(*buttons))
+        separator = QtWidgets.QFrame()
+        separator.setFrameShape(QtWidgets.QFrame.Shape.HLine)
+        layout.addWidget(separator)
+        self.target_hik_group, target_layout, self.target_hik_content = self.collapsible_group(
+            "Target HumanIK Rig", checked=False, tooltip="Configure an optional target rig for retargeting.")
+        self.target_hik_disabled_label = QtWidgets.QLabel(
+            "Target retargeting is disabled in Results > Automatic Processing.")
+        self.target_hik_disabled_label.setStyleSheet("color: #e5c65b;")
+        self.target_hik_disabled_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.target_hik_disabled_label.setWordWrap(True)
+        target_layout.addWidget(self.target_hik_disabled_label)
+        target_form = self.form()
+        self.target_hik_path = QtWidgets.QLineEdit()
+        self.target_hik_path.setPlaceholderText("Maya or FBX file containing a HumanIK character rig")
+        self.target_hik_path.setToolTip(
+            "Maya or FBX file containing the characterized target rig. It is imported into each generated scene.")
+        self.target_hik_character = QtWidgets.QLineEdit()
+        self.target_hik_character.setPlaceholderText("Blank = auto-detect")
+        self.target_hik_character.setToolTip(
+            "Target HumanIK character name. Leave blank to detect the single character in the imported rig.")
+        self.target_hik_namespace = QtWidgets.QLineEdit()
+        self.target_hik_namespace.setPlaceholderText("Blank = kimodo")
+        self.target_hik_namespace.setToolTip("Namespace for the imported target rig. Blank uses kimodo; conflicts receive an available suffix.")
+        self.target_hik_bake = QtWidgets.QComboBox()
+        self.target_hik_bake.addItems(["Skeleton", "Control Rig", "Custom Control Rig", "None"])
+        self.target_hik_bake.setToolTip(
+            "Choose where to bake retargeted animation. None keeps the live HumanIK connection.")
+        self.target_hik_delete = QtWidgets.QCheckBox("Delete source after baking")
+        self.target_hik_delete.setChecked(True)
+        self.target_hik_delete.setToolTip(
+            "Remove the generated source skeleton and HumanIK character after a successful bake.")
+        target_form.addRow("Target rig file",
+                           self.row(self.target_hik_path, self.button("browse_target_hik", "Browse")))
+        target_form.addRow("Target character", self.target_hik_character)
+        target_form.addRow("Namespace", self.target_hik_namespace)
+        target_form.addRow("Bake target", self.row(self.target_hik_bake, self.target_hik_delete))
+        target_layout.addLayout(target_form)
+        layout.addWidget(self.target_hik_group)
         layout.addStretch()
 
     def closeEvent(self, event):

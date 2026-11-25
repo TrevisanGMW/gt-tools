@@ -5,6 +5,7 @@ Animation Retargeter Controller
 import gt.tools.retargeter.retargeter_constants as tools_retargeter_const
 import gt.tools.retargeter.retargeter_framework as tools_retargeter_frm
 import gt.tools.retargeter.retargeter_widget as tools_retargeter_widget
+import gt.tools.retargeter.retargeter_sounds as tools_retargeter_sounds
 import gt.tools.retargeter.retargeter_model as tools_retargeter_model
 import gt.tools.retargeter.retargeter_utils as tools_retargeter_utils
 import gt.ui.progress_bar as ui_progress_bar
@@ -471,6 +472,7 @@ class RetargeterController:
                 max_workers=self.view.multi_process_max_instances,
                 disable_logging=not self.view.multi_write_log_file,
                 skip_existing_files=self.view.skip_existing_files,
+                play_sound_on_completion=self.view.play_sound_on_completion,
             )
             return
         # --------------------------------- Multi-processing Batch Mode (End) ---------------------------------
@@ -483,13 +485,48 @@ class RetargeterController:
         self.progress_win.first_button.clicked.connect(self.progress_win.close_window)
         self.progress_win.set_progress_bar_max_value(len(source_list) * 4)  # Num of operations per retarget
         self.progress_win.increase_progress_bar_value()
+
+        # Retarget Steps ---------------------------------------------------------------------
+        retarget_counts = {"processed": 0, "failed": 0}
+        try:
+            self._retarget_source_list(
+                source_list=source_list,
+                target_rig_path=target_rig_path,
+                target_folder=target_folder,
+                retarget_counts=retarget_counts,
+            )
+        except Exception:
+            self.play_retarget_status_sound(tools_retargeter_sounds.RetargetStatus.FAILURE)
+            raise
+        retarget_status = tools_retargeter_sounds.get_retarget_status(
+            failed_count=retarget_counts.get("failed"), processed_count=retarget_counts.get("processed")
+        )
+        self.play_retarget_status_sound(retarget_status)
+
+    def play_retarget_status_sound(self, retarget_status):
+        """Plays the sound matching a retarget status when the preference is enabled.
+
+        Args:
+            retarget_status (str): Value from "RetargetStatus".
+        """
+        if self.view.play_sound_on_completion:
+            tools_retargeter_sounds.play_retarget_status_sound(retarget_status)
+
+    def _retarget_source_list(self, source_list, target_rig_path, target_folder, retarget_counts):
+        """Retargets each source file in the current Maya session, reporting progress to the progress window.
+
+        Args:
+            source_list (list): Source animation file paths to retarget.
+            target_rig_path (str): Path to the target rig file.
+            target_folder (str, None): Output folder used in batch mode.
+            retarget_counts (dict): Updated in place with "processed" and "failed" file counts.
+        """
+        is_single_file = not self.view.batch_status
         # Progress Bar Text Colors
         _rgb_feedback_neutral = ui_res_lib.Color.Hex.white
         _rgb_feedback_passed = ui_res_lib.Color.Hex.green_pale
         _rgb_feedback_failed = ui_res_lib.Color.Hex.red_melon
         _rgb_feedback_warning = ui_res_lib.Color.Hex.yellow_khaki
-
-        # Retarget Steps ---------------------------------------------------------------------
         retargeted_file_list = []
         for index, source_path in enumerate(source_list):
             # Feedback Window Message Index
@@ -512,6 +549,7 @@ class RetargeterController:
                 continue
 
             # Start Retarget Process ---------------------------------------------------------
+            retarget_counts["processed"] += 1
             cmds.file(new=True, force=True)
 
             # Log Current Source
@@ -551,6 +589,7 @@ class RetargeterController:
                     self.progress_win.change_last_line_color(_rgb_feedback_passed)
             except Exception as e:
                 # If there are errors, show it in the progress textfield.
+                retarget_counts["failed"] += 1
                 self.progress_win.add_text_to_output_box(input_string=str(e), color=_rgb_feedback_failed)
 
             # Save - Batch mode --------------------------------------------------------------

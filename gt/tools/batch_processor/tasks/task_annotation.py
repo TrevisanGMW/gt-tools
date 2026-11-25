@@ -3,7 +3,7 @@ Batch Processor Annotation Tasks
 
 Stores and restores Annotation Tracker scene data across a sequence of files.
 The scene node and attribute names mirror the ones written by the
-``anim_annotation_tracker`` tool so snapshots stay compatible with it.
+``annotation_tracker`` tool so snapshots stay compatible with it.
 """
 
 from gt.tools.batch_processor import batch_processor_constants as constants

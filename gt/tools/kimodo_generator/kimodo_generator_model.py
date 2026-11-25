@@ -9,6 +9,7 @@ import uuid
 from gt.utils import kimodo
 from gt.core.io import read_json_dict, write_json
 from gt.tools.kimodo_generator import kimodo_generator_hik as humanik
+from gt.tools.kimodo_generator import kimodo_generator_time_units as time_units
 from gt.tools.kimodo_generator import kimodo_generator_docker as docker_runtime
 
 logger = logging.getLogger(__name__)
@@ -154,9 +155,12 @@ class KimodoGeneratorModel:
         self.jobs = []
         self.auto_download = True
         self.auto_maya_file = True
+        self.target_hik_enabled = False
+        self.target_hik = {"rig_path": "", "character": "", "namespace": "", "bake_target": "Skeleton", "delete_source": True}
         self.auto_import_maya = True
         self.auto_import_all_samples = True
         self.auto_clear_scene = True
+        self.output_time_unit = ""
         self.auto_frame_rate = True
         self.auto_frame_range = True
         self.table_widths = {}
@@ -185,8 +189,10 @@ class KimodoGeneratorModel:
                               "output_directory": self.output_directory, "namespace": self.namespace,
                               "start_frame": self.start_frame, "humanik": self.humanik,
                               "auto_download": self.auto_download, "auto_maya_file": self.auto_maya_file,
+                              "target_hik_enabled": self.target_hik_enabled, "target_hik": self.target_hik,
                               "auto_import_maya": self.auto_import_maya,
                               "auto_import_all_samples": self.auto_import_all_samples,
+                              "output_time_unit": self.output_time_unit,
                               "auto_frame_rate": self.auto_frame_rate,
                               "auto_frame_range": self.auto_frame_range,
                               "prompt_durations_in_frames": self.prompt_durations_in_frames,
@@ -238,9 +244,22 @@ class KimodoGeneratorModel:
             job.pop("downloading", None)
             job.pop("exporting_maya", None)
         self.auto_download = bool(data.get("auto_download", True))
+        self.target_hik_enabled = bool(data.get("target_hik_enabled", False))
+        target = data.get("target_hik", {})
+        if not isinstance(target, dict):
+            target = {}
+        self.target_hik = {"rig_path": str(target.get("rig_path", "")),
+                           "character": str(target.get("character", "")),
+                           "namespace": str(target.get("namespace", "")),
+                           "bake_target": target.get("bake_target", "Skeleton"),
+                           "delete_source": bool(target.get("delete_source", True))}
+        if self.target_hik["bake_target"] not in ("None", "Skeleton", "Control Rig", "Custom Control Rig"):
+            self.target_hik["bake_target"] = "Skeleton"
         self.auto_maya_file = bool(data.get("auto_maya_file", True))
         self.auto_import_maya = bool(data.get("auto_import_maya", True))
         self.auto_import_all_samples = bool(data.get("auto_import_all_samples", True))
+        unit = data.get("output_time_unit", "")
+        self.output_time_unit = unit if isinstance(unit, str) and time_units.valid_time_unit(unit) else ""
         self.auto_frame_rate = bool(data.get("auto_frame_rate", True))
         self.auto_frame_range = bool(data.get("auto_frame_range", True))
         self.prompt_durations_in_frames = bool(data.get("prompt_durations_in_frames", False))

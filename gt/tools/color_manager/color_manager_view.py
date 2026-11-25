@@ -671,14 +671,17 @@ class ColorManagerView(metaclass=MayaWindowMeta):
             padding: 6px 10px;
         }
         QPushButton#ColorManagerApplyButton {
-            background-color: rgb(188, 188, 188);
-            color: rgb(28, 28, 28);
+            background-color: #808080;
+            color: #000000;
             font-weight: bold;
             border: 1px solid rgb(125, 125, 125);
             padding: 6px 10px;
         }
         QPushButton#ColorManagerApplyButton:hover {
-            background-color: rgb(205, 205, 205);
+            background-color: #919191;
+        }
+        QPushButton#ColorManagerApplyButton:pressed {
+            background-color: #787878;
         }
         """
         self.setStyleSheet(stylesheet)

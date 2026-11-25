@@ -5,6 +5,7 @@ import json
 import os
 import re
 import tempfile
+import time
 
 
 SCHEMA_VERSION = 1
@@ -15,6 +16,8 @@ DEPENDENCY_OUTCOMES = ["Completion", "Success", "Failure"]
 WINDOW_POLICIES = ["Keep Open", "Close When Finished", "Close On Success"]
 FAILURE_POLICIES = ["Continue", "Stop Launching"]
 SUCCESS_OUTCOMES = {"succeeded", "warning"}
+WINDOWS_FILE_ACCESS_ERRORS = (5, 32, 33)
+JSON_REPLACE_ATTEMPTS = 10
 
 
 def canonical_path(path):
@@ -48,8 +51,31 @@ def read_json(path):
         return {}
 
 
+RUN_SETTINGS_REQUEST_FILE_NAME = "run_settings_request.json"
+
+
+def get_run_settings_request_path(control_file):
+    """Gets the live run settings request file that sits beside a control file.
+
+    Run settings requests use their own file so they never overwrite a pending
+    cancel request in the control file.
+
+    Args:
+        control_file (str): Tracker control file path.
+
+    Returns:
+        str: Request file path, or an empty string without a control file.
+    """
+    if not control_file:
+        return ""
+    return os.path.join(os.path.dirname(os.path.abspath(control_file)), RUN_SETTINGS_REQUEST_FILE_NAME)
+
+
 def write_json(path, data):
     """Publishes JSON atomically without replacing any source project.
+
+    Windows readers can briefly prevent replacement of an existing status file.
+    Retry access/sharing violations while preserving the previous valid file.
 
     Args:
         path (str): Destination path.
@@ -61,7 +87,15 @@ def write_json(path, data):
     try:
         with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
             json.dump(data, stream, indent=2, ensure_ascii=False, sort_keys=True)
-        os.replace(temporary, path)
+        for attempt in range(JSON_REPLACE_ATTEMPTS):
+            try:
+                os.replace(temporary, path)
+                break
+            except OSError as error:
+                if (getattr(error, "winerror", None) not in WINDOWS_FILE_ACCESS_ERRORS
+                        or attempt == JSON_REPLACE_ATTEMPTS - 1):
+                    raise
+                time.sleep(min(0.01 * (2 ** attempt), 0.25))
     finally:
         if os.path.exists(temporary):
             os.remove(temporary)

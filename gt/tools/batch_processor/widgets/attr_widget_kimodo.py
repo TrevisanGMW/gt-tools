@@ -164,12 +164,24 @@ FIELD_HELP = {
                       "which generates multiple animations from a single definition.", "1"),
     ("seed_policy",): ("Fixed reuses Base seed;\n"
                        "Repeatable derives a stable seed from source identity and variation;\n"
-                       "Random chooses a new seed for each definition.\n"
+                       "Random chooses a new seed for each definition;\n"
+                       "Seed list uses the exact seeds in Seed list, one per definition.\n"
                        "Resolved seeds are saved in the JSON definition.\n"
                        "Add _seed_{seed} to Filename suffix to show a seed in output names.", ""),
     ("base_seed",): ("Unsigned integer from 0 to 4294967295\n"
                      "used for fixed or repeatable generation.\n"
                      "Changing it also invalidates the definition capture cache.", "12345"),
+    ("seed_list",): ("Exact seeds, one per definition: entry 1 is definition 1, and so on.\n"
+                     "  123, 456, 789   three definitions with these seeds\n"
+                     "  *, *, 789       keep the repeatable seed for 1 and 2, use 789 for 3\n"
+                     "  -, -, 789       create only definition 3, with seed 789\n"
+                     "* keeps the repeatable per-file seed (from Base seed); - skips that definition.\n"
+                     "The list may be longer than Definitions per file; missing entries use *.\n"
+                     "Variables are resolved per input, e.g. {input-meta-seed} from Input Metadata.\n"
+                     "An empty result keeps the repeatable seed for every definition.\n"
+                     "Listed seeds change only the generation seed: variation ranges, prompt choices,\n"
+                     "and curve order stay the same as with the repeatable seed.",
+                     "123, 456, 789  or  {input-meta-seed}"),
     ("prompt_choices",): ("Optional alternative texts for the first prompt, one per line.\n"
                           "A choice is resolved per definition variation and saved for reproducibility.",
                            "A person sits down slowly.\nA person sits down briskly."),
@@ -750,8 +762,10 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
         section.parentWidget().setSizePolicy(qt.QtLib.SizePolicy.Preferred, qt.QtLib.SizePolicy.Minimum)
         self.field(section, "Definitions per file", "variations", "integer")
         self.field(section, "Seed policy", "seed_policy", "choice", [
-            ("fixed", "Fixed seed"), ("per_file", "Repeatable per file / variation"), ("random", "Random")])
+            ("fixed", "Fixed seed"), ("per_file", "Repeatable per file / variation"), ("random", "Random"),
+            ("list", "Seed list (exact seeds)")])
         self.field(section, "Base seed", "base_seed", "number")
+        self.field(section, "Seed list", "seed_list")
         seed_hint = qt.QtWidgets.QLabel(
             "Random seeds are stored in each definition. To include one in its filename, "
             "set Filename suffix to _seed_{seed} under Output Naming."
@@ -849,6 +863,8 @@ class AttrWidgetKimodoDefinition(AttrWidgetKimodo):
         text_mode = settings.get("prompt_mode", "table") == "text"
         self.set_field_enabled("prompt_text", text_mode)
         self.motion_text_help.setVisible(text_mode)
+        self.set_field_enabled("seed_list", settings.get("seed_policy") == "list")
+        self.set_field_enabled("base_seed", settings.get("seed_policy") != "random")
         self.set_field_enabled(("definition", "prompts"), local_definition and not text_mode)
         pre_generation_enabled = bool(settings.get("run_pre_generation_script"))
         for key in ("pre_generation_dependency_path", "pre_generation_script_pass_standard_arguments",

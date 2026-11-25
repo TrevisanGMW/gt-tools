@@ -176,3 +176,26 @@ class TestFbxUtils(unittest.TestCase):
         result = cmds.keyframe("test:joint1", at="tx", q=True)
         expected = [0.0, 10.0, 20.0, 30.0, 40.0]
         self.assertEqual(expected, result)
+
+
+class TestFbxFileInfo(unittest.TestCase):
+    """Checks the pure FBX header readers (no Maya scene needed)."""
+
+    def test_fbx_ascii_settings(self):
+        data = (b'; FBX 7.4.0 project file\nGlobalSettings:  {\n P: "UpAxis", "int", "Integer", "",2\n'
+                b' P: "UnitScaleFactor", "double", "Number", "",100\n P: "TimeMode", "enum", "", "",11\n}')
+        expected = {"fps": 24.0, "linear_unit": "m", "up_axis": "z"}
+        self.assertEqual(expected, utils_fbx.parse_fbx_global_settings(data))
+
+    def test_fbx_binary_settings(self):
+        import struct
+
+        def build_string(text):
+            return b"S" + struct.pack("<I", len(text)) + text
+
+        data = b"Kaydara FBX Binary  \x00" + build_string(b"TimeMode") + build_string(b"enum") + build_string(b"")
+        data += build_string(b"") + b"I" + struct.pack("<i", 14)
+        data += build_string(b"CustomFrameRate") + build_string(b"double") + build_string(b"Number")
+        data += build_string(b"") + b"D" + struct.pack("<d", 120.0)
+        expected = {"fps": 120.0}
+        self.assertEqual(expected, utils_fbx.parse_fbx_global_settings(data))

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <title>Scene Evaluator</title>
+  <g stroke-linejoin="round">
+    <path d="M28 5 50 17v25L28 54 6 42V17Z" fill="#BDBDBD" stroke="#1D1D1D" stroke-width="4"/>
+    <path d="M6 17l22 12 22-12M28 29v25" fill="none" stroke="#1D1D1D" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="47" cy="46" r="14" fill="#6BBE66" stroke="#1D1D1D" stroke-width="4"/>
+    <path d="m40 46 5 5 9-10" fill="none" stroke="#1D1D1D" stroke-width="3.5" stroke-linecap="round"/>
+  </g>
+</svg>

@@ -31,6 +31,7 @@ def run_child(request):
         "run_id": request["run_id"], "parent_run_id": request["parent_run_id"],
         "window_policy": settings["window_policy"], "empty_policy": settings["empty_policy"],
         "headless": not settings["show_tracker"],
+        "start_minimized": bool(settings.get("start_minimized", False)),
     }
     project.run_settings["log_path"] = os.path.join(run_dir, "logs")
     projects.write_json(request["project_file"], dict(project.to_dict(), runtime_options={
@@ -98,9 +99,9 @@ def launch_single_project(project, request, options):
                "--source-project-file", request["source_project_file"], "--mayapy", sys.executable,
                "--worker-count", "1", "--single-project", "--project-log", os.path.join(run_dir, "project.log")]
     for key, value in options.items():
-        if key == "headless":
+        if key in ("headless", "start_minimized"):
             if value:
-                command.append("--headless")
+                command.append(f"--{key.replace('_', '-')}")
         else:
             command.extend([f"--{key.replace('_', '-')}", str(value)])
     return subprocess.Popen(command, stdin=subprocess.DEVNULL, shell=False,

@@ -175,6 +175,9 @@ class TaskValidationMayaScene(task_base.BatchTask):
             has_issues=has_issues,
             context=context,
         )
+        from gt.tools.batch_processor.batch_processor_file_control import apply_issue_action
+
+        apply_issue_action(self, project, work_item, step_output_dir, has_issues)
         if has_issues and self.settings.get("fail_on_issues"):
             raise RuntimeError("Maya scene validation found issues in: {0}".format(work_item.current_path))
         return task_base.WorkItem(
@@ -302,7 +305,7 @@ class TaskValidationFileIntegrity(task_base.BatchTask):
     task_type = constants.TaskType.FILE_INTEGRITY_VALIDATE
     default_display_name = "Validate Integrity"
     default_target_path_template = VALIDATION_LOG_TARGET_PATH_TEMPLATE
-    icon = ui_res_lib.Icon.tool_validator
+    icon = ui_res_lib.Icon.batch_task_validate_integrity
     category = "Validation"
     category_icon = ui_res_lib.Icon.batch_category_validation
     is_indexless_task = True
@@ -377,6 +380,9 @@ class TaskValidationFileIntegrity(task_base.BatchTask):
         has_issues = bool(issues)
         run_state.record_validation(project, not has_issues)
         self.write_validation_log_if_needed(work_item, step_output_dir, issues, has_issues, context=context)
+        from gt.tools.batch_processor.batch_processor_file_control import apply_issue_action
+
+        apply_issue_action(self, project, work_item, step_output_dir, has_issues)
         if has_issues and self.settings.get("fail_on_issues"):
             raise RuntimeError("File integrity validation found issues in: {0}".format(work_item.current_path))
         return task_base.WorkItem(
@@ -506,7 +512,7 @@ class TaskValidationFolderCompare(task_base.BatchTask):
     task_type = constants.TaskType.FOLDER_COMPARE_VALIDATE
     default_display_name = "Validate Parity"
     default_target_path_template = VALIDATION_LOG_TARGET_PATH_TEMPLATE
-    icon = ui_res_lib.Icon.tool_validator
+    icon = ui_res_lib.Icon.batch_task_validate_parity
     category = "Validation"
     category_icon = ui_res_lib.Icon.batch_category_validation
     is_indexless_task = True

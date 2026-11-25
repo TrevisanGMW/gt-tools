@@ -10,7 +10,9 @@ from gt.tools.batch_processor.widgets.attr_widget_task import get_task_widget_cl
 from gt.tools.batch_processor.widgets.environment_variables_dialog import (
     EnvironmentVariablesDialog,
 )
+from gt.tools.batch_processor import batch_processor_environment_variables
 from gt.tools.batch_processor import batch_processor_templates
+from gt.tools.batch_processor import batch_processor_handoff
 from gt.tools.batch_processor import batch_processor_log_view
 from gt.tools.batch_processor import batch_processor_tracker
 from gt.tools.batch_processor import batch_processor_worker
@@ -35,6 +37,9 @@ import datetime
 # Logging Setup
 logging.basicConfig()
 logger = logging.getLogger(__name__)
+PREVIEW_READY_DELAY_MS = 3500
+RELAUNCH_POLL_INTERVAL_MS = 300
+RELAUNCH_TIMEOUT_SECONDS = 90
 logger.setLevel(logging.INFO)
 
 
@@ -163,6 +168,19 @@ class BatchProcessorController:
         )
         action_import_project.triggered.connect(self.import_project)
         self.view.add_menu_action(parent_menu=menu_file, action=action_import_project)
+
+        import gt.core.session as core_session
+
+        if core_session.is_script_in_interactive_maya():
+            action_relaunch = self.create_action(
+                "Relaunch Outside Maya", icon_path=ui_res_lib.Icon.ui_relaunch_outside_maya
+            )
+            action_relaunch.setToolTip(
+                "Reopen this project in a separate window that does not depend on Maya's display scaling.\n"
+                "Unsaved changes are carried over, and this Maya window closes once the new one is ready."
+            )
+            action_relaunch.triggered.connect(self.relaunch_outside_maya)
+            self.view.add_menu_action(parent_menu=menu_file, action=action_relaunch)
 
     def refresh_templates_menu(self):
         """Rebuilds the template submenu from the current template directory."""
@@ -346,6 +364,11 @@ class BatchProcessorController:
         action_validate.triggered.connect(self.validate_project)
         self.view.add_menu_action(parent_menu=menu_utils, action=action_validate)
 
+        action_open_tracker = self.create_action("Open Empty Tracker", icon_path=ui_res_lib.Icon.batch_tracker)
+        action_open_tracker.setToolTip("Open an empty tracker window to adjust tracker preferences without a run.")
+        action_open_tracker.triggered.connect(self.open_tracker_preferences_window)
+        self.view.add_menu_action(parent_menu=menu_utils, action=action_open_tracker)
+
         ui_qt_utils.add_labeled_separator(menu=menu_utils, text="Task Execution")
 
         action_print_selected_index = self.create_action(
@@ -391,16 +414,6 @@ class BatchProcessorController:
     def add_menu_preferences(self):
         """Adds the Preferences menu with the toolkit automation toggles."""
         menu_preferences = self.view.add_menu_parent("Preferences")
-
-        self.create_menu_checkbox_action(
-            parent_menu=menu_preferences,
-            text="Auto Hide Completed Filter",
-            checked=self._tracker_prefs.get_bool(
-                tracker_constants.PREFS_KEY_HIDE_COMPLETED_BY_DEFAULT, default=False
-            ),
-            tooltip="Start new tracker windows with Filters > Hide Completed enabled.",
-            callback=self.toggle_tracker_hide_completed_by_default,
-        )
 
         self.create_menu_checkbox_action(
             parent_menu=menu_preferences,
@@ -463,19 +476,289 @@ class BatchProcessorController:
             callback=self.toggle_suppress_custom_environment_query_errors,
         )
 
+        ui_qt_utils.add_labeled_separator(menu=menu_preferences, text="Tracker Window")
+        self.add_tracker_preferences(menu_preferences)
+
+    def add_tracker_preferences(self, parent_menu):
+        """Adds the tracker window preferences to a menu.
+
+        Args:
+            parent_menu (QMenu): Menu receiving the tracker preference checkboxes.
+        """
+        tracker_options = (
+            (
+                "Auto Hide Completed Filter",
+                tracker_constants.PREFS_KEY_HIDE_COMPLETED_BY_DEFAULT,
+                "Start new tracker windows with Filters > Hide Completed enabled.",
+            ),
+            (
+                "Auto-Close When Completed Without Errors",
+                tracker_constants.PREFS_KEY_AUTO_CLOSE_ON_SUCCESS,
+                "Close the tracker 10 seconds after a batch completes without errors.",
+            ),
+            (
+                "Play Sound When Completed",
+                tracker_constants.PREFS_KEY_PLAY_SOUND_ON_COMPLETION,
+                "Play a sound matching the final batch status when a tracker finishes.",
+            ),
+            (
+                "Show Project Row",
+                tracker_constants.PREFS_KEY_SHOW_PROJECT_ROW,
+                "Pin a project row with the overall progress above the jobs in new tracker windows.",
+            ),
+            (
+                "Launch in Compact Mode",
+                tracker_constants.PREFS_KEY_START_COMPACT,
+                "Open new tracker windows as the compact tracker (icon, name and progress bar only).",
+            ),
+            (
+                "Launch Minimized",
+                tracker_constants.PREFS_KEY_START_MINIMIZED,
+                "Open new tracker windows minimized to the system tray (taskbar if no tray exists).",
+            ),
+            (
+                "Minimize to System Tray Instead of Taskbar",
+                tracker_constants.PREFS_KEY_USE_SYSTEM_TRAY,
+                "Show tracker windows as a system tray icon with a progress badge instead of a taskbar button.",
+            ),
+        )
+        for text, key, tooltip in tracker_options:
+            self.create_menu_checkbox_action(
+                parent_menu=parent_menu,
+                text=text,
+                checked=self._tracker_prefs.get_bool(key, default=False),
+                tooltip=tooltip,
+                callback=partial(self.save_tracker_preference, key, text),
+            )
+
+    def save_tracker_preference(self, key, text, checked):
+        """Stores one tracker preference used by new tracker windows.
+
+        Args:
+            key (str): Tracker preference key.
+            text (str): Preference label used in the status message.
+            checked (bool): New preference state.
+        """
+        self._tracker_prefs.load()
+        self._tracker_prefs.set_bool(key, bool(checked))
+        self._tracker_prefs.save()
+        state_name = "enabled" if checked else "disabled"
+        self.log_status(f"Tracker preference '{text}' {state_name}.")
+
     def toggle_tracker_hide_completed_by_default(self, checked):
         """Stores the completed-row filter used when launching a tracker.
 
         Args:
             checked (bool): Whether new trackers should hide completed rows.
         """
-        self._tracker_prefs.load()
-        self._tracker_prefs.set_bool(
-            tracker_constants.PREFS_KEY_HIDE_COMPLETED_BY_DEFAULT, bool(checked)
+        self.save_tracker_preference(
+            tracker_constants.PREFS_KEY_HIDE_COMPLETED_BY_DEFAULT, "Auto Hide Completed Filter", checked
         )
-        self._tracker_prefs.save()
-        state_name = "enabled" if checked else "disabled"
-        self.log_status(f"Hide Completed in new tracker windows {state_name}.")
+
+    def open_tracker_preferences_window(self, *args):
+        """Opens an idle tracker window used to edit tracker preferences."""
+        from gt.tools.batch_processor.tracker import tracker_preview
+
+        existing_process = getattr(self, "_preview_process", None)
+        already_open = existing_process is not None and existing_process.poll() is None
+        if not already_open:
+            self.log_status("Opening the tracker preferences window... (this can take a few seconds)")
+        process = self._launch_preview_process()
+        if process is not None:
+            if not already_open:
+                ui_qt.QtCore.QTimer.singleShot(PREVIEW_READY_DELAY_MS, partial(self._confirm_preview_opened, process))
+            return
+        # Fallback: open it inside this session when mayapy cannot be launched.
+        self._preview_tracker_controller = tracker_preview.open_preview_tracker()
+
+    def build_recovery_payload(self):
+        """Builds the data needed to continue this project in another process.
+
+        Returns:
+            dict: Recovery payload with the current project, its saved path, and the saved state.
+        """
+        return batch_processor_handoff.build_recovery_payload(
+            project_data=self.model.to_dict(),
+            source_project_file=self.model.project_file_path,
+            saved_state=self._saved_project_state,
+        )
+
+    def restore_from_recovery(self, recovery_data):
+        """Replaces the current project with one handed over from another session.
+
+        Unsaved changes stay unsaved, and Save still writes to the original project file.
+
+        Args:
+            recovery_data (dict): Payload from ``build_recovery_payload``.
+        """
+        restored_model = type(self.model)()
+        restored_model.read_data_from_dict(recovery_data["project"])
+        source_project_file = recovery_data.get("source_project_file") or None
+        restored_model.project_file_path = source_project_file
+        self.model = restored_model
+        self.apply_task_index_automation()
+        self.apply_custom_environment_query_error_suppression()
+        self.refresh_widgets()
+        window_prefix = os.path.basename(source_project_file) if source_project_file else None
+        self.view.set_window_title(prefix=window_prefix)
+        saved_state = recovery_data.get("saved_state")
+        if saved_state is None:
+            self.mark_project_clean()
+        else:
+            self._saved_project_state = copy.deepcopy(saved_state)
+        if source_project_file:
+            self._recent_projects.add_path(source_project_file)
+            self.refresh_recent_projects_menu()
+        self.log_status("Continued the project from the Maya session.", status="success")
+
+    def relaunch_outside_maya(self, *args):
+        """Reopens this project in a separate Batch Processor process and closes this window.
+
+        This window only closes after the new one confirms it loaded the project, so a
+        failed launch never loses anything.
+
+        Args:
+            *args: Optional Qt signal arguments.
+        """
+        existing_process = getattr(self, "_relaunch_process", None)
+        if existing_process is not None and existing_process.poll() is None:
+            self.log_status("The Batch Processor is already opening outside Maya.")
+            return
+        try:
+            import subprocess
+            import time
+
+            from gt.tools.batch_processor.tracker import tracker_process_utils
+
+            mayapy_path, _warning = batch_processor_worker.resolve_mayapy_executable()
+            if not mayapy_path or not os.path.isfile(mayapy_path):
+                raise RuntimeError("mayapy could not be found.")
+            self._relaunch_directory = batch_processor_handoff.create_handoff_directory()
+            recovery_path = os.path.join(self._relaunch_directory, batch_processor_handoff.RECOVERY_FILE_NAME)
+            self._relaunch_ready_path = os.path.join(self._relaunch_directory, batch_processor_handoff.READY_FILE_NAME)
+            batch_processor_handoff.write_json_file(recovery_path, self.build_recovery_payload())
+            script_path = os.path.join(os.path.dirname(__file__), "standalone_main.py")
+            environment = dict(os.environ)
+            tracker_process_utils.remove_qt_scaling_variables(environment)
+            environment["PYTHONIOENCODING"] = "utf-8"
+            creation_flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+            self._relaunch_process = subprocess.Popen(
+                [
+                    mayapy_path,
+                    script_path,
+                    "--recovery-file",
+                    recovery_path,
+                    "--ready-file",
+                    self._relaunch_ready_path,
+                ],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                creationflags=creation_flags,
+                env=environment,
+                shell=False,
+            )
+            self._relaunch_started_at = time.monotonic()
+        except Exception as exception:
+            logger.warning(f"Unable to relaunch outside Maya: {exception}")
+            self.log_status(f"Could not open the Batch Processor outside Maya: {exception}", status="error")
+            return
+        self.log_status("Opening the Batch Processor outside Maya... (this window closes when it is ready)")
+        self._relaunch_timer = ui_qt.QtCore.QTimer(self.view)
+        self._relaunch_timer.setInterval(RELAUNCH_POLL_INTERVAL_MS)
+        self._relaunch_timer.timeout.connect(self._check_relaunch_ready)
+        self._relaunch_timer.start()
+
+    def _check_relaunch_ready(self):
+        """Closes this window once the external editor is ready, or reports a failed launch."""
+        import time
+
+        ready_data = batch_processor_handoff.read_json_file(self._relaunch_ready_path)
+        status = ready_data.get("status")
+        if status == batch_processor_handoff.READY_STATUS:
+            self._finish_relaunch(success=True)
+            return
+        process_ended = self._relaunch_process.poll() is not None
+        timed_out = time.monotonic() - self._relaunch_started_at > RELAUNCH_TIMEOUT_SECONDS
+        if status == batch_processor_handoff.FAILED_STATUS or process_ended or timed_out:
+            reason = ready_data.get("error") or (
+                "it took too long to start." if timed_out else "the new window closed before it opened."
+            )
+            self._finish_relaunch(success=False, reason=reason)
+
+    def _finish_relaunch(self, success, reason=""):
+        """Stops waiting for the external editor and closes this window if it took over.
+
+        Args:
+            success (bool): Whether the external editor loaded the project.
+            reason (str, optional): Failure description.
+        """
+        self._relaunch_timer.stop()
+        if not success:
+            if self._relaunch_process.poll() is None:
+                self._relaunch_process.terminate()
+            self.log_status(f"Could not open the Batch Processor outside Maya: {reason} Nothing was changed.", status="error")
+            return
+        shutil.rmtree(self._relaunch_directory, ignore_errors=True)
+        # The project now lives in the other window, so close this one without the unsaved prompt.
+        self.mark_project_clean()
+        self.view.close()
+
+    def _confirm_preview_opened(self, process):
+        """Reports that the preview window should be ready, or that it failed to start.
+
+        Args:
+            process (subprocess.Popen): Preview process launched earlier.
+        """
+        try:
+            if process.poll() is None:
+                self.log_status("Tracker preferences window opened.", status="success")
+            else:
+                self.log_status("The tracker preferences window closed before it finished opening.", status="warning")
+        except RuntimeError:
+            return
+
+    def _launch_preview_process(self):
+        """Opens the tracker preferences preview in its own process.
+
+        A separate process scales correctly on every monitor, unlike a window living
+        inside the Maya session.
+
+        Returns:
+            subprocess.Popen: Preview process, or None when it could not be started.
+        """
+        existing_process = getattr(self, "_preview_process", None)
+        if existing_process is not None and existing_process.poll() is None:
+            self.log_status("The tracker preferences window is already open.")
+            return existing_process
+        try:
+            import os
+            import subprocess
+            import sys
+
+            from gt.tools.batch_processor.tracker import tracker_process_utils
+
+            mayapy_path, _warning = batch_processor_worker.resolve_mayapy_executable()
+            if not mayapy_path or not os.path.isfile(mayapy_path):
+                return None
+            script_path = os.path.join(os.path.dirname(__file__), "tracker", "tracker_preview.py")
+            environment = dict(os.environ)
+            tracker_process_utils.remove_qt_scaling_variables(environment)
+            environment["PYTHONIOENCODING"] = "utf-8"
+            creation_flags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+            self._preview_process = subprocess.Popen(
+                [mayapy_path, script_path],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                creationflags=creation_flags,
+                env=environment,
+                shell=False,
+            )
+            return self._preview_process
+        except Exception as exception:
+            logger.warning(f"Unable to launch the tracker preview process: {exception}")
+            return None
 
     def open_project_directory(self, *args):
         """Opens the resolved project directory in the system file browser.
@@ -1022,6 +1305,8 @@ class BatchProcessorController:
             self.environment_variables_window = EnvironmentVariablesDialog(
                 refresh_callback=self.get_current_environment_variables,
                 parent=self.view,
+                references_callback=self.get_environment_variable_references,
+                reference_activated_callback=self.select_environment_variable_reference,
             )
 
         self.environment_variables_window.refresh()
@@ -1044,6 +1329,31 @@ class BatchProcessorController:
             task_index=task_index,
             include_braces=True,
         )
+
+    def get_environment_variable_references(self):
+        """Finds where environment variables are used in the current project.
+
+        Returns:
+            dict: Unbraced token keys mapped to reference dictionaries.
+        """
+        return batch_processor_environment_variables.find_project_references(
+            self.model.to_dict()
+        )
+
+    def select_environment_variable_reference(self, reference):
+        """Selects the task owning a reference picked in the variables window.
+
+        Args:
+            reference (dict): Reference dictionary from the variables window.
+
+        Raises:
+            ValueError: If the reference does not point to a task in this project.
+        """
+        if reference.get("source_kind") != "task":
+            raise ValueError("only task references can be selected")
+        if not self.view.select_task_by_id(reference.get("source_id")):
+            raise ValueError("the task is no longer in the project")
+        self.update_details()
 
     def validate_project(self):
         """Validates the current project and updates the view."""
@@ -1298,6 +1608,9 @@ class BatchProcessorController:
         Args:
             preserve_scroll (bool, optional): Restore the panel position after rebuilding it.
         """
+        if not self.view.task_tree.selectedItems():
+            self.view.clear_task_widget()
+            return
         if self.view.is_segment_separator_selected():
             segment_name = self.view.get_selected_segment_name()
             self.view.set_task_widget(
@@ -1443,9 +1756,7 @@ class BatchProcessorController:
             position (QPoint): Tree viewport position for the context-menu request.
         """
         item = self.view.task_tree.itemAt(position)
-        if item is None:
-            return
-        item_data = item.data(0, self.view.DATA_ROLE)
+        item_data = item.data(0, self.view.DATA_ROLE) if item is not None else "project"
         source_task = None
         if item_data != "project":
             source_task = self.model.get_task(item_data)
@@ -1462,8 +1773,9 @@ class BatchProcessorController:
         action_copy.triggered.connect(partial(self.context_menu_copy_task, source_task))
         self.view.add_menu_action(parent_menu=menu, action=action_copy)
 
+        append = source_task is None
         action_paste = self.create_action("Paste", icon_path=ui_res_lib.Icon.rigger_action_paste_grayscale)
-        action_paste.triggered.connect(self.context_menu_paste_task)
+        action_paste.triggered.connect(partial(self.context_menu_paste_task, append))
         self.view.add_menu_action(parent_menu=menu, action=action_paste)
 
         action_export = self.create_action("Export", icon_path=ui_res_lib.Icon.rigger_action_export_grayscale)
@@ -1471,7 +1783,7 @@ class BatchProcessorController:
         self.view.add_menu_action(parent_menu=menu, action=action_export)
 
         action_import = self.create_action("Import", icon_path=ui_res_lib.Icon.rigger_action_import_grayscale)
-        action_import.triggered.connect(self.context_menu_import_task)
+        action_import.triggered.connect(partial(self.context_menu_import_task, append))
         self.view.add_menu_action(parent_menu=menu, action=action_import)
 
         menu.addSeparator()
@@ -1480,7 +1792,7 @@ class BatchProcessorController:
         action_delete.triggered.connect(partial(self.context_menu_delete_task, source_task))
         self.view.add_menu_action(parent_menu=menu, action=action_delete)
 
-        if not source_task:
+        if source_task is None:
             action_duplicate.setEnabled(False)
             action_copy.setEnabled(False)
             action_export.setEnabled(False)
@@ -1526,12 +1838,16 @@ class BatchProcessorController:
         except Exception as exception:
             self.log_status("Unable to copy task to clipboard: {0}".format(exception), status="warning")
 
-    def context_menu_paste_task(self):
-        """Pastes a task JSON payload from the clipboard."""
+    def context_menu_paste_task(self, append=False):
+        """Pastes a task JSON payload from the clipboard.
+
+        Args:
+            append (bool, optional): Whether to append the task at the end of the project.
+        """
         try:
             clipboard_content = ui_qt.QtWidgets.QApplication.clipboard().text()
             task_data = json.loads(clipboard_content)
-            inserted_task = self.insert_task_from_data(task_data)
+            inserted_task = self.insert_task_from_data(task_data, append=append)
             self.refresh_widgets()
             self.view.select_task_by_id(inserted_task.id)
             self.log_status('Pasted task: "{0}".'.format(inserted_task.display_name))
@@ -1565,8 +1881,12 @@ class BatchProcessorController:
             json.dump(source_task.to_dict(), task_file, indent=4, sort_keys=True)
         self.log_status('Exported task "{0}" to: {1}'.format(source_task.display_name, file_path))
 
-    def context_menu_import_task(self):
-        """Imports a task JSON payload from disk."""
+    def context_menu_import_task(self, append=False):
+        """Imports a task JSON payload from disk.
+
+        Args:
+            append (bool, optional): Whether to append the task at the end of the project.
+        """
         file_path = ui_file_dialog.file_dialog(
             parent=self.view,
             caption="Import Batch Task",
@@ -1581,7 +1901,7 @@ class BatchProcessorController:
         try:
             with open(file_path, "r", encoding="utf-8") as task_file:
                 task_data = json.load(task_file)
-            inserted_task = self.insert_task_from_data(task_data)
+            inserted_task = self.insert_task_from_data(task_data, append=append)
             self.refresh_widgets()
             self.view.select_task_by_id(inserted_task.id)
             self.log_status('Imported task "{0}" from: {1}'.format(inserted_task.display_name, file_path))
@@ -1615,16 +1935,17 @@ class BatchProcessorController:
         self.refresh_widgets()
         self.log_status('Deleted task: "{0}".'.format(source_task.display_name))
 
-    def insert_task_from_data(self, task_data):
+    def insert_task_from_data(self, task_data, append=False):
         """Inserts a task from serialized data after the selected task when possible.
 
         Args:
             task_data (dict): Serialized task data.
+            append (bool, optional): Whether to append the task at the end of the project.
 
         Returns:
             BatchTask: Inserted task.
         """
-        insert_index = self.get_selected_task_insert_index()
+        insert_index = None if append else self.get_selected_task_insert_index()
         return self.model.add_task_from_dict(data=task_data, index=insert_index, reinitialize_id=True)
 
     def get_selected_task_insert_index(self):
@@ -1683,7 +2004,7 @@ class BatchProcessorController:
             ):
                 launch_message = "Run launched in standalone tracker."
                 self.append_log(f"[OPERATION] - (Multi-instance) - {launch_message}")
-                self.view.set_status(launch_message, status="success")
+                self.view.set_status(launch_message, status="success", pulse=True)
             elif (
                 self.model.run_settings.get("multi_instance")
                 and tracker.status == constants.RunStatus.SUCCEEDED
@@ -1693,24 +2014,25 @@ class BatchProcessorController:
                     "Cleanup run finished: "
                     f"{tracker.total_steps} preflight task(s) completed; no worker jobs were needed."
                 )
-                self.log_status(cleanup_message, status="success")
+                self.log_status(cleanup_message, status="success", pulse=True)
             else:
-                self.log_status("Run finished: {0}".format(tracker.status))
+                self.log_status("Run finished: {0}".format(tracker.status), pulse=True)
         except Exception as exception:
             logger.warning("Batch run failed: %s", exception)
-            self.log_status("Run failed: {0}".format(exception))
+            self.log_status("Run failed: {0}".format(exception), status="error")
         finally:
             self._active_log_file_path = None
             self.apply_custom_environment_query_error_suppression()
 
-    def log_status(self, message, status="info"):
+    def log_status(self, message, status="info", pulse=None):
         """Updates the status bar and appends to the log window.
 
         Args:
             message (str): Message to show and log.
             status (str, optional): Status level used for the bottom status field.
+            pulse (bool, optional): Pulse a glow on the status field. None pulses for success, warning and error.
         """
-        self.view.set_status(message, status=status)
+        self.view.set_status(message, status=status, pulse=pulse)
         self.append_log(message)
 
     def append_log(self, message):

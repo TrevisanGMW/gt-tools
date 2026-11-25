@@ -137,7 +137,7 @@ class KimodoJobActions:
             try:
                 return client.download(job["job_id"], directory, reuse_existing=True), None
             except Exception as error:
-                return None, str(error)
+                return None, str(error), []
 
         def downloaded(payload):
             """Updates local status and stops repeated automatic retries on failure.
@@ -224,6 +224,8 @@ class KimodoJobActions:
         if job.get("cleanup_requested"):
             raise ValueError("This job is being cleaned. Wait for cleanup to finish.")
         paths, settings = copy.deepcopy(job["paths"]), copy.deepcopy(self.model.humanik)
+        target = copy.deepcopy(self.model.target_hik) if self.model.target_hik_enabled else None
+        output_time_unit = self.model.output_time_unit
         job["exporting_maya"] = True
         job.pop("maya_export_error", None)
 
@@ -234,7 +236,9 @@ class KimodoJobActions:
                 tuple: Exported file paths and optional error.
             """
             try:
-                return scene_export.export_maya_files(paths, settings), None
+                warnings = []
+                files = scene_export.export_maya_files(paths, settings, target=target, warnings=warnings, output_time_unit=output_time_unit)
+                return files, None, warnings
             except Exception as error:
                 return None, str(error)
 
@@ -244,19 +248,26 @@ class KimodoJobActions:
             Args:
                 payload (tuple): Output paths/error.
             """
-            files, error = payload
+            files, error, warnings = payload
             job.pop("exporting_maya", None)
             if error:
                 job["maya_export_error"] = error
                 self.message(f"Maya export failed: {error}. Use Create Maya Files to retry.", warning=True)
             else:
                 job["maya_files"] = files
-                self.message(f"Created {len(files)} Maya file(s) with locked HumanIK definitions.")
+                if warnings:
+                    job["maya_export_warning"] = " ".join(warnings)
+                    self.message(job["maya_export_warning"], warning=True)
+                else:
+                    job.pop("maya_export_warning", None)
+                    self.message(f"Created {len(files)} Maya file(s) with locked HumanIK definitions.")
             self.model.save_preferences()
             self.populate_jobs()
             if not error and self.model.auto_import_maya:
                 try:
                     self.import_generated_maya_file(job, automatic=True)
+                    if warnings:
+                        self.message(job["maya_export_warning"], warning=True)
                 except Exception as import_error:
                     job["maya_import_error"] = str(import_error)
                     self.model.save_preferences()
@@ -418,16 +429,16 @@ class KimodoJobActions:
         text = QtWidgets.QLabel(
             f"Clear {len(jobs)} history entries across {len({job['url'] for job in jobs})} server(s)?\n"
             "Active jobs will be cancelled and kept visible until they stop.\n"
-            "Deletion is permanent. Imported Maya animation, added scene files, and model weights are not deleted.")
+            "Deletion is permanent. Local job folders may include Maya scenes and other files. Model weights are not deleted.")
         text.setWordWrap(True)
         layout.addWidget(text)
-        server = QtWidgets.QCheckBox("Delete server job files (including WSL copies)")
+        server = QtWidgets.QCheckBox("Delete server job files (including WSL/Docker copies)")
         server.setChecked(True)
         server.setToolTip("Permanently remove these exact server job folders after completion. "
                           "If a server is unavailable/outdated, keep history so cleanup can be retried.")
-        local = QtWidgets.QCheckBox("Also delete verified downloaded artifacts on this computer")
-        local.setToolTip("Only unchanged, recorded artifacts are deleted. Edited files and extra Maya scenes "
-                         "are preserved. Uncheck to keep downloaded results while removing server duplicates.")
+        local = QtWidgets.QCheckBox("Also delete the entire local job folder")
+        local.setToolTip("Permanently delete all files in the selected job folder, including Maya scenes and "
+                         "other added files. Uncheck to keep local results.")
         layout.addWidget(server)
         layout.addWidget(local)
         buttons = QtWidgets.QDialogButtonBox(
@@ -446,7 +457,7 @@ class KimodoJobActions:
         Args:
             jobs (list): Explicitly confirmed entries.
             server (bool): Delete remote job cache.
-            local (bool): Delete verified local artifacts.
+            local (bool): Delete the entire local job directory.
         """
         for job in jobs:
             job["cleanup_requested"] = {"server": server, "local": local}

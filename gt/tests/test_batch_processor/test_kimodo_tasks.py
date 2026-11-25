@@ -286,7 +286,7 @@ class TestKimodoData(unittest.TestCase):
         """Loads Kimodo presets through the real project serializer and template loader."""
         from gt.tools.batch_processor import batch_processor_model
 
-        folder = os.path.join(os.path.dirname(tasks.__file__), "templates", "package_templates")
+        folder = os.path.join(os.path.dirname(tasks.__file__), "templates")
         names = ["Kimodo Animations.batch", "Kimodo From Strings.batch"]
         self.assertEqual(names, sorted(name for name in os.listdir(folder) if name.startswith("Kimodo")))
         for name in names:
@@ -482,6 +482,7 @@ class TestKimodoGeneration(unittest.TestCase):
 
     def test_cached_failure_explains_opt_in_and_retries_with_new_job_id(self):
         """Avoids repeating a stored failure and issues a new ID only after explicit retry."""
+        self.task.settings["retry_failed"] = False
         self.client.status.return_value = {"status": "failed", "stage": "failed", "error": "old failure"}
         with mock.patch.object(generation, "connect", return_value=self.client):
             with self.assertRaisesRegex(RuntimeError, "old failure"):

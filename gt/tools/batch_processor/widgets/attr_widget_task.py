@@ -15,6 +15,28 @@ import json
 import ast
 
 
+class _SceneOutputLayout(ui_qt.QtWidgets.QHBoxLayout):
+    """Keeps the Scene Output groups centered in equally sized cells."""
+
+    def minimumSize(self):
+        """Gets the minimum size with room for the widest group in every cell.
+
+        Returns:
+            QSize: Minimum row size.
+        """
+        minimum_size = super().minimumSize()
+        if self.count() == 0:
+            return minimum_size
+
+        label_item = self.itemAt(0)
+        # The row label can take its preferred width even when it has a smaller explicit minimum.
+        label_extra_width = label_item.sizeHint().width() - label_item.minimumSize().width()
+        group_widths = [self.itemAt(index).minimumSize().width() for index in range(1, self.count())]
+        equal_groups_width = max(group_widths, default=0) * len(group_widths)
+        minimum_size.setWidth(minimum_size.width() + label_extra_width + equal_groups_width - sum(group_widths))
+        return minimum_size
+
+
 class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
     """Base widget for task-level settings."""
 
@@ -224,7 +246,7 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         if button:
             group_layout.addWidget(button)
         group_layout.addStretch()
-        parent_layout.addWidget(group_widget)
+        parent_layout.addWidget(group_widget, 1)
 
     def add_source_path_field(self, tooltip=None):
         """Adds a standard source path-template field.
@@ -396,6 +418,7 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
             label_width=100,
             tooltip="Scene loading and output settings.",
             parent_layout=parent_layout,
+            layout=_SceneOutputLayout(),
         )
         load_mode_layout = self.add_row_option_group(
             parent_layout=layout,
@@ -409,6 +432,7 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         )
         load_mode_combo.currentTextChanged.connect(partial(self.set_task_setting, key=load_mode_key))
         load_mode_layout.addWidget(load_mode_combo)
+        load_mode_layout.addStretch()
         self.scene_load_mode_combo = load_mode_combo
 
         output_extension_layout = self.add_row_option_group(
@@ -428,6 +452,7 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
                 partial(self.set_task_setting, key=output_extension_key)
             )
         output_extension_layout.addWidget(output_extension_combo)
+        output_extension_layout.addStretch()
         self.output_extension_combo = output_extension_combo
 
         if include_load_plugins:
@@ -448,7 +473,7 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
 
     @staticmethod
     def add_row_option_group(parent_layout, label_text, tooltip=None):
-        """Adds an evenly distributed compact option group to a row.
+        """Adds a compact option group centered within an evenly distributed row cell.
 
         Args:
             parent_layout (QLayout): Parent row layout.
@@ -459,11 +484,11 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
             QHBoxLayout: Layout inside the created option group widget.
         """
         group_widget = ui_qt.QtWidgets.QWidget()
-        group_widget.setMinimumWidth(1)
-        group_widget.setSizePolicy(ui_qt.QtLib.SizePolicy.Expanding, ui_qt.QtLib.SizePolicy.Fixed)
+        group_widget.setSizePolicy(ui_qt.QtLib.SizePolicy.Minimum, ui_qt.QtLib.SizePolicy.Fixed)
         group_layout = ui_qt.QtWidgets.QHBoxLayout(group_widget)
         group_layout.setContentsMargins(0, 0, 0, 0)
         group_layout.setSpacing(5)
+        group_layout.addStretch()
         label = ui_qt.QtWidgets.QLabel("{0}:".format(label_text))
         attr_widget_base.configure_label_for_scaled_displays(label)
         label.setToolTip(tooltip or label_text)
@@ -503,8 +528,10 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         """
         combo_box = ui_qt.QtWidgets.QComboBox()
         combo_box.setMinimumHeight(35)
-        combo_box.setMinimumWidth(90)
-        combo_box.setSizePolicy(ui_qt.QtLib.SizePolicy.Expanding, ui_qt.QtLib.SizePolicy.Fixed)
+        # Let Qt include the longest label, stylesheet padding, and arrow in the minimum size.
+        combo_box.setSizePolicy(ui_qt.QtLib.SizePolicy.Minimum, ui_qt.QtLib.SizePolicy.Fixed)
+        size_adjust_policy = getattr(ui_qt.QtWidgets.QComboBox, "SizeAdjustPolicy", ui_qt.QtWidgets.QComboBox)
+        combo_box.setSizeAdjustPolicy(size_adjust_policy.AdjustToContents)
         combo_box.setToolTip(tooltip or "")
         for item in values:
             combo_box.addItem(str(item))
@@ -940,15 +967,37 @@ class AttrWidgetTask(attr_widget_base.AttrWidgetBase):
         Args:
             label_text (str, optional): Button text.
             tooltip (str, optional): Button tooltip.
+
+        Returns:
+            QPushButton: Created button.
         """
         tooltip = tooltip or "Run only this task using the current batch project settings."
         layout = self.add_labeled_layout("Actions", tooltip=tooltip)
-        button = ui_qt.QtWidgets.QPushButton(label_text)
-        button.setMinimumHeight(35)
-        button.setToolTip(tooltip)
+        button = self.create_action_button(label_text, tooltip=tooltip, icon_path=ui_res_lib.Icon.ui_play)
         button.clicked.connect(self.run_this_task_now)
         layout.addWidget(button)
         layout.addStretch()
+        return button
+
+    @staticmethod
+    def create_action_button(label_text, tooltip=None, icon_path=None):
+        """Creates an action button with horizontal padding so its text never touches the border.
+
+        Args:
+            label_text (str): Button text.
+            tooltip (str, optional): Button tooltip.
+            icon_path (str, optional): Optional icon resource path.
+
+        Returns:
+            QPushButton: Created button.
+        """
+        button = ui_qt.QtWidgets.QPushButton(label_text)
+        button.setMinimumHeight(35)
+        button.setStyleSheet("padding: 3px 16px;")
+        if icon_path:
+            button.setIcon(ui_qt.QtGui.QIcon(icon_path))
+        button.setToolTip(tooltip or label_text)
+        return button
 
     def run_this_task_now(self):
         """Runs this task through the owning batch controller."""
@@ -1200,6 +1249,10 @@ def get_task_widget_class(task):
         from gt.tools.batch_processor.widgets.attr_widget_maya_save import AttrWidgetMayaSaveTask
 
         return AttrWidgetMayaSaveTask
+    if task.task_type == constants.TaskType.MERGE_INPUT:
+        from gt.tools.batch_processor.widgets.attr_widget_merge_input import AttrWidgetMergeInputTask
+
+        return AttrWidgetMergeInputTask
     if task.task_type == constants.TaskType.USD_EXPORT:
         from gt.tools.batch_processor.widgets.attr_widget_export_usd import AttrWidgetUsdExportTask
 
@@ -1270,6 +1323,14 @@ def get_task_widget_class(task):
         from gt.tools.batch_processor.widgets.attr_widget_validation import AttrWidgetFolderCompareValidationTask
 
         return AttrWidgetFolderCompareValidationTask
+    if task.task_type == constants.TaskType.PYTHON_SCRIPT_VALIDATE:
+        from gt.tools.batch_processor.widgets.attr_widget_validation import AttrWidgetPythonValidationTask
+
+        return AttrWidgetPythonValidationTask
+    if task.task_type == constants.TaskType.ANIMATION_VALIDATE:
+        from gt.tools.batch_processor.widgets.attr_widget_validation_animation import AttrWidgetAnimationValidationTask
+
+        return AttrWidgetAnimationValidationTask
     if task.task_type == constants.TaskType.THUMBNAIL_CAPTURE:
         from gt.tools.batch_processor.widgets.attr_widget_capture import AttrWidgetThumbnailCaptureTask
 
@@ -1286,4 +1347,16 @@ def get_task_widget_class(task):
         from gt.tools.batch_processor.widgets.attr_widget_run_batch_project import AttrWidgetRunBatchProject
 
         return AttrWidgetRunBatchProject
+    if task.task_type == constants.TaskType.INPUT_METADATA:
+        from gt.tools.batch_processor.widgets.attr_widget_input_metadata import AttrWidgetInputMetadataTask
+
+        return AttrWidgetInputMetadataTask
+    if task.task_type == constants.TaskType.COMMAND:
+        from gt.tools.batch_processor.widgets.attr_widget_command import AttrWidgetCommandTask
+
+        return AttrWidgetCommandTask
+    if task.task_type == constants.TaskType.SETTINGS_OVERRIDE:
+        from gt.tools.batch_processor.widgets.attr_widget_settings_override import AttrWidgetSettingsOverrideTask
+
+        return AttrWidgetSettingsOverrideTask
     return AttrWidgetTask

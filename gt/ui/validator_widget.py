@@ -167,6 +167,18 @@ class ValidatorModel(ui_qt.QtCore.QAbstractListModel):
             "critical": ui_qt.QtGui.QIcon(ui_res_lib.Icon.validator_fail_hard).pixmap(icon_size),
         }
 
+    def set_validators(self, validators):
+        """Replaces all rows with newly created validators and refreshes connected views.
+
+        Args:
+            validators (list[core_val.ValidatorBase]): Fresh validator instances.
+        """
+        self.beginResetModel()
+        self.validators = sorted(validators, key=lambda validator: validator.status, reverse=True)
+        self.selected_index = None
+        self._wrap_validator_methods()
+        self.endResetModel()
+
     def clear_validators(self):
         """
         Removes all validators from the model.
@@ -729,20 +741,22 @@ class ValidatorWidget(ui_qt.QtWidgets.QWidget):
             self.main_buttons_layout.insertWidget(0, self.settings_container)
         return self.settings_layout
 
-    def add_scope_selection_ui(self):
+    def add_scope_selection_ui(self, layout=None):
         """
-        Adds the "Validation Scope" group box with Selection/Scene radio buttons.
-        Updates the model scope when changed.
-        """
-        settings_layout = self.get_or_create_settings_layout()
+        Adds scope controls and updates the model when the scope changes.
 
+        Args:
+            layout (QHBoxLayout, optional): Inline layout for the scope controls.
+                Defaults to a group box in the validator settings area.
+        """
         if self.scope_group:
             return  # Already added
 
-        self.scope_group = ui_qt.QtWidgets.QGroupBox("Validation Scope")
-        self.scope_layout = ui_qt.QtWidgets.QHBoxLayout()
-        self.scope_layout.setContentsMargins(10, 10, 10, 10)
-        self.scope_layout.setAlignment(ui_qt.QtCore.Qt.AlignCenter)
+        if layout is None:
+            self.scope_group = ui_qt.QtWidgets.QGroupBox("Validation Scope")
+        else:
+            self.scope_group = ui_qt.QtWidgets.QWidget()
+        self.scope_layout = ui_qt.QtWidgets.QHBoxLayout(self.scope_group)
 
         rb_sel = ui_qt.QtWidgets.QRadioButton("Selection")
         rb_scn = ui_qt.QtWidgets.QRadioButton("Scene")
@@ -760,23 +774,33 @@ class ValidatorWidget(ui_qt.QtWidgets.QWidget):
 
         rb_sel.toggled.connect(update_scope)
 
+        if layout is not None:
+            self.scope_layout.setContentsMargins(0, 0, 0, 0)
+            self.scope_layout.setSpacing(8)
+            self.scope_layout.addWidget(ui_qt.QtWidgets.QLabel("Scope"))
+            self.scope_layout.addWidget(rb_scn)
+            self.scope_layout.addWidget(rb_sel)
+            layout.addWidget(self.scope_group)
+            return
+
+        self.scope_layout.setContentsMargins(10, 10, 10, 10)
+        self.scope_layout.setAlignment(ui_qt.QtCore.Qt.AlignCenter)
         self.scope_layout.addStretch()
         self.scope_layout.addWidget(rb_sel)
         self.scope_layout.addStretch()
         self.scope_layout.addWidget(rb_scn)
         self.scope_layout.addStretch()
-        self.scope_group.setLayout(self.scope_layout)
 
         # Insert at the beginning (left) of the settings layout
-        settings_layout.insertWidget(0, self.scope_group)
+        self.get_or_create_settings_layout().insertWidget(0, self.scope_group)
 
     def get_scope_layout(self):
         """
-        Returns the layout of the 'Validation Scope' group box.
+        Returns the layout of the validation scope controls.
         Useful for adding more widgets to the scope area later.
 
         Returns:
-            ui_qt.QtWidgets.QHBoxLayout: The layout inside the scope group box,
+            ui_qt.QtWidgets.QHBoxLayout: The layout containing the scope controls,
                                          or None if add_scope_selection_ui has not been called.
         """
         return self.scope_layout

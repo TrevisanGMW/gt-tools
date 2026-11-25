@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <title>Animation Evaluator</title>
+  <!-- Neutral walking pose: the animation being evaluated. -->
+  <circle cx="150" cy="92" r="50" style="fill:#BDBDBD;stroke:#1D1D1D;stroke-width:18;"/>
+  <g style="fill:none;stroke-linecap:round;stroke-linejoin:round;">
+    <path d="M146,164 L134,290 M142,196 L62,250 M142,196 L224,236 M134,290 L66,382 M134,290 L206,370" style="stroke:#1D1D1D;stroke-width:58;"/>
+    <path d="M146,164 L134,290 M142,196 L62,250 M142,196 L224,236 M134,290 L66,382 M134,290 L206,370" style="stroke:#BDBDBD;stroke-width:32;"/>
+  </g>
+  <!-- Score gauge: the evaluation result. -->
+  <circle cx="366" cy="360" r="124" style="fill:#BDBDBD;stroke:#1D1D1D;stroke-width:20;"/>
+  <path d="M286,400 A86,86 0 1 1 446,400" style="fill:none;stroke:#1D1D1D;stroke-width:46;stroke-linecap:round;"/>
+  <path d="M286,400 A86,86 0 1 1 446,400" style="fill:none;stroke:#FF6A6A;stroke-width:24;stroke-linecap:round;"/>
+  <path d="M366,372 L414,302" style="fill:none;stroke:#1D1D1D;stroke-width:28;stroke-linecap:round;"/>
+  <circle cx="366" cy="372" r="24" style="fill:#1D1D1D;"/>
+</svg>

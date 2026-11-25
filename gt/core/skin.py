@@ -1255,6 +1255,36 @@ def remove_unused_influences(skin_cluster):
             cmds.skinCluster(skin_cluster, edit=True, removeInfluence=inf.fullPathName())
 
 
+def get_skinned_transforms(root_nodes):
+    """Finds the transforms of skinned geometry inside hierarchies.
+
+    Skinned geometry is already moved by its joints, so moving one of its parents moves it twice.
+    Use this to find transforms that should not inherit a parent offset.
+
+    Args:
+        root_nodes (list): Root transforms to search (the roots themselves are included).
+
+    Returns:
+        list: Long names of transforms whose mesh, NURBS curve or surface shape has a skinCluster.
+    """
+    existing_roots = [node for node in (root_nodes or []) if cmds.objExists(node)]
+    if not existing_roots:
+        return []
+    shape_types = ["mesh", "nurbsCurve", "nurbsSurface"]
+    shapes = cmds.listRelatives(existing_roots, allDescendents=True, type=shape_types, fullPath=True) or []
+    shapes += cmds.ls(existing_roots, type=shape_types, long=True) or []
+    skinned_transforms = []
+    for shape in shapes:
+        if cmds.getAttr(f"{shape}.intermediateObject"):
+            continue
+        if not cmds.ls(cmds.listHistory(shape, pruneDagObjects=True) or [], type="skinCluster"):
+            continue
+        parent = (cmds.listRelatives(shape, parent=True, fullPath=True) or [None])[0]
+        if parent and parent not in skinned_transforms:
+            skinned_transforms.append(parent)
+    return skinned_transforms
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
 

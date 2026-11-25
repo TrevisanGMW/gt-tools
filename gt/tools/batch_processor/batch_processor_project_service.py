@@ -13,8 +13,9 @@ from gt.tools.batch_processor import batch_processor_projects as projects
 from gt.tools.batch_processor.batch_processor_task_base import sanitize_filename
 
 
-LAUNCH_TIMEOUT_SECONDS = 120
-HEARTBEAT_TIMEOUT_SECONDS = 120
+# Zero disables internal watchdogs; saved project settings govern processing timeouts.
+LAUNCH_TIMEOUT_SECONDS = 0
+HEARTBEAT_TIMEOUT_SECONDS = 0
 
 
 def preview_projects(task, parent):
@@ -235,7 +236,10 @@ def execute_project(task, work_item, parent, context, root):
 
 
 def wait_for_result(process, request, context):
-    """Monitors child liveness, startup and processing deadlines.
+    """Monitors child results and process liveness with optional watchdogs.
+
+    Startup remains complete after the first matching status. Temporary read
+    failures retain the last valid heartbeat instead of restarting startup checks.
 
     Args:
         process (subprocess.Popen): Owned child supervisor.
@@ -246,18 +250,18 @@ def wait_for_result(process, request, context):
         dict: Verified terminal child result.
     """
     run_dir = request["run_dir"]
-    settings = request["settings"]
     result_path = os.path.join(run_dir, "result.json")
     started = time.monotonic()
+    status = {}
     while True:
         result = projects.read_json(result_path)
         if result.get("finished") and result.get("run_id") == request["run_id"]:
             if result.get("schema_version") != projects.SCHEMA_VERSION:
                 raise RuntimeError("Unsupported child project result schema.")
             return result
-        status = projects.read_json(os.path.join(run_dir, "status.json"))
-        if status.get("run_id") != request["run_id"]:
-            status = {}
+        current_status = projects.read_json(os.path.join(run_dir, "status.json"))
+        if current_status.get("run_id") == request["run_id"]:
+            status = current_status
         elapsed = time.monotonic() - started
         launch_timeout = LAUNCH_TIMEOUT_SECONDS
         if not status and launch_timeout and elapsed > launch_timeout:

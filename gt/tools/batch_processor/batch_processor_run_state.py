@@ -155,6 +155,8 @@ def get_environment_variables(project, task=None):
             excludes the running task and includes all enabled processing tasks
             before it, including tasks outside a shortened run.
     """
+    from gt.tools.batch_processor.batch_processor_task_base import is_processing_task
+
     state = getattr(project, "_batch_run_state", None) or {"known": False}
     enabled = project.get_enabled_tasks()
     previous = []
@@ -162,8 +164,10 @@ def get_environment_variables(project, task=None):
     for candidate in enabled:
         if candidate is task:
             break
+        if getattr(candidate, "is_settings_override_task", False):
+            continue
         previous_task_id = candidate.id
-        if not candidate.is_input_task:
+        if is_processing_task(candidate):
             previous.append(candidate.id)
     known = state.get("known") is True
     previous_succeeded = (

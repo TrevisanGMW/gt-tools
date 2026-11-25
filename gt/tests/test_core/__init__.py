@@ -31,9 +31,11 @@ from . import test_selection
 from . import test_session
 from . import test_skin
 from . import test_str
+from . import test_timeline
 from . import test_surface
 from . import test_transform
 from . import test_undo
 from . import test_uuid
 from . import test_version
 from . import test_blendshape
+from . import test_environment_references

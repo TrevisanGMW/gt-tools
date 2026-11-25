@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px"
+	 viewBox="0 0 420 420" style="enable-background:new 0 0 420 420;" xml:space="preserve">
+<g id="multi_file_importer">
+	<path style="fill:#8C8C8C;stroke:#1D1D1D;stroke-width:20;stroke-linejoin:round;" d="M150,20h130l60,60v170H150V20z"/>
+	<path style="fill:#A5A5A5;stroke:#1D1D1D;stroke-width:20;stroke-linejoin:round;" d="M110,60h130l60,60v170H110V60z"/>
+	<path style="fill:#BDBDBD;stroke:#1D1D1D;stroke-width:20;stroke-linejoin:round;" d="M70,100h130l60,60v170H70V100z"/>
+	<path style="fill:#E0E0E0;stroke:#1D1D1D;stroke-width:16;stroke-linejoin:round;" d="M200,100v60h60"/>
+	<path style="fill:#5285A6;stroke:#1D1D1D;stroke-width:20;stroke-linejoin:round;"
+		d="M290,230h60v90h45l-75,80l-75-80h45V230z"/>
+	<path style="fill:none;stroke:#1D1D1D;stroke-width:20;stroke-linecap:round;" d="M30,400h230"/>
+</g>
+</svg>

@@ -9,7 +9,171 @@ import gt.ui.qt_import as ui_qt
 from functools import partial
 
 
-class AttrWidgetMayaImportTask(AttrWidgetTask):
+class MayaSceneOptionControlsMixin:
+    """Adds the shared optional framerate, scene scale, and up-axis rows to a task widget.
+
+    The host widget must provide AttrWidgetTask helpers and a task using the set_framerate,
+    framerate, set_scene_scale, scene_scale, set_scene_up_axis, and scene_up_axis settings.
+    """
+
+    framerate_spin_box = None
+    scene_scale_combo_box = None
+    up_axis_combo_box = None
+
+    def add_scene_option_controls(self, include_clear_scene=True, apply_moment="after opening or importing"):
+        """Adds optional Maya scene unit and orientation controls.
+
+        Args:
+            include_clear_scene (bool, optional): Whether to add the Clear Scene row.
+            apply_moment (str, optional): Text describing when the options are applied, used in tooltips.
+        """
+        self.add_widget_separator_line(label_text="Maya Scene Options")
+        if include_clear_scene:
+            self.add_clear_scene_control()
+        self.add_framerate_control(apply_moment)
+        self.add_scene_scale_control(apply_moment)
+        self.add_scene_up_axis_control(apply_moment)
+        self.refresh_scene_option_enabled_state()
+
+    def add_clear_scene_control(self):
+        """Adds the Clear Scene row."""
+        clear_scene_layout = self.add_labeled_layout(
+            "Scene",
+            label_width=110,
+            tooltip="Scene reset options applied before loading the source file.",
+        )
+        self.add_checkbox(
+            "Clear Scene",
+            self.task.settings.get("clear_scene"),
+            partial(self.set_task_setting, key="clear_scene"),
+            layout=clear_scene_layout,
+            tooltip="Start a new empty Maya scene before each import.",
+        )
+        clear_scene_layout.addStretch()
+
+    def add_framerate_control(self, apply_moment):
+        """Adds the optional framerate row.
+
+        Args:
+            apply_moment (str): Text describing when the option is applied.
+        """
+        framerate_layout = self.add_labeled_layout(
+            "Framerate",
+            label_width=110,
+            tooltip=f"Optionally set the Maya scene framerate {apply_moment}.",
+        )
+        self.add_checkbox(
+            "Set",
+            self.task.settings.get("set_framerate"),
+            self.set_framerate_enabled,
+            layout=framerate_layout,
+            tooltip="Set the scene framerate after loading the source file.",
+        )
+        self.framerate_spin_box = ui_qt.QtWidgets.QSpinBox()
+        self.framerate_spin_box.setRange(1, 6000)
+        self.framerate_spin_box.setValue(int(self.task.settings.get("framerate") or 30))
+        self.framerate_spin_box.setMinimumHeight(35)
+        self.framerate_spin_box.setFixedWidth(90)
+        self.framerate_spin_box.setToolTip("Frames per second.")
+        self.framerate_spin_box.valueChanged.connect(partial(self.set_task_setting, key="framerate"))
+        framerate_layout.addWidget(self.framerate_spin_box)
+        self.add_row_label(framerate_layout, "fps", tooltip="Frames per second.")
+        framerate_layout.addStretch()
+
+    def add_scene_scale_control(self, apply_moment):
+        """Adds the optional scene scale row.
+
+        Args:
+            apply_moment (str): Text describing when the option is applied.
+        """
+        scale_layout = self.add_labeled_layout(
+            "Scene Scale",
+            label_width=110,
+            tooltip=f"Optionally set the Maya linear unit {apply_moment}.",
+        )
+        self.add_checkbox(
+            "Set",
+            self.task.settings.get("set_scene_scale"),
+            self.set_scene_scale_enabled,
+            layout=scale_layout,
+            tooltip="Set the scene linear unit after loading the source file.",
+        )
+        self.scene_scale_combo_box = self.create_row_combo_box(
+            value=self.task.settings.get("scene_scale"),
+            values=["mm", "cm", "m", "in", "ft", "yd"],
+            tooltip="Maya linear unit.",
+        )
+        self.scene_scale_combo_box.currentTextChanged.connect(partial(self.set_task_setting, key="scene_scale"))
+        scale_layout.addWidget(self.scene_scale_combo_box)
+        scale_layout.addStretch()
+
+    def add_scene_up_axis_control(self, apply_moment):
+        """Adds the optional scene up-axis row.
+
+        Args:
+            apply_moment (str): Text describing when the option is applied.
+        """
+        up_axis_layout = self.add_labeled_layout(
+            "Scene Up Axis",
+            label_width=110,
+            tooltip=f"Optionally set the Maya scene up axis {apply_moment}.",
+        )
+        self.add_checkbox(
+            "Set",
+            self.task.settings.get("set_scene_up_axis"),
+            self.set_scene_up_axis_enabled,
+            layout=up_axis_layout,
+            tooltip="Set the scene up axis after loading the source file.",
+        )
+        self.up_axis_combo_box = self.create_row_combo_box(
+            value=self.task.settings.get("scene_up_axis"),
+            values=["Y", "Z"],
+            tooltip="Maya scene up axis.",
+        )
+        self.up_axis_combo_box.currentTextChanged.connect(partial(self.set_task_setting, key="scene_up_axis"))
+        up_axis_layout.addWidget(self.up_axis_combo_box)
+        up_axis_layout.addStretch()
+
+    def set_framerate_enabled(self, value):
+        """Sets whether the framerate option is enabled.
+
+        Args:
+            value (bool): Whether framerate should be set during execution.
+        """
+        self.task.settings["set_framerate"] = bool(value)
+        self.refresh_scene_option_enabled_state()
+
+    def set_scene_scale_enabled(self, value):
+        """Sets whether the scene scale option is enabled.
+
+        Args:
+            value (bool): Whether scene scale should be set during execution.
+        """
+        self.task.settings["set_scene_scale"] = bool(value)
+        self.refresh_scene_option_enabled_state()
+
+    def set_scene_up_axis_enabled(self, value):
+        """Sets whether the scene up-axis option is enabled.
+
+        Args:
+            value (bool): Whether scene up axis should be set during execution.
+        """
+        self.task.settings["set_scene_up_axis"] = bool(value)
+        self.refresh_scene_option_enabled_state()
+
+    def refresh_scene_option_enabled_state(self):
+        """Refreshes enabled states for optional Maya scene controls."""
+        option_widgets = [
+            (getattr(self, "framerate_spin_box", None), "set_framerate"),
+            (getattr(self, "scene_scale_combo_box", None), "set_scene_scale"),
+            (getattr(self, "up_axis_combo_box", None), "set_scene_up_axis"),
+        ]
+        for option_widget, setting_key in option_widgets:
+            if option_widget:
+                option_widget.setEnabled(bool(self.task.settings.get(setting_key)))
+
+
+class AttrWidgetMayaImportTask(MayaSceneOptionControlsMixin, AttrWidgetTask):
     """Attribute widget for the Maya import task."""
 
     def __init__(self, parent=None, task=None, project=None, refresh_parent_func=None, *args, **kwargs):
@@ -64,126 +228,6 @@ class AttrWidgetMayaImportTask(AttrWidgetTask):
             include_input_directory_validation=True,
         )
         self.content_layout.addStretch()
-
-    def add_scene_option_controls(self):
-        """Adds optional Maya scene unit and orientation controls."""
-        self.add_widget_separator_line(label_text="Maya Scene Options")
-
-        clear_scene_layout = self.add_labeled_layout(
-            "Scene",
-            label_width=110,
-            tooltip="Scene reset options applied before loading the source file.",
-        )
-        self.add_checkbox(
-            "Clear Scene",
-            self.task.settings.get("clear_scene"),
-            partial(self.set_task_setting, key="clear_scene"),
-            layout=clear_scene_layout,
-            tooltip="Start a new empty Maya scene before each import.",
-        )
-        clear_scene_layout.addStretch()
-
-        framerate_layout = self.add_labeled_layout(
-            "Framerate",
-            label_width=110,
-            tooltip="Optionally set the Maya scene framerate after opening or importing.",
-        )
-        self.add_checkbox(
-            "Set",
-            self.task.settings.get("set_framerate"),
-            self.set_framerate_enabled,
-            layout=framerate_layout,
-            tooltip="Set the scene framerate after loading the source file.",
-        )
-        self.framerate_spin_box = ui_qt.QtWidgets.QSpinBox()
-        self.framerate_spin_box.setRange(1, 6000)
-        self.framerate_spin_box.setValue(int(self.task.settings.get("framerate") or 30))
-        self.framerate_spin_box.setMinimumHeight(35)
-        self.framerate_spin_box.setFixedWidth(90)
-        self.framerate_spin_box.setToolTip("Frames per second.")
-        self.framerate_spin_box.valueChanged.connect(partial(self.set_task_setting, key="framerate"))
-        framerate_layout.addWidget(self.framerate_spin_box)
-        self.add_row_label(framerate_layout, "fps", tooltip="Frames per second.")
-        framerate_layout.addStretch()
-
-        scale_layout = self.add_labeled_layout(
-            "Scene Scale",
-            label_width=110,
-            tooltip="Optionally set the Maya linear unit after opening or importing.",
-        )
-        self.add_checkbox(
-            "Set",
-            self.task.settings.get("set_scene_scale"),
-            self.set_scene_scale_enabled,
-            layout=scale_layout,
-            tooltip="Set the scene linear unit after loading the source file.",
-        )
-        self.scene_scale_combo_box = self.create_row_combo_box(
-            value=self.task.settings.get("scene_scale"),
-            values=["mm", "cm", "m", "in", "ft", "yd"],
-            tooltip="Maya linear unit.",
-        )
-        self.scene_scale_combo_box.currentTextChanged.connect(partial(self.set_task_setting, key="scene_scale"))
-        scale_layout.addWidget(self.scene_scale_combo_box)
-        scale_layout.addStretch()
-
-        up_axis_layout = self.add_labeled_layout(
-            "Scene Up Axis",
-            label_width=110,
-            tooltip="Optionally set the Maya scene up axis after opening or importing.",
-        )
-        self.add_checkbox(
-            "Set",
-            self.task.settings.get("set_scene_up_axis"),
-            self.set_scene_up_axis_enabled,
-            layout=up_axis_layout,
-            tooltip="Set the scene up axis after loading the source file.",
-        )
-        self.up_axis_combo_box = self.create_row_combo_box(
-            value=self.task.settings.get("scene_up_axis"),
-            values=["Y", "Z"],
-            tooltip="Maya scene up axis.",
-        )
-        self.up_axis_combo_box.currentTextChanged.connect(partial(self.set_task_setting, key="scene_up_axis"))
-        up_axis_layout.addWidget(self.up_axis_combo_box)
-        up_axis_layout.addStretch()
-        self.refresh_scene_option_enabled_state()
-
-    def set_framerate_enabled(self, value):
-        """Sets whether the framerate option is enabled.
-
-        Args:
-            value (bool): Whether framerate should be set during execution.
-        """
-        self.task.settings["set_framerate"] = bool(value)
-        self.refresh_scene_option_enabled_state()
-
-    def set_scene_scale_enabled(self, value):
-        """Sets whether the scene scale option is enabled.
-
-        Args:
-            value (bool): Whether scene scale should be set during execution.
-        """
-        self.task.settings["set_scene_scale"] = bool(value)
-        self.refresh_scene_option_enabled_state()
-
-    def set_scene_up_axis_enabled(self, value):
-        """Sets whether the scene up-axis option is enabled.
-
-        Args:
-            value (bool): Whether scene up axis should be set during execution.
-        """
-        self.task.settings["set_scene_up_axis"] = bool(value)
-        self.refresh_scene_option_enabled_state()
-
-    def refresh_scene_option_enabled_state(self):
-        """Refreshes enabled states for optional Maya scene controls."""
-        if self.framerate_spin_box:
-            self.framerate_spin_box.setEnabled(bool(self.task.settings.get("set_framerate")))
-        if self.scene_scale_combo_box:
-            self.scene_scale_combo_box.setEnabled(bool(self.task.settings.get("set_scene_scale")))
-        if self.up_axis_combo_box:
-            self.up_axis_combo_box.setEnabled(bool(self.task.settings.get("set_scene_up_axis")))
 
     def add_post_script_section(self):
         """Adds the collapsed optional post-script section."""

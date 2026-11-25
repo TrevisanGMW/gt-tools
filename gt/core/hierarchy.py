@@ -564,6 +564,31 @@ def find_top_parent(obj, target_type=None):
     return top_match
 
 
+def get_root_transforms(nodes):
+    """Gets the top-level DAG transforms found in a node list.
+
+    Useful after an import or reference to find the new nodes sitting directly under the world.
+
+    Args:
+        nodes (list): Node names, for example the nodes returned by an import.
+
+    Returns:
+        list: Long names of transforms without a parent, in a stable order.
+    """
+    existing_nodes = [node for node in (nodes or []) if cmds.objExists(node)]
+    if not existing_nodes:
+        return []
+    transforms = cmds.ls(existing_nodes, type="transform", long=True) or []
+    root_transforms = []
+    for transform in transforms:
+        if transform.count("|") != 1:
+            continue
+        if transform in root_transforms:
+            continue
+        root_transforms.append(transform)
+    return root_transforms
+
+
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     out = get_shape_components("pConeShape1")

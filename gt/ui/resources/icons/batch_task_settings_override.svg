@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150">
+  <style>
+    .surface { fill: #bdbdbd; stroke: #1d1d1d; stroke-width: 6; stroke-linejoin: round; }
+    .track { fill: none; stroke: #1d1d1d; stroke-width: 7; stroke-linecap: round; }
+    .knob { fill: #64b7a5; stroke: #1d1d1d; stroke-width: 6; stroke-linejoin: round; }
+  </style>
+  <rect class="surface" x="20" y="20" width="110" height="110" rx="10"/>
+  <path class="track" d="M44 50h62M44 75h62M44 100h62"/>
+  <rect class="knob" x="54" y="40" width="18" height="20" rx="4"/>
+  <rect class="knob" x="80" y="65" width="18" height="20" rx="4"/>
+  <rect class="knob" x="62" y="90" width="18" height="20" rx="4"/>
+</svg>

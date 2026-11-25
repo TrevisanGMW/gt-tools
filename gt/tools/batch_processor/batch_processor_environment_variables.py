@@ -1,10 +1,15 @@
-"""Import-safe helpers for transferring and testing custom environment variables."""
+"""Import-safe helpers for transferring, testing, and tracing environment variables."""
 
 import copy
 import json
 import os
 
+import gt.core.environment_references as core_env_refs
 from gt.tools.batch_processor import batch_processor_model
+
+REFERENCE_CODE_NAMES = ("env", "environment_variables")
+_PROJECT_DIR_DERIVED_KEYS = ("project-parent-dir", "project-grandparent-dir")
+_PROJECT_RELATIVE_KEYS = ("input-dir", "task-dir", "output-dir")
 
 
 def evaluate_variable(name, variables, project=None):
@@ -158,4 +163,169 @@ def write_variables(file_path, variables):
     payload = json.loads(serialize_variables(variables))
     batch_processor_model.BatchProcessorModel._atomic_write_json(
         os.path.abspath(file_path), payload, sort_keys=False
+    )
+
+
+def normalize_reference_key(key):
+    """Normalizes a referenced token key, mapping legacy aliases to current names.
+
+    Args:
+        key (str): Raw token key with or without braces.
+
+    Returns:
+        str: Lowercase hyphen-separated key used by the environment-variable table.
+    """
+    normalized_key = batch_processor_model.normalize_environment_key(key)
+    return batch_processor_model._LEGACY_INDEX_ENVIRONMENT_ALIASES.get(
+        normalized_key, normalized_key
+    )
+
+
+def _is_project_relative_path(value):
+    """Checks whether a configured folder is resolved relative to the project folder.
+
+    Args:
+        value (str): Configured folder value.
+
+    Returns:
+        bool: True for non-empty relative paths that do not start with a token.
+    """
+    value = str(value or "").strip()
+    return bool(value) and not value.startswith("{") and not os.path.isabs(value)
+
+
+def build_project_folder_sources(environment_variables):
+    """Builds sources for configured project folders and their built-in dependencies.
+
+    Args:
+        environment_variables (dict): Serialized project folder settings.
+
+    Returns:
+        list: Reference sources defining folder variables.
+    """
+    sources = []
+    for key, value in (environment_variables or {}).items():
+        key = batch_processor_model.normalize_environment_key(key)
+        if not value:
+            continue
+        sources.append(
+            {
+                "kind": "variable",
+                "id": key,
+                "label": f"{{{key}}} (project folder)",
+                "data": {"value": value},
+                "defines": key,
+            }
+        )
+        if key in _PROJECT_RELATIVE_KEYS and _is_project_relative_path(value):
+            sources.append(
+                {
+                    "kind": "variable",
+                    "id": key,
+                    "label": f"{{{key}}} (relative to project folder)",
+                    "data": {"value": "{project-dir}"},
+                    "defines": key,
+                }
+            )
+    for key in _PROJECT_DIR_DERIVED_KEYS:
+        sources.append(
+            {
+                "kind": "variable",
+                "id": key,
+                "label": f"{{{key}}} (built-in)",
+                "data": {"value": "{project-dir}"},
+                "defines": key,
+            }
+        )
+    return sources
+
+
+def build_reference_sources(project_data):
+    """Builds reference sources from serialized Batch Processor project data.
+
+    Args:
+        project_data (dict): Data returned by ``BatchProcessorModel.to_dict``.
+
+    Returns:
+        list: Reference sources for ``gt.core.environment_references.find_references``.
+    """
+    project_data = project_data or {}
+    sources = build_project_folder_sources(project_data.get("environment_variables"))
+
+    custom_variables = project_data.get("custom_environment_variables") or {}
+    for name, definition in custom_variables.items():
+        name = batch_processor_model.normalize_environment_key(name)
+        definition = definition if isinstance(definition, dict) else {"value": definition}
+        query_suffix = " (query)" if definition.get("query") else ""
+        sources.append(
+            {
+                "kind": "variable",
+                "id": name,
+                "label": f"{{{name}}}{query_suffix}",
+                "data": {"value": definition.get("value", "")},
+                "defines": name,
+            }
+        )
+
+    run_settings = dict(project_data.get("run_settings") or {})
+    log_path = run_settings.pop("log_path", "")
+    if log_path:
+        sources.append(
+            {
+                "kind": "variable",
+                "id": "log-dir",
+                "label": "{log-dir} (run settings)",
+                "data": {"log_path": log_path},
+                "defines": "log-dir",
+            }
+        )
+    sources.append(
+        {
+            "kind": "project",
+            "id": "run_settings",
+            "label": "Run settings",
+            "data": run_settings,
+        }
+    )
+    sources.append(
+        {
+            "kind": "project",
+            "id": "notes",
+            "label": "Project notes",
+            "data": project_data.get("notes", ""),
+        }
+    )
+
+    for task_position, task_data in enumerate(project_data.get("tasks") or [], start=1):
+        task_name = task_data.get("display_name") or task_data.get("task_type") or "Task"
+        scanned_data = {
+            key: value
+            for key, value in task_data.items()
+            if key not in ("id", "task_type", "enabled")
+        }
+        sources.append(
+            {
+                "kind": "task",
+                "id": task_data.get("id", ""),
+                "label": f"#{task_position:02d} {task_name}",
+                "enabled": task_data.get("enabled", True),
+                "data": scanned_data,
+            }
+        )
+    return sources
+
+
+def find_project_references(project_data):
+    """Finds where each environment variable is used in a Batch Processor project.
+
+    Args:
+        project_data (dict): Data returned by ``BatchProcessorModel.to_dict``.
+
+    Returns:
+        dict: Unbraced token keys mapped to reference dictionaries.
+    """
+    return core_env_refs.find_references(
+        build_reference_sources(project_data),
+        normalize_key=normalize_reference_key,
+        code_names=REFERENCE_CODE_NAMES,
     )

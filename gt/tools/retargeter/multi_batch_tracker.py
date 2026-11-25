@@ -17,6 +17,11 @@ parser.add_argument(
     "--skip-existing", action="store_true", help="Skip files that already exist in the output directory"
 )
 parser.add_argument(
+    "--sounds-dir",
+    default="",
+    help="Folder with status sounds (success/warning/failure.wav). A sound plays on completion when provided.",
+)
+parser.add_argument(
     "-j", "--job-file", required=True, help="Path to a text file containing the list of source files (one per line)."
 )
 args = parser.parse_args()
@@ -28,6 +33,9 @@ MAX_CONCURRENT_WORKERS = args.workers
 running_processes = []
 jobs_done = 0
 jobs_started = 0
+jobs_failed = 0
+jobs_attempted = 0
+tracker_crashed = False
 processed_file_paths = []
 
 job_queue = []
@@ -98,6 +106,7 @@ try:
                     processed_file_paths.append(output_path)
                 else:
                     # Any other code is a failure
+                    jobs_failed += 1
                     print(f"--- ❌ FAILED: '{name}' (Job {jobs_done}/{total_jobs}) ---")
                     if not args.no_log:
                         print(f"    See log for details: {os.path.join(logs_dir, os.path.splitext(name)[0] + '.log')}")
@@ -123,6 +132,7 @@ try:
                 continue
 
             jobs_started += 1
+            jobs_attempted += 1
             print(f"--- 🚀 LAUNCHING: '{source_filename_only}' (Job {jobs_started}/{total_jobs}) ---")
 
             command_list = [
@@ -175,6 +185,7 @@ try:
 
             except Exception as e:
                 print(f"!!! FAILED TO LAUNCH WORKER for {source_filename_only}: {e}")
+                jobs_failed += 1
                 # Ensure we close the handle if launch failed but file opened
                 if "log_handle" in locals() and log_handle:
                     log_handle.close()
@@ -182,14 +193,42 @@ try:
         time.sleep(1)
 
 except Exception as e:
+    tracker_crashed = True
     print(f"!!! TRACKER ERROR: {e} !!!")
     traceback.print_exc()
+
+
+def play_completion_sound(sounds_dir, failed_count, attempted_count, crashed):
+    """Plays a sound matching the final batch status. Never raises.
+
+    Args:
+        sounds_dir (str): Folder containing "success.wav", "warning.wav" and "failure.wav".
+        failed_count (int): Number of jobs that failed.
+        attempted_count (int): Number of jobs launched (skipped jobs are not included).
+        crashed (bool): True when the tracker loop itself raised an error.
+    """
+    if not sounds_dir or sys.platform != "win32":
+        return
+    if crashed or (failed_count and failed_count >= attempted_count):
+        sound_name = "failure.wav"
+    elif failed_count:
+        sound_name = "warning.wav"
+    else:
+        sound_name = "success.wav"
+    try:
+        import winsound
+
+        winsound.PlaySound(os.path.join(sounds_dir, sound_name), winsound.SND_FILENAME | winsound.SND_ASYNC)
+    except Exception as sound_exception:
+        print(f"Unable to play completion sound: {sound_exception}")
+
 
 # --- All jobs are done ---
 print("--------------------------------------------")
 print("--- ALL JOBS COMPLETE ---")
 print("--------------------------------------------")
 print("You can now check your output directory.")
+play_completion_sound(args.sounds_dir, jobs_failed, jobs_attempted, tracker_crashed)
 
 print("Press ENTER to close this window...")
 input()

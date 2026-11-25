@@ -23,6 +23,7 @@ class ConnectAttributesModel:
         "utility_node_type": "plusMinusAverage",
         "use_shared_input": False,
         "shared_input_node_type": "condition",
+        "advanced_expanded": False,
     }
 
     def __init__(self, preferences=None):

@@ -8,6 +8,7 @@ tool remains usable without loading the UI.
 from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor import batch_processor_tasks as tasks
 from gt.tools.batch_processor import batch_processor_run_state as run_state
+from gt.tools.batch_processor import batch_processor_input_metadata as input_metadata
 import copy
 import datetime
 import json
@@ -153,6 +154,35 @@ def is_valid_custom_environment_name(name):
     return bool(_CUSTOM_ENVIRONMENT_NAME_PATTERN.match(str(name or "").strip()))
 
 
+def is_run_once_task(task):
+    """Checks whether a task is set to run once before or after all jobs.
+
+    Args:
+        task (BatchTask): Task to inspect.
+
+    Returns:
+        bool: True when Run Once Before or Run Once After All Jobs is on and supported.
+    """
+    before = getattr(task, "supports_run_once_before_jobs", False) and task.settings.get(
+        "run_once_before_multi_instance", False)
+    after = getattr(task, "supports_run_once_after_jobs", False) and task.settings.get(
+        "run_once_after_multi_instance", False)
+    return bool(before or after)
+
+
+def all_tasks_run_once(task_list):
+    """Checks whether every processing task runs once, so the project needs no input files.
+
+    Args:
+        task_list (list): Enabled tasks.
+
+    Returns:
+        bool: True when there is at least one processing task and all of them run once.
+    """
+    processing_tasks = [task for task in task_list if tasks.is_processing_task(task)]
+    return bool(processing_tasks) and all(is_run_once_task(task) for task in processing_tasks)
+
+
 class BatchProcessorModel:
     """Data model for a batch processing project."""
 
@@ -267,7 +297,9 @@ class BatchProcessorModel:
         """
         if not is_valid_custom_environment_name(name):
             return False
-        return normalize_environment_key(name) not in _RESERVED_ENVIRONMENT_KEYS
+        normalized_name = normalize_environment_key(name)
+        return (normalized_name not in _RESERVED_ENVIRONMENT_KEYS
+                and not input_metadata.is_metadata_variable_key(normalized_name))
 
     @staticmethod
     def get_reserved_environment_keys():
@@ -371,7 +403,7 @@ class BatchProcessorModel:
                 """
                 key = normalize_environment_key(match.group(1))
                 key = _LEGACY_INDEX_ENVIRONMENT_ALIASES.get(key, key)
-                if key in ("input-file", "input-string"):
+                if key in ("input-file", "input-string") or input_metadata.is_metadata_variable_key(key):
                     return match.group(0)
                 if key not in environment_variables:
                     return match.group(0)
@@ -382,12 +414,13 @@ class BatchProcessorModel:
                 break
             resolved = new_resolved
         runtime_values = getattr(self, "_input_string_environment", {})
-        return re.sub(
+        resolved = re.sub(
             r"\{input[-_](file|string)\}",
             lambda match: str(runtime_values.get(f"input-{match.group(1).lower()}", "")),
             resolved,
             flags=re.IGNORECASE,
         )
+        return input_metadata.replace_metadata_variables(resolved, runtime_values)
 
     def resolve_template_path(self, path, task=None, task_index=None, include_neighbor_paths=True):
         """Resolves a path after expanding batch environment variables.
@@ -659,6 +692,47 @@ class BatchProcessorModel:
             bool: True when at least one segment boundary is present.
         """
         return len(self.get_task_segments(task_list=task_list)) > 1
+
+    def build_run_settings_plan(self, selected_tasks, excluded_task_ids=None):
+        """Builds when run settings change during a multi-instance run.
+
+        Enabled "Settings Override" tasks before the first selected task
+        (shortened runs) are folded into the initial settings, so a partial run
+        uses the same settings it would have reached in a full run. Selected
+        Settings Override tasks are scheduled at segment barriers.
+
+        Args:
+            selected_tasks (list): Enabled tasks selected for the run, in order.
+            excluded_task_ids (list, optional): Task ids that do not run as segment
+                work, such as run-once before/after tasks.
+
+        Returns:
+            dict: "initial" holds the effective starting run settings, "segments"
+                one override dictionary per processing segment, and "final" the
+                overrides applied before the run-once finalization phase.
+        """
+        from gt.tools.batch_processor import batch_processor_run_settings as run_settings
+
+        selected_tasks = list(selected_tasks or [])
+        excluded_task_ids = set(excluded_task_ids or [])
+        preceding_tasks = []
+        if selected_tasks:
+            first_task_id = selected_tasks[0].id
+            for task in self.get_enabled_tasks():
+                if task.id == first_task_id:
+                    break
+                preceding_tasks.append(task)
+        content_tasks = [task for task in selected_tasks if task.id not in excluded_task_ids]
+        schedule = run_settings.build_run_settings_schedule(self.get_task_segments(task_list=content_tasks))
+        base_settings = {key: self.run_settings.get(key) for key in run_settings.RUNTIME_SETTING_KEYS}
+        first_segment = schedule["segments"][0] if schedule["segments"] else {}
+        initial = run_settings.merge_overrides(
+            base_settings,
+            run_settings.collect_overrides(preceding_tasks),
+            first_segment,
+        )
+        initial = {key: run_settings.normalize_setting_value(key, value) for key, value in initial.items()}
+        return {"initial": initial, "segments": schedule["segments"], "final": schedule["final"]}
 
     def discover_segment_input_files(self, segment_tasks):
         """Discovers input files for a single segment's input tasks.
@@ -973,7 +1047,8 @@ class BatchProcessorModel:
             return result
         validating_full_project = task_list is None
         task_list = self.get_enabled_tasks() if task_list is None else list(task_list)
-        if validating_full_project and not self.get_input_tasks(enabled_only=True):
+        if (validating_full_project and not self.get_input_tasks(enabled_only=True)
+                and not all_tasks_run_once(task_list)):
             result.add_warning("Project has no enabled input tasks.")
 
         for task in task_list:
@@ -1273,6 +1348,7 @@ class BatchProcessorModel:
             if (
                 not _CUSTOM_ENVIRONMENT_NAME_PATTERN.match(formatted_name)
                 or normalized_name in _RESERVED_ENVIRONMENT_KEYS
+                or input_metadata.is_metadata_variable_key(normalized_name)
             ):
                 continue
             if isinstance(raw_definition, dict):

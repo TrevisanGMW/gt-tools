@@ -584,6 +584,30 @@ class ScriptLibraryView(metaclass=MayaWindowMeta):
     def clear_script_list(self):
         """Removes every script list item."""
         self.item_list.clear()
+        self.item_list.setWordWrap(False)
+
+    def add_placeholder_item(self, title, message):
+        """Adds an informational list item that cannot act as a script.
+
+        Args:
+            title (str): Short explanation of the empty list.
+            message (str): Instructions for adding or finding scripts.
+        """
+        list_item = ui_qt.QtWidgets.QListWidgetItem(f"{title}\n\n{message}")
+        list_item.setFlags(
+            list_item.flags()
+            & ~ui_qt.QtLib.ItemFlag.ItemIsSelectable
+            & ~ui_qt.QtLib.ItemFlag.ItemIsEnabled
+        )
+        list_item.setTextAlignment(ui_qt.QtLib.AlignmentFlag.AlignCenter)
+        list_item.setForeground(ui_qt.QtGui.QColor(ui_res_lib.Color.Hex.gray_lighter))
+        placeholder_font = self.item_list.font()
+        placeholder_font.setItalic(True)
+        list_item.setFont(placeholder_font)
+        list_item.setToolTip(message)
+        list_item.setSizeHint(ui_qt.QtCore.QSize(0, self.item_list.fontMetrics().height() * 8))
+        self.item_list.setWordWrap(True)
+        self.item_list.addItem(list_item)
 
     def add_script_item(self, item_name, icon, metadata, is_hidden=False):
         """Adds one script to the list.

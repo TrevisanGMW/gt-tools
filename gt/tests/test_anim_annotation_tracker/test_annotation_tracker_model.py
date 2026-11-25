@@ -6,7 +6,9 @@ import tempfile
 import unittest
 from types import SimpleNamespace
 
-from gt.tools.anim_annotation_tracker import annotation_tracker_model
+from gt.tools import annotation_tracker
+from gt.tools import anim_annotation_tracker
+from gt.tools.annotation_tracker import annotation_tracker_model
 
 
 class TestAnnotationTrackerModel(unittest.TestCase):
@@ -17,12 +19,97 @@ class TestAnnotationTrackerModel(unittest.TestCase):
         preferences = annotation_tracker_model.get_default_preferences()
 
         self.assertEqual("", preferences["automation_path"])
+        self.assertFalse(preferences["use_custom_automations"])
 
     def test_default_preferences_leave_schema_path_empty(self):
         """Checks a new tracker does not point at its packaged sample schema."""
         preferences = annotation_tracker_model.get_default_preferences()
 
         self.assertEqual("", preferences["schema_path"])
+        self.assertFalse(preferences["use_custom_schema"])
+
+    def test_load_preferences_keeps_previously_configured_external_sources(self):
+        """Checks existing custom paths are enabled when their toggles are first introduced."""
+        model = annotation_tracker_model.AnnotationTrackerModel.__new__(
+            annotation_tracker_model.AnnotationTrackerModel
+        )
+        model.prefs = SimpleNamespace(
+            get_raw_preferences=lambda: {"schema_path": "schema.json", "automation_path": "scripts"},
+        )
+
+        preferences = model.load_preferences()
+
+        self.assertTrue(preferences["use_custom_schema"])
+        self.assertTrue(preferences["use_custom_automations"])
+
+    def test_packaged_resources_cannot_be_copy_destinations(self):
+        """Checks Create actions reject paths owned by the package."""
+        with self.assertRaises(ValueError):
+            annotation_tracker_model.copy_sample_schema(annotation_tracker_model.get_sample_schema_path())
+        with self.assertRaises(ValueError):
+            annotation_tracker_model.copy_sample_automation_scripts(
+                annotation_tracker_model.get_default_automation_directory()
+            )
+
+    def test_renamed_tool_preserves_public_imports(self):
+        """Checks old launch and scene API imports point to the renamed package."""
+        self.assertIs(annotation_tracker.launch_tool, anim_annotation_tracker.launch_tool)
+        self.assertIs(annotation_tracker.get_scene_annotation_data, anim_annotation_tracker.get_scene_annotation_data)
+        self.assertIs(annotation_tracker_model, anim_annotation_tracker.annotation_tracker_model)
+
+    def test_load_preferences_migrates_bundled_automation_check_states(self):
+        """Checks the old bundled folder retains its saved script selections."""
+        model = annotation_tracker_model.AnnotationTrackerModel.__new__(
+            annotation_tracker_model.AnnotationTrackerModel
+        )
+        old_package = os.path.join(
+            os.path.dirname(os.path.dirname(annotation_tracker_model.__file__)), "anim_annotation_tracker"
+        )
+        old_automation_folder = os.path.join(old_package, "defaults", "automations")
+        stored_preferences = {
+            "schema_path": os.path.join(old_package, "samples", "schema", "schema.json"),
+            "use_custom_schema": True,
+            "automation_path": old_automation_folder,
+            "use_custom_automations": True,
+            annotation_tracker_model.AUTOMATION_CHECK_STATES_PATH_KEY: old_automation_folder,
+            annotation_tracker_model.AUTOMATION_CHECK_STATES_KEY: {"event_recorder.py": False},
+        }
+        model.prefs = SimpleNamespace(get_raw_preferences=lambda: stored_preferences)
+
+        preferences = model.load_preferences()
+        bundled_folder = annotation_tracker_model.get_default_automation_directory()
+
+        self.assertEqual("", preferences["schema_path"])
+        self.assertFalse(preferences["use_custom_schema"])
+        self.assertEqual("", preferences["automation_path"])
+        self.assertFalse(preferences["use_custom_automations"])
+        self.assertEqual({"event_recorder.py": False}, model.get_automation_check_states(bundled_folder))
+
+    def test_default_and_starter_automations_have_separate_folders(self):
+        """Checks the runnable and copyable scripts use the renamed directories."""
+        default_directory = annotation_tracker_model.get_default_automation_directory()
+        starter_directory = annotation_tracker_model.get_sample_automation_directory()
+
+        self.assertEqual("auto_annotate", os.path.basename(default_directory))
+        self.assertEqual("automations", os.path.basename(starter_directory))
+        for directory in (default_directory, starter_directory):
+            scripts = annotation_tracker_model.get_automation_displays(directory)
+            self.assertTrue(scripts)
+            self.assertTrue(all(script["label"] != os.path.basename(script["path"]) for script in scripts))
+            self.assertTrue(all(script["button_color"] for script in scripts))
+
+    def test_range_automation_field_detects_nested_custom_binding(self):
+        """Checks a bundled automation can write to a renamed custom field."""
+        schema = {
+            "frame_range": [{
+                "type": "row",
+                "items": [{"name": "markers", "type": "string", "automation": "event_recorder.py"}],
+            }],
+        }
+
+        actual_name = annotation_tracker_model.get_range_automation_field(schema, "event_recorder.py", "event")
+
+        self.assertEqual("markers", actual_name)
 
     def test_default_preferences_show_the_timeline(self):
         """Checks the timeline remains visible until a user hides it."""
@@ -119,6 +206,56 @@ class TestAnnotationTrackerModel(unittest.TestCase):
             )
         )
         self.assertFalse(annotation_tracker_model.is_private_automation_path(""))
+
+    def test_automation_display_reads_literal_settings_without_running_script(self):
+        """Checks discovery can read display settings from a script with executable code."""
+        with tempfile.TemporaryDirectory() as directory:
+            script_path = os.path.join(directory, "_script.py")
+            with open(script_path, "w", encoding="utf-8") as script:
+                script.write(
+                    'raise RuntimeError("Discovery must not run this.")\n'
+                    'ANNOTATION_TRACKER_DISPLAY = {'
+                    '"label": "  Mark Café  ", "button_color": "#426A87", "hidden": False}\n'
+                )
+
+            display = annotation_tracker_model.read_automation_display(script_path)
+
+        self.assertEqual(
+            {"path": script_path, "label": "Mark Café", "button_color": "#426A87", "hidden": False},
+            display,
+        )
+
+    def test_automation_display_ignores_invalid_values(self):
+        """Checks unsupported expressions and colors retain their defaults."""
+        with tempfile.TemporaryDirectory() as directory:
+            script_path = os.path.join(directory, "script.py")
+            with open(script_path, "w", encoding="utf-8") as script:
+                script.write(
+                    'ANNOTATION_TRACKER_DISPLAY = {'
+                    '"label": str(123), "button_color": "red", "hidden": "True"}\n'
+                )
+
+            display = annotation_tracker_model.read_automation_display(script_path)
+
+        self.assertEqual(
+            {"path": script_path, "label": "script.py", "button_color": "", "hidden": False},
+            display,
+        )
+
+    def test_automation_display_ignores_comments_and_nested_assignments(self):
+        """Checks only an exact module-level dictionary can change visibility."""
+        with tempfile.TemporaryDirectory() as directory:
+            script_path = os.path.join(directory, "_script.py")
+            with open(script_path, "w", encoding="utf-8") as script:
+                script.write(
+                    '# ANNOTATION_TRACKER_DISPLAY = {"hidden": False}\n'
+                    'if True:\n'
+                    '    ANNOTATION_TRACKER_DISPLAY = {"hidden": False}\n'
+                )
+
+            display = annotation_tracker_model.read_automation_display(script_path)
+
+        self.assertTrue(display["hidden"])
 
     def test_filter_private_automation_paths_preserves_order(self):
         """Checks only underscore-prefixed scripts are removed."""

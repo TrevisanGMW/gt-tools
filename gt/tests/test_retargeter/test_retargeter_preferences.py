@@ -53,6 +53,15 @@ class TestRetargeterPreferences(unittest.TestCase):
 
         self.assertEqual(expected, result)
 
+    def test_play_sound_on_completion_defaults_off(self):
+        """Tests that completion sounds are disabled by default."""
+        preferences = retargeter_preferences.RetargeterPreferences(MockPrefs())
+
+        expected = False
+        result = preferences.get("play_sound_on_completion")
+
+        self.assertEqual(expected, result)
+
     def test_load_ignores_unknown_keys(self):
         """Tests that old view attributes are not serialized implicitly."""
         backend = MockPrefs({"skip_existing_files": False, "unexpected_widget_state": 10})

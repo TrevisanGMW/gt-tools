@@ -16,11 +16,15 @@ import subprocess
 import sys
 import tempfile
 import time
+import uuid
 
 # Logging Setup
 logging.basicConfig()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+
+# Run-once tasks of these types reuse incoming items instead of loading input files.
+RUN_ONCE_PASSTHROUGH_TASK_TYPES = (constants.TaskType.PYTHON_SCRIPT, constants.TaskType.COMMAND)
 
 
 class SingleInstanceBatchRunner:
@@ -75,6 +79,8 @@ class SingleInstanceBatchRunner:
         active_task_started = None
         task_timing_recorded = True
         executed_tasks = []
+        self._filtered_file_count = 0
+        filtered_stream = False
         try:
             current_items = []
             for step_index, task in enumerate(process_tasks, 1):
@@ -84,10 +90,12 @@ class SingleInstanceBatchRunner:
                 task_timing_recorded = False
                 failures_before = self.tracker.failed
                 skipped_before = self.tracker.skipped
+                filtered_before = self._filtered_file_count
                 task_environment_index = project.get_task_environment_index(task)
                 self.tracker.start_step(step_index, task.display_name)
                 self._record_operation(task)
                 if task.is_input_task:
+                    filtered_stream = False
                     new_items = task.prepare(project, context={"task_index": task_environment_index})
                     if task.starts_new_input_list():
                         current_items = list(new_items)
@@ -111,7 +119,32 @@ class SingleInstanceBatchRunner:
                     )
                     task_timing_recorded = True
                     continue
+                if task.is_settings_override_task:
+                    self.tracker.record_message(
+                        '[INFO] - Settings Override task "{0}" has no effect in single-instance mode.'.format(
+                            task.display_name
+                        )
+                    )
+                    run_state.record_task(project, task, "succeeded")
+                    self._record_task_timing(
+                        task=task,
+                        task_index=step_index,
+                        total_tasks=len(process_tasks),
+                        started_at=active_task_started,
+                        status=constants.RunStatus.SUCCEEDED,
+                    )
+                    task_timing_recorded = True
+                    continue
 
+                if filtered_stream and not current_items and not getattr(task, "is_aggregate_task", False):
+                    self.tracker.record_message(f"[FILTERED] {task.display_name}: no incoming files remain.")
+                    run_state.record_task(project, task, "skipped")
+                    self._record_task_timing(
+                        task=task, task_index=step_index, total_tasks=len(process_tasks),
+                        started_at=active_task_started, status=constants.RunStatus.SKIPPED,
+                    )
+                    task_timing_recorded = True
+                    continue
                 current_items = self._get_task_source_items(
                     project=project,
                     task=task,
@@ -134,6 +167,8 @@ class SingleInstanceBatchRunner:
                     self.tracker.record_message("[WARNING] - ({0}) - {1}".format(task.task_type, warning))
                 executed_tasks.append(task)
                 current_items = self._run_task(project, task, current_items, step_output_dir)
+                filtered_count = self._filtered_file_count - filtered_before
+                filtered_stream = filtered_stream or bool(filtered_count)
                 task_status = constants.RunStatus.SUCCEEDED
                 if self.tracker.failed > failures_before:
                     task_status = constants.RunStatus.FAILED
@@ -233,7 +268,7 @@ class SingleInstanceBatchRunner:
             list: Source file paths used to seed the run.
         """
         for task in process_tasks:
-            if task.is_input_task:
+            if not tasks.is_processing_task(task):
                 continue
             if task.uses_incoming_files():
                 return project.discover_input_files()
@@ -255,7 +290,7 @@ class SingleInstanceBatchRunner:
         Returns:
             list: Work items to feed into this task.
         """
-        if task.task_type == constants.TaskType.PYTHON_SCRIPT and getattr(task, "is_aggregate_task", False):
+        if task.task_type in RUN_ONCE_PASSTHROUGH_TASK_TYPES and getattr(task, "is_aggregate_task", False):
             return list(current_items)
         if task.uses_incoming_files() and current_items:
             return current_items
@@ -370,6 +405,8 @@ class SingleInstanceBatchRunner:
                     output_items.append(output_item)
                 self.tracker.record_success()
             except tasks.TaskSkip as exception:
+                if getattr(exception, "filters_file", False):
+                    self._filtered_file_count = getattr(self, "_filtered_file_count", 0) + 1
                 self._append_skipped_output_items(
                     output_items=output_items,
                     exception=exception,
@@ -399,6 +436,8 @@ class SingleInstanceBatchRunner:
             exception (TaskSkip): Skip exception carrying optional output data.
             work_item (WorkItem, optional): Current work item used as fallback.
         """
+        if getattr(exception, "filters_file", False):
+            return
         if exception.work_item:
             if isinstance(exception.work_item, list):
                 output_items.extend(exception.work_item)
@@ -450,6 +489,9 @@ class MultiInstanceBatchRunner:
         flag_skipped_tasks=False,
         flag_running_tasks=True,
         project_log_path=None,
+        start_minimized=False,
+        result_dir=None,
+        window_policy=None,
     ):
         """Initializes a multi-instance launcher.
 
@@ -460,7 +502,18 @@ class MultiInstanceBatchRunner:
             flag_skipped_tasks (bool, optional): Whether skipped tasks should be printed in the tracker.
             flag_running_tasks (bool, optional): Whether running tasks should be printed in the tracker.
             project_log_path (str, optional): Main project log shown by the standalone tracker.
+            start_minimized (bool, optional): Launches the tracker minimized to the system tray
+                (taskbar if no tray exists), regardless of the user's tracker preferences.
+            result_dir (str, optional): Directory where the tracker publishes ``result.json``,
+                ``status.json`` and reads ``control.json``. Lets a caller detect completion.
+                Kept separate from ``runtime_options`` so run behavior is otherwise unchanged.
+            window_policy (str, optional): Tracker window policy after finishing, such as
+                "Close When Finished". Only applied when ``result_dir`` is set.
         """
+        self.result_dir = result_dir
+        self.window_policy = window_policy
+        self.run_id = ""
+        self.start_minimized = bool(start_minimized)
         self.tracker = tracker or batch_processor_tracker.BatchProgressTracker()
         self.verbose_tracker_updates = bool(verbose_tracker_updates or show_worker_windows)
         self.flag_skipped_tasks = bool(flag_skipped_tasks)
@@ -493,7 +546,7 @@ class MultiInstanceBatchRunner:
             raise RuntimeError("Project validation failed: {0}".format("; ".join(validation.errors)))
         final_tasks = self._get_final_multi_instance_tasks(process_tasks)
         if final_tasks:
-            processing_tasks = [task for task in process_tasks if not task.is_input_task]
+            processing_tasks = [task for task in process_tasks if tasks.is_processing_task(task)]
             trailing_tasks = processing_tasks[len(processing_tasks) - len(final_tasks) :]
             if trailing_tasks != final_tasks:
                 offending_task = next(
@@ -512,7 +565,7 @@ class MultiInstanceBatchRunner:
         remaining_processing_tasks = [
             task
             for task in process_tasks
-            if not task.is_input_task and task not in preflight_tasks
+            if tasks.is_processing_task(task) and task not in preflight_tasks
         ]
         if preflight_tasks and not remaining_processing_tasks and not runtime_options:
             return self._finish_preflight_multi_instance_run(
@@ -522,21 +575,32 @@ class MultiInstanceBatchRunner:
                 completion_message="No remaining processing tasks. No worker jobs launched.",
             )
 
-        source_files = self._get_source_files_for_multi_run(
-            project=project,
-            run_from_task_id=run_from_task_id,
-            task_list=process_tasks,
-            excluded_task_ids=[task.id for task in preflight_tasks],
+        only_final_tasks = bool(remaining_processing_tasks) and all(
+            task in final_tasks for task in remaining_processing_tasks
         )
-        from gt.tools.batch_processor import batch_processor_projects
+        if only_final_tasks:
+            # Run-once tasks find their own files, so no input files or per-file worker jobs are needed.
+            source_files = []
+            ignored_self_only = False
+            preflight_messages.append(
+                "[INFO] - (multi-instance) - Only run-once tasks remain; they run without input files."
+            )
+        else:
+            source_files = self._get_source_files_for_multi_run(
+                project=project,
+                run_from_task_id=run_from_task_id,
+                task_list=process_tasks,
+                excluded_task_ids=[task.id for task in preflight_tasks],
+            )
+            from gt.tools.batch_processor import batch_processor_projects
 
-        first_task = remaining_processing_tasks[0] if remaining_processing_tasks else None
-        filtered_sources = batch_processor_projects.filter_project_inputs(source_files, first_task, project)
-        ignored_self_only = bool(source_files) and not filtered_sources
-        if len(filtered_sources) != len(source_files):
-            preflight_messages.append("[INFO] - Ignored the launching project in child project inputs.")
-        source_files = filtered_sources
-        if not source_files and not runtime_options and not ignored_self_only:
+            first_task = remaining_processing_tasks[0] if remaining_processing_tasks else None
+            filtered_sources = batch_processor_projects.filter_project_inputs(source_files, first_task, project)
+            ignored_self_only = bool(source_files) and not filtered_sources
+            if len(filtered_sources) != len(source_files):
+                preflight_messages.append("[INFO] - Ignored the launching project in child project inputs.")
+            source_files = filtered_sources
+        if not source_files and not runtime_options and not ignored_self_only and not only_final_tasks:
             if preflight_tasks:
                 return self._finish_preflight_multi_instance_run(
                     project=project,
@@ -548,11 +612,16 @@ class MultiInstanceBatchRunner:
         project_snapshot_path = self._write_project_snapshot(project)
         job_file_path = self._write_job_file(source_files)
         tracker_script_path = os.path.join(os.path.dirname(__file__), "tracker", "tracker_main.py")
-        preferred_maya_version = project.run_settings.get("preferred_maya_version")
+        run_settings_plan = project.build_run_settings_plan(
+            selected_tasks=process_tasks,
+            excluded_task_ids=[task.id for task in list(final_tasks) + list(preflight_tasks)],
+        )
+        initial_settings = run_settings_plan["initial"]
+        preferred_maya_version = initial_settings.get("preferred_maya_version")
         mayapy_path, maya_version_warning = resolve_mayapy_executable(preferred_version=preferred_maya_version)
-        worker_count = int(project.run_settings.get("worker_count") or 1)
-        max_retries = max(0, int(project.run_settings.get("max_retries") or 0))
-        timeout_minutes = max(0, int(project.run_settings.get("timeout_minutes") or 0))
+        worker_count = int(initial_settings.get("worker_count") or 1)
+        max_retries = max(0, int(initial_settings.get("max_retries") or 0))
+        timeout_minutes = max(0, int(initial_settings.get("timeout_minutes") or 0))
         logs_dir = project.get_logs_dir()
         command = [
             mayapy_path,
@@ -587,6 +656,8 @@ class MultiInstanceBatchRunner:
             command.extend(["--max-retries", str(max_retries)])
         if timeout_minutes:
             command.extend(["--timeout-minutes", str(timeout_minutes)])
+        if preferred_maya_version and not maya_version_warning:
+            command.extend(["--preferred-maya-version", str(preferred_maya_version)])
         if not project.run_settings.get("create_log", True):
             command.append("--no-log")
         if project.run_settings.get("create_task_time_log", True):
@@ -597,6 +668,19 @@ class MultiInstanceBatchRunner:
                 command.extend([f"--{key.replace('_', '-')}", str(runtime_options[key])])
         if runtime_options.get("headless"):
             command.append("--headless")
+        if self.start_minimized or runtime_options.get("start_minimized"):
+            command.append("--start-minimized")
+        if self.result_dir and not runtime_options.get("result_file"):
+            os.makedirs(self.result_dir, exist_ok=True)
+            self.run_id = uuid.uuid4().hex
+            command.extend([
+                "--result-file", os.path.join(self.result_dir, "result.json"),
+                "--status-file", os.path.join(self.result_dir, "status.json"),
+                "--control-file", os.path.join(self.result_dir, "control.json"),
+                "--run-id", self.run_id,
+            ])
+            if self.window_policy:
+                command.extend(["--window-policy", self.window_policy])
 
         creation_flags = 0
         popen_kwargs = {}
@@ -605,6 +689,9 @@ class MultiInstanceBatchRunner:
         else:
             popen_kwargs["start_new_session"] = True
         env = dict(os.environ)
+        from gt.tools.batch_processor.tracker import tracker_process_utils
+
+        tracker_process_utils.remove_qt_scaling_variables(env)
         env["PYTHONIOENCODING"] = "utf-8"
         env[run_state.WORKER_STATE_VARIABLE] = json.dumps(project._batch_run_state)
         self.process = subprocess.Popen(
@@ -675,7 +762,7 @@ class MultiInstanceBatchRunner:
         """
         preflight_tasks = []
         for task in process_tasks:
-            if task.is_input_task:
+            if not tasks.is_processing_task(task):
                 continue
             if not getattr(task, "supports_run_once_before_jobs", False):
                 break
@@ -702,7 +789,7 @@ class MultiInstanceBatchRunner:
         ]
         if not configured_tasks:
             return
-        processing_tasks = [task for task in process_tasks if not task.is_input_task]
+        processing_tasks = [task for task in process_tasks if tasks.is_processing_task(task)]
         leading_tasks = processing_tasks[: len(configured_tasks)]
         if leading_tasks == configured_tasks:
             return

@@ -104,7 +104,18 @@ class TestTrackerPreferencesAndSegments(unittest.TestCase):
             if isinstance(widget, ui_qt.QtWidgets.QCheckBox)
         ]
         labels = [checkbox.text() for checkbox in checkboxes]
-        self.assertEqual(sorted(labels, key=str.casefold), labels)
+        tracker_labels = [
+            "Auto Hide Completed Filter",
+            "Auto-Close When Completed Without Errors",
+            "Play Sound When Completed",
+            "Show Project Row",
+            "Launch in Compact Mode",
+            "Launch Minimized",
+            "Minimize to System Tray Instead of Taskbar",
+        ]
+        general_labels = [label for label in labels if label not in tracker_labels]
+        self.assertEqual(sorted(general_labels, key=str.casefold), general_labels)
+        self.assertEqual(tracker_labels, [label for label in labels if label in tracker_labels])
         checkbox = next(
             widget for widget in checkboxes if widget.text() == "Auto Hide Completed Filter"
         )
@@ -175,6 +186,105 @@ class TestTrackerPreferencesAndSegments(unittest.TestCase):
                 mock.patch.object(ui_qt.QtWidgets, "QMenu") as menu:
             controller.show_tree_context_menu(ui_qt.QtCore.QPoint())
             menu.assert_not_called()
+
+    def test_worker_limit_control_changes_the_live_limit(self):
+        """Applies the inline Max Workers value to the running session."""
+        controller = self.create_controller()
+        self.assertEqual(1, controller.view.worker_limit_spin_box.value())
+        self.assertTrue(controller.view.worker_limit_spin_box.isEnabled())
+
+        controller.view.worker_limit_spin_box.setValue(4)
+        controller._apply_pending_worker_limit()
+
+        self.assertEqual(4, controller.session.worker_count)
+        self.assertIn("worker_count", controller.scheduler.run_settings.manual_keys)
+
+    def test_run_settings_dialog_applies_values(self):
+        """Applies retries and timeout from the Adjust Run Settings dialog."""
+        controller = self.create_controller()
+        controller.show_run_settings_dialog()
+        self.addCleanup(controller.run_settings_dialog.close)
+        dialog = controller.run_settings_dialog
+        dialog.spin_boxes["max_retries"].setValue(2)
+        dialog.spin_boxes["timeout_minutes"].setValue(15)
+
+        dialog.apply_button.click()
+
+        self.assertEqual(2, controller.scheduler.max_retries)
+        self.assertEqual(15, controller.scheduler.run_settings.timeout_minutes)
+
+    def test_keep_manual_run_settings_preference_is_saved_and_applied(self):
+        """Persists the keep-manual preference and forwards it to the scheduler."""
+        controller = self.create_controller()
+        self.assertFalse(controller.scheduler.run_settings.keep_manual_changes)
+
+        controller.view.keep_manual_run_settings_action.setChecked(True)
+
+        self.assertTrue(controller.scheduler.run_settings.keep_manual_changes)
+        later_controller = self.create_controller()
+        self.assertTrue(later_controller.view.keep_manual_run_settings_action.isChecked())
+        self.assertTrue(later_controller.scheduler.run_settings.keep_manual_changes)
+
+    def test_project_row_is_off_by_default(self):
+        """Lists only jobs until the project row preference is enabled."""
+        controller = self.create_controller()
+        self.assertIsNone(controller.source_model.project_row)
+        self.assertFalse(controller.view.show_project_row_action.isChecked())
+        self.assertEqual(0, controller.proxy_model.rowCount())
+
+    def test_project_row_stays_pinned_and_summarizes_the_session(self):
+        """Pins the row above sorted jobs and aggregates their progress."""
+        prefs = core_prefs.Prefs(tracker_constants.PREFS_FILENAME)
+        prefs.set_bool(tracker_constants.PREFS_KEY_SHOW_PROJECT_ROW, True)
+        prefs.save()
+        controller = self.create_controller()
+        for number, name in enumerate(("b.ma", "a.ma"), start=1):
+            job = tracker_model.TrackerJob(f"job-{number}", number, name, [{"id": f"t{number}", "number": 1, "name": "Task"}])
+            controller.session.jobs.append(job)
+        controller.session.jobs[0].tasks[0].progress = 100
+        controller.session.jobs[0].status = tracker_constants.Status.RUNNING
+        controller.refresh()
+        proxy = controller.proxy_model
+        self.assertTrue(controller.view.show_project_row_action.isChecked())
+        self.assertEqual(3, proxy.rowCount())
+        for column, order in ((1, ui_qt.QtCore.Qt.AscendingOrder), (1, ui_qt.QtCore.Qt.DescendingOrder),
+                              (2, ui_qt.QtCore.Qt.DescendingOrder), (0, ui_qt.QtCore.Qt.AscendingOrder)):
+            with self.subTest(column=column, order=order):
+                controller.view.tree.sortByColumn(column, order)
+                row = proxy.index(0, 0)
+                self.assertEqual("Test", proxy.index(0, 1).data())
+                self.assertEqual(0, proxy.rowCount(row))
+        project = proxy.index(0, 0)
+        self.assertEqual(50, project.data(tracker_tree_model.PROGRESS_ROLE))
+        self.assertEqual(tracker_constants.Status.RUNNING, project.data(tracker_tree_model.STATUS_ROLE))
+        self.assertEqual("0/2", proxy.index(0, 3).data())
+        controller.view.search_field.setText("zzz")
+        self.assertEqual(1, proxy.rowCount())
+        controller.session.finish()
+        self.assertEqual(
+            tracker_constants.Status.COMPLETED,
+            controller.source_model.project_row.status,
+        )
+
+    def test_project_row_follows_the_menu_toggle_in_an_open_tracker(self):
+        """Adds the row at the top and removes it live."""
+        controller = self.create_controller()
+        job = tracker_model.TrackerJob("job-1", 1, "a.ma", [])
+        controller.session.jobs.append(job)
+        controller.refresh()
+        proxy = controller.proxy_model
+        self.assertEqual(1, proxy.rowCount())
+        controller.view.show_project_row_action.setChecked(True)
+        self.assertEqual(2, proxy.rowCount())
+        self.assertEqual("Test", proxy.index(0, 1).data())
+        self.assertIsNotNone(proxy.index(0, 1).data(tracker_tree_model.DECORATION_ROLE))
+        self.assertEqual("a.ma", proxy.index(1, 1).data())
+        controller.refresh()
+        self.assertEqual(2, proxy.rowCount())
+        controller.view.show_project_row_action.setChecked(False)
+        self.assertEqual(1, proxy.rowCount())
+        self.assertEqual("a.ma", proxy.index(0, 1).data())
+        self.assertIsNone(controller.source_model.project_row)
 
     def test_segment_counter_is_hidden_without_multiple_segments(self):
         """Omits segment information for runs with zero or one segment."""
@@ -248,3 +358,79 @@ class TestTrackerPreferencesAndSegments(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestTrayBadgeFit(unittest.TestCase):
+    """Checks the tray badge text always fits inside its badge."""
+
+    @classmethod
+    def setUpClass(cls):
+        """Creates an application without entering its event loop."""
+        cls.application = ui_qt.QtWidgets.QApplication.instance() or ui_qt.QtWidgets.QApplication([])
+
+    def test_text_fits_at_every_size_and_value(self):
+        from gt.tools.batch_processor.tracker import tracker_window_manager as window_manager
+
+        for size in window_manager.TRAY_ICON_SIZES:
+            for progress in (0, 7, 42, 100):
+                text = str(progress)
+                max_width = size * 0.8 * window_manager.DIGIT_WIDTH_RATIO
+                max_height = size * 0.5 * window_manager.DIGIT_HEIGHT_RATIO
+                font = window_manager.TrackerWindowManager.fit_badge_font(
+                    ui_qt.QtGui.QFont(), text, max_width, max_height
+                )
+                bounds = ui_qt.QtGui.QFontMetricsF(font).tightBoundingRect(text)
+                at_minimum = font.pixelSize() <= window_manager.MIN_BADGE_FONT_PIXELS
+                self.assertTrue(at_minimum or (bounds.width() <= max_width and bounds.height() <= max_height))
+
+    def test_pixmaps_ignore_screen_scaling(self):
+        from gt.tools.batch_processor.tracker import tracker_window_manager as window_manager
+
+        pixmap = window_manager.TrackerWindowManager._build_badge_pixmap(32, 100, "#5fcf86")
+        expected = (32, 32, 1.0)
+        self.assertEqual(expected, (pixmap.width(), pixmap.height(), pixmap.devicePixelRatio()))
+
+
+class TestTrackerFramelessWindow(unittest.TestCase):
+    """Checks the custom title bar replaces the native one without losing controls."""
+
+    @classmethod
+    def setUpClass(cls):
+        """Creates an application without entering its event loop."""
+        cls.application = ui_qt.QtWidgets.QApplication.instance() or ui_qt.QtWidgets.QApplication([])
+
+    def setUp(self):
+        """Creates a tracker view."""
+        self.view = tracker_view.TrackerView(project_name="Frame Test")
+        self.addCleanup(self.view.deleteLater)
+
+    def test_window_is_frameless_with_title_bar_and_grips(self):
+        expected = (True, "Batch Processor Tracker - Frame Test", 8)
+        result = (
+            bool(self.view.windowFlags() & ui_qt.QtCore.Qt.FramelessWindowHint),
+            self.view.window_frame.title_bar.title_label.text(),
+            len(self.view.window_frame.grips),
+        )
+        self.assertEqual(expected, result)
+
+    def test_title_follows_window_title_changes(self):
+        self.view.setWindowTitle("Renamed")
+        self.assertEqual("Renamed", self.view.window_frame.title_bar.title_label.text())
+
+    def test_maximize_button_toggles_state_and_grips(self):
+        title_bar = self.view.window_frame.title_bar
+        self.view.show()
+        title_bar.maximize_button.click()
+        self.assertTrue(self.view.isMaximized())
+        self.assertEqual("Restore", title_bar.maximize_button.toolTip())
+        self.assertFalse(any(grip.isVisible() for grip in self.view.window_frame.grips))
+        title_bar.maximize_button.click()
+        self.assertFalse(self.view.isMaximized())
+        self.assertEqual("Maximize", title_bar.maximize_button.toolTip())
+        self.view.hide()
+
+    def test_close_button_runs_the_close_flow(self):
+        closes = []
+        self.view.close_callback = lambda: closes.append(True) or False
+        self.view.window_frame.title_bar.close_button.click()
+        self.assertEqual([True], closes)

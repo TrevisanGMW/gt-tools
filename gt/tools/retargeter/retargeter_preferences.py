@@ -26,6 +26,7 @@ PREFERENCE_DEFAULTS = {
     "select_scene_sources": True,
     "definition_folder": None,
     "skip_existing_files": True,
+    "play_sound_on_completion": False,
     "multi_process_batch": False,
     "multi_process_max_instances": 6,
     "multi_write_log_file": True,

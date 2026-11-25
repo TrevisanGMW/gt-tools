@@ -106,6 +106,23 @@ class TestInputStringsUi(unittest.TestCase):
         contents = button.style().subElementRect(qt.QtWidgets.QStyle.SE_PushButtonContents, option, button)
         self.assertEqual(button.rect().center(), contents.center())
 
+    def test_mode_labels_fit_when_checked(self):
+        """Keeps room for the bold label and padding at each button's minimum size."""
+        _, widget = self.create_widget({})
+        for button in widget.mode_buttons.values():
+            with self.subTest(mode=button.text()):
+                button.resize(button.minimumSizeHint().expandedTo(button.minimumSize()))
+                button.click()
+                option = qt.QtWidgets.QStyleOptionButton()
+                button.initStyleOption(option)
+                contents = button.style().subElementRect(qt.QtWidgets.QStyle.SE_PushButtonContents, option, button)
+                checked_font = qt.QtGui.QFont(button.font())
+                checked_font.setBold(True)
+                text_size = qt.QtGui.QFontMetrics(checked_font, button).size(0, button.text())
+                self.assertLessEqual(text_size.width(), contents.width())
+                self.assertLessEqual(text_size.height(), contents.height())
+                self.assertLessEqual(16, button.width() - contents.width())
+
     def test_modes_switch_pages_and_status(self):
         """Shows only the active mode page and names the running mode in the status line."""
         task, widget = self.create_widget({"strings": ["A"]})

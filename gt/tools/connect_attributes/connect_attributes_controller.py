@@ -43,6 +43,9 @@ class ConnectAttributesController:
         self.view.shared_input_checkbox.toggled.connect(
             lambda value: self._store_setting("use_shared_input", value)
         )
+        self.view.advanced_toggle.toggled.connect(
+            lambda value: self._store_setting("advanced_expanded", value)
+        )
         self.view.utility_combo.currentTextChanged.connect(
             lambda value: self._store_setting("utility_node_type", value)
         )
@@ -57,8 +60,8 @@ class ConnectAttributesController:
         self.view.load_targets_button.clicked.connect(self.load_targets)
         self.view.source_status_label.clicked.connect(self.select_loaded_source)
         self.view.target_status_label.clicked.connect(self.select_loaded_targets)
-        self.view.list_all_button.clicked.connect(lambda: self.browse_attributes(keyable=False))
-        self.view.list_keyable_button.clicked.connect(lambda: self.browse_attributes(keyable=True))
+        self.view.source_browse_button.clicked.connect(lambda: self.browse_attributes(role="source"))
+        self.view.target_browse_button.clicked.connect(lambda: self.browse_attributes(role="target"))
         self.view.preview_button.clicked.connect(self.preview)
         self.view.run_button.clicked.connect(self.run)
         self.view.reset_action.triggered.connect(self.reset_settings)
@@ -73,6 +76,7 @@ class ConnectAttributesController:
             self.view.connect_radio.setChecked(is_connect)
             self.view.disconnect_radio.setChecked(not is_connect)
             self.view.use_selection_checkbox.setChecked(settings.get("use_selection"))
+            self.view.loaded_objects_radio.setChecked(not settings.get("use_selection"))
             self.view.source_attribute_field.setText(settings.get("source_attribute"))
             self.view.target_attributes_field.setText(settings.get("target_attributes"))
             self.view.reverse_checkbox.setChecked(settings.get("add_reverse_node"))
@@ -81,6 +85,7 @@ class ConnectAttributesController:
             self.view.utility_combo.setCurrentText(settings.get("utility_node_type"))
             self.view.shared_input_checkbox.setChecked(settings.get("use_shared_input"))
             self.view.shared_input_combo.setCurrentText(settings.get("shared_input_node_type"))
+            self.view.advanced_toggle.setChecked(settings.get("advanced_expanded"))
             self.view.set_loaded_nodes(self.model.source_object, self.model.target_objects)
             self._refresh_enabled_state()
         finally:
@@ -179,32 +184,42 @@ class ConnectAttributesController:
         selection = self.service.get_selection() if self.model.settings.get("use_selection") else None
         return self.model.build_request(selection=selection)
 
-    def preview(self):
-        """Validates and summarizes the pending operation without changing the scene."""
+    def preview(self, *args, dialog=None):
+        """Inspects the scene and opens or refreshes a read-only preview.
+
+        Args:
+            *args: Ignored Qt signal arguments.
+            dialog (ConnectionPreviewDialog, optional): Existing preview to refresh.
+
+        Returns:
+            ConnectionPreviewDialog or None: Displayed preview when available.
+        """
         request, issues = self._get_request()
         if issues:
+            if dialog is not None:
+                dialog.set_preview([], request, issues=issues)
             self._report(" ".join(issues), level="warning")
             return
-        preview_lines = self.model.build_preview_lines(request)
-        connection_count = len(preview_lines)
-        operation = "connection" if request.get("operation") == "connect" else "disconnection"
-        shared_input_type = None
-        if (
-            request.get("operation") == "connect"
-            and request.get("use_utility_node")
-            and request.get("use_shared_input")
-        ):
-            shared_input_type = request.get("shared_input_node_type")
-        self.view.show_connection_preview(
-            preview_lines=preview_lines,
-            operation=request.get("operation"),
-            shared_input_type=shared_input_type,
-        )
+        try:
+            rows = self.service.inspect(request)
+        except Exception as exception:
+            logger.exception("Unable to inspect Connect Attributes operations")
+            if dialog is not None:
+                dialog.set_preview([], request, issues=[str(exception)])
+            self._report(f"Unable to inspect scene: {exception}", level="error")
+            return
+        if dialog is None:
+            dialog = self.view.show_operation_preview(rows, request)
+            dialog.refresh_requested.connect(lambda: self.preview(dialog=dialog))
+        else:
+            dialog.set_preview(rows, request)
+        blocked = sum(row["status"] == "blocked" for row in rows)
+        warnings = sum(row["status"] == "warning" for row in rows)
         self._report(
-            f"Ready for {connection_count} {operation}(s) across "
-            f"{len(request.get('target_objects'))} target(s).",
-            level="success",
+            f"Preview: {len(rows)} operation(s), {blocked} blocked, {warnings} warning(s).",
+            level="warning" if blocked or warnings else "success",
         )
+        return dialog
 
     def run(self):
         """Validates and executes the current operation request."""
@@ -222,26 +237,67 @@ class ConnectAttributesController:
             self._report(message, level="warning")
             return
         skipped = result.get("skipped")
-        suffix = f"; {skipped} already disconnected" if skipped else ""
+        suffix = f"; {skipped} no change" if skipped else ""
         self._report(f"Completed {result.get('succeeded')} item(s){suffix}.", level="success")
 
-    def browse_attributes(self, keyable=False):
-        """Shows an attribute browser for the source or first selected node.
+    def browse_attributes(self, keyable=False, role="source"):
+        """Browses source or target attributes resolved from the active object mode.
 
         Args:
             keyable (bool, optional): Whether to list only keyable attributes.
+            role (str, optional): Source or target attribute field to update.
         """
-        selection = self.service.get_selection()
-        node = selection[0] if selection else self.model.source_object
-        if not node:
-            self._report("Select an object or load a source before browsing attributes.", level="warning")
+        if self.model.settings.get("operation") == "disconnect":
+            role = "target"
+        selection = self.service.get_selection() if self.model.settings.get("use_selection") else None
+        request, unused_issues = self.model.build_request(selection=selection)
+        nodes = [request["source_object"]] if role == "source" else request["target_objects"]
+        nodes = [node for node in nodes if node]
+        if not nodes:
+            self._report(f"Choose {role} objects before browsing their attributes.", level="warning")
             return
-        attributes = self.service.list_attributes(node, keyable=keyable)
-        if not attributes:
-            self._report(f'No attributes found on "{node}".', level="warning")
+        dialog = self.view.show_attribute_browser(
+            nodes[0], [], keyable=keyable, role=role, nodes=nodes,
+        )
+        dialog.attributes_requested.connect(
+            lambda node, only_keyable: self._refresh_attribute_browser(dialog, node, only_keyable)
+        )
+        dialog.attributes_applied.connect(lambda names: self.apply_attribute_names(role, names))
+        dialog.request_attributes()
+
+    def _refresh_attribute_browser(self, dialog, node, keyable):
+        """Loads the selected browser node without changing Maya selection.
+
+        Args:
+            dialog (AttributeBrowserDialog): Browser to update.
+            node (str): Node being inspected.
+            keyable (bool): Whether to list keyable attributes only.
+        """
+        try:
+            attributes = self.service.list_attributes(node, keyable=keyable)
+            message = "" if attributes else f'No attributes found on "{node}".'
+            dialog.set_attributes(attributes, message=message)
+        except Exception as exception:
+            logger.exception("Unable to browse attributes on %s", node)
+            dialog.set_attributes([], message=f"Unable to read attributes: {exception}")
+
+    def apply_attribute_names(self, role, names):
+        """Fills attribute fields without creating or changing scene attributes.
+
+        Args:
+            role (str): Source or target field.
+            names (list): Selected existing attribute names.
+        """
+        if not names:
             return
-        self.view.show_attribute_browser(node, attributes, keyable=keyable)
-        self._report(f"Showing {len(attributes)} attribute(s) from {node}.")
+        if role == "source":
+            self.view.source_attribute_field.setText(names[0])
+        else:
+            existing = self.model.parse_attributes(self.view.target_attributes_field.text())
+            merged = self.model.parse_attributes(", ".join(existing + names))
+            self.view.target_attributes_field.setText(", ".join(merged))
+        self._store_attribute_fields()
+        self._report(f"Updated {role} attribute field.", level="success")
 
     def reset_settings(self, *args):
         """Restores default preferences without changing loaded scene nodes.

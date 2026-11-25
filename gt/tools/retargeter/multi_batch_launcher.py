@@ -13,6 +13,7 @@ def run_retarget_batch(
     max_workers=2,
     disable_logging=False,
     skip_existing_files=True,
+    play_sound_on_completion=False,
 ):
     """
     Launches the headless batch retargeting process in a separate console.
@@ -54,6 +55,10 @@ def run_retarget_batch(
             If True, the tracker will check for an existing output file
             and skip the job if it's found, allowing you to resume
             a failed batch. Defaults to False.
+
+        play_sound_on_completion (bool, optional):
+            If True, the tracker plays a sound matching the final batch status
+            (success, warning or failure) once all jobs are done. Defaults to False.
 
     Raises:
         (Implicitly via `cmds.error`):
@@ -177,6 +182,11 @@ def run_retarget_batch(
 
     if skip_existing_files:
         command_list.append("--skip-existing")
+
+    if play_sound_on_completion:
+        import gt.ui.resource_library as ui_res_lib
+
+        command_list.extend(["--sounds-dir", ui_res_lib.ResourceDirConstants.DIR_SOUNDS])
 
     print(f"[Main Maya] Executing: {command_list}")
 

@@ -23,6 +23,7 @@ from gt.tools.batch_processor.batch_processor_task_base import get_work_item_rel
 from gt.tools.batch_processor.batch_processor_task_base import get_work_item_relative_path
 from gt.tools.batch_processor.batch_processor_task_base import hash_settings
 from gt.tools.batch_processor.batch_processor_task_base import has_supported_extension
+from gt.tools.batch_processor.batch_processor_task_base import is_processing_task
 from gt.tools.batch_processor.batch_processor_task_base import list_files_from_path
 from gt.tools.batch_processor.batch_processor_task_base import normalize_extensions
 from gt.tools.batch_processor.batch_processor_task_base import normalize_path
@@ -31,11 +32,13 @@ from gt.tools.batch_processor.batch_processor_task_base import sanitize_filename
 from gt.tools.batch_processor.tasks.task_input import TaskInput
 from gt.tools.batch_processor.tasks.task_input_strings import TaskInputStrings
 from gt.tools.batch_processor.tasks.task_input_pairs import TaskInputPairs
+from gt.tools.batch_processor.tasks.task_input_metadata import TaskInputMetadata
 from gt.tools.batch_processor.tasks.task_annotation import TaskAnnotationSnapshot
 from gt.tools.batch_processor.tasks.task_archive import TaskArchive
 from gt.tools.batch_processor.tasks.task_auto_rig_build import TaskAutoRigBuild
 from gt.tools.batch_processor.tasks.task_batch_render import TaskBatchRender
 from gt.tools.batch_processor.tasks.task_run_batch_project import TaskRunBatchProject
+from gt.tools.batch_processor.tasks.task_settings_override import TaskSettingsOverride
 from gt.tools.batch_processor.tasks.task_external_blender import TaskBlenderScript
 from gt.tools.batch_processor.tasks.task_external_blender import find_blender_executable
 from gt.tools.batch_processor.tasks.task_external_blender import get_blender_executable_candidates
@@ -44,6 +47,7 @@ from gt.tools.batch_processor.tasks.task_external_unreal import find_unreal_exec
 from gt.tools.batch_processor.tasks.task_external_unreal import get_unreal_executable_candidates
 from gt.tools.batch_processor.tasks.task_capture import TaskCapturePlayblast
 from gt.tools.batch_processor.tasks.task_capture import TaskCaptureThumbnail
+from gt.tools.batch_processor.tasks.task_command import TaskCommand
 from gt.tools.batch_processor.tasks.task_clip import TaskClipSnapshot
 from gt.tools.batch_processor.tasks.task_clip import TaskClipSplit
 from gt.tools.batch_processor.tasks.task_delete_path import TaskDeleteProjectFiles
@@ -54,6 +58,7 @@ from gt.tools.batch_processor.tasks.task_hik_retarget import HIK_BAKE_TARGETS
 from gt.tools.batch_processor.tasks.task_map_hierarchy import TaskMapHierarchy
 from gt.tools.batch_processor.tasks.task_maya_import import TaskMayaImport
 from gt.tools.batch_processor.tasks.task_maya_save import TaskMayaSave
+from gt.tools.batch_processor.tasks.task_merge_input import TaskMergeInput
 from gt.tools.batch_processor.tasks.task_kimodo_definition import TaskKimodoDefinition
 from gt.tools.batch_processor.tasks.task_kimodo_generate import TaskKimodoGenerate
 from gt.tools.batch_processor.tasks.task_external_mobu import TaskMotionBuilderScript
@@ -68,21 +73,26 @@ from gt.tools.batch_processor.tasks.task_export_usd import TaskExportUsd
 from gt.tools.batch_processor.tasks.task_validation import TaskValidationFileIntegrity
 from gt.tools.batch_processor.tasks.task_validation import TaskValidationFolderCompare
 from gt.tools.batch_processor.tasks.task_validation import TaskValidationMayaScene
+from gt.tools.batch_processor.tasks.task_validation_python import TaskValidationPythonScript
+from gt.tools.batch_processor.tasks.task_validation_animation import TaskValidationAnimation
 
 
 TASK_TYPES = {
     constants.TaskType.INPUT: TaskInput,
     constants.TaskType.INPUT_STRINGS: TaskInputStrings,
     constants.TaskType.INPUT_PAIRS: TaskInputPairs,
+    constants.TaskType.INPUT_METADATA: TaskInputMetadata,
     constants.TaskType.MAYA_IMPORT: TaskMayaImport,
     constants.TaskType.PYTHON_SCRIPT: TaskPythonScript,
     constants.TaskType.RENAME: TaskRename,
     constants.TaskType.MAP_HIERARCHY: TaskMapHierarchy,
+    constants.TaskType.COMMAND: TaskCommand,
     constants.TaskType.SCENE_REPORT: TaskSceneReport,
     constants.TaskType.MOTIONBUILDER_SCRIPT: TaskMotionBuilderScript,
     constants.TaskType.BLENDER_SCRIPT: TaskBlenderScript,
     constants.TaskType.UNREAL_SCRIPT: TaskUnrealScript,
     constants.TaskType.MAYA_SAVE: TaskMayaSave,
+    constants.TaskType.MERGE_INPUT: TaskMergeInput,
     constants.TaskType.USD_EXPORT: TaskExportUsd,
     constants.TaskType.FBX_EXPORT: TaskExportFbx,
     constants.TaskType.RETARGET: TaskRetarget,
@@ -98,10 +108,13 @@ TASK_TYPES = {
     constants.TaskType.MAYA_SCENE_VALIDATE: TaskValidationMayaScene,
     constants.TaskType.FILE_INTEGRITY_VALIDATE: TaskValidationFileIntegrity,
     constants.TaskType.FOLDER_COMPARE_VALIDATE: TaskValidationFolderCompare,
+    constants.TaskType.PYTHON_SCRIPT_VALIDATE: TaskValidationPythonScript,
+    constants.TaskType.ANIMATION_VALIDATE: TaskValidationAnimation,
     constants.TaskType.THUMBNAIL_CAPTURE: TaskCaptureThumbnail,
     constants.TaskType.PLAYBLAST_CAPTURE: TaskCapturePlayblast,
     constants.TaskType.BATCH_RENDER: TaskBatchRender,
     constants.TaskType.RUN_BATCH_PROJECT: TaskRunBatchProject,
+    constants.TaskType.SETTINGS_OVERRIDE: TaskSettingsOverride,
 }
 
 LEGACY_TASK_TYPES = {
@@ -110,6 +123,7 @@ LEGACY_TASK_TYPES = {
     "usd_export": constants.TaskType.USD_EXPORT,
     "python_scripts": constants.TaskType.PYTHON_SCRIPT,
     constants.TaskType.PYTHON_SCRIPTS_FOLDER: constants.TaskType.PYTHON_SCRIPT,
+    "update_run_settings": constants.TaskType.SETTINGS_OVERRIDE,
 }
 
 LEGACY_BATCH_PYTHON_TASK_TYPES = set(["python_scripts", constants.TaskType.PYTHON_SCRIPTS_FOLDER])

@@ -160,6 +160,11 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions, KimodoDockerAc
         for field in (view.hik_name, view.hik_xml, view.hik_pose, view.hik_frame):
             field.editingFinished.connect(self._action_callback("save_humanik_settings"))
         view.hik_lock.toggled.connect(self._action_callback("save_humanik_settings"))
+        for field in (view.target_hik_path, view.target_hik_character, view.target_hik_namespace):
+            field.editingFinished.connect(self._action_callback("save_target_hik"))
+        view.target_hik_bake.currentIndexChanged.connect(self._action_callback("save_target_hik"))
+        view.target_hik_delete.toggled.connect(self._action_callback("save_target_hik"))
+        view.target_hik_enabled.toggled.connect(self._action_callback("save_target_hik"))
         view.auto_humanik.toggled.connect(self._action_callback("save_auto_humanik"))
         view.limit_body_joint_translations.toggled.connect(self._action_callback("save_auto_humanik"))
         view.template_pose_previews.toggled.connect(self._action_callback("save_pose_preview_template"))
@@ -176,6 +181,7 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions, KimodoDockerAc
         view.auto_import_all_samples.toggled.connect(self._action_callback("save_auto_import_all_samples"))
         view.auto_clear_scene.toggled.connect(self._action_callback("save_auto_clear_scene"))
         view.auto_frame_rate.toggled.connect(self._action_callback("save_auto_frame_rate"))
+        view.output_time_unit.currentIndexChanged.connect(self._action_callback("save_output_time_unit"))
         view.auto_frame_range.toggled.connect(self._action_callback("save_auto_frame_range"))
         view.show_console.toggled.connect(self._action_callback("save_show_console"))
         view.auto_connect.toggled.connect(self._action_callback("save_auto_connect"))
@@ -774,6 +780,14 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions, KimodoDockerAc
         view.hik_pose.setText(hik["tpose_path"])
         view.hik_frame.setText("" if hik["reference_frame"] is None else str(hik["reference_frame"]))
         view.hik_lock.setChecked(hik["lock_definition"])
+        target = self.model.target_hik
+        view.target_hik_path.setText(target["rig_path"])
+        view.target_hik_character.setText(target["character"])
+        view.target_hik_namespace.setText(target.get("namespace", ""))
+        view.target_hik_bake.setCurrentText(target["bake_target"])
+        view.target_hik_delete.setChecked(target["delete_source"])
+        view.target_hik_enabled.setChecked(self.model.target_hik_enabled)
+        view.target_hik_disabled_label.setVisible(not self.model.target_hik_enabled)
         view.auto_humanik.setChecked(self.model.definition["maya"]["auto_humanik"])
         view.limit_body_joint_translations.setChecked(
             self.model.definition["maya"]["limit_body_joint_translations"])
@@ -783,6 +797,7 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions, KimodoDockerAc
         view.auto_import_maya.setChecked(self.model.auto_import_maya)
         view.auto_import_all_samples.setChecked(self.model.auto_import_all_samples)
         view.auto_clear_scene.setChecked(self.model.auto_clear_scene)
+        view.output_time_unit.setCurrentIndex(max(0, view.output_time_unit.findData(self.model.output_time_unit)))
         view.auto_frame_rate.setChecked(self.model.auto_frame_rate)
         view.auto_frame_range.setChecked(self.model.auto_frame_range)
         for widget in (view.auto_import_all_samples, view.auto_clear_scene,
@@ -1750,6 +1765,11 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions, KimodoDockerAc
         clear_scene = automatic and self.model.auto_clear_scene
         if clear_scene:
             cmds.file(new=True, force=True)
+        adjustments = []
+        if automatic and motion_metadata and self.model.auto_frame_rate:
+            time_unit = self.model.output_time_unit or f"{motion_metadata['fps']:g}fps"
+            cmds.currentUnit(time=time_unit, updateAnimation=True)
+            adjustments.append(f"{time_unit} time unit")
         use_sample_namespaces = import_all_samples and len(sample_names) > 1
         for sample_name in sample_names:
             import_options = {"i": True, "type": "mayaAscii", "ignoreVersion": True,
@@ -1763,13 +1783,14 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions, KimodoDockerAc
                     namespace = f"kimodo_{namespace}"
                 import_options["namespace"] = self._namespace(namespace)
             cmds.file(paths[sample_name], **import_options)
-        adjustments = []
         if automatic and motion_metadata:
-            if self.model.auto_frame_rate:
-                cmds.currentUnit(time=f"{motion_metadata['fps']:g}fps", updateAnimation=False)
-                adjustments.append(f"{motion_metadata['fps']:g} FPS")
             if self.model.auto_frame_range:
-                end_frame = motion_metadata["frame_count"]
+                if self.model.auto_frame_rate and not self.model.output_time_unit:
+                    timeline_fps = motion_metadata["fps"]
+                else:
+                    import maya.api.OpenMaya as om
+                    timeline_fps = om.MTime(1, om.MTime.kSeconds).asUnits(om.MTime.uiUnit())
+                end_frame = 1 + (motion_metadata["frame_count"] - 1) * timeline_fps / motion_metadata["fps"]
                 cmds.playbackOptions(minTime=1, maxTime=end_frame,
                                      animationStartTime=1, animationEndTime=end_frame)
                 adjustments.append(f"frames 1–{end_frame}")
@@ -2348,11 +2369,14 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions, KimodoDockerAc
         self.model.namespace = defaults.namespace
         self.model.start_frame = defaults.start_frame
         self.model.humanik = copy.deepcopy(defaults.humanik)
+        self.model.target_hik = copy.deepcopy(defaults.target_hik)
+        self.model.target_hik_enabled = defaults.target_hik_enabled
         self.model.auto_download = defaults.auto_download
         self.model.auto_maya_file = defaults.auto_maya_file
         self.model.auto_import_maya = defaults.auto_import_maya
         self.model.auto_import_all_samples = defaults.auto_import_all_samples
         self.model.auto_clear_scene = defaults.auto_clear_scene
+        self.model.output_time_unit = defaults.output_time_unit
         self.model.auto_frame_rate = defaults.auto_frame_rate
         self.model.auto_frame_range = defaults.auto_frame_range
         self.model.table_widths = preserved_widths
@@ -2482,6 +2506,34 @@ class KimodoGeneratorController(QtCore.QObject, KimodoJobActions, KimodoDockerAc
         folder = os.path.dirname(path)
         if not ui_qt.QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromLocalFile(folder)):
             raise ValueError(f"Could not open the results folder: {folder}")
+
+    def save_output_time_unit(self):
+        """Persists the output scene time unit independently of the model rate."""
+        if not self.loading:
+            self.model.output_time_unit = self.view.output_time_unit.currentData() or ""
+            self.model.save_preferences()
+
+    def save_target_hik(self):
+        """Persists the optional target rig settings and updates their status label."""
+        if self.loading:
+            return
+        view = self.view
+        self.model.target_hik = {"rig_path": view.target_hik_path.text().strip(),
+                                 "character": view.target_hik_character.text().strip(),
+                                 "namespace": view.target_hik_namespace.text().strip(),
+                                 "bake_target": view.target_hik_bake.currentText(),
+                                 "delete_source": view.target_hik_delete.isChecked()}
+        self.model.target_hik_enabled = view.target_hik_enabled.isChecked()
+        view.target_hik_disabled_label.setVisible(not self.model.target_hik_enabled)
+        self.model.save_preferences()
+
+    def browse_target_hik(self):
+        """Chooses a Maya or FBX file containing the target HumanIK rig."""
+        path, _ = QtWidgets.QFileDialog.getOpenFileName(
+            self.view, "Target HumanIK Rig", self.view.target_hik_path.text(), "Maya and FBX files (*.ma *.mb *.fbx);;Maya scenes (*.ma *.mb);;FBX files (*.fbx)")
+        if path:
+            self.view.target_hik_path.setText(path)
+            self.save_target_hik()
 
     def gather_humanik(self):
         """Validates the optional HumanIK fields independently of generation inputs."""

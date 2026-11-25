@@ -109,19 +109,49 @@ for _legacy_index_name, _canonical_index_name in {
     )
 
 
+REFERENCES_TOOLTIP = (
+    "Shows where each variable is used in the current project and lists the uses "
+    "of the selected variable below the table.\n"
+    "Scanned: task settings (including inline Python code using env[...]), custom "
+    "variables, project folders, run settings, and project notes. Uses through other "
+    "variables are listed as indirect, for example a task using {output-dir} when "
+    "{output-dir} is built from {project-dir}.\n\n"
+    "Not detected:\n"
+    "• Built-in behavior that uses a value without a token in the settings, such "
+    "as a task writing to the output folder by default.\n"
+    "• Contents of external files: script files on disk and child .batch "
+    "projects started by Run Batch Project.\n"
+    "• Variable names built at runtime in code, such as env[variable_name].\n\n"
+    "Click Refresh after editing the project to scan it again."
+)
+
+
 class EnvironmentVariablesDialog(_EnvironmentVariablesDialog):
     """Batch Processor configuration for the shared environment browser."""
 
-    def __init__(self, refresh_callback, parent=None):
+    def __init__(
+        self,
+        refresh_callback,
+        parent=None,
+        references_callback=None,
+        reference_activated_callback=None,
+    ):
         """Initializes the Batch Processor environment-variable browser.
 
         Args:
             refresh_callback (callable): Function returning the latest variables.
             parent (QWidget, optional): Parent widget.
+            references_callback (callable, optional): Function returning variable
+                references for the current project.
+            reference_activated_callback (callable, optional): Function receiving a
+                double-clicked reference dictionary.
         """
         super().__init__(
             refresh_callback=refresh_callback,
             parent=parent,
             title="Batch Project Environment Variables",
             descriptions=BUILT_IN_ENVIRONMENT_VARIABLE_DESCRIPTIONS,
+            references_callback=references_callback,
+            references_tooltip=REFERENCES_TOOLTIP,
+            reference_activated_callback=reference_activated_callback,
         )

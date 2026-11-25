@@ -31,6 +31,7 @@ class TrackerTask:
         self.unit_completed = 0
         self.unit_total = 0
         self.unit_label = ""
+        self.is_aggregate = False
         self.errors = 0
         self.warnings = 0
         self.reported_warnings = 0
@@ -56,7 +57,9 @@ class TrackerTask:
             self.started_at = event.get("timestamp") or self.started_at
             self.total_items = max(0, int(event.get("total_items") or 0))
             self.worker = str(event.get("worker_id") or self.worker)
+            self.is_aggregate = bool(event.get("aggregate", False))
         elif event_name == "task_progress":
+            self._fold_aggregate_units()
             self.completed_items = max(self.completed_items, int(event.get("completed_items") or 0))
             self.total_items = max(self.total_items, int(event.get("total_items") or 0))
             self._reset_unit_progress()
@@ -81,6 +84,7 @@ class TrackerTask:
             if log_path and log_path not in self.log_paths:
                 self.log_paths.append(log_path)
         elif event_name == "task_finished":
+            self._fold_aggregate_units()
             self.completed_items = max(self.completed_items, int(event.get("completed_items") or 0))
             self.total_items = max(self.total_items, int(event.get("total_items") or 0))
             self.errors = max(self.errors, int(event.get("errors") or 0))
@@ -106,6 +110,17 @@ class TrackerTask:
         if self.unit_total:
             completed += min(1.0, float(self.unit_completed) / float(self.unit_total))
         self.progress = min(99, int(100 * completed / float(self.total_items)))
+
+    def _fold_aggregate_units(self):
+        """Keeps an aggregate task's unit count as its item count once the task completes.
+
+        Aggregate tasks are one item for the worker, but their units (e.g. 144 merged inputs)
+        are the meaningful count, so a finished task shows 144/144 instead of 1/1.
+        """
+        if not self.is_aggregate or not self.unit_total:
+            return
+        self.completed_items = self.unit_completed
+        self.total_items = self.unit_total
 
     def _reset_unit_progress(self):
         """Clears sub-item progress so a finished item cannot be counted twice."""
@@ -141,6 +156,8 @@ class TrackerTask:
         Returns:
             str: Completed and total item counts.
         """
+        if self.is_aggregate and self.unit_total:
+            return f"{self.unit_completed}/{self.unit_total}"
         if not self.total_items:
             return "-"
         count_text = f"{self.completed_items}/{self.total_items}"
@@ -158,6 +175,7 @@ class TrackerTask:
         self.unit_completed = 0
         self.unit_total = 0
         self.unit_label = ""
+        self.is_aggregate = False
         self.errors = 0
         self.warnings = 0
         self.reported_warnings = 0
@@ -640,3 +658,110 @@ class TrackerSession:
         """Marks the session finished."""
         self.finished = True
         self.completed_at = tracker_events.utc_now_iso()
+
+
+class TrackerProjectRow:
+    """Read-only summary row that mirrors the whole tracker session."""
+
+    id = "project-summary"
+    number = 0
+    is_project_row = True
+    parent_job = None
+    worker = ""
+
+    def __init__(self, session):
+        """Initializes the summary row.
+
+        Args:
+            session (TrackerSession): Session summarized by this row.
+        """
+        self.session = session
+        self.tasks = []
+
+    @property
+    def name(self):
+        """Gets the project display name.
+
+        Returns:
+            str: Project name.
+        """
+        return self.session.project_name or "Project"
+
+    @property
+    def progress(self):
+        """Gets overall session progress.
+
+        Returns:
+            int: Overall percentage.
+        """
+        return self.session.progress
+
+    @property
+    def status(self):
+        """Gets the combined session status.
+
+        Returns:
+            str: Value from ``tracker_constants.Status``.
+        """
+        status = tracker_constants.Status
+        if self.session.finished:
+            health_state = self.session.health_state
+            if health_state == tracker_constants.HealthState.ABORTED:
+                return status.CANCELED
+            if health_state == tracker_constants.HealthState.ERROR:
+                return status.FAILED
+            if health_state == tracker_constants.HealthState.WARNING:
+                return status.COMPLETED_WARNINGS
+            return status.COMPLETED
+        if self.session.aborting:
+            return status.CANCELING
+        idle_statuses = {status.QUEUED, status.PENDING_FINALIZATION}
+        if any(job.status not in idle_statuses for job in self.session.jobs):
+            return status.RUNNING
+        return status.QUEUED
+
+    @property
+    def errors(self):
+        """Gets the total error count across every job.
+
+        Returns:
+            int: Total errors.
+        """
+        return sum(job.errors for job in self.session.jobs)
+
+    @property
+    def warnings(self):
+        """Gets the total warning count across every job.
+
+        Returns:
+            int: Total warnings.
+        """
+        return sum(job.warnings for job in self.session.jobs)
+
+    @property
+    def started_at(self):
+        """Gets the session start timestamp.
+
+        Returns:
+            str: ISO timestamp.
+        """
+        return self.session.started_at
+
+    @property
+    def completed_at(self):
+        """Gets the session completion timestamp.
+
+        Returns:
+            str: ISO timestamp, empty while running.
+        """
+        return self.session.completed_at
+
+    def get_count_text(self):
+        """Gets completed and total regular job counts.
+
+        Returns:
+            str: Completed and total job counts.
+        """
+        regular_jobs = self.session.regular_jobs
+        completed = len([job for job in regular_jobs if job.status in tracker_constants.TERMINAL_STATUSES])
+        return f"{completed}/{len(regular_jobs)}"

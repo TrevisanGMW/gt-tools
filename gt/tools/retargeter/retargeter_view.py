@@ -681,6 +681,16 @@ class RetargeterView(metaclass=ui_qt_utils.MayaWindowMeta):
         self.skip_existing_files_chk.setChecked(self.skip_existing_files)
         general_layout.addWidget(self.skip_existing_files_chk)
 
+        # --- Play Sound Checkbox ---
+        self.play_sound_on_completion_chk = ui_qt.QtWidgets.QCheckBox("Play Sound When Completed")
+        self.play_sound_on_completion_chk.setToolTip(
+            "If checked, a sound matching the final status plays when retargeting finishes.\n"
+            "Success, warning (some files failed) or failure (all files failed).\n"
+            "Also applies to the multi-process batch tracker."
+        )
+        self.play_sound_on_completion_chk.setChecked(self.play_sound_on_completion)
+        general_layout.addWidget(self.play_sound_on_completion_chk)
+
         # Finalize General GroupBox
         general_group_box.setLayout(general_layout)
         layout.addWidget(general_group_box)
@@ -755,6 +765,18 @@ class RetargeterView(metaclass=ui_qt_utils.MayaWindowMeta):
             self.skip_existing_files = checked
             self.save_preferences()
 
+        def _on_play_sound_changed(checked):
+            """
+            Slot method for when the 'Play Sound When Completed' checkbox is toggled.
+
+            Updates the 'play_sound_on_completion' attribute and saves preferences.
+
+            Args:
+                checked (bool): The new state of the checkbox.
+            """
+            self.play_sound_on_completion = checked
+            self.save_preferences()
+
         def _on_batch_mode_changed(checked):
             """
             Slot method for when the 'Enable Multi-Process' checkbox is toggled.
@@ -802,6 +824,7 @@ class RetargeterView(metaclass=ui_qt_utils.MayaWindowMeta):
 
         # Connect signals to new slots
         self.skip_existing_files_chk.toggled.connect(_on_skip_existing_changed)
+        self.play_sound_on_completion_chk.toggled.connect(_on_play_sound_changed)
         self.multi_process_batch_mode_chk.toggled.connect(_on_batch_mode_changed)
         self.multi_process_max_instances_spinbox.valueChanged.connect(_on_max_instances_changed)
         self.multi_write_log_file_chk.toggled.connect(_on_write_log_file_changed)

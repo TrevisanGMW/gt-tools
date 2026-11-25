@@ -3,6 +3,7 @@
 import os
 from contextlib import contextmanager
 from contextvars import ContextVar
+from gt.tools.batch_processor import batch_processor_input_metadata as input_metadata
 
 
 _VIRTUAL_SCENE = ContextVar("batch_virtual_scene", default="")
@@ -54,6 +55,8 @@ def work_item_context(project, work_item):
                                        if work_item else ""),
             "input-string": value, "input-string-index": metadata.get("input_string_index", ""),
         }
+        project._input_string_environment.update(
+            input_metadata.build_environment_values(metadata.get(input_metadata.METADATA_KEY)))
         if virtual_scene:
             from gt.tools.batch_processor import batch_processor_maya
 

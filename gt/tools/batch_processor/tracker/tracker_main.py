@@ -51,6 +51,16 @@ def parse_args():
         default=0,
         help="Minutes a job may run before it is automatically canceled. 0 disables the timeout.",
     )
+    parser.add_argument(
+        "--preferred-maya-version",
+        default="",
+        help="Maya version that resolved to --mayapy, used when run settings change the version later.",
+    )
+    parser.add_argument(
+        "--keep-manual-run-settings",
+        action="store_true",
+        help="Keep run settings changed in the tracker when later Settings Override tasks apply.",
+    )
     parser.add_argument("--logs-dir", default="", help="Base directory for run-scoped session data.")
     parser.add_argument("--project-log", default="", help="Main Batch Processor project log path.")
     parser.add_argument("--source-project-file", default="", help="Original saved Batch Processor project path.")
@@ -58,12 +68,31 @@ def parse_args():
     parser.add_argument("--no-log", action="store_true", help="Disable human-readable worker logs.")
     parser.add_argument("--task-time-logs", action="store_true", help="Write task timing logs.")
     parser.add_argument("--headless", action="store_true", help="Run the scheduler without a tracker window.")
+    parser.add_argument(
+        "--start-minimized",
+        action="store_true",
+        help="Open the tracker minimized to the system tray (taskbar if no tray), regardless of preferences.",
+    )
     parser.add_argument("--single-project", action="store_true", help="Execute a complete single-instance child.")
     for option in ("session-dir", "result-file", "status-file", "control-file", "run-id", "parent-run-id"):
         parser.add_argument(f"--{option}", default="")
     parser.add_argument("--window-policy", default="Keep Open")
     parser.add_argument("--empty-policy", default="Warning")
     return parser.parse_args()
+
+
+def is_processing_task(task):
+    """Checks whether a task runs inside worker jobs.
+
+    Args:
+        task (BatchTask): Task to inspect.
+
+    Returns:
+        bool: False for input tasks and run settings control tasks.
+    """
+    from gt.tools.batch_processor.batch_processor_task_base import is_processing_task as _is_processing_task
+
+    return _is_processing_task(task)
 
 
 def read_jobs(job_file_path):
@@ -102,9 +131,9 @@ def build_task_definitions(project, args):
     regular_tasks = [
         task
         for task in selected_tasks
-        if not task.is_input_task and task.id not in final_ids and task.id not in skipped_ids
+        if is_processing_task(task) and task.id not in final_ids and task.id not in skipped_ids
     ]
-    final_tasks = [task for task in selected_tasks if not task.is_input_task and task.id in final_ids]
+    final_tasks = [task for task in selected_tasks if is_processing_task(task) and task.id in final_ids]
     return create_definitions(regular_tasks), create_definitions(final_tasks)
 
 
@@ -128,7 +157,7 @@ def build_preflight_task_definitions(project, args):
     )
     preflight_ids = set(getattr(args, "completed_preflight_task_id", []) or [])
     preflight_tasks = [
-        task for task in selected_tasks if not task.is_input_task and task.id in preflight_ids
+        task for task in selected_tasks if is_processing_task(task) and task.id in preflight_ids
     ]
     return create_definitions(preflight_tasks)
 
@@ -154,12 +183,12 @@ def build_segments(project, args):
     )
     final_ids = set(args.final_task_id or [])
     skipped_ids = set(getattr(args, "skip_task_id", []) or [])
-    final_tasks = [task for task in selected_tasks if not task.is_input_task and task.id in final_ids]
+    final_tasks = [task for task in selected_tasks if is_processing_task(task) and task.id in final_ids]
     final_definitions = create_definitions(final_tasks)
     content_tasks = [task for task in selected_tasks if task.id not in final_ids and task.id not in skipped_ids]
     segments = []
     for segment_tasks in project.get_task_segments(task_list=content_tasks):
-        processing_tasks = [task for task in segment_tasks if not task.is_input_task]
+        processing_tasks = [task for task in segment_tasks if is_processing_task(task)]
         input_tasks = [task for task in segment_tasks if task.is_input_task]
         if not processing_tasks:
             continue
@@ -173,6 +202,28 @@ def build_segments(project, args):
             }
         )
     return segments, final_definitions, final_tasks
+
+
+def build_run_settings_plan(project, args):
+    """Builds the run settings schedule for a multi-instance tracker run.
+
+    Args:
+        project (BatchProcessorModel): Snapshot project.
+        args (argparse.Namespace): Tracker options.
+
+    Returns:
+        dict: Plan with "initial", "segments", and "final" run settings entries.
+    """
+    from gt.tools.batch_processor import batch_processor_worker
+
+    runner = batch_processor_worker.SingleInstanceBatchRunner()
+    selected_tasks = runner._trim_tasks(
+        project.get_enabled_tasks(),
+        args.run_from_task_id or None,
+        args.run_to_task_id or None,
+    )
+    excluded_ids = set(args.final_task_id or []) | set(getattr(args, "skip_task_id", []) or [])
+    return project.build_run_settings_plan(selected_tasks=selected_tasks, excluded_task_ids=excluded_ids)
 
 
 def create_definitions(tasks):
@@ -250,7 +301,7 @@ def run_tracker(args):
         source_files = read_jobs(args.job_file)
         if single_project:
             regular_definitions = create_definitions(
-                [task for task in project.get_enabled_tasks() if not task.is_input_task])
+                [task for task in project.get_enabled_tasks() if is_processing_task(task)])
             final_definitions = []
         else:
             regular_definitions, final_definitions = build_task_definitions(project, args)
@@ -258,6 +309,9 @@ def run_tracker(args):
 
             first_task = project.get_task(regular_definitions[0]["id"]) if regular_definitions else None
             source_files = batch_processor_projects.filter_project_inputs(source_files, first_task, project)
+            if not regular_definitions and final_definitions:
+                # Only run-once tasks: they find their own files, so no per-file jobs are created.
+                source_files = []
         jobs = [
             tracker_model.TrackerJob(
                 job_id=f"job-{index:04d}",
@@ -298,8 +352,14 @@ def run_tracker(args):
         project_log_path=args.project_log,
         source_project_file=args.source_project_file,
     )
+    run_settings_plan = None if single_project else build_run_settings_plan(project, args)
     scheduler = tracker_scheduler.TrackerScheduler(
-        session=session, options=args, project=project, segments=scheduler_segments)
+        session=session,
+        options=args,
+        project=project,
+        segments=scheduler_segments,
+        run_settings_plan=run_settings_plan,
+    )
     if getattr(args, "headless", False):
         while not session.finished:
             scheduler.tick()
@@ -310,13 +370,26 @@ def run_tracker(args):
     from gt.tools.batch_processor.tracker import tracker_controller
     from gt.tools.batch_processor.tracker import tracker_view
 
+    from gt.tools.batch_processor.tracker import tracker_process_utils
+
+    if not ui_qt.QtWidgets.QApplication.instance():
+        tracker_process_utils.remove_qt_scaling_variables(os.environ)
+        if ui_qt.IS_PYSIDE6:
+            ui_qt.QtGui.QGuiApplication.setHighDpiScaleFactorRoundingPolicy(
+                ui_qt.QtCore.Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
+            )
     application = ui_qt.QtWidgets.QApplication.instance() or ui_qt.QtWidgets.QApplication(sys.argv)
     application.setApplicationName("Batch Processor Tracker")
     # Installed on the application (not on widgets) so Qt Style Sheets still
     # render while menu icons are pinned to the check-indicator size.
     application.setStyle(tracker_view.MenuIconStyle(application.style()))
     view = tracker_view.TrackerView(project_name=project.project_name)
-    controller = tracker_controller.TrackerController(session=session, scheduler=scheduler, view=view)
+    controller = tracker_controller.TrackerController(
+        session=session,
+        scheduler=scheduler,
+        view=view,
+        start_minimized=getattr(args, "start_minimized", False),
+    )
     if args.maya_version_warning:
         view.statusBar().showMessage(args.maya_version_warning)
     application.controller = controller

@@ -14,6 +14,23 @@ import gt.ui.qt_import as ui_qt
 logger = logging.getLogger(__name__)
 
 
+class BatchTaskTree(ui_tree_enhanced.QTreeEnhanced):
+    """Task tree supporting deselection by clicking empty space."""
+
+    def mousePressEvent(self, event):
+        """Clears selection and the current item on an empty left click.
+
+        Args:
+            event (QMouseEvent): Mouse press received by the tree.
+        """
+        if event.button() == ui_qt.QtLib.MouseButton.LeftButton and self.itemAt(event.pos()) is None:
+            self.setCurrentItem(None)
+            self.clearSelection()
+            event.accept()
+            return
+        super().mousePressEvent(event)
+
+
 class BatchProcessorView(metaclass=MayaWindowMeta):
     """Main Qt view for the Batch Processor tool."""
 
@@ -72,7 +89,7 @@ class BatchProcessorView(metaclass=MayaWindowMeta):
         self.splitter.setHandleWidth(5)
         self.splitter.setChildrenCollapsible(False)
 
-        self.task_tree = ui_tree_enhanced.QTreeEnhanced()
+        self.task_tree = BatchTaskTree()
         self.task_tree.set_one_root_mode(state=True)
         self.task_tree.setHeaderHidden(True)
         self.task_tree.setSelectionMode(ui_qt.QtLib.SelectionMode.SingleSelection)
@@ -326,7 +343,16 @@ class BatchProcessorView(metaclass=MayaWindowMeta):
 
     def clear_task_widget(self):
         """Clears the task attribute area."""
-        self.task_attr_area.setWidget(ui_qt.QtWidgets.QWidget())
+        container = ui_qt.QtWidgets.QWidget()
+        layout = ui_qt.QtWidgets.QVBoxLayout(container)
+        message = ui_qt.QtWidgets.QLabel("Nothing selected")
+        message.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignCenter)
+        message.setStyleSheet(f"color: {ui_res_lib.Color.Hex.gray_dim}; font-size: 15pt;")
+        message.setWordWrap(True)
+        layout.addStretch()
+        layout.addWidget(message)
+        layout.addStretch()
+        self.task_attr_area.setWidget(container)
 
     def set_task_widget(self, widget, preserve_scroll=False):
         """Sets the given widget into the task attribute area.
@@ -735,14 +761,15 @@ class BatchProcessorView(metaclass=MayaWindowMeta):
         self.menu_items.append(submenu)
         return submenu
 
-    def set_status(self, message, status="info"):
+    def set_status(self, message, status="info", pulse=None):
         """Sets the status line.
 
         Args:
             message (str): Status message.
             status (str, optional): Status level used for color.
+            pulse (bool, optional): Pulse a glow to draw attention. None pulses for success, warning and error.
         """
-        qt_utils.set_status_line_text(self.status_text, str(message), status=status)
+        qt_utils.set_status_line_text(self.status_text, str(message), status=status, pulse=pulse)
 
     def set_progress(self, text):
         """Sets progress text.

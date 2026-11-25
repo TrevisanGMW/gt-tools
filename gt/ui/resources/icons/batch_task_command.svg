@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 150">
+  <style>
+    .surface { fill: #bdbdbd; stroke: #1d1d1d; stroke-width: 6; stroke-linejoin: round; }
+    .bar { fill: #1d1d1d; }
+    .prompt { fill: none; stroke: #64b7a5; stroke-width: 10; stroke-linecap: round; stroke-linejoin: round; }
+    .cursor { fill: none; stroke: #1d1d1d; stroke-width: 9; stroke-linecap: round; }
+  </style>
+  <rect class="surface" x="15" y="25" width="120" height="100" rx="10"/>
+  <rect class="bar" x="18" y="28" width="114" height="16" rx="6"/>
+  <path class="prompt" d="M40 65l20 17-20 17"/>
+  <path class="cursor" d="M70 101h36"/>
+</svg>

@@ -12,12 +12,22 @@ from gt.tools.batch_processor.tracker import tracker_events
 from gt.tools.batch_processor.tracker import tracker_model
 from gt.tools.batch_processor.tracker import tracker_process_utils
 from gt.tools.batch_processor import batch_processor_run_state as run_state
+from gt.tools.batch_processor import batch_processor_run_settings as run_settings
 
 
 class TrackerScheduler:
     """Owns the job queue and all worker subprocesses."""
 
-    def __init__(self, session, options, update_callback=None, finish_callback=None, project=None, segments=None):
+    def __init__(
+        self,
+        session,
+        options,
+        update_callback=None,
+        finish_callback=None,
+        project=None,
+        segments=None,
+        run_settings_plan=None,
+    ):
         """Initializes the scheduler.
 
         Args:
@@ -30,6 +40,10 @@ class TrackerScheduler:
             segments (list, optional): Ordered segment descriptors. When provided
                 (more than one), the run executes one segment at a time with a
                 barrier between segments.
+            run_settings_plan (dict, optional): Run settings schedule from
+                ``BatchProcessorModel.build_run_settings_plan``. Segment entries
+                apply when each segment starts and "final" applies before the
+                run-once finalization phase.
         """
         self.session = session
         self.options = options
@@ -41,8 +55,18 @@ class TrackerScheduler:
         self.segmented = len(self.segments) > 1
         self.current_segment_index = 0
         self._materialized_segments = set()
-        self.max_retries = max(0, int(getattr(options, "max_retries", 0) or 0))
-        self.timeout_seconds = max(0, int(getattr(options, "timeout_minutes", 0) or 0)) * 60
+        self.initial_mayapy = getattr(options, "mayapy", "") or ""
+        self.run_settings = run_settings.RunSettingsState(
+            worker_count=session.worker_count,
+            max_retries=getattr(options, "max_retries", 0),
+            timeout_minutes=getattr(options, "timeout_minutes", 0),
+            preferred_maya_version=getattr(options, "preferred_maya_version", ""),
+            mayapy_path=self.initial_mayapy,
+            keep_manual_changes=bool(getattr(options, "keep_manual_run_settings", False)),
+        )
+        self.run_settings_plan = run_settings_plan or {}
+        self._final_run_settings_applied = False
+        self._base_custom_variables = self._read_project_custom_variables()
         self.job_retry_counts = {}
         self.timed_out_jobs = set()
         self.pending_restarts = set()
@@ -68,7 +92,169 @@ class TrackerScheduler:
         os.makedirs(self.session.session_dir, exist_ok=True)
         os.makedirs(self.get_events_dir(), exist_ok=True)
         os.makedirs(self.get_logs_dir(), exist_ok=True)
+        initial_custom_variables = (self.run_settings_plan.get("initial") or {}).get(run_settings.CUSTOM_VARIABLES)
+        if initial_custom_variables:
+            self.update_run_settings(
+                {run_settings.CUSTOM_VARIABLES: initial_custom_variables},
+                source="start of run, earlier tasks",
+            )
+        if not self.segmented:
+            self.apply_planned_run_settings(0, "start of run")
         self.write_state()
+
+    @property
+    def max_retries(self):
+        """Gets the current retry limit.
+
+        Returns:
+            int: Retry attempts per failed job.
+        """
+        return self.run_settings.max_retries
+
+    @max_retries.setter
+    def max_retries(self, value):
+        """Sets the retry limit directly, without logging.
+
+        Args:
+            value (int): Retry attempts per failed job.
+        """
+        self.run_settings.values[run_settings.MAX_RETRIES] = run_settings.normalize_setting_value(
+            run_settings.MAX_RETRIES, value)
+
+    @property
+    def timeout_seconds(self):
+        """Gets the timeout assigned to newly launched jobs.
+
+        Returns:
+            int: Timeout in seconds, 0 when disabled.
+        """
+        return self.run_settings.timeout_seconds
+
+    def apply_planned_run_settings(self, segment_index, reason):
+        """Applies the scheduled run settings overrides for a segment.
+
+        Args:
+            segment_index (int): Zero-based processing segment index.
+            reason (str): Readable reason used in the project log.
+
+        Returns:
+            list: Applied (key, old_value, new_value) changes.
+        """
+        planned_segments = self.run_settings_plan.get("segments") or []
+        if segment_index >= len(planned_segments):
+            return []
+        return self.update_run_settings(planned_segments[segment_index], source=reason)
+
+    def update_run_settings(self, overrides, source="tracker", manual=False):
+        """Changes run settings while the run is in progress.
+
+        Lowering the worker limit never stops running jobs; new launches wait
+        until enough workers finish. Timeouts are stored per job at launch, so
+        running jobs keep the timeout they started with. A Maya version change
+        only affects workers launched afterwards.
+
+        Args:
+            overrides (dict): Values keyed by run setting key.
+            source (str, optional): Readable origin of the change for the log.
+            manual (bool, optional): True when the user changed the value live.
+
+        Returns:
+            list: Applied (key, old_value, new_value) changes.
+        """
+        changes, protected_keys = self.run_settings.apply(overrides or {}, manual=manual)
+        for setting_key, _old_value, new_value in changes:
+            if setting_key == run_settings.WORKER_COUNT:
+                self.session.worker_count = new_value
+            elif setting_key == run_settings.PREFERRED_MAYA_VERSION:
+                self._resolve_run_settings_mayapy(new_value)
+            elif setting_key == run_settings.CUSTOM_VARIABLES:
+                self._apply_custom_variable_overrides(new_value, source)
+        scalar_changes = [change for change in changes if change[0] != run_settings.CUSTOM_VARIABLES]
+        if scalar_changes:
+            self._append_project_log(
+                f"[OPERATION] - (Multi-instance) - Run settings changed ({source}): "
+                f"{run_settings.describe_changes(scalar_changes)}.\n"
+            )
+        if protected_keys:
+            labels = ", ".join(run_settings.SETTING_LABELS.get(key, key) for key in protected_keys)
+            self._append_project_log(
+                f"[INFO] - (Multi-instance) - Kept manual tracker changes for {labels}; "
+                f"ignored the value from {source}.\n"
+            )
+        return changes
+
+    def _read_project_custom_variables(self):
+        """Reads the project's own custom variable definitions before any override.
+
+        Returns:
+            dict: Definitions keyed by normalized name, or an empty dictionary.
+        """
+        getter = getattr(self.project, "get_custom_environment_variables", None)
+        definitions = getter() if callable(getter) else {}
+        return definitions if isinstance(definitions, dict) else {}
+
+    def get_custom_variables_file_path(self):
+        """Gets the file that hands custom variable overrides to workers.
+
+        Returns:
+            str: JSON file path inside the session folder.
+        """
+        return os.path.join(self.session.session_dir, "custom_variables.json")
+
+    def _apply_custom_variable_overrides(self, overrides, source):
+        """Applies cumulative custom variable overrides to the tracker project and workers.
+
+        The overrides are always applied on top of the project's original
+        definitions, so repeating them is harmless. Workers read them from a
+        JSON file at launch, so running workers keep the values they started with.
+
+        Args:
+            overrides (dict): Cumulative normalized custom variable overrides.
+            source (str): Readable origin of the change for the log.
+        """
+        if hasattr(self.project, "set_custom_environment_variables"):
+            self.project.set_custom_environment_variables(
+                run_settings.apply_custom_variable_overrides(self._base_custom_variables, overrides)
+            )
+        file_path = self.get_custom_variables_file_path()
+        temporary_path = f"{file_path}.tmp"
+        with open(temporary_path, "w", encoding="utf-8") as file_object:
+            json.dump(overrides, file_object, indent=2)
+        os.replace(temporary_path, file_path)
+        summary = run_settings.summarize_custom_variable_overrides(self._base_custom_variables, overrides)
+        self._append_project_log(
+            f"[OPERATION] - (Multi-instance) - Custom variables changed ({source}): "
+            f"{run_settings.format_custom_variable_summary(summary)}.\n"
+        )
+
+    def _resolve_run_settings_mayapy(self, maya_version):
+        """Resolves the mayapy used by new workers after a Maya version change.
+
+        Args:
+            maya_version (str): Preferred Maya version, or empty for the launch mayapy.
+        """
+        if not maya_version:
+            self.run_settings.mayapy_path = self.initial_mayapy
+            return
+        try:
+            from gt.tools.batch_processor.batch_processor_worker import find_mayapy_for_version
+
+            mayapy_path = find_mayapy_for_version(maya_version)
+        except Exception as exception:
+            mayapy_path = ""
+            self._append_project_log(
+                f"[WARNING] - (Multi-instance) - Unable to look up Maya {maya_version}: {exception}\n"
+            )
+        if mayapy_path:
+            self.run_settings.mayapy_path = mayapy_path
+            self._append_project_log(
+                f"[INFO] - (Multi-instance) - New workers will use Maya {maya_version}: {mayapy_path}\n"
+            )
+            return
+        self._append_project_log(
+            f"[WARNING] - (Multi-instance) - Maya {maya_version} was not found in default Autodesk install "
+            f"locations; new workers keep using: {self.run_settings.mayapy_path}\n"
+        )
 
     @property
     def pending_segments(self):
@@ -429,8 +615,6 @@ class TrackerScheduler:
         Returns:
             bool: Whether any job timed out this tick.
         """
-        if self.timeout_seconds <= 0:
-            return False
         changed = False
         current_time = time.monotonic()
         for job_id, process_data in self.running.items():
@@ -444,8 +628,11 @@ class TrackerScheduler:
                 continue
             if process_data.get("cancel_requested_at") is not None:
                 continue
+            timeout_seconds = process_data.get("timeout_seconds", self.timeout_seconds)
+            if timeout_seconds <= 0:
+                continue
             started_monotonic = process_data.get("started_monotonic")
-            if started_monotonic is None or current_time - started_monotonic < self.timeout_seconds:
+            if started_monotonic is None or current_time - started_monotonic < timeout_seconds:
                 continue
             process_data["timed_out"] = True
             process_data["timeout_requested_at"] = current_time
@@ -457,7 +644,7 @@ class TrackerScheduler:
                 tracker_process_utils.terminate_process_tree(process_data["process"], force=True)
             self._append_project_log(
                 f"[OPERATION] - (Multi-instance) - Timed out '{job.name}' after "
-                f"{self.timeout_seconds // 60} minute(s); stopping worker.\n"
+                f"{timeout_seconds // 60} minute(s); stopping worker.\n"
             )
             changed = True
         return changed
@@ -545,6 +732,8 @@ class TrackerScheduler:
             segment_index (int): Zero-based segment index to materialize.
         """
         segment = self.segments[segment_index]
+        self.apply_planned_run_settings(
+            segment_index, f"segment {segment_index + 1}/{len(self.segments)} start")
         source_files = []
         if self.project:
             source_files = self.project.discover_segment_input_files(segment.get("input_tasks"))
@@ -707,7 +896,7 @@ class TrackerScheduler:
         if getattr(self.options, "single_project", False):
             worker_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tracker_project_worker.py")
         command = [
-            self.options.mayapy,
+            self.run_settings.mayapy_path or self.options.mayapy,
             worker_script,
             "--project-file",
             self.options.project_file,
@@ -737,6 +926,8 @@ class TrackerScheduler:
                 command.extend(["--skip-task-id", task_id])
             for task_id in getattr(self.options, "skip_task_id", []) or []:
                 command.extend(["--skip-task-id", task_id])
+        if self.run_settings.custom_variables and not getattr(self.options, "single_project", False):
+            command.extend(["--custom-variables-file", self.get_custom_variables_file_path()])
         if log_path:
             command.extend(["--log-file", log_path])
         if timing_path:
@@ -773,6 +964,7 @@ class TrackerScheduler:
             "cancel_requested_at": None,
             "cancel_force_requested": False,
             "started_monotonic": time.monotonic(),
+            "timeout_seconds": self.timeout_seconds,
             "timed_out": False,
         }
         if log_path:
@@ -978,11 +1170,14 @@ class TrackerScheduler:
             [job for job in regular_jobs if job.status in tracker_constants.TERMINAL_STATUSES]
         )
         completed_tasks = len([task for task in tasks if task.status in tracker_constants.TERMINAL_STATUSES])
-        failed = len([job for job in regular_jobs if job.status in (
+        counted_jobs = list(regular_jobs) + [
+            job for job in self.session.jobs if job.is_finalization and not getattr(job, "is_preflight", False)
+        ]
+        failed = len([job for job in counted_jobs if job.status in (
             tracker_constants.Status.FAILED, tracker_constants.Status.TIMED_OUT, tracker_constants.Status.BLOCKED)])
-        canceled = len([job for job in regular_jobs if job.status == tracker_constants.Status.CANCELED])
-        errors = sum(job.errors for job in regular_jobs)
-        warnings = sum(job.warnings for job in regular_jobs)
+        canceled = len([job for job in counted_jobs if job.status == tracker_constants.Status.CANCELED])
+        errors = sum(job.errors for job in counted_jobs)
+        warnings = sum(job.warnings for job in counted_jobs)
         result = "Aborted" if self.session.aborting or canceled else "Completed"
         self._append_project_log(
             "\n"
@@ -1007,6 +1202,9 @@ class TrackerScheduler:
             return False
         if self._preserve_terminal_finalization and job.status in tracker_constants.TERMINAL_STATUSES:
             return False
+        if not self._final_run_settings_applied:
+            self._final_run_settings_applied = True
+            self.update_run_settings(self.run_settings_plan.get("final") or {}, source="before run-once tasks")
         blocking_statuses = {
             tracker_constants.Status.BLOCKED,
             tracker_constants.Status.FAILED,
@@ -1018,17 +1216,17 @@ class TrackerScheduler:
             for regular in self.session.regular_jobs
             if regular.status in blocking_statuses
         ]
-        if blocking_jobs:
-            skip_message = self._build_finalization_skip_message(blocking_jobs)
-            job.status = tracker_constants.Status.SKIPPED
-            job.completed_at = tracker_events.utc_now_iso()
-            for task in job.tasks:
-                task.status = tracker_constants.Status.SKIPPED
-                task.progress = 100
-                task.completed_at = job.completed_at
-                task.messages.append(("Info", skip_message))
-            self._append_project_log(f"[SKIPPED] - (Multi-instance) - {skip_message}\n")
-            return True
+        if blocking_jobs and self.final_task_index < len(job.tasks):
+            next_task = job.tasks[self.final_task_index]
+            if not self._final_task_runs_after_failures(next_task):
+                skip_message = self._build_finalization_skip_message(blocking_jobs)
+                next_task.status = tracker_constants.Status.SKIPPED
+                next_task.progress = 100
+                next_task.completed_at = tracker_events.utc_now_iso()
+                next_task.messages.append(("Info", skip_message))
+                self._append_project_log(f"[SKIPPED] - (Multi-instance) - {skip_message}\n")
+                self.final_task_index += 1
+                return True
         if self.final_task_index < len(job.tasks):
             try:
                 self._launch_job(job, final_task=job.tasks[self.final_task_index])
@@ -1039,12 +1237,28 @@ class TrackerScheduler:
             return True
         if any(task.status == tracker_constants.Status.FAILED for task in job.tasks):
             job.status = tracker_constants.Status.FAILED
+        elif job.tasks and all(task.status == tracker_constants.Status.SKIPPED for task in job.tasks):
+            job.status = tracker_constants.Status.SKIPPED
         elif any(task.status == tracker_constants.Status.COMPLETED_WARNINGS for task in job.tasks):
             job.status = tracker_constants.Status.COMPLETED_WARNINGS
         else:
             job.status = tracker_constants.Status.COMPLETED
         job.completed_at = tracker_events.utc_now_iso()
         return True
+
+    def _final_task_runs_after_failures(self, tracker_task):
+        """Checks whether a run-once final task opted in to running after failed jobs.
+
+        Args:
+            tracker_task (TrackerTask): Finalization task about to launch.
+
+        Returns:
+            bool: True when the task's project settings enable running after failed jobs.
+        """
+        project_task = self.project.get_task(tracker_task.id) if self.project else None
+        if not project_task:
+            return False
+        return bool(project_task.settings.get("run_after_failed_jobs", False))
 
     @staticmethod
     def _build_finalization_skip_message(blocking_jobs):
@@ -1174,6 +1388,31 @@ class TrackerScheduler:
                     f"[WARNING] - (Report) - Unable to clean temporary report parts: {exception}\n"
                 )
                 continue
+        self._cleanup_task_run_files(run_id)
+
+    def _cleanup_task_run_files(self, run_id):
+        """Lets tasks that merge results from parallel workers delete their temporary files.
+
+        Any enabled task with a ``cleanup_run_files(project, run_id)`` method is called once
+        after every worker has stopped (for example Validate Animation's batch output parts).
+
+        Args:
+            run_id (str): Identifier of the finished run.
+        """
+        for task in self.project.get_enabled_tasks():
+            cleanup = getattr(task, "cleanup_run_files", None)
+            if not callable(cleanup):
+                continue
+            try:
+                deleted_count = cleanup(self.project, run_id)
+                if deleted_count:
+                    self._append_project_log(
+                        f"[INFO] - ({task.display_name}) - Removed {deleted_count} temporary part file(s).\n"
+                    )
+            except Exception as exception:
+                self._append_project_log(
+                    f"[WARNING] - ({task.display_name}) - Unable to clean temporary files: {exception}\n"
+                )
 
     @staticmethod
     def _mark_job_canceled(job):
@@ -1201,6 +1440,7 @@ class TrackerScheduler:
             "project_log_path": self.session.project_log_path,
             "source_project_file": self.session.source_project_file,
             "worker_count": self.session.worker_count,
+            "run_settings": self.run_settings.to_dict(),
             "started_at": self.session.started_at,
             "completed_at": self.session.completed_at,
             "finished": self.session.finished,

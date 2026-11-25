@@ -48,6 +48,7 @@ class TaskType:
     INPUT = "input"
     INPUT_STRINGS = "input_strings"
     INPUT_PAIRS = "input_pairs"
+    INPUT_METADATA = "input_metadata"
     MAYA_IMPORT = "import_maya"
     RENAME = "rename"
     PYTHON_SCRIPT = "python_script"
@@ -70,13 +71,18 @@ class TaskType:
     SCENE_REPORT = "scene_report"
     DELETE_PROJECT_FILES = "delete_project_files"
     ZIP_COMPRESS = "zip_compress"
+    MERGE_INPUT = "merge_input"
     MAYA_SCENE_VALIDATE = "validate_maya_scene"
     FILE_INTEGRITY_VALIDATE = "validate_file_integrity"
     FOLDER_COMPARE_VALIDATE = "validate_folder_compare"
+    PYTHON_SCRIPT_VALIDATE = "validate_python_script"
+    ANIMATION_VALIDATE = "validate_animation"
     THUMBNAIL_CAPTURE = "thumbnail_capture"
     PLAYBLAST_CAPTURE = "playblast_capture"
     BATCH_RENDER = "output_batch_render"
     RUN_BATCH_PROJECT = "run_batch_project"
+    SETTINGS_OVERRIDE = "settings_override"
+    COMMAND = "command"
 
 
 class ModuleType(TaskType):

@@ -105,67 +105,42 @@ def display_stage_and_request(job):
 
 
 def delete_local_artifacts(job, dry_run=False):
-    """Deletes only verified downloaded artifacts, preserving added or edited files.
-
-    No recursive local deletion is used. The recorded paths must share the exact
-    job-ID directory. Symlinks/junctions and manifest identity mismatches are rejected.
+    """Deletes the validated local directory belonging to a selected job.
 
     Args:
-        job (dict): History entry whose paths identify a previously downloaded job.
-        dry_run (bool): Validate and report without deleting any files.
+        job (dict): History entry identifying the downloaded job.
+        dry_run (bool): Validate and report without deleting files.
 
     Returns:
-        dict: Deleted (or planned) files, preserved files and local directory.
+        dict: Deleted or planned paths, preserved paths, and the job directory.
     """
+    import shutil
+
     paths = job.get("paths", {})
-    if not paths and job.get("download_directory"):
-        directory = job["download_directory"]
-        names = [entry["name"] for entry in job.get("artifacts", [])] + ["result.json"]
-        paths = {name: os.path.join(directory, name) for name in names}
-    if not paths:
+    directory = job.get("download_directory", "")
+    if paths:
+        if any(not os.path.isabs(path) for path in paths.values()):
+            raise ValueError("Downloaded paths must be absolute.")
+        directories = {os.path.dirname(os.path.abspath(path)) for path in paths.values()}
+        if len(directories) != 1:
+            raise ValueError("Downloaded paths do not share one job directory.")
+        recorded_directory = directories.pop()
+        if directory and os.path.normcase(os.path.abspath(directory)) != os.path.normcase(recorded_directory):
+            raise ValueError("Downloaded directory does not match recorded paths.")
+        directory = recorded_directory
+    if not directory:
         return {"deleted": [], "preserved": [], "directory": ""}
     job_id = job["job_id"]
     kimodo._validate_job_id(job_id)
-    directories = {os.path.dirname(os.path.abspath(path)) for path in paths.values()}
-    if len(directories) != 1 or any(not os.path.isabs(path) for path in paths.values()):
-        raise ValueError("Downloaded paths are not in one absolute job directory; nothing was deleted.")
-    directory = directories.pop()
-    if os.path.basename(directory) != job_id:
-        raise ValueError("Local folder is not this job's ID directory; nothing was deleted.")
-    directory = kimodo._validate_job_directory(os.path.dirname(directory), job_id)
-    for name, path in paths.items():
-        if (name != "result.json" and not kimodo._is_artifact(name)) or os.path.basename(path) != name:
-            raise ValueError("Unexpected recorded artifact path; nothing was deleted.")
+    if not os.path.isabs(directory) or os.path.basename(os.path.normpath(directory)) != job_id:
+        raise ValueError("Local folder is not this job's absolute ID directory.")
+    directory = kimodo._validate_job_directory(os.path.dirname(os.path.normpath(directory)), job_id)
     manifest_path = os.path.join(directory, "result.json")
-    manifest = read_json_dict(manifest_path) if os.path.isfile(manifest_path) else {}
-    if manifest and manifest.get("job_id") != job_id:
-        raise ValueError("Local manifest belongs to another job; nothing was deleted.")
-    artifacts = {entry["name"]: entry for entry in (manifest or job).get("artifacts", [])}
-    deleted, preserved = [], []
-    for name, path in paths.items():
-        if not os.path.isfile(path):
-            continue
-        if name != "result.json":
-            record = artifacts.get(name)
-            digest = hashlib.sha256()
-            with open(path, "rb") as stream:
-                for chunk in iter(lambda: stream.read(65536), b""):
-                    digest.update(chunk)
-            if (not record or os.path.getsize(path) != record["size_bytes"]
-                    or digest.hexdigest() != record["sha256"]):
-                preserved.append(path)
-                continue
-        elif not manifest:
-            preserved.append(path)
-            continue
-        deleted.append(path)
-    if not dry_run:
-        for path in deleted:
-            os.remove(path)
-        if os.path.isdir(directory) and not os.listdir(directory):
-            os.rmdir(directory)
-    if os.path.isdir(directory):
-        known = {os.path.normcase(os.path.realpath(path)) for path in deleted + preserved}
-        preserved.extend(os.path.join(directory, name) for name in os.listdir(directory)
-                         if os.path.normcase(os.path.realpath(os.path.join(directory, name))) not in known)
-    return {"deleted": deleted, "preserved": preserved, "directory": directory}
+    if os.path.isfile(manifest_path):
+        manifest = read_json_dict(manifest_path)
+        if manifest and manifest.get("job_id") != job_id:
+            raise ValueError("Local manifest belongs to another job.")
+    deleted = [directory] if os.path.isdir(directory) else []
+    if deleted and not dry_run:
+        shutil.rmtree(directory)
+    return {"deleted": deleted, "preserved": [], "directory": directory}

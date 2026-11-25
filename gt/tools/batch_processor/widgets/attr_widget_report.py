@@ -122,12 +122,20 @@ class AttrWidgetSceneReportTask(AttrWidgetTask):
             main_label="Run Once After All Jobs",
             main_key="run_once_after_multi_instance",
             main_tooltip=(
-                "In multi-instance mode, wait for every regular job to succeed,\n"
+                "In multi-instance mode, wait for every regular job to finish,\n"
                 "then build this report once over the files found at its Source Path.\n"
+                'The report is skipped if any job failed, unless "Run After Failed Jobs" is on.\n'
                 "This task must be the last enabled processing task while this option is on.\n"
                 "Turn it off to report on each file as its job runs.\nParallel workers merge\n"
                 "their results into the same report either way.\n"
                 'Enable "Add Separator" to mark this run-once step in the task list.'
+            ),
+            secondary_label="Run After Failed Jobs",
+            secondary_key="run_after_failed_jobs",
+            secondary_tooltip=(
+                "In multi-instance mode, still build the run-once report when one or more jobs failed,\n"
+                "timed out, or were canceled. Only files found at the Source Path are reported.\n"
+                "Off by default: the report is skipped when any job did not succeed."
             ),
         )
         self.content_layout.addStretch()

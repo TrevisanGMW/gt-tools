@@ -76,6 +76,8 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
                 "output_extension_values": [".ma", ".mb"],
             }
         )
+        for combo_box in (self.scene_load_mode_combo, self.output_extension_combo):
+            combo_box.setMinimumWidth(144)
         self.add_python_mode_controls()
         self.add_python_context_controls()
         self.add_single_script_controls()
@@ -248,7 +250,14 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
         self.python_edit_font = ui_qt_utils.get_font(ui_res_lib.Font.roboto)
         self.python_edit.setFont(self.python_edit_font)
         self.python_edit.setFontPointSize(initial_font_size)
-        self.python_edit.setToolTip("Python code executed for every incoming file.\nUse context for batch data.")
+        self.python_edit.setToolTip(
+            "Python code executed for every incoming file. Use context for batch data.\n"
+            'context["control"].skip_file(reason) stops this file without saving.\n'
+            'context["control"].save_to_subfolder("filtered", reason) saves elsewhere and stops.\n'
+            'context["control"].save_to_folder("{project-dir}/{output-dir}/filtered", reason) '
+            "uses a custom folder template. \nModify must be disabled for routing."
+            "Existing outputs still skip this task before scripts run when Overwrite is off."
+        )
         single_layout.addWidget(self.python_editor_widget)
 
         try:
@@ -1059,7 +1068,7 @@ class AttrWidgetPythonScriptTask(AttrWidgetTask):
         """
         if not self.python_edit:
             return
-        dynamic_stylesheet = self.base_stylesheet + "; font-size: {0}pt;".format(font_size)
+        dynamic_stylesheet = f"{self.base_stylesheet}\nQTextEdit {{ font-size: {int(font_size)}pt; }}"
         self.python_edit.setStyleSheet(dynamic_stylesheet)
         if self.python_editor_widget:
             self.python_editor_widget.number_bar.setFont(self.python_edit.font())

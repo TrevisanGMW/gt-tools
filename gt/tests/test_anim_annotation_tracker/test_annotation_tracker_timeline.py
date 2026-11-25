@@ -5,7 +5,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 from unittest.mock import patch
 
-from gt.tools.anim_annotation_tracker import annotation_tracker
+from gt.tools.annotation_tracker import annotation_tracker
 
 
 class TestAnnotationTrackerTimeline(unittest.TestCase):
@@ -257,12 +257,10 @@ class TestAnnotationTrackerTimeline(unittest.TestCase):
         """Checks successful sample creation is not reported as a warning."""
         requested_path = "C:/schemas/schema.json"
         copied_path = "C:\\schemas\\schema.json"
-        schema_path_field = SimpleNamespace(setText=MagicMock())
-        check_schema_path = MagicMock()
+        select_custom_schema = MagicMock()
         stdout = SimpleNamespace(write=MagicMock())
         view = SimpleNamespace(
-            schema_path_fld=schema_path_field,
-            check_schema_path=check_schema_path,
+            select_custom_schema=select_custom_schema,
         )
 
         with patch.object(
@@ -285,8 +283,7 @@ class TestAnnotationTrackerTimeline(unittest.TestCase):
             annotation_tracker.RangeToolWindow.create_example_schema(view)
 
         mock_copy.assert_called_once_with(requested_path)
-        schema_path_field.setText.assert_called_once_with(copied_path)
-        check_schema_path.assert_called_once_with(rebuild=True)
+        select_custom_schema.assert_called_once_with(copied_path)
         stdout.write.assert_called_once_with(
             f"Created example schema at {copied_path}\n"
         )

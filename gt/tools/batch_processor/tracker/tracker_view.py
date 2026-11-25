@@ -4,6 +4,9 @@ import gt.core.session as core_session
 import gt.ui.qt_import as ui_qt
 import gt.ui.resource_library as ui_res_lib
 
+from gt.tools.batch_processor.tracker import tracker_columns
+from gt.tools.batch_processor.tracker import tracker_run_settings_dialog
+from gt.tools.batch_processor.tracker import tracker_title_bar
 from gt.tools.batch_processor.tracker import tracker_tree_model
 
 
@@ -46,6 +49,134 @@ class MenuIconStyle(ui_qt.QtWidgets.QProxyStyle):
         return super().pixelMetric(metric, option, widget)
 
 
+class CenteredStatusBar(ui_qt.QtWidgets.QStatusBar):
+    """Status bar that draws its temporary message centered with equal padding all around."""
+
+    VERTICAL_PADDING = 9
+
+    def sizeHint(self):
+        """Gets a height with the same padding above and below the text.
+
+        Returns:
+            QSize: Preferred size.
+        """
+        hint = super().sizeHint()
+        hint.setHeight(self.fontMetrics().height() + self.VERTICAL_PADDING * 2)
+        return hint
+
+    def minimumSizeHint(self):
+        """Gets the minimum size, matching the preferred height.
+
+        Returns:
+            QSize: Minimum size.
+        """
+        hint = super().minimumSizeHint()
+        hint.setHeight(self.fontMetrics().height() + self.VERTICAL_PADDING * 2)
+        return hint
+
+    def paintEvent(self, event):
+        """Paints the current message centered instead of left-aligned.
+
+        Args:
+            event (QPaintEvent): Paint event.
+        """
+        message = self.currentMessage()
+        if not message:
+            return
+        painter = ui_qt.QtGui.QPainter(self)
+        painter.setPen(ui_qt.QtGui.QColor("#e0e0e0"))
+        text_area = self.rect().adjusted(12, 0, -12, 0)
+        elided = self.fontMetrics().elidedText(message, ui_qt.QtCore.Qt.ElideRight, text_area.width())
+        painter.drawText(text_area, ui_qt.QtLib.AlignmentFlag.AlignCenter, elided)
+
+
+class TrackerSplitterHandle(ui_qt.QtWidgets.QSplitterHandle):
+    """Splitter handle drawn as a small centered grip instead of a full-width line."""
+
+    GRIP_WIDTH = 44
+    GRIP_HEIGHT = 4
+
+    def paintEvent(self, event):
+        """Paints a rounded grip pill that brightens on hover.
+
+        Args:
+            event (QPaintEvent): Paint event.
+        """
+        painter = ui_qt.QtGui.QPainter(self)
+        painter.setRenderHint(ui_qt.QtGui.QPainter.Antialiasing, True)
+        active = self.underMouse() or self.property("dragging")
+        painter.setPen(ui_qt.QtCore.Qt.NoPen)
+        painter.setBrush(ui_qt.QtGui.QColor("#7d8e97" if active else "#5a5a5a"))
+        grip = ui_qt.QtCore.QRectF(
+            (self.width() - self.GRIP_WIDTH) / 2.0,
+            (self.height() - self.GRIP_HEIGHT) / 2.0,
+            self.GRIP_WIDTH,
+            self.GRIP_HEIGHT,
+        )
+        painter.drawRoundedRect(grip, self.GRIP_HEIGHT / 2.0, self.GRIP_HEIGHT / 2.0)
+
+    def enterEvent(self, event):
+        """Repaints for the hover color.
+
+        Args:
+            event (QEvent): Enter event.
+        """
+        super().enterEvent(event)
+        self.update()
+
+    def leaveEvent(self, event):
+        """Repaints for the idle color.
+
+        Args:
+            event (QEvent): Leave event.
+        """
+        super().leaveEvent(event)
+        self.update()
+
+    def mousePressEvent(self, event):
+        """Marks the grip as being dragged.
+
+        Args:
+            event (QMouseEvent): Mouse event.
+        """
+        self.setProperty("dragging", True)
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        """Clears the dragging mark.
+
+        Args:
+            event (QMouseEvent): Mouse event.
+        """
+        self.setProperty("dragging", False)
+        super().mouseReleaseEvent(event)
+        self.update()
+
+
+class TrackerSplitter(ui_qt.QtWidgets.QSplitter):
+    """Splitter whose handle blends with the tracker styling."""
+
+    HANDLE_THICKNESS = 12
+
+    def __init__(self, orientation, parent=None):
+        """Initializes the splitter with a roomier, borderless handle.
+
+        Args:
+            orientation (Qt.Orientation): Split direction.
+            parent (QWidget, optional): Qt parent.
+        """
+        super().__init__(orientation, parent)
+        self.setHandleWidth(self.HANDLE_THICKNESS)
+
+    def createHandle(self):
+        """Creates the custom handle.
+
+        Returns:
+            TrackerSplitterHandle: Handle for this splitter.
+        """
+        return TrackerSplitterHandle(self.orientation(), self)
+
+
 class TrackerTreeView(ui_qt.QtWidgets.QTreeView):
     """Tree view with Maya Outliner-style branch indicators."""
 
@@ -58,6 +189,34 @@ class TrackerTreeView(ui_qt.QtWidgets.QTreeView):
         super().__init__(parent)
         self.last_viewport_width = 0
         self.resizing_columns = False
+        self.column_ratios = []
+        self.header().sectionResized.connect(self._on_section_resized)
+
+    def _on_section_resized(self, logical_index, old_size, new_size):
+        """Remembers the proportions whenever the user (or setup code) resizes a column.
+
+        Args:
+            logical_index (int): Resized section.
+            old_size (int): Previous width.
+            new_size (int): New width.
+        """
+        if self.resizing_columns:
+            return
+        header = self.header()
+        widths = [header.sectionSize(column) for column in range(header.count())]
+        self.column_ratios = tracker_columns.capture_column_ratios(widths)
+
+    def mousePressEvent(self, event):
+        """Clears the selection when an empty area is clicked.
+
+        Args:
+            event (QMouseEvent): Mouse event.
+        """
+        point = event.position().toPoint() if hasattr(event, "position") else event.pos()
+        if not self.indexAt(point).isValid():
+            self.clearSelection()
+            self.setCurrentIndex(ui_qt.QtCore.QModelIndex())
+        super().mousePressEvent(event)
 
     def drawBranches(self, painter, rectangle, index):
         """Paints root and child branch icons for one row.
@@ -70,6 +229,8 @@ class TrackerTreeView(ui_qt.QtWidgets.QTreeView):
         if not index.isValid():
             return
         model = index.model()
+        if getattr(index.data(tracker_tree_model.OBJECT_ROLE), "is_project_row", False):
+            return
         child_count = model.rowCount(index)
         if child_count:
             icon_path = (
@@ -149,7 +310,7 @@ class TrackerTreeView(ui_qt.QtWidgets.QTreeView):
         painter.restore()
 
     def resizeEvent(self, event):
-        """Scales current user-defined column proportions with the viewport.
+        """Rescales columns to the new viewport width using the remembered proportions.
 
         Args:
             event (QResizeEvent): Tree resize event.
@@ -162,18 +323,20 @@ class TrackerTreeView(ui_qt.QtWidgets.QTreeView):
         column_count = header.count()
         if viewport_width <= 0 or not column_count:
             return
-        current_total = sum(header.sectionSize(column) for column in range(column_count))
-        if current_total <= 0 or viewport_width == self.last_viewport_width:
+        if len(self.column_ratios) != column_count:
+            widths = [header.sectionSize(column) for column in range(column_count)]
+            self.column_ratios = tracker_columns.capture_column_ratios(widths)
+            self.last_viewport_width = viewport_width
             return
-        scale = float(viewport_width) / float(current_total)
+        if viewport_width == self.last_viewport_width:
+            return
+        widths = tracker_columns.distribute_column_widths(
+            self.column_ratios, viewport_width, header.minimumSectionSize()
+        )
         self.resizing_columns = True
         try:
-            remaining_width = viewport_width
-            for column in range(column_count - 1):
-                width = max(header.minimumSectionSize(), int(header.sectionSize(column) * scale))
+            for column, width in enumerate(widths):
                 header.resizeSection(column, width)
-                remaining_width -= width
-            header.resizeSection(column_count - 1, max(header.minimumSectionSize(), remaining_width))
         finally:
             self.resizing_columns = False
             self.last_viewport_width = viewport_width
@@ -191,10 +354,16 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
         """
         super().__init__(parent)
         self.close_callback = None
+        self.closed_callback = None
+        self.minimize_to_tray_callback = None
         self.setWindowTitle(f"Batch Processor Tracker - {project_name}")
         self.setWindowIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.batch_tracker))
         self.resize(1320, 720)
         self.setMinimumSize(900, 480)
+        self.window_frame = tracker_title_bar.FramelessWindowFrame(self)
+        self.status_icon_label = self.window_frame.title_bar.status_icon_label
+        self.status_spinner = self.window_frame.title_bar.status_spinner
+        self.compact_button = self.window_frame.title_bar.compact_button
         self._create_widgets()
         self._create_layout()
         self._apply_stylesheet()
@@ -229,6 +398,11 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
         self.open_batch_processor_action.setToolTip(
             "Open this project in an independent Batch Processor."
         )
+        self.switch_compact_action = self.file_menu.addAction(
+            ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_tracker_compact),
+            "Switch to Compact Tracker",
+        )
+        self.switch_compact_action.setToolTip("Collapse the tracker to a small icon, name and progress bar.")
         self.file_menu.addSeparator()
         self.exit_action = self.file_menu.addAction(
             ui_qt.QtGui.QIcon(ui_res_lib.Icon.setup_close),
@@ -258,6 +432,14 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
             "Restart All Canceled Jobs",
         )
         self.restart_canceled_jobs_action.setToolTip("Queue every canceled job to run again.")
+        self.actions_menu.addSeparator()
+        self.adjust_run_settings_action = self.actions_menu.addAction(
+            ui_qt.QtGui.QIcon(ui_res_lib.Icon.batch_task_settings_override),
+            "Adjust Run Settings...",
+        )
+        self.adjust_run_settings_action.setToolTip(
+            "Change the max workers, retries, and timeout of this run while it is running."
+        )
         self.copy_menu = self.tracker_menu_bar.addMenu("Copy")
         copy_icon = ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_copy_text)
         self.copy_failed_jobs_action = self.copy_menu.addAction(copy_icon, "Copy Failed Job Names")
@@ -299,6 +481,39 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
             "Reset Filters",
         )
         self.reset_filters_action.setToolTip("Clear all tracker filters.")
+        self.preferences_menu = self.tracker_menu_bar.addMenu("Preferences")
+        self.play_sound_action = self.preferences_menu.addAction("Play Sound When Completed")
+        self.play_sound_action.setCheckable(True)
+        self.play_sound_action.setToolTip("Play a sound matching the final batch status. Saved for new trackers.")
+        self.auto_close_action = self.preferences_menu.addAction("Auto-Close When Completed Without Errors")
+        self.auto_close_action.setCheckable(True)
+        self.auto_close_action.setToolTip(
+            "Close this window 10 seconds after a batch completes without errors. Saved for new trackers."
+        )
+        self.show_project_row_action = self.preferences_menu.addAction("Show Project Row")
+        self.show_project_row_action.setCheckable(True)
+        self.show_project_row_action.setToolTip(
+            "Pin a project row with the overall progress above the jobs. Applies immediately and is saved."
+        )
+        self.start_compact_action = self.preferences_menu.addAction("Launch in Compact Mode")
+        self.start_compact_action.setCheckable(True)
+        self.start_compact_action.setToolTip("Open new trackers as the compact tracker. Saved for new trackers.")
+        self.start_minimized_action = self.preferences_menu.addAction("Launch Minimized")
+        self.start_minimized_action.setCheckable(True)
+        self.start_minimized_action.setToolTip(
+            "Open new trackers minimized to the system tray (or the taskbar when no tray exists). Saved for new trackers."
+        )
+        self.use_system_tray_action = self.preferences_menu.addAction("Minimize to System Tray Instead of Taskbar")
+        self.use_system_tray_action.setCheckable(True)
+        self.use_system_tray_action.setToolTip(
+            "Show a system tray icon (click to show or hide the tracker) and keep tracker windows off the taskbar."
+        )
+        self.keep_manual_run_settings_action = self.preferences_menu.addAction("Keep Manual Run Setting Changes")
+        self.keep_manual_run_settings_action.setCheckable(True)
+        self.keep_manual_run_settings_action.setToolTip(
+            "When on, run settings you change in the tracker (max workers, retries, timeout) are kept\n"
+            "even when a later \"Settings Override\" task would change them. Applies immediately and is saved."
+        )
         self.search_field = ui_qt.QtWidgets.QLineEdit()
         self.search_field.setPlaceholderText("Filter by job name...")
         self.search_field.setClearButtonEnabled(True)
@@ -310,7 +525,7 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
         self.log_tabs.setTabsClosable(False)
         self.log_tabs.setMinimumHeight(150)
 
-        self.splitter = ui_qt.QtWidgets.QSplitter(ui_qt.QtLib.Orientation.Vertical)
+        self.splitter = TrackerSplitter(ui_qt.QtLib.Orientation.Vertical)
         self.splitter.setChildrenCollapsible(False)
         self.splitter.addWidget(self.tree)
         self.splitter.addWidget(self.log_tabs)
@@ -319,11 +534,6 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
         self.information_widget = ui_qt.QtWidgets.QWidget()
         self.primary_summary_label = ui_qt.QtWidgets.QLabel()
         self.secondary_summary_label = ui_qt.QtWidgets.QLabel()
-        self.status_icon_label = ui_qt.QtWidgets.QLabel()
-        self.status_icon_label.setFixedSize(24, 24)
-        self.status_icon_label.setAlignment(ui_qt.QtLib.AlignmentFlag.AlignCenter)
-        self.status_icon_label.setToolTip("Starting — preparing the worker queue.")
-        self.status_icon_label.setAccessibleName("Tracker status: Starting")
         self.primary_summary_label.setTextFormat(ui_qt.QtCore.Qt.RichText)
         self.secondary_summary_label.setTextFormat(ui_qt.QtCore.Qt.RichText)
         self.project_logs_button = ui_qt.QtWidgets.QPushButton("Project Logs")
@@ -337,6 +547,17 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
         self.show_logs_button.setCheckable(True)
         self.show_logs_button.setChecked(True)
         self.show_logs_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_templates))
+        self.worker_limit_label = ui_qt.QtWidgets.QLabel("Max Workers:")
+        self.worker_limit_spin_box = ui_qt.QtWidgets.QSpinBox()
+        self.worker_limit_spin_box.setRange(1, 256)
+        self.worker_limit_spin_box.setKeyboardTracking(False)
+        self.worker_limit_spin_box.setMinimumWidth(64)
+        worker_limit_tooltip = (
+            "Maximum concurrent workers for this run. Changes apply right away.\n"
+            "Lowering it never stops running jobs; new jobs wait until enough workers finish."
+        )
+        self.worker_limit_label.setToolTip(worker_limit_tooltip)
+        self.worker_limit_spin_box.setToolTip(worker_limit_tooltip)
         self.abort_button = ui_qt.QtWidgets.QPushButton("Abort All")
         self.abort_button.setIcon(ui_qt.QtGui.QIcon(ui_res_lib.Icon.ui_delete))
         self.abort_button.setToolTip("Stop scheduling and terminate all active worker process trees.")
@@ -370,14 +591,16 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
         information_layout.addLayout(primary_layout)
         secondary_layout = ui_qt.QtWidgets.QHBoxLayout()
         secondary_layout.addWidget(self.secondary_summary_label, 1)
-        secondary_layout.addWidget(self.status_icon_label)
+        secondary_layout.addWidget(self.worker_limit_label)
+        secondary_layout.addWidget(self.worker_limit_spin_box)
+        secondary_layout.addSpacing(6)
         secondary_layout.addWidget(self.project_folder_button)
         secondary_layout.addWidget(self.project_logs_button)
         secondary_layout.addWidget(self.show_logs_button)
         secondary_layout.addWidget(self.abort_button)
         information_layout.addLayout(secondary_layout)
         main_layout.addWidget(self.information_widget)
-        self.setCentralWidget(central_widget)
+        self.setCentralWidget(self.window_frame.wrap(central_widget))
 
     def _apply_stylesheet(self):
         """Applies repository-compatible standalone styling."""
@@ -416,6 +639,16 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
             "QHeaderView::section:hover { background-color: #4a555b; color: #ffffff; }"
             "QHeaderView::section:pressed { background-color: #55788a; color: #ffffff; }"
         )
+        status_bar = CenteredStatusBar()
+        self.setStatusBar(status_bar)
+        status_bar.setStyleSheet(
+            "QStatusBar { background: transparent; color: #e0e0e0; }"
+            "QStatusBar QLabel { background: transparent; color: #e0e0e0; }"
+        )
+        status_bar.setSizeGripEnabled(False)
+        # Keep the bar collapsed while empty so it never leaves a blank strip.
+        status_bar.setVisible(False)
+        status_bar.messageChanged.connect(lambda message: status_bar.setVisible(bool(message)))
         self.toolbar_widget.setStyleSheet(
             "QWidget#trackerToolbar { background-color: #292929; border: 1px solid #424242;"
             " border-radius: 4px; }"
@@ -443,7 +676,9 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
         )
         self.log_tabs.setStyleSheet(
             "QTabWidget { background-color: #292929; color: #e6e6e6; border-radius: 5px; }"
-            "QTabWidget::pane { background-color: #242424; border: 1px solid #484848; border-radius: 5px; }"
+            "QTabWidget::pane { background-color: #242424; border: 1px solid #484848; border-radius: 5px;"
+            " border-top-left-radius: 0px; top: -1px; }"
+            "QTabBar { qproperty-drawBase: 0; background: transparent; }"
             "QTabBar::tab { background-color: #303030; color: #cfcfcf; padding: 6px 10px;"
             " border: 1px solid #444444; border-bottom: none;"
             " border-top-left-radius: 4px; border-top-right-radius: 4px; }"
@@ -456,7 +691,9 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
             "QWidget { background-color: #292929; border: 1px solid #424242; border-radius: 5px; }"
             "QLabel { background: transparent; border: none; }"
             "QPushButton { border-radius: 3px; padding: 4px 8px; }"
+            "QSpinBox { padding: 2px 4px 2px 7px; }"
         )
+        self.worker_limit_spin_box.setStyleSheet(tracker_run_settings_dialog.build_spin_box_stylesheet())
 
     def set_status_icon(self, icon_path, tooltip, accessible_name):
         """Updates the overall tracker status indicator.
@@ -466,6 +703,7 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
             tooltip (str): Detailed hover text.
             accessible_name (str): Screen-reader description.
         """
+        self.status_spinner.stop()
         pixmap = ui_qt.QtGui.QPixmap(icon_path)
         keep_aspect_ratio = (
             ui_qt.QtCore.Qt.AspectRatioMode.KeepAspectRatio
@@ -481,6 +719,18 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
         self.status_icon_label.setPixmap(pixmap)
         self.status_icon_label.setToolTip(tooltip)
         self.status_icon_label.setAccessibleName(accessible_name)
+
+    def set_status_spinning(self, tooltip, accessible_name, color=None):
+        """Shows the animated processing indicator instead of a static status icon.
+
+        Args:
+            tooltip (str): Detailed hover text.
+            accessible_name (str): Screen-reader description.
+            color (str, optional): Animation color. Defaults to the normal green.
+        """
+        self.status_icon_label.setToolTip(tooltip)
+        self.status_icon_label.setAccessibleName(accessible_name)
+        self.status_spinner.start(color=color)
 
     def set_logs_visible(self, visible):
         """Shows or hides the log panel.
@@ -597,6 +847,40 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
         message_box.exec_()
         return "abort" if message_box.clickedButton() == abort_button else "keep_running"
 
+    def changeEvent(self, event):
+        """Sends minimize requests to the tray when tray mode is active.
+
+        Args:
+            event (QEvent): Change event.
+        """
+        super().changeEvent(event)
+        if (
+            event.type() == ui_qt.QtCore.QEvent.WindowStateChange
+            and self.isMinimized()
+            and callable(self.minimize_to_tray_callback)
+        ):
+            ui_qt.QtCore.QTimer.singleShot(0, self._minimize_to_tray)
+
+    def _minimize_to_tray(self):
+        """Runs the tray minimize callback if tray mode is still active."""
+        if callable(self.minimize_to_tray_callback):
+            self.minimize_to_tray_callback(self)
+
+    def nativeEvent(self, event_type, message):
+        """Lets the custom frame handle native Windows messages.
+
+        Args:
+            event_type (QByteArray): Native event type.
+            message (object): Native message pointer.
+
+        Returns:
+            tuple: ``(handled, result)``.
+        """
+        handled, result = tracker_title_bar.handle_native_event(event_type, message)
+        if handled:
+            return True, result
+        return super().nativeEvent(event_type, message)
+
     def closeEvent(self, event):
         """Delegates active-session close decisions to the controller.
 
@@ -607,3 +891,5 @@ class TrackerView(ui_qt.QtWidgets.QMainWindow):
             event.ignore()
             return
         event.accept()
+        if callable(self.closed_callback):
+            self.closed_callback()

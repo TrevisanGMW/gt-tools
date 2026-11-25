@@ -6,6 +6,7 @@ from gt.tools.batch_processor import batch_processor_constants as constants
 from gt.tools.batch_processor.tasks import task_utils
 from gt.tools.batch_processor import batch_processor_maya
 from gt.tools.batch_processor import batch_processor_task_base as task_base
+from gt.tools.batch_processor.batch_processor_file_control import FileControl
 import gt.ui.resource_library as ui_res_lib
 import importlib.util
 import fnmatch
@@ -890,6 +891,8 @@ class TaskPythonScript(task_base.BatchTask):
                 "args": arguments,
                 "environment_variables": environment_variables,
                 "env": environment_variables,
+                "control": FileControl(self, project, work_item, output_path, write_scene=True,
+                                       preview=bool(context.get("preview"))),
             }
         )
         return context

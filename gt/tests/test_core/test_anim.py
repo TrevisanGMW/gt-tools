@@ -437,6 +437,94 @@ class TestAnimCore(unittest.TestCase):
         self.assertEqual([30.0, 34.0], times)
         self.assertEqual([12.0, 24.0], values)
 
+    def test_cut_time_keys_batches_dense_ranges(self):
+        """Deletes a baked range with one Maya edit in either routing mode."""
+        from unittest import mock
+
+        for use_connected_attributes in (True, False):
+            maya_test_tools.force_new_scene()
+            source = cmds.createNode("transform")
+            for frame in range(100):
+                cmds.setKeyframe(source, attribute="translateX", time=frame, value=frame)
+            curve = core_anim.get_time_keyframes([source])[0]
+            with mock.patch.object(core_anim.cmds, "cutKey", wraps=cmds.cutKey) as cut_keys:
+                result = core_anim._cut_time_keys(
+                    curve, list(range(75)), obj_list=[source],
+                    use_connected_attributes=use_connected_attributes,
+                )
+            self.assertEqual(75, result)
+            self.assertEqual(1, cut_keys.call_count)
+            self.assertEqual([float(frame) for frame in range(75, 100)],
+                             cmds.keyframe(curve, query=True, timeChange=True))
+
+    def test_cut_time_keys_preserves_gaps_and_undo(self):
+        """Keeps unrequested subframe keys and restores the edit with undo."""
+        source = cmds.createNode("transform")
+        times = [1.0, 1.5, 3.0, 8.0, 9.0]
+        for frame in times:
+            cmds.setKeyframe(source, attribute="translateX", time=frame, value=frame)
+        curve = core_anim.get_time_keyframes([source])[0]
+        cmds.undoInfo(openChunk=True)
+        try:
+            result = core_anim._cut_time_keys(curve, [1, 3, 8, 8, 500])
+        finally:
+            cmds.undoInfo(closeChunk=True)
+        self.assertEqual(3, result)
+        self.assertEqual([1.5, 9.0], cmds.keyframe(curve, query=True, timeChange=True))
+        cmds.undo()
+        self.assertEqual(times, cmds.keyframe(curve, query=True, timeChange=True))
+
+    def test_cut_time_keys_protects_shared_curve(self):
+        """Skips curves also driving objects outside the explicit scope."""
+        source = cmds.createNode("transform")
+        other = cmds.createNode("transform")
+        cmds.setKeyframe(source, attribute="translateX", time=1, value=1)
+        curve = core_anim.get_time_keyframes([source])[0]
+        cmds.connectAttr(f"{curve}.output", f"{other}.translateX")
+        for use_connected_attributes in (True, False):
+            result = core_anim._cut_time_keys(
+                curve, [1], obj_list=[source],
+                use_connected_attributes=use_connected_attributes,
+            )
+            self.assertEqual(0, result)
+            self.assertEqual([1.0], cmds.keyframe(curve, query=True, timeChange=True))
+
+    def test_delete_range_through_animation_blend(self):
+        """Deletes through a blend input while preserving range boundaries."""
+        for use_connected_attributes in (True, False):
+            maya_test_tools.force_new_scene()
+            source = cmds.createNode("transform")
+            blend = cmds.createNode("blendWeighted")
+            curve = cmds.createNode("animCurveTL")
+            cmds.connectAttr(f"{curve}.output", f"{blend}.input[0]")
+            cmds.connectAttr(f"{blend}.output", f"{source}.translateX")
+            for frame in (1, 5, 10):
+                cmds.setKeyframe(curve, time=frame, value=frame)
+            cmds.currentTime(5)
+            result = core_anim.delete_keyframes_before_current_frame(
+                obj_list=[source], use_connected_attributes=use_connected_attributes,
+            )
+            self.assertEqual(1, result)
+            self.assertEqual([5.0, 10.0], cmds.keyframe(curve, query=True, timeChange=True))
+
+    def test_cut_time_keys_respects_animation_layer_inputs(self):
+        """Range batching does not delete keys on a different animation layer."""
+        source = cmds.createNode("transform")
+        for frame in (1, 5, 10):
+            cmds.setKeyframe(source, attribute="translateX", time=frame, value=frame)
+        base_curve = core_anim.get_time_keyframes([source])[0]
+        layer = cmds.animLayer("delete_keys_test_layer")
+        cmds.animLayer(layer, edit=True, attribute=f"{source}.translateX")
+        cmds.setKeyframe(source, attribute="translateX", time=3, value=30, animLayer=layer)
+        layer_curve = cmds.animLayer(layer, query=True, animCurves=True)[0]
+        layer_times = cmds.keyframe(layer_curve, query=True, timeChange=True)
+
+        result = core_anim._cut_time_keys(base_curve, [1, 5])
+
+        self.assertEqual(2, result)
+        self.assertEqual([10.0], cmds.keyframe(base_curve, query=True, timeChange=True))
+        self.assertEqual(layer_times, cmds.keyframe(layer_curve, query=True, timeChange=True))
+
     def test_delete_keyframes_both(self):
         create_anim_test_scene()
         result = core_anim.delete_keyframes(key_scope=core_anim.KeyframeScope.BOTH)

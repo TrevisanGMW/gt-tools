@@ -65,7 +65,34 @@ def parse_args():
     parser.add_argument("--flag-running-tasks", action="store_true", help="Print concise running-task updates.")
     parser.add_argument("--flag-skipped-tasks", action="store_true", help="Print explicit skipped-task warnings.")
     parser.add_argument("--hold-open-seconds", type=float, default=0, help="Seconds to keep a worker console open.")
+    parser.add_argument(
+        "--custom-variables-file",
+        default="",
+        help="JSON file with Settings Override custom variable overrides to apply after loading the project.",
+    )
     return parser.parse_args()
+
+
+def apply_custom_variable_overrides_file(project, file_path):
+    """Applies custom variable overrides from a tracker-written JSON file.
+
+    Args:
+        project (BatchProcessorModel): Loaded project snapshot.
+        file_path (str): JSON file written by the tracker scheduler.
+
+    Returns:
+        int: Number of override entries applied.
+    """
+    import json
+
+    from gt.tools.batch_processor import batch_processor_run_settings as run_settings
+
+    with open(file_path, "r", encoding="utf-8") as file_object:
+        overrides = run_settings.normalize_custom_variable_overrides(json.load(file_object))
+    project.set_custom_environment_variables(
+        run_settings.apply_custom_variable_overrides(project.get_custom_environment_variables(), overrides)
+    )
+    return len(overrides)
 
 
 def main():
@@ -91,10 +118,13 @@ def main():
     print("[OPERATION] - (worker) - Starting worker {0}".format(args.worker_id or ""))
     print("[INFO] - (worker) - Source file: {0}".format(args.source_file))
     project = batch_processor_model.BatchProcessorModel.from_file(args.project_file)
-    runner = batch_processor_worker.SingleInstanceBatchRunner()
+    if args.custom_variables_file:
+        applied_count = apply_custom_variable_overrides_file(project, args.custom_variables_file)
+        print(f"[INFO] - (worker) - Applied {applied_count} custom variable override(s).")
+    runner =batch_processor_worker.SingleInstanceBatchRunner()
     if args.final_task_id:
         final_task = project.get_task(args.final_task_id)
-        if not final_task or final_task.is_input_task or not final_task.enabled:
+        if not final_task or not tasks.is_processing_task(final_task) or not final_task.enabled:
             raise RuntimeError(f"Unable to resolve enabled final task: {args.final_task_id}")
         process_tasks = [final_task]
     elif args.task_id:
@@ -110,7 +140,7 @@ def main():
         )
         skipped_task_ids = set(args.skip_task_id or [])
         process_tasks = [task for task in process_tasks if task.id not in skipped_task_ids]
-    executable_tasks = [task for task in process_tasks if not task.is_input_task]
+    executable_tasks = [task for task in process_tasks if tasks.is_processing_task(task)]
     total_task_count = len(executable_tasks)
     final_project_script = bool(args.final_task_id and executable_tasks[0].task_type == "python_script"
                                 and getattr(executable_tasks[0], "is_aggregate_task", False))
@@ -160,13 +190,17 @@ def main():
             remaining_tasks = max(0, total_task_count - task_index)
             args.current_task_index = task_index
             args.total_tasks = total_task_count
+            is_aggregate_task = bool(getattr(task, "is_aggregate_task", False))
+            # Aggregate tasks run once over every item, so the tracker counts them as one item
+            # and shows their own unit progress (e.g. inputs merged) as the visible count.
             event_writer.emit(
                 "task_started",
                 task_id=task.id,
                 task_index=task_index,
                 total_tasks=total_task_count,
-                total_items=max(1, len(current_items)),
+                total_items=1 if is_aggregate_task else max(1, len(current_items)),
                 worker_id=args.worker_id,
+                aggregate=is_aggregate_task,
             )
             print_running_task_flag(
                 args=args,
@@ -202,6 +236,7 @@ def main():
             output_items = []
             task_succeeded = 0
             task_skipped = 0
+            task_filtered = 0
             if task.writes_to_target_path():
                 ensure_directory(step_output_dir)
             if getattr(task, "is_aggregate_task", False):
@@ -318,6 +353,8 @@ def main():
                         succeeded += 1
                         task_succeeded += 1
                     except tasks.TaskSkip as exception:
+                        if getattr(exception, "filters_file", False):
+                            task_filtered += 1
                         skipped += 1
                         task_skipped += 1
                         append_skipped_output_items(
@@ -359,7 +396,7 @@ def main():
                 task_id=task.id,
                 status=task_status,
                 completed_items=task_succeeded + task_skipped,
-                total_items=max(1, len(current_items)),
+                total_items=1 if is_aggregate_task else max(1, len(current_items)),
                 errors=0,
                 warnings=0,
                 skipped_items=task_skipped,
@@ -375,6 +412,15 @@ def main():
             task_timing_recorded = True
             current_items = output_items
             if not current_items:
+                if task_filtered:
+                    for remaining_task in executable_tasks[task_index:]:
+                        run_state.record_task(project, remaining_task, "skipped")
+                        event_writer.emit(
+                            "task_finished", task_id=remaining_task.id, status="skipped",
+                            completed_items=0, total_items=1, errors=0, warnings=0, skipped_items=1,
+                        )
+                    print("[FILTERED] - No incoming files remain for subsequent tasks.")
+                    break
                 if task_index < total_task_count:
                     run_state.record_task(project, None, "incomplete")
                     print(f"[SKIPPED] - ({task.task_type}) - No output items remained for subsequent tasks.")
@@ -593,6 +639,8 @@ def append_skipped_output_items(output_items, exception, work_item=None):
     """
     from gt.tools.batch_processor import batch_processor_tasks as tasks
 
+    if getattr(exception, "filters_file", False):
+        return
     if exception.work_item:
         if isinstance(exception.work_item, list):
             output_items.extend(exception.work_item)
