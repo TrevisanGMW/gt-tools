@@ -1124,12 +1124,28 @@ def parse_fbx_global_settings(data):
     if data.startswith(b"Kaydara FBX Binary"):
 
         def read_property(name):
+            """Reads a named property from the binary FBX data.
+
+            Args:
+                name (str): GlobalSettings property name.
+
+            Returns:
+                object: Property value, or None if it could not be read.
+            """
             return find_fbx_binary_property(data, name)
 
     else:
         text = data.decode("utf-8", "ignore")
 
         def read_property(name):
+            """Reads a named property from the decoded ASCII FBX text.
+
+            Args:
+                name (str): GlobalSettings property name.
+
+            Returns:
+                float: Property value, or None if it could not be read.
+            """
             return find_fbx_ascii_property(text, name)
 
     file_info = {}

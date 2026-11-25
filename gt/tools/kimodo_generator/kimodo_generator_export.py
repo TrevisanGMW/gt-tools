@@ -1,4 +1,4 @@
-﻿"""Isolated Maya scene export; importing this module does not import Maya."""
+"""Isolated Maya scene export; importing this module does not import Maya."""
 
 import hashlib
 import os
@@ -145,6 +145,9 @@ def export_maya_files(paths, settings=None, mayapy_path=None, target=None, warni
         paths (dict): Downloaded artifact paths.
         settings (dict): Optional source HumanIK settings. Exports always lock the definition.
         mayapy_path (str): Optional interpreter override, primarily for scripted use/testing.
+        target (dict): Optional target rig and HumanIK retargeting settings.
+        warnings (list): Optional list to receive warnings when retargeting falls back to the source scene.
+        output_time_unit (str): Maya time unit for the output scene. Defaults to the motion frame rate.
 
     Returns:
         dict: Motion JSON names mapped to saved Maya ASCII paths.
@@ -208,6 +211,8 @@ def _export_sample(path, settings, target=None, output_time_unit=""):
     Args:
         path (str): Absolute motion JSON path.
         settings (dict): Validated HumanIK overrides.
+        target (dict): Optional validated target rig and HumanIK retargeting settings.
+        output_time_unit (str): Maya time unit for the output scene. Defaults to the motion frame rate.
 
     Returns:
         str: Maya ASCII file beside the motion JSON.
