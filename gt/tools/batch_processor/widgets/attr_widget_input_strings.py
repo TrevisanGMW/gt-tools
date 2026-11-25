@@ -81,13 +81,27 @@ class AttrWidgetInputStringsTask(AttrWidgetTask):
         self.mode_button_group.setExclusive(True)
         self.mode_buttons = {}
         highlight = ui_res_lib.Color.Hex.blue_pastel
-        checked_style = (f"QPushButton:checked {{ background-color: {highlight}; border: 1px solid {highlight}; "
-                         "border-radius: 3px; color: #FFFFFF; font-weight: bold; }")
+        horizontal_padding = 8
+        vertical_padding = 3
+        border_width = 1
+        button_style = (
+            f"QPushButton {{ padding: {vertical_padding}px {horizontal_padding}px; }}\n"
+            f"QPushButton:checked {{ background-color: {highlight}; border: {border_width}px solid {highlight}; "
+            "border-radius: 3px; color: #FFFFFF; font-weight: bold; }"
+        )
         for mode in task_input_strings.INPUT_MODES:
-            button = qt.QtWidgets.QPushButton(task_input_strings.INPUT_MODE_LABELS[mode])
+            button = qt.QtWidgets.QPushButton(task_input_strings.INPUT_MODE_LABELS[mode], self)
             button.setCheckable(True)
-            button.setMinimumHeight(30)
-            button.setStyleSheet(checked_style)
+            button.setStyleSheet(button_style)
+            button.ensurePolished()
+            # Qt can cache the size hint while the label still uses the unchecked font.
+            checked_font = qt.QtGui.QFont(button.font())
+            checked_font.setBold(True)
+            text_size = qt.QtGui.QFontMetrics(checked_font, button).size(0, button.text())
+            button.setMinimumSize(
+                text_size.width() + 2 * (horizontal_padding + border_width),
+                max(30, text_size.height() + 2 * (vertical_padding + border_width)),
+            )
             button.setToolTip(MODE_TOOLTIPS[mode])
             button.clicked.connect(partial(self.set_input_mode, mode=mode))
             self.mode_button_group.addButton(button)
