@@ -299,7 +299,7 @@ def read_automation_display(script_path):
         script_path (str): Path to a Python automation script.
 
     Returns:
-        dict: Path, label, button color, and hidden state for the script.
+        dict: Path, label, button color, hidden state, and optional Run Checked eligibility.
     """
     display = {
         "path": script_path,
@@ -337,6 +337,8 @@ def read_automation_display(script_path):
                 display["button_color"] = value.value
         elif key.value == "hidden" and isinstance(value.value, bool):
             display["hidden"] = value.value
+        elif key.value == "run_checked" and value.value is False:
+            display["run_checked"] = False
     return display
 
 

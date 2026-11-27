@@ -2271,8 +2271,13 @@ class RangeToolWindow(QtWidgets.QDialog):
                 QtWidgets.QSizePolicy.Fixed,
                 QtWidgets.QSizePolicy.Fixed,
             )
-            checkbox.setChecked(check_states.get(fname, not script["hidden"]))
-            checkbox.setToolTip("Include this automation when running checked scripts.")
+            can_run_checked = script.get("run_checked", True)
+            checkbox.setChecked(can_run_checked and check_states.get(fname, not script["hidden"]))
+            checkbox.setEnabled(can_run_checked)
+            checkbox.setToolTip(
+                "Include this automation when running checked scripts."
+                if can_run_checked else "Open this automation directly using its button."
+            )
             checkbox.stateChanged.connect(
                 lambda state, name=fname: self.model.set_automation_check_state(
                     folder,
@@ -2316,6 +2321,8 @@ class RangeToolWindow(QtWidgets.QDialog):
         visible_checkboxes = getattr(self, "automation_checkboxes", None)
         for script in annotation_tracker_model.get_automation_displays(folder):
             path = script["path"]
+            if not script.get("run_checked", True):
+                continue
             if hide_private and script["hidden"]:
                 continue
             if visible_checkboxes is not None and path not in visible_checkboxes:
@@ -2522,6 +2529,14 @@ class RangeToolWindow(QtWidgets.QDialog):
             """
             return self.model.get_last_used_data()
 
+        def get_annotation_payload():
+            """Gets current Tracker annotations, including unsaved edits.
+
+            Returns:
+                dict: Independent file metadata and timeline range dictionaries.
+            """
+            return annotation_tracker_model.build_scene_payload(self.file_data, self.timeline.ranges)
+
         def refresh_ui():
             """Refreshes the timeline and dynamic editor controls."""
             self.timeline.update()
@@ -2539,6 +2554,7 @@ class RangeToolWindow(QtWidgets.QDialog):
             "update_file_data": update_file_data,
             "get_file_data": get_file_data,
             "get_last_used_data": get_last_used_data,
+            "get_annotation_payload": get_annotation_payload,
             "create_range": create_range,
             "replace_annotation_data": replace_annotation_data,
             "refresh_ui": refresh_ui

@@ -491,7 +491,8 @@ class TestAnnotationTrackerModel(unittest.TestCase):
             ["interaction_item", "contact_attributes"],
             row_field_names,
         )
-        self.assertEqual("event_recorder.py", fields_by_name["event"]["automation"])
+        self.assertNotIn("automation", fields_by_name["event"])
+        self.assertNotIn("automation", fields_by_name["interaction_volumes"])
         self.assertNotIn("events", fields_by_name)
 
     def test_last_used_data_is_stored_as_a_copy(self):

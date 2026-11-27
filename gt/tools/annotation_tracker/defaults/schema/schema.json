@@ -12,7 +12,7 @@
       "maximum": 100,
       "default": 0,
       "required": true,
-      "description": "Overall animation fidelity score from 0 (unusable) to 100 (clean). 0 also means not yet rated. The validation automation suggests a score from jitter, pops, foot slides, ground penetration, and limb intersections."
+      "description": "Overall animation fidelity score from 0 (unusable or unrated) to 100 (clean). Auto Annotate uses the Motion Evaluator checks, weights, and thresholds configured in Annotation Setup."
     },
     {
       "type": "row",
@@ -82,9 +82,9 @@
           "type": "enum",
           "name": "state",
           "label": "State",
-          "options": ["none", "idle", "enter", "exit", "walk", "jog", "run", "sprint"],
+          "options": ["none", "idle", "activity", "enter", "exit", "walk", "jog", "run", "sprint"],
           "required": true,
-          "description": "The core locomotion or foundational action."
+          "description": "The primary motion state. Use activity for a deliberate non-locomotion action, such as operating a vending machine. Use idle for waiting, and interaction fields for the details of an action."
         },
         {
           "type": "enum",
@@ -136,7 +136,6 @@
       "name": "interaction_volumes",
       "label": "Interaction Volumes",
       "required": false,
-      "automation": "detect_volumes.py",
       "placeholder": "e.g. box_01, door_02",
       "description": "Comma-separated scene nodes representing interaction volumes."
     },
@@ -169,9 +168,8 @@
       "name": "event",
       "label": "Event",
       "required": false,
-      "automation": "event_recorder.py",
       "placeholder": "e.g. {\"foot_strike\": {\"start_frame\": 18, \"end_frame\": 28}}",
-      "description": "JSON event data recorded by the Event Recorder automation."
+      "description": "JSON event data stored on this frame range."
     }
   ]
 }
