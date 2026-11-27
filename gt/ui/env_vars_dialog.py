@@ -1,6 +1,6 @@
 """Reusable browser for resolved environment-variable tokens and values."""
 
-import gt.core.environment_references as core_env_refs
+import gt.core.env_vars as core_env_refs
 import gt.ui.qt_import as ui_qt
 import gt.ui.resource_library as ui_res_lib
 
@@ -43,7 +43,7 @@ class EnvironmentVariablesDialog(ui_qt.QtWidgets.QDialog):
             custom_description (str, optional): Description for unrecognized tokens.
             references_callback (callable, optional): Function returning a dictionary of
                 unbraced token keys mapped to reference lists, as produced by
-                ``gt.core.environment_references.find_references``. When omitted, the
+                ``gt.core.env_vars.find_references``. When omitted, the
                 reference controls are not shown.
             references_tooltip (str, optional): Tooltip for the "Show references" checkbox,
                 normally describing what the scan can and cannot detect.
